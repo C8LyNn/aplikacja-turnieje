@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Tournament Manager API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: tournaments
+    description: Tournament management
+  - name: players
+    description: Player management
+  - name: matches
+    description: Match management
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,323 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tournaments:
+    get:
+      operationId: listTournaments
+      tags: [tournaments]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: List of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tournament"
+    post:
+      operationId: createTournament
+      tags: [tournaments]
+      summary: Create a new tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}:
+    get:
+      operationId: getTournament
+      tags: [tournaments]
+      summary: Get a tournament by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTournament
+      tags: [tournaments]
+      summary: Update a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+    delete:
+      operationId: deleteTournament
+      tags: [tournaments]
+      summary: Delete a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tournaments/{id}/start:
+    post:
+      operationId: startTournament
+      tags: [tournaments]
+      summary: Start the tournament and generate bracket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/bracket:
+    get:
+      operationId: getTournamentBracket
+      tags: [tournaments]
+      summary: Get full bracket with matches and players
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bracket data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bracket"
+
+  /tournaments/{id}/stats:
+    get:
+      operationId: getTournamentStats
+      tags: [tournaments]
+      summary: Get tournament statistics and summary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStats"
+
+  /tournaments/{id}/players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: List players in a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: addPlayer
+      tags: [players]
+      summary: Add a player to a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /players/{id}:
+    patch:
+      operationId: updatePlayer
+      tags: [players]
+      summary: Update a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      summary: Remove a player
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tournaments/{id}/matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      summary: List matches in a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /matches/{id}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      summary: Get a match by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+    patch:
+      operationId: updateMatch
+      tags: [matches]
+      summary: Update match scores and winner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /matches/{id}/complete:
+    post:
+      operationId: completeMatch
+      tags: [matches]
+      summary: Mark a match as completed and advance winner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchResult"
+      responses:
+        "200":
+          description: Match completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +352,224 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Tournament:
+      type: object
+      required: [id, name, format, status, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        format:
+          type: string
+          enum: [single_elimination, double_elimination, round_robin]
+        status:
+          type: string
+          enum: [draft, active, completed]
+        maxPlayers:
+          type: ["integer", "null"]
+        currentRound:
+          type: ["integer", "null"]
+        totalRounds:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    TournamentInput:
+      type: object
+      required: [name, format]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        format:
+          type: string
+          enum: [single_elimination, double_elimination, round_robin]
+        maxPlayers:
+          type: integer
+
+    TournamentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        format:
+          type: string
+          enum: [single_elimination, double_elimination, round_robin]
+        status:
+          type: string
+          enum: [draft, active, completed]
+        maxPlayers:
+          type: integer
+
+    Player:
+      type: object
+      required: [id, tournamentId, name, createdAt]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        name:
+          type: string
+        seed:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+        wins:
+          type: integer
+        losses:
+          type: integer
+        createdAt:
+          type: string
+
+    PlayerInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        seed:
+          type: integer
+
+    PlayerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        seed:
+          type: integer
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+
+    Match:
+      type: object
+      required: [id, tournamentId, round, matchNumber, status]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        round:
+          type: integer
+        matchNumber:
+          type: integer
+        player1Id:
+          type: ["integer", "null"]
+        player2Id:
+          type: ["integer", "null"]
+        player1Name:
+          type: ["string", "null"]
+        player2Name:
+          type: ["string", "null"]
+        score1:
+          type: ["integer", "null"]
+        score2:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, bye]
+        nextMatchId:
+          type: ["integer", "null"]
+        scheduledAt:
+          type: ["string", "null"]
+
+    MatchUpdate:
+      type: object
+      properties:
+        score1:
+          type: integer
+        score2:
+          type: integer
+        status:
+          type: string
+          enum: [pending, in_progress, completed, bye]
+
+    MatchResult:
+      type: object
+      required: [winnerId, score1, score2]
+      properties:
+        winnerId:
+          type: integer
+        score1:
+          type: integer
+        score2:
+          type: integer
+
+    Bracket:
+      type: object
+      required: [tournament, rounds]
+      properties:
+        tournament:
+          $ref: "#/components/schemas/Tournament"
+        rounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/BracketRound"
+        winner:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+
+    BracketRound:
+      type: object
+      required: [round, matches]
+      properties:
+        round:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+
+    TournamentStats:
+      type: object
+      required: [totalPlayers, totalMatches, completedMatches, pendingMatches, currentRound]
+      properties:
+        totalPlayers:
+          type: integer
+        totalMatches:
+          type: integer
+        completedMatches:
+          type: integer
+        pendingMatches:
+          type: integer
+        inProgressMatches:
+          type: integer
+        currentRound:
+          type: ["integer", "null"]
+        totalRounds:
+          type: ["integer", "null"]
+        topPlayers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              wins:
+                type: integer
+              losses:
+                type: integer
