@@ -26,6 +26,12 @@ export interface Match {
   score2?: number | null;
   /** @nullable */
   winnerId?: number | null;
+  /** @nullable */
+  isDraw?: boolean | null;
+  /** @nullable */
+  bestOf?: number | null;
+  /** @nullable */
+  note?: string | null;
   status: MatchStatus;
   /** @nullable */
   nextMatchId?: number | null;

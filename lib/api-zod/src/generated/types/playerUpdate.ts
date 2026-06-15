@@ -9,6 +9,9 @@ import type { PlayerUpdateStatus } from './playerUpdateStatus';
 
 export interface PlayerUpdate {
   name?: string;
+  rank?: string;
+  country?: string;
+  teamName?: string;
   seed?: number;
   status?: PlayerUpdateStatus;
 }

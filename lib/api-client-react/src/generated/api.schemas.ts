@@ -16,6 +16,7 @@ export const TournamentFormat = {
   single_elimination: 'single_elimination',
   double_elimination: 'double_elimination',
   round_robin: 'round_robin',
+  swiss: 'swiss',
 } as const;
 
 export type TournamentStatus = typeof TournamentStatus[keyof typeof TournamentStatus];
@@ -37,11 +38,19 @@ export interface Tournament {
   /** @nullable */
   maxPlayers?: number | null;
   /** @nullable */
+  swissRounds?: number | null;
+  /** @nullable */
+  allowDraws?: boolean | null;
+  /** @nullable */
+  defaultBestOf?: number | null;
+  /** @nullable */
   currentRound?: number | null;
   /** @nullable */
   totalRounds?: number | null;
   /** @nullable */
   winnerId?: number | null;
+  /** @nullable */
+  featuredMatchId?: number | null;
   createdAt: string;
 }
 
@@ -52,6 +61,7 @@ export const TournamentInputFormat = {
   single_elimination: 'single_elimination',
   double_elimination: 'double_elimination',
   round_robin: 'round_robin',
+  swiss: 'swiss',
 } as const;
 
 export interface TournamentInput {
@@ -60,6 +70,9 @@ export interface TournamentInput {
   description?: string;
   format: TournamentInputFormat;
   maxPlayers?: number;
+  swissRounds?: number;
+  allowDraws?: boolean;
+  defaultBestOf?: number;
 }
 
 export type TournamentUpdateFormat = typeof TournamentUpdateFormat[keyof typeof TournamentUpdateFormat];
@@ -69,6 +82,7 @@ export const TournamentUpdateFormat = {
   single_elimination: 'single_elimination',
   double_elimination: 'double_elimination',
   round_robin: 'round_robin',
+  swiss: 'swiss',
 } as const;
 
 export type TournamentUpdateStatus = typeof TournamentUpdateStatus[keyof typeof TournamentUpdateStatus];
@@ -81,12 +95,15 @@ export const TournamentUpdateStatus = {
 } as const;
 
 export interface TournamentUpdate {
-  /** @minLength 1 */
   name?: string;
   description?: string;
   format?: TournamentUpdateFormat;
   status?: TournamentUpdateStatus;
   maxPlayers?: number;
+  swissRounds?: number;
+  allowDraws?: boolean;
+  defaultBestOf?: number;
+  featuredMatchId?: number;
 }
 
 export type PlayerStatus = typeof PlayerStatus[keyof typeof PlayerStatus];
@@ -103,16 +120,27 @@ export interface Player {
   tournamentId: number;
   name: string;
   /** @nullable */
+  rank?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  teamName?: string | null;
+  /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
   wins?: number;
+  draws?: number;
   losses?: number;
+  points?: number;
   createdAt: string;
 }
 
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  rank?: string;
+  country?: string;
+  teamName?: string;
   seed?: number;
 }
 
@@ -127,8 +155,21 @@ export const PlayerUpdateStatus = {
 
 export interface PlayerUpdate {
   name?: string;
+  rank?: string;
+  country?: string;
+  teamName?: string;
   seed?: number;
   status?: PlayerUpdateStatus;
+}
+
+export interface CsvImportInput {
+  csv: string;
+}
+
+export interface CsvImportResult {
+  imported: number;
+  skipped: number;
+  players: Player[];
 }
 
 export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
@@ -136,9 +177,11 @@ export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
 
 export const MatchStatus = {
   pending: 'pending',
+  ready: 'ready',
   in_progress: 'in_progress',
   completed: 'completed',
   bye: 'bye',
+  walkover: 'walkover',
 } as const;
 
 export interface Match {
@@ -160,6 +203,12 @@ export interface Match {
   score2?: number | null;
   /** @nullable */
   winnerId?: number | null;
+  /** @nullable */
+  isDraw?: boolean | null;
+  /** @nullable */
+  bestOf?: number | null;
+  /** @nullable */
+  note?: string | null;
   status: MatchStatus;
   /** @nullable */
   nextMatchId?: number | null;
@@ -172,21 +221,78 @@ export type MatchUpdateStatus = typeof MatchUpdateStatus[keyof typeof MatchUpdat
 
 export const MatchUpdateStatus = {
   pending: 'pending',
+  ready: 'ready',
   in_progress: 'in_progress',
   completed: 'completed',
   bye: 'bye',
+  walkover: 'walkover',
 } as const;
 
 export interface MatchUpdate {
   score1?: number;
   score2?: number;
   status?: MatchUpdateStatus;
+  note?: string;
+  bestOf?: number;
 }
 
 export interface MatchResult {
-  winnerId: number;
+  winnerId?: number;
   score1: number;
   score2: number;
+  isDraw?: boolean;
+  note?: string;
+}
+
+export interface Standing {
+  rank: number;
+  playerId: number;
+  playerName: string;
+  /** @nullable */
+  rank_name?: string | null;
+  /** @nullable */
+  teamName?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  seed: number | null;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  buchholz: number;
+  pointDiff: number;
+  gamesFor?: number;
+  gamesAgainst?: number;
+}
+
+export interface ResultRecord {
+  id: number;
+  matchId: number;
+  round: number;
+  matchNumber: number;
+  /** @nullable */
+  player1Name: string | null;
+  /** @nullable */
+  player2Name: string | null;
+  /** @nullable */
+  score1: number | null;
+  /** @nullable */
+  score2: number | null;
+  /** @nullable */
+  winnerId?: number | null;
+  /** @nullable */
+  winnerName?: string | null;
+  /** @nullable */
+  isDraw?: boolean | null;
+  status: string;
+  completedAt: string;
+}
+
+export interface AssistantSnapshot {
+  stepTitle: string;
+  nextAction: string;
+  warnings?: string[];
 }
 
 export type BracketWinner = {
@@ -210,6 +316,7 @@ export type TournamentStatsTopPlayersItem = {
   name?: string;
   wins?: number;
   losses?: number;
+  points?: number;
 };
 
 export interface TournamentStats {

@@ -12,9 +12,17 @@ export interface Player {
   tournamentId: number;
   name: string;
   /** @nullable */
+  rank?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  teamName?: string | null;
+  /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
   wins?: number;
+  draws?: number;
   losses?: number;
+  points?: number;
   createdAt: string;
 }

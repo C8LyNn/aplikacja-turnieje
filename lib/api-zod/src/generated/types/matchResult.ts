@@ -7,7 +7,9 @@
  */
 
 export interface MatchResult {
-  winnerId: number;
+  winnerId?: number;
   score1: number;
   score2: number;
+  isDraw?: boolean;
+  note?: string;
 }

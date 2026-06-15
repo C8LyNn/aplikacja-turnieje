@@ -18,10 +18,18 @@ export interface Tournament {
   /** @nullable */
   maxPlayers?: number | null;
   /** @nullable */
+  swissRounds?: number | null;
+  /** @nullable */
+  allowDraws?: boolean | null;
+  /** @nullable */
+  defaultBestOf?: number | null;
+  /** @nullable */
   currentRound?: number | null;
   /** @nullable */
   totalRounds?: number | null;
   /** @nullable */
   winnerId?: number | null;
+  /** @nullable */
+  featuredMatchId?: number | null;
   createdAt: string;
 }

@@ -13,4 +13,7 @@ export interface TournamentInput {
   description?: string;
   format: TournamentInputFormat;
   maxPlayers?: number;
+  swissRounds?: number;
+  allowDraws?: boolean;
+  defaultBestOf?: number;
 }

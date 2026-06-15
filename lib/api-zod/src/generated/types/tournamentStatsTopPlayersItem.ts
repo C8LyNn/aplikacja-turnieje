@@ -11,4 +11,5 @@ export type TournamentStatsTopPlayersItem = {
   name?: string;
   wins?: number;
   losses?: number;
+  points?: number;
 };

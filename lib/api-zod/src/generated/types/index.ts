@@ -6,9 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './assistantSnapshot';
 export * from './bracket';
 export * from './bracketRound';
 export * from './bracketWinner';
+export * from './csvImportInput';
+export * from './csvImportResult';
 export * from './healthStatus';
 export * from './match';
 export * from './matchResult';
@@ -20,6 +23,8 @@ export * from './playerInput';
 export * from './playerStatus';
 export * from './playerUpdate';
 export * from './playerUpdateStatus';
+export * from './resultRecord';
+export * from './standing';
 export * from './tournament';
 export * from './tournamentFormat';
 export * from './tournamentInput';

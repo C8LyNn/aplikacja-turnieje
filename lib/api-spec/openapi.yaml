@@ -8,13 +8,9 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: tournaments
-    description: Tournament management
   - name: players
-    description: Player management
   - name: matches
-    description: Match management
 paths:
   /healthz:
     get:
@@ -65,7 +61,6 @@ paths:
     get:
       operationId: getTournament
       tags: [tournaments]
-      summary: Get a tournament by ID
       parameters:
         - name: id
           in: path
@@ -84,7 +79,6 @@ paths:
     patch:
       operationId: updateTournament
       tags: [tournaments]
-      summary: Update a tournament
       parameters:
         - name: id
           in: path
@@ -107,7 +101,6 @@ paths:
     delete:
       operationId: deleteTournament
       tags: [tournaments]
-      summary: Delete a tournament
       parameters:
         - name: id
           in: path
@@ -122,7 +115,6 @@ paths:
     post:
       operationId: startTournament
       tags: [tournaments]
-      summary: Start the tournament and generate bracket
       parameters:
         - name: id
           in: path
@@ -137,11 +129,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tournament"
 
+  /tournaments/{id}/generate-round:
+    post:
+      operationId: generateNextRound
+      tags: [tournaments]
+      summary: Generate next Swiss round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
   /tournaments/{id}/bracket:
     get:
       operationId: getTournamentBracket
       tags: [tournaments]
-      summary: Get full bracket with matches and players
       parameters:
         - name: id
           in: path
@@ -160,7 +170,6 @@ paths:
     get:
       operationId: getTournamentStats
       tags: [tournaments]
-      summary: Get tournament statistics and summary
       parameters:
         - name: id
           in: path
@@ -175,11 +184,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/TournamentStats"
 
+  /tournaments/{id}/standings:
+    get:
+      operationId: getTournamentStandings
+      tags: [tournaments]
+      summary: Get standings table with Buchholz
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Standings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Standing"
+
+  /tournaments/{id}/results-history:
+    get:
+      operationId: getResultsHistory
+      tags: [tournaments]
+      summary: Get results history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Results history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResultRecord"
+
+  /tournaments/{id}/assistant:
+    get:
+      operationId: getTournamentAssistant
+      tags: [tournaments]
+      summary: Get tournament assistant snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assistant snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantSnapshot"
+
   /tournaments/{id}/players:
     get:
       operationId: listPlayers
       tags: [players]
-      summary: List players in a tournament
       parameters:
         - name: id
           in: path
@@ -198,7 +267,6 @@ paths:
     post:
       operationId: addPlayer
       tags: [players]
-      summary: Add a player to a tournament
       parameters:
         - name: id
           in: path
@@ -219,11 +287,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/Player"
 
+  /tournaments/{id}/players/import:
+    post:
+      operationId: importPlayers
+      tags: [players]
+      summary: Import players from CSV text
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsvImportResult"
+
   /players/{id}:
     patch:
       operationId: updatePlayer
       tags: [players]
-      summary: Update a player
       parameters:
         - name: id
           in: path
@@ -246,7 +338,6 @@ paths:
     delete:
       operationId: deletePlayer
       tags: [players]
-      summary: Remove a player
       parameters:
         - name: id
           in: path
@@ -261,7 +352,6 @@ paths:
     get:
       operationId: listMatches
       tags: [matches]
-      summary: List matches in a tournament
       parameters:
         - name: id
           in: path
@@ -282,7 +372,6 @@ paths:
     get:
       operationId: getMatch
       tags: [matches]
-      summary: Get a match by ID
       parameters:
         - name: id
           in: path
@@ -299,7 +388,6 @@ paths:
     patch:
       operationId: updateMatch
       tags: [matches]
-      summary: Update match scores and winner
       parameters:
         - name: id
           in: path
@@ -324,7 +412,6 @@ paths:
     post:
       operationId: completeMatch
       tags: [matches]
-      summary: Mark a match as completed and advance winner
       parameters:
         - name: id
           in: path
@@ -340,6 +427,25 @@ paths:
       responses:
         "200":
           description: Match completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /matches/{id}/revert:
+    post:
+      operationId: revertMatch
+      tags: [matches]
+      summary: Revert a completed match result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match reverted
           content:
             application/json:
               schema:
@@ -366,17 +472,25 @@ components:
           type: ["string", "null"]
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin]
+          enum: [single_elimination, double_elimination, round_robin, swiss]
         status:
           type: string
           enum: [draft, active, completed]
         maxPlayers:
+          type: ["integer", "null"]
+        swissRounds:
+          type: ["integer", "null"]
+        allowDraws:
+          type: ["boolean", "null"]
+        defaultBestOf:
           type: ["integer", "null"]
         currentRound:
           type: ["integer", "null"]
         totalRounds:
           type: ["integer", "null"]
         winnerId:
+          type: ["integer", "null"]
+        featuredMatchId:
           type: ["integer", "null"]
         createdAt:
           type: string
@@ -392,8 +506,14 @@ components:
           type: string
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin]
+          enum: [single_elimination, double_elimination, round_robin, swiss]
         maxPlayers:
+          type: integer
+        swissRounds:
+          type: integer
+        allowDraws:
+          type: boolean
+        defaultBestOf:
           type: integer
 
     TournamentUpdate:
@@ -401,16 +521,23 @@ components:
       properties:
         name:
           type: string
-          minLength: 1
         description:
           type: string
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin]
+          enum: [single_elimination, double_elimination, round_robin, swiss]
         status:
           type: string
           enum: [draft, active, completed]
         maxPlayers:
+          type: integer
+        swissRounds:
+          type: integer
+        allowDraws:
+          type: boolean
+        defaultBestOf:
+          type: integer
+        featuredMatchId:
           type: integer
 
     Player:
@@ -423,6 +550,12 @@ components:
           type: integer
         name:
           type: string
+        rank:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        teamName:
+          type: ["string", "null"]
         seed:
           type: ["integer", "null"]
         status:
@@ -430,7 +563,11 @@ components:
           enum: [active, eliminated, winner]
         wins:
           type: integer
+        draws:
+          type: integer
         losses:
+          type: integer
+        points:
           type: integer
         createdAt:
           type: string
@@ -442,6 +579,12 @@ components:
         name:
           type: string
           minLength: 1
+        rank:
+          type: string
+        country:
+          type: string
+        teamName:
+          type: string
         seed:
           type: integer
 
@@ -450,11 +593,37 @@ components:
       properties:
         name:
           type: string
+        rank:
+          type: string
+        country:
+          type: string
+        teamName:
+          type: string
         seed:
           type: integer
         status:
           type: string
           enum: [active, eliminated, winner]
+
+    CsvImportInput:
+      type: object
+      required: [csv]
+      properties:
+        csv:
+          type: string
+
+    CsvImportResult:
+      type: object
+      required: [imported, skipped, players]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
 
     Match:
       type: object
@@ -482,9 +651,15 @@ components:
           type: ["integer", "null"]
         winnerId:
           type: ["integer", "null"]
+        isDraw:
+          type: ["boolean", "null"]
+        bestOf:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
         status:
           type: string
-          enum: [pending, in_progress, completed, bye]
+          enum: [pending, ready, in_progress, completed, bye, walkover]
         nextMatchId:
           type: ["integer", "null"]
         scheduledAt:
@@ -499,11 +674,15 @@ components:
           type: integer
         status:
           type: string
-          enum: [pending, in_progress, completed, bye]
+          enum: [pending, ready, in_progress, completed, bye, walkover]
+        note:
+          type: string
+        bestOf:
+          type: integer
 
     MatchResult:
       type: object
-      required: [winnerId, score1, score2]
+      required: [score1, score2]
       properties:
         winnerId:
           type: integer
@@ -511,6 +690,89 @@ components:
           type: integer
         score2:
           type: integer
+        isDraw:
+          type: boolean
+        note:
+          type: string
+
+    Standing:
+      type: object
+      required: [rank, playerId, playerName, points, wins, draws, losses, buchholz, pointDiff, seed]
+      properties:
+        rank:
+          type: integer
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        rank_name:
+          type: ["string", "null"]
+        teamName:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        seed:
+          type: ["integer", "null"]
+        points:
+          type: integer
+        wins:
+          type: integer
+        draws:
+          type: integer
+        losses:
+          type: integer
+        buchholz:
+          type: integer
+        pointDiff:
+          type: integer
+        gamesFor:
+          type: integer
+        gamesAgainst:
+          type: integer
+
+    ResultRecord:
+      type: object
+      required: [id, matchId, round, matchNumber, player1Name, player2Name, score1, score2, status, completedAt]
+      properties:
+        id:
+          type: integer
+        matchId:
+          type: integer
+        round:
+          type: integer
+        matchNumber:
+          type: integer
+        player1Name:
+          type: ["string", "null"]
+        player2Name:
+          type: ["string", "null"]
+        score1:
+          type: ["integer", "null"]
+        score2:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        winnerName:
+          type: ["string", "null"]
+        isDraw:
+          type: ["boolean", "null"]
+        status:
+          type: string
+        completedAt:
+          type: string
+
+    AssistantSnapshot:
+      type: object
+      required: [stepTitle, nextAction]
+      properties:
+        stepTitle:
+          type: string
+        nextAction:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
 
     Bracket:
       type: object
@@ -572,4 +834,6 @@ components:
               wins:
                 type: integer
               losses:
+                type: integer
+              points:
                 type: integer

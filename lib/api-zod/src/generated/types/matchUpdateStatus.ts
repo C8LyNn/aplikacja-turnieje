@@ -11,7 +11,9 @@ export type MatchUpdateStatus = typeof MatchUpdateStatus[keyof typeof MatchUpdat
 
 export const MatchUpdateStatus = {
   pending: 'pending',
+  ready: 'ready',
   in_progress: 'in_progress',
   completed: 'completed',
   bye: 'bye',
+  walkover: 'walkover',
 } as const;

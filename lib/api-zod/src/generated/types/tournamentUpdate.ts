@@ -9,10 +9,13 @@ import type { TournamentUpdateFormat } from './tournamentUpdateFormat';
 import type { TournamentUpdateStatus } from './tournamentUpdateStatus';
 
 export interface TournamentUpdate {
-  /** @minLength 1 */
   name?: string;
   description?: string;
   format?: TournamentUpdateFormat;
   status?: TournamentUpdateStatus;
   maxPlayers?: number;
+  swissRounds?: number;
+  allowDraws?: boolean;
+  defaultBestOf?: number;
+  featuredMatchId?: number;
 }

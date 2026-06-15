@@ -9,5 +9,8 @@
 export interface PlayerInput {
   /** @minLength 1 */
   name: string;
+  rank?: string;
+  country?: string;
+  teamName?: string;
   seed?: number;
 }

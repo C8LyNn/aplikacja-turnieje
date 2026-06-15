@@ -11,7 +11,9 @@ export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
 
 export const MatchStatus = {
   pending: 'pending',
+  ready: 'ready',
   in_progress: 'in_progress',
   completed: 'completed',
   bye: 'bye',
+  walkover: 'walkover',
 } as const;

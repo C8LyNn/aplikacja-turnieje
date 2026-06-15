@@ -8,12 +8,13 @@ import CreateTournament from "@/pages/create-tournament";
 import TournamentDetail from "@/pages/tournament-detail";
 import TournamentBracket from "@/pages/tournament-bracket";
 import TournamentHost from "@/pages/tournament-host";
+import TournamentAudience from "@/pages/tournament-audience";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5,
+      staleTime: 1000 * 30,
     },
   },
 });
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/tournaments/new" component={CreateTournament} />
       <Route path="/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/tournaments/:id/host" component={TournamentHost} />
+      <Route path="/tournaments/:id/audience" component={TournamentAudience} />
       <Route path="/tournaments/:id" component={TournamentDetail} />
       <Route component={NotFound} />
     </Switch>
