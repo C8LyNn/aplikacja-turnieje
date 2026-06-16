@@ -18,7 +18,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
             <Link href="/tournaments/new" className="flex items-center gap-1 hover:text-foreground transition-colors">
               <PlusCircle className="w-4 h-4" />
-              New Tournament
+              Nowy turniej
             </Link>
           </nav>
         </div>
