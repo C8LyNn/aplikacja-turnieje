@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { apiSupportLogin } from "@/lib/auth";
+import { setActiveSupportToken, setActiveOrganizerToken } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,8 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
     try {
       const { sessionToken, nick: confirmedNick } = await apiSupportLogin(tournamentId, password, nick);
       storeSupSession(tournamentId, sessionToken, confirmedNick);
+      setActiveSupportToken(sessionToken);
+      setActiveOrganizerToken(null);
       onSuccess(sessionToken, confirmedNick);
     } catch (err: any) {
       setError(err.message ?? "Nieprawidłowe hasło");

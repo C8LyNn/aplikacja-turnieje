@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { apiOrganizerLogin } from "@/lib/auth";
+import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,8 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
     try {
       const token = await apiOrganizerLogin(tournamentId, password);
       storeOrgToken(tournamentId, token);
+      setActiveOrganizerToken(token);
+      setActiveSupportToken(null);
       onSuccess(token);
     } catch (err: any) {
       setError(err.message ?? "Nieprawidłowe hasło");

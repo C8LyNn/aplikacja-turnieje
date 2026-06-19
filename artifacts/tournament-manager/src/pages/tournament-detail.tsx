@@ -479,14 +479,24 @@ export default function TournamentDetail() {
           onClose={() => setShowOrgModal(false)}
           tournamentId={id}
           tournamentName={tournament.name}
-          onSuccess={(token) => { storeOrgToken(id, token); setShowOrgModal(false); }}
+          onSuccess={(token) => {
+            storeOrgToken(id, token);
+            setActiveOrganizerToken(token);
+            setActiveSupportToken(null);
+            setShowOrgModal(false);
+          }}
         />
         <SupportLoginModal
           open={showSupModal}
           onClose={() => setShowSupModal(false)}
           tournamentId={id}
           tournamentName={tournament.name}
-          onSuccess={(token, nick) => { storeSupSession(id, token, nick); setShowSupModal(false); }}
+          onSuccess={(token, nick) => {
+            storeSupSession(id, token, nick);
+            setActiveSupportToken(token);
+            setActiveOrganizerToken(null);
+            setShowSupModal(false);
+          }}
         />
 
         <Tabs defaultValue="overview" className="w-full">
