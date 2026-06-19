@@ -275,6 +275,48 @@ paths:
                 items:
                   $ref: "#/components/schemas/ResultRecord"
 
+  /tournaments/{id}/export:
+    get:
+      operationId: exportTournament
+      tags: [tournaments]
+      summary: Export full tournament backup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament backup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentBackup"
+        "404":
+          description: Tournament not found
+
+  /tournaments/import:
+    post:
+      operationId: importTournament
+      tags: [tournaments]
+      summary: Import tournament from backup (creates new copy)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentBackup"
+      responses:
+        "201":
+          description: Imported tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: Invalid backup file
+
   /tournaments/{id}/assistant:
     get:
       operationId: getTournamentAssistant
@@ -882,6 +924,148 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Match"
+
+    TournamentBackup:
+      type: object
+      required: [version, exportedAt, tournament, players, matches, resultHistory, actionLog]
+      properties:
+        version:
+          type: string
+        exportedAt:
+          type: string
+        tournament:
+          type: object
+          required: [name, format, status]
+          properties:
+            name:
+              type: string
+            description:
+              type: ["string", "null"]
+            format:
+              type: string
+            status:
+              type: string
+            maxPlayers:
+              type: ["integer", "null"]
+            currentRound:
+              type: ["integer", "null"]
+            totalRounds:
+              type: ["integer", "null"]
+            swissRounds:
+              type: ["integer", "null"]
+            featuredMatchId:
+              type: ["integer", "null"]
+        players:
+          type: array
+          items:
+            type: object
+            required: [backupId, name]
+            properties:
+              backupId:
+                type: integer
+              name:
+                type: string
+              rank:
+                type: ["string", "null"]
+              country:
+                type: ["string", "null"]
+              teamName:
+                type: ["string", "null"]
+              seed:
+                type: ["integer", "null"]
+              wins:
+                type: integer
+              draws:
+                type: integer
+              losses:
+                type: integer
+              points:
+                type: integer
+              status:
+                type: string
+        matches:
+          type: array
+          items:
+            type: object
+            required: [backupId, round, matchNumber]
+            properties:
+              backupId:
+                type: integer
+              round:
+                type: integer
+              matchNumber:
+                type: integer
+              player1BackupId:
+                type: ["integer", "null"]
+              player2BackupId:
+                type: ["integer", "null"]
+              winnerBackupId:
+                type: ["integer", "null"]
+              score1:
+                type: ["integer", "null"]
+              score2:
+                type: ["integer", "null"]
+              isDraw:
+                type: boolean
+              bestOf:
+                type: integer
+              status:
+                type: string
+              note:
+                type: ["string", "null"]
+              scheduledAt:
+                type: ["string", "null"]
+              completedAt:
+                type: ["string", "null"]
+        resultHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              round:
+                type: integer
+              matchNumber:
+                type: integer
+              player1BackupId:
+                type: ["integer", "null"]
+              player2BackupId:
+                type: ["integer", "null"]
+              winnerBackupId:
+                type: ["integer", "null"]
+              score1:
+                type: ["integer", "null"]
+              score2:
+                type: ["integer", "null"]
+              isDraw:
+                type: boolean
+              status:
+                type: string
+        actionLog:
+          type: array
+          items:
+            type: object
+            properties:
+              actionType:
+                type: string
+              description:
+                type: string
+              matchBackupId:
+                type: ["integer", "null"]
+              isUndone:
+                type: boolean
+              createdAt:
+                type: string
+
+    ImportResult:
+      type: object
+      required: [tournament, playersImported, matchesImported]
+      properties:
+        tournament:
+          $ref: "#/components/schemas/Tournament"
+        playersImported:
+          type: integer
+        matchesImported:
+          type: integer
 
     TournamentStats:
       type: object

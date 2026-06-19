@@ -330,6 +330,109 @@ export interface Bracket {
   winner?: BracketWinner;
 }
 
+export type TournamentBackupTournament = {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  format: string;
+  status: string;
+  /** @nullable */
+  maxPlayers?: number | null;
+  /** @nullable */
+  currentRound?: number | null;
+  /** @nullable */
+  totalRounds?: number | null;
+  /** @nullable */
+  swissRounds?: number | null;
+  /** @nullable */
+  featuredMatchId?: number | null;
+};
+
+export type TournamentBackupPlayersItem = {
+  backupId: number;
+  name: string;
+  /** @nullable */
+  rank?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  teamName?: string | null;
+  /** @nullable */
+  seed?: number | null;
+  wins?: number;
+  draws?: number;
+  losses?: number;
+  points?: number;
+  status?: string;
+};
+
+export type TournamentBackupMatchesItem = {
+  backupId: number;
+  round: number;
+  matchNumber: number;
+  /** @nullable */
+  player1BackupId?: number | null;
+  /** @nullable */
+  player2BackupId?: number | null;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  /** @nullable */
+  score1?: number | null;
+  /** @nullable */
+  score2?: number | null;
+  isDraw?: boolean;
+  bestOf?: number;
+  status?: string;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+};
+
+export type TournamentBackupResultHistoryItem = {
+  round?: number;
+  matchNumber?: number;
+  /** @nullable */
+  player1BackupId?: number | null;
+  /** @nullable */
+  player2BackupId?: number | null;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  /** @nullable */
+  score1?: number | null;
+  /** @nullable */
+  score2?: number | null;
+  isDraw?: boolean;
+  status?: string;
+};
+
+export type TournamentBackupActionLogItem = {
+  actionType?: string;
+  description?: string;
+  /** @nullable */
+  matchBackupId?: number | null;
+  isUndone?: boolean;
+  createdAt?: string;
+};
+
+export interface TournamentBackup {
+  version: string;
+  exportedAt: string;
+  tournament: TournamentBackupTournament;
+  players: TournamentBackupPlayersItem[];
+  matches: TournamentBackupMatchesItem[];
+  resultHistory: TournamentBackupResultHistoryItem[];
+  actionLog: TournamentBackupActionLogItem[];
+}
+
+export interface ImportResult {
+  tournament: Tournament;
+  playersImported: number;
+  matchesImported: number;
+}
+
 export type TournamentStatsTopPlayersItem = {
   id?: number;
   name?: string;

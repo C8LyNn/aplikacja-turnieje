@@ -330,6 +330,144 @@ export const GetResultsHistoryResponse = zod.array(GetResultsHistoryResponseItem
 
 
 /**
+ * @summary Export full tournament backup
+ */
+export const ExportTournamentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ExportTournamentResponse = zod.object({
+  "version": zod.string(),
+  "exportedAt": zod.string(),
+  "tournament": zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "maxPlayers": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "swissRounds": zod.number().nullish(),
+  "featuredMatchId": zod.number().nullish()
+}),
+  "players": zod.array(zod.object({
+  "backupId": zod.number(),
+  "name": zod.string(),
+  "rank": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "teamName": zod.string().nullish(),
+  "seed": zod.number().nullish(),
+  "wins": zod.number().optional(),
+  "draws": zod.number().optional(),
+  "losses": zod.number().optional(),
+  "points": zod.number().optional(),
+  "status": zod.string().optional()
+})),
+  "matches": zod.array(zod.object({
+  "backupId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "isDraw": zod.boolean().optional(),
+  "bestOf": zod.number().optional(),
+  "status": zod.string().optional(),
+  "note": zod.string().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})),
+  "resultHistory": zod.array(zod.object({
+  "round": zod.number().optional(),
+  "matchNumber": zod.number().optional(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "isDraw": zod.boolean().optional(),
+  "status": zod.string().optional()
+})),
+  "actionLog": zod.array(zod.object({
+  "actionType": zod.string().optional(),
+  "description": zod.string().optional(),
+  "matchBackupId": zod.number().nullish(),
+  "isUndone": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Import tournament from backup (creates new copy)
+ */
+export const ImportTournamentBody = zod.object({
+  "version": zod.string(),
+  "exportedAt": zod.string(),
+  "tournament": zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "maxPlayers": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "swissRounds": zod.number().nullish(),
+  "featuredMatchId": zod.number().nullish()
+}),
+  "players": zod.array(zod.object({
+  "backupId": zod.number(),
+  "name": zod.string(),
+  "rank": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "teamName": zod.string().nullish(),
+  "seed": zod.number().nullish(),
+  "wins": zod.number().optional(),
+  "draws": zod.number().optional(),
+  "losses": zod.number().optional(),
+  "points": zod.number().optional(),
+  "status": zod.string().optional()
+})),
+  "matches": zod.array(zod.object({
+  "backupId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "isDraw": zod.boolean().optional(),
+  "bestOf": zod.number().optional(),
+  "status": zod.string().optional(),
+  "note": zod.string().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})),
+  "resultHistory": zod.array(zod.object({
+  "round": zod.number().optional(),
+  "matchNumber": zod.number().optional(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "isDraw": zod.boolean().optional(),
+  "status": zod.string().optional()
+})),
+  "actionLog": zod.array(zod.object({
+  "actionType": zod.string().optional(),
+  "description": zod.string().optional(),
+  "matchBackupId": zod.number().nullish(),
+  "isUndone": zod.boolean().optional(),
+  "createdAt": zod.string().optional()
+}))
+})
+
+
+/**
  * @summary Get tournament assistant snapshot
  */
 export const GetTournamentAssistantParams = zod.object({

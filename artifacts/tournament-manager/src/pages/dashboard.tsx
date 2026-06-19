@@ -1,10 +1,10 @@
-import { useListTournaments, useDeleteTournament, getListTournamentsQueryKey } from "@workspace/api-client-react";
+import { useListTournaments, useDeleteTournament, getListTournamentsQueryKey, exportTournament } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
-import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X } from "lucide-react";
+import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useState } from "react";
@@ -32,7 +32,27 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [exportingId, setExportingId] = useState<number | null>(null);
   const confirmTarget = tournaments?.find((t) => t.id === confirmDeleteId);
+
+  const handleQuickExport = async (e: React.MouseEvent, t: { id: number; name: string }) => {
+    e.stopPropagation();
+    setExportingId(t.id);
+    try {
+      const backup = await exportTournament(t.id);
+      const fileName = `${t.name.replace(/[^a-z0-9]/gi, "_")}_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName; a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Backup zapisany", description: fileName });
+    } catch {
+      toast({ title: "Błąd eksportu", variant: "destructive" });
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const handleDelete = () => {
     if (!confirmDeleteId) return;
@@ -164,6 +184,15 @@ export default function Dashboard() {
                       >
                         {STATUS_LABELS[tournament.status] ?? tournament.status.toUpperCase()}
                       </Badge>
+                      {/* Quick export button */}
+                      <button
+                        onClick={(e) => handleQuickExport(e, tournament)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary"
+                        title="Pobierz backup"
+                        disabled={exportingId === tournament.id}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
                       {/* Delete button — stops propagation so it doesn't navigate */}
                       <button
                         onClick={(e) => {

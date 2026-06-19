@@ -26,6 +26,7 @@ import type {
   CsvImportInput,
   CsvImportResult,
   HealthStatus,
+  ImportResult,
   Match,
   MatchResult,
   MatchUpdate,
@@ -35,6 +36,7 @@ import type {
   ResultRecord,
   Standing,
   Tournament,
+  TournamentBackup,
   TournamentInput,
   TournamentStats,
   TournamentUpdate,
@@ -1056,6 +1058,154 @@ export function useGetResultsHistory<TData = Awaited<ReturnType<typeof getResult
 
 
 
+
+export const getExportTournamentUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/export`
+}
+
+/**
+ * @summary Export full tournament backup
+ */
+export const exportTournament = async (id: number, options?: RequestInit): Promise<TournamentBackup> => {
+
+  return customFetch<TournamentBackup>(getExportTournamentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportTournamentQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/export`
+    ] as const;
+    }
+
+
+export const getExportTournamentQueryOptions = <TData = Awaited<ReturnType<typeof exportTournament>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportTournament>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportTournamentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportTournament>>> = ({ signal }) => exportTournament(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportTournament>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportTournamentQueryResult = NonNullable<Awaited<ReturnType<typeof exportTournament>>>
+export type ExportTournamentQueryError = ErrorType<void>
+
+
+/**
+ * @summary Export full tournament backup
+ */
+
+export function useExportTournament<TData = Awaited<ReturnType<typeof exportTournament>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportTournament>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportTournamentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getImportTournamentUrl = () => {
+
+
+
+
+  return `/api/tournaments/import`
+}
+
+/**
+ * @summary Import tournament from backup (creates new copy)
+ */
+export const importTournament = async (tournamentBackup: TournamentBackup, options?: RequestInit): Promise<ImportResult> => {
+
+  return customFetch<ImportResult>(getImportTournamentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      tournamentBackup,)
+  }
+);}
+
+
+
+
+export const getImportTournamentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext> => {
+
+const mutationKey = ['importTournament'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTournament>>, {data: BodyType<TournamentBackup>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importTournament(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof importTournament>>>
+    export type ImportTournamentMutationBody = BodyType<TournamentBackup>
+    export type ImportTournamentMutationError = ErrorType<void>
+
+    /**
+ * @summary Import tournament from backup (creates new copy)
+ */
+export const useImportTournament = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importTournament>>,
+        TError,
+        {data: BodyType<TournamentBackup>},
+        TContext
+      > => {
+      return useMutation(getImportTournamentMutationOptions(options));
+    }
 
 export const getGetTournamentAssistantUrl = (id: number,) => {
 

@@ -31,6 +31,8 @@ import {
   RevertMatchParams,
   GetActionLogParams,
   UndoLastActionParams,
+  ExportTournamentParams,
+  ImportTournamentBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -1662,6 +1664,199 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
 
   const [enriched] = await enrichMatches([reverted]);
   res.json(enriched);
+});
+
+// ===== EXPORT =====
+router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
+  const params = ExportTournamentParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const tid = params.data.id;
+
+  const [tournament] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, tid));
+  if (!tournament) { res.status(404).json({ error: "Tournament not found" }); return; }
+
+  const players = await db.select().from(playersTable).where(eq(playersTable.tournamentId, tid));
+  const matches = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, tid)).orderBy(matchesTable.round, matchesTable.matchNumber);
+  const history = await db.select().from(resultHistoryTable).where(eq(resultHistoryTable.tournamentId, tid));
+  const log = await db.select().from(actionLogTable).where(eq(actionLogTable.tournamentId, tid)).orderBy(desc(actionLogTable.createdAt));
+
+  // Build player backup-id map (use actual DB id as backupId)
+  const backup = {
+    version: "1",
+    exportedAt: new Date().toISOString(),
+    tournament: {
+      name: tournament.name,
+      description: tournament.description ?? null,
+      format: tournament.format,
+      status: tournament.status,
+      maxPlayers: tournament.maxPlayers ?? null,
+      currentRound: tournament.currentRound ?? null,
+      totalRounds: tournament.totalRounds ?? null,
+      swissRounds: tournament.swissRounds ?? null,
+      featuredMatchId: null, // resolved on import
+    },
+    players: players.map((p) => ({
+      backupId: p.id,
+      name: p.name,
+      rank: p.rank ?? null,
+      country: p.country ?? null,
+      teamName: p.teamName ?? null,
+      seed: p.seed ?? null,
+      wins: p.wins,
+      draws: p.draws,
+      losses: p.losses,
+      points: p.points,
+      status: p.status,
+    })),
+    matches: matches.map((m) => ({
+      backupId: m.id,
+      round: m.round,
+      matchNumber: m.matchNumber,
+      player1BackupId: m.player1Id ?? null,
+      player2BackupId: m.player2Id ?? null,
+      winnerBackupId: m.winnerId ?? null,
+      score1: m.score1 ?? null,
+      score2: m.score2 ?? null,
+      isDraw: m.isDraw ?? false,
+      bestOf: m.bestOf ?? 1,
+      status: m.status,
+      note: m.note ?? null,
+      scheduledAt: m.scheduledAt ? m.scheduledAt.toISOString() : null,
+      completedAt: m.completedAt ? m.completedAt.toISOString() : null,
+    })),
+    resultHistory: history.map((r) => ({
+      round: r.round,
+      matchNumber: r.matchNumber,
+      player1BackupId: r.player1Id ?? null,
+      player2BackupId: r.player2Id ?? null,
+      winnerBackupId: r.winnerId ?? null,
+      score1: r.score1 ?? null,
+      score2: r.score2 ?? null,
+      isDraw: r.isDraw ?? false,
+      status: r.status ?? "completed",
+    })),
+    actionLog: log.map((a) => ({
+      actionType: a.actionType,
+      description: a.description,
+      matchBackupId: a.matchId ?? null,
+      isUndone: a.isUndone ?? false,
+      createdAt: a.createdAt.toISOString(),
+    })),
+  };
+
+  res.json(backup);
+});
+
+// ===== IMPORT =====
+router.post("/tournaments/import", async (req, res): Promise<void> => {
+  const parsed = ImportTournamentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Nieprawidłowy plik backup. Sprawdź czy plik nie jest uszkodzony i pochodzi z TM_SYS." });
+    return;
+  }
+  const bk = parsed.data;
+
+  // Validate version
+  if (bk.version !== "1") {
+    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${bk.version}). Aplikacja obsługuje wersję 1.` });
+    return;
+  }
+
+  // Create tournament (as copy)
+  const copyName = `${bk.tournament.name} (kopia)`;
+  const [newTournament] = await db.insert(tournamentsTable).values({
+    name: copyName,
+    description: bk.tournament.description ?? null,
+    format: bk.tournament.format as any,
+    status: bk.tournament.status as any,
+    maxPlayers: bk.tournament.maxPlayers ?? null,
+    currentRound: bk.tournament.currentRound ?? null,
+    totalRounds: bk.tournament.totalRounds ?? null,
+    swissRounds: bk.tournament.swissRounds ?? null,
+  }).returning();
+
+  const tid = newTournament.id;
+
+  // Import players — build backupId → new DB id map
+  const playerIdMap = new Map<number, number>();
+  for (const p of (bk.players ?? [])) {
+    const [newP] = await db.insert(playersTable).values({
+      tournamentId: tid,
+      name: p.name,
+      rank: p.rank ?? null,
+      country: p.country ?? null,
+      teamName: p.teamName ?? null,
+      seed: p.seed ?? null,
+      wins: p.wins ?? 0,
+      draws: p.draws ?? 0,
+      losses: p.losses ?? 0,
+      points: p.points ?? 0,
+      status: (p.status ?? "active") as any,
+    }).returning();
+    playerIdMap.set(p.backupId, newP.id);
+  }
+
+  // Import matches — build backupId → new DB id map
+  const matchIdMap = new Map<number, number>();
+  for (const m of (bk.matches ?? [])) {
+    const [newM] = await db.insert(matchesTable).values({
+      tournamentId: tid,
+      round: m.round,
+      matchNumber: m.matchNumber,
+      player1Id: m.player1BackupId ? (playerIdMap.get(m.player1BackupId) ?? null) : null,
+      player2Id: m.player2BackupId ? (playerIdMap.get(m.player2BackupId) ?? null) : null,
+      winnerId: m.winnerBackupId ? (playerIdMap.get(m.winnerBackupId) ?? null) : null,
+      score1: m.score1 ?? null,
+      score2: m.score2 ?? null,
+      isDraw: m.isDraw ?? false,
+      bestOf: m.bestOf ?? 1,
+      status: (m.status ?? "pending") as any,
+      note: m.note ?? null,
+      completedAt: m.completedAt ? new Date(m.completedAt) : null,
+    }).returning();
+    matchIdMap.set(m.backupId, newM.id);
+  }
+
+  // Import result history
+  for (const r of (bk.resultHistory ?? [])) {
+    const matchEntry = (bk.matches ?? []).find((m) => m.round === r.round && m.matchNumber === r.matchNumber);
+    const matchId = matchEntry ? (matchIdMap.get(matchEntry.backupId) ?? null) : null;
+    if (!matchId) continue;
+    await db.insert(resultHistoryTable).values({
+      matchId,
+      tournamentId: tid,
+      round: r.round,
+      matchNumber: r.matchNumber,
+      player1Id: r.player1BackupId ? (playerIdMap.get(r.player1BackupId) ?? null) : null,
+      player2Id: r.player2BackupId ? (playerIdMap.get(r.player2BackupId) ?? null) : null,
+      winnerId: r.winnerBackupId ? (playerIdMap.get(r.winnerBackupId) ?? null) : null,
+      score1: r.score1 ?? null,
+      score2: r.score2 ?? null,
+      isDraw: r.isDraw ?? false,
+      status: (r.status ?? "completed") as any,
+    });
+  }
+
+  // Import action log
+  for (const a of (bk.actionLog ?? [])) {
+    await db.insert(actionLogTable).values({
+      tournamentId: tid,
+      actionType: a.actionType as any,
+      description: a.description,
+      matchId: a.matchBackupId ? (matchIdMap.get(a.matchBackupId) ?? null) : null,
+      isUndone: a.isUndone ?? false,
+      createdAt: new Date(a.createdAt),
+    });
+  }
+
+  // Log import action
+  await logAction({ tournamentId: tid, actionType: "tournament_started", description: `Przywrócono z backupu: ${bk.tournament.name} (eksport: ${new Date(bk.exportedAt).toLocaleString("pl")})` });
+
+  res.status(201).json({
+    tournament: mapTournament(newTournament),
+    playersImported: playerIdMap.size,
+    matchesImported: matchIdMap.size,
+  });
 });
 
 export default router;

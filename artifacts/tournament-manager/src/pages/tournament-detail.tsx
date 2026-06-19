@@ -6,6 +6,8 @@ import {
   useListMatches, useAddPlayer, useDeletePlayer, useStartTournament, useImportPlayers,
   useUpdatePlayer,
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant,
+  useImportTournament,
+  exportTournament,
   getGetTournamentQueryKey, getGetTournamentStatsQueryKey, getListPlayersQueryKey,
   getGetTournamentBracketQueryKey, getListMatchesQueryKey, getGetTournamentStandingsQueryKey,
   getGetResultsHistoryQueryKey, getGetTournamentAssistantQueryKey,
@@ -16,10 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -65,6 +67,14 @@ export default function TournamentDetail() {
   const deletePlayer = useDeletePlayer();
   const importPlayers = useImportPlayers();
   const updatePlayer = useUpdatePlayer();
+  const importTournament = useImportTournament();
+
+  // Backup state
+  const [isExporting, setIsExporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<any>(null);
+  const [importPending, setImportPending] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerSeed, setNewPlayerSeed] = useState("");
@@ -100,6 +110,76 @@ export default function TournamentDetail() {
         invalidateAll();
       },
       onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  // ── Backup handlers ──
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const backup = await exportTournament(id);
+      const fileName = `${tournament?.name?.replace(/[^a-z0-9]/gi, "_") ?? "turniej"}_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fileName; a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Backup zapisany", description: fileName });
+    } catch {
+      toast({ title: "Błąd eksportu", description: "Nie udało się pobrać danych turnieju.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImportError(null);
+    setImportPreview(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith(".json")) {
+      setImportError("Nieprawidłowy format pliku. Wybierz plik .json z backupem TM_SYS.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (!data.version || !data.tournament || !Array.isArray(data.players)) {
+          setImportError("Plik nie wygląda jak backup TM_SYS. Sprawdź czy to właściwy plik.");
+          return;
+        }
+        if (data.version !== "1") {
+          setImportError(`Nieobsługiwana wersja backupu (${data.version}). Aplikacja obsługuje wersję 1.`);
+          return;
+        }
+        setImportPreview(data);
+      } catch {
+        setImportError("Nie można odczytać pliku. Plik jest uszkodzony lub nie jest prawidłowym JSON-em.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportConfirm = () => {
+    if (!importPreview) return;
+    setImportPending(true);
+    importTournament.mutate({ data: importPreview }, {
+      onSuccess: (result) => {
+        setImportPending(false);
+        setImportPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        toast({
+          title: "Backup przywrócony",
+          description: `Turniej „${result.tournament.name}" — ${result.playersImported} graczy, ${result.matchesImported} meczów.`,
+        });
+        // Navigate to the new tournament
+        window.location.href = `/tournaments/${result.tournament.id}`;
+      },
+      onError: (e: any) => {
+        setImportPending(false);
+        setImportError(e?.message ?? "Błąd podczas importu. Spróbuj ponownie.");
+      },
     });
   };
 
@@ -262,6 +342,9 @@ export default function TournamentDetail() {
                 <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Historia</TabsTrigger>
               </>
             )}
+            <TabsTrigger value="backup" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
+              <HardDriveDownload className="w-3.5 h-3.5" /> Backup
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="pt-6">
@@ -630,6 +713,121 @@ export default function TournamentDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+          {/* ═══ BACKUP ═══ */}
+          <TabsContent value="backup" className="pt-6">
+            <div className="space-y-6 max-w-2xl">
+
+              {/* Tip banner */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-primary mb-1">Kiedy robić backup?</p>
+                  <ul className="text-muted-foreground space-y-0.5 list-disc list-inside">
+                    <li>Przed rozpoczęciem turnieju</li>
+                    <li>Po każdej ukończonej rundzie</li>
+                    <li>Przed większymi zmianami (edycja graczy, cofanie wyników)</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Export section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Download className="w-4 h-4 text-primary" /> Eksport backupu
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Pobierz pełny stan turnieju do pliku <code className="bg-muted px-1 rounded text-xs">.json</code>. Plik zawiera: graczy, mecze, wyniki, historię zmian, ustawienia BO i status drabinki.
+                  </p>
+                  <div className="bg-muted/40 rounded p-3 text-xs text-muted-foreground space-y-1">
+                    <p>📁 <strong>Turniej:</strong> {tournament?.name}</p>
+                    <p>👥 <strong>Gracze:</strong> {stats?.totalPlayers ?? "—"}</p>
+                    <p>⚔️ <strong>Mecze:</strong> {stats?.totalMatches ?? "—"} (ukończone: {stats?.completedMatches ?? 0})</p>
+                    <p>📅 <strong>Status:</strong> {tournament?.status} · Runda {tournament?.currentRound ?? "—"}/{tournament?.totalRounds ?? "—"}</p>
+                  </div>
+                  <Button onClick={handleExport} disabled={isExporting} className="w-full">
+                    <Download className="w-4 h-4 mr-2" />
+                    {isExporting ? "Pobieranie…" : "Pobierz backup (.json)"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Import section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileUp className="w-4 h-4 text-yellow-400" /> Przywracanie z backupu
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 flex items-start gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                    <div className="text-muted-foreground">
+                      Import tworzy <strong className="text-foreground">nową kopię</strong> turnieju — obecny turniej pozostaje niezmieniony. Możesz potem usunąć stary z dashboardu.
+                    </div>
+                  </div>
+
+                  {importError && (
+                    <div className="bg-destructive/10 border border-destructive/30 rounded p-3 flex items-start gap-2 text-sm">
+                      <X className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                      <p className="text-destructive">{importError}</p>
+                    </div>
+                  )}
+
+                  {!importPreview ? (
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={handleImportFile}
+                      />
+                      <Button variant="outline" className="w-full border-dashed" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="w-4 h-4 mr-2" /> Wybierz plik backup (.json)
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-2">
+                        <p className="text-sm font-semibold text-green-400 flex items-center gap-2">
+                          <Check className="w-4 h-4" /> Plik odczytany poprawnie
+                        </p>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>🏆 <strong className="text-foreground">Turniej:</strong> {importPreview.tournament.name}</p>
+                          <p>📋 <strong className="text-foreground">Format:</strong> {FORMAT_LABELS[importPreview.tournament.format] ?? importPreview.tournament.format}</p>
+                          <p>👥 <strong className="text-foreground">Gracze:</strong> {importPreview.players?.length ?? 0}</p>
+                          <p>⚔️ <strong className="text-foreground">Mecze:</strong> {importPreview.matches?.length ?? 0}</p>
+                          <p>📊 <strong className="text-foreground">Status:</strong> {importPreview.tournament.status} · Runda {importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
+                          <p>📅 <strong className="text-foreground">Data backupu:</strong> {new Date(importPreview.exportedAt).toLocaleString("pl")}</p>
+                          <p>🔖 <strong className="text-foreground">Wersja formatu:</strong> {importPreview.version}</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Turniej zostanie przywrócony jako <strong>„{importPreview.tournament.name} (kopia)"</strong> i otwarty automatycznie.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
+                          onClick={handleImportConfirm}
+                          disabled={importPending}
+                        >
+                          <FileUp className="w-4 h-4 mr-2" />
+                          {importPending ? "Przywracanie…" : "Przywróć turniej"}
+                        </Button>
+                        <Button variant="outline" onClick={() => { setImportPreview(null); setImportError(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                          Anuluj
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
         </Tabs>
       </div>
     </Layout>
