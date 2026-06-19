@@ -18,14 +18,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
+import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import { OrganizerLoginModal } from "@/components/organizer-login-modal";
+import { SupportLoginModal } from "@/components/support-login-modal";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -39,7 +42,23 @@ export default function TournamentDetail() {
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { getOrgToken } = useAuth();
+  const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession, removeOrgToken, removeSupSession } = useAuth();
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [showSupModal, setShowSupModal] = useState(false);
+
+  // Keep module-level API client headers in sync with sessionStorage tokens
+  const orgToken = getOrgToken(id);
+  const supSession = getSupSession(id);
+  const isAuthenticated = !!(orgToken || supSession);
+
+  useEffect(() => {
+    const tok = getOrgToken(id);
+    const sess = getSupSession(id);
+    if (tok) { setActiveOrganizerToken(tok); setActiveSupportToken(null); }
+    else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); }
+    else { setActiveOrganizerToken(null); setActiveSupportToken(null); }
+    return () => { setActiveOrganizerToken(null); setActiveSupportToken(null); };
+  }, [id, orgToken, supSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tournament, isLoading: isLoadingTournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
@@ -115,13 +134,25 @@ export default function TournamentDetail() {
     queryClient.invalidateQueries({ queryKey: getGetTournamentAssistantQueryKey(id) });
   };
 
+  const handleMutationError = (e: any, fallback?: string) => {
+    if (e?.status === 403) {
+      toast({
+        title: "Brak uprawnień",
+        description: "Zaloguj się jako organizator lub wsparcie, aby wykonać tę akcję.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Błąd", description: fallback ?? e?.message, variant: "destructive" });
+    }
+  };
+
   const handleStart = () => {
     startTournament.mutate({ id }, {
       onSuccess: () => {
         toast({ title: "Turniej wystartował!" });
         invalidateAll();
       },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+      onError: (e: any) => handleMutationError(e),
     });
   };
 
@@ -213,6 +244,7 @@ export default function TournamentDetail() {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
       },
+      onError: (e: any) => handleMutationError(e),
     });
   };
 
@@ -230,6 +262,7 @@ export default function TournamentDetail() {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
       },
+      onError: (e: any) => { setConfirmDeletePlayerId(null); handleMutationError(e); },
     });
   };
 
@@ -259,7 +292,7 @@ export default function TournamentDetail() {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         toast({ title: "Gracz zaktualizowany" });
       },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+      onError: (e: any) => handleMutationError(e),
     });
   };
 
@@ -279,7 +312,7 @@ export default function TournamentDetail() {
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
       },
-      onError: (e: any) => toast({ title: "Błąd importu", description: e?.message, variant: "destructive" }),
+      onError: (e: any) => handleMutationError(e, "Błąd importu CSV"),
     });
   };
 
@@ -390,6 +423,71 @@ export default function TournamentDetail() {
             </div>
           </div>
         )}
+
+        {/* Fan read-only banner */}
+        {role === "fan" && (
+          <div className="bg-muted/40 border border-muted rounded-lg p-3 flex items-center gap-3">
+            <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
+            <p className="text-sm text-muted-foreground">Tryb kibica — tylko do odczytu. Edycja turnieju jest niedostępna.</p>
+          </div>
+        )}
+
+        {/* Auth gate for password-protected tournaments */}
+        {tournament.hasOrganizerPassword && !isAuthenticated && role !== "fan" && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Lock className="w-5 h-5 text-yellow-400 shrink-0" />
+              <div>
+                <p className="font-semibold text-yellow-400 text-sm">Turniej chroniony hasłem</p>
+                <p className="text-xs text-muted-foreground">Zaloguj się, aby dodawać graczy i zarządzać turniejem.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" onClick={() => setShowOrgModal(true)}>
+                <Key className="w-3.5 h-3.5 mr-1.5" /> Organizator
+              </Button>
+              {tournament.hasSupportPassword && (
+                <Button size="sm" variant="outline" onClick={() => setShowSupModal(true)}>
+                  Wsparcie
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Authenticated badge */}
+        {tournament.hasOrganizerPassword && isAuthenticated && (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-green-400 shrink-0" />
+            <p className="text-sm text-green-400 font-medium">
+              {orgToken ? "Zalogowano jako organizator" : `Zalogowano jako wsparcie (${supSession?.nick})`}
+            </p>
+            <button
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                if (orgToken) removeOrgToken(id); else removeSupSession(id);
+                setActiveOrganizerToken(null); setActiveSupportToken(null);
+              }}
+            >
+              Wyloguj
+            </button>
+          </div>
+        )}
+
+        <OrganizerLoginModal
+          open={showOrgModal}
+          onClose={() => setShowOrgModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token) => { storeOrgToken(id, token); setShowOrgModal(false); }}
+        />
+        <SupportLoginModal
+          open={showSupModal}
+          onClose={() => setShowSupModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token, nick) => { storeSupSession(id, token, nick); setShowSupModal(false); }}
+        />
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-card w-full justify-start border-b rounded-none px-0 h-auto flex-wrap">

@@ -24,13 +24,14 @@ import {
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
   Share2, Lock, Key, Copy, Check, Eye, EyeOff,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
 import { useHostAuth } from "@/hooks/use-host-auth";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
 
@@ -88,22 +89,8 @@ export default function TournamentHost() {
 
   // For new-style auth (hasOrganizerPassword), check existing session tokens
   const hasNewAuth = !!(tournament?.hasOrganizerPassword);
-  const orgToken = hasNewAuth ? getOrgToken(id) : null;
-  const supSession = hasNewAuth ? getSupSession(id) : null;
-  const isNewAuthAuthenticated = !hasNewAuth || !!(orgToken || supSession);
-
-  // Sync global API client headers with stored tokens
-  useEffect(() => {
-    if (!hasNewAuth) return;
-    const tok = getOrgToken(id);
-    const sess = getSupSession(id);
-    if (tok) setActiveOrganizerToken(tok);
-    else if (sess) setActiveSupportToken(sess.token);
-    return () => {
-      setActiveOrganizerToken(null);
-      setActiveSupportToken(null);
-    };
-  }, [id, hasNewAuth, orgToken, supSession]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { orgToken, supSession, isAuthenticated: isNewAuthTokenPresent } = useSyncTournamentAuth(id);
+  const isNewAuthAuthenticated = !hasNewAuth || isNewAuthTokenPresent;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
