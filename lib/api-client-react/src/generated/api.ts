@@ -28,11 +28,13 @@ import type {
   HealthStatus,
   ImportResult,
   Match,
+  MatchCancelInput,
   MatchResult,
   MatchUpdate,
   Player,
   PlayerInput,
   PlayerUpdate,
+  ReorderMatchesInput,
   ResultRecord,
   Standing,
   Tournament,
@@ -1895,6 +1897,290 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCompleteMatchMutationOptions(options));
+    }
+
+export const getCancelMatchUrl = (id: number,) => {
+
+
+
+
+  return `/api/matches/${id}/cancel`
+}
+
+/**
+ * @summary Cancel a match (saves state for undo)
+ */
+export const cancelMatch = async (id: number,
+    matchCancelInput?: MatchCancelInput, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getCancelMatchUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchCancelInput,)
+  }
+);}
+
+
+
+
+export const getCancelMatchMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext> => {
+
+const mutationKey = ['cancelMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelMatch>>, {id: number;data?: BodyType<MatchCancelInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  cancelMatch(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelMatchMutationResult = NonNullable<Awaited<ReturnType<typeof cancelMatch>>>
+    export type CancelMatchMutationBody = BodyType<MatchCancelInput> | undefined
+    export type CancelMatchMutationError = ErrorType<void>
+
+    /**
+ * @summary Cancel a match (saves state for undo)
+ */
+export const useCancelMatch = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelMatch>>,
+        TError,
+        {id: number;data?: BodyType<MatchCancelInput>},
+        TContext
+      > => {
+      return useMutation(getCancelMatchMutationOptions(options));
+    }
+
+export const getRestoreCancelledMatchUrl = (id: number,) => {
+
+
+
+
+  return `/api/matches/${id}/restore-cancelled`
+}
+
+/**
+ * @summary Restore a cancelled match back to pending
+ */
+export const restoreCancelledMatch = async (id: number, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getRestoreCancelledMatchUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRestoreCancelledMatchMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['restoreCancelledMatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreCancelledMatch>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  restoreCancelledMatch(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RestoreCancelledMatchMutationResult = NonNullable<Awaited<ReturnType<typeof restoreCancelledMatch>>>
+
+    export type RestoreCancelledMatchMutationError = ErrorType<void>
+
+    /**
+ * @summary Restore a cancelled match back to pending
+ */
+export const useRestoreCancelledMatch = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof restoreCancelledMatch>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRestoreCancelledMatchMutationOptions(options));
+    }
+
+export const getSwapMatchPlayersUrl = (id: number,) => {
+
+
+
+
+  return `/api/matches/${id}/swap-players`
+}
+
+/**
+ * @summary Swap player1 and player2 in a match
+ */
+export const swapMatchPlayers = async (id: number, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getSwapMatchPlayersUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSwapMatchPlayersMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['swapMatchPlayers'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof swapMatchPlayers>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  swapMatchPlayers(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SwapMatchPlayersMutationResult = NonNullable<Awaited<ReturnType<typeof swapMatchPlayers>>>
+
+    export type SwapMatchPlayersMutationError = ErrorType<void>
+
+    /**
+ * @summary Swap player1 and player2 in a match
+ */
+export const useSwapMatchPlayers = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof swapMatchPlayers>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSwapMatchPlayersMutationOptions(options));
+    }
+
+export const getReorderMatchesUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/reorder-matches`
+}
+
+/**
+ * @summary Reorder upcoming matches in the queue
+ */
+export const reorderMatches = async (id: number,
+    reorderMatchesInput: ReorderMatchesInput, options?: RequestInit): Promise<Match[]> => {
+
+  return customFetch<Match[]>(getReorderMatchesUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reorderMatchesInput,)
+  }
+);}
+
+
+
+
+export const getReorderMatchesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderMatches>>, TError,{id: number;data: BodyType<ReorderMatchesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reorderMatches>>, TError,{id: number;data: BodyType<ReorderMatchesInput>}, TContext> => {
+
+const mutationKey = ['reorderMatches'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reorderMatches>>, {id: number;data: BodyType<ReorderMatchesInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reorderMatches(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReorderMatchesMutationResult = NonNullable<Awaited<ReturnType<typeof reorderMatches>>>
+    export type ReorderMatchesMutationBody = BodyType<ReorderMatchesInput>
+    export type ReorderMatchesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reorder upcoming matches in the queue
+ */
+export const useReorderMatches = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reorderMatches>>, TError,{id: number;data: BodyType<ReorderMatchesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reorderMatches>>,
+        TError,
+        {id: number;data: BodyType<ReorderMatchesInput>},
+        TContext
+      > => {
+      return useMutation(getReorderMatchesMutationOptions(options));
     }
 
 export const getRevertMatchUrl = (id: number,) => {

@@ -201,6 +201,7 @@ export const MatchStatus = {
   bye: 'bye',
   walkover: 'walkover',
   postponed: 'postponed',
+  cancelled: 'cancelled',
 } as const;
 
 export interface Match {
@@ -232,7 +233,17 @@ export interface Match {
   /** @nullable */
   nextMatchId?: number | null;
   /** @nullable */
+  sortOrder?: number | null;
+  /** @nullable */
   scheduledAt?: string | null;
+}
+
+export interface MatchCancelInput {
+  note?: string;
+}
+
+export interface ReorderMatchesInput {
+  matchIds: number[];
 }
 
 export type MatchUpdateStatus = typeof MatchUpdateStatus[keyof typeof MatchUpdateStatus];
@@ -246,6 +257,7 @@ export const MatchUpdateStatus = {
   bye: 'bye',
   walkover: 'walkover',
   postponed: 'postponed',
+  cancelled: 'cancelled',
 } as const;
 
 export interface MatchUpdate {

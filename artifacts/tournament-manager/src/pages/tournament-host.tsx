@@ -7,16 +7,17 @@ import {
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
+  useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, ChevronRight, AlertTriangle,
+  ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, AlertTriangle,
   Star, Minus, Plus, SkipForward, Clock, Undo2, Shield, History,
+  Ban, ArrowUp, ArrowDown, ArrowLeftRight,
 } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -61,6 +62,10 @@ export default function TournamentHost() {
   const generateNextRound = useGenerateNextRound();
   const updateTournament = useUpdateTournament();
   const undoLastAction = useUndoLastAction();
+  const cancelMatch = useCancelMatch();
+  const restoreCancelledMatch = useRestoreCancelledMatch();
+  const swapMatchPlayers = useSwapMatchPlayers();
+  const reorderMatches = useReorderMatches();
 
   const lastUndoableAction = actionLog?.find((a) => a.canUndo);
 
@@ -70,6 +75,8 @@ export default function TournamentHost() {
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
   const [undoConfirm, setUndoConfirm] = useState(false);
   const [boConfirm, setBoConfirm] = useState<{ matchId: number; bo: number } | null>(null);
+  const [cancelConfirm, setCancelConfirm] = useState<number | null>(null);
+  const [swapConfirm, setSwapConfirm] = useState<number | null>(null);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
@@ -174,6 +181,57 @@ export default function TournamentHost() {
     });
   };
 
+  const handleCancel = (matchId: number) => setCancelConfirm(matchId);
+  const doCancel = (matchId: number) => {
+    cancelMatch.mutate({ id: matchId }, {
+      onSuccess: () => {
+        setCancelConfirm(null);
+        invalidateAll();
+        toast({ title: "Mecz anulowany", description: "Możesz go przywrócić z sekcji Anulowane." });
+        if (selectedMatchId === matchId) setSelectedMatchId(null);
+      },
+      onError: (e: any) => toast({ title: "Błąd anulowania", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  const handleRestoreCancelled = (matchId: number) => {
+    restoreCancelledMatch.mutate({ id: matchId }, {
+      onSuccess: () => {
+        invalidateAll();
+        toast({ title: "Mecz przywrócony do kolejki" });
+        setSelectedMatchId(matchId);
+      },
+      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  const handleSwapPlayers = (matchId: number) => setSwapConfirm(matchId);
+  const doSwapPlayers = (matchId: number) => {
+    swapMatchPlayers.mutate({ id: matchId }, {
+      onSuccess: () => {
+        setSwapConfirm(null);
+        invalidateAll();
+        toast({ title: "Zawodnicy zamienieni stronami" });
+      },
+      onError: (e: any) => toast({ title: "Błąd zamiany", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  const handleMoveInQueue = (matchId: number, direction: "up" | "down") => {
+    if (!matches) return;
+    const queue = [...pendingReady].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
+    const idx = queue.findIndex((m) => m.id === matchId);
+    if (idx < 0) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= queue.length) return;
+    const newOrder = [...queue];
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+    reorderMatches.mutate({ id, data: { matchIds: newOrder.map((m) => m.id) } }, {
+      onSuccess: () => invalidateAll(),
+      onError: (e: any) => toast({ title: "Błąd kolejkowania", description: e?.message, variant: "destructive" }),
+    });
+  };
+
   const handleSetFeatured = (matchId: number) => {
     const isCurrent = tournament?.featuredMatchId === matchId;
     updateTournament.mutate(
@@ -258,9 +316,10 @@ export default function TournamentHost() {
     (m) => (m.status === "in_progress" || m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id,
   ) || [];
   const postponedMatches = matches?.filter((m) => m.status === "postponed") || [];
-  const pendingReady = matches?.filter(
+  const cancelledMatches = matches?.filter((m) => m.status === "cancelled") || [];
+  const pendingReady = (matches?.filter(
     (m) => (m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id,
-  ) || [];
+  ) || []).sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
   const completedMatches = matches?.filter((m) => m.status === "completed" || m.status === "bye") || [];
   const allCurrentRoundDone = matches
     ?.filter((m) => m.round === tournament.currentRound)
@@ -303,16 +362,21 @@ export default function TournamentHost() {
     const isLive = focusedMatch.status === "in_progress";
     const isDone = focusedMatch.status === "completed";
     const isPostponed = focusedMatch.status === "postponed";
+    const isCancelled = focusedMatch.status === "cancelled";
     const isShowingConfirm = confirmComplete?.matchId === focusedMatch.id;
     const isShowingRevert = revertConfirm === focusedMatch.id;
+    const isShowingCancel = cancelConfirm === focusedMatch.id;
+    const isShowingSwap = swapConfirm === focusedMatch.id;
 
     return (
       <div className={`rounded-xl border-2 overflow-hidden transition-colors ${
-        isLive
-          ? "border-secondary/60 shadow-[0_0_40px_rgba(0,200,255,0.07)]"
-          : isFeatured
-            ? "border-yellow-500/50"
-            : "border-border"
+        isCancelled
+          ? "border-destructive/30 opacity-80"
+          : isLive
+            ? "border-secondary/60 shadow-[0_0_40px_rgba(0,200,255,0.07)]"
+            : isFeatured
+              ? "border-yellow-500/50"
+              : "border-border"
       }`}>
         {/* Header row */}
         <div className="bg-muted/20 border-b px-4 py-2.5 flex items-center gap-3 justify-between">
@@ -327,6 +391,9 @@ export default function TournamentHost() {
             )}
             {isPostponed && (
               <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs shrink-0">⏸ Przełożony</Badge>
+            )}
+            {isCancelled && (
+              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs shrink-0">✕ Anulowany</Badge>
             )}
             {isFeatured && (
               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs shrink-0">★ Na ekranie</Badge>
@@ -508,8 +575,67 @@ export default function TournamentHost() {
             </div>
           )}
 
+          {/* Cancel confirm */}
+          {isShowingCancel && (
+            <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="font-semibold text-destructive text-sm mb-1 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Anulować mecz?
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                R{focusedMatch.round} M{focusedMatch.matchNumber}:{" "}
+                <strong>{focusedMatch.player1Name ?? "TBD"}</strong> vs{" "}
+                <strong>{focusedMatch.player2Name ?? "TBD"}</strong>
+                <br />
+                <span className="text-xs">Mecz zostanie oznaczony jako anulowany. Można go przywrócić później.</span>
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCancelConfirm(null)}>Nie anuluj</Button>
+                <Button variant="destructive" size="sm" onClick={() => doCancel(focusedMatch.id)} disabled={cancelMatch.isPending}>
+                  <Ban className="w-3.5 h-3.5 mr-1" /> Anuluj mecz
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Swap players confirm */}
+          {isShowingSwap && (
+            <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+              <p className="font-semibold text-orange-400 text-sm mb-1 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Zamienić zawodników stronami?
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                <strong>{focusedMatch.player1Name ?? "TBD"}</strong>
+                {" ↔ "}
+                <strong>{focusedMatch.player2Name ?? "TBD"}</strong>
+                <br />
+                <span className="text-xs">Zawodnik A stanie się B i odwrotnie. Wyniki zostaną zamienione.</span>
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSwapConfirm(null)}>Anuluj</Button>
+                <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => doSwapPlayers(focusedMatch.id)} disabled={swapMatchPlayers.isPending}>
+                  <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> Zamień strony
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Restore cancelled action */}
+          {isCancelled && (
+            <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
+              <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
+              <Button
+                variant="outline"
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                onClick={() => handleRestoreCancelled(focusedMatch.id)}
+                disabled={restoreCancelledMatch.isPending}
+              >
+                <SkipForward className="w-4 h-4 mr-2" /> Przywróć do kolejki
+              </Button>
+            </div>
+          )}
+
           {/* Action bar */}
-          {!isShowingConfirm && !isShowingRevert && (
+          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isCancelled && (
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
                 {/* Start — for pending/ready/postponed */}
@@ -522,6 +648,18 @@ export default function TournamentHost() {
                     <Play className="w-4 h-4 mr-2" /> Rozpocznij
                   </Button>
                 )}
+                {/* Swap players — for non-completed, both players assigned */}
+                {!isDone && focusedMatch.player1Id && focusedMatch.player2Id && (
+                  <Button
+                    variant="outline"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={() => handleSwapPlayers(focusedMatch.id)}
+                    disabled={swapMatchPlayers.isPending}
+                    title="Zamień zawodnika A i B stronami"
+                  >
+                    <ArrowLeftRight className="w-4 h-4 mr-2" /> Zamień strony
+                  </Button>
+                )}
                 {/* Postpone — for pending/ready/in_progress (not done, not already postponed) */}
                 {!isDone && !isPostponed && (
                   <Button
@@ -530,7 +668,7 @@ export default function TournamentHost() {
                     onClick={() => handlePostpone(focusedMatch.id)}
                     disabled={updateMatch.isPending}
                   >
-                    <Clock className="w-4 h-4 mr-2" /> Przełóż mecz
+                    <Clock className="w-4 h-4 mr-2" /> Przełóż
                   </Button>
                 )}
                 {/* Restore — for postponed matches */}
@@ -541,7 +679,19 @@ export default function TournamentHost() {
                     onClick={() => handleRestore(focusedMatch.id)}
                     disabled={updateMatch.isPending}
                   >
-                    <SkipForward className="w-4 h-4 mr-2" /> Przywróć do kolejki
+                    <SkipForward className="w-4 h-4 mr-2" /> Przywróć
+                  </Button>
+                )}
+                {/* Cancel — for non-completed, non-cancelled */}
+                {!isDone && (
+                  <Button
+                    variant="outline"
+                    className="text-destructive/60 hover:text-destructive hover:border-destructive/50"
+                    onClick={() => handleCancel(focusedMatch.id)}
+                    disabled={cancelMatch.isPending}
+                    title="Anuluj ten mecz"
+                  >
+                    <Ban className="w-4 h-4 mr-2" /> Anuluj
                   </Button>
                 )}
                 {tournament.allowDraws && !isDone && !isPostponed && (
@@ -732,46 +882,81 @@ export default function TournamentHost() {
                     {pendingReady.length === 0 ? (
                       <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
                     ) : (
-                      pendingReady.slice(0, 6).map((m) => (
-                        <button
+                      pendingReady.slice(0, 8).map((m, idx) => (
+                        <div
                           key={m.id}
-                          className={`w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-muted/30 transition-colors ${
+                          className={`flex items-center gap-1 pr-1 ${
                             m.id === focusedMatchId
                               ? "bg-primary/10 border-l-[3px] border-primary"
                               : "border-l-[3px] border-transparent"
                           }`}
-                          onClick={() => setSelectedMatchId(m.id)}
                         >
-                          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
-                                R{m.round}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                              {m.bestOf && m.bestOf > 1 && (
-                                <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>
-                              )}
-                            </div>
-                            <div className="text-sm font-medium truncate">
-                              {m.player1Name}{" "}
-                              <span className="text-muted-foreground font-normal">vs</span>{" "}
-                              {m.player2Name}
-                            </div>
+                          {/* Reorder arrows */}
+                          <div className="flex flex-col py-1 pl-1 shrink-0">
+                            <button
+                              className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+                              onClick={() => handleMoveInQueue(m.id, "up")}
+                              disabled={idx === 0 || reorderMatches.isPending}
+                              title="Przesuń wyżej"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
+                              onClick={() => handleMoveInQueue(m.id, "down")}
+                              disabled={idx === pendingReady.slice(0, 8).length - 1 || reorderMatches.isPending}
+                              title="Przesuń niżej"
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
                           </div>
-                          {m.status === "in_progress" && (
-                            <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
-                              LIVE
-                            </Badge>
+                          <button
+                            className="flex-1 text-left px-2 py-2.5 flex items-center gap-3 hover:bg-muted/20 transition-colors min-w-0"
+                            onClick={() => setSelectedMatchId(m.id)}
+                          >
+                            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                                  R{m.round}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
+                                {m.bestOf && m.bestOf > 1 && (
+                                  <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>
+                                )}
+                              </div>
+                              <div className="text-sm font-medium truncate">
+                                {m.player1Name}{" "}
+                                <span className="text-muted-foreground font-normal">vs</span>{" "}
+                                {m.player2Name}
+                              </div>
+                            </div>
+                            {m.status === "in_progress" && (
+                              <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
+                                LIVE
+                              </Badge>
+                            )}
+                            {m.id === focusedMatchId && m.status !== "in_progress" && (
+                              <span className="text-[10px] text-primary shrink-0">▶ aktywny</span>
+                            )}
+                          </button>
+                          {/* Set as current button for non-focused matches */}
+                          {m.id !== focusedMatchId && m.status !== "in_progress" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[10px] px-2 shrink-0 text-muted-foreground hover:text-primary"
+                              onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}
+                              title="Ustaw jako aktualny i rozpocznij"
+                            >
+                              <Play className="w-2.5 h-2.5" />
+                            </Button>
                           )}
-                          {m.id === focusedMatchId && m.status !== "in_progress" && (
-                            <span className="text-[10px] text-primary shrink-0">▶ aktywny</span>
-                          )}
-                        </button>
+                        </div>
                       ))
                     )}
-                    {pendingReady.length > 6 && (
+                    {pendingReady.length > 8 && (
                       <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-                        + {pendingReady.length - 6} więcej
+                        + {pendingReady.length - 8} więcej
                       </div>
                     )}
                   </div>
@@ -829,7 +1014,7 @@ export default function TournamentHost() {
             {postponedMatches.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-orange-400/80 mb-2 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" /> Przełożone mecze ({postponedMatches.length})
+                  <Clock className="w-3.5 h-3.5" /> Przełożone ({postponedMatches.length})
                 </h3>
                 <div className="bg-card border border-orange-500/20 rounded-lg overflow-hidden divide-y divide-border">
                   {postponedMatches.map((m) => (
@@ -845,20 +1030,48 @@ export default function TournamentHost() {
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-orange-400 hover:text-orange-300"
-                          onClick={() => setSelectedMatchId(m.id)}
-                        >
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-400 hover:text-orange-300" onClick={() => setSelectedMatchId(m.id)}>
+                          Pokaż
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
+                          <SkipForward className="w-3 h-3 mr-1" /> Przywróć
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cancelled matches section */}
+            {cancelledMatches.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-destructive/70 mb-2 flex items-center gap-2">
+                  <Ban className="w-3.5 h-3.5" /> Anulowane ({cancelledMatches.length})
+                </h3>
+                <div className="bg-card border border-destructive/20 rounded-lg overflow-hidden divide-y divide-border">
+                  {cancelledMatches.map((m) => (
+                    <div key={m.id} className="px-3 py-2.5 flex items-center gap-3 opacity-70">
+                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive/60 shrink-0">R{m.round}</Badge>
+                          <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
+                          {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>}
+                        </div>
+                        <div className="text-sm truncate">
+                          {m.player1Name || "TBD"} <span className="text-muted-foreground">vs</span> {m.player2Name || "TBD"}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedMatchId(m.id)}>
                           Pokaż
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => handleRestore(m.id)}
-                          disabled={updateMatch.isPending}
+                          className="h-7 text-xs border-destructive/40 text-destructive/70 hover:bg-destructive/10"
+                          onClick={() => handleRestoreCancelled(m.id)}
+                          disabled={restoreCancelledMatch.isPending}
                         >
                           <SkipForward className="w-3 h-3 mr-1" /> Przywróć
                         </Button>
@@ -916,7 +1129,9 @@ export default function TournamentHost() {
                                       ? "text-muted-foreground"
                                       : m.status === "postponed"
                                         ? "border-orange-500/50 text-orange-400"
-                                        : ""
+                                        : m.status === "cancelled"
+                                          ? "border-destructive/50 text-destructive/70"
+                                          : ""
                               }`}
                             >
                               {m.status === "pending"
@@ -931,7 +1146,9 @@ export default function TournamentHost() {
                                       ? "BYE"
                                       : m.status === "postponed"
                                         ? "⏸"
-                                        : m.status}
+                                        : m.status === "cancelled"
+                                          ? "✕"
+                                          : m.status}
                             </Badge>
                           </div>
                         ))}
@@ -1082,6 +1299,8 @@ export default function TournamentHost() {
                         match_bo_changed: "text-purple-400",
                         match_featured: "text-primary",
                         match_unfeatured: "text-muted-foreground",
+                        match_cancelled: "text-destructive",
+                        match_players_swapped: "text-orange-300",
                         player_added: "text-green-300",
                         player_edited: "text-cyan-400",
                         player_removed: "text-destructive",

@@ -523,6 +523,108 @@ paths:
               schema:
                 $ref: "#/components/schemas/Match"
 
+  /matches/{id}/cancel:
+    post:
+      operationId: cancelMatch
+      tags: [matches]
+      summary: Cancel a match (saves state for undo)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchCancelInput"
+      responses:
+        "200":
+          description: Match cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Cannot cancel match in current state
+
+  /matches/{id}/restore-cancelled:
+    post:
+      operationId: restoreCancelledMatch
+      tags: [matches]
+      summary: Restore a cancelled match back to pending
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Match is not cancelled
+
+  /matches/{id}/swap-players:
+    post:
+      operationId: swapMatchPlayers
+      tags: [matches]
+      summary: Swap player1 and player2 in a match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Players swapped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Cannot swap players in current state
+
+  /tournaments/{id}/reorder-matches:
+    post:
+      operationId: reorderMatches
+      tags: [matches]
+      summary: Reorder upcoming matches in the queue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderMatchesInput"
+      responses:
+        "200":
+          description: Matches reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
   /matches/{id}/revert:
     post:
       operationId: revertMatch
@@ -773,11 +875,28 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover, postponed]
+          enum: [pending, ready, in_progress, completed, bye, walkover, postponed, cancelled]
         nextMatchId:
+          type: ["integer", "null"]
+        sortOrder:
           type: ["integer", "null"]
         scheduledAt:
           type: ["string", "null"]
+
+    MatchCancelInput:
+      type: object
+      properties:
+        note:
+          type: string
+
+    ReorderMatchesInput:
+      type: object
+      required: [matchIds]
+      properties:
+        matchIds:
+          type: array
+          items:
+            type: integer
 
     MatchUpdate:
       type: object
@@ -788,7 +907,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover, postponed]
+          enum: [pending, ready, in_progress, completed, bye, walkover, postponed, cancelled]
         note:
           type: string
         bestOf:

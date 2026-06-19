@@ -29,6 +29,7 @@ export const matchStatusEnum = pgEnum("match_status", [
   "bye",
   "walkover",
   "postponed",
+  "cancelled",
 ]);
 
 export const tournamentsTable = pgTable("tournaments", {
@@ -79,6 +80,7 @@ export const matchesTable = pgTable("matches", {
   note: text("note"),
   status: matchStatusEnum("status").notNull().default("pending"),
   nextMatchId: integer("next_match_id"),
+  sortOrder: integer("sort_order"),
   scheduledAt: timestamp("scheduled_at"),
   completedAt: timestamp("completed_at"),
 });

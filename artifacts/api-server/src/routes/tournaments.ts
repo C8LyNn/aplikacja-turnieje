@@ -29,6 +29,12 @@ import {
   CompleteMatchParams,
   CompleteMatchBody,
   RevertMatchParams,
+  CancelMatchParams,
+  CancelMatchBody,
+  RestoreCancelledMatchParams,
+  SwapMatchPlayersParams,
+  ReorderMatchesParams,
+  ReorderMatchesBody,
   GetActionLogParams,
   UndoLastActionParams,
   ExportTournamentParams,
@@ -93,6 +99,7 @@ function mapMatch(
     bestOf: m.bestOf ?? null,
     note: m.note ?? null,
     nextMatchId: m.nextMatchId ?? null,
+    sortOrder: m.sortOrder ?? null,
     scheduledAt: formatDate(m.scheduledAt),
   };
 }
@@ -1193,6 +1200,7 @@ const UNDOABLE_TYPES = new Set([
   "match_started", "match_postponed", "match_restored",
   "match_bo_changed", "match_featured", "match_unfeatured",
   "match_result_submitted", "player_added", "player_edited",
+  "match_cancelled", "match_players_swapped",
 ]);
 
 async function logAction(params: {
@@ -1343,6 +1351,25 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         const prevData = payload.prevData as Record<string, unknown>;
         await db.update(playersTable).set(prevData as any).where(eq(playersTable.id, playerId));
         await logAction({ tournamentId: params.data.id, actionType: "player_edited", description: `Cofnięto edycję gracza — przywrócono poprzednie dane` });
+        break;
+      }
+      case "restore_cancelled_match": {
+        const matchId = payload.matchId as number;
+        const prevStatus = payload.prevStatus as string;
+        const prevNote = (payload.prevNote as string | null) ?? null;
+        await db.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(eq(matchesTable.id, matchId));
+        await logAction({ tournamentId: params.data.id, actionType: "match_restored", description: `Cofnięto anulowanie meczu (przywrócono status: ${prevStatus})`, matchId });
+        break;
+      }
+      case "restore_players_swap": {
+        const matchId = payload.matchId as number;
+        await db.update(matchesTable).set({
+          player1Id: (payload.player1Id as number | null) ?? null,
+          player2Id: (payload.player2Id as number | null) ?? null,
+          score1: (payload.score1 as number | null) ?? null,
+          score2: (payload.score2 as number | null) ?? null,
+        }).where(eq(matchesTable.id, matchId));
+        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zamianę zawodników w meczu ID ${matchId}`, matchId });
         break;
       }
       default:
@@ -1771,6 +1798,126 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
   }
 
   const [enriched] = await enrichMatches([reverted]);
+  res.json(enriched);
+});
+
+// ===== CANCEL MATCH =====
+router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
+  const params = CancelMatchParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const parsed = CancelMatchBody.safeParse(req.body ?? {});
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  const blockedStatuses = ["completed", "bye", "walkover", "cancelled"];
+  if (blockedStatuses.includes(match.status)) {
+    res.status(400).json({ error: `Nie można anulować meczu o statusie: ${match.status}` });
+    return;
+  }
+  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
+  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
+  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
+  const matchLabel = `R${match.round}M${match.matchNumber}: ${nm.get(match.player1Id ?? 0) ?? "TBD"} vs ${nm.get(match.player2Id ?? 0) ?? "TBD"}`;
+  const [updated] = await db.update(matchesTable).set({
+    status: "cancelled",
+    note: parsed.data.note ?? match.note ?? null,
+  }).where(eq(matchesTable.id, params.data.id)).returning();
+  await logAction({
+    tournamentId: match.tournamentId,
+    actionType: "match_cancelled",
+    description: `Anulowano mecz ${matchLabel}`,
+    matchId: match.id,
+    undoPayload: {
+      type: "restore_cancelled_match",
+      matchId: match.id,
+      prevStatus: match.status,
+      prevNote: match.note,
+    },
+  });
+  const [enriched] = await enrichMatches([updated]);
+  res.json(enriched);
+});
+
+// ===== RESTORE CANCELLED MATCH =====
+router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> => {
+  const params = RestoreCancelledMatchParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (match.status !== "cancelled") { res.status(400).json({ error: "Mecz nie jest anulowany" }); return; }
+  const [updated] = await db.update(matchesTable).set({ status: "pending" }).where(eq(matchesTable.id, params.data.id)).returning();
+  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
+  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
+  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
+  const matchLabel = `R${match.round}M${match.matchNumber}: ${nm.get(match.player1Id ?? 0) ?? "TBD"} vs ${nm.get(match.player2Id ?? 0) ?? "TBD"}`;
+  await logAction({
+    tournamentId: match.tournamentId,
+    actionType: "match_restored",
+    description: `Przywrócono anulowany mecz ${matchLabel}`,
+    matchId: match.id,
+    undoPayload: { type: "restore_status", matchId: match.id, prevStatus: "cancelled" },
+  });
+  const [enriched] = await enrichMatches([updated]);
+  res.json(enriched);
+});
+
+// ===== SWAP PLAYERS =====
+router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
+  const params = SwapMatchPlayersParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
+  if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  const blockedStatuses = ["completed", "bye", "walkover"];
+  if (blockedStatuses.includes(match.status)) {
+    res.status(400).json({ error: `Nie można zamieniać zawodników w meczu o statusie: ${match.status}` });
+    return;
+  }
+  const [updated] = await db.update(matchesTable).set({
+    player1Id: match.player2Id ?? null,
+    player2Id: match.player1Id ?? null,
+    score1: match.score2 ?? null,
+    score2: match.score1 ?? null,
+  }).where(eq(matchesTable.id, params.data.id)).returning();
+  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
+  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
+  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
+  const p1n = nm.get(match.player1Id ?? 0) ?? "TBD";
+  const p2n = nm.get(match.player2Id ?? 0) ?? "TBD";
+  await logAction({
+    tournamentId: match.tournamentId,
+    actionType: "match_players_swapped",
+    description: `Zamieniono strony w R${match.round}M${match.matchNumber}: ${p1n} ↔ ${p2n}`,
+    matchId: match.id,
+    undoPayload: {
+      type: "restore_players_swap",
+      matchId: match.id,
+      player1Id: match.player1Id,
+      player2Id: match.player2Id,
+      score1: match.score1,
+      score2: match.score2,
+    },
+  });
+  const [enriched] = await enrichMatches([updated]);
+  res.json(enriched);
+});
+
+// ===== REORDER MATCHES =====
+router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> => {
+  const params = ReorderMatchesParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const parsed = ReorderMatchesBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const { matchIds } = parsed.data;
+  // Assign sortOrder based on position in provided array
+  await Promise.all(
+    matchIds.map((matchId, idx) =>
+      db.update(matchesTable)
+        .set({ sortOrder: (idx + 1) * 10 })
+        .where(and(eq(matchesTable.id, matchId), eq(matchesTable.tournamentId, params.data.id))),
+    ),
+  );
+  const all = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, params.data.id)).orderBy(matchesTable.round, matchesTable.matchNumber);
+  const enriched = await enrichMatches(all);
   res.json(enriched);
 });
 

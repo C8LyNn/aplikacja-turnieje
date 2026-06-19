@@ -36,5 +36,7 @@ export interface Match {
   /** @nullable */
   nextMatchId?: number | null;
   /** @nullable */
+  sortOrder?: number | null;
+  /** @nullable */
   scheduledAt?: string | null;
 }

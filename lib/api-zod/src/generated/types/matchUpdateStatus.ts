@@ -17,4 +17,5 @@ export const MatchUpdateStatus = {
   bye: 'bye',
   walkover: 'walkover',
   postponed: 'postponed',
+  cancelled: 'cancelled',
 } as const;
