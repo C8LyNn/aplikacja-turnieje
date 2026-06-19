@@ -5,10 +5,14 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { CsvRowError } from './csvRowError';
 import type { Player } from './player';
 
 export interface CsvImportResult {
   imported: number;
   skipped: number;
+  replacedCount?: number;
+  limitExceeded?: boolean;
   players: Player[];
+  errors: CsvRowError[];
 }

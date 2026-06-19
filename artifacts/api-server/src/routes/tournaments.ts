@@ -1000,30 +1000,138 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
     return;
   }
 
-  const rows = parseCsv(parsed.data.csv);
-  if (rows.length === 0) {
-    res.status(400).json({ error: "No valid rows found in CSV" });
-    return;
+  const mode = (parsed.data as any).mode === "replace" ? "replace" : "append";
+
+  // Get existing players
+  const existingPlayers = await db
+    .select()
+    .from(playersTable)
+    .where(eq(playersTable.tournamentId, params.data.id));
+
+  const existingNames = new Set(existingPlayers.map((p) => p.name.toLowerCase()));
+  const replacedCount = mode === "replace" ? existingPlayers.length : 0;
+
+  // Parse CSV with line numbers
+  type CsvRow = { name: string; rank?: string; seed?: number; teamName?: string; country?: string };
+  const rawLines = parsed.data.csv.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const sep = rawLines[0]?.includes(";") ? ";" : ",";
+  const headers = rawLines[0]?.split(sep).map((h) => h.trim().toLowerCase()) ?? [];
+
+  type RowError = { line: number; content: string; reason: string };
+  const errors: RowError[] = [];
+  const validRows: Array<CsvRow & { lineNum: number }> = [];
+  const seenNamesInCsv = new Set<string>();
+
+  for (let i = 1; i < rawLines.length; i++) {
+    const raw = rawLines[i];
+    if (!raw.trim()) continue;
+    const lineNum = i + 1;
+    const values = raw.split(sep).map((v) => v.trim());
+    const get = (key: string) => {
+      const idx = headers.indexOf(key);
+      return idx >= 0 && idx < values.length ? values[idx] : "";
+    };
+
+    // name is required (support "name" and "nick")
+    const nameIdx = headers.indexOf("name") >= 0 ? headers.indexOf("name") : headers.indexOf("nick");
+    const name = nameIdx >= 0 ? values[nameIdx]?.trim() ?? "" : "";
+
+    if (!name) {
+      errors.push({ line: lineNum, content: raw, reason: "Brak nazwy zawodnika (kolumna 'name' jest wymagana)" });
+      continue;
+    }
+    if (name.length > 100) {
+      errors.push({ line: lineNum, content: raw, reason: `Nazwa jest za długa (${name.length} znaków, max 100)` });
+      continue;
+    }
+
+    // Duplicate within CSV
+    const nameLower = name.toLowerCase();
+    if (seenNamesInCsv.has(nameLower)) {
+      errors.push({ line: lineNum, content: raw, reason: `Duplikat w pliku CSV: "${name}" już występuje wcześniej` });
+      continue;
+    }
+    seenNamesInCsv.add(nameLower);
+
+    // Duplicate against existing players (only in append mode)
+    if (mode === "append" && existingNames.has(nameLower)) {
+      errors.push({ line: lineNum, content: raw, reason: `Zawodnik "${name}" jest już na liście turnieju` });
+      continue;
+    }
+
+    // Validate seed
+    const seedStr = get("seed");
+    let seed: number | undefined;
+    if (seedStr) {
+      const parsed = parseInt(seedStr, 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 999) {
+        errors.push({ line: lineNum, content: raw, reason: `Nieprawidłowe rozstawienie (seed): "${seedStr}" — musi być liczbą 1–999` });
+        continue;
+      }
+      seed = parsed;
+    }
+
+    validRows.push({
+      lineNum,
+      name,
+      rank: get("rank") || get("ranga") || undefined,
+      seed,
+      teamName: get("team") || get("druzyna") || undefined,
+      country: get("country") || get("kraj") || undefined,
+    });
   }
 
-  const inserted = await db
-    .insert(playersTable)
-    .values(
-      rows.map((r) => ({
-        tournamentId: params.data.id,
-        name: r.name,
-        rank: r.rank ?? null,
-        seed: r.seed ?? null,
-        teamName: r.teamName ?? null,
-        country: r.country ?? null,
-      })),
-    )
-    .returning();
+  // Limit check
+  const currentCount = mode === "replace" ? 0 : existingPlayers.length;
+  const limit = tournament.maxPlayers ?? 256;
+  const available = limit - currentCount;
+  let limitExceeded = false;
+
+  let rowsToInsert = validRows;
+  if (validRows.length > available) {
+    // Mark the overflow rows as errors
+    const overflow = validRows.splice(available);
+    overflow.forEach((r) => {
+      errors.push({ line: r.lineNum, content: r.name, reason: `Limit graczy turnieju (${limit}) został osiągnięty — gracz pominięty` });
+    });
+    limitExceeded = true;
+    rowsToInsert = validRows;
+  }
+
+  // Apply import in a transaction-like sequence
+  if (mode === "replace" && existingPlayers.length > 0) {
+    await db
+      .delete(playersTable)
+      .where(eq(playersTable.tournamentId, params.data.id));
+  }
+
+  let inserted: typeof existingPlayers = [];
+  if (rowsToInsert.length > 0) {
+    inserted = await db
+      .insert(playersTable)
+      .values(
+        rowsToInsert.map((r) => ({
+          tournamentId: params.data.id,
+          name: r.name,
+          rank: r.rank ?? null,
+          seed: r.seed ?? null,
+          teamName: r.teamName ?? null,
+          country: r.country ?? null,
+        })),
+      )
+      .returning();
+  }
+
+  const totalCsvDataRows = rawLines.filter((l) => l.trim()).length - 1; // minus header
+  const skipped = errors.length;
 
   res.json({
     imported: inserted.length,
-    skipped: rows.length - inserted.length,
+    skipped,
+    replacedCount: mode === "replace" ? replacedCount : undefined,
+    limitExceeded,
     players: inserted.map(mapPlayer),
+    errors,
   });
 });
 
@@ -1822,8 +1930,9 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     const matchEntry = (bk.matches ?? []).find((m) => m.round === r.round && m.matchNumber === r.matchNumber);
     const matchId = matchEntry ? (matchIdMap.get(matchEntry.backupId) ?? null) : null;
     if (!matchId) continue;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.insert(resultHistoryTable).values({
-      matchId,
+      matchId: matchId as number,
       tournamentId: tid,
       round: r.round,
       matchNumber: r.matchNumber,
@@ -1833,8 +1942,8 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
       score1: r.score1 ?? null,
       score2: r.score2 ?? null,
       isDraw: r.isDraw ?? false,
-      status: (r.status ?? "completed") as any,
-    });
+      status: (r.status ?? "completed") as string,
+    } as any);
   }
 
   // Import action log
@@ -1842,10 +1951,10 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     await db.insert(actionLogTable).values({
       tournamentId: tid,
       actionType: a.actionType as any,
-      description: a.description,
+      description: (a.description as string | undefined) ?? "",
       matchId: a.matchBackupId ? (matchIdMap.get(a.matchBackupId) ?? null) : null,
       isUndone: a.isUndone ?? false,
-      createdAt: new Date(a.createdAt),
+      createdAt: a.createdAt ? new Date(a.createdAt as string) : undefined,
     });
   }
 

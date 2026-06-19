@@ -702,19 +702,42 @@ components:
       properties:
         csv:
           type: string
+        mode:
+          type: string
+          enum: [append, replace]
+          default: append
+
+    CsvRowError:
+      type: object
+      required: [line, content, reason]
+      properties:
+        line:
+          type: integer
+        content:
+          type: string
+        reason:
+          type: string
 
     CsvImportResult:
       type: object
-      required: [imported, skipped, players]
+      required: [imported, skipped, players, errors]
       properties:
         imported:
           type: integer
         skipped:
           type: integer
+        replacedCount:
+          type: integer
+        limitExceeded:
+          type: boolean
         players:
           type: array
           items:
             $ref: "#/components/schemas/Player"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/CsvRowError"
 
     Match:
       type: object

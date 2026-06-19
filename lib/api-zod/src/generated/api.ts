@@ -526,13 +526,18 @@ export const ImportPlayersParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const importPlayersBodyModeDefault = `append`;
+
 export const ImportPlayersBody = zod.object({
-  "csv": zod.string()
+  "csv": zod.string(),
+  "mode": zod.enum(['append', 'replace']).default(importPlayersBodyModeDefault)
 })
 
 export const ImportPlayersResponse = zod.object({
   "imported": zod.number(),
   "skipped": zod.number(),
+  "replacedCount": zod.number().optional(),
+  "limitExceeded": zod.boolean().optional(),
   "players": zod.array(zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -547,6 +552,11 @@ export const ImportPlayersResponse = zod.object({
   "losses": zod.number().optional(),
   "points": zod.number().optional(),
   "createdAt": zod.string()
+})),
+  "errors": zod.array(zod.object({
+  "line": zod.number(),
+  "content": zod.string(),
+  "reason": zod.string()
 }))
 })
 

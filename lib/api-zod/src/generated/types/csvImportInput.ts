@@ -5,7 +5,9 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { CsvImportInputMode } from './csvImportInputMode';
 
 export interface CsvImportInput {
   csv: string;
+  mode?: CsvImportInputMode;
 }

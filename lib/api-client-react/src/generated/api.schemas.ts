@@ -162,14 +162,32 @@ export interface PlayerUpdate {
   status?: PlayerUpdateStatus;
 }
 
+export type CsvImportInputMode = typeof CsvImportInputMode[keyof typeof CsvImportInputMode];
+
+
+export const CsvImportInputMode = {
+  append: 'append',
+  replace: 'replace',
+} as const;
+
 export interface CsvImportInput {
   csv: string;
+  mode?: CsvImportInputMode;
+}
+
+export interface CsvRowError {
+  line: number;
+  content: string;
+  reason: string;
 }
 
 export interface CsvImportResult {
   imported: number;
   skipped: number;
+  replacedCount?: number;
+  limitExceeded?: boolean;
   players: Player[];
+  errors: CsvRowError[];
 }
 
 export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
