@@ -9,6 +9,7 @@ import TournamentDetail from "@/pages/tournament-detail";
 import TournamentBracket from "@/pages/tournament-bracket";
 import TournamentHost from "@/pages/tournament-host";
 import TournamentAudience from "@/pages/tournament-audience";
+import HelpPage from "@/pages/help";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/tournaments/:id/host" component={TournamentHost} />
       <Route path="/tournaments/:id/audience" component={TournamentAudience} />
       <Route path="/tournaments/:id" component={TournamentDetail} />
+      <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -150,6 +150,24 @@ function nextPow2(n: number): number {
   return Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
 }
 
+/**
+ * Standard single-elimination bracket seeding positions.
+ * Returns an array of seed ranks (1-indexed) in bracket slot order.
+ * Guarantees: seeds 1 & 2 can only meet in the final, 1–4 in semis, etc.
+ * Example (size=8): [1, 8, 5, 4, 3, 6, 7, 2] — no, correct is [1,8,4,5,2,7,3,6]
+ * Algorithm: recursively interleave prev positions with their complements.
+ */
+function generateBracketPositions(size: number): number[] {
+  if (size === 2) return [1, 2];
+  const prev = generateBracketPositions(size / 2);
+  const result: number[] = [];
+  for (const seed of prev) {
+    result.push(seed);
+    result.push(size + 1 - seed);
+  }
+  return result;
+}
+
 function generateSingleElimination(
   players: (typeof playersTable.$inferSelect)[],
   tournamentId: number,
@@ -162,10 +180,14 @@ function generateSingleElimination(
 
   const matches: (typeof matchesTable.$inferInsert)[] = [];
 
+  const positions = generateBracketPositions(bracketSize);
+
   const firstRoundCount = bracketSize / 2;
   for (let i = 0; i < firstRoundCount; i++) {
-    const p1 = seeded[i * 2] ?? null;
-    const p2 = seeded[i * 2 + 1] ?? null;
+    const seed1 = positions[i * 2];
+    const seed2 = positions[i * 2 + 1];
+    const p1 = seeded[seed1 - 1] ?? null;
+    const p2 = seeded[seed2 - 1] ?? null;
     const isBye = p1 && !p2;
     matches.push({
       tournamentId,

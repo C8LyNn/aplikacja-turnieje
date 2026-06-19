@@ -18,11 +18,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
+import { TournamentChecklist } from "@/components/tournament-checklist";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -83,6 +84,7 @@ export default function TournamentDetail() {
   const [newPlayerTeam, setNewPlayerTeam] = useState("");
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
   const [csvConfirmReplace, setCsvConfirmReplace] = useState(false);
@@ -333,6 +335,13 @@ export default function TournamentDetail() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowChecklist((v) => !v)}
+              title="Checklista przed turniejem"
+            >
+              <CheckSquare className="w-4 h-4 mr-2" /> Checklista
+            </Button>
             {tournament.status === "draft" && (
               <Button onClick={handleStart} disabled={startTournament.isPending || !players || players.length < 2}
                 className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
@@ -354,6 +363,13 @@ export default function TournamentDetail() {
             )}
           </div>
         </div>
+
+        <TournamentChecklist
+          open={showChecklist && !!id}
+          onClose={() => setShowChecklist(false)}
+          tournamentId={id ?? 0}
+          tournamentName={tournament?.name}
+        />
 
         {assistant && (
           <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 flex items-start gap-3">

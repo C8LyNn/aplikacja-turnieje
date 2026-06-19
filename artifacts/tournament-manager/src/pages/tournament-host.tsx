@@ -86,6 +86,7 @@ export default function TournamentHost() {
   const [boConfirm, setBoConfirm] = useState<{ matchId: number; bo: number } | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState<number | null>(null);
   const [swapConfirm, setSwapConfirm] = useState<number | null>(null);
+  const [walkoverConfirm, setWalkoverConfirm] = useState<number | null>(null);
 
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
@@ -260,6 +261,33 @@ export default function TournamentHost() {
         setSelectedMatchId(matchId);
       },
       onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  const handleWalkover = (matchId: number) => {
+    setWalkoverConfirm(matchId);
+    setConfirmComplete(null);
+    setRevertConfirm(null);
+    setCancelConfirm(null);
+    setSwapConfirm(null);
+  };
+
+  const doWalkover = (matchId: number, winner: 1 | 2) => {
+    const score1 = winner === 1 ? 1 : 0;
+    const score2 = winner === 2 ? 1 : 0;
+    completeMatch.mutate({ id: matchId, data: { score1, score2, isDraw: false } }, {
+      onSuccess: () => {
+        setWalkoverConfirm(null);
+        setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
+        invalidateAll();
+        toast({ title: "Walkover zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} awansuje.` });
+        const next = actionableMatches.find((m) => m.id !== matchId);
+        setSelectedMatchId(next?.id ?? null);
+      },
+      onError: (e: any) => {
+        setWalkoverConfirm(null);
+        toast({ title: "Błąd walkover", description: e?.message, variant: "destructive" });
+      },
     });
   };
 
@@ -475,6 +503,7 @@ export default function TournamentHost() {
     const isShowingRevert = revertConfirm === focusedMatch.id;
     const isShowingCancel = cancelConfirm === focusedMatch.id;
     const isShowingSwap = swapConfirm === focusedMatch.id;
+    const isShowingWalkover = walkoverConfirm === focusedMatch.id;
 
     return (
       <div className={`rounded-xl border-2 overflow-hidden transition-colors ${
@@ -727,6 +756,38 @@ export default function TournamentHost() {
             </div>
           )}
 
+          {/* Walkover confirm */}
+          {isShowingWalkover && (
+            <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <p className="font-semibold text-blue-400 text-sm mb-1 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" /> Walkover — kto wygrał?
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Wybierz zawodnika, który <strong>wygrał</strong> (drugi nie pojawił się).
+                Wynik zostanie zapisany jako 1:0.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setWalkoverConfirm(null)}>Anuluj</Button>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => doWalkover(focusedMatch.id, 1)}
+                  disabled={completeMatch.isPending}
+                >
+                  ✓ {focusedMatch.player1Name ?? "Zawodnik A"} wygrał
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => doWalkover(focusedMatch.id, 2)}
+                  disabled={completeMatch.isPending}
+                >
+                  ✓ {focusedMatch.player2Name ?? "Zawodnik B"} wygrał
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Restore cancelled action */}
           {isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
@@ -743,7 +804,7 @@ export default function TournamentHost() {
           )}
 
           {/* Action bar */}
-          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isCancelled && (
+          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isShowingWalkover && !isCancelled && (
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
                 {/* Start — for pending/ready/postponed */}
@@ -788,6 +849,18 @@ export default function TournamentHost() {
                     disabled={updateMatch.isPending}
                   >
                     <SkipForward className="w-4 h-4 mr-2" /> Przywróć
+                  </Button>
+                )}
+                {/* Walkover — for non-completed, non-cancelled, both players present */}
+                {!isDone && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && (
+                  <Button
+                    variant="outline"
+                    className="text-blue-400/70 hover:text-blue-400 hover:border-blue-400/50"
+                    onClick={() => handleWalkover(focusedMatch.id)}
+                    disabled={completeMatch.isPending}
+                    title="Walkover — jeden zawodnik nie pojawił się"
+                  >
+                    W.O.
                   </Button>
                 )}
                 {/* Cancel — for non-completed, non-cancelled */}
