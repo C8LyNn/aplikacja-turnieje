@@ -33,6 +33,7 @@ export const ListTournamentsResponseItem = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
 })
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
@@ -73,6 +74,7 @@ export const GetTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
 })
 
@@ -90,7 +92,8 @@ export const UpdateTournamentBody = zod.object({
   "swissRounds": zod.number().optional(),
   "allowDraws": zod.boolean().optional(),
   "defaultBestOf": zod.number().optional(),
-  "featuredMatchId": zod.number().optional()
+  "featuredMatchId": zod.number().optional(),
+  "hostCode": zod.string().optional().describe('Host access code (plain text, stored hashed)')
 })
 
 export const UpdateTournamentResponse = zod.object({
@@ -107,6 +110,7 @@ export const UpdateTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
 })
 
@@ -134,7 +138,27 @@ export const StartTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Verify the host access code for a tournament
+ */
+export const VerifyHostCodeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const VerifyHostCodeBody = zod.object({
+  "code": zod.string().min(1)
+})
+
+export const VerifyHostCodeResponse = zod.object({
+  "valid": zod.boolean()
 })
 
 
@@ -159,6 +183,7 @@ export const GenerateNextRoundResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
 })
 
@@ -182,6 +207,7 @@ export const GetTournamentBracketResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "createdAt": zod.string()
 }),
   "rounds": zod.array(zod.object({

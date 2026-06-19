@@ -17,6 +17,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+let _activeHostCode: string | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +43,15 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+}
+
+/**
+ * Set the active host code for the current tournament session.
+ * When set, an `X-Host-Code` header will be attached to every request.
+ * Call with `null` to clear (e.g. when leaving the host panel).
+ */
+export function setActiveHostCode(code: string | null): void {
+  _activeHostCode = code;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -356,6 +366,11 @@ export async function customFetch<T = unknown>(
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
     }
+  }
+
+  // Attach host code when one is active and not already present.
+  if (_activeHostCode && !headers.has("x-host-code")) {
+    headers.set("x-host-code", _activeHostCode);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

@@ -49,3 +49,5 @@ export * from './tournamentUpdateFormat';
 export * from './tournamentUpdateStatus';
 export * from './undoLastAction404';
 export * from './undoResult';
+export * from './verifyHostCodeInput';
+export * from './verifyHostCodeResult';

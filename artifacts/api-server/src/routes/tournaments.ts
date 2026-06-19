@@ -39,6 +39,8 @@ import {
   UndoLastActionParams,
   ExportTournamentParams,
   ImportTournamentBody,
+  VerifyHostCodeParams,
+  VerifyHostCodeBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -56,8 +58,9 @@ function formatDate(d: Date | null | undefined): string | null {
 }
 
 function mapTournament(t: typeof tournamentsTable.$inferSelect) {
+  const { hostCode: _hostCode, ...rest } = t;
   return {
-    ...t,
+    ...rest,
     createdAt: formatDate(t.createdAt) ?? new Date().toISOString(),
     maxPlayers: t.maxPlayers ?? null,
     swissRounds: t.swissRounds ?? null,
@@ -67,7 +70,17 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     totalRounds: t.totalRounds ?? null,
     winnerId: t.winnerId ?? null,
     featuredMatchId: t.featuredMatchId ?? null,
+    hasHostCode: !!t.hostCode,
   };
+}
+
+async function checkHostAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
+  const [t] = await db.select({ hostCode: tournamentsTable.hostCode }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
+  if (!t.hostCode) return true;
+  const provided = req.headers["x-host-code"];
+  if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
+  return true;
 }
 
 function mapPlayer(p: typeof playersTable.$inferSelect) {
@@ -477,6 +490,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (!await checkHostAuth(req, res, params.data.id)) return;
   const [prevT] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
   const [t] = await db
     .update(tournamentsTable)
@@ -508,8 +522,29 @@ router.delete("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  if (!await checkHostAuth(req, res, params.data.id)) return;
   await db.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
   res.sendStatus(204);
+});
+
+router.post("/tournaments/:id/verify-host-code", async (req, res): Promise<void> => {
+  const params = VerifyHostCodeParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const parsed = VerifyHostCodeBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const [t] = await db.select({ hostCode: tournamentsTable.hostCode }).from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return; }
+
+  if (!t.hostCode) {
+    res.json({ valid: true });
+    return;
+  }
+  if (parsed.data.code === t.hostCode) {
+    res.json({ valid: true });
+    return;
+  }
+  res.status(403).json({ valid: false, error: "Nieprawidłowy kod prowadzącego" });
 });
 
 router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
@@ -527,6 +562,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tournament not found" });
     return;
   }
+  if (!await checkHostAuth(req, res, tournament.id)) return;
   if (tournament.status !== "draft") {
     res.status(400).json({ error: "Tournament already started" });
     return;
@@ -969,6 +1005,7 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (!await checkHostAuth(req, res, params.data.id)) return;
   const [player] = await db
     .insert(playersTable)
     .values({ tournamentId: params.data.id, ...parsed.data })
@@ -1002,6 +1039,7 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
     res.status(404).json({ error: "Tournament not found" });
     return;
   }
+  if (!await checkHostAuth(req, res, tournament.id)) return;
   if (tournament.status !== "draft") {
     res.status(400).json({ error: "Cannot import players after tournament has started" });
     return;
@@ -1158,6 +1196,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Player not found" });
     return;
   }
+  if (!await checkHostAuth(req, res, existing.tournamentId)) return;
   const [player] = await db
     .update(playersTable)
     .set(parsed.data)
@@ -1183,6 +1222,7 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     return;
   }
   const [toDelete] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
+  if (toDelete && !await checkHostAuth(req, res, toDelete.tournamentId)) return;
   await db.delete(playersTable).where(eq(playersTable.id, params.data.id));
   if (toDelete) {
     await logAction({
@@ -1256,6 +1296,8 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+
+  if (!await checkHostAuth(req, res, params.data.id)) return;
 
   // Find the last undoable, non-undone action
   const [lastAction] = await db
@@ -1435,6 +1477,8 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   }
   // Read previous state before update for logging
   const [prevMatch] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
+  if (!prevMatch) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkHostAuth(req, res, prevMatch.tournamentId)) return;
   const [match] = await db
     .update(matchesTable)
     .set(parsed.data)
@@ -1489,6 +1533,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
+  if (!await checkHostAuth(req, res, match.tournamentId)) return;
 
   const [tournament] = await db
     .select()
@@ -1691,6 +1736,7 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
+  if (!await checkHostAuth(req, res, match.tournamentId)) return;
   if (match.status !== "completed") {
     res.status(400).json({ error: "Match is not completed" });
     return;
@@ -1809,6 +1855,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkHostAuth(req, res, match.tournamentId)) return;
   const blockedStatuses = ["completed", "bye", "walkover", "cancelled"];
   if (blockedStatuses.includes(match.status)) {
     res.status(400).json({ error: `Nie można anulować meczu o statusie: ${match.status}` });
@@ -1844,6 +1891,7 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkHostAuth(req, res, match.tournamentId)) return;
   if (match.status !== "cancelled") { res.status(400).json({ error: "Mecz nie jest anulowany" }); return; }
   const [updated] = await db.update(matchesTable).set({ status: "pending" }).where(eq(matchesTable.id, params.data.id)).returning();
   const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
@@ -1867,6 +1915,7 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkHostAuth(req, res, match.tournamentId)) return;
   const blockedStatuses = ["completed", "bye", "walkover"];
   if (blockedStatuses.includes(match.status)) {
     res.status(400).json({ error: `Nie można zamieniać zawodników w meczu o statusie: ${match.status}` });
@@ -1907,6 +1956,7 @@ router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> 
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = ReorderMatchesBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (!await checkHostAuth(req, res, params.data.id)) return;
   const { matchIds } = parsed.data;
   // Assign sortOrder based on position in provided array
   await Promise.all(

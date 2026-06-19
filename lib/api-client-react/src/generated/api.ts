@@ -43,7 +43,9 @@ import type {
   TournamentStats,
   TournamentUpdate,
   UndoLastAction404,
-  UndoResult
+  UndoResult,
+  VerifyHostCodeInput,
+  VerifyHostCodeResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -546,6 +548,78 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getStartTournamentMutationOptions(options));
+    }
+
+export const getVerifyHostCodeUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/verify-host-code`
+}
+
+/**
+ * @summary Verify the host access code for a tournament
+ */
+export const verifyHostCode = async (id: number,
+    verifyHostCodeInput: VerifyHostCodeInput, options?: RequestInit): Promise<VerifyHostCodeResult> => {
+
+  return customFetch<VerifyHostCodeResult>(getVerifyHostCodeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      verifyHostCodeInput,)
+  }
+);}
+
+
+
+
+export const getVerifyHostCodeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext> => {
+
+const mutationKey = ['verifyHostCode'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyHostCode>>, {id: number;data: BodyType<VerifyHostCodeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  verifyHostCode(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyHostCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyHostCode>>>
+    export type VerifyHostCodeMutationBody = BodyType<VerifyHostCodeInput>
+    export type VerifyHostCodeMutationError = ErrorType<void>
+
+    /**
+ * @summary Verify the host access code for a tournament
+ */
+export const useVerifyHostCode = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyHostCode>>,
+        TError,
+        {id: number;data: BodyType<VerifyHostCodeInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyHostCodeMutationOptions(options));
     }
 
 export const getGenerateNextRoundUrl = (id: number,) => {

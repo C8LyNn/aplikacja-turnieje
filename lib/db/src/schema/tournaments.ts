@@ -46,6 +46,7 @@ export const tournamentsTable = pgTable("tournaments", {
   totalRounds: integer("total_rounds"),
   winnerId: integer("winner_id"),
   featuredMatchId: integer("featured_match_id"),
+  hostCode: text("host_code"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

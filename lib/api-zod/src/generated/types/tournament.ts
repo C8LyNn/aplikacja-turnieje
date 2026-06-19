@@ -31,5 +31,7 @@ export interface Tournament {
   winnerId?: number | null;
   /** @nullable */
   featuredMatchId?: number | null;
+  /** Whether a host access code has been set for this tournament */
+  hasHostCode: boolean;
   createdAt: string;
 }

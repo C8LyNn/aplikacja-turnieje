@@ -51,6 +51,8 @@ export interface Tournament {
   winnerId?: number | null;
   /** @nullable */
   featuredMatchId?: number | null;
+  /** Whether a host access code has been set for this tournament */
+  hasHostCode: boolean;
   createdAt: string;
 }
 
@@ -104,6 +106,17 @@ export interface TournamentUpdate {
   allowDraws?: boolean;
   defaultBestOf?: number;
   featuredMatchId?: number;
+  /** Host access code (plain text, stored hashed) */
+  hostCode?: string;
+}
+
+export interface VerifyHostCodeInput {
+  /** @minLength 1 */
+  code: string;
+}
+
+export interface VerifyHostCodeResult {
+  valid: boolean;
 }
 
 export type PlayerStatus = typeof PlayerStatus[keyof typeof PlayerStatus];

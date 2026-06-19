@@ -18,4 +18,6 @@ export interface TournamentUpdate {
   allowDraws?: boolean;
   defaultBestOf?: number;
   featuredMatchId?: number;
+  /** Host access code (plain text, stored hashed) */
+  hostCode?: string;
 }

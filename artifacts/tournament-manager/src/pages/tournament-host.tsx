@@ -8,21 +8,27 @@ import {
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
+  useVerifyHostCode,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, AlertTriangle,
   Star, Minus, Plus, SkipForward, Clock, Undo2, Shield, History,
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
+  Share2, Lock, Key, Copy, Check, Eye, EyeOff,
 } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
+import { useHostAuth } from "@/hooks/use-host-auth";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number; isDraw: boolean };
@@ -69,6 +75,9 @@ export default function TournamentHost() {
 
   const lastUndoableAction = actionLog?.find((a) => a.canUndo);
 
+  const { isAuthenticated, isReady, authenticate, clearAuth, updateStoredCode } = useHostAuth(id, tournament?.hasHostCode);
+  const verifyCode = useVerifyHostCode();
+
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<ConfirmEntry | null>(null);
@@ -77,6 +86,55 @@ export default function TournamentHost() {
   const [boConfirm, setBoConfirm] = useState<{ matchId: number; bo: number } | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState<number | null>(null);
   const [swapConfirm, setSwapConfirm] = useState<number | null>(null);
+
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showCodeDialog, setShowCodeDialog] = useState(false);
+  const [codeInput, setCodeInput] = useState("");
+  const [newCodeInput, setNewCodeInput] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    });
+  };
+
+  const handleVerifyGate = () => {
+    setCodeError(null);
+    verifyCode.mutate({ id, data: { code: codeInput } }, {
+      onSuccess: (data) => {
+        if (data.valid) {
+          authenticate(codeInput);
+          setCodeInput("");
+        } else {
+          setCodeError("Nieprawidłowy kod. Spróbuj ponownie.");
+        }
+      },
+      onError: () => setCodeError("Nieprawidłowy kod. Spróbuj ponownie."),
+    });
+  };
+
+  const handleSaveCode = () => {
+    const trimmed = newCodeInput.trim();
+    updateTournament.mutate({ id, data: { hostCode: trimmed || "" } }, {
+      onSuccess: () => {
+        if (trimmed) {
+          updateStoredCode(trimmed);
+          toast({ title: "Kod prowadzącego ustawiony", description: "Zapisano. Panel jest teraz chroniony kodem." });
+        } else {
+          clearAuth();
+          toast({ title: "Kod prowadzącego usunięty", description: "Panel jest teraz dostępny bez kodu." });
+        }
+        setShowCodeDialog(false);
+        setNewCodeInput("");
+        queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
+      },
+      onError: () => toast({ title: "Błąd", description: "Nie udało się zapisać kodu.", variant: "destructive" }),
+    });
+  };
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
@@ -298,6 +356,56 @@ export default function TournamentHost() {
 
   // --- Loading ---
   if (!tournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+
+  // --- Auth gate ---
+  if (isReady && !isAuthenticated) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-full max-w-sm space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Lock className="w-6 h-6 text-primary" />
+              </div>
+              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <p className="text-sm text-muted-foreground">{tournament.name}</p>
+              <p className="text-xs text-muted-foreground">Wpisz kod prowadzącego, aby uzyskać dostęp.</p>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="gate-code">Kod prowadzącego</Label>
+                <div className="relative">
+                  <Input
+                    id="gate-code"
+                    type={showCodeInput ? "text" : "password"}
+                    placeholder="Wpisz kod..."
+                    value={codeInput}
+                    onChange={(e) => { setCodeInput(e.target.value); setCodeError(null); }}
+                    onKeyDown={(e) => e.key === "Enter" && codeInput && handleVerifyGate()}
+                    className={codeError ? "border-destructive pr-10" : "pr-10"}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowCodeInput((v) => !v)}
+                  >
+                    {showCodeInput ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {codeError && <p className="text-xs text-destructive">{codeError}</p>}
+              </div>
+              <Button className="w-full" disabled={!codeInput || verifyCode.isPending} onClick={handleVerifyGate}>
+                {verifyCode.isPending ? "Weryfikowanie…" : "Wejdź do panelu"}
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
+                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (tournament.status === "draft") {
     return (
@@ -759,6 +867,18 @@ export default function TournamentHost() {
               <Undo2 className="w-4 h-4 mr-1" /> Cofnij
             </Button>
           )}
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
+            <Share2 className="w-4 h-4 mr-1" /> Udostępnij
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => { setNewCodeInput(""); setShowCodeDialog(true); }}
+            title={tournament.hasHostCode ? "Zarządzaj kodem prowadzącego" : "Ustaw kod prowadzącego"}
+          >
+            <Key className="w-4 h-4 mr-1" /> Kod
+          </Button>
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={`/tournaments/${id}/audience`}>
               <Monitor className="w-4 h-4 mr-1" /> Widok widzów
@@ -1354,6 +1474,127 @@ export default function TournamentHost() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Share Links Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" /> Udostępnij turniej
+            </DialogTitle>
+            <DialogDescription>
+              Linki do widoku dla widzów i panelu prowadzącego.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Widok widzów (publiczny)</Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/tournaments/${id}`}
+                  className="text-xs font-mono bg-muted/40"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}`, "viewer")}
+                >
+                  {copiedKey === "viewer" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Każdy z tym linkiem może śledzić turniej (tylko odczyt).</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Panel prowadzącego</Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/tournaments/${id}/host`}
+                  className="text-xs font-mono bg-muted/40"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}/host`, "host")}
+                >
+                  {copiedKey === "host" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              {tournament.hasHostCode
+                ? <p className="text-xs text-muted-foreground">Chroniony kodem prowadzącego. Wymagana weryfikacja przy wejściu.</p>
+                : <p className="text-xs text-yellow-400">Brak kodu — każdy z linkiem ma dostęp do panelu. Ustaw kod, aby go zabezpieczyć.</p>
+              }
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowShareDialog(false)}>Zamknij</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Host Code Manager Dialog */}
+      <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" /> Kod prowadzącego
+            </DialogTitle>
+            <DialogDescription>
+              {tournament.hasHostCode
+                ? "Panel jest chroniony kodem. Możesz go zmienić lub usunąć."
+                : "Ustaw kod, aby chronić panel przed nieautoryzowanym dostępem."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {tournament.hasHostCode && (
+              <div className="flex items-center gap-2 text-sm p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <Shield className="w-4 h-4 text-green-400 shrink-0" />
+                <span className="text-green-400">Panel jest aktualnie chroniony kodem.</span>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="new-code">{tournament.hasHostCode ? "Nowy kod (zostaw puste, aby usunąć)" : "Ustaw kod"}</Label>
+              <div className="relative">
+                <Input
+                  id="new-code"
+                  type={showCodeInput ? "text" : "password"}
+                  placeholder={tournament.hasHostCode ? "Wpisz nowy kod lub zostaw puste..." : "Wpisz kod prowadzącego..."}
+                  value={newCodeInput}
+                  onChange={(e) => setNewCodeInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveCode()}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowCodeInput((v) => !v)}
+                >
+                  {showCodeInput ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">Kod jest przechowywany bez szyfrowania — nie używaj haseł do ważnych kont.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCodeDialog(false)}>Anuluj</Button>
+            {tournament.hasHostCode && (
+              <Button
+                variant="destructive"
+                onClick={() => { setNewCodeInput(""); handleSaveCode(); }}
+                disabled={updateTournament.isPending}
+              >
+                Usuń kod
+              </Button>
+            )}
+            <Button onClick={handleSaveCode} disabled={updateTournament.isPending}>
+              {tournament.hasHostCode ? "Zmień kod" : "Ustaw kod"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

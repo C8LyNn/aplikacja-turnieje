@@ -129,6 +129,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tournament"
 
+  /tournaments/{id}/verify-host-code:
+    post:
+      operationId: verifyHostCode
+      tags: [tournaments]
+      summary: Verify the host access code for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyHostCodeInput"
+      responses:
+        "200":
+          description: Code is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyHostCodeResult"
+        "403":
+          description: Invalid code
+
   /tournaments/{id}/generate-round:
     post:
       operationId: generateNextRound
@@ -655,7 +682,7 @@ components:
 
     Tournament:
       type: object
-      required: [id, name, format, status, createdAt]
+      required: [id, name, format, status, createdAt, hasHostCode]
       properties:
         id:
           type: integer
@@ -685,6 +712,9 @@ components:
           type: ["integer", "null"]
         featuredMatchId:
           type: ["integer", "null"]
+        hasHostCode:
+          type: boolean
+          description: Whether a host access code has been set for this tournament
         createdAt:
           type: string
 
@@ -732,6 +762,24 @@ components:
           type: integer
         featuredMatchId:
           type: integer
+        hostCode:
+          type: string
+          description: Host access code (plain text, stored hashed)
+
+    VerifyHostCodeInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+
+    VerifyHostCodeResult:
+      type: object
+      required: [valid]
+      properties:
+        valid:
+          type: boolean
 
     Player:
       type: object
