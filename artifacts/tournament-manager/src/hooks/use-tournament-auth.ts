@@ -34,7 +34,11 @@ export function useSyncTournamentAuth(tournamentId: number) {
       setActiveOrganizerToken(null);
       setActiveSupportToken(null);
     };
-  }, [tournamentId, orgToken, supSession]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tournamentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Deps intentionally limited to [tournamentId]:
+  // - On mount/id change: restores tokens from sessionStorage
+  // - Login modals call setActiveOrganizerToken/setActiveSupportToken synchronously (no effect re-run needed)
+  // - If deps included orgToken/supSession, cleanup would clear the token that the modal just set
 
   return {
     orgToken,
