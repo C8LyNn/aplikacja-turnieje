@@ -182,6 +182,7 @@ export const MatchStatus = {
   completed: 'completed',
   bye: 'bye',
   walkover: 'walkover',
+  postponed: 'postponed',
 } as const;
 
 export interface Match {
@@ -226,6 +227,7 @@ export const MatchUpdateStatus = {
   completed: 'completed',
   bye: 'bye',
   walkover: 'walkover',
+  postponed: 'postponed',
 } as const;
 
 export interface MatchUpdate {

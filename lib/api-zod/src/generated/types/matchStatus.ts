@@ -16,4 +16,5 @@ export const MatchStatus = {
   completed: 'completed',
   bye: 'bye',
   walkover: 'walkover',
+  postponed: 'postponed',
 } as const;

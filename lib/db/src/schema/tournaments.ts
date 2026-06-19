@@ -28,6 +28,7 @@ export const matchStatusEnum = pgEnum("match_status", [
   "completed",
   "bye",
   "walkover",
+  "postponed",
 ]);
 
 export const tournamentsTable = pgTable("tournaments", {

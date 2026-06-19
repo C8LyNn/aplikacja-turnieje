@@ -201,7 +201,7 @@ export const GetTournamentBracketResponse = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 }))
@@ -425,7 +425,7 @@ export const ListMatchesResponseItem = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 })
@@ -451,7 +451,7 @@ export const GetMatchResponse = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 })
@@ -464,7 +464,7 @@ export const UpdateMatchParams = zod.object({
 export const UpdateMatchBody = zod.object({
   "score1": zod.number().optional(),
   "score2": zod.number().optional(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']).optional(),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']).optional(),
   "note": zod.string().optional(),
   "bestOf": zod.number().optional()
 })
@@ -484,7 +484,7 @@ export const UpdateMatchResponse = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 })
@@ -517,7 +517,7 @@ export const CompleteMatchResponse = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 })
@@ -545,7 +545,7 @@ export const RevertMatchResponse = zod.object({
   "isDraw": zod.boolean().nullish(),
   "bestOf": zod.number().nullish(),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover']),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed']),
   "nextMatchId": zod.number().nullish(),
   "scheduledAt": zod.string().nullish()
 })

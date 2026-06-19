@@ -659,7 +659,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover]
+          enum: [pending, ready, in_progress, completed, bye, walkover, postponed]
         nextMatchId:
           type: ["integer", "null"]
         scheduledAt:
@@ -674,7 +674,7 @@ components:
           type: integer
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover]
+          enum: [pending, ready, in_progress, completed, bye, walkover, postponed]
         note:
           type: string
         bestOf:

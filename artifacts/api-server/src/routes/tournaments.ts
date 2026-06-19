@@ -636,7 +636,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
       ),
     );
   const allDone = currentMatches.every(
-    (m) => m.status === "completed" || m.status === "bye" || m.status === "walkover",
+    (m) => m.status === "completed" || m.status === "bye" || m.status === "walkover" || m.status === "postponed",
   );
   if (!allDone) {
     res.status(400).json({ error: "Not all matches in current round are finished" });
