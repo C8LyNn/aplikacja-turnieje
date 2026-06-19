@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
-import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable } from "@workspace/db";
+import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
+import { hashPassword, verifyOrganizerToken } from "../auth";
+import { logAuditAction } from "./auth";
 import {
   CreateTournamentBody,
   UpdateTournamentBody,
@@ -58,7 +60,7 @@ function formatDate(d: Date | null | undefined): string | null {
 }
 
 function mapTournament(t: typeof tournamentsTable.$inferSelect) {
-  const { hostCode: _hostCode, ...rest } = t;
+  const { hostCode: _hostCode, organizerPasswordHash: _oph, supportPasswordHash: _sph, supportPasswordVersion: _spv, ...rest } = t;
   return {
     ...rest,
     createdAt: formatDate(t.createdAt) ?? new Date().toISOString(),
@@ -71,13 +73,45 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     winnerId: t.winnerId ?? null,
     featuredMatchId: t.featuredMatchId ?? null,
     hasHostCode: !!t.hostCode,
+    hasOrganizerPassword: !!t.organizerPasswordHash,
+    hasSupportPassword: !!t.supportPasswordHash,
   };
 }
 
 async function checkHostAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
-  const [t] = await db.select({ hostCode: tournamentsTable.hostCode }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
+  const [t] = await db.select({
+    hostCode: tournamentsTable.hostCode,
+    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+    supportPasswordHash: tournamentsTable.supportPasswordHash,
+    supportPasswordVersion: tournamentsTable.supportPasswordVersion,
+  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
   if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
-  if (!t.hostCode) return true;
+
+  // New-style auth: organizer token
+  const orgToken = req.headers["x-organizer-token"] as string | undefined;
+  if (orgToken) {
+    const valid = verifyOrganizerToken(orgToken, tournamentId);
+    if (valid) return true;
+    res.status(403).json({ error: "Nieprawidłowy token organizatora" }); return false;
+  }
+
+  // New-style auth: support token
+  const supToken = req.headers["x-support-token"] as string | undefined;
+  if (supToken) {
+    const [session] = await db.select().from(supportSessionsTable)
+      .where(and(eq(supportSessionsTable.tournamentId, tournamentId), eq(supportSessionsTable.sessionToken, supToken)));
+    if (!session) { res.status(403).json({ error: "Nieważna sesja wsparcia" }); return false; }
+    if (session.passwordVersion !== (t.supportPasswordVersion ?? 0)) {
+      res.status(403).json({ error: "Hasło wsparcia zostało zmienione. Zaloguj się ponownie." }); return false;
+    }
+    return true;
+  }
+
+  // Legacy host code
+  if (!t.hostCode && !t.organizerPasswordHash) return true;
+  if (t.organizerPasswordHash) {
+    res.status(403).json({ error: "Wymagany token organizatora lub wsparcia" }); return false;
+  }
   const provided = req.headers["x-host-code"];
   if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
   return true;
@@ -480,7 +514,11 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [t] = await db.insert(tournamentsTable).values(parsed.data).returning();
+  const { organizerPassword, supportPassword, ...rest } = parsed.data as any;
+  const insertValues: any = { ...rest };
+  if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
+  if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
+  const [t] = await db.insert(tournamentsTable).values(insertValues).returning();
   res.status(201).json(mapTournament(t));
 });
 

@@ -16,4 +16,8 @@ export interface TournamentInput {
   swissRounds?: number;
   allowDraws?: boolean;
   defaultBestOf?: number;
+  /** Optional password to protect organizer access */
+  organizerPassword?: string;
+  /** Optional password for support staff access */
+  supportPassword?: string;
 }

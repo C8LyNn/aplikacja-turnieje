@@ -47,6 +47,9 @@ export const tournamentsTable = pgTable("tournaments", {
   winnerId: integer("winner_id"),
   featuredMatchId: integer("featured_match_id"),
   hostCode: text("host_code"),
+  organizerPasswordHash: text("organizer_password_hash"),
+  supportPasswordHash: text("support_password_hash"),
+  supportPasswordVersion: integer("support_password_version").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -102,6 +105,36 @@ export const resultHistoryTable = pgTable("result_history", {
   completedAt: timestamp("completed_at").notNull().defaultNow(),
 });
 
+export const actionLogTable = pgTable("action_log", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+  actionType: text("action_type").notNull(),
+  description: text("description").notNull(),
+  matchId: integer("match_id"),
+  undoPayload: text("undo_payload"),
+  isUndone: boolean("is_undone").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const supportSessionsTable = pgTable("support_sessions", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+  nick: text("nick").notNull(),
+  sessionToken: text("session_token").notNull(),
+  passwordVersion: integer("password_version").notNull().default(1),
+  lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const authAuditLogTable = pgTable("auth_audit_log", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+  actorType: text("actor_type").notNull(),
+  actorNick: text("actor_nick").notNull(),
+  action: text("action").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertTournamentSchema = createInsertSchema(tournamentsTable).omit({ id: true, createdAt: true });
 export type InsertTournament = z.infer<typeof insertTournamentSchema>;
 export type Tournament = typeof tournamentsTable.$inferSelect;
@@ -118,15 +151,6 @@ export const insertResultHistorySchema = createInsertSchema(resultHistoryTable).
 export type InsertResultHistory = z.infer<typeof insertResultHistorySchema>;
 export type ResultHistory = typeof resultHistoryTable.$inferSelect;
 
-export const actionLogTable = pgTable("action_log", {
-  id: serial("id").primaryKey(),
-  tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
-  actionType: text("action_type").notNull(),
-  description: text("description").notNull(),
-  matchId: integer("match_id"),
-  undoPayload: text("undo_payload"),
-  isUndone: boolean("is_undone").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export type ActionLog = typeof actionLogTable.$inferSelect;
+export type SupportSession = typeof supportSessionsTable.$inferSelect;
+export type AuthAuditLog = typeof authAuditLogTable.$inferSelect;

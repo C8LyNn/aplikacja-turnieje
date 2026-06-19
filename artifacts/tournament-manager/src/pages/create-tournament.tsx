@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy, Lock, Eye, EyeOff } from "lucide-react";
 
 const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
   single_elimination: {
@@ -41,6 +41,10 @@ export default function CreateTournament() {
   const [swissRounds, setSwissRounds] = useState("");
   const [allowDraws, setAllowDraws] = useState(false);
   const [defaultBestOf, setDefaultBestOf] = useState("1");
+  const [organizerPassword, setOrganizerPassword] = useState("");
+  const [supportPassword, setSupportPassword] = useState("");
+  const [showOrgPass, setShowOrgPass] = useState(false);
+  const [showSupPass, setShowSupPass] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +58,8 @@ export default function CreateTournament() {
           swissRounds: format === "swiss" && swissRounds ? parseInt(swissRounds, 10) : undefined,
           allowDraws,
           defaultBestOf: parseInt(defaultBestOf, 10) || 1,
+          organizerPassword: organizerPassword || undefined,
+          supportPassword: supportPassword || undefined,
         },
       },
       {
@@ -69,7 +75,7 @@ export default function CreateTournament() {
       <div className="max-w-xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/"><ArrowLeft className="w-5 h-5" /></Link>
+            <Link href="/dashboard"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -171,6 +177,54 @@ export default function CreateTournament() {
                   <p className="text-xs text-muted-foreground">Mecze mogą kończyć się remisem (1 pkt)</p>
                 </div>
                 <Switch checked={allowDraws} onCheckedChange={setAllowDraws} />
+              </div>
+
+              {/* Security passwords */}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Lock className="w-4 h-4" />
+                  Hasła dostępu (opcjonalne)
+                </div>
+                <div className="space-y-2">
+                  <Label>Hasło organizatora</Label>
+                  <div className="relative">
+                    <Input
+                      type={showOrgPass ? "text" : "password"}
+                      value={organizerPassword}
+                      onChange={(e) => setOrganizerPassword(e.target.value)}
+                      placeholder="Hasło do panelu prowadzącego..."
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowOrgPass((v) => !v)}
+                    >
+                      {showOrgPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Zastąpi stary system kodu prowadzącego. Możesz ustawić później w zakładce Bezpieczeństwo.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Hasło wsparcia</Label>
+                  <div className="relative">
+                    <Input
+                      type={showSupPass ? "text" : "password"}
+                      value={supportPassword}
+                      onChange={(e) => setSupportPassword(e.target.value)}
+                      placeholder="Hasło dla ekipy wsparcia..."
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowSupPass((v) => !v)}
+                    >
+                      {showSupPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Umożliwia logowanie z nickiem — organizator widzi kto jest zalogowany.</p>
+                </div>
               </div>
 
               <Button

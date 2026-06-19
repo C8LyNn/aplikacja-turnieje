@@ -34,6 +34,8 @@ export const ListTournamentsResponseItem = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 })
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
@@ -52,7 +54,9 @@ export const CreateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "allowDraws": zod.boolean().optional(),
-  "defaultBestOf": zod.number().optional()
+  "defaultBestOf": zod.number().optional(),
+  "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
+  "supportPassword": zod.string().optional().describe('Optional password for support staff access')
 })
 
 
@@ -75,6 +79,8 @@ export const GetTournamentResponse = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 })
 
@@ -111,6 +117,8 @@ export const UpdateTournamentResponse = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 })
 
@@ -139,6 +147,8 @@ export const StartTournamentResponse = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 })
 
@@ -184,6 +194,8 @@ export const GenerateNextRoundResponse = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 })
 
@@ -208,6 +220,8 @@ export const GetTournamentBracketResponse = zod.object({
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
+  "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
+  "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "createdAt": zod.string()
 }),
   "rounds": zod.array(zod.object({

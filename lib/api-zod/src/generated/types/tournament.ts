@@ -33,5 +33,9 @@ export interface Tournament {
   featuredMatchId?: number | null;
   /** Whether a host access code has been set for this tournament */
   hasHostCode: boolean;
+  /** Whether an organizer password has been set */
+  hasOrganizerPassword?: boolean;
+  /** Whether a support password has been set */
+  hasSupportPassword?: boolean;
   createdAt: string;
 }

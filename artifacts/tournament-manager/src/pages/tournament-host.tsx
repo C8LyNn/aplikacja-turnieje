@@ -24,11 +24,15 @@ import {
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
   Share2, Lock, Key, Copy, Check, Eye, EyeOff,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
 import { useHostAuth } from "@/hooks/use-host-auth";
+import { useAuth } from "@/context/auth-context";
+import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import { OrganizerLoginModal } from "@/components/organizer-login-modal";
+import { SupportLoginModal } from "@/components/support-login-modal";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number; isDraw: boolean };
@@ -77,6 +81,29 @@ export default function TournamentHost() {
 
   const { isAuthenticated, isReady, authenticate, clearAuth, updateStoredCode } = useHostAuth(id, tournament?.hasHostCode);
   const verifyCode = useVerifyHostCode();
+
+  const { getOrgToken, getSupSession, storeOrgToken, storeSupSession } = useAuth();
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [showSupModal, setShowSupModal] = useState(false);
+
+  // For new-style auth (hasOrganizerPassword), check existing session tokens
+  const hasNewAuth = !!(tournament?.hasOrganizerPassword);
+  const orgToken = hasNewAuth ? getOrgToken(id) : null;
+  const supSession = hasNewAuth ? getSupSession(id) : null;
+  const isNewAuthAuthenticated = !hasNewAuth || !!(orgToken || supSession);
+
+  // Sync global API client headers with stored tokens
+  useEffect(() => {
+    if (!hasNewAuth) return;
+    const tok = getOrgToken(id);
+    const sess = getSupSession(id);
+    if (tok) setActiveOrganizerToken(tok);
+    else if (sess) setActiveSupportToken(sess.token);
+    return () => {
+      setActiveOrganizerToken(null);
+      setActiveSupportToken(null);
+    };
+  }, [id, hasNewAuth, orgToken, supSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
@@ -385,7 +412,62 @@ export default function TournamentHost() {
   // --- Loading ---
   if (!tournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
 
-  // --- Auth gate ---
+  // --- New-style auth gate (organizer password system) ---
+  if (tournament && hasNewAuth && !isNewAuthAuthenticated) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-full max-w-sm space-y-6">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <p className="text-sm text-muted-foreground">{tournament.name}</p>
+              <p className="text-xs text-muted-foreground">Zaloguj się jako organizator lub wsparcie.</p>
+            </div>
+            <div className="space-y-3">
+              <Button className="w-full" onClick={() => setShowOrgModal(true)}>
+                <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
+              </Button>
+              {tournament.hasSupportPassword && (
+                <Button variant="outline" className="w-full" onClick={() => setShowSupModal(true)}>
+                  <Shield className="w-4 h-4 mr-2" /> Zaloguj jako wsparcie
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
+                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+        <OrganizerLoginModal
+          open={showOrgModal}
+          onClose={() => setShowOrgModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token) => {
+            storeOrgToken(id, token);
+            setActiveOrganizerToken(token);
+            setShowOrgModal(false);
+          }}
+        />
+        <SupportLoginModal
+          open={showSupModal}
+          onClose={() => setShowSupModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token, nick) => {
+            storeSupSession(id, token, nick);
+            setActiveSupportToken(token);
+            setShowSupModal(false);
+          }}
+        />
+      </Layout>
+    );
+  }
+
+  // --- Legacy auth gate (host code system) ---
   if (isReady && !isAuthenticated) {
     return (
       <Layout>

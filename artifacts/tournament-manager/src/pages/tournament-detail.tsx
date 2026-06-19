@@ -18,12 +18,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
+import { SecurityPanel } from "@/components/security-panel";
+import { useAuth } from "@/context/auth-context";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -37,6 +39,7 @@ export default function TournamentDetail() {
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { getOrgToken } = useAuth();
 
   const { data: tournament, isLoading: isLoadingTournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
@@ -403,6 +406,11 @@ export default function TournamentDetail() {
             <TabsTrigger value="backup" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
               <HardDriveDownload className="w-3.5 h-3.5" /> Backup
             </TabsTrigger>
+            {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
+              <TabsTrigger value="security" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" /> Bezpieczeństwo
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="pt-6">
@@ -1072,6 +1080,12 @@ export default function TournamentDetail() {
               </Card>
             </div>
           </TabsContent>
+
+          {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
+            <TabsContent value="security" className="pt-6">
+              <SecurityPanel tournamentId={id} />
+            </TabsContent>
+          )}
 
         </Tabs>
       </div>

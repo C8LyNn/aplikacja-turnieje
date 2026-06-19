@@ -715,6 +715,12 @@ components:
         hasHostCode:
           type: boolean
           description: Whether a host access code has been set for this tournament
+        hasOrganizerPassword:
+          type: boolean
+          description: Whether an organizer password has been set
+        hasSupportPassword:
+          type: boolean
+          description: Whether a support password has been set
         createdAt:
           type: string
 
@@ -738,6 +744,12 @@ components:
           type: boolean
         defaultBestOf:
           type: integer
+        organizerPassword:
+          type: string
+          description: Optional password to protect organizer access
+        supportPassword:
+          type: string
+          description: Optional password for support staff access
 
     TournamentUpdate:
       type: object

@@ -18,6 +18,8 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
 let _activeHostCode: string | null = null;
+let _activeOrganizerToken: string | null = null;
+let _activeSupportToken: string | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -52,6 +54,22 @@ export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
  */
 export function setActiveHostCode(code: string | null): void {
   _activeHostCode = code;
+}
+
+/**
+ * Set the active organizer token for the current session.
+ * When set, an `X-Organizer-Token` header will be attached to every request.
+ */
+export function setActiveOrganizerToken(token: string | null): void {
+  _activeOrganizerToken = token;
+}
+
+/**
+ * Set the active support token for the current session.
+ * When set, an `X-Support-Token` header will be attached to every request.
+ */
+export function setActiveSupportToken(token: string | null): void {
+  _activeSupportToken = token;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -371,6 +389,16 @@ export async function customFetch<T = unknown>(
   // Attach host code when one is active and not already present.
   if (_activeHostCode && !headers.has("x-host-code")) {
     headers.set("x-host-code", _activeHostCode);
+  }
+
+  // Attach organizer token when one is active and not already present.
+  if (_activeOrganizerToken && !headers.has("x-organizer-token")) {
+    headers.set("x-organizer-token", _activeOrganizerToken);
+  }
+
+  // Attach support token when one is active and not already present.
+  if (_activeSupportToken && !headers.has("x-support-token")) {
+    headers.set("x-support-token", _activeSupportToken);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

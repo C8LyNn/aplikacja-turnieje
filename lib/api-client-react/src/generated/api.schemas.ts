@@ -53,6 +53,10 @@ export interface Tournament {
   featuredMatchId?: number | null;
   /** Whether a host access code has been set for this tournament */
   hasHostCode: boolean;
+  /** Whether an organizer password has been set */
+  hasOrganizerPassword?: boolean;
+  /** Whether a support password has been set */
+  hasSupportPassword?: boolean;
   createdAt: string;
 }
 
@@ -75,6 +79,10 @@ export interface TournamentInput {
   swissRounds?: number;
   allowDraws?: boolean;
   defaultBestOf?: number;
+  /** Optional password to protect organizer access */
+  organizerPassword?: string;
+  /** Optional password for support staff access */
+  supportPassword?: string;
 }
 
 export type TournamentUpdateFormat = typeof TournamentUpdateFormat[keyof typeof TournamentUpdateFormat];
