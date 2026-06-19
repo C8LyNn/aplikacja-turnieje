@@ -21,8 +21,14 @@ export default function TournamentAudience() {
     query: { enabled: !!id, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 10000 },
   });
 
-  const liveMatch = matches?.find((m) => m.status === "in_progress");
-  const nextMatches = matches?.filter((m) => (m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id).slice(0, 3) || [];
+  // Featured match takes priority over in_progress detection
+  const featuredMatch = tournament?.featuredMatchId
+    ? matches?.find((m) => m.id === tournament.featuredMatchId)
+    : null;
+  const liveMatch = featuredMatch ?? matches?.find((m) => m.status === "in_progress");
+  const nextMatches = matches?.filter(
+    (m) => (m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id && m.id !== liveMatch?.id
+  ).slice(0, 3) || [];
   const topStandings = standings?.slice(0, 8) || [];
 
   return (

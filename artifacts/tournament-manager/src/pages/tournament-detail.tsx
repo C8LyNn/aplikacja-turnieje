@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetTournament, useGetTournamentStats, useListPlayers, useGetTournamentBracket,
   useListMatches, useAddPlayer, useDeletePlayer, useStartTournament, useImportPlayers,
+  useUpdatePlayer,
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant,
   getGetTournamentQueryKey, getGetTournamentStatsQueryKey, getListPlayersQueryKey,
   getGetTournamentBracketQueryKey, getListMatchesQueryKey, getGetTournamentStandingsQueryKey,
@@ -15,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -63,6 +64,7 @@ export default function TournamentDetail() {
   const addPlayer = useAddPlayer();
   const deletePlayer = useDeletePlayer();
   const importPlayers = useImportPlayers();
+  const updatePlayer = useUpdatePlayer();
 
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerSeed, setNewPlayerSeed] = useState("");
@@ -71,6 +73,14 @@ export default function TournamentDetail() {
   const [newPlayerTeam, setNewPlayerTeam] = useState("");
   const [csvText, setCsvText] = useState("");
   const [showCsvImport, setShowCsvImport] = useState(false);
+
+  // Edit player state
+  const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRank, setEditRank] = useState("");
+  const [editCountry, setEditCountry] = useState("");
+  const [editTeam, setEditTeam] = useState("");
+  const [editSeed, setEditSeed] = useState("");
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
@@ -122,6 +132,38 @@ export default function TournamentDetail() {
       },
     });
   };
+
+  const handleStartEdit = (p: { id: number; name: string; rank?: string | null; country?: string | null; teamName?: string | null; seed?: number | null }) => {
+    setEditingPlayerId(p.id);
+    setEditName(p.name);
+    setEditRank(p.rank ?? "");
+    setEditCountry(p.country ?? "");
+    setEditTeam(p.teamName ?? "");
+    setEditSeed(p.seed?.toString() ?? "");
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingPlayerId || !editName.trim()) return;
+    updatePlayer.mutate({
+      id: editingPlayerId,
+      data: {
+        name: editName.trim(),
+        rank: editRank || undefined,
+        country: editCountry || undefined,
+        teamName: editTeam || undefined,
+        seed: editSeed ? parseInt(editSeed, 10) : undefined,
+      },
+    }, {
+      onSuccess: () => {
+        setEditingPlayerId(null);
+        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
+        toast({ title: "Gracz zaktualizowany" });
+      },
+      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+    });
+  };
+
+  const handleCancelEdit = () => setEditingPlayerId(null);
 
   const handleCsvImport = () => {
     if (!csvText.trim()) return;
@@ -312,32 +354,72 @@ export default function TournamentDetail() {
                     {players?.length ? (
                       <div className="space-y-2">
                         {players.map((p) => (
-                          <div key={p.id} className="flex justify-between items-center p-3 border rounded bg-background">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold">{p.name}</span>
-                                {p.seed != null && <Badge variant="outline" className="text-xs">#{p.seed}</Badge>}
+                          editingPlayerId === p.id ? (
+                            // Inline edit form
+                            <div key={p.id} className="border border-primary/40 rounded bg-background p-3 space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Nick *</Label>
+                                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Ranga</Label>
+                                  <Input value={editRank} onChange={(e) => setEditRank(e.target.value)} className="h-8 text-sm" placeholder="np. GM" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Drużyna</Label>
+                                  <Input value={editTeam} onChange={(e) => setEditTeam(e.target.value)} className="h-8 text-sm" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Kraj</Label>
+                                  <Input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} className="h-8 text-sm" placeholder="PL" />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Rozstawienie</Label>
+                                  <Input type="number" value={editSeed} onChange={(e) => setEditSeed(e.target.value)} className="h-8 text-sm" />
+                                </div>
                               </div>
-                              <div className="flex gap-3 mt-0.5">
-                                {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
-                                {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
-                                {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {tournament.status !== "draft" && (
-                                <span className="text-xs text-muted-foreground font-mono">{p.wins}W {p.draws}R {p.losses}L · {p.points} pkt</span>
-                              )}
-                              <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
-                                {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
-                              </Badge>
-                              {tournament.status === "draft" && (
-                                <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                  <Trash2 className="w-4 h-4" />
+                              <div className="flex gap-2 justify-end">
+                                <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                                  <X className="w-3 h-3 mr-1" /> Anuluj
                                 </Button>
-                              )}
+                                <Button size="sm" onClick={handleSaveEdit} disabled={updatePlayer.isPending || !editName.trim()}>
+                                  <Check className="w-3 h-3 mr-1" /> Zapisz
+                                </Button>
+                              </div>
                             </div>
-                          </div>
+                          ) : (
+                            // Normal player row
+                            <div key={p.id} className="flex justify-between items-center p-3 border rounded bg-background">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">{p.name}</span>
+                                  {p.seed != null && <Badge variant="outline" className="text-xs">#{p.seed}</Badge>}
+                                </div>
+                                <div className="flex gap-3 mt-0.5">
+                                  {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
+                                  {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
+                                  {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {tournament.status !== "draft" && (
+                                  <span className="text-xs text-muted-foreground font-mono">{p.wins}W {p.draws}R {p.losses}L · {p.points} pkt</span>
+                                )}
+                                <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
+                                  {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
+                                </Badge>
+                                <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                {tournament.status === "draft" && (
+                                  <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )
                         ))}
                       </div>
                     ) : (

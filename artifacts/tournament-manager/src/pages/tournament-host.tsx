@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetTournament, useListMatches, useUpdateMatch, useCompleteMatch, useRevertMatch,
+  useUpdateTournament,
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
   useGetTournamentBracket,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, ChevronRight, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, ChevronRight, AlertTriangle, Star } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,7 @@ export default function TournamentHost() {
   const completeMatch = useCompleteMatch();
   const revertMatch = useRevertMatch();
   const generateNextRound = useGenerateNextRound();
+  const updateTournament = useUpdateTournament();
 
   const [scores, setScores] = useState<Record<number, { s1: string; s2: string }>>({});
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
@@ -106,6 +108,19 @@ export default function TournamentHost() {
     });
   };
 
+  const handleSetFeatured = (matchId: number) => {
+    const isCurrent = tournament?.featuredMatchId === matchId;
+    updateTournament.mutate(
+      { id, data: { featuredMatchId: isCurrent ? null : matchId } as any },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
+          toast({ title: isCurrent ? "Usunięto bieżący mecz" : "Ustawiono mecz jako bieżący" });
+        },
+      },
+    );
+  };
+
   if (!tournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
 
   if (tournament.status === "draft") {
@@ -134,16 +149,32 @@ export default function TournamentHost() {
     const s = scores[match.id];
     const s1 = s?.s1 !== undefined ? s.s1 : (match.score1?.toString() ?? "");
     const s2 = s?.s2 !== undefined ? s.s2 : (match.score2?.toString() ?? "");
+    const isFeatured = tournament?.featuredMatchId === match.id;
 
     return (
-      <Card key={match.id} className={match.status === "in_progress" ? "border-secondary/60 shadow-[0_0_20px_rgba(0,200,255,0.08)]" : ""}>
+      <Card key={match.id} className={
+        isFeatured ? "border-yellow-500/60 shadow-[0_0_20px_rgba(234,179,8,0.12)]" :
+        match.status === "in_progress" ? "border-secondary/60 shadow-[0_0_20px_rgba(0,200,255,0.08)]" : ""
+      }>
         <CardHeader className="py-2 px-4 bg-muted/20 border-b flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">Runda {match.round}</Badge>
             <span className="text-xs text-muted-foreground">M{match.matchNumber}</span>
             {match.bestOf && match.bestOf > 1 && <Badge variant="outline" className="text-xs">BO{match.bestOf}</Badge>}
+            {isFeatured && <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/40 text-xs">★ Bieżący</Badge>}
           </div>
-          {match.status === "in_progress" && <Badge className="bg-secondary text-secondary-foreground animate-pulse text-xs">LIVE</Badge>}
+          <div className="flex items-center gap-2">
+            {match.status === "in_progress" && <Badge className="bg-secondary text-secondary-foreground animate-pulse text-xs">LIVE</Badge>}
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-7 px-2 text-xs ${isFeatured ? "text-yellow-400 hover:text-yellow-300" : "text-muted-foreground hover:text-yellow-400"}`}
+              onClick={() => handleSetFeatured(match.id)}
+              title={isFeatured ? "Usuń jako bieżący" : "Ustaw jako bieżący mecz"}
+            >
+              <Star className={`w-3.5 h-3.5 ${isFeatured ? "fill-yellow-400" : ""}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
