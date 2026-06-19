@@ -1,6 +1,52 @@
-import { Bracket, Match, MatchStatus } from "@workspace/api-client-react";
+import { Bracket, Match } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
+
+// Layout constants — card heights must match actual rendered sizes
+const CARD_W = 180;
+const CARD_H = 64; // header(16) + player×2(24×2)
+const R1_GAP = 8;
+const UNIT = CARD_H + R1_GAP; // 72 — base vertical rhythm
+const COL_GAP = 48; // matches gap-12 between round columns
+const HEADER_H = 24; // fixed header above each round column
+
+/** Round column gap between consecutive matches at round index ri */
+function matchGap(ri: number) {
+  return Math.pow(2, ri) * UNIT - CARD_H;
+}
+
+/** Padding-top of the matches sub-div so first match aligns correctly */
+function matchPaddingTop(ri: number) {
+  return ((Math.pow(2, ri) - 1) * UNIT) / 2;
+}
+
+/** Distance from center of even match to center of odd match (for SVG span) */
+function pairSpan(ri: number) {
+  return Math.pow(2, ri) * UNIT;
+}
+
+export function bracketNaturalSize(totalRounds: number, r1Matches: number) {
+  const width =
+    totalRounds * CARD_W +
+    (totalRounds - 1) * COL_GAP +
+    COL_GAP +
+    CARD_W + // winner column
+    64; // px-4 on each side
+  const height =
+    HEADER_H +
+    r1Matches * CARD_H +
+    (r1Matches - 1) * R1_GAP +
+    64; // pt/pb
+  return { width, height };
+}
+
+function roundLabel(round: number, total: number): string {
+  const remaining = total - round + 1;
+  if (remaining === 1) return "Finał";
+  if (remaining === 2) return "Półfinał";
+  if (remaining === 3) return "Ćwierćfinał";
+  return `Runda ${round}`;
+}
 
 interface BracketViewProps {
   bracket: Bracket;
@@ -15,74 +61,94 @@ export function BracketView({ bracket }: BracketViewProps) {
     );
   }
 
-  const roundLabels = (round: number, total: number): string => {
-    const remaining = total - round + 1;
-    if (remaining === 1) return "Finał";
-    if (remaining === 2) return "Półfinał";
-    if (remaining === 3) return "Ćwierćfinał";
-    return `Runda ${round}`;
-  };
-
   const totalRounds = bracket.rounds.length;
 
   return (
-    <div className="flex gap-12 overflow-x-auto pb-8 pt-4 px-4 select-none">
-      {bracket.rounds.map((round, roundIndex) => (
-        <div
-          key={round.round}
-          className="flex flex-col justify-around min-w-[240px]"
-          style={{ gap: `${Math.pow(2, roundIndex) * 8}px` }}
-        >
-          <h3 className="text-center font-bold text-xs text-muted-foreground uppercase tracking-wider mb-2 shrink-0">
-            {roundLabels(round.round, totalRounds)}
-          </h3>
-          {round.matches.map((match, matchIndex) => (
-            <div key={match.id} className="relative flex items-center">
-              <MatchBox match={match} />
-              {/* Connector line to next round */}
-              {roundIndex < totalRounds - 1 && (
-                <svg
-                  className="absolute pointer-events-none"
-                  style={{
-                    left: "100%",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    width: 48,
-                    height: matchIndex % 2 === 0 ? 60 : 60,
-                    overflow: "visible",
-                  }}
-                >
-                  <line
-                    x1={0}
-                    y1={0}
-                    x2={48}
-                    y2={0}
-                    stroke="hsl(var(--border))"
-                    strokeWidth={1}
-                  />
-                  <line
-                    x1={48}
-                    y1={matchIndex % 2 === 0 ? 0 : 0}
-                    x2={48}
-                    y2={matchIndex % 2 === 0 ? 34 : -34}
-                    stroke="hsl(var(--border))"
-                    strokeWidth={1}
-                  />
-                </svg>
-              )}
-            </div>
-          ))}
-        </div>
-      ))}
+    <div
+      className="flex pb-8 pt-4 px-4 select-none"
+      style={{ alignItems: "flex-start", gap: COL_GAP }}
+    >
+      {bracket.rounds.map((round, ri) => {
+        const gap = matchGap(ri);
+        const pt = matchPaddingTop(ri);
+        const ps = pairSpan(ri);
 
+        return (
+          <div key={round.round} className="flex flex-col shrink-0" style={{ width: CARD_W }}>
+            {/* Round header — sits outside the match gap so it doesn't shift alignment */}
+            <div
+              className="text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wider shrink-0"
+              style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
+            >
+              {roundLabel(round.round, totalRounds)}
+            </div>
+
+            {/* Matches sub-column with correct paddingTop and gap */}
+            <div
+              className="flex flex-col"
+              style={{ paddingTop: pt, gap }}
+            >
+              {round.matches.map((match, mi) => (
+                <div
+                  key={match.id}
+                  className="relative shrink-0"
+                  style={{ height: CARD_H }}
+                >
+                  <MatchBox match={match} />
+
+                  {/* Connector to next round — only from even-indexed matches */}
+                  {ri < totalRounds - 1 && mi % 2 === 0 && (
+                    <svg
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: CARD_W,
+                        top: CARD_H / 2,
+                        width: COL_GAP,
+                        height: ps,
+                        overflow: "visible",
+                      }}
+                    >
+                      {/* Horizontal from current match center to midpoint */}
+                      <line x1={0} y1={0} x2={COL_GAP / 2} y2={0}
+                        stroke="hsl(var(--border))" strokeWidth={1} />
+                      {/* Vertical bracket spanning both matches */}
+                      <line x1={COL_GAP / 2} y1={0} x2={COL_GAP / 2} y2={ps}
+                        stroke="hsl(var(--border))" strokeWidth={1} />
+                      {/* Horizontal from next match center to midpoint */}
+                      <line x1={0} y1={ps} x2={COL_GAP / 2} y2={ps}
+                        stroke="hsl(var(--border))" strokeWidth={1} />
+                      {/* Horizontal from bracket midpoint to next column */}
+                      <line x1={COL_GAP / 2} y1={ps / 2} x2={COL_GAP} y2={ps / 2}
+                        stroke="hsl(var(--border))" strokeWidth={1} />
+                    </svg>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Winner column */}
       {bracket.winner && (
-        <div className="flex flex-col justify-center min-w-[200px]">
-          <h3 className="text-center font-bold text-xs text-primary uppercase tracking-wider mb-4">
+        <div className="flex flex-col shrink-0" style={{ width: CARD_W }}>
+          <div
+            className="text-center font-bold text-[10px] text-primary uppercase tracking-wider"
+            style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
+          >
             Zwycięzca
-          </h3>
-          <div className="border-2 border-primary rounded-lg p-4 bg-primary/10 shadow-[0_0_20px_rgba(0,200,255,0.15)] flex flex-col items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary" />
-            <span className="font-bold text-base text-primary text-center">{bracket.winner.name}</span>
+          </div>
+          <div
+            style={{
+              marginTop: matchPaddingTop(totalRounds),
+              height: CARD_H,
+            }}
+            className="border-2 border-primary rounded-lg bg-primary/10 shadow-[0_0_20px_rgba(0,200,255,0.15)] flex flex-col items-center justify-center gap-1 px-2"
+          >
+            <Trophy className="w-4 h-4 text-primary shrink-0" />
+            <span className="font-bold text-xs text-primary text-center leading-tight break-all">
+              {bracket.winner.name}
+            </span>
           </div>
         </div>
       )}
@@ -91,53 +157,59 @@ export function BracketView({ bracket }: BracketViewProps) {
 }
 
 function MatchBox({ match }: { match: Match }) {
-  const getStatusStyle = (status: MatchStatus): string => {
-    switch (status) {
-      case "in_progress":
-        return "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_12px_rgba(234,179,8,0.1)]";
-      case "completed":
-        return "border-border opacity-80";
-      case "bye":
-        return "border-border/40 opacity-40 border-dashed";
-      default:
-        return "border-border bg-card";
-    }
-  };
+  const isDone = match.status === "completed";
+  const isLive = match.status === "in_progress";
+  const isBye = match.status === "bye";
+
+  const borderClass = isLive
+    ? "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_8px_rgba(234,179,8,0.08)]"
+    : isDone
+    ? "border-border/60 opacity-80"
+    : isBye
+    ? "border-border/30 border-dashed opacity-40"
+    : "border-border bg-card";
 
   return (
     <div
-      className={`border rounded-lg shadow-sm overflow-hidden flex flex-col w-full transition-all ${getStatusStyle(match.status)}`}
+      className={`border rounded-md overflow-hidden flex flex-col w-full h-full transition-colors ${borderClass}`}
     >
-      <div className="flex justify-between items-center bg-muted/20 px-2 py-1 border-b border-border/50 text-[10px]">
-        <span className="text-muted-foreground">M{match.matchNumber}</span>
-        {match.status === "in_progress" && (
-          <Badge variant="outline" className="text-[9px] h-4 py-0 bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse">
+      {/* Match header */}
+      <div
+        className="flex justify-between items-center bg-muted/30 px-1.5 border-b border-border/40 shrink-0"
+        style={{ height: 16 }}
+      >
+        <span className="text-[9px] text-muted-foreground font-mono leading-none">
+          M{match.matchNumber}
+        </span>
+        {isLive && (
+          <span className="text-[8px] text-yellow-400 font-bold animate-pulse leading-none">
             LIVE
-          </Badge>
+          </span>
         )}
-        {match.status === "completed" && (
-          <Badge variant="outline" className="text-[9px] h-4 py-0 border-green-500/30 text-green-400">OK</Badge>
+        {isDone && (
+          <span className="text-[8px] text-green-400 leading-none">✓</span>
         )}
-        {match.status === "bye" && (
-          <Badge variant="outline" className="text-[9px] h-4 py-0 text-muted-foreground">BYE</Badge>
+        {isBye && (
+          <span className="text-[8px] text-muted-foreground leading-none">
+            BYE
+          </span>
         )}
       </div>
 
-      <div className="flex flex-col">
-        <PlayerRow
-          name={match.player1Name}
-          score={match.score1}
-          isWinner={match.status === "completed" && match.winnerId === match.player1Id && !match.isDraw}
-          isPending={!match.player1Id && match.status === "pending"}
-        />
-        <div className="h-px w-full bg-border/50" />
-        <PlayerRow
-          name={match.player2Name}
-          score={match.score2}
-          isWinner={match.status === "completed" && match.winnerId === match.player2Id && !match.isDraw}
-          isPending={!match.player2Id && match.status === "pending"}
-        />
-      </div>
+      {/* Players */}
+      <PlayerRow
+        name={match.player1Name}
+        score={match.score1}
+        isWinner={isDone && match.winnerId === match.player1Id && !match.isDraw}
+        isPending={!match.player1Id && !isBye}
+      />
+      <div className="h-px bg-border/40 shrink-0" />
+      <PlayerRow
+        name={match.player2Name}
+        score={match.score2}
+        isWinner={isDone && match.winnerId === match.player2Id && !match.isDraw}
+        isPending={!match.player2Id && !isBye}
+      />
     </div>
   );
 }
@@ -154,20 +226,28 @@ function PlayerRow({
   isPending: boolean;
 }) {
   return (
-    <div className={`flex justify-between items-center px-3 py-2 ${isWinner ? "bg-primary/10" : ""}`}>
+    <div
+      className={`flex justify-between items-center px-1.5 flex-1 min-h-0 ${
+        isWinner ? "bg-primary/10" : ""
+      }`}
+    >
       <span
-        className={`text-sm truncate pr-2 max-w-[160px] ${
-          isPending ? "text-muted-foreground italic text-xs" : "text-foreground"
-        } ${isWinner ? "font-bold text-primary" : ""}`}
+        className={`text-[11px] leading-tight truncate flex-1 pr-1 ${
+          isPending
+            ? "text-muted-foreground italic"
+            : isWinner
+            ? "font-bold text-primary"
+            : "text-foreground"
+        }`}
       >
         {isPending ? "TBD" : name || "?"}
       </span>
       <span
-        className={`font-mono text-sm font-bold w-6 text-right shrink-0 ${
+        className={`text-[11px] font-mono font-bold w-5 text-right shrink-0 ${
           isWinner ? "text-primary" : "text-muted-foreground"
         }`}
       >
-        {score !== null && score !== undefined ? score : "-"}
+        {score !== null && score !== undefined ? score : "–"}
       </span>
     </div>
   );

@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
@@ -85,6 +85,8 @@ export default function TournamentDetail() {
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [bracketZoom, setBracketZoom] = useState(0.85);
+  const clampBracketZoom = (z: number) => Math.round(Math.min(2, Math.max(0.2, z)) * 100) / 100;
   const [csvText, setCsvText] = useState("");
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
   const [csvConfirmReplace, setCsvConfirmReplace] = useState(false);
@@ -873,8 +875,46 @@ export default function TournamentDetail() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="bracket" className="pt-6 overflow-hidden">
-            {bracket ? <BracketView bracket={bracket} /> : (
+          <TabsContent value="bracket" className="pt-4">
+            {bracket ? (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-muted-foreground">
+                    Przewijaj poziomo/pionowo. Otwórz widok projektora dla pełnoekranowego trybu.
+                  </p>
+                  <div className="flex items-center gap-1 border border-border rounded-lg px-2 py-1">
+                    <button
+                      className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      onClick={() => setBracketZoom((z) => clampBracketZoom(z - 0.1))}
+                      disabled={bracketZoom <= 0.2}
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      className="min-w-[38px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors"
+                      onClick={() => setBracketZoom(0.85)}
+                      title="Reset do 85%"
+                    >
+                      {Math.round(bracketZoom * 100)}%
+                    </button>
+                    <button
+                      className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      onClick={() => setBracketZoom((z) => clampBracketZoom(z + 0.1))}
+                      disabled={bracketZoom >= 2}
+                    >
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="overflow-auto border border-border rounded-lg bg-background/50" style={{ maxHeight: "70vh" }}>
+                  <div style={{ display: "inline-block", minWidth: "100%" }}>
+                    <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: "top left", display: "inline-block" }}>
+                      <BracketView bracket={bracket} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
                 Brak drabinki. Wystartuj turniej.
               </div>
