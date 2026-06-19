@@ -6,16 +6,17 @@ import {
   useUpdateTournament,
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
   useGetTournamentBracket,
+  useGetActionLog, useUndoLastAction,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
-  getGetTournamentAssistantQueryKey,
+  getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, ChevronRight, AlertTriangle,
-  Star, Minus, Plus, SkipForward, Clock,
+  Star, Minus, Plus, SkipForward, Clock, Undo2, Shield, History,
 } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -50,16 +51,25 @@ export default function TournamentHost() {
     query: { enabled: !!id, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
   });
 
+  const { data: actionLog } = useGetActionLog(id, {
+    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
+  });
+
   const updateMatch = useUpdateMatch();
   const completeMatch = useCompleteMatch();
   const revertMatch = useRevertMatch();
   const generateNextRound = useGenerateNextRound();
   const updateTournament = useUpdateTournament();
+  const undoLastAction = useUndoLastAction();
+
+  const lastUndoableAction = actionLog?.find((a) => a.canUndo);
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [confirmComplete, setConfirmComplete] = useState<ConfirmEntry | null>(null);
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
+  const [undoConfirm, setUndoConfirm] = useState(false);
+  const [boConfirm, setBoConfirm] = useState<{ matchId: number; bo: number } | null>(null);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
@@ -69,6 +79,7 @@ export default function TournamentHost() {
     queryClient.invalidateQueries({ queryKey: getGetTournamentStandingsQueryKey(id) });
     queryClient.invalidateQueries({ queryKey: getGetResultsHistoryQueryKey(id) });
     queryClient.invalidateQueries({ queryKey: getGetTournamentAssistantQueryKey(id) });
+    queryClient.invalidateQueries({ queryKey: getGetActionLogQueryKey(id) });
   };
 
   // --- Score helpers ---
@@ -125,6 +136,16 @@ export default function TournamentHost() {
   };
 
   const handleChangeBestOf = (matchId: number, bo: number) => {
+    const match = matches?.find((m) => m.id === matchId);
+    const hasScores = (match?.score1 ?? 0) > 0 || (match?.score2 ?? 0) > 0;
+    if (hasScores && match?.status === "in_progress") {
+      setBoConfirm({ matchId, bo });
+      return;
+    }
+    applyChangeBestOf(matchId, bo);
+  };
+
+  const applyChangeBestOf = (matchId: number, bo: number) => {
     updateMatch.mutate({ id: matchId, data: { bestOf: bo } }, {
       onSuccess: () => {
         invalidateAll();
@@ -134,6 +155,21 @@ export default function TournamentHost() {
           const max = Math.ceil(bo / 2);
           return { ...prev, [matchId]: { s1: Math.min(e.s1, max), s2: Math.min(e.s2, max) } };
         });
+      },
+    });
+  };
+
+  const handleUndo = () => {
+    if (!lastUndoableAction) return;
+    undoLastAction.mutate({ id }, {
+      onSuccess: (result) => {
+        invalidateAll();
+        setUndoConfirm(false);
+        toast({ title: "Akcja cofnięta", description: result.message });
+      },
+      onError: () => {
+        setUndoConfirm(false);
+        toast({ title: "Błąd cofania", variant: "destructive" });
       },
     });
   };
@@ -563,12 +599,65 @@ export default function TournamentHost() {
               {tournament.format} · Runda {tournament.currentRound ?? "—"}/{tournament.totalRounds ?? "—"}
             </p>
           </div>
+          {lastUndoableAction && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
+              onClick={() => setUndoConfirm(true)}
+            >
+              <Undo2 className="w-4 h-4 mr-1" /> Cofnij
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={`/tournaments/${id}/audience`}>
               <Monitor className="w-4 h-4 mr-1" /> Widok widzów
             </Link>
           </Button>
         </div>
+
+        {/* Undo confirmation banner */}
+        {undoConfirm && lastUndoableAction && (
+          <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-3 flex items-center gap-3">
+            <Undo2 className="w-5 h-5 text-yellow-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-yellow-400">Cofnąć akcję?</p>
+              <p className="text-xs text-muted-foreground truncate">{lastUndoableAction.description}</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" variant="destructive" onClick={handleUndo} disabled={undoLastAction.isPending}>
+                Cofnij
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setUndoConfirm(false)}>
+                Anuluj
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* BO change confirmation */}
+        {boConfirm && (() => {
+          const bm = matches?.find((m) => m.id === boConfirm.matchId);
+          return (
+            <div className="bg-orange-500/10 border border-orange-500/40 rounded-lg p-3 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-orange-400">Zmiana BO w trakcie meczu</p>
+                <p className="text-xs text-muted-foreground">
+                  Mecz R{bm?.round}M{bm?.matchNumber} ma wynik {bm?.score1}:{bm?.score2}. Zmiana na BO{boConfirm.bo} może wyzerować maks. set. Kontynuować?
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button size="sm" variant="destructive" onClick={() => { applyChangeBestOf(boConfirm.matchId, boConfirm.bo); setBoConfirm(null); }}>
+                  Zmień BO
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setBoConfirm(null)}>
+                  Anuluj
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Assistant bar */}
         {assistant && (
@@ -938,18 +1027,18 @@ export default function TournamentHost() {
           <TabsContent value="korekta" className="pt-4">
             <div className="space-y-4">
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+                <Shield className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-yellow-400 text-sm">Panel korekty błędów</p>
+                  <p className="font-semibold text-yellow-400 text-sm">Panel korekty i historia akcji</p>
                   <p className="text-xs text-muted-foreground">
-                    Cofnięcie wyniku może wpłynąć na kolejne rundy. Działa tylko dla zakończonych meczów.
+                    Przycisk „Cofnij" przy ostatniej akcji umożliwia jej bezpieczne wycofanie. Cofnięcie wyniku może wpłynąć na kolejne rundy.
                   </p>
                 </div>
               </div>
 
               {revertConfirm && (
                 <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-                  <p className="font-semibold text-destructive mb-2">Potwierdzenie cofnięcia</p>
+                  <p className="font-semibold text-destructive mb-2">Potwierdzenie cofnięcia wyniku</p>
                   {(() => {
                     const m = matches?.find((x) => x.id === revertConfirm);
                     if (!m) return null;
@@ -961,17 +1050,10 @@ export default function TournamentHost() {
                           <strong>{m.player2Name}</strong>?
                         </p>
                         <div className="flex gap-2">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRevert(revertConfirm)}
-                            disabled={revertMatch.isPending}
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => handleRevert(revertConfirm)} disabled={revertMatch.isPending}>
                             <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => setRevertConfirm(null)}>
-                            Anuluj
-                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setRevertConfirm(null)}>Anuluj</Button>
                         </div>
                       </div>
                     );
@@ -980,67 +1062,66 @@ export default function TournamentHost() {
               )}
 
               <div>
-                <h3 className="font-bold mb-3">Historia wyników</h3>
-                {!history || history.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground border border-dashed rounded">
-                    Brak zakończonych meczów.
+                <h3 className="font-bold mb-3 flex items-center gap-2">
+                  <History className="w-4 h-4 text-muted-foreground" /> Historia akcji
+                </h3>
+                {!actionLog || actionLog.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
+                    Brak zarejestrowanych akcji.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {history.slice(0, 20).map((r) => {
-                      const matchStillExists = matches?.find((m) => m.id === r.matchId);
+                  <div className="space-y-1.5">
+                    {actionLog.map((entry, idx) => {
+                      const isFirst = idx === 0;
+                      const typeColors: Record<string, string> = {
+                        match_result_submitted: "text-green-400",
+                        match_result_reverted: "text-orange-400",
+                        match_started: "text-blue-400",
+                        match_postponed: "text-yellow-400",
+                        match_restored: "text-blue-300",
+                        match_bo_changed: "text-purple-400",
+                        match_featured: "text-primary",
+                        match_unfeatured: "text-muted-foreground",
+                        player_added: "text-green-300",
+                        player_edited: "text-cyan-400",
+                        player_removed: "text-destructive",
+                        tournament_started: "text-primary font-semibold",
+                      };
+                      const colorClass = typeColors[entry.actionType] ?? "text-foreground";
                       return (
                         <div
-                          key={r.id}
-                          className="flex items-center justify-between p-3 border rounded bg-card"
+                          key={entry.id}
+                          className={`flex items-center justify-between p-2.5 border rounded bg-card gap-3 ${entry.isUndone ? "opacity-40" : ""}`}
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              R{r.round} M{r.matchNumber}
-                            </Badge>
-                            <div className="text-sm min-w-0">
-                              <span
-                                className={
-                                  r.winnerName === r.player1Name && !r.isDraw
-                                    ? "font-bold text-primary"
-                                    : ""
-                                }
-                              >
-                                {r.player1Name}
-                              </span>
-                              <span className="text-muted-foreground mx-2 font-mono">
-                                {r.score1}:{r.score2}
-                              </span>
-                              <span
-                                className={
-                                  r.winnerName === r.player2Name && !r.isDraw
-                                    ? "font-bold text-primary"
-                                    : ""
-                                }
-                              >
-                                {r.player2Name}
-                              </span>
-                            </div>
-                            {r.isDraw && (
-                              <Badge variant="secondary" className="text-xs shrink-0">
-                                remis
-                              </Badge>
-                            )}
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={`text-xs shrink-0 font-mono ${colorClass}`}>
+                              {entry.actionType.replace(/_/g, " ")}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">{entry.description}</span>
+                            {entry.isUndone && <Badge variant="outline" className="text-xs shrink-0">cofnięta</Badge>}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {r.winnerName && !r.isDraw && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <ChevronRight className="w-3 h-3 text-primary" /> {r.winnerName}
-                              </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(entry.createdAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                            </span>
+                            {isFirst && entry.canUndo && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
+                                onClick={() => setUndoConfirm(true)}
+                              >
+                                <Undo2 className="w-3 h-3 mr-1" /> Cofnij
+                              </Button>
                             )}
-                            {matchStillExists && (
+                            {entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId) && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-xs border-destructive text-destructive hover:bg-destructive/10"
-                                onClick={() => setRevertConfirm(r.matchId)}
+                                onClick={() => entry.matchId && setRevertConfirm(entry.matchId)}
                               >
-                                <RotateCcw className="w-3 h-3 mr-1" /> Cofnij
+                                <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
                               </Button>
                             )}
                           </div>

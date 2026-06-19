@@ -291,6 +291,23 @@ export interface ResultRecord {
   completedAt: string;
 }
 
+export interface ActionLogEntry {
+  id: number;
+  tournamentId: number;
+  actionType: string;
+  description: string;
+  /** @nullable */
+  matchId?: number | null;
+  canUndo: boolean;
+  isUndone: boolean;
+  createdAt: string;
+}
+
+export interface UndoResult {
+  action: ActionLogEntry;
+  message: string;
+}
+
 export interface AssistantSnapshot {
   stepTitle: string;
   nextAction: string;
@@ -333,4 +350,8 @@ export interface TournamentStats {
   totalRounds?: number | null;
   topPlayers?: TournamentStatsTopPlayersItem[];
 }
+
+export type UndoLastAction404 = {
+  error?: string;
+};
 

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc } from "drizzle-orm";
-import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable } from "@workspace/db";
+import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable } from "@workspace/db";
 import {
   CreateTournamentBody,
   UpdateTournamentBody,
@@ -29,6 +29,8 @@ import {
   CompleteMatchParams,
   CompleteMatchBody,
   RevertMatchParams,
+  GetActionLogParams,
+  UndoLastActionParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -466,6 +468,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const [prevT] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
   const [t] = await db
     .update(tournamentsTable)
     .set(parsed.data)
@@ -474,6 +477,18 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
   if (!t) {
     res.status(404).json({ error: "Tournament not found" });
     return;
+  }
+  // Log featured match changes
+  if (prevT && "featuredMatchId" in (parsed.data as object)) {
+    const newFeatured = (parsed.data as any).featuredMatchId ?? null;
+    if (newFeatured !== prevT.featuredMatchId) {
+      if (newFeatured) {
+        const [fm] = await db.select().from(matchesTable).where(eq(matchesTable.id, newFeatured));
+        await logAction({ tournamentId: t.id, actionType: "match_featured", description: `Wyróżniono mecz R${fm?.round}M${fm?.matchNumber}`, matchId: newFeatured, undoPayload: { type: "restore_featured", prevFeaturedMatchId: prevT.featuredMatchId } });
+      } else {
+        await logAction({ tournamentId: t.id, actionType: "match_unfeatured", description: "Zdjęto wyróżnienie meczu", undoPayload: { type: "restore_featured", prevFeaturedMatchId: prevT.featuredMatchId } });
+      }
+    }
   }
   res.json(mapTournament(t));
 });
@@ -594,6 +609,8 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     })
     .where(eq(tournamentsTable.id, params.data.id))
     .returning();
+
+  await logAction({ tournamentId: params.data.id, actionType: "tournament_started", description: `Turniej wystartował: ${players.length} graczy, ${totalRounds} rund (${tournament.format})` });
 
   res.json(mapTournament(updated));
 });
@@ -947,6 +964,12 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     .insert(playersTable)
     .values({ tournamentId: params.data.id, ...parsed.data })
     .returning();
+  await logAction({
+    tournamentId: params.data.id,
+    actionType: "player_added",
+    description: `Dodano gracza: ${player.name}${parsed.data.seed ? ` (seed ${parsed.data.seed})` : ""}`,
+    undoPayload: { type: "delete_player", playerId: player.id },
+  });
   res.status(201).json(mapPlayer(player));
 });
 
@@ -1013,6 +1036,11 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const [existing] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
+  if (!existing) {
+    res.status(404).json({ error: "Player not found" });
+    return;
+  }
   const [player] = await db
     .update(playersTable)
     .set(parsed.data)
@@ -1022,6 +1050,12 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Player not found" });
     return;
   }
+  await logAction({
+    tournamentId: existing.tournamentId,
+    actionType: "player_edited",
+    description: `Edytowano gracza: ${existing.name} → ${player.name}`,
+    undoPayload: { type: "restore_player", playerId: player.id, prevData: { name: existing.name, seed: existing.seed, rank: existing.rank, country: existing.country, teamName: existing.teamName } },
+  });
   res.json(mapPlayer(player));
 });
 
@@ -1031,8 +1065,189 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  const [toDelete] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
   await db.delete(playersTable).where(eq(playersTable.id, params.data.id));
+  if (toDelete) {
+    await logAction({
+      tournamentId: toDelete.tournamentId,
+      actionType: "player_removed",
+      description: `Usunięto gracza: ${toDelete.name}`,
+    });
+  }
   res.sendStatus(204);
+});
+
+// ========== ACTION LOG HELPERS ==========
+
+const UNDOABLE_TYPES = new Set([
+  "match_started", "match_postponed", "match_restored",
+  "match_bo_changed", "match_featured", "match_unfeatured",
+  "match_result_submitted", "player_added", "player_edited",
+]);
+
+async function logAction(params: {
+  tournamentId: number;
+  actionType: string;
+  description: string;
+  matchId?: number | null;
+  undoPayload?: Record<string, unknown> | null;
+}) {
+  await db.insert(actionLogTable).values({
+    tournamentId: params.tournamentId,
+    actionType: params.actionType,
+    description: params.description,
+    matchId: params.matchId ?? null,
+    undoPayload: params.undoPayload ? JSON.stringify(params.undoPayload) : null,
+    isUndone: false,
+  });
+}
+
+function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
+  return {
+    id: entry.id,
+    tournamentId: entry.tournamentId,
+    actionType: entry.actionType,
+    description: entry.description,
+    matchId: entry.matchId ?? null,
+    canUndo: UNDOABLE_TYPES.has(entry.actionType) && !entry.isUndone && !!entry.undoPayload,
+    isUndone: entry.isUndone,
+    createdAt: entry.createdAt.toISOString(),
+  };
+}
+
+// ========== ACTION LOG ROUTES ==========
+
+router.get("/tournaments/:id/action-log", async (req, res): Promise<void> => {
+  const params = GetActionLogParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  const entries = await db
+    .select()
+    .from(actionLogTable)
+    .where(eq(actionLogTable.tournamentId, params.data.id))
+    .orderBy(desc(actionLogTable.createdAt))
+    .limit(50);
+  res.json(entries.map(mapActionLog));
+});
+
+router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
+  const params = UndoLastActionParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  // Find the last undoable, non-undone action
+  const [lastAction] = await db
+    .select()
+    .from(actionLogTable)
+    .where(
+      and(
+        eq(actionLogTable.tournamentId, params.data.id),
+        eq(actionLogTable.isUndone, false),
+        sql`${actionLogTable.undoPayload} IS NOT NULL`,
+      ),
+    )
+    .orderBy(desc(actionLogTable.createdAt))
+    .limit(1);
+
+  if (!lastAction || !lastAction.undoPayload) {
+    res.status(404).json({ error: "Brak akcji do cofnięcia" });
+    return;
+  }
+
+  const payload = JSON.parse(lastAction.undoPayload) as Record<string, unknown>;
+
+  try {
+    switch (payload.type) {
+      case "revert_match": {
+        const matchId = payload.matchId as number;
+        const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
+        if (!match || match.status !== "completed") {
+          res.status(400).json({ error: "Mecz nie może zostać cofnięty (nie jest zakończony)" });
+          return;
+        }
+        // Revert player stats
+        if (match.isDraw) {
+          if (match.player1Id) await db.update(playersTable).set({ draws: sql`GREATEST(${playersTable.draws} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 1, 0)` }).where(eq(playersTable.id, match.player1Id));
+          if (match.player2Id) await db.update(playersTable).set({ draws: sql`GREATEST(${playersTable.draws} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 1, 0)` }).where(eq(playersTable.id, match.player2Id));
+        } else if (match.winnerId) {
+          const loserId = match.player1Id === match.winnerId ? match.player2Id : match.player1Id;
+          await db.update(playersTable).set({ wins: sql`GREATEST(${playersTable.wins} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 3, 0)` }).where(eq(playersTable.id, match.winnerId));
+          if (loserId) await db.update(playersTable).set({ losses: sql`GREATEST(${playersTable.losses} - 1, 0)`, status: "active" }).where(eq(playersTable.id, loserId));
+        }
+        // Revert bracket advancement
+        const [tournament] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, match.tournamentId));
+        if (tournament?.format !== "round_robin" && tournament?.format !== "swiss" && match.winnerId) {
+          const nextRoundMatches = await db.select().from(matchesTable).where(and(eq(matchesTable.tournamentId, match.tournamentId), eq(matchesTable.round, match.round + 1))).orderBy(matchesTable.matchNumber);
+          const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
+          const nextMatch = nextRoundMatches[nextMatchIndex];
+          if (nextMatch) {
+            const isP1 = (match.matchNumber - 1) % 2 === 0;
+            await db.update(matchesTable).set(isP1 ? { player1Id: null } : { player2Id: null }).where(eq(matchesTable.id, nextMatch.id));
+          }
+        }
+        // Revert tournament completion if it was the last match
+        if (tournament?.status === "completed" && tournament.winnerId) {
+          await db.update(tournamentsTable).set({ status: "active", winnerId: null }).where(eq(tournamentsTable.id, match.tournamentId));
+          await db.update(playersTable).set({ status: "active" }).where(and(eq(playersTable.tournamentId, match.tournamentId), eq(playersTable.status, "winner")));
+        }
+        // Reset match
+        await db.update(matchesTable).set({ status: "pending", winnerId: null, score1: null, score2: null, isDraw: false, completedAt: null }).where(eq(matchesTable.id, matchId));
+        // Remove from result history
+        await db.delete(resultHistoryTable).where(eq(resultHistoryTable.matchId, matchId));
+        // Log the revert
+        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: lastAction.description.replace("Wynik:", "Cofnięto wynik:"), matchId });
+        break;
+      }
+      case "restore_status": {
+        const matchId = payload.matchId as number;
+        const prevStatus = payload.prevStatus as string;
+        await db.update(matchesTable).set({ status: prevStatus as any }).where(eq(matchesTable.id, matchId));
+        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto status meczu (przywrócono: ${prevStatus})`, matchId });
+        break;
+      }
+      case "restore_best_of": {
+        const matchId = payload.matchId as number;
+        const prevBestOf = payload.prevBestOf as number;
+        await db.update(matchesTable).set({ bestOf: prevBestOf }).where(eq(matchesTable.id, matchId));
+        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zmianę BO (przywrócono: BO${prevBestOf})`, matchId });
+        break;
+      }
+      case "restore_featured": {
+        const prevFeaturedMatchId = (payload.prevFeaturedMatchId as number) ?? null;
+        await db.update(tournamentsTable).set({ featuredMatchId: prevFeaturedMatchId }).where(eq(tournamentsTable.id, params.data.id));
+        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: "Cofnięto zmianę wyróżnionego meczu" });
+        break;
+      }
+      case "delete_player": {
+        const playerId = payload.playerId as number;
+        await db.delete(playersTable).where(eq(playersTable.id, playerId));
+        await logAction({ tournamentId: params.data.id, actionType: "player_removed", description: `Cofnięto dodanie gracza (usunięto ID ${playerId})` });
+        break;
+      }
+      case "restore_player": {
+        const playerId = payload.playerId as number;
+        const prevData = payload.prevData as Record<string, unknown>;
+        await db.update(playersTable).set(prevData as any).where(eq(playersTable.id, playerId));
+        await logAction({ tournamentId: params.data.id, actionType: "player_edited", description: `Cofnięto edycję gracza — przywrócono poprzednie dane` });
+        break;
+      }
+      default:
+        res.status(400).json({ error: `Nie można cofnąć akcji: ${payload.type}` });
+        return;
+    }
+
+    // Mark as undone
+    await db.update(actionLogTable).set({ isUndone: true }).where(eq(actionLogTable.id, lastAction.id));
+
+    const [updated] = await db.select().from(actionLogTable).where(eq(actionLogTable.id, lastAction.id));
+    res.json({ action: mapActionLog(updated!), message: `Cofnięto: ${lastAction.description}` });
+  } catch (err) {
+    res.status(500).json({ error: "Błąd podczas cofania akcji" });
+  }
 });
 
 // ========== MATCH ROUTES ==========
@@ -1081,6 +1296,8 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  // Read previous state before update for logging
+  const [prevMatch] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   const [match] = await db
     .update(matchesTable)
     .set(parsed.data)
@@ -1089,6 +1306,24 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   if (!match) {
     res.status(404).json({ error: "Match not found" });
     return;
+  }
+  // Log status changes
+  if (prevMatch && parsed.data.status && parsed.data.status !== prevMatch.status) {
+    const p1 = prevMatch.player1Id; const p2 = prevMatch.player2Id;
+    const [players] = p1 && p2 ? [await db.select().from(playersTable).where(inArray(playersTable.id, [p1, p2]))] : [[]];
+    const playerMap = new Map((players as any[]).map((p: any) => [p.id, p.name]));
+    const matchLabel = `R${prevMatch.round}M${prevMatch.matchNumber}: ${playerMap.get(p1 ?? 0) ?? "TBD"} vs ${playerMap.get(p2 ?? 0) ?? "TBD"}`;
+    if (parsed.data.status === "in_progress") {
+      await logAction({ tournamentId: match.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: prevMatch.status } });
+    } else if (parsed.data.status === "postponed") {
+      await logAction({ tournamentId: match.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: prevMatch.status } });
+    } else if (parsed.data.status === "pending" && prevMatch.status === "postponed") {
+      await logAction({ tournamentId: match.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: "postponed" } });
+    }
+  }
+  // Log BO changes
+  if (prevMatch && parsed.data.bestOf != null && parsed.data.bestOf !== prevMatch.bestOf) {
+    await logAction({ tournamentId: match.tournamentId, actionType: "match_bo_changed", description: `Zmieniono format meczu R${match.round}M${match.matchNumber}: BO${prevMatch.bestOf ?? 1} → BO${match.bestOf}`, matchId: match.id, undoPayload: { type: "restore_best_of", matchId: match.id, prevBestOf: prevMatch.bestOf ?? 1 } });
   }
   const [enriched] = await enrichMatches([match]);
   res.json(enriched);
@@ -1191,6 +1426,19 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
     isDraw: isDraw ?? false,
     status: "completed",
   });
+
+  // Log action
+  {
+    const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
+    const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
+    const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
+    const p1n = nm.get(match.player1Id ?? 0) ?? "TBD";
+    const p2n = nm.get(match.player2Id ?? 0) ?? "TBD";
+    const resultStr = isDraw ? `Remis ${score1}:${score2}` : `Wynik: ${p1n} ${score1}:${score2} ${p2n}`;
+    const winnerName = !isDraw && winnerId ? (nm.get(winnerId) ?? "?") : null;
+    const desc = winnerName ? `${resultStr} — wygrał ${winnerName}` : resultStr;
+    await logAction({ tournamentId: match.tournamentId, actionType: "match_result_submitted", description: `R${match.round}M${match.matchNumber}: ${desc}`, matchId: match.id, undoPayload: { type: "revert_match", matchId: match.id } });
+  }
 
   // Advance winner in single elimination bracket
   if (tournament?.format !== "round_robin" && tournament?.format !== "swiss") {
@@ -1392,6 +1640,25 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
   await db
     .delete(resultHistoryTable)
     .where(eq(resultHistoryTable.matchId, params.data.id));
+
+  // Log revert action
+  {
+    const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
+    const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
+    const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
+    const p1n = nm.get(match.player1Id ?? 0) ?? "TBD";
+    const p2n = nm.get(match.player2Id ?? 0) ?? "TBD";
+    await logAction({ tournamentId: match.tournamentId, actionType: "match_result_reverted", description: `Cofnięto wynik R${match.round}M${match.matchNumber}: ${p1n} ${match.score1 ?? 0}:${match.score2 ?? 0} ${p2n}`, matchId: match.id });
+    // Also mark the original match_result_submitted log as undone
+    await db.update(actionLogTable).set({ isUndone: true }).where(
+      and(
+        eq(actionLogTable.tournamentId, match.tournamentId),
+        eq(actionLogTable.actionType, "match_result_submitted"),
+        eq(actionLogTable.isUndone, false),
+        sql`${actionLogTable.matchId} = ${match.id}`,
+      ),
+    );
+  }
 
   const [enriched] = await enrichMatches([reverted]);
   res.json(enriched);

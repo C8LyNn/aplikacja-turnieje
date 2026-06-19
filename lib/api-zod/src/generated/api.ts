@@ -263,6 +263,48 @@ export const GetTournamentStandingsResponse = zod.array(GetTournamentStandingsRe
 
 
 /**
+ * @summary Get action log for a tournament
+ */
+export const GetActionLogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetActionLogResponseItem = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "actionType": zod.string(),
+  "description": zod.string(),
+  "matchId": zod.number().nullish(),
+  "canUndo": zod.boolean(),
+  "isUndone": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const GetActionLogResponse = zod.array(GetActionLogResponseItem)
+
+
+/**
+ * @summary Undo the last undoable action
+ */
+export const UndoLastActionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UndoLastActionResponse = zod.object({
+  "action": zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "actionType": zod.string(),
+  "description": zod.string(),
+  "matchId": zod.number().nullish(),
+  "canUndo": zod.boolean(),
+  "isUndone": zod.boolean(),
+  "createdAt": zod.string()
+}),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Get results history
  */
 export const GetResultsHistoryParams = zod.object({

@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActionLogEntry,
   AssistantSnapshot,
   Bracket,
   CsvImportInput,
@@ -36,7 +37,9 @@ import type {
   Tournament,
   TournamentInput,
   TournamentStats,
-  TournamentUpdate
+  TournamentUpdate,
+  UndoLastAction404,
+  UndoResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -829,6 +832,153 @@ export function useGetTournamentStandings<TData = Awaited<ReturnType<typeof getT
 
 
 
+
+export const getGetActionLogUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/action-log`
+}
+
+/**
+ * @summary Get action log for a tournament
+ */
+export const getActionLog = async (id: number, options?: RequestInit): Promise<ActionLogEntry[]> => {
+
+  return customFetch<ActionLogEntry[]>(getGetActionLogUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActionLogQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/action-log`
+    ] as const;
+    }
+
+
+export const getGetActionLogQueryOptions = <TData = Awaited<ReturnType<typeof getActionLog>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActionLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActionLogQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActionLog>>> = ({ signal }) => getActionLog(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActionLog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActionLogQueryResult = NonNullable<Awaited<ReturnType<typeof getActionLog>>>
+export type GetActionLogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get action log for a tournament
+ */
+
+export function useGetActionLog<TData = Awaited<ReturnType<typeof getActionLog>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActionLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActionLogQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUndoLastActionUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/undo-last`
+}
+
+/**
+ * @summary Undo the last undoable action
+ */
+export const undoLastAction = async (id: number, options?: RequestInit): Promise<UndoResult> => {
+
+  return customFetch<UndoResult>(getUndoLastActionUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getUndoLastActionMutationOptions = <TError = ErrorType<UndoLastAction404>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['undoLastAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLastAction>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  undoLastAction(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoLastActionMutationResult = NonNullable<Awaited<ReturnType<typeof undoLastAction>>>
+
+    export type UndoLastActionMutationError = ErrorType<UndoLastAction404>
+
+    /**
+ * @summary Undo the last undoable action
+ */
+export const useUndoLastAction = <TError = ErrorType<UndoLastAction404>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof undoLastAction>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getUndoLastActionMutationOptions(options));
+    }
 
 export const getGetResultsHistoryUrl = (id: number,) => {
 

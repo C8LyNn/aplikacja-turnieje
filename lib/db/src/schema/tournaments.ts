@@ -114,3 +114,16 @@ export type Match = typeof matchesTable.$inferSelect;
 export const insertResultHistorySchema = createInsertSchema(resultHistoryTable).omit({ id: true, completedAt: true });
 export type InsertResultHistory = z.infer<typeof insertResultHistorySchema>;
 export type ResultHistory = typeof resultHistoryTable.$inferSelect;
+
+export const actionLogTable = pgTable("action_log", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+  actionType: text("action_type").notNull(),
+  description: text("description").notNull(),
+  matchId: integer("match_id"),
+  undoPayload: text("undo_payload"),
+  isUndone: boolean("is_undone").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type ActionLog = typeof actionLogTable.$inferSelect;

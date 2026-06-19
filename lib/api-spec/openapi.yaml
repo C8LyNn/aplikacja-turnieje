@@ -205,6 +205,55 @@ paths:
                 items:
                   $ref: "#/components/schemas/Standing"
 
+  /tournaments/{id}/action-log:
+    get:
+      operationId: getActionLog
+      tags: [tournaments]
+      summary: Get action log for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionLogEntry"
+
+  /tournaments/{id}/undo-last:
+    post:
+      operationId: undoLastAction
+      tags: [tournaments]
+      summary: Undo the last undoable action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action undone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoResult"
+        "404":
+          description: Nothing to undo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
   /tournaments/{id}/results-history:
     get:
       operationId: getResultsHistory
@@ -759,6 +808,36 @@ components:
         status:
           type: string
         completedAt:
+          type: string
+
+    ActionLogEntry:
+      type: object
+      required: [id, tournamentId, actionType, description, canUndo, isUndone, createdAt]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        actionType:
+          type: string
+        description:
+          type: string
+        matchId:
+          type: ["integer", "null"]
+        canUndo:
+          type: boolean
+        isUndone:
+          type: boolean
+        createdAt:
+          type: string
+
+    UndoResult:
+      type: object
+      required: [action, message]
+      properties:
+        action:
+          $ref: "#/components/schemas/ActionLogEntry"
+        message:
           type: string
 
     AssistantSnapshot:

@@ -124,9 +124,17 @@ export default function TournamentDetail() {
     });
   };
 
+  const [confirmDeletePlayerId, setConfirmDeletePlayerId] = useState<number | null>(null);
+
   const handleDeletePlayer = (playerId: number) => {
-    deletePlayer.mutate({ id: playerId }, {
+    setConfirmDeletePlayerId(playerId);
+  };
+
+  const handleConfirmDeletePlayer = () => {
+    if (!confirmDeletePlayerId) return;
+    deletePlayer.mutate({ id: confirmDeletePlayerId }, {
       onSuccess: () => {
+        setConfirmDeletePlayerId(null);
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
       },
@@ -413,9 +421,20 @@ export default function TournamentDetail() {
                                   <Pencil className="w-3.5 h-3.5" />
                                 </Button>
                                 {tournament.status === "draft" && (
-                                  <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
+                                  confirmDeletePlayerId === p.id ? (
+                                    <div className="flex items-center gap-1">
+                                      <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={handleConfirmDeletePlayer} disabled={deletePlayer.isPending}>
+                                        Usuń
+                                      </Button>
+                                      <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setConfirmDeletePlayerId(null)}>
+                                        Anuluj
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )
                                 )}
                               </div>
                             </div>

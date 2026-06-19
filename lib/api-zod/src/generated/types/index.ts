@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './actionLogEntry';
 export * from './assistantSnapshot';
 export * from './bracket';
 export * from './bracketRound';
@@ -35,3 +36,5 @@ export * from './tournamentStatus';
 export * from './tournamentUpdate';
 export * from './tournamentUpdateFormat';
 export * from './tournamentUpdateStatus';
+export * from './undoLastAction404';
+export * from './undoResult';
