@@ -46,7 +46,9 @@ export default function TournamentDetail() {
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
 
-  // Keep module-level API client headers in sync with sessionStorage tokens
+  // Keep module-level API client headers in sync with sessionStorage tokens.
+  // Deps: only [id] — login modals call setActiveOrganizerToken directly (synchronous).
+  // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
   const supSession = getSupSession(id);
   const isAuthenticated = !!(orgToken || supSession);
@@ -58,7 +60,7 @@ export default function TournamentDetail() {
     else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); }
     return () => { setActiveOrganizerToken(null); setActiveSupportToken(null); };
-  }, [id, orgToken, supSession]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tournament, isLoading: isLoadingTournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
@@ -91,6 +93,13 @@ export default function TournamentDetail() {
   const importPlayers = useImportPlayers();
   const updatePlayer = useUpdatePlayer();
   const importTournament = useImportTournament();
+
+  // Auto-prompt: if user is in Organizer/Support role and tournament requires auth, open the relevant modal
+  useEffect(() => {
+    if (!tournament?.hasOrganizerPassword || isAuthenticated) return;
+    if (role === "organizer") setShowOrgModal(true);
+    else if (role === "support" && tournament.hasSupportPassword) setShowSupModal(true);
+  }, [tournament?.hasOrganizerPassword, tournament?.hasSupportPassword, isAuthenticated, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Backup state
   const [isExporting, setIsExporting] = useState(false);
@@ -477,6 +486,7 @@ export default function TournamentDetail() {
         <OrganizerLoginModal
           open={showOrgModal}
           onClose={() => setShowOrgModal(false)}
+          onCancel={() => setShowOrgModal(false)}
           tournamentId={id}
           tournamentName={tournament.name}
           onSuccess={(token) => {
@@ -489,6 +499,7 @@ export default function TournamentDetail() {
         <SupportLoginModal
           open={showSupModal}
           onClose={() => setShowSupModal(false)}
+          onCancel={() => setShowSupModal(false)}
           tournamentId={id}
           tournamentName={tournament.name}
           onSuccess={(token, nick) => {

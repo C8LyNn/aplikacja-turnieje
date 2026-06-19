@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { apiOrganizerLogin } from "@/lib/auth";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
@@ -21,6 +21,16 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = onCancel ?? onClose;
+
+  useEffect(() => {
+    if (open === false || !handleClose) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, handleClose]);
 
   if (open === false) return null;
 
@@ -41,8 +51,16 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
     }
   }
 
+  function handleBackdropClick(e: React.MouseEvent) {
+    if (e.target === backdropRef.current) handleClose?.();
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+    >
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -54,8 +72,8 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tournamentName}</p>
             </div>
           </div>
-          {onCancel && (
-            <button onClick={onCancel} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+          {handleClose && (
+            <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5" aria-label="Zamknij">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -81,9 +99,16 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
             <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading || !password}>
-            {loading ? "Sprawdzanie…" : "Zaloguj jako organizator"}
-          </Button>
+          <div className="flex gap-2">
+            {handleClose && (
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>
+                Anuluj
+              </Button>
+            )}
+            <Button type="submit" className="flex-1" disabled={loading || !password}>
+              {loading ? "Sprawdzanie…" : "Zaloguj"}
+            </Button>
+          </div>
         </form>
       </div>
     </div>
