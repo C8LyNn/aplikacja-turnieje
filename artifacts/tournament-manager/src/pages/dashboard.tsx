@@ -1,13 +1,16 @@
 import {
   useListTournaments, useDeleteTournament, useCreateTournament, useImportPlayers,
   getListTournamentsQueryKey, exportTournament,
+  setActiveOrganizerToken, setActiveHostCode,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download, FlaskConical } from "lucide-react";
+import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download, FlaskConical, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useState } from "react";
@@ -48,11 +51,21 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletePasswordError, setDeletePasswordError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [exportingId, setExportingId] = useState<number | null>(null);
   const [showTestDataModal, setShowTestDataModal] = useState(false);
   const [testDataSize, setTestDataSize] = useState<TestSize>(8);
   const [testDataLoading, setTestDataLoading] = useState(false);
   const confirmTarget = tournaments?.find((t) => t.id === confirmDeleteId);
+
+  const closeDeleteModal = () => {
+    setConfirmDeleteId(null);
+    setDeletePassword("");
+    setDeletePasswordError(null);
+    setDeleteLoading(false);
+  };
 
   const handleCreateTestData = async () => {
     setTestDataLoading(true);
@@ -113,19 +126,64 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = () => {
-    if (!confirmDeleteId) return;
+  const handleDelete = async () => {
+    if (!confirmDeleteId || !confirmTarget) return;
+    setDeletePasswordError(null);
+
+    const needsAuth = confirmTarget.hasOrganizerPassword || confirmTarget.hasHostCode;
+    if (needsAuth && !deletePassword.trim()) {
+      setDeletePasswordError("Podaj hasło organizatora, aby potwierdzić usunięcie.");
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    // Step 1: authenticate with organizer credentials
+    if (confirmTarget.hasOrganizerPassword) {
+      try {
+        const resp = await fetch(`/api/tournaments/${confirmDeleteId}/auth/organizer-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: deletePassword }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          setDeletePasswordError(data.error ?? "Nieprawidłowe hasło organizatora.");
+          setDeleteLoading(false);
+          return;
+        }
+        setActiveOrganizerToken(data.token);
+      } catch {
+        setDeletePasswordError("Błąd połączenia. Spróbuj ponownie.");
+        setDeleteLoading(false);
+        return;
+      }
+    } else if (confirmTarget.hasHostCode) {
+      setActiveHostCode(deletePassword);
+    }
+
+    // Step 2: delete with credentials now active in customFetch headers
     deleteTournament.mutate(
       { id: confirmDeleteId },
       {
         onSuccess: () => {
+          if (confirmTarget.hasOrganizerPassword) setActiveOrganizerToken(null);
+          if (confirmTarget.hasHostCode) setActiveHostCode(null);
           queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
-          toast({ title: "Turniej usunięty" });
-          setConfirmDeleteId(null);
+          toast({ title: "Turniej usunięty", description: `„${confirmTarget.name}" został trwale usunięty.` });
+          closeDeleteModal();
         },
         onError: (e: any) => {
-          toast({ title: "Błąd usuwania", description: e?.message, variant: "destructive" });
-          setConfirmDeleteId(null);
+          if (confirmTarget.hasOrganizerPassword) setActiveOrganizerToken(null);
+          if (confirmTarget.hasHostCode) setActiveHostCode(null);
+          setDeleteLoading(false);
+          const msg: string = e?.data?.error ?? e?.message ?? "";
+          if (e?.status === 403) {
+            setDeletePasswordError(msg || "Brak uprawnień. Sprawdź hasło organizatora.");
+          } else {
+            toast({ title: "Błąd usuwania", description: msg, variant: "destructive" });
+            closeDeleteModal();
+          }
         },
       },
     );
@@ -209,38 +267,77 @@ export default function Dashboard() {
 
         {/* Delete confirmation overlay */}
         {confirmDeleteId && confirmTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card border border-destructive/40 rounded-xl shadow-2xl max-w-md w-full p-6">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="bg-destructive/15 rounded-full p-2 shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-destructive" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="bg-card border border-destructive/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+              {/* Header */}
+              <div className="flex items-start gap-4">
+                <div className="bg-destructive/15 rounded-full p-2.5 shrink-0 mt-0.5">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold">Usuń turniej</h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-bold text-foreground">Usuń turniej</h2>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Czy na pewno chcesz trwale usunąć turniej{" "}
-                    <strong className="text-foreground">„{confirmTarget.name}"</strong>?
+                    Trwale usuniesz turniej{" "}
+                    <strong className="text-foreground break-words">„{confirmTarget.name}"</strong>{" "}
+                    wraz ze wszystkimi graczami, meczami i historią wyników.
                   </p>
-                  <p className="text-destructive/80 text-xs mt-2 font-medium">
-                    Tej operacji nie można cofnąć. Zostaną usunięci wszyscy gracze, mecze i historia wyników.
+                  <p className="text-destructive/80 text-xs mt-1.5 font-medium">
+                    Tej operacji nie można cofnąć.
                   </p>
                 </div>
               </div>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmDeleteId(null)}
-                  disabled={deleteTournament.isPending}
-                >
+
+              {/* Password field — required for protected tournaments */}
+              {(confirmTarget.hasOrganizerPassword || confirmTarget.hasHostCode) && (
+                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
+                  <Label htmlFor="delete-password" className="flex items-center gap-2 text-sm font-semibold">
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                    Hasło organizatora
+                  </Label>
+                  <Input
+                    id="delete-password"
+                    type="password"
+                    placeholder="Wpisz hasło organizatora tego turnieju"
+                    value={deletePassword}
+                    onChange={(e) => { setDeletePassword(e.target.value); setDeletePasswordError(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleDelete(); }}
+                    disabled={deleteLoading}
+                    autoFocus
+                    className={deletePasswordError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {deletePasswordError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      {deletePasswordError}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Wymagane hasło organizatora właśnie tego turnieju — hasło z innego turnieju nie zadziała.
+                  </p>
+                </div>
+              )}
+
+              {/* No-auth warning for unprotected tournaments */}
+              {!confirmTarget.hasOrganizerPassword && !confirmTarget.hasHostCode && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
+                  <p className="text-xs text-yellow-400/90 font-medium">
+                    Ten turniej nie ma ustawionego hasła organizatora — usunięcie nie wymaga weryfikacji.
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 justify-end pt-1">
+                <Button variant="outline" onClick={closeDeleteModal} disabled={deleteLoading}>
                   <X className="w-4 h-4 mr-1.5" /> Anuluj
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={deleteTournament.isPending}
+                  disabled={deleteLoading}
                 >
                   <Trash2 className="w-4 h-4 mr-1.5" />
-                  {deleteTournament.isPending ? "Usuwanie…" : "Usuń na stałe"}
+                  {deleteLoading ? "Weryfikacja…" : "Usuń na stałe"}
                 </Button>
               </div>
             </div>

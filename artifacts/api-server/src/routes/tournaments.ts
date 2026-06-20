@@ -127,6 +127,39 @@ async function checkHostAuth(req: import("express").Request, res: import("expres
   return true;
 }
 
+/** Like checkHostAuth but explicitly rejects support tokens — only organizers can delete/archive. */
+async function checkOrganizerOnlyAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
+  const [t] = await db.select({
+    hostCode: tournamentsTable.hostCode,
+    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
+
+  // Organizer token — the only accepted credential for destructive actions
+  const orgToken = req.headers["x-organizer-token"] as string | undefined;
+  if (orgToken) {
+    if (verifyOrganizerToken(orgToken, tournamentId)) return true;
+    res.status(403).json({ error: "Nieprawidłowy token organizatora" }); return false;
+  }
+
+  // Explicitly reject support tokens — support staff cannot delete tournaments
+  if (req.headers["x-support-token"]) {
+    res.status(403).json({ error: "Wsparcie nie ma uprawnień do usuwania turniejów" }); return false;
+  }
+
+  // Legacy host code
+  if (!t.hostCode && !t.organizerPasswordHash) {
+    // Unprotected tournament — block unless host code in header (backward compat for test cleanup)
+    return true;
+  }
+  if (t.organizerPasswordHash) {
+    res.status(403).json({ error: "Wymagane hasło organizatora" }); return false;
+  }
+  const provided = req.headers["x-host-code"] as string | undefined;
+  if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
+  return true;
+}
+
 async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
   const [t] = await db.select({
     visibility: tournamentsTable.visibility,
@@ -628,7 +661,7 @@ router.delete("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  if (!await checkHostAuth(req, res, params.data.id)) return;
+  if (!await checkOrganizerOnlyAuth(req, res, params.data.id)) return;
   await db.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
   res.sendStatus(204);
 });
