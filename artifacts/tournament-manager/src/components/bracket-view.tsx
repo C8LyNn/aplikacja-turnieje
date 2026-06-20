@@ -40,7 +40,8 @@ export function bracketNaturalSize(totalRounds: number, r1Matches: number) {
   return { width, height };
 }
 
-function roundLabel(round: number, total: number): string {
+function roundLabel(round: number, total: number, format?: string): string {
+  if (format && format !== "single_elimination") return `Runda ${round}`;
   const remaining = total - round + 1;
   if (remaining === 1) return "Finał";
   if (remaining === 2) return "Półfinał";
@@ -50,9 +51,10 @@ function roundLabel(round: number, total: number): string {
 
 interface BracketViewProps {
   bracket: Bracket;
+  format?: string;
 }
 
-export function BracketView({ bracket }: BracketViewProps) {
+export function BracketView({ bracket, format }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -80,7 +82,7 @@ export function BracketView({ bracket }: BracketViewProps) {
               className="text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wider shrink-0"
               style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
             >
-              {roundLabel(round.round, totalRounds)}
+              {roundLabel(round.round, totalRounds, format)}
             </div>
 
             {/* Matches sub-column with correct paddingTop and gap */}

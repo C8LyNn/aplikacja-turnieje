@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
+import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
@@ -1107,43 +1108,53 @@ export default function TournamentDetail() {
 
           <TabsContent value="bracket" className="pt-4">
             {bracket ? (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-muted-foreground">
-                    Przewijaj poziomo/pionowo. Otwórz widok projektora dla pełnoekranowego trybu.
-                  </p>
-                  <div className="flex items-center gap-1 border border-border rounded-lg px-2 py-1">
-                    <button
-                      className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                      onClick={() => setBracketZoom((z) => clampBracketZoom(z - 0.1))}
-                      disabled={bracketZoom <= 0.2}
-                    >
-                      <ZoomOut className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      className="min-w-[38px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors"
-                      onClick={() => setBracketZoom(0.85)}
-                      title="Reset do 85%"
-                    >
-                      {Math.round(bracketZoom * 100)}%
-                    </button>
-                    <button
-                      className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                      onClick={() => setBracketZoom((z) => clampBracketZoom(z + 0.1))}
-                      disabled={bracketZoom >= 2}
-                    >
-                      <ZoomIn className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+              tournament.format === "swiss" ? (
+                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
+                  <SwissRoundsView
+                    bracket={bracket}
+                    currentRound={tournament.currentRound}
+                    totalRounds={tournament.totalRounds}
+                  />
                 </div>
-                <div className="overflow-auto border border-border rounded-lg bg-background/50" style={{ maxHeight: "70vh" }}>
-                  <div style={{ display: "inline-block", minWidth: "100%" }}>
-                    <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: "top left", display: "inline-block" }}>
-                      <BracketView bracket={bracket} />
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-muted-foreground">
+                      Przewijaj poziomo/pionowo. Otwórz widok projektora dla pełnoekranowego trybu.
+                    </p>
+                    <div className="flex items-center gap-1 border border-border rounded-lg px-2 py-1">
+                      <button
+                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+                        onClick={() => setBracketZoom((z) => clampBracketZoom(z - 0.1))}
+                        disabled={bracketZoom <= 0.2}
+                      >
+                        <ZoomOut className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        className="min-w-[38px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors"
+                        onClick={() => setBracketZoom(0.85)}
+                        title="Reset do 85%"
+                      >
+                        {Math.round(bracketZoom * 100)}%
+                      </button>
+                      <button
+                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+                        onClick={() => setBracketZoom((z) => clampBracketZoom(z + 0.1))}
+                        disabled={bracketZoom >= 2}
+                      >
+                        <ZoomIn className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-auto border border-border rounded-lg bg-background/50" style={{ maxHeight: "70vh" }}>
+                    <div style={{ display: "inline-block", minWidth: "100%" }}>
+                      <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: "top left", display: "inline-block" }}>
+                        <BracketView bracket={bracket} format={tournament.format} />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
                 Brak drabinki. Wystartuj turniej.

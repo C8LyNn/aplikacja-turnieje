@@ -6,6 +6,7 @@ import {
   getGetTournamentBracketQueryKey,
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
+import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { Trophy, Maximize2, ArrowLeft, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -42,8 +43,10 @@ export default function TournamentBracket() {
   const clampZoom = (z: number) =>
     Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) * 100) / 100;
 
+  const isSwiss = tournament?.format === "swiss";
+
   const fitZoom = useCallback(() => {
-    if (!canvasRef.current || !bracket?.rounds?.length) return;
+    if (!canvasRef.current || !bracket?.rounds?.length || isSwiss) return;
     const r1Matches = bracket.rounds[0]?.matches?.length ?? 1;
     const { width: natW, height: natH } = bracketNaturalSize(
       bracket.rounds.length,
@@ -54,7 +57,7 @@ export default function TournamentBracket() {
     const availH = canvas.clientHeight - 64;
     const z = clampZoom(Math.min(availW / natW, availH / natH));
     setZoom(z);
-  }, [bracket]);
+  }, [bracket, isSwiss]);
 
   useEffect(() => {
     if (bracket) fitZoom();
@@ -153,7 +156,7 @@ export default function TournamentBracket() {
         </p>
       </div>
 
-      {/* Bracket canvas */}
+      {/* Bracket / Swiss canvas */}
       <div
         ref={canvasRef}
         className="flex-1 overflow-auto"
@@ -169,17 +172,36 @@ export default function TournamentBracket() {
             Turniej jeszcze nie wystartował.
           </div>
         ) : bracket ? (
-          <div className="p-8 inline-block" style={{ minWidth: "100%", minHeight: "100%" }}>
-            <div
-              style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: "top left",
-                display: "inline-block",
-              }}
-            >
-              <BracketView bracket={bracket} />
+          isSwiss ? (
+            <div className="p-8" style={{ minWidth: "100%", minHeight: "100%" }}>
+              <div
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top left",
+                  display: "inline-block",
+                  minWidth: "max-content",
+                }}
+              >
+                <SwissRoundsView
+                  bracket={bracket}
+                  currentRound={tournament.currentRound}
+                  totalRounds={tournament.totalRounds}
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-8 inline-block" style={{ minWidth: "100%", minHeight: "100%" }}>
+              <div
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top left",
+                  display: "inline-block",
+                }}
+              >
+                <BracketView bracket={bracket} format={tournament.format} />
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono animate-pulse">
             Ładowanie drabinki…
