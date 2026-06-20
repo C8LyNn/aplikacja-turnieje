@@ -262,11 +262,21 @@ export default function TournamentDetail() {
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trim()) return;
+    const trimmedName = newPlayerName.trim();
+    if (!trimmedName) return;
+    setAddPlayerError(null);
+
+    // Frontend duplicate check (fast, avoids round-trip)
+    const existingNames = players?.map((p) => p.name.trim().toLowerCase()) ?? [];
+    if (existingNames.includes(trimmedName.toLowerCase())) {
+      setAddPlayerError(`Zawodnik o nicku „${trimmedName}" już istnieje w tym turnieju.`);
+      return;
+    }
+
     addPlayer.mutate({
       id,
       data: {
-        name: newPlayerName,
+        name: trimmedName,
         seed: newPlayerSeed ? parseInt(newPlayerSeed, 10) : undefined,
         rank: newPlayerRank || undefined,
         country: newPlayerCountry || undefined,
@@ -275,10 +285,18 @@ export default function TournamentDetail() {
     }, {
       onSuccess: () => {
         setNewPlayerName(""); setNewPlayerSeed(""); setNewPlayerRank(""); setNewPlayerCountry(""); setNewPlayerTeam("");
+        setAddPlayerError(null);
         queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
       },
-      onError: (e: any) => handleMutationError(e),
+      onError: (err: any) => {
+        const msg: string = err?.data?.error ?? err?.message ?? "Błąd podczas dodawania gracza";
+        if (err?.status === 409 || msg.toLowerCase().includes("już istnieje")) {
+          setAddPlayerError(msg);
+        } else {
+          handleMutationError(err);
+        }
+      },
     });
   };
 
@@ -945,7 +963,19 @@ export default function TournamentDetail() {
                       <form onSubmit={handleAddPlayer} className="space-y-3">
                         <div className="space-y-1">
                           <Label>Nick *</Label>
-                          <Input value={newPlayerName} onChange={(e) => setNewPlayerName(e.target.value)} placeholder="Alias gracza" required />
+                          <Input
+                            value={newPlayerName}
+                            onChange={(e) => { setNewPlayerName(e.target.value); setAddPlayerError(null); }}
+                            placeholder="Alias gracza"
+                            required
+                            className={addPlayerError ? "border-destructive focus-visible:ring-destructive" : ""}
+                          />
+                          {addPlayerError && (
+                            <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                              <X className="w-3 h-3 shrink-0" />
+                              {addPlayerError}
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-1">
                           <Label>Ranga</Label>
