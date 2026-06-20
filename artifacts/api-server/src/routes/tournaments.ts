@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql, inArray, desc } from "drizzle-orm";
+import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
-import { hashPassword, verifyOrganizerToken } from "../auth";
+import { hashPassword, verifyOrganizerToken, verifyViewerToken } from "../auth";
 import { logAuditAction } from "./auth";
 import {
   CreateTournamentBody,
@@ -60,7 +60,15 @@ function formatDate(d: Date | null | undefined): string | null {
 }
 
 function mapTournament(t: typeof tournamentsTable.$inferSelect) {
-  const { hostCode: _hostCode, organizerPasswordHash: _oph, supportPasswordHash: _sph, supportPasswordVersion: _spv, ...rest } = t;
+  const {
+    hostCode: _hostCode,
+    organizerPasswordHash: _oph,
+    supportPasswordHash: _sph,
+    supportPasswordVersion: _spv,
+    viewerPasswordHash: _vph,
+    viewerPasswordVersion: _vpv,
+    ...rest
+  } = t;
   return {
     ...rest,
     createdAt: formatDate(t.createdAt) ?? new Date().toISOString(),
@@ -75,6 +83,8 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     hasHostCode: !!t.hostCode,
     hasOrganizerPassword: !!t.organizerPasswordHash,
     hasSupportPassword: !!t.supportPasswordHash,
+    hasViewerPassword: !!t.viewerPasswordHash,
+    visibility: t.visibility ?? "public_online",
   };
 }
 
@@ -115,6 +125,40 @@ async function checkHostAuth(req: import("express").Request, res: import("expres
   const provided = req.headers["x-host-code"];
   if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
   return true;
+}
+
+async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
+  const [t] = await db.select({
+    visibility: tournamentsTable.visibility,
+    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+    supportPasswordHash: tournamentsTable.supportPasswordHash,
+    supportPasswordVersion: tournamentsTable.supportPasswordVersion,
+  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
+
+  const visibility = t.visibility ?? "public_online";
+  if (visibility === "public_online") return true;
+
+  const orgToken = req.headers["x-organizer-token"] as string | undefined;
+  if (orgToken && verifyOrganizerToken(orgToken, tournamentId)) return true;
+
+  const supToken = req.headers["x-support-token"] as string | undefined;
+  if (supToken) {
+    const [session] = await db.select().from(supportSessionsTable)
+      .where(and(eq(supportSessionsTable.tournamentId, tournamentId), eq(supportSessionsTable.sessionToken, supToken)));
+    if (session && session.passwordVersion === (t.supportPasswordVersion ?? 1)) return true;
+  }
+
+  if (visibility === "private_offline") {
+    res.status(403).json({ error: "Ten turniej jest prywatny. Wymagane logowanie jako organizator lub wsparcie.", code: "PRIVATE_OFFLINE" });
+    return false;
+  }
+
+  const viewerToken = req.headers["x-viewer-token"] as string | undefined;
+  if (viewerToken && verifyViewerToken(viewerToken, tournamentId)) return true;
+
+  res.status(403).json({ error: "Ten turniej wymaga hasła widza.", code: "VIEWER_PASSWORD_REQUIRED" });
+  return false;
 }
 
 function mapPlayer(p: typeof playersTable.$inferSelect) {
@@ -504,6 +548,7 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
   const tournaments = await db
     .select()
     .from(tournamentsTable)
+    .where(ne(tournamentsTable.visibility, "private_offline"))
     .orderBy(tournamentsTable.createdAt);
   res.json(tournaments.map(mapTournament));
 });
@@ -514,10 +559,11 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const { organizerPassword, supportPassword, ...rest } = parsed.data as any;
+  const { organizerPassword, supportPassword, viewerPassword, ...rest } = parsed.data as any;
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
+  if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   const [t] = await db.insert(tournamentsTable).values(insertValues).returning();
   res.status(201).json(mapTournament(t));
 });
@@ -795,10 +841,8 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
 
 router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
   const params = GetTournamentBracketParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
 
   const [tournament] = await db
     .select()
@@ -839,10 +883,8 @@ router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
 
 router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
   const params = GetTournamentStatsParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
 
   const [tournament] = await db
     .select()
@@ -885,10 +927,8 @@ router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
 
 router.get("/tournaments/:id/standings", async (req, res): Promise<void> => {
   const params = GetTournamentStandingsParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
 
   const [tournament] = await db
     .select()
@@ -914,10 +954,8 @@ router.get("/tournaments/:id/standings", async (req, res): Promise<void> => {
 
 router.get("/tournaments/:id/results-history", async (req, res): Promise<void> => {
   const params = GetResultsHistoryParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
 
   const history = await db
     .select()
@@ -1042,10 +1080,8 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
 
 router.get("/tournaments/:id/players", async (req, res): Promise<void> => {
   const params = ListPlayersParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
   const players = await db
     .select()
     .from(playersTable)
@@ -1493,10 +1529,8 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 
 router.get("/tournaments/:id/matches", async (req, res): Promise<void> => {
   const params = ListMatchesParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
   const matches = await db
     .select()
     .from(matchesTable)

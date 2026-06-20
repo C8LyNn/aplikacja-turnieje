@@ -70,6 +70,28 @@ export function clearSupportSession(tournamentId: number): void {
   } catch {}
 }
 
+const VIEWER_TOKEN_KEY = (id: number) => `tm_viewer_${id}`;
+
+export function getViewerToken(tournamentId: number): string | null {
+  try {
+    return sessionStorage.getItem(VIEWER_TOKEN_KEY(tournamentId));
+  } catch {
+    return null;
+  }
+}
+
+export function setViewerToken(tournamentId: number, token: string): void {
+  try {
+    sessionStorage.setItem(VIEWER_TOKEN_KEY(tournamentId), token);
+  } catch {}
+}
+
+export function clearViewerToken(tournamentId: number): void {
+  try {
+    sessionStorage.removeItem(VIEWER_TOKEN_KEY(tournamentId));
+  } catch {}
+}
+
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export async function apiOrganizerLogin(tournamentId: number, password: string): Promise<string> {
@@ -116,6 +138,51 @@ export async function apiChangeSupportPassword(tournamentId: number, token: stri
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as any).error || "Błąd zmiany hasła");
+  }
+  return res.json();
+}
+
+export async function apiViewerLogin(tournamentId: number, password: string): Promise<string> {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/viewer-login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).error || "Błąd logowania widza");
+  }
+  const data = await res.json();
+  return data.token as string;
+}
+
+export async function apiChangeViewerPassword(tournamentId: number, orgToken: string, newPassword: string) {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/change-viewer-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Organizer-Token": orgToken },
+    body: JSON.stringify({ newPassword }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).error || "Błąd zmiany hasła widza");
+  }
+  return res.json();
+}
+
+export async function apiChangeVisibility(
+  tournamentId: number,
+  orgToken: string,
+  visibility: "public_online" | "private_online" | "private_offline",
+  viewerPassword?: string,
+) {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/change-visibility`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Organizer-Token": orgToken },
+    body: JSON.stringify({ visibility, viewerPassword }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).error || "Błąd zmiany widoczności");
   }
   return res.json();
 }

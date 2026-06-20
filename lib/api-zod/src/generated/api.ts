@@ -36,6 +36,8 @@ export const ListTournamentsResponseItem = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 })
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
@@ -56,7 +58,9 @@ export const CreateTournamentBody = zod.object({
   "allowDraws": zod.boolean().optional(),
   "defaultBestOf": zod.number().optional(),
   "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
-  "supportPassword": zod.string().optional().describe('Optional password for support staff access')
+  "supportPassword": zod.string().optional().describe('Optional password for support staff access'),
+  "viewerPassword": zod.string().optional().describe('Optional password for viewer access (required when visibility=private_online)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode')
 })
 
 
@@ -81,6 +85,8 @@ export const GetTournamentResponse = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 })
 
@@ -99,7 +105,9 @@ export const UpdateTournamentBody = zod.object({
   "allowDraws": zod.boolean().optional(),
   "defaultBestOf": zod.number().optional(),
   "featuredMatchId": zod.number().optional(),
-  "hostCode": zod.string().optional().describe('Host access code (plain text, stored hashed)')
+  "hostCode": zod.string().optional().describe('Host access code (plain text, stored hashed)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional(),
+  "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)')
 })
 
 export const UpdateTournamentResponse = zod.object({
@@ -119,6 +127,8 @@ export const UpdateTournamentResponse = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 })
 
@@ -149,6 +159,8 @@ export const StartTournamentResponse = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 })
 
@@ -196,6 +208,8 @@ export const GenerateNextRoundResponse = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 })
 
@@ -222,6 +236,8 @@ export const GetTournamentBracketResponse = zod.object({
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
+  "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string()
 }),
   "rounds": zod.array(zod.object({

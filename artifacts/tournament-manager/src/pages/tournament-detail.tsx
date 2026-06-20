@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
@@ -26,9 +26,11 @@ import { BracketView } from "@/components/bracket-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
-import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
+import { ViewerLoginModal } from "@/components/viewer-login-modal";
+import { SharingPanel } from "@/components/sharing-panel";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -42,49 +44,71 @@ export default function TournamentDetail() {
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession, removeOrgToken, removeSupSession } = useAuth();
+  const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession, removeOrgToken, removeSupSession, getViewerTok, storeViewerToken, removeViewerToken } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
+  const [showViewerModal, setShowViewerModal] = useState(false);
 
   // Keep module-level API client headers in sync with sessionStorage tokens.
-  // Deps: only [id] — login modals call setActiveOrganizerToken directly (synchronous).
+  // Deps: only [id] — login modals call setActive* directly (synchronous).
   // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
   const supSession = getSupSession(id);
+  const viewerToken = getViewerTok(id);
   const isAuthenticated = !!(orgToken || supSession);
+  const hasReadAccess = (tournament: { visibility?: string } | null | undefined) =>
+    !tournament || tournament.visibility !== "private_online" || isAuthenticated || !!viewerToken;
 
   useEffect(() => {
     const tok = getOrgToken(id);
     const sess = getSupSession(id);
-    if (tok) { setActiveOrganizerToken(tok); setActiveSupportToken(null); }
-    else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); }
-    else { setActiveOrganizerToken(null); setActiveSupportToken(null); }
-    return () => { setActiveOrganizerToken(null); setActiveSupportToken(null); };
+    const vtok = getViewerTok(id);
+    if (tok) { setActiveOrganizerToken(tok); setActiveSupportToken(null); setActiveViewerToken(null); }
+    else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
+    else if (vtok) { setActiveViewerToken(vtok); setActiveOrganizerToken(null); setActiveSupportToken(null); }
+    else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
+    return () => { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle direct role links: ?login=organizer|support|viewer
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const loginParam = params.get("login");
+    if (loginParam === "organizer") setShowOrgModal(true);
+    else if (loginParam === "support") setShowSupModal(true);
+    else if (loginParam === "viewer") setShowViewerModal(true);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tournament, isLoading: isLoadingTournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
   });
+  // readOk: false when tournament is private_online/offline and no valid auth is present
+  const visibility = (tournament as any)?.visibility ?? "public_online";
+  const readOk = !tournament ||
+    visibility === "public_online" ||
+    isAuthenticated ||
+    (visibility === "private_online" && !!viewerToken);
+
   const { data: stats } = useGetTournamentStats(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentStatsQueryKey(id) },
+    query: { enabled: !!id && readOk, queryKey: getGetTournamentStatsQueryKey(id) },
   });
   const { data: players } = useListPlayers(id, {
-    query: { enabled: !!id, queryKey: getListPlayersQueryKey(id) },
+    query: { enabled: !!id && readOk, queryKey: getListPlayersQueryKey(id) },
   });
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id) },
+    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getListMatchesQueryKey(id) },
   });
   const { data: bracket } = useGetTournamentBracket(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
+    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetTournamentBracketQueryKey(id) },
   });
   const { data: standings } = useGetTournamentStandings(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetTournamentStandingsQueryKey(id) },
+    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetTournamentStandingsQueryKey(id) },
   });
   const { data: history } = useGetResultsHistory(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
+    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetResultsHistoryQueryKey(id) },
   });
   const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 15000 },
+    query: { enabled: !!id && readOk, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 15000 },
   });
 
   const startTournament = useStartTournament();
@@ -510,7 +534,50 @@ export default function TournamentDetail() {
           }}
         />
 
-        <Tabs defaultValue="overview" className="w-full">
+        <ViewerLoginModal
+          open={showViewerModal}
+          onClose={() => setShowViewerModal(false)}
+          onCancel={() => setShowViewerModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token) => {
+            storeViewerToken(id, token);
+            setActiveViewerToken(token);
+            setShowViewerModal(false);
+          }}
+        />
+
+        {/* Viewer gate: private_online without any auth */}
+        {!readOk && visibility === "private_online" && (
+          <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <Lock className="w-10 h-10 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Turniej prywatny</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">Aby zobaczyć zawartość turnieju, podaj hasło widza lub zaloguj się jako organizator.</p>
+            <button
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+              onClick={() => setShowViewerModal(true)}
+            >
+              <Key className="w-4 h-4" /> Podaj hasło widza
+            </button>
+          </div>
+        )}
+
+        {/* Viewer gate: private_offline without org/sup auth */}
+        {visibility === "private_offline" && !isAuthenticated && (
+          <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <Lock className="w-10 h-10 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Turniej offline — tylko dla organizatora</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">Ten turniej jest niedostępny publicznie. Zaloguj się jako organizator lub wsparcie.</p>
+            <button
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+              onClick={() => setShowOrgModal(true)}
+            >
+              <Key className="w-4 h-4" /> Zaloguj jako organizator
+            </button>
+          </div>
+        )}
+
+        {readOk && <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-card w-full justify-start border-b rounded-none px-0 h-auto flex-wrap">
             <TabsTrigger value="overview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Przegląd</TabsTrigger>
             <TabsTrigger value="players" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Gracze</TabsTrigger>
@@ -528,6 +595,11 @@ export default function TournamentDetail() {
             {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
               <TabsTrigger value="security" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5" /> Bezpieczeństwo
+              </TabsTrigger>
+            )}
+            {isAuthenticated && !!orgToken && (
+              <TabsTrigger value="sharing" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
+                <Share2 className="w-3.5 h-3.5" /> Udostępnianie
               </TabsTrigger>
             )}
           </TabsList>
@@ -1206,7 +1278,13 @@ export default function TournamentDetail() {
             </TabsContent>
           )}
 
-        </Tabs>
+          {isAuthenticated && !!orgToken && (
+            <TabsContent value="sharing" className="pt-6">
+              <SharingPanel tournament={tournament as any} orgToken={orgToken} />
+            </TabsContent>
+          )}
+
+        </Tabs>}
       </div>
     </Layout>
   );

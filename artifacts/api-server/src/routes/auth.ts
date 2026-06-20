@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, tournamentsTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
-import { hashPassword, verifyPassword, signOrganizerToken, verifyOrganizerToken, generateSessionToken } from "../auth";
+import { hashPassword, verifyPassword, signOrganizerToken, verifyOrganizerToken, generateSessionToken, signViewerToken, verifyViewerToken } from "../auth";
 
 const router: IRouter = Router();
 
@@ -189,6 +189,93 @@ router.post("/tournaments/:id/auth/change-support-password", async (req, res) =>
   await logAuditAction(id, "organizer", "Organizator", "Zmienił hasło wsparcia — poprzednie sesje wsparcia zostały unieważnione");
   res.json({ ok: true, invalidatedSessions: true });
 });
+
+router.post("/tournaments/:id/auth/viewer-login", async (req, res) => {
+  const id = parseId(req.params.id);
+  const { password } = req.body as { password?: string };
+  if (!password) { res.status(400).json({ error: "Hasło jest wymagane" }); return; }
+
+  const [t] = await db
+    .select({ viewerPasswordHash: tournamentsTable.viewerPasswordHash, visibility: tournamentsTable.visibility })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.id, id));
+
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return; }
+  if (t.visibility !== "private_online") { res.status(400).json({ error: "Ten turniej nie wymaga hasła widza" }); return; }
+  if (!t.viewerPasswordHash) { res.status(400).json({ error: "Hasło widza nie zostało ustawione" }); return; }
+
+  const valid = await verifyPassword(password, t.viewerPasswordHash);
+  if (!valid) { res.status(403).json({ error: "Nieprawidłowe hasło widza" }); return; }
+
+  const token = signViewerToken(id);
+  res.json({ token });
+});
+
+router.post("/tournaments/:id/auth/change-viewer-password", async (req, res) => {
+  const id = parseId(req.params.id);
+  const actor = await requireOrganizer(req, res, id);
+  if (!actor) return;
+
+  const { newPassword } = req.body as { newPassword?: string };
+  if (!newPassword || newPassword.length < 4) { res.status(400).json({ error: "Nowe hasło musi mieć co najmniej 4 znaki" }); return; }
+
+  const [t] = await db
+    .select({ viewerPasswordVersion: tournamentsTable.viewerPasswordVersion })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.id, id));
+  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return; }
+
+  const newHash = await hashPassword(newPassword);
+  const newVersion = (t.viewerPasswordVersion ?? 1) + 1;
+
+  await db
+    .update(tournamentsTable)
+    .set({ viewerPasswordHash: newHash, viewerPasswordVersion: newVersion })
+    .where(eq(tournamentsTable.id, id));
+
+  await logAuditAction(id, "organizer", "Organizator", "Zmienił hasło widza");
+  res.json({ ok: true });
+});
+
+router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
+  const id = parseId(req.params.id);
+  const actor = await requireOrganizer(req, res, id);
+  if (!actor) return;
+
+  const { visibility, viewerPassword } = req.body as { visibility?: string; viewerPassword?: string };
+  const allowed = ["public_online", "private_online", "private_offline"];
+  if (!visibility || !allowed.includes(visibility)) {
+    res.status(400).json({ error: "Nieprawidłowy tryb widoczności" }); return;
+  }
+  if (visibility === "private_online" && !viewerPassword) {
+    res.status(400).json({ error: "Hasło widza jest wymagane dla trybu prywatny online" }); return;
+  }
+
+  const updateValues: Record<string, unknown> = { visibility };
+  if (viewerPassword) {
+    updateValues.viewerPasswordHash = await hashPassword(viewerPassword);
+    updateValues.viewerPasswordVersion = 1;
+  }
+  if (visibility !== "private_online") {
+    updateValues.viewerPasswordHash = null;
+  }
+
+  await db.update(tournamentsTable).set(updateValues as any).where(eq(tournamentsTable.id, id));
+  await logAuditAction(id, "organizer", "Organizator", `Zmienił widoczność turnieju na: ${visibility}`);
+  res.json({ ok: true });
+});
+
+router.delete("/tournaments/:id/auth/viewer-password", async (req, res) => {
+  const id = parseId(req.params.id);
+  const actor = await requireOrganizer(req, res, id);
+  if (!actor) return;
+
+  await db.update(tournamentsTable).set({ viewerPasswordHash: null }).where(eq(tournamentsTable.id, id));
+  await logAuditAction(id, "organizer", "Organizator", "Usunął hasło widza");
+  res.json({ ok: true });
+});
+
+export { verifyViewerToken };
 
 router.get("/tournaments/:id/audit-log", async (req, res) => {
   const id = parseId(req.params.id);

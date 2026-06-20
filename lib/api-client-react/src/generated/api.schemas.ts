@@ -28,6 +28,18 @@ export const TournamentStatus = {
   completed: 'completed',
 } as const;
 
+/**
+ * public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only
+ */
+export type TournamentVisibility = typeof TournamentVisibility[keyof typeof TournamentVisibility];
+
+
+export const TournamentVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
+} as const;
+
 export interface Tournament {
   id: number;
   name: string;
@@ -57,6 +69,10 @@ export interface Tournament {
   hasOrganizerPassword?: boolean;
   /** Whether a support password has been set */
   hasSupportPassword?: boolean;
+  /** Whether a viewer password has been set (private_online mode) */
+  hasViewerPassword?: boolean;
+  /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
+  visibility?: TournamentVisibility;
   createdAt: string;
 }
 
@@ -68,6 +84,18 @@ export const TournamentInputFormat = {
   double_elimination: 'double_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
+} as const;
+
+/**
+ * Tournament visibility mode
+ */
+export type TournamentInputVisibility = typeof TournamentInputVisibility[keyof typeof TournamentInputVisibility];
+
+
+export const TournamentInputVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
 } as const;
 
 export interface TournamentInput {
@@ -83,6 +111,10 @@ export interface TournamentInput {
   organizerPassword?: string;
   /** Optional password for support staff access */
   supportPassword?: string;
+  /** Optional password for viewer access (required when visibility=private_online) */
+  viewerPassword?: string;
+  /** Tournament visibility mode */
+  visibility?: TournamentInputVisibility;
 }
 
 export type TournamentUpdateFormat = typeof TournamentUpdateFormat[keyof typeof TournamentUpdateFormat];
@@ -104,6 +136,15 @@ export const TournamentUpdateStatus = {
   completed: 'completed',
 } as const;
 
+export type TournamentUpdateVisibility = typeof TournamentUpdateVisibility[keyof typeof TournamentUpdateVisibility];
+
+
+export const TournamentUpdateVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
+} as const;
+
 export interface TournamentUpdate {
   name?: string;
   description?: string;
@@ -116,6 +157,9 @@ export interface TournamentUpdate {
   featuredMatchId?: number;
   /** Host access code (plain text, stored hashed) */
   hostCode?: string;
+  visibility?: TournamentUpdateVisibility;
+  /** New viewer password (clears old viewer sessions) */
+  viewerPassword?: string;
 }
 
 export interface VerifyHostCodeInput {

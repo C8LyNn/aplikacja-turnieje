@@ -721,6 +721,13 @@ components:
         hasSupportPassword:
           type: boolean
           description: Whether a support password has been set
+        hasViewerPassword:
+          type: boolean
+          description: Whether a viewer password has been set (private_online mode)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+          description: "public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only"
         createdAt:
           type: string
 
@@ -750,6 +757,13 @@ components:
         supportPassword:
           type: string
           description: Optional password for support staff access
+        viewerPassword:
+          type: string
+          description: Optional password for viewer access (required when visibility=private_online)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+          description: Tournament visibility mode
 
     TournamentUpdate:
       type: object
@@ -777,6 +791,12 @@ components:
         hostCode:
           type: string
           description: Host access code (plain text, stored hashed)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+        viewerPassword:
+          type: string
+          description: New viewer password (clears old viewer sessions)
 
     VerifyHostCodeInput:
       type: object

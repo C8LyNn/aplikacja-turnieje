@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TournamentInputFormat } from './tournamentInputFormat';
+import type { TournamentInputVisibility } from './tournamentInputVisibility';
 
 export interface TournamentInput {
   /** @minLength 1 */
@@ -20,4 +21,8 @@ export interface TournamentInput {
   organizerPassword?: string;
   /** Optional password for support staff access */
   supportPassword?: string;
+  /** Optional password for viewer access (required when visibility=private_online) */
+  viewerPassword?: string;
+  /** Tournament visibility mode */
+  visibility?: TournamentInputVisibility;
 }

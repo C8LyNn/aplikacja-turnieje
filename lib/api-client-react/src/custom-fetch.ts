@@ -20,6 +20,7 @@ let _authTokenGetter: AuthTokenGetter | null = null;
 let _activeHostCode: string | null = null;
 let _activeOrganizerToken: string | null = null;
 let _activeSupportToken: string | null = null;
+let _activeViewerToken: string | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -70,6 +71,14 @@ export function setActiveOrganizerToken(token: string | null): void {
  */
 export function setActiveSupportToken(token: string | null): void {
   _activeSupportToken = token;
+}
+
+/**
+ * Set the active viewer token for the current session.
+ * When set, an `X-Viewer-Token` header will be attached to every request.
+ */
+export function setActiveViewerToken(token: string | null): void {
+  _activeViewerToken = token;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -399,6 +408,11 @@ export async function customFetch<T = unknown>(
   // Attach support token when one is active and not already present.
   if (_activeSupportToken && !headers.has("x-support-token")) {
     headers.set("x-support-token", _activeSupportToken);
+  }
+
+  // Attach viewer token when one is active and not already present.
+  if (_activeViewerToken && !headers.has("x-viewer-token")) {
+    headers.set("x-viewer-token", _activeViewerToken);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };

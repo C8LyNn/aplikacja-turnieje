@@ -7,6 +7,7 @@
  */
 import type { TournamentFormat } from './tournamentFormat';
 import type { TournamentStatus } from './tournamentStatus';
+import type { TournamentVisibility } from './tournamentVisibility';
 
 export interface Tournament {
   id: number;
@@ -37,5 +38,9 @@ export interface Tournament {
   hasOrganizerPassword?: boolean;
   /** Whether a support password has been set */
   hasSupportPassword?: boolean;
+  /** Whether a viewer password has been set (private_online mode) */
+  hasViewerPassword?: boolean;
+  /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
+  visibility?: TournamentVisibility;
   createdAt: string;
 }

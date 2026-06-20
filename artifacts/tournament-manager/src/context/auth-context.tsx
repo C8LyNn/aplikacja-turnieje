@@ -4,6 +4,7 @@ import {
   getStoredRole, setStoredRole, clearStoredRole,
   getOrganizerToken, setOrganizerToken, clearOrganizerToken,
   getSupportSession, setSupportSession, clearSupportSession,
+  getViewerToken, setViewerToken, clearViewerToken,
 } from "@/lib/auth";
 
 interface AuthContextValue {
@@ -19,6 +20,9 @@ interface AuthContextValue {
   getSupSession: (tournamentId: number) => { token: string; nick: string } | null;
   storeSupSession: (tournamentId: number, token: string, nick: string) => void;
   removeSupSession: (tournamentId: number) => void;
+  getViewerTok: (tournamentId: number) => string | null;
+  storeViewerToken: (tournamentId: number, token: string) => void;
+  removeViewerToken: (tournamentId: number) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -61,6 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     forceUpdate((n) => n + 1);
   }, []);
 
+  const getViewerTok = useCallback((id: number) => getViewerToken(id), []);
+
+  const storeViewerToken = useCallback((id: number, token: string) => {
+    setViewerToken(id, token);
+    forceUpdate((n) => n + 1);
+  }, []);
+
+  const removeViewerToken = useCallback((id: number) => {
+    clearViewerToken(id);
+    forceUpdate((n) => n + 1);
+  }, []);
+
   const isOrganizer = useCallback((id: number) => !!getOrganizerToken(id), []);
   const isSupport = useCallback((id: number) => !!getSupportSession(id), []);
   const isOrganizerOrSupport = useCallback((id: number) => !!getOrganizerToken(id) || !!getSupportSession(id), []);
@@ -71,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isOrganizer, isSupport, isOrganizerOrSupport,
       getOrgToken, storeOrgToken, removeOrgToken,
       getSupSession, storeSupSession, removeSupSession,
+      getViewerTok, storeViewerToken, removeViewerToken,
     }}>
       {children}
     </AuthContext.Provider>

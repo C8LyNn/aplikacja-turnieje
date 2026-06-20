@@ -7,6 +7,7 @@
  */
 import type { TournamentUpdateFormat } from './tournamentUpdateFormat';
 import type { TournamentUpdateStatus } from './tournamentUpdateStatus';
+import type { TournamentUpdateVisibility } from './tournamentUpdateVisibility';
 
 export interface TournamentUpdate {
   name?: string;
@@ -20,4 +21,7 @@ export interface TournamentUpdate {
   featuredMatchId?: number;
   /** Host access code (plain text, stored hashed) */
   hostCode?: string;
+  visibility?: TournamentUpdateVisibility;
+  /** New viewer password (clears old viewer sessions) */
+  viewerPassword?: string;
 }

@@ -50,3 +50,27 @@ export function verifyOrganizerToken(token: string, tournamentId: number): boole
 export function generateSessionToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
+
+export function signViewerToken(tournamentId: number): string {
+  const payload = JSON.stringify({ tid: tournamentId, role: "viewer", iat: Date.now() });
+  const b64 = Buffer.from(payload).toString("base64url");
+  const sig = crypto.createHmac("sha256", SECRET).update(b64).digest("hex");
+  return `${b64}.${sig}`;
+}
+
+export function verifyViewerToken(token: string, tournamentId: number): boolean {
+  if (!token) return false;
+  const dot = token.lastIndexOf(".");
+  if (dot === -1) return false;
+  const b64 = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac("sha256", SECRET).update(b64).digest("hex");
+  if (sig.length !== expected.length) return false;
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return false;
+    const payload = JSON.parse(Buffer.from(b64, "base64url").toString());
+    return payload.tid === tournamentId && payload.role === "viewer";
+  } catch {
+    return false;
+  }
+}

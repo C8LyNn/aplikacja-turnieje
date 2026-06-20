@@ -50,6 +50,9 @@ export const tournamentsTable = pgTable("tournaments", {
   organizerPasswordHash: text("organizer_password_hash"),
   supportPasswordHash: text("support_password_hash"),
   supportPasswordVersion: integer("support_password_version").notNull().default(1),
+  viewerPasswordHash: text("viewer_password_hash"),
+  viewerPasswordVersion: integer("viewer_password_version").notNull().default(1),
+  visibility: text("visibility").notNull().default("public_online"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

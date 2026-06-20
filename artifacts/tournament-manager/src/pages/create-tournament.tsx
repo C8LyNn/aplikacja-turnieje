@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Trophy, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Trophy, Lock, Eye, EyeOff, Globe } from "lucide-react";
 
 const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
   single_elimination: {
@@ -43,8 +43,11 @@ export default function CreateTournament() {
   const [defaultBestOf, setDefaultBestOf] = useState("1");
   const [organizerPassword, setOrganizerPassword] = useState("");
   const [supportPassword, setSupportPassword] = useState("");
+  const [viewerPassword, setViewerPassword] = useState("");
+  const [visibility, setVisibility] = useState<"public_online" | "private_online" | "private_offline">("public_online");
   const [showOrgPass, setShowOrgPass] = useState(false);
   const [showSupPass, setShowSupPass] = useState(false);
+  const [showViewerPass, setShowViewerPass] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +63,8 @@ export default function CreateTournament() {
           defaultBestOf: parseInt(defaultBestOf, 10) || 1,
           organizerPassword: organizerPassword || undefined,
           supportPassword: supportPassword || undefined,
+          viewerPassword: visibility === "private_online" ? (viewerPassword || undefined) : undefined,
+          visibility,
         },
       },
       {
@@ -179,6 +184,29 @@ export default function CreateTournament() {
                 <Switch checked={allowDraws} onCheckedChange={setAllowDraws} />
               </div>
 
+              {/* Visibility */}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Globe className="w-4 h-4" />
+                  Widoczność turnieju
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { val: "public_online", label: "Publiczny online", desc: "Widoczny na liście. Kibic może wejść bez hasła." },
+                    { val: "private_online", label: "Prywatny online", desc: "Widoczny na liście. Kibic musi podać hasło widza." },
+                    { val: "private_offline", label: "Prywatny offline", desc: "Niewidoczny na liście. Dostęp tylko przez link dla organizatora/wsparcia." },
+                  ].map(({ val, label, desc }) => (
+                    <label key={val} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${visibility === val ? "border-primary bg-primary/5" : "border-border hover:bg-muted/20"}`}>
+                      <input type="radio" name="visibility" value={val} checked={visibility === val} onChange={() => setVisibility(val as any)} className="mt-0.5 accent-primary" />
+                      <div>
+                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-xs text-muted-foreground">{desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {/* Security passwords */}
               <div className="space-y-3 pt-2 border-t">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -225,6 +253,28 @@ export default function CreateTournament() {
                   </div>
                   <p className="text-xs text-muted-foreground">Umożliwia logowanie z nickiem — organizator widzi kto jest zalogowany.</p>
                 </div>
+                {visibility === "private_online" && (
+                  <div className="space-y-2">
+                    <Label>Hasło widza</Label>
+                    <div className="relative">
+                      <Input
+                        type={showViewerPass ? "text" : "password"}
+                        value={viewerPassword}
+                        onChange={(e) => setViewerPassword(e.target.value)}
+                        placeholder="Hasło dla widzów..."
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowViewerPass((v) => !v)}
+                      >
+                        {showViewerPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Kibice muszą podać to hasło, aby zobaczyć turniej.</p>
+                  </div>
+                )}
               </div>
 
               <Button
