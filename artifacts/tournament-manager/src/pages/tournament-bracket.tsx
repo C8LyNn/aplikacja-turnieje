@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
+import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ArrowLeft, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -44,9 +45,10 @@ export default function TournamentBracket() {
     Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) * 100) / 100;
 
   const isSwiss = tournament?.format === "swiss";
+  const isRoundRobin = tournament?.format === "round_robin";
 
   const fitZoom = useCallback(() => {
-    if (!canvasRef.current || !bracket?.rounds?.length || isSwiss) return;
+    if (!canvasRef.current || !bracket?.rounds?.length || isSwiss || isRoundRobin) return;
     const r1Matches = bracket.rounds[0]?.matches?.length ?? 1;
     const { width: natW, height: natH } = bracketNaturalSize(
       bracket.rounds.length,
@@ -187,6 +189,19 @@ export default function TournamentBracket() {
                   currentRound={tournament.currentRound}
                   totalRounds={tournament.totalRounds}
                 />
+              </div>
+            </div>
+          ) : isRoundRobin ? (
+            <div className="p-8" style={{ minWidth: "100%", minHeight: "100%" }}>
+              <div
+                style={{
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top left",
+                  display: "inline-block",
+                  minWidth: "max-content",
+                }}
+              >
+                <RoundRobinView bracket={bracket} hideStandings />
               </div>
             </div>
           ) : (

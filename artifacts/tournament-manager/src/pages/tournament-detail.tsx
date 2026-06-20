@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
+import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
@@ -1115,6 +1116,10 @@ export default function TournamentDetail() {
                     currentRound={tournament.currentRound}
                     totalRounds={tournament.totalRounds}
                   />
+                </div>
+              ) : tournament.format === "round_robin" ? (
+                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
+                  <RoundRobinView bracket={bracket} standings={standings} />
                 </div>
               ) : (
                 <div>
