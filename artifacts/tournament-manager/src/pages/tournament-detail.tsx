@@ -133,6 +133,7 @@ export default function TournamentDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newPlayerName, setNewPlayerName] = useState("");
+  const [addPlayerError, setAddPlayerError] = useState<string | null>(null);
   const [newPlayerSeed, setNewPlayerSeed] = useState("");
   const [newPlayerRank, setNewPlayerRank] = useState("");
   const [newPlayerCountry, setNewPlayerCountry] = useState("");

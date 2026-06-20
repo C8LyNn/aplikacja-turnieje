@@ -1102,9 +1102,22 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     return;
   }
   if (!await checkHostAuth(req, res, params.data.id)) return;
+
+  // Duplicate name check (case-insensitive, trimmed)
+  const trimmedName = parsed.data.name.trim();
+  const existing = await db
+    .select({ name: playersTable.name })
+    .from(playersTable)
+    .where(eq(playersTable.tournamentId, params.data.id));
+  const duplicate = existing.find((p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase());
+  if (duplicate) {
+    res.status(409).json({ error: `Zawodnik o nicku „${duplicate.name}" już istnieje w tym turnieju. Nicki muszą być unikalne (bez względu na wielkość liter).`, code: "DUPLICATE_PLAYER_NAME" });
+    return;
+  }
+
   const [player] = await db
     .insert(playersTable)
-    .values({ tournamentId: params.data.id, ...parsed.data })
+    .values({ tournamentId: params.data.id, ...parsed.data, name: trimmedName })
     .returning();
   await logAction({
     tournamentId: params.data.id,
