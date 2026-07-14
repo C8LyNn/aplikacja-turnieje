@@ -981,13 +981,9 @@ components:
     MatchUpdate:
       type: object
       properties:
-        score1:
-          type: integer
-        score2:
-          type: integer
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover, postponed, cancelled]
+          enum: [pending, ready, in_progress, postponed, cancelled]
         note:
           type: string
         bestOf:
@@ -998,7 +994,7 @@ components:
       required: [score1, score2]
       properties:
         winnerId:
-          type: integer
+          type: [integer, "null"]
         score1:
           type: integer
         score2:

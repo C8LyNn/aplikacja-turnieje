@@ -318,23 +318,19 @@ export const MatchUpdateStatus = {
   pending: 'pending',
   ready: 'ready',
   in_progress: 'in_progress',
-  completed: 'completed',
-  bye: 'bye',
-  walkover: 'walkover',
   postponed: 'postponed',
   cancelled: 'cancelled',
 } as const;
 
 export interface MatchUpdate {
-  score1?: number;
-  score2?: number;
   status?: MatchUpdateStatus;
   note?: string;
   bestOf?: number;
 }
 
 export interface MatchResult {
-  winnerId?: number;
+  /** @nullable */
+  winnerId?: number | null;
   score1: number;
   score2: number;
   isDraw?: boolean;

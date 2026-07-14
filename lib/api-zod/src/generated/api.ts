@@ -711,9 +711,7 @@ export const UpdateMatchParams = zod.object({
 })
 
 export const UpdateMatchBody = zod.object({
-  "score1": zod.number().optional(),
-  "score2": zod.number().optional(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']).optional(),
+  "status": zod.enum(['pending', 'ready', 'in_progress', 'postponed', 'cancelled']).optional(),
   "note": zod.string().optional(),
   "bestOf": zod.number().optional()
 })
@@ -745,7 +743,7 @@ export const CompleteMatchParams = zod.object({
 })
 
 export const CompleteMatchBody = zod.object({
-  "winnerId": zod.number().optional(),
+  "winnerId": zod.number().nullish(),
   "score1": zod.number(),
   "score2": zod.number(),
   "isDraw": zod.boolean().optional(),

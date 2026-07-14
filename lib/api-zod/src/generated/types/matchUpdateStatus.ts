@@ -13,9 +13,6 @@ export const MatchUpdateStatus = {
   pending: 'pending',
   ready: 'ready',
   in_progress: 'in_progress',
-  completed: 'completed',
-  bye: 'bye',
-  walkover: 'walkover',
   postponed: 'postponed',
   cancelled: 'cancelled',
 } as const;

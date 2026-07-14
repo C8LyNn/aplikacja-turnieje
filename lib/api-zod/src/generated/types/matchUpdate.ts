@@ -8,8 +8,6 @@
 import type { MatchUpdateStatus } from './matchUpdateStatus';
 
 export interface MatchUpdate {
-  score1?: number;
-  score2?: number;
   status?: MatchUpdateStatus;
   note?: string;
   bestOf?: number;

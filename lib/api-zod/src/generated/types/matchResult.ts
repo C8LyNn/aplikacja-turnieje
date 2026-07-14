@@ -7,7 +7,8 @@
  */
 
 export interface MatchResult {
-  winnerId?: number;
+  /** @nullable */
+  winnerId?: number | null;
   score1: number;
   score2: number;
   isDraw?: boolean;
