@@ -16,6 +16,7 @@ import { pl } from "date-fns/locale";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/auth-context";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const importPlayers = useImportPlayers();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { getOrgToken } = useAuth();
   const [, navigate] = useLocation();
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -109,7 +111,10 @@ export default function Dashboard() {
 
   const handleQuickExport = async (e: React.MouseEvent, t: { id: number; name: string }) => {
     e.stopPropagation();
+    const organizerToken = getOrgToken(t.id);
+    if (!organizerToken) return;
     setExportingId(t.id);
+    setActiveOrganizerToken(organizerToken);
     try {
       const backup = await exportTournament(t.id);
       const fileName = `${t.name.replace(/[^a-z0-9]/gi, "_")}_backup_${new Date().toISOString().slice(0, 10)}.json`;
@@ -122,6 +127,7 @@ export default function Dashboard() {
     } catch {
       toast({ title: "Błąd eksportu", variant: "destructive" });
     } finally {
+      setActiveOrganizerToken(null);
       setExportingId(null);
     }
   };
@@ -399,15 +405,17 @@ export default function Dashboard() {
                       >
                         {STATUS_LABELS[tournament.status] ?? tournament.status.toUpperCase()}
                       </Badge>
-                      {/* Quick export button */}
-                      <button
-                        onClick={(e) => handleQuickExport(e, tournament)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary"
-                        title="Pobierz backup"
-                        disabled={exportingId === tournament.id}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Full backup requires a real organizer token for this tournament. */}
+                      {getOrgToken(tournament.id) && (
+                        <button
+                          onClick={(e) => handleQuickExport(e, tournament)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary"
+                          title="Pobierz backup"
+                          disabled={exportingId === tournament.id}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       {/* Delete button — stops propagation so it doesn't navigate */}
                       <button
                         onClick={(e) => {

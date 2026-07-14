@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
-import { hashPassword, verifyOrganizerToken, verifyViewerToken } from "../auth";
+import { hashPassword, verifyOrganizerToken } from "../auth";
 import { logAuditAction } from "./auth";
+import { requireOrganizer, requireTournamentRead, requireTournamentWrite } from "../access-policy";
 import {
   CreateTournamentBody,
   UpdateTournamentBody,
@@ -161,37 +162,7 @@ async function checkOrganizerOnlyAuth(req: import("express").Request, res: impor
 }
 
 async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
-  const [t] = await db.select({
-    visibility: tournamentsTable.visibility,
-    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
-    supportPasswordHash: tournamentsTable.supportPasswordHash,
-    supportPasswordVersion: tournamentsTable.supportPasswordVersion,
-  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
-  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
-
-  const visibility = t.visibility ?? "public_online";
-  if (visibility === "public_online") return true;
-
-  const orgToken = req.headers["x-organizer-token"] as string | undefined;
-  if (orgToken && verifyOrganizerToken(orgToken, tournamentId)) return true;
-
-  const supToken = req.headers["x-support-token"] as string | undefined;
-  if (supToken) {
-    const [session] = await db.select().from(supportSessionsTable)
-      .where(and(eq(supportSessionsTable.tournamentId, tournamentId), eq(supportSessionsTable.sessionToken, supToken)));
-    if (session && session.passwordVersion === (t.supportPasswordVersion ?? 1)) return true;
-  }
-
-  if (visibility === "private_offline") {
-    res.status(403).json({ error: "Ten turniej jest prywatny. Wymagane logowanie jako organizator lub wsparcie.", code: "PRIVATE_OFFLINE" });
-    return false;
-  }
-
-  const viewerToken = req.headers["x-viewer-token"] as string | undefined;
-  if (viewerToken && verifyViewerToken(viewerToken, tournamentId)) return true;
-
-  res.status(403).json({ error: "Ten turniej wymaga hasła widza.", code: "VIEWER_PASSWORD_REQUIRED" });
-  return false;
+  return (await requireTournamentRead(req, res, tournamentId)) !== null;
 }
 
 function mapPlayer(p: typeof playersTable.$inferSelect) {
@@ -607,15 +578,9 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  const [t] = await db
-    .select()
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.id, params.data.id));
-  if (!t) {
-    res.status(404).json({ error: "Tournament not found" });
-    return;
-  }
-  res.json(mapTournament(t));
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
+  res.json(mapTournament(access.tournament));
 });
 
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {
@@ -806,14 +771,9 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
     return;
   }
 
-  const [tournament] = await db
-    .select()
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.id, params.data.id));
-  if (!tournament) {
-    res.status(404).json({ error: "Tournament not found" });
-    return;
-  }
+  const access = await requireTournamentWrite(req, res, params.data.id);
+  if (!access) return;
+  const tournament = access.tournament;
   if (tournament.format !== "swiss") {
     res.status(400).json({ error: "Only Swiss format supports round generation" });
     return;
@@ -1039,14 +999,9 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
     return;
   }
 
-  const [tournament] = await db
-    .select()
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.id, params.data.id));
-  if (!tournament) {
-    res.status(404).json({ error: "Tournament not found" });
-    return;
-  }
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
+  const tournament = access.tournament;
 
   const players = await db
     .select()
@@ -1423,6 +1378,7 @@ router.get("/tournaments/:id/action-log", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
   const entries = await db
     .select()
     .from(actionLogTable)
@@ -1600,6 +1556,7 @@ router.get("/matches/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
+  if (!await requireTournamentRead(req, res, match.tournamentId)) return;
   const [enriched] = await enrichMatches([match]);
   res.json(enriched);
 });
@@ -2117,8 +2074,9 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const tid = params.data.id;
 
-  const [tournament] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, tid));
-  if (!tournament) { res.status(404).json({ error: "Tournament not found" }); return; }
+  const access = await requireOrganizer(req, res, tid);
+  if (!access) return;
+  const tournament = access.tournament;
 
   const players = await db.select().from(playersTable).where(eq(playersTable.tournamentId, tid));
   const matches = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, tid)).orderBy(matchesTable.round, matchesTable.matchNumber);

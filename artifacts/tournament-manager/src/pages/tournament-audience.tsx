@@ -8,7 +8,12 @@ import {
   getGetTournamentStandingsQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Swords } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Lock, Trophy, Swords } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ViewerLoginModal } from "@/components/viewer-login-modal";
+import { useAuth } from "@/context/auth-context";
+import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -42,16 +47,62 @@ function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "
 export default function TournamentAudience() {
   const [, params] = useRoute("/tournaments/:id/audience");
   const id = params?.id ? parseInt(params.id, 10) : 0;
+  const { getOrgToken, getSupSession, getViewerTok, storeViewerToken } = useAuth();
+  const [showViewerModal, setShowViewerModal] = useState(false);
+  const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
 
-  const { data: tournament } = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 4000 },
+  useEffect(() => {
+    const organizerToken = getOrgToken(id);
+    const supportSession = getSupSession(id);
+    const viewerToken = getViewerTok(id);
+    if (organizerToken) { setActiveOrganizerToken(organizerToken); setActiveSupportToken(null); setActiveViewerToken(null); }
+    else if (supportSession) { setActiveSupportToken(supportSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
+    else if (viewerToken) { setActiveViewerToken(viewerToken); setActiveOrganizerToken(null); setActiveSupportToken(null); }
+    else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
+    setPreparedAuthId(id);
+    return () => {
+      setPreparedAuthId(null);
+      setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
+    };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: tournament, error: tournamentError, refetch: refetchTournament } = useGetTournament(id, {
+    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 4000, retry: false },
   });
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id, queryKey: getListMatchesQueryKey(id), refetchInterval: 4000 },
+    query: { enabled: !!id && !!tournament, queryKey: getListMatchesQueryKey(id), refetchInterval: 4000 },
   });
   const { data: standings } = useGetTournamentStandings(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 8000 },
+    query: { enabled: !!id && !!tournament, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 8000 },
   });
+
+  const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
+  if (!tournament && accessDeniedCode) {
+    const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
+    return (
+      <div className="min-h-screen bg-[#080d1a] text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <Lock className="w-10 h-10 text-white/50" />
+        <h1 className="text-xl font-semibold">Turniej prywatny</h1>
+        <p className="text-sm text-white/50 max-w-sm">
+          {viewerMayLogin ? "Podaj hasło widza, aby otworzyć transmisję." : "Ten turniej nie jest dostępny dla widzów."}
+        </p>
+        {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
+        <ViewerLoginModal
+          open={showViewerModal}
+          onClose={() => setShowViewerModal(false)}
+          onCancel={() => setShowViewerModal(false)}
+          tournamentId={id}
+          tournamentName={`Turniej #${id}`}
+          onSuccess={(token) => {
+            storeViewerToken(id, token);
+            setActiveViewerToken(token);
+            setShowViewerModal(false);
+            void refetchTournament();
+          }}
+        />
+      </div>
+    );
+  }
 
   // --- Derived data ---
   const featuredMatch = tournament?.featuredMatchId

@@ -50,6 +50,7 @@ export default function TournamentDetail() {
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
   const [showViewerModal, setShowViewerModal] = useState(false);
+  const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
 
   // Keep module-level API client headers in sync with sessionStorage tokens.
   // Deps: only [id] — login modals call setActive* directly (synchronous).
@@ -69,7 +70,11 @@ export default function TournamentDetail() {
     else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
     else if (vtok) { setActiveViewerToken(vtok); setActiveOrganizerToken(null); setActiveSupportToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    return () => { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); };
+    setPreparedAuthId(id);
+    return () => {
+      setPreparedAuthId(null);
+      setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
+    };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle direct role links: ?login=organizer|support|viewer
@@ -81,8 +86,13 @@ export default function TournamentDetail() {
     else if (loginParam === "viewer") setShowViewerModal(true);
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: tournament, isLoading: isLoadingTournament } = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
+  const {
+    data: tournament,
+    error: tournamentError,
+    isLoading: isLoadingTournament,
+    refetch: refetchTournament,
+  } = useGetTournament(id, {
+    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), retry: false },
   });
   // readOk: false when tournament is private_online/offline and no valid auth is present
   const visibility = (tournament as any)?.visibility ?? "public_online";
@@ -400,7 +410,73 @@ export default function TournamentDetail() {
     setCsvMode("append");
   };
 
-  if (isLoadingTournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+  if (preparedAuthId !== id || isLoadingTournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+  const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
+  if (!tournament && accessDeniedCode) {
+    const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED" && role === "fan";
+    const organizerMayLogin = role === "organizer" || role === "developer";
+    const supportMayLogin = role === "support";
+    const tournamentLabel = `Turniej #${id}`;
+    return (
+      <Layout>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
+          <Lock className="w-10 h-10 text-muted-foreground" />
+          <h1 className="text-xl font-semibold">Turniej prywatny</h1>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            {accessDeniedCode === "PRIVATE_OFFLINE"
+              ? "Dostęp wymaga zalogowania jako organizator lub wsparcie."
+              : "Podaj hasło widza albo zaloguj się jako organizator lub wsparcie."}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
+            {organizerMayLogin && <Button onClick={() => setShowOrgModal(true)}>Zaloguj jako organizator</Button>}
+            {supportMayLogin && <Button onClick={() => setShowSupModal(true)}>Zaloguj jako wsparcie</Button>}
+          </div>
+        </div>
+        <OrganizerLoginModal
+          open={showOrgModal}
+          onClose={() => setShowOrgModal(false)}
+          onCancel={() => setShowOrgModal(false)}
+          tournamentId={id}
+          tournamentName={tournamentLabel}
+          onSuccess={(token) => {
+            storeOrgToken(id, token);
+            setActiveOrganizerToken(token);
+            setActiveSupportToken(null);
+            setShowOrgModal(false);
+            void refetchTournament();
+          }}
+        />
+        <SupportLoginModal
+          open={showSupModal}
+          onClose={() => setShowSupModal(false)}
+          onCancel={() => setShowSupModal(false)}
+          tournamentId={id}
+          tournamentName={tournamentLabel}
+          onSuccess={(token, nick) => {
+            storeSupSession(id, token, nick);
+            setActiveSupportToken(token);
+            setActiveOrganizerToken(null);
+            setShowSupModal(false);
+            void refetchTournament();
+          }}
+        />
+        <ViewerLoginModal
+          open={showViewerModal}
+          onClose={() => setShowViewerModal(false)}
+          onCancel={() => setShowViewerModal(false)}
+          tournamentId={id}
+          tournamentName={tournamentLabel}
+          onSuccess={(token) => {
+            storeViewerToken(id, token);
+            setActiveViewerToken(token);
+            setShowViewerModal(false);
+            void refetchTournament();
+          }}
+        />
+      </Layout>
+    );
+  }
   if (!tournament) return <Layout><div>Nie znaleziono</div></Layout>;
 
   const statusLabel: Record<string, string> = { draft: "SZKIC", active: "AKTYWNY", completed: "ZAKOŃCZONY" };
@@ -610,9 +686,11 @@ export default function TournamentDetail() {
                 <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Historia</TabsTrigger>
               </>
             )}
-            <TabsTrigger value="backup" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
-              <HardDriveDownload className="w-3.5 h-3.5" /> Backup
-            </TabsTrigger>
+            {!!orgToken && (
+              <TabsTrigger value="backup" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
+                <HardDriveDownload className="w-3.5 h-3.5" /> Backup
+              </TabsTrigger>
+            )}
             {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
               <TabsTrigger value="security" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
                 <Shield className="w-3.5 h-3.5" /> Bezpieczeństwo
@@ -1204,8 +1282,8 @@ export default function TournamentDetail() {
               </CardContent>
             </Card>
           </TabsContent>
-          {/* ═══ BACKUP ═══ */}
-          <TabsContent value="backup" className="pt-6">
+          {/* ═══ BACKUP — organizer token required ═══ */}
+          {!!orgToken && <TabsContent value="backup" className="pt-6">
             <div className="space-y-6 max-w-2xl">
 
               {/* Tip banner */}
@@ -1317,7 +1395,7 @@ export default function TournamentDetail() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent>}
 
           {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
             <TabsContent value="security" className="pt-6">
