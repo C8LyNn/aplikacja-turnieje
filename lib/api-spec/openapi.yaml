@@ -280,6 +280,18 @@ paths:
                 properties:
                   error:
                     type: string
+        "409":
+          description: The result was already reverted or changed concurrently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Stored match data is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /tournaments/{id}/results-history:
     get:
@@ -670,9 +682,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Match"
+        "404":
+          description: Match or required legacy result record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Match is not completed, was already reverted, or downstream blocks the revert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Stored result, participants, statistics, history, or finalization is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
 components:
   schemas:
+    DomainError:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
     HealthStatus:
       type: object
       properties:

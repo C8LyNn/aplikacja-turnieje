@@ -608,7 +608,7 @@ describe("PATCH cannot bypass CompleteMatch", () => {
 });
 
 describe("revert compatibility", () => {
-  test("reverts one successful CompleteMatch using the existing legacy behavior", async () => {
+  test("reverts one successful CompleteMatch while preserving its history revision", async () => {
     const fixture = await createFixture();
     assert.equal((await postComplete(fixture, fixture.organizerHeaders)).status, 200);
 
@@ -633,7 +633,7 @@ describe("revert compatibility", () => {
       assert.equal(player.losses, 0);
       assert.equal(player.points, 0);
     }
-    assert.equal(state.resultHistory, 0);
+    assert.equal(state.resultHistory, 1);
     assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, null);
 
     const logs = await database.pool.query(

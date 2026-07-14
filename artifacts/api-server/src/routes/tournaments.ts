@@ -10,6 +10,11 @@ import {
   type CompleteMatchErrorCode,
 } from "../application/matches/complete-match";
 import {
+  revertMatch,
+  RevertMatchError,
+  type RevertMatchErrorCode,
+} from "../application/matches/revert-match";
+import {
   CreateTournamentBody,
   UpdateTournamentBody,
   GetTournamentParams,
@@ -1375,6 +1380,31 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
   };
 }
 
+function sendRevertMatchError(
+  error: RevertMatchError,
+  res: import("express").Response,
+): void {
+  const notFoundCodes = new Set<RevertMatchErrorCode>([
+    "MATCH_NOT_FOUND",
+    "TOURNAMENT_NOT_FOUND",
+    "PARTICIPANT_NOT_FOUND",
+    "RESULT_HISTORY_NOT_FOUND",
+  ]);
+  const conflictCodes = new Set<RevertMatchErrorCode>([
+    "MATCH_NOT_COMPLETED",
+    "COMPLETION_ALREADY_UNDONE",
+    "UNDO_ACTION_CHANGED",
+    "DOWNSTREAM_BLOCKED",
+    "CONCURRENT_MODIFICATION",
+  ]);
+  const status = notFoundCodes.has(error.code)
+    ? 404
+    : conflictCodes.has(error.code)
+      ? 409
+      : 422;
+  res.status(status).json({ error: error.message, code: error.code });
+}
+
 // ========== ACTION LOG ROUTES ==========
 
 router.get("/tournaments/:id/action-log", async (req, res): Promise<void> => {
@@ -1400,7 +1430,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!await checkHostAuth(req, res, params.data.id)) return;
+  if (!await requireTournamentWrite(req, res, params.data.id)) return;
 
   // Find the last undoable, non-undone action
   const [lastAction] = await db
@@ -1413,10 +1443,20 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         sql`${actionLogTable.undoPayload} IS NOT NULL`,
       ),
     )
-    .orderBy(desc(actionLogTable.createdAt))
+    .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
     .limit(1);
 
   if (!lastAction || !lastAction.undoPayload) {
+    const [latestAction] = await db
+      .select({ actionType: actionLogTable.actionType })
+      .from(actionLogTable)
+      .where(eq(actionLogTable.tournamentId, params.data.id))
+      .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+      .limit(1);
+    if (latestAction?.actionType === "match_result_reverted") {
+      sendRevertMatchError(new RevertMatchError("MATCH_NOT_COMPLETED"), res);
+      return;
+    }
     res.status(404).json({ error: "Brak akcji do cofnięcia" });
     return;
   }
@@ -1427,43 +1467,19 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     switch (payload.type) {
       case "revert_match": {
         const matchId = payload.matchId as number;
-        const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, matchId));
-        if (!match || match.status !== "completed") {
-          res.status(400).json({ error: "Mecz nie może zostać cofnięty (nie jest zakończony)" });
-          return;
+        if (!Number.isInteger(matchId) || matchId < 1) {
+          throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
         }
-        // Revert player stats
-        if (match.isDraw) {
-          if (match.player1Id) await db.update(playersTable).set({ draws: sql`GREATEST(${playersTable.draws} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 1, 0)` }).where(eq(playersTable.id, match.player1Id));
-          if (match.player2Id) await db.update(playersTable).set({ draws: sql`GREATEST(${playersTable.draws} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 1, 0)` }).where(eq(playersTable.id, match.player2Id));
-        } else if (match.winnerId) {
-          const loserId = match.player1Id === match.winnerId ? match.player2Id : match.player1Id;
-          await db.update(playersTable).set({ wins: sql`GREATEST(${playersTable.wins} - 1, 0)`, points: sql`GREATEST(${playersTable.points} - 3, 0)` }).where(eq(playersTable.id, match.winnerId));
-          if (loserId) await db.update(playersTable).set({ losses: sql`GREATEST(${playersTable.losses} - 1, 0)`, status: "active" }).where(eq(playersTable.id, loserId));
-        }
-        // Revert bracket advancement
-        const [tournament] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, match.tournamentId));
-        if (tournament?.format !== "round_robin" && tournament?.format !== "swiss" && match.winnerId) {
-          const nextRoundMatches = await db.select().from(matchesTable).where(and(eq(matchesTable.tournamentId, match.tournamentId), eq(matchesTable.round, match.round + 1))).orderBy(matchesTable.matchNumber);
-          const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
-          const nextMatch = nextRoundMatches[nextMatchIndex];
-          if (nextMatch) {
-            const isP1 = (match.matchNumber - 1) % 2 === 0;
-            await db.update(matchesTable).set(isP1 ? { player1Id: null } : { player2Id: null }).where(eq(matchesTable.id, nextMatch.id));
-          }
-        }
-        // Revert tournament completion if it was the last match
-        if (tournament?.status === "completed" && tournament.winnerId) {
-          await db.update(tournamentsTable).set({ status: "active", winnerId: null }).where(eq(tournamentsTable.id, match.tournamentId));
-          await db.update(playersTable).set({ status: "active" }).where(and(eq(playersTable.tournamentId, match.tournamentId), eq(playersTable.status, "winner")));
-        }
-        // Reset match
-        await db.update(matchesTable).set({ status: "pending", winnerId: null, score1: null, score2: null, isDraw: false, completedAt: null }).where(eq(matchesTable.id, matchId));
-        // Remove from result history
-        await db.delete(resultHistoryTable).where(eq(resultHistoryTable.matchId, matchId));
-        // Log the revert
-        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: lastAction.description.replace("Wynik:", "Cofnięto wynik:"), matchId });
-        break;
+        const result = await revertMatch({
+          matchId,
+          expectedTournamentId: params.data.id,
+          expectedCompletionActionId: lastAction.id,
+        });
+        res.json({
+          action: mapActionLog(result.completionAction),
+          message: `Cofnięto: ${lastAction.description}`,
+        });
+        return;
       }
       case "restore_status": {
         const matchId = payload.matchId as number;
@@ -1528,6 +1544,10 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     const [updated] = await db.select().from(actionLogTable).where(eq(actionLogTable.id, lastAction.id));
     res.json({ action: mapActionLog(updated!), message: `Cofnięto: ${lastAction.description}` });
   } catch (err) {
+    if (err instanceof RevertMatchError) {
+      sendRevertMatchError(err, res);
+      return;
+    }
     res.status(500).json({ error: "Błąd podczas cofania akcji" });
   }
 });
@@ -1745,123 +1765,30 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
     return;
   }
 
-  const [match] = await db
-    .select()
+  const [matchReference] = await db
+    .select({ tournamentId: matchesTable.tournamentId })
     .from(matchesTable)
     .where(eq(matchesTable.id, params.data.id));
-  if (!match) {
-    res.status(404).json({ error: "Match not found" });
+  if (!matchReference) {
+    res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" });
     return;
   }
-  if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  if (match.status !== "completed") {
-    res.status(400).json({ error: "Match is not completed" });
-    return;
-  }
+  if (!await requireTournamentWrite(req, res, matchReference.tournamentId)) return;
 
-  // Revert player stats
-  if (match.isDraw) {
-    if (match.player1Id) {
-      await db.update(playersTable).set({
-        draws: sql`GREATEST(${playersTable.draws} - 1, 0)`,
-        points: sql`GREATEST(${playersTable.points} - 1, 0)`,
-      }).where(eq(playersTable.id, match.player1Id));
+  try {
+    const result = await revertMatch({
+      matchId: params.data.id,
+      expectedTournamentId: matchReference.tournamentId,
+    });
+    const [enriched] = await enrichMatches([result.match]);
+    res.json(enriched);
+  } catch (error) {
+    if (error instanceof RevertMatchError) {
+      sendRevertMatchError(error, res);
+      return;
     }
-    if (match.player2Id) {
-      await db.update(playersTable).set({
-        draws: sql`GREATEST(${playersTable.draws} - 1, 0)`,
-        points: sql`GREATEST(${playersTable.points} - 1, 0)`,
-      }).where(eq(playersTable.id, match.player2Id));
-    }
-  } else if (match.winnerId) {
-    const loserId =
-      match.player1Id === match.winnerId ? match.player2Id : match.player1Id;
-    await db.update(playersTable).set({
-      wins: sql`GREATEST(${playersTable.wins} - 1, 0)`,
-      points: sql`GREATEST(${playersTable.points} - 3, 0)`,
-    }).where(eq(playersTable.id, match.winnerId));
-    if (loserId) {
-      await db.update(playersTable).set({
-        losses: sql`GREATEST(${playersTable.losses} - 1, 0)`,
-        status: "active",
-      }).where(eq(playersTable.id, loserId));
-    }
+    res.status(500).json({ error: "Nie udało się cofnąć wyniku meczu." });
   }
-
-  // Revert bracket advancement (single elimination only)
-  const [tournament] = await db
-    .select()
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.id, match.tournamentId));
-
-  if (
-    tournament?.format !== "round_robin" &&
-    tournament?.format !== "swiss" &&
-    match.winnerId
-  ) {
-    const nextRound = match.round + 1;
-    const nextRoundMatches = await db
-      .select()
-      .from(matchesTable)
-      .where(
-        and(
-          eq(matchesTable.tournamentId, match.tournamentId),
-          eq(matchesTable.round, nextRound),
-        ),
-      )
-      .orderBy(matchesTable.matchNumber);
-
-    const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
-    const nextMatch = nextRoundMatches[nextMatchIndex];
-    if (nextMatch) {
-      const isP1 = (match.matchNumber - 1) % 2 === 0;
-      await db
-        .update(matchesTable)
-        .set(isP1 ? { player1Id: null } : { player2Id: null })
-        .where(eq(matchesTable.id, nextMatch.id));
-    }
-  }
-
-  // Reset match
-  const [reverted] = await db
-    .update(matchesTable)
-    .set({
-      status: "pending",
-      winnerId: null,
-      score1: null,
-      score2: null,
-      isDraw: false,
-      completedAt: null,
-    })
-    .where(eq(matchesTable.id, params.data.id))
-    .returning();
-
-  // Remove from history
-  await db
-    .delete(resultHistoryTable)
-    .where(eq(resultHistoryTable.matchId, params.data.id));
-
-  // Log revert action
-  {
-    const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
-    const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
-    const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
-    const p1n = nm.get(match.player1Id ?? 0) ?? "TBD";
-    const p2n = nm.get(match.player2Id ?? 0) ?? "TBD";
-    await logAction({ tournamentId: match.tournamentId, actionType: "match_result_reverted", description: `Cofnięto wynik R${match.round}M${match.matchNumber}: ${p1n} ${match.score1 ?? 0}:${match.score2 ?? 0} ${p2n}`, matchId: match.id });
-    // Also mark the original match_result_submitted log as undone
-    await db.update(actionLogTable).set({ isUndone: true }).where(
-      and(
-        eq(actionLogTable.tournamentId, match.tournamentId),
-        eq(actionLogTable.actionType, "match_result_submitted"),
-        eq(actionLogTable.isUndone, false),
-        sql`${actionLogTable.matchId} = ${match.id}`,
-      ),
-    );
-  }
-
-  const [enriched] = await enrichMatches([reverted]);
-  res.json(enriched);
 });
 
 // ===== CANCEL MATCH =====

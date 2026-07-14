@@ -25,6 +25,7 @@ import type {
   Bracket,
   CsvImportInput,
   CsvImportResult,
+  DomainError,
   HealthStatus,
   ImportResult,
   Match,
@@ -1013,7 +1014,7 @@ export const undoLastAction = async (id: number, options?: RequestInit): Promise
 
 
 
-export const getUndoLastActionMutationOptions = <TError = ErrorType<UndoLastAction404>,
+export const getUndoLastActionMutationOptions = <TError = ErrorType<UndoLastAction404 | DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext> => {
 
@@ -1042,12 +1043,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UndoLastActionMutationResult = NonNullable<Awaited<ReturnType<typeof undoLastAction>>>
 
-    export type UndoLastActionMutationError = ErrorType<UndoLastAction404>
+    export type UndoLastActionMutationError = ErrorType<UndoLastAction404 | DomainError>
 
     /**
  * @summary Undo the last undoable action
  */
-export const useUndoLastAction = <TError = ErrorType<UndoLastAction404>,
+export const useUndoLastAction = <TError = ErrorType<UndoLastAction404 | DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof undoLastAction>>,
@@ -2282,7 +2283,7 @@ export const revertMatch = async (id: number, options?: RequestInit): Promise<Ma
 
 
 
-export const getRevertMatchMutationOptions = <TError = ErrorType<unknown>,
+export const getRevertMatchMutationOptions = <TError = ErrorType<DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext> => {
 
@@ -2311,12 +2312,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RevertMatchMutationResult = NonNullable<Awaited<ReturnType<typeof revertMatch>>>
 
-    export type RevertMatchMutationError = ErrorType<unknown>
+    export type RevertMatchMutationError = ErrorType<DomainError>
 
     /**
  * @summary Revert a completed match result
  */
-export const useRevertMatch = <TError = ErrorType<unknown>,
+export const useRevertMatch = <TError = ErrorType<DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof revertMatch>>,
