@@ -1,7 +1,6 @@
-import { Link } from "wouter";
 import { AlertTriangle } from "lucide-react";
 import { Layout } from "@/components/layout";
-import { Button } from "@/components/ui/button";
+import { RoleHomeLink } from "@/components/app-navigation";
 
 export default function NotFound() {
   return (
@@ -12,9 +11,7 @@ export default function NotFound() {
         <p className="text-xl text-muted-foreground mb-8 max-w-md">
           Szukana strona lub turniej nie istnieje.
         </p>
-        <Button asChild size="lg">
-          <Link href="/">Wróć do dashboardu</Link>
-        </Button>
+        <RoleHomeLink className="bg-primary px-5 py-3 text-primary-foreground hover:text-primary-foreground hover:bg-primary/90" />
       </div>
     </Layout>
   );

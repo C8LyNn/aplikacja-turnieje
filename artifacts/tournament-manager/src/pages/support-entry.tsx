@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { useListTournaments } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
 import { apiSupportLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Users, Lock, User, Trophy } from "lucide-react";
+import { Users, Lock, User, Trophy } from "lucide-react";
+import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -48,14 +49,8 @@ export default function SupportEntry() {
     <div className="min-h-screen bg-background text-foreground dark flex flex-col">
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
-            <Trophy className="w-6 h-6" />
-            <span>TM_SYS</span>
-          </div>
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Zmień rolę
-          </Link>
+          <AppLogoLink fallbackHref="/support" className="text-xl" />
+          <RoleSelectionLink />
         </div>
       </header>
 

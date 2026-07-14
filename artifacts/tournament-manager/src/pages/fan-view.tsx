@@ -1,8 +1,9 @@
 import { useListTournaments } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { Trophy, Eye, ArrowLeft, Calendar, Users } from "lucide-react";
+import { Trophy, Eye, Calendar, Users } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
+import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "AKTYWNY",
@@ -25,14 +26,8 @@ export default function FanView() {
     <div className="min-h-screen bg-background text-foreground dark flex flex-col">
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
-            <Trophy className="w-6 h-6" />
-            <span>TM_SYS</span>
-          </div>
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Zmień rolę
-          </Link>
+          <AppLogoLink fallbackHref="/fan" className="text-xl" />
+          <RoleSelectionLink />
         </div>
       </header>
 

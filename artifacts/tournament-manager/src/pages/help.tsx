@@ -1,10 +1,8 @@
 import { Layout } from "@/components/layout";
-import { Link } from "wouter";
 import {
-  ArrowLeft, BookOpen, Play, RotateCcw, Download, Upload, Clock, AlertTriangle,
+  BookOpen, Play, RotateCcw, Download, Upload, Clock, AlertTriangle,
   CheckCircle2, Monitor, Shield, Users, Swords, HelpCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface SectionProps {
@@ -69,9 +67,6 @@ export default function HelpPage() {
     <Layout>
       <div className="max-w-2xl mx-auto flex flex-col gap-5">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/"><ArrowLeft className="w-5 h-5" /></Link>
-          </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <HelpCircle className="w-6 h-6 text-primary" /> Instrukcja obsługi

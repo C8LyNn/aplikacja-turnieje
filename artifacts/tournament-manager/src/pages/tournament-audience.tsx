@@ -1,19 +1,31 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useSearchParams } from "wouter";
 import {
   useGetTournament,
   useListMatches,
+  useListPlayers,
   useGetTournamentStandings,
+  useGetTournamentBracket,
   getGetTournamentQueryKey,
   getListMatchesQueryKey,
+  getListPlayersQueryKey,
   getGetTournamentStandingsQueryKey,
+  getGetTournamentBracketQueryKey,
+  type Bracket,
+  type Match,
+  type Player,
+  type Standing,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Lock, Trophy, Swords } from "lucide-react";
+import { Lock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
+import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
+import { BracketView } from "@/components/bracket-view";
+import { SwissRoundsView } from "@/components/swiss-rounds-view";
+import { RoundRobinView } from "@/components/round-robin-view";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -26,6 +38,27 @@ const STATUS_LABELS: Record<string, string> = {
   draft: "SZKIC",
   active: "AKTYWNY",
   completed: "ZAKOŃCZONY",
+};
+
+type AudienceSection = "live" | "matches" | "standings" | "players" | "bracket";
+
+const AUDIENCE_SECTIONS: Array<{ id: AudienceSection; label: string }> = [
+  { id: "live", label: "Na żywo" },
+  { id: "matches", label: "Mecze" },
+  { id: "standings", label: "Tabela" },
+  { id: "players", label: "Gracze" },
+  { id: "bracket", label: "Drabinka" },
+];
+
+const MATCH_STATUS_LABELS: Record<string, string> = {
+  pending: "Oczekuje",
+  ready: "Gotowy",
+  in_progress: "W trakcie",
+  completed: "Zakończony",
+  bye: "Wolny los",
+  walkover: "Walkower",
+  postponed: "Przełożony",
+  cancelled: "Anulowany",
 };
 
 function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "left" | "right" }) {
@@ -46,10 +79,15 @@ function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "
 
 export default function TournamentAudience() {
   const [, params] = useRoute("/tournaments/:id/audience");
+  const [searchParams] = useSearchParams();
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const { getOrgToken, getSupSession, getViewerTok, storeViewerToken } = useAuth();
   const [showViewerModal, setShowViewerModal] = useState(false);
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
+  const requestedSection = searchParams.get("section");
+  const activeSection: AudienceSection = AUDIENCE_SECTIONS.some((section) => section.id === requestedSection)
+    ? requestedSection as AudienceSection
+    : "live";
 
   useEffect(() => {
     const organizerToken = getOrgToken(id);
@@ -75,12 +113,27 @@ export default function TournamentAudience() {
   const { data: standings } = useGetTournamentStandings(id, {
     query: { enabled: !!id && !!tournament, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 8000 },
   });
+  const { data: players } = useListPlayers(id, {
+    query: { enabled: !!id && !!tournament, queryKey: getListPlayersQueryKey(id), refetchInterval: 8000 },
+  });
+  const { data: bracket } = useGetTournamentBracket(id, {
+    query: {
+      enabled: !!id && !!tournament && tournament.status !== "draft",
+      queryKey: getGetTournamentBracketQueryKey(id),
+      refetchInterval: 10000,
+    },
+  });
 
   const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
     return (
       <div className="min-h-screen bg-[#080d1a] text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <RoleHomeLink
+          fallbackHref="/fan"
+          fallbackLabel="Wróć do turniejów"
+          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+        />
         <Lock className="w-10 h-10 text-white/50" />
         <h1 className="text-xl font-semibold">Turniej prywatny</h1>
         <p className="text-sm text-white/50 max-w-sm">
@@ -167,8 +220,7 @@ export default function TournamentAudience() {
       {/* ── TOP BAR ── */}
       <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8 bg-[#080d1a]/80 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Swords className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span className="text-cyan-400 font-black tracking-widest text-xs uppercase shrink-0 hidden sm:block">TM_SYS</span>
+          <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
           <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
         </div>
@@ -191,18 +243,46 @@ export default function TournamentAudience() {
               R{tournament.currentRound}/{tournament.totalRounds}
             </span>
           )}
-          {/* Hidden back link for organizer — visible on hover */}
-          <Link
-            href={`/tournaments/${id}`}
-            className="opacity-0 hover:opacity-60 transition-opacity text-white/60 hover:text-white ml-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
+          <RoleHomeLink
+            fallbackHref="/fan"
+            fallbackLabel="Wróć do turniejów"
+            className="ml-2 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+          />
         </div>
       </header>
 
+      <nav
+        aria-label="Sekcje publicznego widoku turnieju"
+        className="flex-none border-b border-white/8 bg-[#0b1220] px-4 sm:px-6"
+      >
+        <div className="mx-auto flex w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
+          {AUDIENCE_SECTIONS.map((section) => {
+            const isActive = activeSection === section.id;
+            const href = section.id === "live"
+              ? `/tournaments/${id}/audience`
+              : `/tournaments/${id}/audience?section=${section.id}`;
+            return (
+              <Link
+                key={section.id}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={`shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] ${
+                  isActive
+                    ? "bg-cyan-500/15 text-cyan-300"
+                    : "text-white/55 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {section.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-6 pb-8 gap-6">
+
+        {activeSection === "live" && <>
 
         {/* ══ FEATURED / LIVE MATCH ══ */}
         {heroMatch ? (
@@ -443,12 +523,209 @@ export default function TournamentAudience() {
             {FORMAT_LABELS[tournament.format] ?? tournament.format}
           </p>
         )}
+        </>}
+
+        {activeSection === "matches" && <PublicMatchesSection matches={matches ?? []} />}
+        {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} />}
+        {activeSection === "players" && <PublicPlayersSection players={players ?? []} />}
+        {activeSection === "bracket" && (
+          <PublicBracketSection
+            bracket={bracket}
+            format={tournament?.format ?? ""}
+            currentRound={tournament?.currentRound}
+            totalRounds={tournament?.totalRounds}
+          />
+        )}
       </main>
     </div>
   );
 }
 
 // ── Sub-components ──
+
+function AudienceSectionShell({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="w-full max-w-5xl" aria-label={title}>
+      <div className="mb-5">
+        <h2 className="text-2xl font-bold text-white">{title}</h2>
+        <p className="mt-1 text-sm text-white/45">{description}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function EmptyAudienceSection({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-dashed border-white/15 bg-white/3 px-6 py-14 text-center text-sm text-white/40">
+      {children}
+    </div>
+  );
+}
+
+function PublicMatchesSection({ matches }: { matches: Match[] }) {
+  return (
+    <AudienceSectionShell title="Mecze" description="Pełny harmonogram i wyniki wszystkich rund.">
+      {matches.length === 0 ? (
+        <EmptyAudienceSection>Brak meczów do wyświetlenia.</EmptyAudienceSection>
+      ) : (
+        <div className="space-y-3">
+          {matches.map((match) => {
+            const showsScore = match.score1 != null || match.score2 != null;
+            return (
+              <article key={match.id} className="rounded-xl border border-white/8 bg-[#0d1629] px-4 py-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span className="font-mono text-white/35">Runda {match.round} · Mecz {match.matchNumber}</span>
+                  <div className="flex items-center gap-2">
+                    {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
+                      {MATCH_STATUS_LABELS[match.status] ?? match.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
+                  <span className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
+                    {match.player1Name || "TBD"}
+                  </span>
+                  <span className="min-w-14 rounded-md bg-black/20 px-3 py-1 text-center font-mono font-bold tabular-nums text-white">
+                    {showsScore ? `${match.score1 ?? 0}:${match.score2 ?? 0}` : "vs"}
+                  </span>
+                  <span className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
+                    {match.player2Name || "TBD"}
+                  </span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </AudienceSectionShell>
+  );
+}
+
+function PublicStandingsSection({ standings }: { standings: Standing[] }) {
+  return (
+    <AudienceSectionShell title="Tabela" description="Pełna klasyfikacja turnieju.">
+      {standings.length === 0 ? (
+        <EmptyAudienceSection>Tabela nie jest jeszcze dostępna.</EmptyAudienceSection>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0d1629]">
+          <table className="w-full min-w-[680px] text-sm" aria-label="Pełna klasyfikacja turnieju">
+            <thead className="border-b border-white/8 bg-white/3 text-left text-[11px] uppercase tracking-wider text-white/35">
+              <tr>
+                <th className="px-4 py-3 text-center">Miejsce</th>
+                <th className="px-4 py-3">Gracz</th>
+                <th className="px-4 py-3">Drużyna</th>
+                <th className="px-3 py-3 text-center">W</th>
+                <th className="px-3 py-3 text-center">R</th>
+                <th className="px-3 py-3 text-center">P</th>
+                <th className="px-4 py-3 text-right">Punkty</th>
+                <th className="px-4 py-3 text-right">Buchholz</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/6">
+              {standings.map((standing) => (
+                <tr key={standing.playerId} className="text-white/70">
+                  <td className="px-4 py-3 text-center font-mono font-bold text-cyan-300">{standing.rank}</td>
+                  <td className="px-4 py-3 font-semibold text-white">{standing.playerName}</td>
+                  <td className="px-4 py-3 text-white/45">{standing.teamName || "—"}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.wins}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.draws}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.losses}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-cyan-300">{standing.points}</td>
+                  <td className="px-4 py-3 text-right font-mono text-white/45">{standing.buchholz}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AudienceSectionShell>
+  );
+}
+
+function PublicPlayersSection({ players }: { players: Player[] }) {
+  return (
+    <AudienceSectionShell title="Gracze" description="Publiczna lista uczestników i ich aktualne statystyki.">
+      {players.length === 0 ? (
+        <EmptyAudienceSection>Nie dodano jeszcze uczestników.</EmptyAudienceSection>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {players.map((player) => {
+            const wins = player.wins ?? 0;
+            const draws = player.draws ?? 0;
+            const losses = player.losses ?? 0;
+            return (
+              <article key={player.id} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold text-white">{player.name}</h3>
+                    {player.teamName && <p className="mt-0.5 truncate text-xs text-white/40">{player.teamName}</p>}
+                  </div>
+                  {player.seed != null && <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/40">#{player.seed}</span>}
+                </div>
+                <dl className="mt-4 grid grid-cols-5 gap-2 border-t border-white/6 pt-3 text-center">
+                  <PlayerStat label="Mecze" value={wins + draws + losses} />
+                  <PlayerStat label="W" value={wins} />
+                  <PlayerStat label="P" value={losses} />
+                  <PlayerStat label="R" value={draws} />
+                  <PlayerStat label="Pkt" value={player.points ?? 0} emphasize />
+                </dl>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </AudienceSectionShell>
+  );
+}
+
+function PlayerStat({ label, value, emphasize = false }: { label: string; value: number; emphasize?: boolean }) {
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-wider text-white/30">{label}</dt>
+      <dd className={`mt-1 font-mono text-sm font-bold ${emphasize ? "text-cyan-300" : "text-white/70"}`}>{value}</dd>
+    </div>
+  );
+}
+
+function PublicBracketSection({
+  bracket,
+  format,
+  currentRound,
+  totalRounds,
+}: {
+  bracket?: Bracket;
+  format: string;
+  currentRound?: number | null;
+  totalRounds?: number | null;
+}) {
+  return (
+    <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
+      {!bracket ? (
+        <EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0d1629] p-4 text-foreground">
+          {format === "swiss" ? (
+            <SwissRoundsView bracket={bracket} currentRound={currentRound} totalRounds={totalRounds} />
+          ) : format === "round_robin" ? (
+            <RoundRobinView bracket={bracket} hideStandings />
+          ) : (
+            <BracketView bracket={bracket} format={format} />
+          )}
+        </div>
+      )}
+    </AudienceSectionShell>
+  );
+}
 
 function Panel({
   title,

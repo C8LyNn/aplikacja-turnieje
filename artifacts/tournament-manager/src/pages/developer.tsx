@@ -1,5 +1,5 @@
-import { Link } from "wouter";
-import { Code2, ArrowLeft, Construction } from "lucide-react";
+import { Code2, Construction } from "lucide-react";
+import { RoleSelectionLink } from "@/components/app-navigation";
 
 export default function DeveloperPage() {
   return (
@@ -18,13 +18,7 @@ export default function DeveloperPage() {
         <p className="text-sm text-muted-foreground mb-8">
           Funkcje dla developerów (diagnostyka, konfiguracja systemu, narzędzia administracyjne) zostaną dodane w przyszłej wersji.
         </p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Wróć do wyboru roli
-        </Link>
+        <RoleSelectionLink />
       </div>
     </div>
   );

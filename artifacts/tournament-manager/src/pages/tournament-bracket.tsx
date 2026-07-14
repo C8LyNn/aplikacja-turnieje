@@ -1,4 +1,4 @@
-import { useRoute, Link } from "wouter";
+import { useRoute } from "wouter";
 import {
   useGetTournament,
   useGetTournamentBracket,
@@ -8,9 +8,10 @@ import {
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
-import { Trophy, Maximize2, ArrowLeft, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
+import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { RoleHomeLink } from "@/components/app-navigation";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -82,18 +83,13 @@ export default function TournamentBracket() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Floating nav — visible on hover */}
-      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start opacity-0 hover:opacity-100 transition-opacity z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
-        <Button
-          variant="outline"
-          size="sm"
-          asChild
-          className="bg-background pointer-events-auto"
-        >
-          <Link href={`/tournaments/${id}`}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> Wróć
-          </Link>
-        </Button>
+      {/* Floating navigation stays visible for keyboard and direct-URL users. */}
+      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
+        <RoleHomeLink
+          fallbackHref="/fan"
+          fallbackLabel="Wróć do turniejów"
+          className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto"
+        />
 
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Zoom controls */}

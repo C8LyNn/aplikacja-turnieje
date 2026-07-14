@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { useCreateTournament } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Trophy, Lock, Eye, EyeOff, Globe } from "lucide-react";
+import { Trophy, Lock, Eye, EyeOff, Globe } from "lucide-react";
 
 const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
   single_elimination: {
@@ -79,9 +79,6 @@ export default function CreateTournament() {
     <Layout>
       <div className="max-w-xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/dashboard"><ArrowLeft className="w-5 h-5" /></Link>
-          </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Trophy className="text-primary w-6 h-6" /> Nowy turniej
