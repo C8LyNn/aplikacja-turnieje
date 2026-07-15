@@ -1,0 +1,100 @@
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
+import {
+  DeploymentTaskError,
+  SERIES_V1_PREFLIGHT_SCRIPT,
+  SERIES_V1_PREFLIGHT_TASK,
+  SERIES_V1_RESET_SCRIPT,
+  SERIES_V1_RESET_TASK,
+  runDeploymentStartup,
+} from "../src/deployment-task";
+
+describe("Replit production deployment task runner", () => {
+  test("starts the API normally when DEPLOYMENT_TASK is absent", async () => {
+    const events: string[] = [];
+
+    const result = await runDeploymentStartup({}, {
+      runDatabaseScript: async (script) => {
+        events.push(script);
+        return 0;
+      },
+      startApi: () => {
+        events.push("api");
+      },
+    });
+
+    assert.deepEqual(events, ["api"]);
+    assert.deepEqual(result, {
+      mode: "normal",
+      apiStarted: true,
+      exitCode: 0,
+    });
+  });
+
+  test("runs the read-only preflight and exits without starting the API", async () => {
+    const events: string[] = [];
+
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: SERIES_V1_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => {
+          events.push(script);
+          return 0;
+        },
+        startApi: () => {
+          events.push("api");
+        },
+      },
+    );
+
+    assert.deepEqual(events, [SERIES_V1_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "preflight",
+      apiStarted: false,
+      exitCode: 0,
+    });
+  });
+
+  test("runs the guarded reset before starting the API", async () => {
+    const events: string[] = [];
+
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: SERIES_V1_RESET_TASK },
+      {
+        runDatabaseScript: async (script) => {
+          events.push(script);
+          return 0;
+        },
+        startApi: () => {
+          events.push("api");
+        },
+      },
+    );
+
+    assert.deepEqual(events, [SERIES_V1_RESET_SCRIPT, "api"]);
+    assert.deepEqual(result, {
+      mode: "reset",
+      apiStarted: true,
+      exitCode: 0,
+    });
+  });
+
+  test("does not start the API when the guarded reset fails", async () => {
+    let apiStarted = false;
+
+    await assert.rejects(
+      runDeploymentStartup(
+        { DEPLOYMENT_TASK: SERIES_V1_RESET_TASK },
+        {
+          runDatabaseScript: async () => 23,
+          startApi: () => {
+            apiStarted = true;
+          },
+        },
+      ),
+      (error: unknown) =>
+        error instanceof DeploymentTaskError && error.exitCode === 23,
+    );
+    assert.equal(apiStarted, false);
+  });
+});

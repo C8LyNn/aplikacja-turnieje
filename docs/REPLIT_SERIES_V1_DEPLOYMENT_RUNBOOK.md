@@ -2,7 +2,7 @@
 
 ## Cel i granice
 
-Ten runbook opisuje jednorazowe, destrukcyjne przejście produkcyjnej bazy Tournament Manager ze starego modelu wyników do `series_v1`. Reset usuwa dane domeny turniejowej. Nie jest zwykłą migracją danych i nie wolno uruchamiać go automatycznie podczas `git pull`, Run, build, startu API ani Publish/Republish.
+Ten runbook opisuje jednorazowe, destrukcyjne przejście produkcyjnej bazy Tournament Manager ze starego modelu wyników do `series_v1`. Reset usuwa dane domeny turniejowej. Nie jest zwykłą migracją danych i nie wolno uruchamiać go automatycznie podczas `git pull`, Run, build ani zwykłego startu API. Jedynym wyjątkiem jest opisany niżej jawny runner Production aktywowany przez `DEPLOYMENT_TASK`.
 
 Skrypt `scripts/post-merge.sh` wykonuje wyłącznie instalację zależności. Każda zmiana bazy wymaga osobnej, jawnej komendy operatorskiej opisanej poniżej.
 
@@ -27,6 +27,18 @@ Nie należy uruchamiać resetu równolegle w Run i Deployment.
 - `SESSION_SECRET=<losowy-sekret-co-najmniej-32-znaki>`.
 
 Wartości nie mogą trafić do repozytorium, logów, eksportu diagnostycznego ani zgłoszenia. Produkcyjne API odmawia startu, gdy `SESSION_SECRET` nie istnieje, ma mniej niż 32 znaki albo jest równy deweloperskiemu fallbackowi.
+
+## Runner zadań Production
+
+Replit nie udostępnia Deployment Shell, dlatego entrypoint API obsługuje dwa jawne, tymczasowe tryby ustawiane w Production Secrets:
+
+- bez `DEPLOYMENT_TASK` aplikacja startuje normalnie i nie uruchamia żadnego zadania DB;
+- `DEPLOYMENT_TASK=series_v1_preflight` uruchamia `pnpm --filter @workspace/db reset:series-v1:preflight`, wypisuje bezpieczny raport i kończy proces bez uruchamiania API;
+- `DEPLOYMENT_TASK=series_v1_reset` uruchamia `pnpm --filter @workspace/db reset:series-v1:destructive`; dopiero kod zakończenia `0` pozwala uruchomić API, a każdy błąd blokuje jego start.
+
+Runner przekazuje skryptom wyłącznie odziedziczone środowisko procesu. Nie umieszcza `DATABASE_URL` ani innych sekretów w argumentach i nie zmienia guardów, markera, transakcji ani advisory locka istniejącego resetu. Nieznana wartość `DEPLOYMENT_TASK` blokuje start.
+
+Tryb wybiera się przez tymczasowe ustawienie odpowiedniej wartości `DEPLOYMENT_TASK` wraz z wymaganymi niżej zmiennymi Production, a następnie uruchomienie kontrolowanego Republish. Po odczytaniu raportu preflight usuń `DEPLOYMENT_TASK`. Po udanym resecie natychmiast usuń `DEPLOYMENT_TASK` i wszystkie jednorazowe zmienne resetu, a potem wykonaj zwykły Republish. Pozostawienie `series_v1_reset` spowoduje, że kolejny restart zostanie poprawnie zablokowany przez istniejący marker i API nie wystartuje.
 
 ## Jednorazowe zmienne resetu
 
