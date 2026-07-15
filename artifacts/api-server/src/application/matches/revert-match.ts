@@ -1,10 +1,12 @@
-import { and, desc, eq, gt, inArray } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, ne } from "drizzle-orm";
 import {
   actionLogTable,
   db,
   matchesTable,
   playersTable,
   resultHistoryTable,
+  stageParticipantsTable,
+  tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
@@ -138,6 +140,7 @@ function historyMatchesCurrentResult(
 ): boolean {
   return (
     history.tournamentId === match.tournamentId &&
+    history.stageId === match.stageId &&
     history.round === match.round &&
     history.matchNumber === match.matchNumber &&
     history.player1Id === match.player1Id &&
@@ -169,7 +172,10 @@ export async function revertMatch(
 ): Promise<RevertMatchResult> {
   return db.transaction(async (tx) => {
     const [matchReference] = await tx
-      .select({ tournamentId: matchesTable.tournamentId })
+      .select({
+        tournamentId: matchesTable.tournamentId,
+        stageId: matchesTable.stageId,
+      })
       .from(matchesTable)
       .where(eq(matchesTable.id, input.matchId));
     if (!matchReference) throw new RevertMatchError("MATCH_NOT_FOUND");
@@ -186,6 +192,31 @@ export async function revertMatch(
       .where(eq(tournamentsTable.id, matchReference.tournamentId))
       .for("update");
     if (!tournament) throw new RevertMatchError("TOURNAMENT_NOT_FOUND");
+
+    const [stage] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(
+        and(
+          eq(tournamentStagesTable.id, matchReference.stageId),
+          eq(tournamentStagesTable.tournamentId, matchReference.tournamentId),
+        ),
+      )
+      .for("update");
+    if (!stage) throw new RevertMatchError("MATCH_NOT_FOUND");
+    const startedLaterStages = await tx
+      .select({ id: tournamentStagesTable.id })
+      .from(tournamentStagesTable)
+      .where(
+        and(
+          eq(tournamentStagesTable.tournamentId, stage.tournamentId),
+          gt(tournamentStagesTable.position, stage.position),
+          ne(tournamentStagesTable.status, "planned"),
+        ),
+      )
+      .limit(1)
+      .for("update");
+    if (startedLaterStages.length > 0) throw new RevertMatchError("DOWNSTREAM_BLOCKED");
 
     const [match] = await tx
       .select()
@@ -211,21 +242,35 @@ export async function revertMatch(
     if (participants.some((player) => player.tournamentId !== match.tournamentId)) {
       throw new RevertMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
+    const stageParticipants = await tx
+      .select({ playerId: stageParticipantsTable.playerId })
+      .from(stageParticipantsTable)
+      .where(
+        and(
+          eq(stageParticipantsTable.stageId, match.stageId),
+          inArray(stageParticipantsTable.playerId, participantIds),
+        ),
+      )
+      .orderBy(stageParticipantsTable.playerId)
+      .for("update");
+    if (stageParticipants.length !== participantIds.length) {
+      throw new RevertMatchError("PARTICIPANT_NOT_FOUND");
+    }
     if (
-      tournament.format === "single_elimination" &&
+      stage.format === "single_elimination" &&
       result.loserId != null &&
       participants.find((player) => player.id === result.loserId)?.status !== "eliminated"
     ) {
       throw new RevertMatchError("RESULT_INCONSISTENT");
     }
 
-    if (tournament.format === "swiss") {
+    if (stage.format === "swiss") {
       const laterPairings = await tx
         .select({ id: matchesTable.id })
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, match.tournamentId),
+            eq(matchesTable.stageId, match.stageId),
             gt(matchesTable.round, match.round),
           ),
         )
@@ -233,7 +278,7 @@ export async function revertMatch(
         .for("update");
       if (
         laterPairings.length > 0 ||
-        (tournament.currentRound != null && tournament.currentRound > match.round)
+        (stage.currentRound != null && stage.currentRound > match.round)
       ) {
         throw new RevertMatchError("DOWNSTREAM_BLOCKED");
       }
@@ -241,19 +286,19 @@ export async function revertMatch(
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
     let downstreamSlot: "player1" | "player2" | null = null;
-    if (tournament.format === "single_elimination" && result.winnerId != null) {
+    if (stage.format === "single_elimination" && result.winnerId != null) {
       const nextRoundMatches = await tx
         .select({ id: matchesTable.id })
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, match.tournamentId),
+            eq(matchesTable.stageId, match.stageId),
             eq(matchesTable.round, match.round + 1),
           ),
         )
         .orderBy(matchesTable.matchNumber);
       const nextReference = nextRoundMatches[Math.floor((match.matchNumber - 1) / 2)];
-      if (!nextReference && match.round < (tournament.totalRounds ?? match.round)) {
+      if (!nextReference && match.round < (stage.totalRounds ?? match.round)) {
         throw new RevertMatchError("DOWNSTREAM_BLOCKED");
       }
       if (nextReference) {
@@ -285,19 +330,26 @@ export async function revertMatch(
     }
 
     const shouldReopenElimination =
-      tournament.format === "single_elimination" &&
+      stage.format === "single_elimination" &&
       downstreamMatch == null &&
+      stage.status === "completed" &&
       tournament.status === "completed";
     const shouldReopenRoundRobin =
-      tournament.format === "round_robin" && tournament.status === "completed";
+      stage.format === "round_robin" &&
+      stage.status === "completed" &&
+      tournament.status === "completed";
     let finalizedWinner: typeof playersTable.$inferSelect | null = null;
     if (shouldReopenElimination) {
-      if (result.winnerId == null || tournament.winnerId !== result.winnerId) {
+      if (
+        result.winnerId == null ||
+        stage.winnerId !== result.winnerId ||
+        tournament.winnerId !== result.winnerId
+      ) {
         throw new RevertMatchError("TOURNAMENT_FINALIZATION_INCONSISTENT");
       }
       finalizedWinner = participants.find((player) => player.id === tournament.winnerId) ?? null;
     } else if (shouldReopenRoundRobin) {
-      if (tournament.winnerId == null) {
+      if (stage.winnerId == null || tournament.winnerId !== stage.winnerId) {
         throw new RevertMatchError("TOURNAMENT_FINALIZATION_INCONSISTENT");
       }
       finalizedWinner = participants.find((player) => player.id === tournament.winnerId) ?? null;
@@ -309,7 +361,8 @@ export async function revertMatch(
           .for("update");
       }
     } else if (
-      (tournament.format === "single_elimination" || tournament.format === "round_robin") &&
+      (stage.format === "single_elimination" ||
+        stage.format === "round_robin") &&
       tournament.status !== "completed" &&
       tournament.winnerId != null
     ) {
@@ -394,7 +447,7 @@ export async function revertMatch(
 
     await testHooks.afterMatchReset?.();
 
-    if (tournament.format === "single_elimination" && result.loserId != null) {
+    if (stage.format === "single_elimination" && result.loserId != null) {
       const [reactivatedLoser] = await tx
         .update(playersTable)
         .set({ status: "active" })
@@ -406,9 +459,33 @@ export async function revertMatch(
         )
         .returning({ id: playersTable.id });
       if (!reactivatedLoser) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+      await tx
+        .update(stageParticipantsTable)
+        .set({ status: "active" })
+        .where(
+          and(
+            eq(stageParticipantsTable.stageId, match.stageId),
+            eq(stageParticipantsTable.playerId, result.loserId),
+          ),
+        );
     }
 
     if (shouldReopenElimination || shouldReopenRoundRobin) {
+      const [reopenedStage] = await tx
+        .update(tournamentStagesTable)
+        .set({
+          status: "active",
+          winnerId: null,
+          completedAt: null,
+          version: stage.version + 1,
+        })
+        .where(
+          and(
+            eq(tournamentStagesTable.id, stage.id),
+            eq(tournamentStagesTable.status, "completed"),
+          ),
+        )
+        .returning({ id: tournamentStagesTable.id });
       const [reopenedTournament] = await tx
         .update(tournamentsTable)
         .set({ status: "active", winnerId: null })
@@ -424,7 +501,16 @@ export async function revertMatch(
           ),
         )
         .returning({ id: playersTable.id });
-      if (!reopenedTournament || !reactivatedWinner) {
+      await tx
+        .update(stageParticipantsTable)
+        .set({ status: "active" })
+        .where(
+          and(
+            eq(stageParticipantsTable.stageId, match.stageId),
+            eq(stageParticipantsTable.playerId, finalizedWinner!.id),
+          ),
+        );
+      if (!reopenedStage || !reopenedTournament || !reactivatedWinner) {
         throw new RevertMatchError("CONCURRENT_MODIFICATION");
       }
     }
@@ -440,6 +526,7 @@ export async function revertMatch(
       .insert(actionLogTable)
       .values({
         tournamentId: match.tournamentId,
+        stageId: match.stageId,
         actionType: "match_result_reverted",
         description: `Cofnięto ${completionAction.description}`,
         matchId: match.id,

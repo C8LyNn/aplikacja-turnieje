@@ -5,6 +5,8 @@ import {
   matchesTable,
   playersTable,
   resultHistoryTable,
+  stageParticipantsTable,
+  tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
 import {
@@ -102,7 +104,7 @@ function normalizeResult(params: {
   bestOf: number;
   player1Id: number;
   player2Id: number;
-  format: "single_elimination" | "round_robin" | "swiss";
+  format: "single_elimination" | "round_robin" | "swiss" | "group_stage";
 }): NormalizedResult {
   if (params.input.resultType === "played") {
     const validation = validatePlayedSeriesResult({
@@ -164,7 +166,10 @@ export async function completeMatch(
 ): Promise<typeof matchesTable.$inferSelect> {
   return db.transaction(async (tx) => {
     const [matchReference] = await tx
-      .select({ tournamentId: matchesTable.tournamentId })
+      .select({
+        tournamentId: matchesTable.tournamentId,
+        stageId: matchesTable.stageId,
+      })
       .from(matchesTable)
       .where(eq(matchesTable.id, input.matchId));
     if (!matchReference) throw new CompleteMatchError("MATCH_NOT_FOUND");
@@ -175,6 +180,20 @@ export async function completeMatch(
       .where(eq(tournamentsTable.id, matchReference.tournamentId))
       .for("update");
     if (!tournament) throw new CompleteMatchError("TOURNAMENT_NOT_FOUND");
+
+    const [stage] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(
+        and(
+          eq(tournamentStagesTable.id, matchReference.stageId),
+          eq(tournamentStagesTable.tournamentId, matchReference.tournamentId),
+        ),
+      )
+      .for("update");
+    if (!stage || stage.status !== "active") {
+      throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
+    }
 
     const [match] = await tx
       .select()
@@ -201,24 +220,38 @@ export async function completeMatch(
     if (participants.some((player) => player.tournamentId !== match.tournamentId)) {
       throw new CompleteMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
+    const stageParticipants = await tx
+      .select({ playerId: stageParticipantsTable.playerId })
+      .from(stageParticipantsTable)
+      .where(
+        and(
+          eq(stageParticipantsTable.stageId, match.stageId),
+          inArray(stageParticipantsTable.playerId, [match.player1Id, match.player2Id]),
+        ),
+      )
+      .orderBy(stageParticipantsTable.playerId)
+      .for("update");
+    if (stageParticipants.length !== 2) {
+      throw new CompleteMatchError("PARTICIPANT_NOT_FOUND");
+    }
 
     const result = normalizeResult({
       input,
       bestOf: match.bestOf,
       player1Id: match.player1Id,
       player2Id: match.player2Id,
-      format: tournament.format,
+      format: stage.format,
     });
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
     let downstreamSlot: "player1" | "player2" | null = null;
-    if (tournament.format === "single_elimination" && result.winnerId != null) {
+    if (stage.format === "single_elimination" && result.winnerId != null) {
       const nextRoundMatches = await tx
         .select()
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, match.tournamentId),
+            eq(matchesTable.stageId, match.stageId),
             eq(matchesTable.round, match.round + 1),
           ),
         )
@@ -259,7 +292,7 @@ export async function completeMatch(
     await testHooks.afterMatchUpdated?.();
 
     if (
-      tournament.format === "single_elimination" &&
+      stage.format === "single_elimination" &&
       result.loserId != null
     ) {
       await tx
@@ -269,6 +302,15 @@ export async function completeMatch(
           and(
             eq(playersTable.id, result.loserId),
             eq(playersTable.tournamentId, match.tournamentId),
+          ),
+        );
+      await tx
+        .update(stageParticipantsTable)
+        .set({ status: "eliminated" })
+        .where(
+          and(
+            eq(stageParticipantsTable.stageId, match.stageId),
+            eq(stageParticipantsTable.playerId, result.loserId),
           ),
         );
     }
@@ -283,6 +325,7 @@ export async function completeMatch(
     await tx.insert(resultHistoryTable).values({
       matchId: match.id,
       tournamentId: match.tournamentId,
+      stageId: match.stageId,
       revision: (latestHistory?.revision ?? 0) + 1,
       round: match.round,
       matchNumber: match.matchNumber,
@@ -305,6 +348,7 @@ export async function completeMatch(
         : `R${match.round}M${match.matchNumber}: no contest`;
     await tx.insert(actionLogTable).values({
       tournamentId: match.tournamentId,
+      stageId: match.stageId,
       actionType: "match_result_submitted",
       description,
       matchId: match.id,
@@ -321,18 +365,27 @@ export async function completeMatch(
         .where(eq(matchesTable.id, downstreamMatch.id));
     }
 
-    if (tournament.format === "single_elimination") {
+    if (stage.format === "single_elimination") {
       if (!downstreamMatch && result.winnerId != null) {
         const remaining = await tx
           .select({ id: matchesTable.id })
           .from(matchesTable)
           .where(
             and(
-              eq(matchesTable.tournamentId, match.tournamentId),
+              eq(matchesTable.stageId, match.stageId),
               ne(matchesTable.status, "completed"),
             ),
           );
         if (remaining.length === 0) {
+          await tx
+            .update(tournamentStagesTable)
+            .set({
+              status: "completed",
+              winnerId: result.winnerId,
+              completedAt: now,
+              version: stage.version + 1,
+            })
+            .where(eq(tournamentStagesTable.id, stage.id));
           await tx
             .update(tournamentsTable)
             .set({ status: "completed", winnerId: result.winnerId })
@@ -341,6 +394,15 @@ export async function completeMatch(
             .update(playersTable)
             .set({ status: "winner" })
             .where(eq(playersTable.id, result.winnerId));
+          await tx
+            .update(stageParticipantsTable)
+            .set({ status: "winner" })
+            .where(
+              and(
+                eq(stageParticipantsTable.stageId, match.stageId),
+                eq(stageParticipantsTable.playerId, result.winnerId),
+              ),
+            );
         }
       }
 
@@ -349,7 +411,7 @@ export async function completeMatch(
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, match.tournamentId),
+            eq(matchesTable.stageId, match.stageId),
             eq(matchesTable.round, match.round),
           ),
         );
@@ -358,26 +420,43 @@ export async function completeMatch(
         downstreamMatch
       ) {
         await tx
+          .update(tournamentStagesTable)
+          .set({ currentRound: match.round + 1, version: stage.version + 1 })
+          .where(eq(tournamentStagesTable.id, stage.id));
+        await tx
           .update(tournamentsTable)
           .set({ currentRound: match.round + 1 })
           .where(eq(tournamentsTable.id, tournament.id));
       }
-    } else if (tournament.format === "round_robin") {
+    } else if (stage.format === "round_robin") {
       const allMatches = await tx
         .select()
         .from(matchesTable)
-        .where(eq(matchesTable.tournamentId, match.tournamentId));
+        .where(eq(matchesTable.stageId, match.stageId));
       if (allMatches.length > 0 && allMatches.every((candidate) => candidate.status === "completed")) {
+        const stagePlayerIds = await tx
+          .select({ playerId: stageParticipantsTable.playerId })
+          .from(stageParticipantsTable)
+          .where(eq(stageParticipantsTable.stageId, match.stageId));
         const tournamentPlayers = await tx
           .select()
           .from(playersTable)
-          .where(eq(playersTable.tournamentId, match.tournamentId));
+          .where(inArray(playersTable.id, stagePlayerIds.map(({ playerId }) => playerId)));
         const [winner] = calculateMatchRecordStandings(
           tournamentPlayers,
           allMatches,
           "round_robin",
         );
         if (winner) {
+          await tx
+            .update(tournamentStagesTable)
+            .set({
+              status: "completed",
+              winnerId: winner.playerId,
+              completedAt: now,
+              version: stage.version + 1,
+            })
+            .where(eq(tournamentStagesTable.id, stage.id));
           await tx
             .update(tournamentsTable)
             .set({ status: "completed", winnerId: winner.playerId })
@@ -386,6 +465,15 @@ export async function completeMatch(
             .update(playersTable)
             .set({ status: "winner" })
             .where(eq(playersTable.id, winner.playerId));
+          await tx
+            .update(stageParticipantsTable)
+            .set({ status: "winner" })
+            .where(
+              and(
+                eq(stageParticipantsTable.stageId, match.stageId),
+                eq(stageParticipantsTable.playerId, winner.playerId),
+              ),
+            );
         }
       }
     }

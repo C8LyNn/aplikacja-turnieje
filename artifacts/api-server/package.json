@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "pnpm run test:unit && pnpm run test:integration",
     "test:unit": "node --import tsx --test ./test/series-result.test.ts ./test/standings.test.ts ./test/round-robin.test.ts ./test/swiss.test.ts ./test/tournament-stage-plan.test.ts ./test/stage-ranking.test.ts ./test/group-playoff.test.ts ./test/deployment-safety.test.ts ./test/deployment-task.test.ts ./test/auth-config.test.ts ./test/health.test.ts ../tournament-manager/src/lib/backup-file.test.ts",
-    "test:integration": "node --import tsx --test --test-concurrency=1 ./test/access.integration.test.ts ./test/complete-match.integration.test.ts ./test/revert-match.integration.test.ts ./test/series-v1.integration.test.ts ./test/migration.integration.test.ts"
+    "test:integration": "node --import tsx --test --test-concurrency=1 ./test/access.integration.test.ts ./test/complete-match.integration.test.ts ./test/revert-match.integration.test.ts ./test/series-v1.integration.test.ts ./test/tournament-stages-schema.integration.test.ts ./test/migration.integration.test.ts"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",

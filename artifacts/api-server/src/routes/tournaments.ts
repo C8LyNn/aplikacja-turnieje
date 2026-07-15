@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
-import { db, tournamentsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
+import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
 import { hashPassword, verifyOrganizerToken } from "../auth";
 import { logAuditAction } from "./auth";
 import { requireOrganizer, requireTournamentRead, requireTournamentWrite } from "../access-policy";
@@ -566,107 +566,175 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     return;
   }
   if (!await checkHostAuth(req, res, tournament.id)) return;
-  if (tournament.status !== "draft") {
-    res.status(400).json({ error: "Tournament already started" });
-    return;
-  }
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [lockedTournament] = await tx
+        .select()
+        .from(tournamentsTable)
+        .where(eq(tournamentsTable.id, params.data.id))
+        .for("update");
+      if (!lockedTournament) throw new Error("TOURNAMENT_NOT_FOUND");
+      if (lockedTournament.status !== "draft") throw new Error("TOURNAMENT_ALREADY_STARTED");
 
-  const players = await db
-    .select()
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-  if (players.length < 2) {
-    res.status(400).json({ error: "Need at least 2 players to start" });
-    return;
-  }
-
-  await db.delete(matchesTable).where(eq(matchesTable.tournamentId, params.data.id));
-
-  const bestOf = tournament.defaultBestOf ?? 1;
-  let generatedMatches: (typeof matchesTable.$inferInsert)[];
-  let totalRounds: number;
-
-  if (tournament.format === "round_robin") {
-    const r = generateRoundRobin(players, params.data.id, bestOf);
-    generatedMatches = r.matches;
-    totalRounds = r.totalRounds;
-  } else if (tournament.format === "swiss") {
-    const swissRounds = tournament.swissRounds ?? Math.ceil(Math.log2(players.length));
-    generatedMatches = generateSwissRound(players, [], params.data.id, 1, bestOf);
-    totalRounds = swissRounds;
-  } else {
-    // single_elimination
-    const r = generateSingleElimination(players, params.data.id, bestOf);
-    generatedMatches = r.matches;
-    totalRounds = r.totalRounds;
-  }
-
-  const inserted = await db
-    .insert(matchesTable)
-    .values(generatedMatches)
-    .returning();
-
-  const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId);
-
-  // Single-elimination bye advances structurally but is not a match win.
-  if (tournament.format === "single_elimination") {
-    for (const byeMatch of byeMatches) {
-      const round2Matches = inserted.filter((m) => m.round === 2);
-      round2Matches.sort((a, b) => a.matchNumber - b.matchNumber);
-      const targetMatchIndex = Math.floor((byeMatch.matchNumber - 1) / 2);
-      const targetMatch = round2Matches[targetMatchIndex];
-      if (targetMatch) {
-        const isP1 = (byeMatch.matchNumber - 1) % 2 === 0;
-        await db
-          .update(matchesTable)
-          .set(isP1 ? { player1Id: byeMatch.winnerId } : { player2Id: byeMatch.winnerId })
-          .where(eq(matchesTable.id, targetMatch.id));
+      const stages = await tx
+        .select()
+        .from(tournamentStagesTable)
+        .where(eq(tournamentStagesTable.tournamentId, lockedTournament.id))
+        .orderBy(tournamentStagesTable.position)
+        .for("update");
+      if (stages.length !== 1 || stages[0].status !== "planned") {
+        throw new Error("SINGLE_STAGE_COMPATIBILITY_REQUIRED");
       }
-    }
-  }
+      const stage = stages[0];
+      if (stage.format === "group_stage") throw new Error("STAGE_FORMAT_NOT_SUPPORTED");
 
-  for (const byeMatch of byeMatches) {
-    await db.insert(resultHistoryTable).values({
-      matchId: byeMatch.id,
-      tournamentId: byeMatch.tournamentId,
-      revision: 1,
-      round: byeMatch.round,
-      matchNumber: byeMatch.matchNumber,
-      player1Id: byeMatch.player1Id,
-      player2Id: null,
-      score1: null,
-      score2: null,
-      winnerId: byeMatch.winnerId,
-      bestOf: byeMatch.bestOf,
-      resultType: "bye",
-      resultReason: "system_bye",
-      completedAt: byeMatch.completedAt!,
+      const players = await tx
+        .select()
+        .from(playersTable)
+        .where(eq(playersTable.tournamentId, lockedTournament.id))
+        .orderBy(playersTable.id)
+        .for("update");
+      if (players.length < 2) throw new Error("NOT_ENOUGH_PLAYERS");
+      const memberships = await tx
+        .select()
+        .from(stageParticipantsTable)
+        .where(eq(stageParticipantsTable.stageId, stage.id))
+        .orderBy(stageParticipantsTable.stageSeed)
+        .for("update");
+      const playersById = new Map(players.map((player) => [player.id, player]));
+      if (
+        memberships.length !== players.length ||
+        memberships.some((membership) => !playersById.has(membership.playerId))
+      ) {
+        throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
+      }
+      const stagePlayers = memberships.map((membership) => ({
+        ...playersById.get(membership.playerId)!,
+        seed: membership.stageSeed,
+      }));
+
+      await tx.delete(matchesTable).where(eq(matchesTable.stageId, stage.id));
+
+      const bestOf = stage.bestOf;
+      let generatedMatches: (typeof matchesTable.$inferInsert)[];
+      let totalRounds: number;
+      if (stage.format === "round_robin") {
+        const generated = generateRoundRobin(stagePlayers, lockedTournament.id, bestOf);
+        generatedMatches = generated.matches;
+        totalRounds = generated.totalRounds;
+      } else if (stage.format === "swiss") {
+        totalRounds = stage.plannedRounds ?? Math.ceil(Math.log2(stagePlayers.length));
+        generatedMatches = generateSwissRound(stagePlayers, [], lockedTournament.id, 1, bestOf);
+      } else {
+        const generated = generateSingleElimination(stagePlayers, lockedTournament.id, bestOf);
+        generatedMatches = generated.matches;
+        totalRounds = generated.totalRounds;
+      }
+
+      const inserted = await tx
+        .insert(matchesTable)
+        .values(generatedMatches.map((match) => ({ ...match, stageId: stage.id })))
+        .returning();
+      const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId);
+
+      // Single-elimination bye advances structurally but is not a match win.
+      if (stage.format === "single_elimination") {
+        for (const byeMatch of byeMatches) {
+          const round2Matches = inserted
+            .filter((match) => match.round === 2)
+            .sort((a, b) => a.matchNumber - b.matchNumber);
+          const targetMatch = round2Matches[Math.floor((byeMatch.matchNumber - 1) / 2)];
+          if (targetMatch) {
+            const isPlayer1 = (byeMatch.matchNumber - 1) % 2 === 0;
+            await tx
+              .update(matchesTable)
+              .set(isPlayer1 ? { player1Id: byeMatch.winnerId } : { player2Id: byeMatch.winnerId })
+              .where(eq(matchesTable.id, targetMatch.id));
+          }
+        }
+      }
+
+      for (const byeMatch of byeMatches) {
+        await tx.insert(resultHistoryTable).values({
+          matchId: byeMatch.id,
+          tournamentId: byeMatch.tournamentId,
+          stageId: stage.id,
+          revision: 1,
+          round: byeMatch.round,
+          matchNumber: byeMatch.matchNumber,
+          player1Id: byeMatch.player1Id,
+          player2Id: null,
+          score1: null,
+          score2: null,
+          winnerId: byeMatch.winnerId,
+          bestOf: byeMatch.bestOf,
+          resultType: "bye",
+          resultReason: "system_bye",
+          completedAt: byeMatch.completedAt!,
+        });
+        await tx.insert(actionLogTable).values({
+          tournamentId: byeMatch.tournamentId,
+          stageId: stage.id,
+          actionType: "system_bye_assigned",
+          description: `Systemowy bye R${byeMatch.round}M${byeMatch.matchNumber}`,
+          matchId: byeMatch.id,
+          undoPayload: null,
+          isUndone: false,
+        });
+      }
+
+      const now = new Date();
+      await tx
+        .update(tournamentStagesTable)
+        .set({
+          status: "active",
+          participantCount: players.length,
+          currentRound: 1,
+          totalRounds,
+          startedAt: now,
+          completedAt: null,
+          winnerId: null,
+          version: stage.version + 1,
+        })
+        .where(eq(tournamentStagesTable.id, stage.id));
+
+      const swissRounds = stage.format === "swiss" ? totalRounds : undefined;
+      const [savedTournament] = await tx
+        .update(tournamentsTable)
+        .set({
+          status: "active",
+          currentRound: 1,
+          totalRounds,
+          ...(stage.format === "swiss" ? { swissRounds } : {}),
+        })
+        .where(eq(tournamentsTable.id, lockedTournament.id))
+        .returning();
+      await tx.insert(actionLogTable).values({
+        tournamentId: lockedTournament.id,
+        stageId: stage.id,
+        actionType: "tournament_started",
+        description: `Turniej wystartował: ${players.length} graczy, ${totalRounds} rund (${stage.format})`,
+        matchId: null,
+        undoPayload: null,
+        isUndone: false,
+      });
+      return savedTournament;
     });
-    await db.insert(actionLogTable).values({
-      tournamentId: byeMatch.tournamentId,
-      actionType: "system_bye_assigned",
-      description: `Systemowy bye R${byeMatch.round}M${byeMatch.matchNumber}`,
-      matchId: byeMatch.id,
-      undoPayload: null,
-      isUndone: false,
+    res.json(mapTournament(updated));
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "UNKNOWN";
+    const messages: Record<string, string> = {
+      TOURNAMENT_NOT_FOUND: "Tournament not found",
+      TOURNAMENT_ALREADY_STARTED: "Tournament already started",
+      SINGLE_STAGE_COMPATIBILITY_REQUIRED: "Tournament stage plan is not supported by this operation",
+      STAGE_FORMAT_NOT_SUPPORTED: "Tournament stage format is not supported by this operation",
+      NOT_ENOUGH_PLAYERS: "Need at least 2 players to start",
+      STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
+    };
+    res.status(code === "TOURNAMENT_NOT_FOUND" ? 404 : 400).json({
+      error: messages[code] ?? "Could not start tournament",
     });
   }
-
-  const swissRounds = tournament.format === "swiss" ? (tournament.swissRounds ?? Math.ceil(Math.log2(players.length))) : undefined;
-  const [updated] = await db
-    .update(tournamentsTable)
-    .set({
-      status: "active",
-      currentRound: 1,
-      totalRounds,
-      ...(tournament.format === "swiss" ? { swissRounds } : {}),
-    })
-    .where(eq(tournamentsTable.id, params.data.id))
-    .returning();
-
-  await logAction({ tournamentId: params.data.id, actionType: "tournament_started", description: `Turniej wystartował: ${players.length} graczy, ${totalRounds} rund (${tournament.format})` });
-
-  res.json(mapTournament(updated));
 });
 
 router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> => {
@@ -687,17 +755,29 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .where(eq(tournamentsTable.id, params.data.id))
         .for("update");
       if (!tournament) throw new Error("TOURNAMENT_NOT_FOUND");
-      if (tournament.format !== "swiss") throw new Error("NOT_SWISS");
       if (tournament.status !== "active") throw new Error("TOURNAMENT_NOT_ACTIVE");
 
-      const currentRound = tournament.currentRound ?? 1;
-      const maxRounds = tournament.swissRounds ?? tournament.totalRounds ?? 1;
+      const [stage] = await tx
+        .select()
+        .from(tournamentStagesTable)
+        .where(
+          and(
+            eq(tournamentStagesTable.tournamentId, tournament.id),
+            eq(tournamentStagesTable.status, "active"),
+          ),
+        )
+        .for("update");
+      if (!stage) throw new Error("ACTIVE_STAGE_NOT_FOUND");
+      if (stage.format !== "swiss") throw new Error("NOT_SWISS");
+
+      const currentRound = stage.currentRound ?? 1;
+      const maxRounds = stage.plannedRounds ?? stage.totalRounds ?? 1;
       const currentMatches = await tx
         .select()
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, tournament.id),
+            eq(matchesTable.stageId, stage.id),
             eq(matchesTable.round, currentRound),
           ),
         )
@@ -714,7 +794,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .from(matchesTable)
         .where(
           and(
-            eq(matchesTable.tournamentId, tournament.id),
+            eq(matchesTable.stageId, stage.id),
             eq(matchesTable.round, nextRound),
           ),
         );
@@ -724,22 +804,40 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .select()
         .from(playersTable)
         .where(eq(playersTable.tournamentId, tournament.id));
+      const memberships = await tx
+        .select()
+        .from(stageParticipantsTable)
+        .where(eq(stageParticipantsTable.stageId, stage.id))
+        .orderBy(stageParticipantsTable.stageSeed)
+        .for("update");
+      const playersById = new Map(players.map((player) => [player.id, player]));
+      if (memberships.some((membership) => !playersById.has(membership.playerId))) {
+        throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
+      }
+      const stagePlayers = memberships.map((membership) => ({
+        ...playersById.get(membership.playerId)!,
+        seed: membership.stageSeed,
+      }));
       const allMatches = await tx
         .select()
         .from(matchesTable)
-        .where(eq(matchesTable.tournamentId, tournament.id));
+        .where(eq(matchesTable.stageId, stage.id));
       const generated = generateSwissRound(
-        players,
+        stagePlayers,
         allMatches,
         tournament.id,
         nextRound,
-        tournament.defaultBestOf,
+        stage.bestOf,
       );
-      const inserted = await tx.insert(matchesTable).values(generated).returning();
+      const inserted = await tx
+        .insert(matchesTable)
+        .values(generated.map((match) => ({ ...match, stageId: stage.id })))
+        .returning();
       for (const byeMatch of inserted.filter((match) => match.resultType === "bye")) {
         await tx.insert(resultHistoryTable).values({
           matchId: byeMatch.id,
           tournamentId: byeMatch.tournamentId,
+          stageId: stage.id,
           revision: 1,
           round: byeMatch.round,
           matchNumber: byeMatch.matchNumber,
@@ -755,6 +853,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         });
         await tx.insert(actionLogTable).values({
           tournamentId: tournament.id,
+          stageId: stage.id,
           actionType: "system_bye_assigned",
           description: `Systemowy bye R${byeMatch.round}M${byeMatch.matchNumber}`,
           matchId: byeMatch.id,
@@ -768,6 +867,10 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .set({ currentRound: nextRound })
         .where(eq(tournamentsTable.id, tournament.id))
         .returning();
+      await tx
+        .update(tournamentStagesTable)
+        .set({ currentRound: nextRound, version: stage.version + 1 })
+        .where(eq(tournamentStagesTable.id, stage.id));
       return saved;
     });
     res.json(mapTournament(updated));
@@ -778,6 +881,8 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
       TOURNAMENT_NOT_FOUND: "Tournament not found",
       NOT_SWISS: "Only Swiss format supports round generation",
       TOURNAMENT_NOT_ACTIVE: "Tournament not active",
+      ACTIVE_STAGE_NOT_FOUND: "Active tournament stage not found",
+      STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
       ROUND_NOT_COMPLETE: "All matches in the current round must have final results",
       ALL_ROUNDS_GENERATED: "All Swiss rounds already generated",
       ROUND_ALREADY_GENERATED: "The next Swiss round already exists",

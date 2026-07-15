@@ -10,6 +10,7 @@
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
+    "migrate:tournament-stages": "node ./scripts/migrate-tournament-stages-v1.mjs",
     "reset:series-v1:preflight": "node ./scripts/preflight-series-v1-reset.mjs",
     "reset:series-v1:destructive": "node ./scripts/destructive-series-v1-reset.mjs",
     "reset:series-v1:development:preflight": "node ./scripts/preflight-development-series-v1-reset.mjs",

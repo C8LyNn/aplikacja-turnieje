@@ -30,6 +30,45 @@ export const tournamentStatusEnum = pgEnum("tournament_status", [
 export const resultModelVersionEnum = pgEnum("result_model_version", ["series_v1"]);
 export const rankingPolicyEnum = pgEnum("ranking_policy", ["match_record_v1"]);
 
+export const tournamentStageFormatEnum = pgEnum("tournament_stage_format", [
+  "swiss",
+  "round_robin",
+  "group_stage",
+  "single_elimination",
+]);
+export const tournamentStageStatusEnum = pgEnum("tournament_stage_status", [
+  "planned",
+  "active",
+  "completed",
+]);
+export const stageRankingPolicyEnum = pgEnum("stage_ranking_policy", [
+  "swiss_v1",
+  "round_robin_v1",
+  "group_v1",
+  "elimination_bracket_v1",
+]);
+export const stageQualificationModeEnum = pgEnum("stage_qualification_mode", [
+  "none",
+  "top_n",
+  "top_n_per_group",
+]);
+export const stageSeedingPolicyEnum = pgEnum("stage_seeding_policy", [
+  "standings_order",
+  "snake_groups",
+  "cross_group",
+]);
+export const stageParticipantStatusEnum = pgEnum("stage_participant_status", [
+  "active",
+  "eliminated",
+  "qualified",
+  "winner",
+]);
+export const stageQualificationSourceEnum = pgEnum("stage_qualification_source", [
+  "registration",
+  "standings",
+  "group_position",
+]);
+
 export const playerStatusEnum = pgEnum("player_status", [
   "active",
   "eliminated",
@@ -63,6 +102,9 @@ export const tournamentsTable = pgTable(
     rankingPolicy: rankingPolicyEnum("ranking_policy")
       .notNull()
       .default("match_record_v1"),
+    // Compatibility projection for the legacy single-stage API. TournamentStage
+    // is authoritative after migration 0002; these columns are removed only after
+    // stage-aware OpenAPI, Backup v3 and all runtime reads have been migrated.
     format: tournamentFormatEnum("format").notNull(),
     status: tournamentStatusEnum("status").notNull().default("draft"),
     maxPlayers: integer("max_players"),
@@ -70,6 +112,9 @@ export const tournamentsTable = pgTable(
     defaultBestOf: integer("default_best_of").notNull().default(1),
     currentRound: integer("current_round"),
     totalRounds: integer("total_rounds"),
+    // Internal stage lifecycle pointer. It is intentionally not exposed by the legacy API.
+    // The SQL migration adds the composite FK to tournament_stages after both tables exist.
+    activeStageId: integer("active_stage_id"),
     winnerId: integer("winner_id"),
     featuredMatchId: integer("featured_match_id"),
     hostCode: text("host_code"),
@@ -117,6 +162,159 @@ export const playersTable = pgTable(
   ],
 );
 
+export const tournamentStagesTable = pgTable(
+  "tournament_stages",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    stageKey: text("stage_key").notNull(),
+    position: integer("position").notNull(),
+    name: text("name").notNull(),
+    format: tournamentStageFormatEnum("format").notNull(),
+    status: tournamentStageStatusEnum("status").notNull().default("planned"),
+    participantCount: integer("participant_count").notNull().default(0),
+    bestOf: integer("best_of").notNull().default(1),
+    plannedRounds: integer("planned_rounds"),
+    currentRound: integer("current_round"),
+    totalRounds: integer("total_rounds"),
+    rankingPolicy: stageRankingPolicyEnum("ranking_policy").notNull(),
+    qualificationMode: stageQualificationModeEnum("qualification_mode").notNull().default("none"),
+    advancingCount: integer("advancing_count"),
+    groupCount: integer("group_count"),
+    participantsPerGroup: integer("participants_per_group"),
+    qualifiersPerGroup: integer("qualifiers_per_group"),
+    seedingPolicy: stageSeedingPolicyEnum("seeding_policy").notNull().default("standings_order"),
+    winnerId: integer("winner_id"),
+    version: integer("version").notNull().default(1),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    uniqueIndex("tournament_stages_tournament_position_unique").on(table.tournamentId, table.position),
+    uniqueIndex("tournament_stages_tournament_key_unique").on(table.tournamentId, table.stageKey),
+    uniqueIndex("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
+    uniqueIndex("tournament_stages_one_active_per_tournament")
+      .on(table.tournamentId)
+      .where(sql`${table.status} = 'active'`),
+    foreignKey({
+      columns: [table.tournamentId, table.winnerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "tournament_stages_winner_same_tournament_fk",
+    }),
+    check("tournament_stages_position_range", sql`${table.position} BETWEEN 1 AND 3`),
+    check("tournament_stages_participant_count_nonnegative", sql`${table.participantCount} >= 0`),
+    check("tournament_stages_best_of_supported", sql`${table.bestOf} > 0 AND ${table.bestOf} % 2 = 1`),
+    check("tournament_stages_round_values_positive", sql`
+      (${table.plannedRounds} IS NULL OR ${table.plannedRounds} > 0)
+      AND (${table.currentRound} IS NULL OR ${table.currentRound} > 0)
+      AND (${table.totalRounds} IS NULL OR ${table.totalRounds} > 0)`),
+    check("tournament_stages_advancing_count_positive", sql`${table.advancingCount} IS NULL OR ${table.advancingCount} > 0`),
+    check("tournament_stages_qualification_configuration", sql`
+      (${table.qualificationMode} = 'none' AND ${table.advancingCount} IS NULL)
+      OR (${table.qualificationMode} = 'top_n' AND ${table.format} IN ('swiss', 'round_robin')
+        AND ${table.advancingCount} IS NOT NULL)
+      OR (${table.qualificationMode} = 'top_n_per_group' AND ${table.format} = 'group_stage'
+        AND ${table.advancingCount} IS NULL)`),
+    check("tournament_stages_version_positive", sql`${table.version} > 0`),
+    check("tournament_stages_lifecycle_timestamps", sql`
+      (${table.status} = 'planned' AND ${table.startedAt} IS NULL AND ${table.completedAt} IS NULL)
+      OR (${table.status} = 'active' AND ${table.completedAt} IS NULL)
+      OR (${table.status} = 'completed' AND ${table.completedAt} IS NOT NULL)`),
+    check("tournament_stages_format_configuration", sql`
+      (${table.format} = 'swiss' AND ${table.rankingPolicy} = 'swiss_v1' AND ${table.plannedRounds} IS NOT NULL
+        AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
+      OR (${table.format} = 'round_robin' AND ${table.rankingPolicy} = 'round_robin_v1' AND ${table.plannedRounds} IS NULL
+        AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
+      OR (${table.format} = 'single_elimination' AND ${table.rankingPolicy} = 'elimination_bracket_v1' AND ${table.plannedRounds} IS NULL
+        AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
+      OR (${table.format} = 'group_stage' AND ${table.rankingPolicy} = 'group_v1' AND ${table.plannedRounds} IS NULL
+        AND ${table.groupCount} IN (2, 4) AND ${table.participantsPerGroup} BETWEEN 3 AND 8
+        AND ${table.qualifiersPerGroup} IN (1, 2) AND ${table.qualifiersPerGroup} < ${table.participantsPerGroup}
+        AND ${table.participantCount} = ${table.groupCount} * ${table.participantsPerGroup})`),
+  ],
+);
+
+export const stageGroupsTable = pgTable(
+  "stage_groups",
+  {
+    id: serial("id").primaryKey(),
+    stageId: integer("stage_id")
+      .notNull()
+      .references(() => tournamentStagesTable.id, { onDelete: "cascade" }),
+    groupKey: text("group_key").notNull(),
+    position: integer("position").notNull(),
+    participantCount: integer("participant_count").notNull(),
+    qualifiersCount: integer("qualifiers_count").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("stage_groups_stage_key_unique").on(table.stageId, table.groupKey),
+    uniqueIndex("stage_groups_stage_position_unique").on(table.stageId, table.position),
+    uniqueIndex("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
+    check("stage_groups_key_supported", sql`${table.groupKey} IN ('A', 'B', 'C', 'D')`),
+    check("stage_groups_position_range", sql`${table.position} BETWEEN 1 AND 4`),
+    check("stage_groups_participant_count_range", sql`${table.participantCount} BETWEEN 3 AND 8`),
+    check("stage_groups_qualifiers_count_supported", sql`${table.qualifiersCount} IN (1, 2) AND ${table.qualifiersCount} < ${table.participantCount}`),
+  ],
+);
+
+export const stageParticipantsTable = pgTable(
+  "stage_participants",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    stageSeed: integer("stage_seed").notNull(),
+    groupId: integer("group_id"),
+    status: stageParticipantStatusEnum("status").notNull().default("active"),
+    qualificationSource: stageQualificationSourceEnum("qualification_source").notNull().default("registration"),
+    finalRank: integer("final_rank"),
+    groupRank: integer("group_rank"),
+    qualificationRank: integer("qualification_rank"),
+    nextStageSeed: integer("next_stage_seed"),
+    sourceStageParticipantId: integer("source_stage_participant_id"),
+    qualifiedAt: timestamp("qualified_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("stage_participants_stage_player_unique").on(table.stageId, table.playerId),
+    // Migration 0002 deploys this invariant as a DEFERRABLE unique constraint,
+    // allowing one transaction to normalize every seed atomically to 1..N.
+    uniqueIndex("stage_participants_stage_seed_unique").on(table.stageId, table.stageSeed),
+    uniqueIndex("stage_participants_tournament_id_id_unique").on(table.tournamentId, table.id),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "stage_participants_stage_same_tournament_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "stage_participants_player_same_tournament_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.stageId, table.groupId],
+      foreignColumns: [stageGroupsTable.stageId, stageGroupsTable.id],
+      name: "stage_participants_group_same_stage_fk",
+    }),
+    foreignKey({
+      columns: [table.tournamentId, table.sourceStageParticipantId],
+      foreignColumns: [table.tournamentId, table.id],
+      name: "stage_participants_source_same_tournament_fk",
+    }).onDelete("restrict"),
+    check("stage_participants_seed_positive", sql`${table.stageSeed} > 0`),
+    check("stage_participants_rank_values_positive", sql`
+      (${table.finalRank} IS NULL OR ${table.finalRank} > 0)
+      AND (${table.groupRank} IS NULL OR ${table.groupRank} > 0)
+      AND (${table.qualificationRank} IS NULL OR ${table.qualificationRank} > 0)
+      AND (${table.nextStageSeed} IS NULL OR ${table.nextStageSeed} > 0)`),
+  ],
+);
+
 export const matchesTable = pgTable(
   "matches",
   {
@@ -124,6 +322,9 @@ export const matchesTable = pgTable(
     tournamentId: integer("tournament_id")
       .notNull()
       .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    // Compatibility inserts omit stageId; the migration's BEFORE trigger resolves Etap 1 atomically.
+    stageId: integer("stage_id").notNull().$defaultFn(() => 0),
+    stageGroupId: integer("stage_group_id"),
     round: integer("round").notNull(),
     matchNumber: integer("match_number").notNull(),
     player1Id: integer("player1_id"),
@@ -142,12 +343,43 @@ export const matchesTable = pgTable(
     completedAt: timestamp("completed_at"),
   },
   (table) => [
-    uniqueIndex("matches_tournament_round_number_unique").on(
-      table.tournamentId,
+    uniqueIndex("matches_stage_round_number_unique").on(
+      table.stageId,
       table.round,
       table.matchNumber,
     ),
+    uniqueIndex("matches_stage_id_id_unique").on(table.stageId, table.id),
+    uniqueIndex("matches_tournament_stage_id_id_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.id,
+    ),
     index("matches_tournament_status_idx").on(table.tournamentId, table.status),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "matches_stage_same_tournament_fk",
+    }),
+    foreignKey({
+      columns: [table.stageId, table.stageGroupId],
+      foreignColumns: [stageGroupsTable.stageId, stageGroupsTable.id],
+      name: "matches_group_same_stage_fk",
+    }),
+    foreignKey({
+      columns: [table.stageId, table.player1Id],
+      foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
+      name: "matches_player1_same_stage_fk",
+    }),
+    foreignKey({
+      columns: [table.stageId, table.player2Id],
+      foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
+      name: "matches_player2_same_stage_fk",
+    }),
+    foreignKey({
+      columns: [table.stageId, table.winnerId],
+      foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
+      name: "matches_winner_same_stage_fk",
+    }),
     foreignKey({
       columns: [table.tournamentId, table.player1Id],
       foreignColumns: [playersTable.tournamentId, playersTable.id],
@@ -162,6 +394,11 @@ export const matchesTable = pgTable(
       columns: [table.tournamentId, table.winnerId],
       foreignColumns: [playersTable.tournamentId, playersTable.id],
       name: "matches_winner_same_tournament_fk",
+    }),
+    foreignKey({
+      columns: [table.stageId, table.nextMatchId],
+      foreignColumns: [table.stageId, table.id],
+      name: "matches_next_match_same_stage_fk",
     }),
     check("matches_round_positive", sql`${table.round} > 0`),
     check("matches_number_positive", sql`${table.matchNumber} > 0`),
@@ -226,6 +463,7 @@ export const resultHistoryTable = pgTable(
     tournamentId: integer("tournament_id")
       .notNull()
       .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    stageId: integer("stage_id").notNull().$defaultFn(() => 0),
     revision: integer("revision").notNull(),
     round: integer("round").notNull(),
     matchNumber: integer("match_number").notNull(),
@@ -243,6 +481,16 @@ export const resultHistoryTable = pgTable(
   (table) => [
     uniqueIndex("result_history_match_revision_unique").on(table.matchId, table.revision),
     index("result_history_tournament_recorded_idx").on(table.tournamentId, table.recordedAt),
+    foreignKey({
+      columns: [table.stageId, table.matchId],
+      foreignColumns: [matchesTable.stageId, matchesTable.id],
+      name: "result_history_match_same_stage_fk",
+    }),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.matchId],
+      foreignColumns: [matchesTable.tournamentId, matchesTable.stageId, matchesTable.id],
+      name: "result_history_match_same_tournament_stage_fk",
+    }).onDelete("cascade"),
     check("result_history_revision_positive", sql`${table.revision} > 0`),
     check("result_history_best_of_positive_odd", sql`${table.bestOf} > 0 AND ${table.bestOf} % 2 = 1`),
     check("result_history_score1_nonnegative", sql`${table.score1} IS NULL OR ${table.score1} >= 0`),
@@ -250,18 +498,28 @@ export const resultHistoryTable = pgTable(
   ],
 );
 
-export const actionLogTable = pgTable("action_log", {
-  id: serial("id").primaryKey(),
-  tournamentId: integer("tournament_id")
-    .notNull()
-    .references(() => tournamentsTable.id, { onDelete: "cascade" }),
-  actionType: text("action_type").notNull(),
-  description: text("description").notNull(),
-  matchId: integer("match_id").references(() => matchesTable.id, { onDelete: "set null" }),
-  undoPayload: text("undo_payload"),
-  isUndone: boolean("is_undone").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const actionLogTable = pgTable(
+  "action_log",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    actionType: text("action_type").notNull(),
+    description: text("description").notNull(),
+    matchId: integer("match_id").references(() => matchesTable.id, { onDelete: "set null" }),
+    stageId: integer("stage_id").references(() => tournamentStagesTable.id, { onDelete: "set null" }),
+    undoPayload: text("undo_payload"),
+    isUndone: boolean("is_undone").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      "action_log_match_requires_stage",
+      sql`${table.matchId} IS NULL OR ${table.stageId} IS NOT NULL`,
+    ),
+  ],
+);
 
 export const supportSessionsTable = pgTable("support_sessions", {
   id: serial("id").primaryKey(),
@@ -293,6 +551,18 @@ export type Tournament = typeof tournamentsTable.$inferSelect;
 export const insertPlayerSchema = createInsertSchema(playersTable).omit({ id: true, createdAt: true });
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof playersTable.$inferSelect;
+
+export const insertTournamentStageSchema = createInsertSchema(tournamentStagesTable).omit({ id: true, createdAt: true });
+export type InsertTournamentStage = z.infer<typeof insertTournamentStageSchema>;
+export type TournamentStage = typeof tournamentStagesTable.$inferSelect;
+
+export const insertStageParticipantSchema = createInsertSchema(stageParticipantsTable).omit({ id: true, createdAt: true });
+export type InsertStageParticipant = z.infer<typeof insertStageParticipantSchema>;
+export type StageParticipant = typeof stageParticipantsTable.$inferSelect;
+
+export const insertStageGroupSchema = createInsertSchema(stageGroupsTable).omit({ id: true, createdAt: true });
+export type InsertStageGroup = z.infer<typeof insertStageGroupSchema>;
+export type StageGroup = typeof stageGroupsTable.$inferSelect;
 
 export const insertMatchSchema = createInsertSchema(matchesTable).omit({ id: true });
 export type InsertMatch = z.infer<typeof insertMatchSchema>;

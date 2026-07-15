@@ -6,6 +6,10 @@ const SERIES_V1_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0001_series_v1_clean_cutover.sql",
   import.meta.url,
 );
+const TOURNAMENT_STAGES_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0002_tournament_stages_v1.sql",
+  import.meta.url,
+);
 
 function assertSafeTestSchema(schema: string): void {
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
@@ -84,9 +88,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(SERIES_V1_MIGRATION_URL, "utf8"),
       schema,
     );
+    const stagesMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(TOURNAMENT_STAGES_MIGRATION_URL, "utf8"),
+      schema,
+    );
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
+      await pool.query(stagesMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
