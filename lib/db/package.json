@@ -12,7 +12,9 @@
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "reset:series-v1:preflight": "node ./scripts/preflight-series-v1-reset.mjs",
     "reset:series-v1:destructive": "node ./scripts/destructive-series-v1-reset.mjs",
-    "test:reset-safety": "node --test --test-concurrency=1 ./test/reset-safety.integration.test.mjs"
+    "reset:series-v1:development:preflight": "node ./scripts/preflight-development-series-v1-reset.mjs",
+    "reset:series-v1:development": "node ./scripts/destructive-development-series-v1-reset.mjs",
+    "test:reset-safety": "node --test --test-concurrency=1 ./test/development-reset-config.test.mjs ./test/reset-safety.integration.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

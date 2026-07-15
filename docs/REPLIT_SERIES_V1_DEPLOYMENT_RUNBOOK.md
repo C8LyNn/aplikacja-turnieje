@@ -40,6 +40,32 @@ Runner przekazuje skryptom wyłącznie odziedziczone środowisko procesu. Nie um
 
 Tryb wybiera się przez tymczasowe ustawienie odpowiedniej wartości `DEPLOYMENT_TASK` wraz z wymaganymi niżej zmiennymi Production, a następnie uruchomienie kontrolowanego Republish. Po odczytaniu raportu preflight usuń `DEPLOYMENT_TASK`. Po udanym resecie natychmiast usuń `DEPLOYMENT_TASK` i wszystkie jednorazowe zmienne resetu, a potem wykonaj zwykły Republish. Pozostawienie `series_v1_reset` spowoduje, że kolejny restart zostanie poprawnie zablokowany przez istniejący marker i API nie wystartuje.
 
+## Jednorazowa synchronizacja Development DB
+
+Reset Production celowo nie przyjmuje środowiska `development`. Jeżeli przed zwykłym Republish trzeba zsynchronizować wyłącznie Development DB, użyj osobnego wrappera. Wrapper korzysta z tego samego preflightu, transakcji, `DROP ... RESTRICT`, markera i advisory locka, ale ignoruje produkcyjne `DATABASE_URL` oraz produkcyjne guardy.
+
+Read-only preflight wymaga jawnego Development URL i oczekiwań:
+
+```bash
+export DEVELOPMENT_DATABASE_URL="$DATABASE_URL"
+export EXPECTED_DEVELOPMENT_DATABASE_NAME='<EXPECTED_DEVELOPMENT_DATABASE_NAME>'
+export EXPECTED_DEVELOPMENT_DATABASE_SCHEMA='public'
+export EXPECTED_DEVELOPMENT_ENVIRONMENT='development'
+export DEVELOPMENT_ENVIRONMENT='development'
+pnpm --filter @workspace/db reset:series-v1:development:preflight
+```
+
+Po potwierdzeniu raportu destrukcyjny reset Development wymaga osobnych guardów:
+
+```bash
+export ALLOW_DESTRUCTIVE_DEVELOPMENT_TOURNAMENT_RESET='true'
+export CONFIRM_DEVELOPMENT_TOURNAMENT_DATA_DELETION='DELETE_ALL_DEVELOPMENT_TOURNAMENT_DATA'
+export DEVELOPMENT_APP_COMMIT='<DEPLOYED_GIT_COMMIT>'
+pnpm --filter @workspace/db reset:series-v1:development
+```
+
+Nie ustawiaj `DEVELOPMENT_DATABASE_URL` na Production DB. Nazwa bazy z połączenia i `current_database()` muszą odpowiadać `EXPECTED_DEVELOPMENT_DATABASE_NAME`. Po sukcesie nie uruchamiaj wrappera ponownie; marker blokuje drugą próbę.
+
 ## Jednorazowe zmienne resetu
 
 Ustawia się je wyłącznie w powłoce operatorskiej na czas preflightu i jednego resetu:
