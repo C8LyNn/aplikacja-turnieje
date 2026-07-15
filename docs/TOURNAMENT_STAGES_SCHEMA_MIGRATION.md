@@ -29,13 +29,24 @@ Właściwa migracja jest wykonywana przez wersjonowany runner:
 pnpm --filter @workspace/db migrate:tournament-stages
 ```
 
-Oba polecenia wymagają produkcyjnego `DATABASE_URL` oraz jawnych
+Te dwa polecenia są ścieżką Production i wymagają produkcyjnego `DATABASE_URL` oraz jawnych
 `EXPECTED_DATABASE_NAME`, `EXPECTED_DATABASE_SCHEMA=public`,
 `EXPECTED_DEPLOYMENT_ENVIRONMENT=production`, `DEPLOYMENT_ENVIRONMENT=production`
 i `APP_COMMIT=<DEPLOYED_RUNNER_GIT_COMMIT>`. `APP_COMMIT` jest pełnym
 40-znakowym SHA faktycznie wdrażanego artefaktu, a nie wersją migracji. Wersję
 migracji identyfikują plik `0002_tournament_stages_v1.sql` i marker
-`tournament_stages_v1`. Preflight działa w transakcji `READ ONLY` i klasyfikuje
+`tournament_stages_v1`.
+
+Development używa oddzielnych poleceń
+`migrate:tournament-stages:development:preflight` oraz
+`migrate:tournament-stages:development`, oddzielnego
+`DEVELOPMENT_DATABASE_URL`, tych samych nazw guardów z wartością
+`development` i pełnego `APP_COMMIT`. Loader Development ignoruje
+`DATABASE_URL`, blokuje środowisko Production oraz bazę `neondb`. Szczegółowa
+procedura operatorska znajduje się w
+`docs/REPLIT_SERIES_V1_DEPLOYMENT_RUNBOOK.md`.
+
+Preflight działa w transakcji `READ ONLY` i klasyfikuje
 migrację jako `needed`, `applied` albo `inconsistent`.
 Runner migracji ponawia tę kontrolę pod lockiem, obejmuje całą migrację
 transakcją, serializuje wykonanie advisory lockiem i zapisuje marker

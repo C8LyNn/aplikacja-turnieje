@@ -37,10 +37,12 @@ Replit nie udostępnia Deployment Shell, dlatego entrypoint API obsługuje jawne
 - `DEPLOYMENT_TASK=series_v1_reset` uruchamia `pnpm --filter @workspace/db reset:series-v1:destructive`; dopiero kod zakończenia `0` pozwala uruchomić API, a każdy błąd blokuje jego start.
 - `DEPLOYMENT_TASK=tournament_stages_v1_preflight` uruchamia wyłącznie odczytową kontrolę migracji `0002` i kończy proces bez uruchamiania API;
 - `DEPLOYMENT_TASK=tournament_stages_v1_migrate` uruchamia kontrolowaną migrację `0002`; po sukcesie uruchamia API, a każdy błąd blokuje jego start.
+- `DEPLOYMENT_TASK=tournament_stages_v1_development_preflight` uruchamia wyłącznie odczytową kontrolę migracji `0002` na jawnie wskazanej Development DB i kończy proces bez uruchamiania API;
+- `DEPLOYMENT_TASK=tournament_stages_v1_development_migrate` uruchamia kontrolowaną migrację `0002` na Development DB; po sukcesie uruchamia API, a każdy błąd blokuje jego start.
 
-Runner przekazuje skryptom wyłącznie odziedziczone środowisko procesu. Nie umieszcza `DATABASE_URL` ani innych sekretów w argumentach i nie zmienia guardów, markera, transakcji ani advisory locka istniejącego resetu. Nieznana wartość `DEPLOYMENT_TASK` blokuje start.
+Runner przekazuje skryptom wyłącznie odziedziczone środowisko procesu. Nie umieszcza `DATABASE_URL`, `DEVELOPMENT_DATABASE_URL` ani innych sekretów w argumentach i nie zmienia guardów, markera, transakcji ani advisory locka istniejącego resetu. Tryby Production używają wyłącznie `DATABASE_URL`, a tryby Development wyłącznie `DEVELOPMENT_DATABASE_URL`. Nieznana wartość `DEPLOYMENT_TASK` blokuje start.
 
-Tryb wybiera się przez tymczasowe ustawienie odpowiedniej wartości `DEPLOYMENT_TASK` wraz z wymaganymi niżej zmiennymi Production, a następnie uruchomienie kontrolowanego Republish. Po odczytaniu raportu preflight usuń `DEPLOYMENT_TASK`. Po udanym resecie natychmiast usuń `DEPLOYMENT_TASK` i wszystkie jednorazowe zmienne resetu, a potem wykonaj zwykły Republish. Pozostawienie `series_v1_reset` spowoduje, że kolejny restart zostanie poprawnie zablokowany przez istniejący marker i API nie wystartuje.
+Tryby Production wybiera się przez tymczasowe ustawienie odpowiedniej wartości `DEPLOYMENT_TASK` wraz z wymaganymi niżej zmiennymi Production, a następnie uruchomienie kontrolowanego Republish. Po odczytaniu raportu preflight usuń `DEPLOYMENT_TASK`. Po udanym resecie natychmiast usuń `DEPLOYMENT_TASK` i wszystkie jednorazowe zmienne resetu, a potem wykonaj zwykły Republish. Pozostawienie `series_v1_reset` spowoduje, że kolejny restart zostanie poprawnie zablokowany przez istniejący marker i API nie wystartuje. Tryby Development uruchamia się wyłącznie w Development workspace zgodnie z oddzielną procedurą poniżej, nigdy przez Production Republish.
 
 ## Migracja Tournament Stages v1 na Replit
 
@@ -67,6 +69,53 @@ Tylko `needed` i `applied` zwracają `safe: true`. Po odczytaniu raportu usuń `
 Jeżeli raport wskazuje `needed`, ustaw `DEPLOYMENT_TASK=tournament_stages_v1_migrate` i wykonaj jeden kontrolowany Republish. Runner ponawia preflight pod transakcyjnym advisory lockiem, uruchamia istniejący `migrate-tournament-stages-v1.mjs` w jednej transakcji i zapisuje marker. Błąd powoduje rollback i blokuje start API. Sukces zwraca `applied: true` i uruchamia API. Ponowne uruchomienie z tym samym, zgodnym markerem zwraca `applied: false`, nie wykonuje backfillu ponownie i również uruchamia API.
 
 Po sukcesie usuń `DEPLOYMENT_TASK` oraz pięć tymczasowych guardów, pozostawiając wyłącznie stałe Secrets aplikacji, i wykonaj zwykły Republish. Nie uruchamiaj `db push`, nie wykonuj pliku `0002` ręcznie i nie dodawaj sposobu wywołania migracji przez HTTP.
+
+## Migracja Tournament Stages v1 na Development
+
+Tryb Development jest oddzielony od Production i nie odczytuje `DATABASE_URL`. W zweryfikowanej powłoce Development ustaw tymczasowy alias połączenia oraz dokładnie te same jawne nazwy guardów, ale z wartością `development`:
+
+```bash
+export DEVELOPMENT_DATABASE_URL="$DATABASE_URL"
+export EXPECTED_DATABASE_NAME='<EXPECTED_DEVELOPMENT_DATABASE_NAME>'
+export EXPECTED_DATABASE_SCHEMA='public'
+export EXPECTED_DEPLOYMENT_ENVIRONMENT='development'
+export DEPLOYMENT_ENVIRONMENT='development'
+export APP_COMMIT='<FULL_40_CHARACTER_DEPLOYED_GIT_COMMIT>'
+```
+
+Nie zapisuj tych wartości w Replit Secrets. Przed uruchomieniem potwierdź niezależnie, że `DEVELOPMENT_DATABASE_URL` pochodzi z Development workspace, a oczekiwana nazwa to `heliumdb`. Loader porównuje nazwę z URL-em przed otwarciem połączenia i bezwarunkowo odrzuca `neondb`. Obecność produkcyjnego `DATABASE_URL` w procesie nie wpływa na ten tryb.
+
+Najpierw uruchom tylko preflight:
+
+```bash
+export DEPLOYMENT_TASK='tournament_stages_v1_development_preflight'
+pnpm --filter @workspace/api-server start
+```
+
+Runner wywołuje `pnpm --filter @workspace/db migrate:tournament-stages:development:preflight`. Skrypt otwiera transakcję `READ ONLY`, zwraca `needed`, `applied` albo `inconsistent`, wykonuje rollback i nie uruchamia API. Tylko `safe: true` oraz status `needed` pozwalają przejść dalej.
+
+Jeżeli preflight zwróci `needed`, uruchom migrację dokładnie raz:
+
+```bash
+export DEPLOYMENT_TASK='tournament_stages_v1_development_migrate'
+pnpm --filter @workspace/api-server start
+```
+
+Runner wywołuje `pnpm --filter @workspace/db migrate:tournament-stages:development`. Migracja ponawia preflight pod transakcyjnym advisory lockiem, wykonuje `0002` w tej samej transakcji i zapisuje marker ze środowiskiem `development`. Błąd powoduje rollback i blokuje start API. Ponowny przebieg z tym samym `APP_COMMIT` zwraca `applied: false`, nie duplikuje etapów ani backfillu i może uruchomić API.
+
+Po kontroli usuń wszystkie zmienne sesyjne:
+
+```bash
+unset DEPLOYMENT_TASK
+unset DEVELOPMENT_DATABASE_URL
+unset EXPECTED_DATABASE_NAME
+unset EXPECTED_DATABASE_SCHEMA
+unset EXPECTED_DEPLOYMENT_ENVIRONMENT
+unset DEPLOYMENT_ENVIRONMENT
+unset APP_COMMIT
+```
+
+Tryb Development nie jest dozwolony dla `production` ani `neondb`. Tryby Production nadal wymagają `production`, korzystają z `DATABASE_URL` i nie przyjmują guardów Development.
 
 ## Jednorazowa synchronizacja Development DB
 

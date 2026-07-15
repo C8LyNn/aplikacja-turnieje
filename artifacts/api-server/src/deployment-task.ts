@@ -5,19 +5,29 @@ export const SERIES_V1_RESET_TASK = "series_v1_reset";
 export const TOURNAMENT_STAGES_V1_PREFLIGHT_TASK =
   "tournament_stages_v1_preflight";
 export const TOURNAMENT_STAGES_V1_MIGRATE_TASK = "tournament_stages_v1_migrate";
+export const TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_TASK =
+  "tournament_stages_v1_development_preflight";
+export const TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_TASK =
+  "tournament_stages_v1_development_migrate";
 
 export const SERIES_V1_PREFLIGHT_SCRIPT = "reset:series-v1:preflight";
 export const SERIES_V1_RESET_SCRIPT = "reset:series-v1:destructive";
 export const TOURNAMENT_STAGES_V1_PREFLIGHT_SCRIPT =
   "migrate:tournament-stages:preflight";
 export const TOURNAMENT_STAGES_V1_MIGRATE_SCRIPT = "migrate:tournament-stages";
+export const TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_SCRIPT =
+  "migrate:tournament-stages:development:preflight";
+export const TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT =
+  "migrate:tournament-stages:development";
 
 type DeploymentEnvironment = Readonly<Record<string, string | undefined>>;
 type DatabaseScript =
   | typeof SERIES_V1_PREFLIGHT_SCRIPT
   | typeof SERIES_V1_RESET_SCRIPT
   | typeof TOURNAMENT_STAGES_V1_PREFLIGHT_SCRIPT
-  | typeof TOURNAMENT_STAGES_V1_MIGRATE_SCRIPT;
+  | typeof TOURNAMENT_STAGES_V1_MIGRATE_SCRIPT
+  | typeof TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_SCRIPT
+  | typeof TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT;
 
 export interface DeploymentTaskDependencies {
   runDatabaseScript: (script: DatabaseScript) => Promise<number>;
@@ -30,7 +40,9 @@ export interface DeploymentTaskResult {
     | "preflight"
     | "reset"
     | "tournament_stages_preflight"
-    | "tournament_stages_migrate";
+    | "tournament_stages_migrate"
+    | "tournament_stages_development_preflight"
+    | "tournament_stages_development_migrate";
   apiStarted: boolean;
   exitCode: number;
 }
@@ -133,6 +145,36 @@ export async function runDeploymentStartup(
     await dependencies.startApi();
     return {
       mode: "tournament_stages_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    };
+  }
+
+  if (task === TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_SCRIPT,
+    );
+    return {
+      mode: "tournament_stages_development_preflight",
+      apiStarted: false,
+      exitCode,
+    };
+  }
+
+  if (task === TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT,
+    );
+    if (exitCode !== 0) {
+      throw new DeploymentTaskError(
+        `The ${TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT} deployment task failed with exit code ${exitCode}.`,
+        exitCode,
+      );
+    }
+
+    await dependencies.startApi();
+    return {
+      mode: "tournament_stages_development_migrate",
       apiStarted: true,
       exitCode: 0,
     };
