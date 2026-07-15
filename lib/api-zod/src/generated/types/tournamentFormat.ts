@@ -11,7 +11,6 @@ export type TournamentFormat = typeof TournamentFormat[keyof typeof TournamentFo
 
 export const TournamentFormat = {
   single_elimination: 'single_elimination',
-  double_elimination: 'double_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
 } as const;

@@ -19,16 +19,20 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List all tournaments
  */
+
+
+
 export const ListTournamentsResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -49,14 +53,14 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
 
 
 
+
 export const CreateTournamentBody = zod.object({
   "name": zod.string().min(1),
   "description": zod.string().optional(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
-  "allowDraws": zod.boolean().optional(),
-  "defaultBestOf": zod.number().optional(),
+  "defaultBestOf": zod.number().min(1).optional(),
   "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
   "supportPassword": zod.string().optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().optional().describe('Optional password for viewer access (required when visibility=private_online)'),
@@ -68,16 +72,20 @@ export const GetTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const GetTournamentResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -95,31 +103,37 @@ export const UpdateTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const UpdateTournamentBody = zod.object({
   "name": zod.string().optional(),
   "description": zod.string().optional(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']).optional(),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']).optional(),
   "status": zod.enum(['draft', 'active', 'completed']).optional(),
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
-  "allowDraws": zod.boolean().optional(),
-  "defaultBestOf": zod.number().optional(),
+  "defaultBestOf": zod.number().min(1).optional(),
   "featuredMatchId": zod.number().optional(),
   "hostCode": zod.string().optional().describe('Host access code (plain text, stored hashed)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional(),
   "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)')
 })
 
+
+
+
 export const UpdateTournamentResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -142,16 +156,20 @@ export const StartTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const StartTournamentResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -191,16 +209,20 @@ export const GenerateNextRoundParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const GenerateNextRoundResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -218,17 +240,22 @@ export const GetTournamentBracketParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
+
 export const GetTournamentBracketResponse = zod.object({
   "tournament": zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'double_elimination', 'round_robin', 'swiss']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "allowDraws": zod.boolean().nullish(),
-  "defaultBestOf": zod.number().nullish(),
+  "resultModelVersion": zod.enum(['series_v1']),
+  "rankingPolicy": zod.enum(['match_record_v1']),
+  "defaultBestOf": zod.number().min(1),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
@@ -254,13 +281,15 @@ export const GetTournamentBracketResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 }))
 })),
   "winner": zod.object({
@@ -285,9 +314,9 @@ export const GetTournamentStatsResponse = zod.object({
   "topPlayers": zod.array(zod.object({
   "id": zod.number().optional(),
   "name": zod.string().optional(),
-  "wins": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional()
+  "matchWins": zod.number().optional(),
+  "matchLosses": zod.number().optional(),
+  "gameDiff": zod.number().optional()
 })).optional()
 })
 
@@ -303,18 +332,18 @@ export const GetTournamentStandingsResponseItem = zod.object({
   "rank": zod.number(),
   "playerId": zod.number(),
   "playerName": zod.string(),
-  "rank_name": zod.string().nullish(),
-  "teamName": zod.string().nullish(),
-  "country": zod.string().nullish(),
+  "rankName": zod.string().nullable(),
+  "teamName": zod.string().nullable(),
+  "country": zod.string().nullable(),
   "seed": zod.number().nullable(),
-  "points": zod.number(),
-  "wins": zod.number(),
-  "draws": zod.number(),
-  "losses": zod.number(),
-  "buchholz": zod.number(),
-  "pointDiff": zod.number(),
-  "gamesFor": zod.number().optional(),
-  "gamesAgainst": zod.number().optional()
+  "status": zod.enum(['active', 'eliminated', 'winner']),
+  "matchesPlayed": zod.number(),
+  "matchWins": zod.number(),
+  "matchLosses": zod.number(),
+  "gameWins": zod.number(),
+  "gameLosses": zod.number(),
+  "gameDiff": zod.number(),
+  "buchholz": zod.number().nullable()
 })
 export const GetTournamentStandingsResponse = zod.array(GetTournamentStandingsResponseItem)
 
@@ -377,11 +406,14 @@ export const GetResultsHistoryResponseItem = zod.object({
   "player2Name": zod.string().nullable(),
   "score1": zod.number().nullable(),
   "score2": zod.number().nullable(),
-  "winnerId": zod.number().nullish(),
-  "winnerName": zod.string().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "status": zod.string(),
-  "completedAt": zod.string()
+  "winnerId": zod.number().nullable(),
+  "winnerName": zod.string().nullable(),
+  "bestOf": zod.number(),
+  "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
+  "resultReason": zod.string().nullable(),
+  "revision": zod.number(),
+  "completedAt": zod.string(),
+  "recordedAt": zod.string()
 })
 export const GetResultsHistoryResponse = zod.array(GetResultsHistoryResponseItem)
 
@@ -393,19 +425,28 @@ export const ExportTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
+
 export const ExportTournamentResponse = zod.object({
-  "version": zod.string(),
+  "schemaVersion": zod.number(),
+  "resultModelVersion": zod.literal("series_v1"),
+  "rankingPolicy": zod.literal("match_record_v1"),
   "exportedAt": zod.string(),
   "tournament": zod.object({
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.string(),
-  "status": zod.string(),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
+  "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "featuredMatchId": zod.number().nullish()
+  "defaultBestOf": zod.number().min(1),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "winnerBackupId": zod.number().nullish(),
+  "featuredMatchBackupId": zod.number().nullish()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -414,11 +455,7 @@ export const ExportTournamentResponse = zod.object({
   "country": zod.string().nullish(),
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
-  "wins": zod.number().optional(),
-  "draws": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional(),
-  "status": zod.string().optional()
+  "status": zod.enum(['active', 'eliminated', 'winner'])
 })),
   "matches": zod.array(zod.object({
   "backupId": zod.number(),
@@ -429,30 +466,40 @@ export const ExportTournamentResponse = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
-  "isDraw": zod.boolean().optional(),
-  "bestOf": zod.number().optional(),
-  "status": zod.string().optional(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
+  "resultReason": zod.string().nullable(),
+  "bestOf": zod.number().min(1),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "note": zod.string().nullish(),
+  "nextMatchBackupId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
   "scheduledAt": zod.string().nullish(),
   "completedAt": zod.string().nullish()
 })),
   "resultHistory": zod.array(zod.object({
-  "round": zod.number().optional(),
-  "matchNumber": zod.number().optional(),
+  "matchBackupId": zod.number(),
+  "revision": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
   "player1BackupId": zod.number().nullish(),
   "player2BackupId": zod.number().nullish(),
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
-  "isDraw": zod.boolean().optional(),
-  "status": zod.string().optional()
+  "bestOf": zod.number(),
+  "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
+  "resultReason": zod.string().nullable(),
+  "completedAt": zod.string(),
+  "recordedAt": zod.string()
 })),
   "actionLog": zod.array(zod.object({
-  "actionType": zod.string().optional(),
-  "description": zod.string().optional(),
-  "matchBackupId": zod.number().nullish(),
-  "isUndone": zod.boolean().optional(),
-  "createdAt": zod.string().optional()
+  "actionType": zod.string(),
+  "description": zod.string(),
+  "matchBackupId": zod.number().nullable(),
+  "canUndo": zod.boolean(),
+  "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
+  "isUndone": zod.boolean(),
+  "createdAt": zod.string()
 }))
 })
 
@@ -460,19 +507,28 @@ export const ExportTournamentResponse = zod.object({
 /**
  * @summary Import tournament from backup (creates new copy)
  */
+
+
+
+
 export const ImportTournamentBody = zod.object({
-  "version": zod.string(),
+  "schemaVersion": zod.number(),
+  "resultModelVersion": zod.literal("series_v1"),
+  "rankingPolicy": zod.literal("match_record_v1"),
   "exportedAt": zod.string(),
   "tournament": zod.object({
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.string(),
-  "status": zod.string(),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
+  "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "swissRounds": zod.number().nullish(),
-  "featuredMatchId": zod.number().nullish()
+  "defaultBestOf": zod.number().min(1),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "winnerBackupId": zod.number().nullish(),
+  "featuredMatchBackupId": zod.number().nullish()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -481,11 +537,7 @@ export const ImportTournamentBody = zod.object({
   "country": zod.string().nullish(),
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
-  "wins": zod.number().optional(),
-  "draws": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional(),
-  "status": zod.string().optional()
+  "status": zod.enum(['active', 'eliminated', 'winner'])
 })),
   "matches": zod.array(zod.object({
   "backupId": zod.number(),
@@ -496,30 +548,40 @@ export const ImportTournamentBody = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
-  "isDraw": zod.boolean().optional(),
-  "bestOf": zod.number().optional(),
-  "status": zod.string().optional(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
+  "resultReason": zod.string().nullable(),
+  "bestOf": zod.number().min(1),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "note": zod.string().nullish(),
+  "nextMatchBackupId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
   "scheduledAt": zod.string().nullish(),
   "completedAt": zod.string().nullish()
 })),
   "resultHistory": zod.array(zod.object({
-  "round": zod.number().optional(),
-  "matchNumber": zod.number().optional(),
+  "matchBackupId": zod.number(),
+  "revision": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
   "player1BackupId": zod.number().nullish(),
   "player2BackupId": zod.number().nullish(),
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
-  "isDraw": zod.boolean().optional(),
-  "status": zod.string().optional()
+  "bestOf": zod.number(),
+  "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
+  "resultReason": zod.string().nullable(),
+  "completedAt": zod.string(),
+  "recordedAt": zod.string()
 })),
   "actionLog": zod.array(zod.object({
-  "actionType": zod.string().optional(),
-  "description": zod.string().optional(),
-  "matchBackupId": zod.number().nullish(),
-  "isUndone": zod.boolean().optional(),
-  "createdAt": zod.string().optional()
+  "actionType": zod.string(),
+  "description": zod.string(),
+  "matchBackupId": zod.number().nullable(),
+  "canUndo": zod.boolean(),
+  "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
+  "isUndone": zod.boolean(),
+  "createdAt": zod.string()
 }))
 })
 
@@ -551,10 +613,6 @@ export const ListPlayersResponseItem = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
-  "wins": zod.number().optional(),
-  "draws": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional(),
   "createdAt": zod.string()
 })
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
@@ -604,10 +662,6 @@ export const ImportPlayersResponse = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
-  "wins": zod.number().optional(),
-  "draws": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional(),
   "createdAt": zod.string()
 })),
   "errors": zod.array(zod.object({
@@ -640,10 +694,6 @@ export const UpdatePlayerResponse = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
-  "wins": zod.number().optional(),
-  "draws": zod.number().optional(),
-  "losses": zod.number().optional(),
-  "points": zod.number().optional(),
   "createdAt": zod.string()
 })
 
@@ -657,6 +707,9 @@ export const ListMatchesParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const ListMatchesResponseItem = zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -669,13 +722,15 @@ export const ListMatchesResponseItem = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 export const ListMatchesResponse = zod.array(ListMatchesResponseItem)
 
@@ -683,6 +738,9 @@ export const ListMatchesResponse = zod.array(ListMatchesResponseItem)
 export const GetMatchParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
+
 
 export const GetMatchResponse = zod.object({
   "id": zod.number(),
@@ -696,13 +754,15 @@ export const GetMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -710,11 +770,17 @@ export const UpdateMatchParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const UpdateMatchBody = zod.object({
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'postponed', 'cancelled']).optional(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'cancelled']).optional(),
   "note": zod.string().optional(),
-  "bestOf": zod.number().optional()
+  "bestOf": zod.number().min(1).optional()
 })
+
+
+
 
 export const UpdateMatchResponse = zod.object({
   "id": zod.number(),
@@ -728,13 +794,15 @@ export const UpdateMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -742,13 +810,21 @@ export const CompleteMatchParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const CompleteMatchBody = zod.object({
-  "winnerId": zod.number().nullish(),
+export const CompleteMatchBody = zod.union([zod.object({
+  "resultType": zod.literal("played"),
   "score1": zod.number(),
-  "score2": zod.number(),
-  "isDraw": zod.boolean().optional(),
-  "note": zod.string().optional()
-})
+  "score2": zod.number()
+}),zod.object({
+  "resultType": zod.literal("walkover"),
+  "winnerId": zod.number(),
+  "reason": zod.string().nullish()
+}),zod.object({
+  "resultType": zod.literal("no_contest"),
+  "reason": zod.string().nullish()
+})])
+
+
+
 
 export const CompleteMatchResponse = zod.object({
   "id": zod.number(),
@@ -762,13 +838,15 @@ export const CompleteMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -783,6 +861,9 @@ export const CancelMatchBody = zod.object({
   "note": zod.string().optional()
 })
 
+
+
+
 export const CancelMatchResponse = zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -795,13 +876,15 @@ export const CancelMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -811,6 +894,9 @@ export const CancelMatchResponse = zod.object({
 export const RestoreCancelledMatchParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
+
 
 export const RestoreCancelledMatchResponse = zod.object({
   "id": zod.number(),
@@ -824,13 +910,15 @@ export const RestoreCancelledMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -840,6 +928,9 @@ export const RestoreCancelledMatchResponse = zod.object({
 export const SwapMatchPlayersParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
+
 
 export const SwapMatchPlayersResponse = zod.object({
   "id": zod.number(),
@@ -853,13 +944,15 @@ export const SwapMatchPlayersResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -874,6 +967,9 @@ export const ReorderMatchesBody = zod.object({
   "matchIds": zod.array(zod.number())
 })
 
+
+
+
 export const ReorderMatchesResponseItem = zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -886,13 +982,15 @@ export const ReorderMatchesResponseItem = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 export const ReorderMatchesResponse = zod.array(ReorderMatchesResponseItem)
 
@@ -903,6 +1001,9 @@ export const ReorderMatchesResponse = zod.array(ReorderMatchesResponseItem)
 export const RevertMatchParams = zod.object({
   "id": zod.coerce.number()
 })
+
+
+
 
 export const RevertMatchResponse = zod.object({
   "id": zod.number(),
@@ -916,13 +1017,15 @@ export const RevertMatchResponse = zod.object({
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
-  "isDraw": zod.boolean().nullish(),
-  "bestOf": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
   "note": zod.string().nullish(),
-  "status": zod.enum(['pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled']),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
-  "scheduledAt": zod.string().nullish()
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 

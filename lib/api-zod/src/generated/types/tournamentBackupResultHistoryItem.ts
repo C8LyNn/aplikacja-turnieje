@@ -5,10 +5,13 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupResultHistoryItemResultType } from './tournamentBackupResultHistoryItemResultType';
 
 export type TournamentBackupResultHistoryItem = {
-  round?: number;
-  matchNumber?: number;
+  matchBackupId: number;
+  revision: number;
+  round: number;
+  matchNumber: number;
   /** @nullable */
   player1BackupId?: number | null;
   /** @nullable */
@@ -19,6 +22,10 @@ export type TournamentBackupResultHistoryItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
-  isDraw?: boolean;
-  status?: string;
+  bestOf: number;
+  resultType: TournamentBackupResultHistoryItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  completedAt: string;
+  recordedAt: string;
 };

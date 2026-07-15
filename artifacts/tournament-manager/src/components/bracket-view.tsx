@@ -161,7 +161,7 @@ export function BracketView({ bracket, format }: BracketViewProps) {
 function MatchBox({ match }: { match: Match }) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
-  const isBye = match.status === "bye";
+  const isBye = match.resultType === "bye";
 
   const borderClass = isLive
     ? "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_8px_rgba(234,179,8,0.08)]"
@@ -189,7 +189,9 @@ function MatchBox({ match }: { match: Match }) {
           </span>
         )}
         {isDone && (
-          <span className="text-[8px] text-green-400 leading-none">✓</span>
+          <span className="text-[8px] text-green-400 leading-none">
+            {match.resultType === "walkover" ? "WO" : match.resultType === "no_contest" ? "NC" : "✓"}
+          </span>
         )}
         {isBye && (
           <span className="text-[8px] text-muted-foreground leading-none">
@@ -202,14 +204,14 @@ function MatchBox({ match }: { match: Match }) {
       <PlayerRow
         name={match.player1Name}
         score={match.score1}
-        isWinner={isDone && match.winnerId === match.player1Id && !match.isDraw}
+        isWinner={isDone && match.winnerId === match.player1Id}
         isPending={!match.player1Id && !isBye}
       />
       <div className="h-px bg-border/40 shrink-0" />
       <PlayerRow
         name={match.player2Name}
         score={match.score2}
-        isWinner={isDone && match.winnerId === match.player2Id && !match.isDraw}
+        isWinner={isDone && match.winnerId === match.player2Id}
         isPending={!match.player2Id && !isBye}
       />
     </div>

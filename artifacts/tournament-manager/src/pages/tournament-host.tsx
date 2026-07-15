@@ -36,7 +36,7 @@ import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
 
 type ScoreEntry = { s1: number; s2: number };
-type ConfirmEntry = { matchId: number; score1: number; score2: number; isDraw: boolean };
+type ConfirmEntry = { matchId: number; score1: number; score2: number };
 
 export default function TournamentHost() {
   const [, params] = useRoute("/tournaments/:id/host");
@@ -101,6 +101,8 @@ export default function TournamentHost() {
   const [cancelConfirm, setCancelConfirm] = useState<number | null>(null);
   const [swapConfirm, setSwapConfirm] = useState<number | null>(null);
   const [walkoverConfirm, setWalkoverConfirm] = useState<number | null>(null);
+  const [noContestConfirm, setNoContestConfirm] = useState<number | null>(null);
+  const [resultReason, setResultReason] = useState("");
 
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
@@ -284,17 +286,21 @@ export default function TournamentHost() {
     setRevertConfirm(null);
     setCancelConfirm(null);
     setSwapConfirm(null);
+    setNoContestConfirm(null);
+    setResultReason("");
   };
 
   const doWalkover = (matchId: number, winner: 1 | 2) => {
-    const score1 = winner === 1 ? 1 : 0;
-    const score2 = winner === 2 ? 1 : 0;
-    completeMatch.mutate({ id: matchId, data: { score1, score2, isDraw: false } }, {
+    const match = matches?.find((candidate) => candidate.id === matchId);
+    const winnerId = winner === 1 ? match?.player1Id : match?.player2Id;
+    if (!winnerId) return;
+    completeMatch.mutate({ id: matchId, data: { resultType: "walkover", winnerId, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
         setWalkoverConfirm(null);
+        setResultReason("");
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
         invalidateAll();
-        toast({ title: "Walkover zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} awansuje.` });
+        toast({ title: "Walkower zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} wygrywa mecz.` });
         const next = actionableMatches.find((m) => m.id !== matchId);
         setSelectedMatchId(next?.id ?? null);
       },
@@ -302,6 +308,25 @@ export default function TournamentHost() {
         setWalkoverConfirm(null);
         toast({ title: "Błąd walkover", description: e?.message, variant: "destructive" });
       },
+    });
+  };
+
+  const handleNoContest = (matchId: number) => {
+    setNoContestConfirm(matchId);
+    setWalkoverConfirm(null);
+    setConfirmComplete(null);
+    setResultReason("");
+  };
+
+  const doNoContest = (matchId: number) => {
+    completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", reason: resultReason.trim() || null } }, {
+      onSuccess: () => {
+        setNoContestConfirm(null);
+        setResultReason("");
+        invalidateAll();
+        toast({ title: "Mecz zakończony jako no contest" });
+      },
+      onError: (e: any) => toast({ title: "Nie udało się zapisać no contest", description: e?.message, variant: "destructive" }),
     });
   };
 
@@ -345,27 +370,26 @@ export default function TournamentHost() {
     );
   };
 
-  const handleTryComplete = (matchId: number, match: any, isDraw = false) => {
+  const handleTryComplete = (matchId: number, match: any) => {
     const s1 = getS(matchId, 1, match.score1);
     const s2 = getS(matchId, 2, match.score2);
-
-    if (!isDraw && s1 === s2 && !tournament?.allowDraws) {
-      toast({ title: "Wynik jest remisem", description: "Remisy nie są dozwolone w tym turnieju.", variant: "destructive" });
+    const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
+    const isCompleteSeries =
+      (s1 === winsRequired && s2 < winsRequired) ||
+      (s2 === winsRequired && s1 < winsRequired);
+    if (!isCompleteSeries) {
+      toast({
+        title: "Seria nie jest zakończona",
+        description: `W BO${match.bestOf ?? 1} jedna strona musi osiągnąć ${winsRequired} wygranych gier/map.`,
+        variant: "destructive",
+      });
       return;
     }
-    // Require confirmation for 0:0 or overwriting an existing result
-    const needsConfirm =
-      (s1 === 0 && s2 === 0 && !isDraw) ||
-      (match.status === "completed" && (match.score1 !== s1 || match.score2 !== s2));
-    if (needsConfirm) {
-      setConfirmComplete({ matchId, score1: s1, score2: s2, isDraw });
-      return;
-    }
-    doComplete(matchId, s1, s2, isDraw);
+    setConfirmComplete({ matchId, score1: s1, score2: s2 });
   };
 
-  const doComplete = (matchId: number, score1: number, score2: number, isDraw: boolean) => {
-    completeMatch.mutate({ id: matchId, data: { score1, score2, isDraw } }, {
+  const doComplete = (matchId: number, score1: number, score2: number) => {
+    completeMatch.mutate({ id: matchId, data: { resultType: "played", score1, score2 } }, {
       onSuccess: () => {
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
         setConfirmComplete(null);
@@ -518,17 +542,17 @@ export default function TournamentHost() {
 
   // --- Derived match lists ---
   const actionableMatches = matches?.filter(
-    (m) => (m.status === "in_progress" || m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id,
+    (m) => (m.status === "in_progress" || m.status === "pending") && m.player1Id && m.player2Id,
   ) || [];
   const postponedMatches = matches?.filter((m) => m.status === "postponed") || [];
   const cancelledMatches = matches?.filter((m) => m.status === "cancelled") || [];
   const pendingReady = (matches?.filter(
-    (m) => (m.status === "pending" || m.status === "ready") && m.player1Id && m.player2Id,
+    (m) => m.status === "pending" && m.player1Id && m.player2Id,
   ) || []).sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
-  const completedMatches = matches?.filter((m) => m.status === "completed" || m.status === "bye") || [];
+  const completedMatches = matches?.filter((m) => m.status === "completed") || [];
   const allCurrentRoundDone = matches
     ?.filter((m) => m.round === tournament.currentRound)
-    .every((m) => m.status === "completed" || m.status === "bye" || m.status === "walkover" || m.status === "postponed") ?? false;
+    .every((m) => m.status === "completed") ?? false;
   const canGenerateRound =
     tournament.format === "swiss" && allCurrentRoundDone && (tournament.currentRound ?? 0) < (tournament.totalRounds ?? 0);
 
@@ -547,7 +571,7 @@ export default function TournamentHost() {
 
   // --- Active match panel ---
   const renderActiveMatchPanel = () => {
-    if (!focusedMatch || focusedMatch.status === "bye") {
+    if (!focusedMatch || focusedMatch.resultType === "bye") {
       return (
         <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground text-lg">
           {canGenerateRound
@@ -573,6 +597,15 @@ export default function TournamentHost() {
     const isShowingCancel = cancelConfirm === focusedMatch.id;
     const isShowingSwap = swapConfirm === focusedMatch.id;
     const isShowingWalkover = walkoverConfirm === focusedMatch.id;
+    const isShowingNoContest = noContestConfirm === focusedMatch.id;
+    const isCompleteSeries =
+      (s1 === maxScore && s2 < maxScore) ||
+      (s2 === maxScore && s1 < maxScore);
+    const completedResultLabel = focusedMatch.resultType === "played"
+      ? `${focusedMatch.score1}:${focusedMatch.score2}`
+      : focusedMatch.resultType === "walkover"
+        ? "W.O."
+        : "N/C";
 
     return (
       <div className={`rounded-xl border-2 overflow-hidden transition-colors ${
@@ -609,10 +642,11 @@ export default function TournamentHost() {
           <div className="flex items-center gap-2 shrink-0">
             {/* BO selector */}
             <div className="flex items-center gap-0.5 bg-background border rounded p-0.5">
-              {([1, 3, 5] as const).map((n) => (
+              {([1, 3, 5, 7] as const).map((n) => (
                 <button
                   key={n}
                   onClick={() => handleChangeBestOf(focusedMatch.id, n)}
+                  disabled={focusedMatch.status !== "pending"}
                   className={`text-xs px-2.5 py-1 rounded transition-colors font-medium ${
                     bo === n
                       ? "bg-primary text-primary-foreground"
@@ -638,6 +672,7 @@ export default function TournamentHost() {
 
         {/* Score area */}
         <div className="p-5 md:p-8">
+          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
           <div className="flex items-center justify-center gap-4 md:gap-10">
             {/* Player 1 */}
             <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
@@ -741,11 +776,7 @@ export default function TournamentHost() {
                 <strong className="text-foreground">
                   {focusedMatch.player1Name} {confirmComplete.score1}:{confirmComplete.score2} {focusedMatch.player2Name}
                 </strong>
-                {confirmComplete.score1 === 0 && confirmComplete.score2 === 0
-                  ? " — wynik 0:0, czy na pewno?"
-                  : isDone
-                    ? " — nadpisuje istniejący wynik!"
-                    : "?"}
+                ?
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setConfirmComplete(null)}>
@@ -754,7 +785,7 @@ export default function TournamentHost() {
                 <Button
                   size="sm"
                   className="bg-primary"
-                  onClick={() => doComplete(confirmComplete.matchId, confirmComplete.score1, confirmComplete.score2, confirmComplete.isDraw)}
+                  onClick={() => doComplete(confirmComplete.matchId, confirmComplete.score1, confirmComplete.score2)}
                   disabled={completeMatch.isPending}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Zapisz wynik
@@ -769,7 +800,7 @@ export default function TournamentHost() {
               <p className="font-semibold text-destructive text-sm mb-2">Cofnąć wynik?</p>
               <p className="text-sm text-muted-foreground mb-3">
                 R{focusedMatch.round} M{focusedMatch.matchNumber}:{" "}
-                <strong>{focusedMatch.player1Name}</strong> {focusedMatch.score1}:{focusedMatch.score2}{" "}
+                <strong>{focusedMatch.player1Name}</strong> {completedResultLabel}{" "}
                 <strong>{focusedMatch.player2Name}</strong>
               </p>
               <div className="flex gap-2">
@@ -833,8 +864,14 @@ export default function TournamentHost() {
               </p>
               <p className="text-sm text-muted-foreground mb-3">
                 Wybierz zawodnika, który <strong>wygrał</strong> (drugi nie pojawił się).
-                Wynik zostanie zapisany jako 1:0.
+                Walkower zmienia wyłącznie bilans meczów i nie tworzy wyniku serii.
               </p>
+              <Input
+                className="mb-3"
+                value={resultReason}
+                onChange={(event) => setResultReason(event.target.value)}
+                placeholder="Powód (opcjonalnie)"
+              />
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => setWalkoverConfirm(null)}>Anuluj</Button>
                 <Button
@@ -857,6 +894,27 @@ export default function TournamentHost() {
             </div>
           )}
 
+          {isShowingNoContest && (
+            <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+              <p className="font-semibold text-orange-400 text-sm mb-1">No contest — bez zwycięzcy</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Mecz zostanie zakończony bez wpływu na bilans meczów i gier. Ta decyzja nie jest dostępna w eliminacjach.
+              </p>
+              <Input
+                className="mb-3"
+                value={resultReason}
+                onChange={(event) => setResultReason(event.target.value)}
+                placeholder="Powód (opcjonalnie)"
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>
+                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending}>
+                  Zapisz no contest
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Restore cancelled action */}
           {isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
@@ -873,10 +931,10 @@ export default function TournamentHost() {
           )}
 
           {/* Action bar */}
-          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isShowingWalkover && !isCancelled && (
+          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isShowingWalkover && !isShowingNoContest && !isCancelled && (
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
-                {/* Start — for pending/ready/postponed */}
+                {/* Start — for pending/postponed */}
                 {!isLive && !isDone && (
                   <Button
                     variant="outline"
@@ -898,7 +956,7 @@ export default function TournamentHost() {
                     <ArrowLeftRight className="w-4 h-4 mr-2" /> Zamień strony
                   </Button>
                 )}
-                {/* Postpone — for pending/ready/in_progress (not done, not already postponed) */}
+                {/* Postpone — for pending/in_progress (not done, not already postponed) */}
                 {!isDone && !isPostponed && (
                   <Button
                     variant="outline"
@@ -932,6 +990,16 @@ export default function TournamentHost() {
                     W.O.
                   </Button>
                 )}
+                {!isDone && !isPostponed && tournament.format !== "single_elimination" && focusedMatch.player1Id && focusedMatch.player2Id && (
+                  <Button
+                    variant="outline"
+                    className="text-orange-400/70 hover:text-orange-400 hover:border-orange-400/50"
+                    onClick={() => handleNoContest(focusedMatch.id)}
+                    disabled={completeMatch.isPending}
+                  >
+                    No contest
+                  </Button>
+                )}
                 {/* Cancel — for non-completed, non-cancelled */}
                 {!isDone && (
                   <Button
@@ -942,14 +1010,6 @@ export default function TournamentHost() {
                     title="Anuluj ten mecz"
                   >
                     <Ban className="w-4 h-4 mr-2" /> Anuluj
-                  </Button>
-                )}
-                {tournament.allowDraws && !isDone && !isPostponed && (
-                  <Button
-                    variant="outline"
-                    onClick={() => handleTryComplete(focusedMatch.id, focusedMatch, true)}
-                  >
-                    Remis
                   </Button>
                 )}
               </div>
@@ -968,10 +1028,10 @@ export default function TournamentHost() {
                   <Button
                     size="default"
                     className="bg-primary hover:bg-primary/90 font-semibold px-6"
-                    onClick={() => handleTryComplete(focusedMatch.id, focusedMatch, false)}
-                    disabled={completeMatch.isPending}
+                    onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}
+                    disabled={completeMatch.isPending || !isCompleteSeries}
                   >
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Zatwierdź wynik
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Zakończ rozegrany mecz
                   </Button>
                 )}
               </div>
@@ -1106,7 +1166,7 @@ export default function TournamentHost() {
             {[
               { value: "prowadzenie", label: "Prowadzenie" },
               { value: "wyniki", label: "Wyniki" },
-              { value: "tabela", label: "Tabela" },
+              { value: "tabela", label: tournament.format === "single_elimination" ? "Bilans" : "Tabela" },
               { value: "drabinka", label: "Drabinka" },
               { value: "korekta", label: "Korekta błędów" },
             ].map((tab) => (
@@ -1233,7 +1293,7 @@ export default function TournamentHost() {
                     ) : (
                       completedMatches.slice(-6).reverse().map((m) => (
                         <div key={m.id} className="px-3 py-2.5">
-                          {m.status === "bye" ? (
+                          {m.resultType === "bye" ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="text-[10px] px-1.5 shrink-0">R{m.round}</Badge>
                               <span className="text-sm text-muted-foreground">{m.player1Name} — bye</span>
@@ -1243,7 +1303,7 @@ export default function TournamentHost() {
                               <Badge variant="outline" className="text-[10px] px-1.5 shrink-0">R{m.round}</Badge>
                               <span
                                 className={`text-sm truncate flex-1 text-right ${
-                                  m.winnerId === m.player1Id && !m.isDraw
+                                  m.winnerId === m.player1Id
                                     ? "font-bold text-primary"
                                     : "text-muted-foreground"
                                 }`}
@@ -1251,11 +1311,11 @@ export default function TournamentHost() {
                                 {m.player1Name}
                               </span>
                               <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded shrink-0 tabular-nums">
-                                {m.score1}:{m.score2}
+                                {m.resultType === "played" ? `${m.score1}:${m.score2}` : m.resultType === "walkover" ? "W.O." : "N/C"}
                               </span>
                               <span
                                 className={`text-sm truncate flex-1 ${
-                                  m.winnerId === m.player2Id && !m.isDraw
+                                  m.winnerId === m.player2Id
                                     ? "font-bold text-primary"
                                     : "text-muted-foreground"
                                 }`}
@@ -1361,21 +1421,27 @@ export default function TournamentHost() {
                             <span className="text-xs text-muted-foreground w-6 shrink-0">M{m.matchNumber}</span>
                             <div
                               className={`flex-1 text-right text-sm ${
-                                m.winnerId === m.player1Id && !m.isDraw ? "font-bold text-primary" : ""
+                                m.winnerId === m.player1Id ? "font-bold text-primary" : ""
                               }`}
                             >
                               {m.player1Name || "TBD"}
                             </div>
                             <div className="font-mono bg-muted px-3 py-1 rounded text-sm min-w-[56px] text-center shrink-0">
-                              {m.status === "completed" || m.status === "bye"
-                                ? `${m.score1 ?? "—"}:${m.score2 ?? "—"}`
+                              {m.status === "completed"
+                                ? m.resultType === "played"
+                                  ? `${m.score1}:${m.score2}`
+                                  : m.resultType === "walkover"
+                                    ? "W.O."
+                                    : m.resultType === "bye"
+                                      ? "BYE"
+                                      : "N/C"
                                 : m.status === "in_progress"
                                   ? "LIVE"
                                   : "—:—"}
                             </div>
                             <div
                               className={`flex-1 text-sm ${
-                                m.winnerId === m.player2Id && !m.isDraw ? "font-bold text-primary" : ""
+                                m.winnerId === m.player2Id ? "font-bold text-primary" : ""
                               }`}
                             >
                               {m.player2Name || "TBD"}
@@ -1387,9 +1453,7 @@ export default function TournamentHost() {
                                   ? "border-secondary text-secondary"
                                   : m.status === "completed"
                                     ? "border-green-500 text-green-400"
-                                    : m.status === "bye"
-                                      ? "text-muted-foreground"
-                                      : m.status === "postponed"
+                                    : m.status === "postponed"
                                         ? "border-orange-500/50 text-orange-400"
                                         : m.status === "cancelled"
                                           ? "border-destructive/50 text-destructive/70"
@@ -1401,11 +1465,7 @@ export default function TournamentHost() {
                                 : m.status === "in_progress"
                                   ? "LIVE"
                                   : m.status === "completed"
-                                    ? m.isDraw
-                                      ? "R"
-                                      : "OK"
-                                    : m.status === "bye"
-                                      ? "BYE"
+                                    ? m.resultType === "walkover" ? "WO" : m.resultType === "bye" ? "BYE" : m.resultType === "no_contest" ? "NC" : "OK"
                                       : m.status === "postponed"
                                         ? "⏸"
                                         : m.status === "cancelled"
@@ -1425,6 +1485,30 @@ export default function TournamentHost() {
           <TabsContent value="tabela" className="pt-4">
             {!standings || standings.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">Brak danych klasyfikacji.</div>
+            ) : tournament.format === "single_elimination" ? (
+              <div>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Awans i mistrz wynikają wyłącznie z drabinki. Poniższy bilans jest informacyjny.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {standings.map((s) => (
+                    <div key={s.playerId} className="rounded-lg border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold">{s.playerName}</div>
+                          <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
+                        </div>
+                        <Badge variant="outline">{s.status}</Badge>
+                      </div>
+                      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                        <div><strong className="block text-lg text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
+                        <div><strong className="block text-lg text-foreground">{s.gameWins}:{s.gameLosses}</strong>Gry</div>
+                        <div><strong className="block text-lg text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -1432,10 +1516,10 @@ export default function TournamentHost() {
                     <tr className="border-b text-left text-xs text-muted-foreground">
                       <th className="py-2 px-3">#</th>
                       <th className="py-2 px-3">Gracz</th>
-                      <th className="py-2 px-3 text-center">Pkt</th>
+                      <th className="py-2 px-3 text-center">Mecze</th>
                       <th className="py-2 px-3 text-center">W</th>
-                      <th className="py-2 px-3 text-center">R</th>
                       <th className="py-2 px-3 text-center">P</th>
+                      <th className="py-2 px-3 text-center">Gry</th>
                       <th className="py-2 px-3 text-center">Buchh.</th>
                       <th className="py-2 px-3 text-center">+/−</th>
                     </tr>
@@ -1458,29 +1542,29 @@ export default function TournamentHost() {
                         </td>
                         <td className="py-2 px-3">
                           <div className="font-semibold">{s.playerName}</div>
-                          {(s.rank_name || s.teamName) && (
+                          {(s.rankName || s.teamName) && (
                             <div className="text-xs text-muted-foreground">
-                              {[s.rank_name, s.teamName, s.country].filter(Boolean).join(" · ")}
+                              {[s.rankName, s.teamName, s.country].filter(Boolean).join(" · ")}
                             </div>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-center font-bold text-primary">{s.points}</td>
-                        <td className="py-2 px-3 text-center text-green-400">{s.wins}</td>
-                        <td className="py-2 px-3 text-center text-yellow-400">{s.draws}</td>
-                        <td className="py-2 px-3 text-center text-red-400">{s.losses}</td>
-                        <td className="py-2 px-3 text-center text-muted-foreground">{s.buchholz}</td>
+                        <td className="py-2 px-3 text-center">{s.matchesPlayed}</td>
+                        <td className="py-2 px-3 text-center text-green-400">{s.matchWins}</td>
+                        <td className="py-2 px-3 text-center text-red-400">{s.matchLosses}</td>
+                        <td className="py-2 px-3 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
+                        <td className="py-2 px-3 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>
                         <td className="py-2 px-3 text-center">
                           <span
                             className={
-                              s.pointDiff > 0
+                              s.gameDiff > 0
                                 ? "text-green-400"
-                                : s.pointDiff < 0
+                                : s.gameDiff < 0
                                   ? "text-red-400"
                                   : "text-muted-foreground"
                             }
                           >
-                            {s.pointDiff > 0 ? "+" : ""}
-                            {s.pointDiff}
+                            {s.gameDiff > 0 ? "+" : ""}
+                            {s.gameDiff}
                           </span>
                         </td>
                       </tr>

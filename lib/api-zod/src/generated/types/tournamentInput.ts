@@ -15,7 +15,7 @@ export interface TournamentInput {
   format: TournamentInputFormat;
   maxPlayers?: number;
   swissRounds?: number;
-  allowDraws?: boolean;
+  /** @minimum 1 */
   defaultBestOf?: number;
   /** Optional password to protect organizer access */
   organizerPassword?: string;

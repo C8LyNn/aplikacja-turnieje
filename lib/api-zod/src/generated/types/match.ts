@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { MatchResultType } from './matchResultType';
 import type { MatchStatus } from './matchStatus';
 
 export interface Match {
@@ -27,9 +28,11 @@ export interface Match {
   /** @nullable */
   winnerId?: number | null;
   /** @nullable */
-  isDraw?: boolean | null;
+  resultType?: MatchResultType;
   /** @nullable */
-  bestOf?: number | null;
+  resultReason?: string | null;
+  /** @minimum 1 */
+  bestOf: number;
   /** @nullable */
   note?: string | null;
   status: MatchStatus;
@@ -39,4 +42,6 @@ export interface Match {
   sortOrder?: number | null;
   /** @nullable */
   scheduledAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
 }

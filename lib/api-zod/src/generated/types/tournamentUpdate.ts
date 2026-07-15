@@ -16,7 +16,7 @@ export interface TournamentUpdate {
   status?: TournamentUpdateStatus;
   maxPlayers?: number;
   swissRounds?: number;
-  allowDraws?: boolean;
+  /** @minimum 1 */
   defaultBestOf?: number;
   featuredMatchId?: number;
   /** Host access code (plain text, stored hashed) */

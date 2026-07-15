@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -7,6 +7,11 @@ import {
   resultHistoryTable,
   tournamentsTable,
 } from "@workspace/db";
+import {
+  validatePlayedSeriesResult,
+  type SeriesResultErrorCode,
+} from "../../domain/match/series-result";
+import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
 
 export type CompleteMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -18,31 +23,31 @@ export type CompleteMatchErrorCode =
   | "PARTICIPANTS_NOT_DISTINCT"
   | "PARTICIPANT_TOURNAMENT_MISMATCH"
   | "WINNER_NOT_PARTICIPANT"
-  | "SCORE_NOT_INTEGER"
-  | "SCORE_NEGATIVE"
-  | "DRAW_NOT_ALLOWED"
-  | "DRAW_WITH_WINNER"
-  | "DRAW_SCORE_MISMATCH"
-  | "NON_DRAW_SCORE_TIED"
-  | "WINNER_SCORE_MISMATCH";
+  | "NO_CONTEST_REQUIRES_RESOLUTION"
+  | "RESULT_TYPE_NOT_PUBLIC"
+  | SeriesResultErrorCode;
 
 const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
   MATCH_NOT_FOUND: "Mecz nie istnieje.",
   TOURNAMENT_NOT_FOUND: "Turniej meczu nie istnieje.",
   PARTICIPANT_NOT_FOUND: "Nie znaleziono wymaganego uczestnika meczu.",
   MATCH_ALREADY_FINALIZED: "Mecz został już rozstrzygnięty.",
-  MATCH_STATE_NOT_COMPLETABLE: "Meczu w tym stanie nie można zakończyć zwykłym wynikiem.",
-  PARTICIPANTS_REQUIRED: "Do zakończenia meczu wymaganych jest dwóch uczestników.",
+  MATCH_STATE_NOT_COMPLETABLE: "Meczu w tym stanie nie można zakończyć.",
+  PARTICIPANTS_REQUIRED: "Do tej operacji wymaganych jest dwóch uczestników.",
   PARTICIPANTS_NOT_DISTINCT: "Uczestnicy meczu muszą być różnymi graczami.",
   PARTICIPANT_TOURNAMENT_MISMATCH: "Uczestnicy nie należą do turnieju meczu.",
-  WINNER_NOT_PARTICIPANT: "Zwycięzca musi być uczestnikiem meczu.",
-  SCORE_NOT_INTEGER: "Wynik musi składać się z liczb całkowitych.",
-  SCORE_NEGATIVE: "Wynik nie może być ujemny.",
-  DRAW_NOT_ALLOWED: "Remisy nie są dozwolone w tym turnieju.",
-  DRAW_WITH_WINNER: "Remis nie może wskazywać zwycięzcy.",
-  DRAW_SCORE_MISMATCH: "Remis wymaga równego wyniku.",
-  NON_DRAW_SCORE_TIED: "Nieremisowy wynik nie może być równy.",
-  WINNER_SCORE_MISMATCH: "Zwycięzca nie odpowiada wyższemu wynikowi.",
+  WINNER_NOT_PARTICIPANT: "Zwycięzca walkowera musi być uczestnikiem meczu.",
+  NO_CONTEST_REQUIRES_RESOLUTION:
+    "No contest w eliminacjach nie może automatycznie wybrać awansującego.",
+  RESULT_TYPE_NOT_PUBLIC: "Tego rodzaju wyniku nie można zapisać publiczną operacją CompleteMatch.",
+  BEST_OF_NOT_INTEGER: "bestOf musi być liczbą całkowitą.",
+  BEST_OF_NOT_POSITIVE: "bestOf musi być większe od zera.",
+  BEST_OF_NOT_ODD: "bestOf musi być nieparzyste.",
+  SCORE_NOT_INTEGER: "Wynik serii musi składać się z liczb całkowitych.",
+  SCORE_NEGATIVE: "Wynik serii nie może być ujemny.",
+  SCORE_EXCEEDS_WIN_THRESHOLD: "Wynik przekracza próg zwycięstw dla tej serii.",
+  WIN_THRESHOLD_NOT_REACHED: "Jedna ze stron musi osiągnąć próg zwycięstw dla tej serii.",
+  BOTH_SIDES_REACHED_WIN_THRESHOLD: "Tylko jedna strona może osiągnąć próg zwycięstw.",
 };
 
 export class CompleteMatchError extends Error {
@@ -52,91 +57,114 @@ export class CompleteMatchError extends Error {
   }
 }
 
-export interface CompleteMatchInput {
+interface CompleteMatchBaseInput {
   matchId: number;
+}
+
+export interface CompletePlayedMatchInput extends CompleteMatchBaseInput {
+  resultType: "played";
   score1: number;
   score2: number;
-  winnerId?: number | null;
-  isDraw?: boolean;
-  note?: string | null;
 }
+
+export interface CompleteWalkoverMatchInput extends CompleteMatchBaseInput {
+  resultType: "walkover";
+  winnerId: number;
+  reason?: string | null;
+}
+
+export interface CompleteNoContestMatchInput extends CompleteMatchBaseInput {
+  resultType: "no_contest";
+  reason?: string | null;
+}
+
+export type CompleteMatchInput =
+  | CompletePlayedMatchInput
+  | CompleteWalkoverMatchInput
+  | CompleteNoContestMatchInput;
 
 export interface CompleteMatchTestHooks {
   /** Test-only fault seam. It is never wired to an HTTP field, header, or environment variable. */
   afterMatchUpdated?: () => void | Promise<void>;
 }
 
-interface NormalizedLegacyResult {
-  score1: number;
-  score2: number;
+interface NormalizedResult {
+  resultType: "played" | "walkover" | "no_contest";
+  score1: number | null;
+  score2: number | null;
   winnerId: number | null;
   loserId: number | null;
-  isDraw: boolean;
+  reason: string | null;
 }
 
-function validateLegacyResult(params: {
-  score1: number;
-  score2: number;
-  winnerId?: number | null;
-  isDraw: boolean;
-  allowDraws: boolean;
+function normalizeResult(params: {
+  input: CompleteMatchInput;
+  bestOf: number;
   player1Id: number;
   player2Id: number;
-}): NormalizedLegacyResult {
-  if (!Number.isInteger(params.score1) || !Number.isInteger(params.score2)) {
-    throw new CompleteMatchError("SCORE_NOT_INTEGER");
-  }
-  if (params.score1 < 0 || params.score2 < 0) {
-    throw new CompleteMatchError("SCORE_NEGATIVE");
-  }
-
-  if (params.isDraw) {
-    if (!params.allowDraws) throw new CompleteMatchError("DRAW_NOT_ALLOWED");
-    if (params.winnerId != null) throw new CompleteMatchError("DRAW_WITH_WINNER");
-    if (params.score1 !== params.score2) throw new CompleteMatchError("DRAW_SCORE_MISMATCH");
+  format: "single_elimination" | "round_robin" | "swiss";
+}): NormalizedResult {
+  if (params.input.resultType === "played") {
+    const validation = validatePlayedSeriesResult({
+      resultType: "played",
+      bestOf: params.bestOf,
+      score1: params.input.score1,
+      score2: params.input.score2,
+    });
+    if (!validation.ok) throw new CompleteMatchError(validation.error.code);
+    const winnerId = validation.value.winnerSide === "player1"
+      ? params.player1Id
+      : params.player2Id;
     return {
-      score1: params.score1,
-      score2: params.score2,
-      winnerId: null,
-      loserId: null,
-      isDraw: true,
+      resultType: "played",
+      score1: validation.value.score1,
+      score2: validation.value.score2,
+      winnerId,
+      loserId: winnerId === params.player1Id ? params.player2Id : params.player1Id,
+      reason: null,
     };
   }
 
-  if (params.score1 === params.score2) {
-    throw new CompleteMatchError("NON_DRAW_SCORE_TIED");
+  if (params.input.resultType === "walkover") {
+    if (
+      params.input.winnerId !== params.player1Id &&
+      params.input.winnerId !== params.player2Id
+    ) {
+      throw new CompleteMatchError("WINNER_NOT_PARTICIPANT");
+    }
+    return {
+      resultType: "walkover",
+      score1: null,
+      score2: null,
+      winnerId: params.input.winnerId,
+      loserId: params.input.winnerId === params.player1Id
+        ? params.player2Id
+        : params.player1Id,
+      reason: params.input.reason?.trim() || null,
+    };
   }
 
-  const scoreWinnerId = params.score1 > params.score2 ? params.player1Id : params.player2Id;
-  const winnerId = params.winnerId ?? scoreWinnerId;
-  if (winnerId !== params.player1Id && winnerId !== params.player2Id) {
-    throw new CompleteMatchError("WINNER_NOT_PARTICIPANT");
+  if (params.format === "single_elimination") {
+    throw new CompleteMatchError("NO_CONTEST_REQUIRES_RESOLUTION");
   }
-  if (winnerId !== scoreWinnerId) {
-    throw new CompleteMatchError("WINNER_SCORE_MISMATCH");
-  }
-
   return {
-    score1: params.score1,
-    score2: params.score2,
-    winnerId,
-    loserId: winnerId === params.player1Id ? params.player2Id : params.player1Id,
-    isDraw: false,
+    resultType: "no_contest",
+    score1: null,
+    score2: null,
+    winnerId: null,
+    loserId: null,
+    reason: params.input.reason?.trim() || null,
   };
 }
 
-/**
- * Completes one legacy match and all of its existing 3/1/0 side effects in a
- * single PostgreSQL transaction. The tournament row is locked before the match
- * row so every CompleteMatch in a tournament follows one deterministic order.
- */
+/** Completes one series_v1 result and every side effect in one transaction. */
 export async function completeMatch(
   input: CompleteMatchInput,
   testHooks: CompleteMatchTestHooks = {},
 ): Promise<typeof matchesTable.$inferSelect> {
   return db.transaction(async (tx) => {
     const [matchReference] = await tx
-      .select({ id: matchesTable.id, tournamentId: matchesTable.tournamentId })
+      .select({ tournamentId: matchesTable.tournamentId })
       .from(matchesTable)
       .where(eq(matchesTable.id, input.matchId));
     if (!matchReference) throw new CompleteMatchError("MATCH_NOT_FOUND");
@@ -154,13 +182,8 @@ export async function completeMatch(
       .where(eq(matchesTable.id, input.matchId))
       .for("update");
     if (!match) throw new CompleteMatchError("MATCH_NOT_FOUND");
-
-    if (match.status === "completed" || match.status === "walkover") {
-      throw new CompleteMatchError("MATCH_ALREADY_FINALIZED");
-    }
-    if (match.status === "cancelled" || match.status === "bye") {
-      throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
-    }
+    if (match.status === "completed") throw new CompleteMatchError("MATCH_ALREADY_FINALIZED");
+    if (match.status === "cancelled") throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
     if (match.player1Id == null || match.player2Id == null) {
       throw new CompleteMatchError("PARTICIPANTS_REQUIRED");
     }
@@ -174,81 +197,74 @@ export async function completeMatch(
       .where(inArray(playersTable.id, [match.player1Id, match.player2Id]))
       .orderBy(playersTable.id)
       .for("update");
-    if (participants.length !== 2) {
-      throw new CompleteMatchError("PARTICIPANT_NOT_FOUND");
-    }
+    if (participants.length !== 2) throw new CompleteMatchError("PARTICIPANT_NOT_FOUND");
     if (participants.some((player) => player.tournamentId !== match.tournamentId)) {
       throw new CompleteMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
-    if (
-      input.winnerId != null &&
-      input.winnerId !== match.player1Id &&
-      input.winnerId !== match.player2Id
-    ) {
-      throw new CompleteMatchError("WINNER_NOT_PARTICIPANT");
-    }
 
-    const result = validateLegacyResult({
-      score1: input.score1,
-      score2: input.score2,
-      winnerId: input.winnerId,
-      isDraw: input.isDraw ?? false,
-      allowDraws: tournament.allowDraws ?? false,
+    const result = normalizeResult({
+      input,
+      bestOf: match.bestOf,
       player1Id: match.player1Id,
       player2Id: match.player2Id,
+      format: tournament.format,
     });
-    const now = new Date();
 
+    let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
+    let downstreamSlot: "player1" | "player2" | null = null;
+    if (tournament.format === "single_elimination" && result.winnerId != null) {
+      const nextRoundMatches = await tx
+        .select()
+        .from(matchesTable)
+        .where(
+          and(
+            eq(matchesTable.tournamentId, match.tournamentId),
+            eq(matchesTable.round, match.round + 1),
+          ),
+        )
+        .orderBy(matchesTable.matchNumber);
+      const nextReference = nextRoundMatches[Math.floor((match.matchNumber - 1) / 2)];
+      if (nextReference) {
+        [downstreamMatch] = await tx
+          .select()
+          .from(matchesTable)
+          .where(eq(matchesTable.id, nextReference.id))
+          .for("update");
+        downstreamSlot = (match.matchNumber - 1) % 2 === 0 ? "player1" : "player2";
+        const occupied = downstreamSlot === "player1"
+          ? downstreamMatch?.player1Id
+          : downstreamMatch?.player2Id;
+        if (!downstreamMatch || downstreamMatch.status !== "pending" || occupied != null) {
+          throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
+        }
+      }
+    }
+
+    const now = new Date();
     const [updatedMatch] = await tx
       .update(matchesTable)
       .set({
-        winnerId: result.winnerId,
+        status: "completed",
+        resultType: result.resultType,
+        resultReason: result.reason,
         score1: result.score1,
         score2: result.score2,
-        isDraw: result.isDraw,
-        status: "completed",
-        note: input.note ?? null,
+        winnerId: result.winnerId,
         completedAt: now,
       })
-      .where(eq(matchesTable.id, match.id))
+      .where(and(eq(matchesTable.id, match.id), ne(matchesTable.status, "completed")))
       .returning();
-    if (!updatedMatch) throw new CompleteMatchError("MATCH_NOT_FOUND");
+    if (!updatedMatch) throw new CompleteMatchError("MATCH_ALREADY_FINALIZED");
 
     await testHooks.afterMatchUpdated?.();
 
-    if (result.isDraw) {
+    if (
+      tournament.format === "single_elimination" &&
+      result.loserId != null
+    ) {
       await tx
         .update(playersTable)
-        .set({
-          draws: sql`${playersTable.draws} + 1`,
-          points: sql`${playersTable.points} + 1`,
-        })
-        .where(
-          and(
-            inArray(playersTable.id, [match.player1Id, match.player2Id]),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        );
-    } else if (result.winnerId != null && result.loserId != null) {
-      await tx
-        .update(playersTable)
-        .set({
-          wins: sql`${playersTable.wins} + 1`,
-          points: sql`${playersTable.points} + 3`,
-        })
-        .where(
-          and(
-            eq(playersTable.id, result.winnerId),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        );
-
-      await tx
-        .update(playersTable)
-        .set({
-          losses: sql`${playersTable.losses} + 1`,
-          ...(tournament.format === "single_elimination" ? { status: "eliminated" as const } : {}),
-        })
+        .set({ status: "eliminated" })
         .where(
           and(
             eq(playersTable.id, result.loserId),
@@ -257,9 +273,17 @@ export async function completeMatch(
         );
     }
 
+    const [latestHistory] = await tx
+      .select({ revision: resultHistoryTable.revision })
+      .from(resultHistoryTable)
+      .where(eq(resultHistoryTable.matchId, match.id))
+      .orderBy(desc(resultHistoryTable.revision))
+      .limit(1)
+      .for("update");
     await tx.insert(resultHistoryTable).values({
       matchId: match.id,
       tournamentId: match.tournamentId,
+      revision: (latestHistory?.revision ?? 0) + 1,
       round: match.round,
       matchNumber: match.matchNumber,
       player1Id: match.player1Id,
@@ -267,64 +291,52 @@ export async function completeMatch(
       score1: result.score1,
       score2: result.score2,
       winnerId: result.winnerId,
-      isDraw: result.isDraw,
-      status: "completed",
+      bestOf: match.bestOf,
+      resultType: result.resultType,
+      resultReason: result.reason,
+      completedAt: now,
     });
 
-    const participantNames = new Map(participants.map((player) => [player.id, player.name]));
-    const player1Name = participantNames.get(match.player1Id) ?? "TBD";
-    const player2Name = participantNames.get(match.player2Id) ?? "TBD";
-    const resultText = result.isDraw
-      ? `Remis ${result.score1}:${result.score2}`
-      : `Wynik: ${player1Name} ${result.score1}:${result.score2} ${player2Name}`;
-    const winnerName = result.winnerId == null ? null : participantNames.get(result.winnerId);
-    const description = winnerName ? `${resultText} — wygrał ${winnerName}` : resultText;
-
+    const names = new Map(participants.map((player) => [player.id, player.name]));
+    const description = result.resultType === "played"
+      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}`
+      : result.resultType === "walkover"
+        ? `R${match.round}M${match.matchNumber}: walkower dla ${names.get(result.winnerId!)}`
+        : `R${match.round}M${match.matchNumber}: no contest`;
     await tx.insert(actionLogTable).values({
       tournamentId: match.tournamentId,
       actionType: "match_result_submitted",
-      description: `R${match.round}M${match.matchNumber}: ${description}`,
+      description,
       matchId: match.id,
       undoPayload: JSON.stringify({ type: "revert_match", matchId: match.id }),
       isUndone: false,
     });
 
-    if (tournament.format !== "round_robin" && tournament.format !== "swiss") {
-      const nextRound = match.round + 1;
-      const nextRoundMatches = await tx
-        .select()
-        .from(matchesTable)
-        .where(
-          and(
-            eq(matchesTable.tournamentId, match.tournamentId),
-            eq(matchesTable.round, nextRound),
-          ),
-        )
-        .orderBy(matchesTable.matchNumber);
-      const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
-      const nextMatch = nextRoundMatches[nextMatchIndex];
+    if (downstreamMatch && downstreamSlot && result.winnerId != null) {
+      await tx
+        .update(matchesTable)
+        .set(downstreamSlot === "player1"
+          ? { player1Id: result.winnerId }
+          : { player2Id: result.winnerId })
+        .where(eq(matchesTable.id, downstreamMatch.id));
+    }
 
-      if (nextMatch && result.winnerId != null) {
-        const advancesToPlayer1 = (match.matchNumber - 1) % 2 === 0;
-        await tx
-          .update(matchesTable)
-          .set(advancesToPlayer1 ? { player1Id: result.winnerId } : { player2Id: result.winnerId })
-          .where(eq(matchesTable.id, nextMatch.id));
-      } else if (!nextMatch && result.winnerId != null) {
+    if (tournament.format === "single_elimination") {
+      if (!downstreamMatch && result.winnerId != null) {
         const remaining = await tx
           .select({ id: matchesTable.id })
           .from(matchesTable)
           .where(
             and(
               eq(matchesTable.tournamentId, match.tournamentId),
-              sql`${matchesTable.status} NOT IN ('completed', 'bye', 'walkover')`,
+              ne(matchesTable.status, "completed"),
             ),
           );
         if (remaining.length === 0) {
           await tx
             .update(tournamentsTable)
             .set({ status: "completed", winnerId: result.winnerId })
-            .where(eq(tournamentsTable.id, match.tournamentId));
+            .where(eq(tournamentsTable.id, tournament.id));
           await tx
             .update(playersTable)
             .set({ status: "winner" })
@@ -341,45 +353,40 @@ export async function completeMatch(
             eq(matchesTable.round, match.round),
           ),
         );
-      const allCurrentRoundMatchesDone = currentRoundMatches.every(
-        (currentMatch) =>
-          currentMatch.status === "completed" ||
-          currentMatch.status === "bye" ||
-          currentMatch.status === "walkover",
-      );
-      if (allCurrentRoundMatchesDone && nextRoundMatches.length > 0) {
+      if (
+        currentRoundMatches.every((candidate) => candidate.status === "completed") &&
+        downstreamMatch
+      ) {
         await tx
           .update(tournamentsTable)
-          .set({ currentRound: nextRound })
-          .where(eq(tournamentsTable.id, match.tournamentId));
+          .set({ currentRound: match.round + 1 })
+          .where(eq(tournamentsTable.id, tournament.id));
       }
     } else if (tournament.format === "round_robin") {
       const allMatches = await tx
-        .select({ status: matchesTable.status })
+        .select()
         .from(matchesTable)
         .where(eq(matchesTable.tournamentId, match.tournamentId));
-      const allMatchesDone = allMatches.every(
-        (roundRobinMatch) =>
-          roundRobinMatch.status === "completed" ||
-          roundRobinMatch.status === "bye" ||
-          roundRobinMatch.status === "walkover",
-      );
-      if (allMatchesDone) {
+      if (allMatches.length > 0 && allMatches.every((candidate) => candidate.status === "completed")) {
         const tournamentPlayers = await tx
           .select()
           .from(playersTable)
           .where(eq(playersTable.tournamentId, match.tournamentId));
-        const topPlayer = tournamentPlayers.reduce((currentTop, candidate) =>
-          currentTop.points > candidate.points ? currentTop : candidate,
+        const [winner] = calculateMatchRecordStandings(
+          tournamentPlayers,
+          allMatches,
+          "round_robin",
         );
-        await tx
-          .update(tournamentsTable)
-          .set({ status: "completed", winnerId: topPlayer.id })
-          .where(eq(tournamentsTable.id, match.tournamentId));
-        await tx
-          .update(playersTable)
-          .set({ status: "winner" })
-          .where(eq(playersTable.id, topPlayer.id));
+        if (winner) {
+          await tx
+            .update(tournamentsTable)
+            .set({ status: "completed", winnerId: winner.playerId })
+            .where(eq(tournamentsTable.id, tournament.id));
+          await tx
+            .update(playersTable)
+            .set({ status: "winner" })
+            .where(eq(playersTable.id, winner.playerId));
+        }
       }
     }
 

@@ -1932,7 +1932,7 @@ export const completeMatch = async (id: number,
 
 
 
-export const getCompleteMatchMutationOptions = <TError = ErrorType<unknown>,
+export const getCompleteMatchMutationOptions = <TError = ErrorType<DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMatch>>, TError,{id: number;data: BodyType<MatchResult>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof completeMatch>>, TError,{id: number;data: BodyType<MatchResult>}, TContext> => {
 
@@ -1961,9 +1961,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CompleteMatchMutationResult = NonNullable<Awaited<ReturnType<typeof completeMatch>>>
     export type CompleteMatchMutationBody = BodyType<MatchResult>
-    export type CompleteMatchMutationError = ErrorType<unknown>
+    export type CompleteMatchMutationError = ErrorType<DomainError>
 
-    export const useCompleteMatch = <TError = ErrorType<unknown>,
+    export const useCompleteMatch = <TError = ErrorType<DomainError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMatch>>, TError,{id: number;data: BodyType<MatchResult>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof completeMatch>>,

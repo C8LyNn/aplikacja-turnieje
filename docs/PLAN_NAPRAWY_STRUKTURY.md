@@ -1,5 +1,8 @@
 # Plan naprawy struktury Tournament Manager
 
+> Status: plan historyczny. Zrealizowane decyzje modelu wyników zostały
+> zastąpione przez `ADR_SERIES_V1_CLEAN_CUTOVER.md`.
+
 Data planu: 2026-07-14
 Podstawa: `AUDYT_STRUKTURY_APLIKACJI.md` i `MAPA_FUNKCJI_I_POLACZEN.md`.
 

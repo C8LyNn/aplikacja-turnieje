@@ -6,11 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface MatchResult {
-  /** @nullable */
-  winnerId?: number | null;
+export type MatchResult = {
+  resultType: 'played';
   score1: number;
   score2: number;
-  isDraw?: boolean;
-  note?: string;
-}
+} | {
+  resultType: 'walkover';
+  winnerId: number;
+  /** @nullable */
+  reason?: string | null;
+} | {
+  resultType: 'no_contest';
+  /** @nullable */
+  reason?: string | null;
+};

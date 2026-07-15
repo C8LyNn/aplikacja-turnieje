@@ -19,7 +19,6 @@ export type TournamentFormat = typeof TournamentFormat[keyof typeof TournamentFo
 
 export const TournamentFormat = {
   single_elimination: 'single_elimination',
-  double_elimination: 'double_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
 } as const;
@@ -31,6 +30,20 @@ export const TournamentStatus = {
   draft: 'draft',
   active: 'active',
   completed: 'completed',
+} as const;
+
+export type TournamentResultModelVersion = typeof TournamentResultModelVersion[keyof typeof TournamentResultModelVersion];
+
+
+export const TournamentResultModelVersion = {
+  series_v1: 'series_v1',
+} as const;
+
+export type TournamentRankingPolicy = typeof TournamentRankingPolicy[keyof typeof TournamentRankingPolicy];
+
+
+export const TournamentRankingPolicy = {
+  match_record_v1: 'match_record_v1',
 } as const;
 
 /**
@@ -56,10 +69,10 @@ export interface Tournament {
   maxPlayers?: number | null;
   /** @nullable */
   swissRounds?: number | null;
-  /** @nullable */
-  allowDraws?: boolean | null;
-  /** @nullable */
-  defaultBestOf?: number | null;
+  resultModelVersion: TournamentResultModelVersion;
+  rankingPolicy: TournamentRankingPolicy;
+  /** @minimum 1 */
+  defaultBestOf: number;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */
@@ -86,7 +99,6 @@ export type TournamentInputFormat = typeof TournamentInputFormat[keyof typeof To
 
 export const TournamentInputFormat = {
   single_elimination: 'single_elimination',
-  double_elimination: 'double_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
 } as const;
@@ -110,7 +122,7 @@ export interface TournamentInput {
   format: TournamentInputFormat;
   maxPlayers?: number;
   swissRounds?: number;
-  allowDraws?: boolean;
+  /** @minimum 1 */
   defaultBestOf?: number;
   /** Optional password to protect organizer access */
   organizerPassword?: string;
@@ -127,7 +139,6 @@ export type TournamentUpdateFormat = typeof TournamentUpdateFormat[keyof typeof 
 
 export const TournamentUpdateFormat = {
   single_elimination: 'single_elimination',
-  double_elimination: 'double_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
 } as const;
@@ -157,7 +168,7 @@ export interface TournamentUpdate {
   status?: TournamentUpdateStatus;
   maxPlayers?: number;
   swissRounds?: number;
-  allowDraws?: boolean;
+  /** @minimum 1 */
   defaultBestOf?: number;
   featuredMatchId?: number;
   /** Host access code (plain text, stored hashed) */
@@ -198,10 +209,6 @@ export interface Player {
   /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
-  wins?: number;
-  draws?: number;
-  losses?: number;
-  points?: number;
   createdAt: string;
 }
 
@@ -260,17 +267,27 @@ export interface CsvImportResult {
   errors: CsvRowError[];
 }
 
+/**
+ * @nullable
+ */
+export type MatchResultType = typeof MatchResultType[keyof typeof MatchResultType] | null;
+
+
+export const MatchResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
+
 export type MatchStatus = typeof MatchStatus[keyof typeof MatchStatus];
 
 
 export const MatchStatus = {
   pending: 'pending',
-  ready: 'ready',
   in_progress: 'in_progress',
-  completed: 'completed',
-  bye: 'bye',
-  walkover: 'walkover',
   postponed: 'postponed',
+  completed: 'completed',
   cancelled: 'cancelled',
 } as const;
 
@@ -294,9 +311,11 @@ export interface Match {
   /** @nullable */
   winnerId?: number | null;
   /** @nullable */
-  isDraw?: boolean | null;
+  resultType?: MatchResultType;
   /** @nullable */
-  bestOf?: number | null;
+  resultReason?: string | null;
+  /** @minimum 1 */
+  bestOf: number;
   /** @nullable */
   note?: string | null;
   status: MatchStatus;
@@ -306,6 +325,8 @@ export interface Match {
   sortOrder?: number | null;
   /** @nullable */
   scheduledAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
 }
 
 export interface MatchCancelInput {
@@ -321,7 +342,6 @@ export type MatchUpdateStatus = typeof MatchUpdateStatus[keyof typeof MatchUpdat
 
 export const MatchUpdateStatus = {
   pending: 'pending',
-  ready: 'ready',
   in_progress: 'in_progress',
   postponed: 'postponed',
   cancelled: 'cancelled',
@@ -330,39 +350,66 @@ export const MatchUpdateStatus = {
 export interface MatchUpdate {
   status?: MatchUpdateStatus;
   note?: string;
+  /** @minimum 1 */
   bestOf?: number;
 }
 
-export interface MatchResult {
-  /** @nullable */
-  winnerId?: number | null;
+export type MatchResult = {
+  resultType: 'played';
   score1: number;
   score2: number;
-  isDraw?: boolean;
-  note?: string;
-}
+} | {
+  resultType: 'walkover';
+  winnerId: number;
+  /** @nullable */
+  reason?: string | null;
+} | {
+  resultType: 'no_contest';
+  /** @nullable */
+  reason?: string | null;
+};
+
+export type StandingStatus = typeof StandingStatus[keyof typeof StandingStatus];
+
+
+export const StandingStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  winner: 'winner',
+} as const;
 
 export interface Standing {
   rank: number;
   playerId: number;
   playerName: string;
   /** @nullable */
-  rank_name?: string | null;
+  rankName: string | null;
   /** @nullable */
-  teamName?: string | null;
+  teamName: string | null;
   /** @nullable */
-  country?: string | null;
+  country: string | null;
   /** @nullable */
   seed: number | null;
-  points: number;
-  wins: number;
-  draws: number;
-  losses: number;
-  buchholz: number;
-  pointDiff: number;
-  gamesFor?: number;
-  gamesAgainst?: number;
+  status: StandingStatus;
+  matchesPlayed: number;
+  matchWins: number;
+  matchLosses: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDiff: number;
+  /** @nullable */
+  buchholz: number | null;
 }
+
+export type ResultRecordResultType = typeof ResultRecordResultType[keyof typeof ResultRecordResultType];
+
+
+export const ResultRecordResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
 
 export interface ResultRecord {
   id: number;
@@ -378,13 +425,16 @@ export interface ResultRecord {
   /** @nullable */
   score2: number | null;
   /** @nullable */
-  winnerId?: number | null;
+  winnerId: number | null;
   /** @nullable */
-  winnerName?: string | null;
+  winnerName: string | null;
+  bestOf: number;
+  resultType: ResultRecordResultType;
   /** @nullable */
-  isDraw?: boolean | null;
-  status: string;
+  resultReason: string | null;
+  revision: number;
   completedAt: string;
+  recordedAt: string;
 }
 
 export interface ActionLogEntry {
@@ -426,12 +476,39 @@ export interface Bracket {
   winner?: BracketWinner;
 }
 
+export type TournamentBackupTournamentFormat = typeof TournamentBackupTournamentFormat[keyof typeof TournamentBackupTournamentFormat];
+
+
+export const TournamentBackupTournamentFormat = {
+  single_elimination: 'single_elimination',
+  round_robin: 'round_robin',
+  swiss: 'swiss',
+} as const;
+
+export type TournamentBackupTournamentStatus = typeof TournamentBackupTournamentStatus[keyof typeof TournamentBackupTournamentStatus];
+
+
+export const TournamentBackupTournamentStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupTournamentVisibility = typeof TournamentBackupTournamentVisibility[keyof typeof TournamentBackupTournamentVisibility];
+
+
+export const TournamentBackupTournamentVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
+} as const;
+
 export type TournamentBackupTournament = {
   name: string;
   /** @nullable */
   description?: string | null;
-  format: string;
-  status: string;
+  format: TournamentBackupTournamentFormat;
+  status: TournamentBackupTournamentStatus;
   /** @nullable */
   maxPlayers?: number | null;
   /** @nullable */
@@ -440,9 +517,23 @@ export type TournamentBackupTournament = {
   totalRounds?: number | null;
   /** @nullable */
   swissRounds?: number | null;
+  /** @minimum 1 */
+  defaultBestOf: number;
+  visibility: TournamentBackupTournamentVisibility;
   /** @nullable */
-  featuredMatchId?: number | null;
+  winnerBackupId?: number | null;
+  /** @nullable */
+  featuredMatchBackupId?: number | null;
 };
+
+export type TournamentBackupPlayersItemStatus = typeof TournamentBackupPlayersItemStatus[keyof typeof TournamentBackupPlayersItemStatus];
+
+
+export const TournamentBackupPlayersItemStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  winner: 'winner',
+} as const;
 
 export type TournamentBackupPlayersItem = {
   backupId: number;
@@ -455,12 +546,32 @@ export type TournamentBackupPlayersItem = {
   teamName?: string | null;
   /** @nullable */
   seed?: number | null;
-  wins?: number;
-  draws?: number;
-  losses?: number;
-  points?: number;
-  status?: string;
+  status: TournamentBackupPlayersItemStatus;
 };
+
+/**
+ * @nullable
+ */
+export type TournamentBackupMatchesItemResultType = typeof TournamentBackupMatchesItemResultType[keyof typeof TournamentBackupMatchesItemResultType] | null;
+
+
+export const TournamentBackupMatchesItemResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
+
+export type TournamentBackupMatchesItemStatus = typeof TournamentBackupMatchesItemStatus[keyof typeof TournamentBackupMatchesItemStatus];
+
+
+export const TournamentBackupMatchesItemStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  postponed: 'postponed',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
 
 export type TournamentBackupMatchesItem = {
   backupId: number;
@@ -476,20 +587,40 @@ export type TournamentBackupMatchesItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
-  isDraw?: boolean;
-  bestOf?: number;
-  status?: string;
+  /** @nullable */
+  resultType: TournamentBackupMatchesItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  /** @minimum 1 */
+  bestOf: number;
+  status: TournamentBackupMatchesItemStatus;
   /** @nullable */
   note?: string | null;
+  /** @nullable */
+  nextMatchBackupId?: number | null;
+  /** @nullable */
+  sortOrder?: number | null;
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
   completedAt?: string | null;
 };
 
+export type TournamentBackupResultHistoryItemResultType = typeof TournamentBackupResultHistoryItemResultType[keyof typeof TournamentBackupResultHistoryItemResultType];
+
+
+export const TournamentBackupResultHistoryItemResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
+
 export type TournamentBackupResultHistoryItem = {
-  round?: number;
-  matchNumber?: number;
+  matchBackupId: number;
+  revision: number;
+  round: number;
+  matchNumber: number;
   /** @nullable */
   player1BackupId?: number | null;
   /** @nullable */
@@ -500,21 +631,35 @@ export type TournamentBackupResultHistoryItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
-  isDraw?: boolean;
-  status?: string;
+  bestOf: number;
+  resultType: TournamentBackupResultHistoryItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  completedAt: string;
+  recordedAt: string;
 };
 
+/**
+ * @nullable
+ */
+export type TournamentBackupActionLogItemUndoPayload = { [key: string]: unknown } | null;
+
 export type TournamentBackupActionLogItem = {
-  actionType?: string;
-  description?: string;
+  actionType: string;
+  description: string;
   /** @nullable */
-  matchBackupId?: number | null;
-  isUndone?: boolean;
-  createdAt?: string;
+  matchBackupId: number | null;
+  canUndo: boolean;
+  /** @nullable */
+  undoPayload: TournamentBackupActionLogItemUndoPayload;
+  isUndone: boolean;
+  createdAt: string;
 };
 
 export interface TournamentBackup {
-  version: string;
+  schemaVersion: 2;
+  resultModelVersion: 'series_v1';
+  rankingPolicy: 'match_record_v1';
   exportedAt: string;
   tournament: TournamentBackupTournament;
   players: TournamentBackupPlayersItem[];
@@ -532,9 +677,9 @@ export interface ImportResult {
 export type TournamentStatsTopPlayersItem = {
   id?: number;
   name?: string;
-  wins?: number;
-  losses?: number;
-  points?: number;
+  matchWins?: number;
+  matchLosses?: number;
+  gameDiff?: number;
 };
 
 export interface TournamentStats {

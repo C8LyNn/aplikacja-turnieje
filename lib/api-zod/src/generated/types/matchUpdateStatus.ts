@@ -11,7 +11,6 @@ export type MatchUpdateStatus = typeof MatchUpdateStatus[keyof typeof MatchUpdat
 
 export const MatchUpdateStatus = {
   pending: 'pending',
-  ready: 'ready',
   in_progress: 'in_progress',
   postponed: 'postponed',
   cancelled: 'cancelled',

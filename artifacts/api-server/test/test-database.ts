@@ -1,5 +1,11 @@
+import { readFile } from "node:fs/promises";
+
 const RESET_CONFIRMATION = "DROP_TM_TEST_SCHEMA";
 const SAFE_SCHEMA_PATTERN = /^tm_test_[a-z0-9_]+$/;
+const SERIES_V1_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0001_series_v1_clean_cutover.sql",
+  import.meta.url,
+);
 
 function assertSafeTestSchema(schema: string): void {
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
@@ -69,122 +75,8 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
     await pool.query(`CREATE SCHEMA "${schema}"`);
     schemaCreated = true;
     await pool.query(`SET search_path TO "${schema}"`);
-    await pool.query(`
-    CREATE TYPE tournament_format AS ENUM (
-      'single_elimination', 'double_elimination', 'round_robin', 'swiss'
-    );
-    CREATE TYPE tournament_status AS ENUM ('draft', 'active', 'completed');
-    CREATE TYPE player_status AS ENUM ('active', 'eliminated', 'winner');
-    CREATE TYPE match_status AS ENUM (
-      'pending', 'ready', 'in_progress', 'completed', 'bye', 'walkover', 'postponed', 'cancelled'
-    );
-
-    CREATE TABLE tournaments (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      format tournament_format NOT NULL,
-      status tournament_status NOT NULL DEFAULT 'draft',
-      max_players INTEGER,
-      swiss_rounds INTEGER,
-      allow_draws BOOLEAN DEFAULT FALSE,
-      default_best_of INTEGER DEFAULT 1,
-      current_round INTEGER,
-      total_rounds INTEGER,
-      winner_id INTEGER,
-      featured_match_id INTEGER,
-      host_code TEXT,
-      organizer_password_hash TEXT,
-      support_password_hash TEXT,
-      support_password_version INTEGER NOT NULL DEFAULT 1,
-      viewer_password_hash TEXT,
-      viewer_password_version INTEGER NOT NULL DEFAULT 1,
-      visibility TEXT NOT NULL DEFAULT 'public_online',
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    CREATE TABLE players (
-      id SERIAL PRIMARY KEY,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      rank TEXT,
-      country TEXT,
-      team_name TEXT,
-      seed INTEGER,
-      status player_status NOT NULL DEFAULT 'active',
-      wins INTEGER NOT NULL DEFAULT 0,
-      draws INTEGER NOT NULL DEFAULT 0,
-      losses INTEGER NOT NULL DEFAULT 0,
-      points INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    CREATE TABLE matches (
-      id SERIAL PRIMARY KEY,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      round INTEGER NOT NULL,
-      match_number INTEGER NOT NULL,
-      player1_id INTEGER REFERENCES players(id),
-      player2_id INTEGER REFERENCES players(id),
-      score1 INTEGER,
-      score2 INTEGER,
-      winner_id INTEGER REFERENCES players(id),
-      is_draw BOOLEAN DEFAULT FALSE,
-      best_of INTEGER DEFAULT 1,
-      note TEXT,
-      status match_status NOT NULL DEFAULT 'pending',
-      next_match_id INTEGER,
-      sort_order INTEGER,
-      scheduled_at TIMESTAMP,
-      completed_at TIMESTAMP
-    );
-
-    CREATE TABLE result_history (
-      id SERIAL PRIMARY KEY,
-      match_id INTEGER NOT NULL,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      round INTEGER NOT NULL,
-      match_number INTEGER NOT NULL,
-      player1_id INTEGER,
-      player2_id INTEGER,
-      score1 INTEGER,
-      score2 INTEGER,
-      winner_id INTEGER,
-      is_draw BOOLEAN DEFAULT FALSE,
-      status TEXT NOT NULL,
-      completed_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    CREATE TABLE action_log (
-      id SERIAL PRIMARY KEY,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      action_type TEXT NOT NULL,
-      description TEXT NOT NULL,
-      match_id INTEGER,
-      undo_payload TEXT,
-      is_undone BOOLEAN NOT NULL DEFAULT FALSE,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    CREATE TABLE support_sessions (
-      id SERIAL PRIMARY KEY,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      nick TEXT NOT NULL,
-      session_token TEXT NOT NULL,
-      password_version INTEGER NOT NULL DEFAULT 1,
-      last_active_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-
-    CREATE TABLE auth_audit_log (
-      id SERIAL PRIMARY KEY,
-      tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
-      actor_type TEXT NOT NULL,
-      actor_nick TEXT NOT NULL,
-      action TEXT NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    );
-    `);
+    const migrationSql = await readFile(SERIES_V1_MIGRATION_URL, "utf8");
+    await pool.query(migrationSql);
   } catch (error) {
     if (schemaCreated) {
       try {

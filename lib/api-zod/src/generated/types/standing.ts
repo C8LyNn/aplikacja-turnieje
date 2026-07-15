@@ -5,25 +5,27 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { StandingStatus } from './standingStatus';
 
 export interface Standing {
   rank: number;
   playerId: number;
   playerName: string;
   /** @nullable */
-  rank_name?: string | null;
+  rankName: string | null;
   /** @nullable */
-  teamName?: string | null;
+  teamName: string | null;
   /** @nullable */
-  country?: string | null;
+  country: string | null;
   /** @nullable */
   seed: number | null;
-  points: number;
-  wins: number;
-  draws: number;
-  losses: number;
-  buchholz: number;
-  pointDiff: number;
-  gamesFor?: number;
-  gamesAgainst?: number;
+  status: StandingStatus;
+  matchesPlayed: number;
+  matchWins: number;
+  matchLosses: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDiff: number;
+  /** @nullable */
+  buchholz: number | null;
 }

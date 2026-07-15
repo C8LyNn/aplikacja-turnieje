@@ -87,8 +87,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds }: SwissRou
 function SwissMatchCard({ match }: { match: Match }) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
-  const isBye = match.status === "bye";
-  const isDraw = match.isDraw;
+  const isBye = match.resultType === "bye";
 
   return (
     <div
@@ -110,11 +109,10 @@ function SwissMatchCard({ match }: { match: Match }) {
             LIVE
           </span>
         )}
-        {isDone && !isDraw && (
-          <span className="text-[8px] text-green-400">✓</span>
-        )}
-        {isDone && isDraw && (
-          <span className="text-[8px] text-muted-foreground">remis</span>
+        {isDone && !isBye && (
+          <span className="text-[8px] text-green-400">
+            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "no contest" : "✓"}
+          </span>
         )}
         {isBye && (
           <span className="text-[8px] text-muted-foreground uppercase tracking-wide">bye</span>
@@ -125,8 +123,7 @@ function SwissMatchCard({ match }: { match: Match }) {
       <SwissPlayerRow
         name={match.player1Name}
         score={match.score1}
-        isWinner={isDone && match.winnerId === match.player1Id && !isDraw}
-        isDraw={isDone && !!isDraw}
+        isWinner={isDone && match.winnerId === match.player1Id}
         isPending={!match.player1Id && !isBye}
       />
 
@@ -136,8 +133,7 @@ function SwissMatchCard({ match }: { match: Match }) {
       <SwissPlayerRow
         name={match.player2Name}
         score={match.score2}
-        isWinner={isDone && match.winnerId === match.player2Id && !isDraw}
-        isDraw={isDone && !!isDraw}
+        isWinner={isDone && match.winnerId === match.player2Id}
         isPending={!match.player2Id && !isBye}
       />
     </div>
@@ -148,13 +144,11 @@ function SwissPlayerRow({
   name,
   score,
   isWinner,
-  isDraw,
   isPending,
 }: {
   name?: string | null;
   score?: number | null;
   isWinner: boolean;
-  isDraw: boolean;
   isPending: boolean;
 }) {
   return (
@@ -169,8 +163,6 @@ function SwissPlayerRow({
             ? "text-muted-foreground italic"
             : isWinner
             ? "font-bold text-primary"
-            : isDraw
-            ? "text-foreground/80"
             : "text-foreground"
         }`}
       >

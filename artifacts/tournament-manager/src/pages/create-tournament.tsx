@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Trophy, Lock, Eye, EyeOff, Globe } from "lucide-react";
 
 const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
@@ -18,15 +17,11 @@ const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
   },
   swiss: {
     label: "System szwajcarski",
-    desc: "Wszyscy grają X rund. Parowanie na podstawie punktów. Dobry dla turniejów bez eliminacji.",
+    desc: "Wszyscy grają ustaloną liczbę rund. Parowanie uwzględnia bilans meczów i Buchholza.",
   },
   round_robin: {
     label: "Każdy z każdym",
     desc: "Każdy gracz zmierzy się z każdym. Najdokładniejszy wynik.",
-  },
-  double_elimination: {
-    label: "Podwójna eliminacja",
-    desc: "Dwie przegrane = odpadnięcie. Bracket górny i dolny.",
   },
 };
 
@@ -39,7 +34,6 @@ export default function CreateTournament() {
   const [format, setFormat] = useState("single_elimination");
   const [maxPlayers, setMaxPlayers] = useState("");
   const [swissRounds, setSwissRounds] = useState("");
-  const [allowDraws, setAllowDraws] = useState(false);
   const [defaultBestOf, setDefaultBestOf] = useState("1");
   const [organizerPassword, setOrganizerPassword] = useState("");
   const [supportPassword, setSupportPassword] = useState("");
@@ -59,7 +53,6 @@ export default function CreateTournament() {
           format: format as any,
           maxPlayers: maxPlayers ? parseInt(maxPlayers, 10) : undefined,
           swissRounds: format === "swiss" && swissRounds ? parseInt(swissRounds, 10) : undefined,
-          allowDraws,
           defaultBestOf: parseInt(defaultBestOf, 10) || 1,
           organizerPassword: organizerPassword || undefined,
           supportPassword: supportPassword || undefined,
@@ -173,12 +166,10 @@ export default function CreateTournament() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                <div>
-                  <p className="text-sm font-medium">Remisy dozwolone</p>
-                  <p className="text-xs text-muted-foreground">Mecze mogą kończyć się remisem (1 pkt)</p>
-                </div>
-                <Switch checked={allowDraws} onCheckedChange={setAllowDraws} />
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
+                <p><strong className="text-foreground">Wynik oznacza wygrane gry lub mapy.</strong></p>
+                <p>BO3 wymaga 2 wygranych, BO5 wymaga 3. Wynik 2:1 to wynik serii, nie gole ani punkty klasyfikacyjne.</p>
+                <p>Każdy rozegrany mecz wyłania zwycięzcę; remis całego meczu nie jest obsługiwany.</p>
               </div>
 
               {/* Visibility */}

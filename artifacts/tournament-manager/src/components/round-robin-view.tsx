@@ -43,9 +43,14 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">
             Terminarz
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
-            {allMatches.map((match) => (
-              <RRMatchCard key={match.id} match={match} />
+          <div className="space-y-4">
+            {bracket.rounds.map((round) => (
+              <section key={round.round}>
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Runda {round.round}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                  {round.matches.map((match) => <RRMatchCard key={match.id} match={match} />)}
+                </div>
+              </section>
             ))}
           </div>
         </div>
@@ -62,9 +67,10 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                   <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
                     <th className="py-2 px-2 text-left w-6">#</th>
                     <th className="py-2 px-2 text-left">Gracz</th>
-                    <th className="py-2 px-2 text-center font-bold text-primary">Pkt</th>
+                    <th className="py-2 px-2 text-center">M</th>
                     <th className="py-2 px-2 text-center">W</th>
                     <th className="py-2 px-2 text-center">P</th>
+                    <th className="py-2 px-2 text-center">Gry</th>
                     <th className="py-2 px-2 text-center">+/−</th>
                   </tr>
                 </thead>
@@ -86,21 +92,22 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                             <div className="text-[9px] text-muted-foreground">{s.teamName}{s.teamName && s.country ? " · " : ""}{s.country}</div>
                           )}
                         </td>
-                        <td className="py-2 px-2 text-center font-bold text-primary">{s.points}</td>
-                        <td className="py-2 px-2 text-center text-green-400">{s.wins}</td>
-                        <td className="py-2 px-2 text-center text-red-400">{s.losses}</td>
+                        <td className="py-2 px-2 text-center">{s.matchesPlayed}</td>
+                        <td className="py-2 px-2 text-center text-green-400">{s.matchWins}</td>
+                        <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
+                        <td className="py-2 px-2 text-center font-mono text-[10px]">{s.gameWins}:{s.gameLosses}</td>
                         <td className={`py-2 px-2 text-center font-mono text-[10px] ${
-                          s.pointDiff > 0 ? "text-green-400" :
-                          s.pointDiff < 0 ? "text-red-400" :
+                          s.gameDiff > 0 ? "text-green-400" :
+                          s.gameDiff < 0 ? "text-red-400" :
                           "text-muted-foreground"
                         }`}>
-                          {s.pointDiff > 0 ? "+" : ""}{s.pointDiff}
+                          {s.gameDiff > 0 ? "+" : ""}{s.gameDiff}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="py-6 text-center text-muted-foreground">
+                      <td colSpan={7} className="py-6 text-center text-muted-foreground">
                         Brak danych
                       </td>
                     </tr>
@@ -118,7 +125,6 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
 function RRMatchCard({ match }: { match: Match }) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
-  const isDraw = match.isDraw;
 
   return (
     <div className={`rounded-lg border overflow-hidden transition-colors ${
@@ -134,11 +140,10 @@ function RRMatchCard({ match }: { match: Match }) {
         {isLive && (
           <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">LIVE</span>
         )}
-        {isDone && !isDraw && (
-          <span className="text-[8px] text-green-400">✓</span>
-        )}
-        {isDone && isDraw && (
-          <span className="text-[8px] text-muted-foreground">remis</span>
+        {isDone && (
+          <span className="text-[8px] text-green-400">
+            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "no contest" : "✓"}
+          </span>
         )}
         {!isDone && !isLive && (
           <span className="text-[8px] text-muted-foreground">oczekuje</span>
@@ -149,16 +154,14 @@ function RRMatchCard({ match }: { match: Match }) {
       <RRPlayerRow
         name={match.player1Name}
         score={match.score1}
-        isWinner={isDone && match.winnerId === match.player1Id && !isDraw}
-        isDraw={isDone && !!isDraw}
+        isWinner={isDone && match.winnerId === match.player1Id}
       />
       <div className="h-px bg-border/20" />
       {/* Player 2 */}
       <RRPlayerRow
         name={match.player2Name}
         score={match.score2}
-        isWinner={isDone && match.winnerId === match.player2Id && !isDraw}
-        isDraw={isDone && !!isDraw}
+        isWinner={isDone && match.winnerId === match.player2Id}
       />
     </div>
   );
@@ -168,19 +171,15 @@ function RRPlayerRow({
   name,
   score,
   isWinner,
-  isDraw,
 }: {
   name?: string | null;
   score?: number | null;
   isWinner: boolean;
-  isDraw: boolean;
 }) {
   return (
     <div className={`flex items-center justify-between px-2 py-1.5 min-w-0 ${isWinner ? "bg-primary/10" : ""}`}>
       <span className={`text-[11px] leading-tight truncate flex-1 pr-1 ${
-        isWinner ? "font-bold text-primary" :
-        isDraw ? "text-foreground/80" :
-        "text-foreground"
+        isWinner ? "font-bold text-primary" : "text-foreground"
       }`}>
         {name || "?"}
       </span>

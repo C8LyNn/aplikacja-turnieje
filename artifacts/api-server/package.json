@@ -9,8 +9,8 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "pnpm run test:unit && pnpm run test:integration",
-    "test:unit": "node --import tsx --test ./test/series-result.test.ts",
-    "test:integration": "node --import tsx --test --test-concurrency=1 ./test/access.integration.test.ts ./test/complete-match.integration.test.ts ./test/revert-match.integration.test.ts"
+    "test:unit": "node --import tsx --test ./test/series-result.test.ts ./test/standings.test.ts ./test/round-robin.test.ts ./test/swiss.test.ts ../tournament-manager/src/lib/backup-file.test.ts",
+    "test:integration": "node --import tsx --test --test-concurrency=1 ./test/access.integration.test.ts ./test/complete-match.integration.test.ts ./test/revert-match.integration.test.ts ./test/series-v1.integration.test.ts ./test/migration.integration.test.ts"
   },
   "dependencies": {
     "@workspace/api-zod": "workspace:*",

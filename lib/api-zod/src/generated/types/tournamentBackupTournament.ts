@@ -5,13 +5,16 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupTournamentFormat } from './tournamentBackupTournamentFormat';
+import type { TournamentBackupTournamentStatus } from './tournamentBackupTournamentStatus';
+import type { TournamentBackupTournamentVisibility } from './tournamentBackupTournamentVisibility';
 
 export type TournamentBackupTournament = {
   name: string;
   /** @nullable */
   description?: string | null;
-  format: string;
-  status: string;
+  format: TournamentBackupTournamentFormat;
+  status: TournamentBackupTournamentStatus;
   /** @nullable */
   maxPlayers?: number | null;
   /** @nullable */
@@ -20,6 +23,11 @@ export type TournamentBackupTournament = {
   totalRounds?: number | null;
   /** @nullable */
   swissRounds?: number | null;
+  /** @minimum 1 */
+  defaultBestOf: number;
+  visibility: TournamentBackupTournamentVisibility;
   /** @nullable */
-  featuredMatchId?: number | null;
+  winnerBackupId?: number | null;
+  /** @nullable */
+  featuredMatchBackupId?: number | null;
 };

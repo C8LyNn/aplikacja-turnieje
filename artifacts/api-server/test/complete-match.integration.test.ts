@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
-import { eq } from "drizzle-orm";
 import type { Express } from "express";
 import request, { type Response } from "supertest";
 import {
@@ -13,6 +12,7 @@ import {
 } from "./test-database";
 
 type Headers = Record<string, string>;
+type Format = "single_elimination" | "round_robin" | "swiss";
 
 interface DatabaseModule {
   db: typeof import("@workspace/db").db;
@@ -28,106 +28,79 @@ interface DatabaseModule {
 interface MatchFixture {
   tournamentId: number;
   matchId: number;
-  nextMatchId: number;
+  nextMatchId: number | null;
   playerIds: [number, number, number, number];
   organizerHeaders: Headers;
   supportHeaders: Headers;
   viewerHeaders: Headers;
 }
 
-interface MatchSnapshot {
-  match: unknown;
-  players: unknown[];
-  resultHistory: number;
-  resultActions: number;
-  nextMatch: unknown;
-  tournament: unknown;
-}
-
-interface CompletePayload {
-  score1: number;
-  score2: number;
-  winnerId?: number | null;
-  isDraw?: boolean;
-}
-
-const SESSION_SECRET = `complete-match-test-${randomUUID()}`;
+const SESSION_SECRET = `complete-series-v1-${randomUUID()}`;
 let app: Express;
 let database: DatabaseModule;
 let testConfig: TestDatabaseConfig;
-let testSchemaInitialized = false;
+let schemaInitialized = false;
 let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
 let signViewerToken: typeof import("../src/auth").signViewerToken;
 let completeMatchUseCase: typeof import("../src/application/matches/complete-match").completeMatch;
 
-async function createFixture(options: { allowDraws?: boolean } = {}): Promise<MatchFixture> {
+async function createFixture(options: {
+  bestOf?: number;
+  format?: Format;
+  lifecycle?: "pending" | "in_progress" | "postponed" | "cancelled";
+  bracket?: boolean;
+} = {}): Promise<MatchFixture> {
   const suffix = randomUUID();
-  const [tournament] = await database.db
-    .insert(database.tournamentsTable)
-    .values({
-      name: `Complete fixture ${suffix}`,
-      format: "single_elimination",
-      status: "active",
-      visibility: "public_online",
-      allowDraws: options.allowDraws ?? false,
-      defaultBestOf: 3,
-      currentRound: 1,
-      totalRounds: 2,
-    })
-    .returning();
-
-  const players = await database.db
-    .insert(database.playersTable)
-    .values([1, 2, 3, 4].map((seed) => ({
-      tournamentId: tournament.id,
-      name: `Player ${seed} ${suffix}`,
-      seed,
-    })))
-    .returning();
-
-  const matches = await database.db
-    .insert(database.matchesTable)
-    .values([
-      {
-        tournamentId: tournament.id,
-        round: 1,
-        matchNumber: 1,
-        player1Id: players[0].id,
-        player2Id: players[1].id,
-        bestOf: 3,
-        status: "pending" as const,
-      },
+  const format = options.format ?? "single_elimination";
+  const bracket = options.bracket ?? format === "single_elimination";
+  const bestOf = options.bestOf ?? 3;
+  const [tournament] = await database.db.insert(database.tournamentsTable).values({
+    name: `Complete ${suffix}`,
+    format,
+    status: "active",
+    visibility: "public_online",
+    defaultBestOf: bestOf,
+    currentRound: 1,
+    totalRounds: bracket ? 2 : 1,
+    swissRounds: format === "swiss" ? 1 : null,
+  }).returning();
+  const players = await database.db.insert(database.playersTable).values(
+    [1, 2, 3, 4].map((seed) => ({ tournamentId: tournament.id, name: `P${seed}-${suffix}`, seed })),
+  ).returning();
+  const values: Array<typeof database.matchesTable.$inferInsert> = [{
+    tournamentId: tournament.id,
+    round: 1,
+    matchNumber: 1,
+    player1Id: players[0].id,
+    player2Id: players[1].id,
+    bestOf,
+    status: options.lifecycle ?? "pending",
+  }];
+  if (bracket) {
+    values.push(
       {
         tournamentId: tournament.id,
         round: 1,
         matchNumber: 2,
         player1Id: players[2].id,
         player2Id: players[3].id,
-        bestOf: 3,
-        status: "pending" as const,
+        bestOf,
+        status: "pending",
       },
-      {
-        tournamentId: tournament.id,
-        round: 2,
-        matchNumber: 1,
-        bestOf: 3,
-        status: "pending" as const,
-      },
-    ])
-    .returning();
-
+      { tournamentId: tournament.id, round: 2, matchNumber: 1, bestOf, status: "pending" },
+    );
+  }
+  const matches = await database.db.insert(database.matchesTable).values(values).returning();
   const supportToken = randomUUID();
   await database.db.insert(database.supportSessionsTable).values({
     tournamentId: tournament.id,
-    nick: "Complete Match Support",
+    nick: "Support",
     sessionToken: supportToken,
-    passwordVersion: 1,
   });
-
   return {
     tournamentId: tournament.id,
     matchId: matches[0].id,
-    nextMatchId: matches[2].id,
+    nextMatchId: bracket ? matches[2].id : null,
     playerIds: [players[0].id, players[1].id, players[2].id, players[3].id],
     organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
     supportHeaders: { "x-support-token": supportToken },
@@ -135,89 +108,34 @@ async function createFixture(options: { allowDraws?: boolean } = {}): Promise<Ma
   };
 }
 
-async function createForeignPlayer(): Promise<{ tournamentId: number; playerId: number }> {
-  const suffix = randomUUID();
-  const [tournament] = await database.db
-    .insert(database.tournamentsTable)
-    .values({
-      name: `Foreign tournament ${suffix}`,
-      format: "single_elimination",
-      status: "active",
-      visibility: "public_online",
-    })
-    .returning();
-  const [player] = await database.db
-    .insert(database.playersTable)
-    .values({ tournamentId: tournament.id, name: `Foreign player ${suffix}`, seed: 1 })
-    .returning();
-  return { tournamentId: tournament.id, playerId: player.id };
-}
-
-function defaultPayload(fixture: MatchFixture): CompletePayload {
-  void fixture;
-  return {
-    score1: 1,
-    score2: 0,
-    isDraw: false,
-  };
-}
-
 async function postComplete(
   fixture: MatchFixture,
-  headers: Headers,
-  payload: CompletePayload = defaultPayload(fixture),
+  payload: Record<string, unknown>,
+  headers: Headers = fixture.organizerHeaders,
 ): Promise<Response> {
-  return request(app)
-    .post(`/api/matches/${fixture.matchId}/complete`)
-    .set(headers)
-    .send(payload);
+  return request(app).post(`/api/matches/${fixture.matchId}/complete`).set(headers).send(payload);
 }
 
-async function snapshot(fixture: MatchFixture, extraPlayerIds: number[] = []): Promise<MatchSnapshot> {
-  const playerIds = [...fixture.playerIds, ...extraPlayerIds];
-  const [match, players, resultHistory, resultActions, nextMatch, tournament] = await Promise.all([
+async function snapshot(fixture: MatchFixture) {
+  const [match, players, history, actions, downstream] = await Promise.all([
     database.pool.query(
-      "SELECT status, score1, score2, winner_id, is_draw, completed_at FROM matches WHERE id = $1",
+      "SELECT status, result_type, result_reason, score1, score2, winner_id, completed_at FROM matches WHERE id = $1",
       [fixture.matchId],
     ),
-    database.pool.query(
-      "SELECT id, tournament_id, wins, draws, losses, points, status FROM players WHERE id = ANY($1::int[]) ORDER BY id",
-      [playerIds],
-    ),
-    database.pool.query(
-      "SELECT COUNT(*)::int AS count FROM result_history WHERE match_id = $1",
-      [fixture.matchId],
-    ),
-    database.pool.query(
-      "SELECT COUNT(*)::int AS count FROM action_log WHERE match_id = $1 AND action_type = 'match_result_submitted'",
-      [fixture.matchId],
-    ),
-    database.pool.query(
-      "SELECT player1_id, player2_id, status FROM matches WHERE id = $1",
-      [fixture.nextMatchId],
-    ),
-    database.pool.query(
-      "SELECT status, winner_id, current_round FROM tournaments WHERE id = $1",
-      [fixture.tournamentId],
-    ),
+    database.pool.query("SELECT id, status FROM players WHERE tournament_id = $1 ORDER BY id", [fixture.tournamentId]),
+    database.pool.query("SELECT revision, result_type, score1, score2, winner_id, best_of FROM result_history WHERE match_id = $1 ORDER BY revision", [fixture.matchId]),
+    database.pool.query("SELECT action_type, undo_payload FROM action_log WHERE match_id = $1 ORDER BY id", [fixture.matchId]),
+    fixture.nextMatchId == null
+      ? Promise.resolve({ rows: [] })
+      : database.pool.query("SELECT player1_id, player2_id, status FROM matches WHERE id = $1", [fixture.nextMatchId]),
   ]);
-
-  return {
-    match: match.rows[0],
-    players: players.rows,
-    resultHistory: (resultHistory.rows[0] as { count: number }).count,
-    resultActions: (resultActions.rows[0] as { count: number }).count,
-    nextMatch: nextMatch.rows[0],
-    tournament: tournament.rows[0],
-  };
+  return { match: match.rows[0], players: players.rows, history: history.rows, actions: actions.rows, downstream: downstream.rows[0] };
 }
 
-function assertSafeDomainError(response: Response, expectedStatus: number): void {
-  assert.equal(response.status, expectedStatus);
+function assertDomainError(response: Response, status: number, code?: string): void {
+  assert.equal(response.status, status);
   assert.equal(typeof response.body?.error, "string");
-  assert.equal(typeof response.body?.code, "string");
-  assert.deepEqual(Object.keys(response.body).sort(), ["code", "error"]);
-  assert.doesNotMatch(JSON.stringify(response.body), /Player \d|Foreign|Complete fixture/i);
+  if (code) assert.equal(response.body?.code, code);
 }
 
 before(async () => {
@@ -225,11 +143,9 @@ before(async () => {
   process.env.NODE_ENV = "test";
   process.env.DATABASE_URL = testConfig.connectionString;
   process.env.SESSION_SECRET = SESSION_SECRET;
-
   database = await import("@workspace/db") as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, testConfig.schema);
-  testSchemaInitialized = true;
-
+  schemaInitialized = true;
   const auth = await import("../src/auth");
   signOrganizerToken = auth.signOrganizerToken;
   signViewerToken = auth.signViewerToken;
@@ -239,410 +155,232 @@ before(async () => {
 
 after(async () => {
   if (!database || !testConfig) return;
-  if (testSchemaInitialized) {
-    await dropTestSchema(database.pool as unknown as TestPool, testConfig.schema);
-  }
+  if (schemaInitialized) await dropTestSchema(database.pool as unknown as TestPool, testConfig.schema);
   await database.pool.end();
 });
 
-describe("atomic CompleteMatch", () => {
-  test("completes a legacy BO3 1:0, applies 3/1/0 stats, history, log, elimination and advancement", async () => {
+describe("CompleteMatch series_v1 played results", () => {
+  const validCases = [
+    { bestOf: 1, score1: 1, score2: 0, winner: 0 },
+    { bestOf: 1, score1: 0, score2: 1, winner: 1 },
+    { bestOf: 3, score1: 2, score2: 0, winner: 0 },
+    { bestOf: 3, score1: 2, score2: 1, winner: 0 },
+    { bestOf: 3, score1: 0, score2: 2, winner: 1 },
+    { bestOf: 5, score1: 3, score2: 2, winner: 0 },
+    { bestOf: 7, score1: 4, score2: 0, winner: 0 },
+    { bestOf: 7, score1: 3, score2: 4, winner: 1 },
+  ];
+  for (const scenario of validCases) {
+    test(`accepts BO${scenario.bestOf} ${scenario.score1}:${scenario.score2}`, async () => {
+      const fixture = await createFixture({ bestOf: scenario.bestOf });
+      const response = await postComplete(fixture, { resultType: "played", score1: scenario.score1, score2: scenario.score2 });
+      assert.equal(response.status, 200);
+      assert.equal(response.body.resultType, "played");
+      assert.equal(response.body.winnerId, fixture.playerIds[scenario.winner]);
+      const state = await snapshot(fixture);
+      assert.equal(state.history.length, 1);
+      assert.equal(state.history[0].revision, 1);
+      assert.equal(state.actions.length, 1);
+      assert.equal(state.downstream.player1_id, fixture.playerIds[scenario.winner]);
+      assert.deepEqual(Object.keys(state.players[0]).sort(), ["id", "status"]);
+    });
+  }
+
+  const invalidCases = [
+    { name: "BO3 1:0", bestOf: 3, score1: 1, score2: 0, code: "WIN_THRESHOLD_NOT_REACHED" },
+    { name: "BO5 2:1", bestOf: 5, score1: 2, score2: 1, code: "WIN_THRESHOLD_NOT_REACHED" },
+    { name: "equal unfinished", bestOf: 3, score1: 1, score2: 1, code: "WIN_THRESHOLD_NOT_REACHED" },
+    { name: "zero-zero", bestOf: 3, score1: 0, score2: 0, code: "WIN_THRESHOLD_NOT_REACHED" },
+    { name: "winner exceeds threshold", bestOf: 3, score1: 3, score2: 0, code: "SCORE_EXCEEDS_WIN_THRESHOLD" },
+    { name: "both reach threshold", bestOf: 3, score1: 2, score2: 2, code: "BOTH_SIDES_REACHED_WIN_THRESHOLD" },
+    { name: "both exceed threshold", bestOf: 3, score1: 3, score2: 3, code: "BOTH_SIDES_REACHED_WIN_THRESHOLD" },
+    { name: "negative player1", bestOf: 3, score1: -1, score2: 2, code: "SCORE_NEGATIVE" },
+    { name: "negative player2", bestOf: 3, score1: 2, score2: -1, code: "SCORE_NEGATIVE" },
+    { name: "fractional player1", bestOf: 3, score1: 2.5, score2: 0, code: "SCORE_NOT_INTEGER" },
+    { name: "fractional player2", bestOf: 3, score1: 2, score2: 0.5, code: "SCORE_NOT_INTEGER" },
+  ];
+  for (const scenario of invalidCases) {
+    test(`rejects ${scenario.name} without side effects`, async () => {
+      const fixture = await createFixture({ bestOf: scenario.bestOf });
+      const beforeState = await snapshot(fixture);
+      const response = await postComplete(fixture, { resultType: "played", score1: scenario.score1, score2: scenario.score2 });
+      assertDomainError(response, 422, scenario.code);
+      assert.deepEqual(await snapshot(fixture), beforeState);
+    });
+  }
+
+  test("derives winner from score and ignores an attempted arbitrary winner field", async () => {
     const fixture = await createFixture();
-    const response = await postComplete(fixture, fixture.organizerHeaders);
+    const response = await postComplete(fixture, {
+      resultType: "played",
+      score1: 2,
+      score2: 0,
+      winnerId: fixture.playerIds[1],
+    });
     assert.equal(response.status, 200);
-    assert.equal(response.body.status, "completed");
-    assert.equal(response.body.score1, 1);
-    assert.equal(response.body.score2, 0);
     assert.equal(response.body.winnerId, fixture.playerIds[0]);
+  });
+});
 
+describe("CompleteMatch result types", () => {
+  test("walkover has a winner, reason and no score", async () => {
+    const fixture = await createFixture();
+    const response = await postComplete(fixture, { resultType: "walkover", winnerId: fixture.playerIds[1], reason: "nieobecność" });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.resultType, "walkover");
+    assert.equal(response.body.score1, null);
+    assert.equal(response.body.score2, null);
+    assert.equal(response.body.resultReason, "nieobecność");
     const state = await snapshot(fixture);
-    assert.deepEqual(state.match, {
-      status: "completed",
-      score1: 1,
-      score2: 0,
-      winner_id: fixture.playerIds[0],
-      is_draw: false,
-      completed_at: (state.match as { completed_at: Date }).completed_at,
-    });
-    assert.ok((state.match as { completed_at: Date | null }).completed_at);
-    const winner = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[0]) as Record<string, unknown>;
-    const loser = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[1]) as Record<string, unknown>;
-    assert.equal(winner.wins, 1);
-    assert.equal(winner.points, 3);
-    assert.equal(loser.losses, 1);
-    assert.equal(loser.status, "eliminated");
-    assert.equal(state.resultHistory, 1);
-    assert.equal(state.resultActions, 1);
-    assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, fixture.playerIds[0]);
-    assert.deepEqual(state.tournament, { status: "active", winner_id: null, current_round: 1 });
+    assert.equal(state.downstream.player1_id, fixture.playerIds[1]);
+    assert.equal(state.history[0].result_type, "walkover");
+    assert.equal(state.history[0].score1, null);
+    assert.equal(state.history[0].score2, null);
+    const standings = await request(app).get(`/api/tournaments/${fixture.tournamentId}/standings`).expect(200);
+    const winner = standings.body.find((entry: any) => entry.playerId === fixture.playerIds[1]);
+    const loser = standings.body.find((entry: any) => entry.playerId === fixture.playerIds[0]);
+    assert.deepEqual(
+      { matchWins: winner.matchWins, gameWins: winner.gameWins, gameLosses: winner.gameLosses },
+      { matchWins: 1, gameWins: 0, gameLosses: 0 },
+    );
+    assert.deepEqual(
+      { matchLosses: loser.matchLosses, gameWins: loser.gameWins, gameLosses: loser.gameLosses },
+      { matchLosses: 1, gameWins: 0, gameLosses: 0 },
+    );
   });
 
-  test("finalizes a single-elimination tournament after the final match", async () => {
+  test("walkover rejects a winner outside the match", async () => {
     const fixture = await createFixture();
-    const roundOneMatches = await database.pool.query(
-      "SELECT id FROM matches WHERE tournament_id = $1 AND round = 1 ORDER BY match_number",
-      [fixture.tournamentId],
-    );
-    const secondSemiFinalId = (roundOneMatches.rows[1] as { id: number }).id;
-
-    assert.equal((await postComplete(fixture, fixture.organizerHeaders)).status, 200);
-    assert.equal(
-      (await request(app)
-        .post(`/api/matches/${secondSemiFinalId}/complete`)
-        .set(fixture.organizerHeaders)
-        .send({ score1: 1, score2: 0, isDraw: false })).status,
-      200,
-    );
-    const finalResponse = await request(app)
-      .post(`/api/matches/${fixture.nextMatchId}/complete`)
-      .set(fixture.organizerHeaders)
-      .send({ score1: 1, score2: 0, isDraw: false });
-    assert.equal(finalResponse.status, 200);
-
-    const tournament = await database.pool.query(
-      "SELECT status, winner_id, current_round FROM tournaments WHERE id = $1",
-      [fixture.tournamentId],
-    );
-    assert.deepEqual(tournament.rows[0], {
-      status: "completed",
-      winner_id: fixture.playerIds[0],
-      current_round: 2,
-    });
-    const players = await database.pool.query(
-      "SELECT id, wins, losses, points, status FROM players WHERE tournament_id = $1 ORDER BY seed",
-      [fixture.tournamentId],
-    );
-    assert.deepEqual(players.rows[0], {
-      id: fixture.playerIds[0],
-      wins: 2,
-      losses: 0,
-      points: 6,
-      status: "winner",
-    });
-    assert.deepEqual(players.rows[2], {
-      id: fixture.playerIds[2],
-      wins: 1,
-      losses: 1,
-      points: 3,
-      status: "eliminated",
-    });
-    const sideEffects = await database.pool.query(
-      `SELECT
-        (SELECT COUNT(*)::int FROM result_history WHERE tournament_id = $1) AS history_count,
-        (SELECT COUNT(*)::int FROM action_log WHERE tournament_id = $1 AND action_type = 'match_result_submitted') AS action_count`,
-      [fixture.tournamentId],
-    );
-    assert.deepEqual(sideEffects.rows[0], { history_count: 3, action_count: 3 });
+    const response = await postComplete(fixture, { resultType: "walkover", winnerId: fixture.playerIds[2] });
+    assertDomainError(response, 422, "WINNER_NOT_PARTICIPANT");
   });
 
-  test("rejects a winner outside the match but inside the tournament without side effects", async () => {
+  test("no contest completes a round-robin match with no winner or score", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const response = await postComplete(fixture, { resultType: "no_contest", reason: "awaria" });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.resultType, "no_contest");
+    assert.equal(response.body.winnerId, null);
+    assert.equal(response.body.score1, null);
+    const standings = await request(app).get(`/api/tournaments/${fixture.tournamentId}/standings`);
+    assert.equal(standings.status, 200);
+    assert.ok(standings.body.every((standing: any) => standing.matchWins === 0 && standing.matchLosses === 0 && standing.gameDiff === 0));
+  });
+
+  test("no contest cannot advance a single-elimination bracket", async () => {
     const fixture = await createFixture();
+    const response = await postComplete(fixture, { resultType: "no_contest", reason: "awaria" });
+    assertDomainError(response, 422, "NO_CONTEST_REQUIRES_RESOLUTION");
+  });
+
+  test("public CompleteMatch cannot create a system bye", async () => {
+    const fixture = await createFixture();
+    const response = await postComplete(fixture, { resultType: "bye", winnerId: fixture.playerIds[0] });
+    assert.equal(response.status, 422);
+    assert.equal(response.body.code, "INVALID_MATCH_RESULT");
+    assert.equal((await snapshot(fixture)).history.length, 0);
+  });
+});
+
+describe("CompleteMatch authorization and state guards", () => {
+  test("support may complete a match", async () => {
+    const fixture = await createFixture();
+    assert.equal((await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }, fixture.supportHeaders)).status, 200);
+  });
+
+  test("viewer may not complete a match", async () => {
+    const fixture = await createFixture();
+    assert.equal((await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }, fixture.viewerHeaders)).status, 403);
+  });
+
+  test("anonymous caller may not complete a protected operation", async () => {
+    const fixture = await createFixture();
+    assert.equal((await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }, {})).status, 403);
+  });
+
+  test("cancelled match is not completable", async () => {
+    const fixture = await createFixture({ lifecycle: "cancelled" });
+    assertDomainError(await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }), 422, "MATCH_STATE_NOT_COMPLETABLE");
+  });
+
+  test("match without both participants is not completable", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    await database.pool.query("UPDATE matches SET player2_id = NULL WHERE id = $1", [fixture.matchId]);
+    assertDomainError(await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }), 422, "PARTICIPANTS_REQUIRED");
+  });
+
+  test("occupied downstream slot blocks completion without partial writes", async () => {
+    const fixture = await createFixture();
+    await database.pool.query("UPDATE matches SET player1_id = $1 WHERE id = $2", [fixture.playerIds[3], fixture.nextMatchId]);
     const beforeState = await snapshot(fixture);
-    const response = await postComplete(fixture, fixture.organizerHeaders, {
-      ...defaultPayload(fixture),
-      winnerId: fixture.playerIds[2],
-    });
-    assertSafeDomainError(response, 422);
+    assertDomainError(await postComplete(fixture, { resultType: "played", score1: 2, score2: 0 }), 422, "MATCH_STATE_NOT_COMPLETABLE");
     assert.deepEqual(await snapshot(fixture), beforeState);
   });
 
-  test("rejects a winner from another tournament without side effects", async () => {
+  test("database rejects a cross-tournament participant", async () => {
     const fixture = await createFixture();
-    const foreign = await createForeignPlayer();
-    const beforeState = await snapshot(fixture, [foreign.playerId]);
-    const response = await postComplete(fixture, fixture.organizerHeaders, {
-      ...defaultPayload(fixture),
-      winnerId: foreign.playerId,
-    });
-    assertSafeDomainError(response, 422);
-    assert.deepEqual(await snapshot(fixture, [foreign.playerId]), beforeState);
+    const other = await createFixture({ format: "round_robin", bracket: false });
+    await assert.rejects(database.pool.query("UPDATE matches SET player1_id = $1 WHERE id = $2", [other.playerIds[0], fixture.matchId]));
   });
+});
 
-  test("rejects a cross-tournament participant without side effects", async () => {
+describe("CompleteMatch atomicity", () => {
+  test("duplicate request changes state exactly once", async () => {
     const fixture = await createFixture();
-    const foreign = await createForeignPlayer();
-    await database.db
-      .update(database.matchesTable)
-      .set({ player2Id: foreign.playerId })
-      .where(eq(database.matchesTable.id, fixture.matchId));
-    const beforeState = await snapshot(fixture, [foreign.playerId]);
-    const response = await postComplete(fixture, fixture.organizerHeaders, {
-      score1: 1,
-      score2: 0,
-      winnerId: fixture.playerIds[0],
-      isDraw: false,
-    });
-    assertSafeDomainError(response, 422);
-    assert.deepEqual(await snapshot(fixture, [foreign.playerId]), beforeState);
-  });
-
-  test("rejects a match with a missing participant without side effects", async () => {
-    const fixture = await createFixture();
-    await database.db
-      .update(database.matchesTable)
-      .set({ player2Id: null })
-      .where(eq(database.matchesTable.id, fixture.matchId));
-    const beforeState = await snapshot(fixture);
-    const response = await postComplete(fixture, fixture.organizerHeaders);
-    assertSafeDomainError(response, 422);
-    assert.deepEqual(await snapshot(fixture), beforeState);
-  });
-
-  test("returns 409 on a repeated CompleteMatch and applies side effects exactly once", async () => {
-    const fixture = await createFixture();
-    assert.equal((await postComplete(fixture, fixture.organizerHeaders)).status, 200);
-    const response = await postComplete(fixture, fixture.organizerHeaders);
-    assertSafeDomainError(response, 409);
-
+    assert.equal((await postComplete(fixture, { resultType: "played", score1: 2, score2: 1 })).status, 200);
+    assertDomainError(await postComplete(fixture, { resultType: "played", score1: 2, score2: 1 }), 409, "MATCH_ALREADY_FINALIZED");
     const state = await snapshot(fixture);
-    const winner = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[0]) as Record<string, unknown>;
-    const loser = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[1]) as Record<string, unknown>;
-    assert.equal(winner.wins, 1);
-    assert.equal(winner.points, 3);
-    assert.equal(loser.losses, 1);
-    assert.equal(state.resultHistory, 1);
-    assert.equal(state.resultActions, 1);
-    assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, fixture.playerIds[0]);
+    assert.equal(state.history.length, 1);
+    assert.equal(state.actions.length, 1);
   });
 
-  test("serializes two real parallel requests: one succeeds and one receives 409", async () => {
+  test("concurrent requests produce one completion and one history revision", async () => {
     const fixture = await createFixture();
-    const [first, second] = await Promise.all([
-      postComplete(fixture, fixture.organizerHeaders),
-      postComplete(fixture, fixture.organizerHeaders),
-    ]);
-    assert.deepEqual([first.status, second.status].sort((a, b) => a - b), [200, 409]);
-
+    const responses = await Promise.all(Array.from({ length: 6 }, () =>
+      postComplete(fixture, { resultType: "played", score1: 2, score2: 0 })));
+    assert.equal(responses.filter((response) => response.status === 200).length, 1);
+    assert.equal(responses.filter((response) => response.status === 409).length, 5);
     const state = await snapshot(fixture);
-    const winner = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[0]) as Record<string, unknown>;
-    const loser = state.players.find((player) => (player as { id: number }).id === fixture.playerIds[1]) as Record<string, unknown>;
-    assert.equal(winner.wins, 1);
-    assert.equal(winner.points, 3);
-    assert.equal(loser.losses, 1);
-    assert.equal(state.resultHistory, 1);
-    assert.equal(state.resultActions, 1);
-    assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, fixture.playerIds[0]);
+    assert.equal(state.history.length, 1);
+    assert.equal(state.actions.length, 1);
   });
 
-  test("rolls back every table when the test seam fails after the match update", async () => {
+  test("fault after match update rolls back every side effect", async () => {
     const fixture = await createFixture();
     const beforeState = await snapshot(fixture);
     await assert.rejects(
-      () => completeMatchUseCase(
-        { matchId: fixture.matchId, ...defaultPayload(fixture) },
-        { afterMatchUpdated: () => { throw new Error("controlled transaction fault"); } },
+      completeMatchUseCase(
+        { matchId: fixture.matchId, resultType: "played", score1: 2, score2: 0 },
+        { afterMatchUpdated: () => { throw new Error("injected rollback"); } },
       ),
-      /controlled transaction fault/,
+      /injected rollback/,
     );
     assert.deepEqual(await snapshot(fixture), beforeState);
   });
+});
 
-  test("preserves the legacy allowed-draw behavior of +1 draw and +1 point", async () => {
-    const fixture = await createFixture({ allowDraws: true });
-    const response = await postComplete(fixture, fixture.organizerHeaders, {
-      score1: 1,
-      score2: 1,
-      winnerId: null,
-      isDraw: true,
-    });
-    assert.equal(response.status, 200);
-    const state = await snapshot(fixture);
-    const participants = state.players.filter((player) =>
-      fixture.playerIds.slice(0, 2).includes((player as { id: number }).id),
-    ) as Array<Record<string, unknown>>;
-    assert.equal(participants.length, 2);
-    for (const participant of participants) {
-      assert.equal(participant.draws, 1);
-      assert.equal(participant.points, 1);
-      assert.equal(participant.wins, 0);
-      assert.equal(participant.losses, 0);
-    }
-    assert.equal(state.resultHistory, 1);
-    assert.equal(state.resultActions, 1);
-  });
-
-  for (const status of ["cancelled", "bye"] as const) {
-    test(`rejects a ${status} match with 422 and no side effects`, async () => {
+describe("general PATCH cannot finalize a result", () => {
+  for (const field of ["score1", "score2", "winnerId", "resultType", "resultReason", "completedAt"]) {
+    test(`rejects ${field}`, async () => {
       const fixture = await createFixture();
-      await database.db
-        .update(database.matchesTable)
-        .set({ status })
-        .where(eq(database.matchesTable.id, fixture.matchId));
-      const beforeState = await snapshot(fixture);
-      const response = await postComplete(fixture, fixture.organizerHeaders);
-      assertSafeDomainError(response, 422);
-      assert.deepEqual(await snapshot(fixture), beforeState);
+      const value = field === "winnerId"
+        ? fixture.playerIds[0]
+        : field === "resultType"
+          ? "played"
+          : field === "resultReason"
+            ? "x"
+            : field === "completedAt"
+              ? new Date().toISOString()
+              : 1;
+      const response = await request(app).patch(`/api/matches/${fixture.matchId}`).set(fixture.organizerHeaders).send({ [field]: value });
+      assertDomainError(response, 422, "MATCH_RESULT_REQUIRES_COMPLETE");
+      assert.equal((await snapshot(fixture)).history.length, 0);
     });
   }
 
-  test("treats a pre-existing walkover as an already finalized 409 conflict", async () => {
+  test("rejects raw lifecycle status completed", async () => {
     const fixture = await createFixture();
-    await database.db
-      .update(database.matchesTable)
-      .set({ status: "walkover" })
-      .where(eq(database.matchesTable.id, fixture.matchId));
-    const beforeState = await snapshot(fixture);
-    const response = await postComplete(fixture, fixture.organizerHeaders);
-    assertSafeDomainError(response, 409);
-    assert.deepEqual(await snapshot(fixture), beforeState);
-  });
-});
-
-describe("legacy CompleteMatch payload validation", () => {
-  const invalidPayloads: Array<{ name: string; payload: (fixture: MatchFixture) => CompletePayload }> = [
-    { name: "negative score", payload: (fixture) => ({ ...defaultPayload(fixture), score1: -1 }) },
-    { name: "fractional score", payload: (fixture) => ({ ...defaultPayload(fixture), score1: 1.5 }) },
-    { name: "unequal draw score", payload: () => ({ score1: 2, score2: 1, isDraw: true, winnerId: null }) },
-    { name: "equal non-draw score", payload: (fixture) => ({ score1: 1, score2: 1, isDraw: false, winnerId: fixture.playerIds[0] }) },
-    { name: "winner contradicting score", payload: (fixture) => ({ score1: 0, score2: 1, isDraw: false, winnerId: fixture.playerIds[0] }) },
-    { name: "draw forbidden by tournament", payload: () => ({ score1: 1, score2: 1, isDraw: true, winnerId: null }) },
-    { name: "draw with an explicit winner", payload: (fixture) => ({ score1: 1, score2: 1, isDraw: true, winnerId: fixture.playerIds[0] }) },
-  ];
-
-  for (const invalidCase of invalidPayloads) {
-    test(`rejects ${invalidCase.name} with 422 and no side effects`, async () => {
-      const fixture = await createFixture({
-        allowDraws:
-          invalidCase.name === "draw with an explicit winner" ||
-          invalidCase.name === "unequal draw score",
-      });
-      const beforeState = await snapshot(fixture);
-      const response = await postComplete(fixture, fixture.organizerHeaders, invalidCase.payload(fixture));
-      assertSafeDomainError(response, 422);
-      assert.deepEqual(await snapshot(fixture), beforeState);
-    });
-  }
-});
-
-describe("CompleteMatch permissions", () => {
-  test("denies anonymous", async () => {
-    const fixture = await createFixture();
-    const beforeState = await snapshot(fixture);
-    const response = await postComplete(fixture, {});
-    assert.equal(response.status, 403);
-    assert.deepEqual(await snapshot(fixture), beforeState);
-  });
-
-  test("denies viewer", async () => {
-    const fixture = await createFixture();
-    const beforeState = await snapshot(fixture);
-    const response = await postComplete(fixture, fixture.viewerHeaders);
-    assert.equal(response.status, 403);
-    assert.deepEqual(await snapshot(fixture), beforeState);
-  });
-
-  test("allows support", async () => {
-    const fixture = await createFixture();
-    const response = await postComplete(fixture, fixture.supportHeaders);
-    assert.equal(response.status, 200);
-    assert.equal((await snapshot(fixture)).resultHistory, 1);
-  });
-
-  test("allows organizer", async () => {
-    const fixture = await createFixture();
-    const response = await postComplete(fixture, fixture.organizerHeaders);
-    assert.equal(response.status, 200);
-    assert.equal((await snapshot(fixture)).resultHistory, 1);
-  });
-
-  test("rejects an organizer credential from tournament A for a match in tournament B", async () => {
-    const fixtureA = await createFixture();
-    const fixtureB = await createFixture();
-    const beforeState = await snapshot(fixtureB);
-    const response = await postComplete(fixtureB, fixtureA.organizerHeaders);
-    assert.equal(response.status, 403);
-    assert.deepEqual(await snapshot(fixtureB), beforeState);
-  });
-});
-
-describe("PATCH cannot bypass CompleteMatch", () => {
-  for (const status of ["completed", "walkover", "bye"] as const) {
-    test(`rejects PATCH status ${status}`, async () => {
-      const fixture = await createFixture();
-      const beforeState = await snapshot(fixture);
-      const response = await request(app)
-        .patch(`/api/matches/${fixture.matchId}`)
-        .set(fixture.organizerHeaders)
-        .send({ status });
-      assertSafeDomainError(response, 422);
-      assert.deepEqual(await snapshot(fixture), beforeState);
-    });
-  }
-
-  for (const field of ["score1", "score2", "winnerId", "isDraw"] as const) {
-    test(`rejects direct PATCH field ${field}`, async () => {
-      const fixture = await createFixture();
-      const beforeState = await snapshot(fixture);
-      const value = field === "isDraw" ? false : field === "winnerId" ? fixture.playerIds[0] : 1;
-      const response = await request(app)
-        .patch(`/api/matches/${fixture.matchId}`)
-        .set(fixture.organizerHeaders)
-        .send({ [field]: value });
-      assertSafeDomainError(response, 422);
-      assert.deepEqual(await snapshot(fixture), beforeState);
-    });
-  }
-
-  test("preserves in_progress, postponed, pending and pre-start bestOf changes", async () => {
-    const fixture = await createFixture();
-    const patch = (body: Record<string, unknown>) => request(app)
-      .patch(`/api/matches/${fixture.matchId}`)
-      .set(fixture.organizerHeaders)
-      .send(body);
-
-    assert.equal((await patch({ status: "in_progress" })).status, 200);
-    const blockedBestOf = await patch({ bestOf: 5 });
-    assertSafeDomainError(blockedBestOf, 422);
-    assert.equal((await patch({ status: "postponed" })).status, 200);
-    assert.equal((await patch({ status: "pending" })).status, 200);
-    const bestOfResponse = await patch({ bestOf: 5 });
-    assert.equal(bestOfResponse.status, 200);
-    assert.equal(bestOfResponse.body.bestOf, 5);
-
-    const state = await snapshot(fixture);
-    assert.equal((state.match as { status: string }).status, "pending");
-    assert.equal(state.resultHistory, 0);
-    assert.equal(state.resultActions, 0);
-    assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, null);
-  });
-});
-
-describe("revert compatibility", () => {
-  test("reverts one successful CompleteMatch while preserving its history revision", async () => {
-    const fixture = await createFixture();
-    assert.equal((await postComplete(fixture, fixture.organizerHeaders)).status, 200);
-
-    const response = await request(app)
-      .post(`/api/matches/${fixture.matchId}/revert`)
-      .set(fixture.organizerHeaders)
-      .send();
-    assert.equal(response.status, 200);
-
-    const state = await snapshot(fixture);
-    assert.deepEqual(state.match, {
-      status: "pending",
-      score1: null,
-      score2: null,
-      winner_id: null,
-      is_draw: false,
-      completed_at: null,
-    });
-    for (const player of state.players as Array<Record<string, unknown>>) {
-      assert.equal(player.wins, 0);
-      assert.equal(player.draws, 0);
-      assert.equal(player.losses, 0);
-      assert.equal(player.points, 0);
-    }
-    assert.equal(state.resultHistory, 1);
-    assert.equal((state.nextMatch as { player1_id: number | null }).player1_id, null);
-
-    const logs = await database.pool.query(
-      "SELECT action_type, is_undone FROM action_log WHERE match_id = $1 ORDER BY id",
-      [fixture.matchId],
-    );
-    assert.deepEqual(logs.rows, [
-      { action_type: "match_result_submitted", is_undone: true },
-      { action_type: "match_result_reverted", is_undone: false },
-    ]);
+    const response = await request(app).patch(`/api/matches/${fixture.matchId}`).set(fixture.organizerHeaders).send({ status: "completed" });
+    assertDomainError(response, 422, "MATCH_FINAL_STATUS_REQUIRES_DEDICATED_ACTION");
   });
 });

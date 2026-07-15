@@ -10,5 +10,6 @@ import type { MatchUpdateStatus } from './matchUpdateStatus';
 export interface MatchUpdate {
   status?: MatchUpdateStatus;
   note?: string;
+  /** @minimum 1 */
   bestOf?: number;
 }

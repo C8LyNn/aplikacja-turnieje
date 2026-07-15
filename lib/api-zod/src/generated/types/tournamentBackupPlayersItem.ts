@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupPlayersItemStatus } from './tournamentBackupPlayersItemStatus';
 
 export type TournamentBackupPlayersItem = {
   backupId: number;
@@ -17,9 +18,5 @@ export type TournamentBackupPlayersItem = {
   teamName?: string | null;
   /** @nullable */
   seed?: number | null;
-  wins?: number;
-  draws?: number;
-  losses?: number;
-  points?: number;
-  status?: string;
+  status: TournamentBackupPlayersItemStatus;
 };

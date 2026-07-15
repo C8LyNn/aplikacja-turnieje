@@ -5,12 +5,16 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupActionLogItemUndoPayload } from './tournamentBackupActionLogItemUndoPayload';
 
 export type TournamentBackupActionLogItem = {
-  actionType?: string;
-  description?: string;
+  actionType: string;
+  description: string;
   /** @nullable */
-  matchBackupId?: number | null;
-  isUndone?: boolean;
-  createdAt?: string;
+  matchBackupId: number | null;
+  canUndo: boolean;
+  /** @nullable */
+  undoPayload: TournamentBackupActionLogItemUndoPayload;
+  isUndone: boolean;
+  createdAt: string;
 };

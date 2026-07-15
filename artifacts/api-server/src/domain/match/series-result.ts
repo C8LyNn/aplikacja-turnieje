@@ -7,7 +7,6 @@ export interface PlayedSeriesResultInput {
   bestOf: number;
   score1: number;
   score2: number;
-  winnerSide?: WinningSide | null;
 }
 
 export interface NonPlayedSeriesResultInput {
@@ -33,9 +32,7 @@ export type SeriesResultErrorCode =
   | "SCORE_NEGATIVE"
   | "SCORE_EXCEEDS_WIN_THRESHOLD"
   | "WIN_THRESHOLD_NOT_REACHED"
-  | "BOTH_SIDES_REACHED_WIN_THRESHOLD"
-  | "WINNER_REQUIRED"
-  | "WINNER_SCORE_MISMATCH";
+  | "BOTH_SIDES_REACHED_WIN_THRESHOLD";
 
 export interface SeriesResultDomainError {
   code: SeriesResultErrorCode;
@@ -51,11 +48,7 @@ function failure(code: SeriesResultErrorCode, message: string): PlayedSeriesVali
 }
 
 /**
- * Validates the future `series_v1` semantics for a normally played match.
- *
- * This validator is intentionally stricter than the current legacy CompleteMatch
- * flow. It must not be applied to existing legacy records until the result model
- * is versioned and historical data has been audited.
+ * Validates `series_v1` semantics and derives the winner from the series score.
  */
 export function validatePlayedSeriesResult(
   input: PlayedSeriesResultInput,
@@ -98,14 +91,7 @@ export function validatePlayedSeriesResult(
       "One side must reach the series win threshold.",
     );
   }
-  if (!input.winnerSide) {
-    return failure("WINNER_REQUIRED", "The winning side is required for a played series.");
-  }
-
   const scoreWinner: WinningSide = player1ReachedThreshold ? "player1" : "player2";
-  if (input.winnerSide !== scoreWinner) {
-    return failure("WINNER_SCORE_MISMATCH", "The winning side does not match the series score.");
-  }
 
   return {
     ok: true,

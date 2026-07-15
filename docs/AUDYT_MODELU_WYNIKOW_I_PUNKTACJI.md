@@ -1,5 +1,8 @@
 # Audyt modelu wyników, punktacji i klasyfikacji
 
+> Status: audyt historycznego stanu sprzed czystego wdrożenia `series_v1`.
+> Obowiązującą decyzję i aktualny model opisuje `ADR_SERIES_V1_CLEAN_CUTOVER.md`.
+
 Data audytu: 2026-07-14
 
 Zakres: aktualny kod Tournament Manager, bez zmiany zachowania produktu, migracji i danych.

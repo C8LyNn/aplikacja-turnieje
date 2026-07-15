@@ -151,6 +151,7 @@ async function createTournamentFixture(visibility: Visibility): Promise<Tourname
       score1: 1,
       score2: 0,
       winnerId: players[0].id,
+      resultType: "played",
       completedAt: new Date(),
     })
     .returning();
@@ -197,9 +198,6 @@ async function createSwissFixture(): Promise<TournamentFixture> {
       tournamentId: tournament.id,
       name: `${name} Player ${seed}`,
       seed,
-      wins: seed <= 2 ? 1 : 0,
-      losses: seed > 2 ? 1 : 0,
-      points: seed <= 2 ? 3 : 0,
     })))
     .returning();
 
@@ -215,6 +213,7 @@ async function createSwissFixture(): Promise<TournamentFixture> {
         winnerId: players[0].id,
         score1: 1,
         score2: 0,
+        resultType: "played" as const,
         status: "completed" as const,
         completedAt: new Date(),
       },
@@ -227,6 +226,7 @@ async function createSwissFixture(): Promise<TournamentFixture> {
         winnerId: players[1].id,
         score1: 1,
         score2: 0,
+        resultType: "played" as const,
         status: "completed" as const,
         completedAt: new Date(),
       },
@@ -254,7 +254,7 @@ async function snapshotSwiss(tournamentId: number) {
   const [tournamentResult, playersResult] = await Promise.all([
     database.pool.query("SELECT current_round FROM tournaments WHERE id = $1", [tournamentId]),
     database.pool.query(
-      "SELECT id, wins, draws, losses, points FROM players WHERE tournament_id = $1 ORDER BY id",
+      "SELECT id, seed, status FROM players WHERE tournament_id = $1 ORDER BY id",
       [tournamentId],
     ),
   ]);
@@ -385,7 +385,9 @@ describe("full export access", () => {
 
         if (actor === "organizer") {
           assert.equal(response.status, 200);
-          assert.equal(response.body.version, "1");
+          assert.equal(response.body.schemaVersion, 2);
+          assert.equal(response.body.resultModelVersion, "series_v1");
+          assert.equal(response.body.rankingPolicy, "match_record_v1");
           assert.equal(response.body.tournament.name, fixture.name);
           assert.ok(Array.isArray(response.body.players));
           assert.ok(Array.isArray(response.body.matches));

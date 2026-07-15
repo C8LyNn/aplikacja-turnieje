@@ -31,7 +31,6 @@ const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
-  double_elimination: "Podwójna eliminacja",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -52,11 +51,8 @@ const AUDIENCE_SECTIONS: Array<{ id: AudienceSection; label: string }> = [
 
 const MATCH_STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje",
-  ready: "Gotowy",
   in_progress: "W trakcie",
   completed: "Zakończony",
-  bye: "Wolny los",
-  walkover: "Walkower",
   postponed: "Przełożony",
   cancelled: "Anulowany",
 };
@@ -171,14 +167,20 @@ export default function TournamentAudience() {
   const winsNeeded = Math.ceil(bo / 2);
   const s1 = heroMatch?.score1 ?? 0;
   const s2 = heroMatch?.score2 ?? 0;
-  const p1Won = isHeroDone && !heroMatch?.isDraw && heroMatch?.winnerId === heroMatch?.player1Id;
-  const p2Won = isHeroDone && !heroMatch?.isDraw && heroMatch?.winnerId === heroMatch?.player2Id;
-  const isDraw = isHeroDone && heroMatch?.isDraw;
+  const p1Won = isHeroDone && heroMatch?.winnerId === heroMatch?.player1Id;
+  const p2Won = isHeroDone && heroMatch?.winnerId === heroMatch?.player2Id;
+  const heroResultLabel = heroMatch?.resultType === "walkover"
+    ? "WALKOWER"
+    : heroMatch?.resultType === "bye"
+      ? "WOLNY LOS"
+      : heroMatch?.resultType === "no_contest"
+        ? "NO CONTEST"
+        : null;
 
   const nextMatches = matches
     ?.filter(
       (m) =>
-        (m.status === "pending" || m.status === "ready") &&
+        m.status === "pending" &&
         m.player1Id &&
         m.player2Id &&
         m.id !== heroMatch?.id,
@@ -192,9 +194,7 @@ export default function TournamentAudience() {
 
   const topStandings = standings?.slice(0, 8) ?? [];
 
-  const currentRoundMatches = matches?.filter(
-    (m) => m.round === tournament?.currentRound && m.status !== "bye",
-  ) ?? [];
+  const currentRoundMatches = matches?.filter((m) => m.round === tournament?.currentRound) ?? [];
 
   const hasStandings = topStandings.length > 0;
   const hasNextMatches = nextMatches.length > 0;
@@ -272,7 +272,7 @@ export default function TournamentAudience() {
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {section.label}
+                {section.id === "standings" && tournament?.format === "single_elimination" ? "Bilans" : section.label}
               </Link>
             );
           })}
@@ -323,14 +323,14 @@ export default function TournamentAudience() {
               {/* Players + scores */}
               <div className="flex items-stretch px-6 sm:px-10 py-8 sm:py-12 gap-4 sm:gap-8">
                 {/* Player 1 */}
-                <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p1Won ? "opacity-100" : isHeroDone && !isDraw ? "opacity-40" : "opacity-100"}`}>
+                <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p1Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p1Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player1Name || "TBD"}
                   </div>
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
                     p1Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
-                    {s1}
+                    {heroMatch.resultType === "played" || !isHeroDone ? s1 : "—"}
                   </div>
                   {bo > 1 && (
                     <WinDots wins={s1} needed={winsNeeded} side="left" />
@@ -344,22 +344,22 @@ export default function TournamentAudience() {
 
                 {/* VS separator */}
                 <div className="flex flex-col items-center justify-center shrink-0 gap-2">
-                  {isDraw ? (
-                    <span className="text-xl sm:text-2xl font-black text-yellow-400/70 tracking-widest">REMIS</span>
+                  {heroResultLabel ? (
+                    <span className="text-sm sm:text-xl font-black text-yellow-400/70 tracking-widest text-center">{heroResultLabel}</span>
                   ) : (
                     <span className="text-2xl sm:text-4xl font-black text-white/15 tracking-widest">:</span>
                   )}
                 </div>
 
                 {/* Player 2 */}
-                <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p2Won ? "opacity-100" : isHeroDone && !isDraw ? "opacity-40" : "opacity-100"}`}>
+                <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p2Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p2Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player2Name || "TBD"}
                   </div>
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
                     p2Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
-                    {s2}
+                    {heroMatch.resultType === "played" || !isHeroDone ? s2 : "—"}
                   </div>
                   {bo > 1 && (
                     <WinDots wins={s2} needed={winsNeeded} side="right" />
@@ -372,10 +372,9 @@ export default function TournamentAudience() {
                 </div>
               </div>
 
-              {/* Draw banner */}
-              {isDraw && (
+              {heroResultLabel && (
                 <div className="py-2 bg-yellow-500/10 border-t border-yellow-500/20 text-center text-sm text-yellow-400 font-bold tracking-widest">
-                  REMIS
+                  {heroResultLabel}{heroMatch.resultReason ? ` · ${heroMatch.resultReason}` : ""}
                 </div>
               )}
             </div>
@@ -445,13 +444,13 @@ export default function TournamentAudience() {
                   {recentResults.map((m) => (
                     <div key={m.id} className="flex items-center gap-2">
                       <span className="text-[10px] text-white/25 font-mono w-10 shrink-0">R{m.round}M{m.matchNumber}</span>
-                      <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id && !m.isDraw ? "font-bold text-white" : "text-white/40"}`}>
+                      <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player1Name}
                       </span>
                       <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums">
-                        {m.isDraw ? "R" : `${m.score1}:${m.score2}`}
+                        {m.resultType === "played" ? `${m.score1}:${m.score2}` : m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}
                       </span>
-                      <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id && !m.isDraw ? "font-bold text-white" : "text-white/40"}`}>
+                      <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player2Name}
                       </span>
                     </div>
@@ -476,8 +475,8 @@ export default function TournamentAudience() {
                       )}
                       <span className="text-sm font-semibold flex-1 truncate">{s.playerName}</span>
                       <div className="flex items-center gap-2 text-xs text-white/40 shrink-0">
-                        <span className="font-mono">{s.wins}W {s.losses}L</span>
-                        <span className="font-bold text-cyan-400">{s.points}pkt</span>
+                        <span className="font-mono">{s.matchWins}W {s.matchLosses}L</span>
+                        <span className="font-bold text-cyan-400">{s.gameWins}:{s.gameLosses}</span>
                       </div>
                     </div>
                   ))}
@@ -526,8 +525,8 @@ export default function TournamentAudience() {
         </>}
 
         {activeSection === "matches" && <PublicMatchesSection matches={matches ?? []} />}
-        {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} />}
-        {activeSection === "players" && <PublicPlayersSection players={players ?? []} />}
+        {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} />}
+        {activeSection === "players" && <PublicPlayersSection players={players ?? []} standings={standings ?? []} />}
         {activeSection === "bracket" && (
           <PublicBracketSection
             bracket={bracket}
@@ -611,11 +610,33 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
   );
 }
 
-function PublicStandingsSection({ standings }: { standings: Standing[] }) {
+function PublicStandingsSection({ standings, format }: { standings: Standing[]; format: string }) {
   return (
-    <AudienceSectionShell title="Tabela" description="Pełna klasyfikacja turnieju.">
+    <AudienceSectionShell
+      title={format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
+      description={format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
+    >
       {standings.length === 0 ? (
         <EmptyAudienceSection>Tabela nie jest jeszcze dostępna.</EmptyAudienceSection>
+      ) : format === "single_elimination" ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {standings.map((standing) => (
+            <div key={standing.playerId} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-semibold text-white">{standing.playerName}</div>
+                  <div className="text-xs text-white/40">{standing.teamName || "Uczestnik"}</div>
+                </div>
+                <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase tracking-wider text-white/45">{standing.status}</span>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] uppercase tracking-wider text-white/35">
+                <div><strong className="block text-lg text-white">{standing.matchWins}-{standing.matchLosses}</strong>Mecze</div>
+                <div><strong className="block text-lg text-white">{standing.gameWins}:{standing.gameLosses}</strong>Gry</div>
+                <div><strong className="block text-lg text-cyan-300">{standing.gameDiff > 0 ? "+" : ""}{standing.gameDiff}</strong>Różnica</div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0d1629]">
           <table className="w-full min-w-[680px] text-sm" aria-label="Pełna klasyfikacja turnieju">
@@ -624,10 +645,11 @@ function PublicStandingsSection({ standings }: { standings: Standing[] }) {
                 <th className="px-4 py-3 text-center">Miejsce</th>
                 <th className="px-4 py-3">Gracz</th>
                 <th className="px-4 py-3">Drużyna</th>
+                <th className="px-3 py-3 text-center">Mecze</th>
                 <th className="px-3 py-3 text-center">W</th>
-                <th className="px-3 py-3 text-center">R</th>
                 <th className="px-3 py-3 text-center">P</th>
-                <th className="px-4 py-3 text-right">Punkty</th>
+                <th className="px-4 py-3 text-right">Bilans gier</th>
+                <th className="px-4 py-3 text-right">+/−</th>
                 <th className="px-4 py-3 text-right">Buchholz</th>
               </tr>
             </thead>
@@ -637,11 +659,12 @@ function PublicStandingsSection({ standings }: { standings: Standing[] }) {
                   <td className="px-4 py-3 text-center font-mono font-bold text-cyan-300">{standing.rank}</td>
                   <td className="px-4 py-3 font-semibold text-white">{standing.playerName}</td>
                   <td className="px-4 py-3 text-white/45">{standing.teamName || "—"}</td>
-                  <td className="px-3 py-3 text-center font-mono">{standing.wins}</td>
-                  <td className="px-3 py-3 text-center font-mono">{standing.draws}</td>
-                  <td className="px-3 py-3 text-center font-mono">{standing.losses}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-cyan-300">{standing.points}</td>
-                  <td className="px-4 py-3 text-right font-mono text-white/45">{standing.buchholz}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.matchesPlayed}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.matchWins}</td>
+                  <td className="px-3 py-3 text-center font-mono">{standing.matchLosses}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-cyan-300">{standing.gameWins}:{standing.gameLosses}</td>
+                  <td className="px-4 py-3 text-right font-mono text-white/45">{standing.gameDiff > 0 ? "+" : ""}{standing.gameDiff}</td>
+                  <td className="px-4 py-3 text-right font-mono text-white/45">{standing.buchholz ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -652,7 +675,7 @@ function PublicStandingsSection({ standings }: { standings: Standing[] }) {
   );
 }
 
-function PublicPlayersSection({ players }: { players: Player[] }) {
+function PublicPlayersSection({ players, standings }: { players: Player[]; standings: Standing[] }) {
   return (
     <AudienceSectionShell title="Gracze" description="Publiczna lista uczestników i ich aktualne statystyki.">
       {players.length === 0 ? (
@@ -660,9 +683,7 @@ function PublicPlayersSection({ players }: { players: Player[] }) {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {players.map((player) => {
-            const wins = player.wins ?? 0;
-            const draws = player.draws ?? 0;
-            const losses = player.losses ?? 0;
+            const standing = standings.find((entry) => entry.playerId === player.id);
             return (
               <article key={player.id} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -672,12 +693,11 @@ function PublicPlayersSection({ players }: { players: Player[] }) {
                   </div>
                   {player.seed != null && <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/40">#{player.seed}</span>}
                 </div>
-                <dl className="mt-4 grid grid-cols-5 gap-2 border-t border-white/6 pt-3 text-center">
-                  <PlayerStat label="Mecze" value={wins + draws + losses} />
-                  <PlayerStat label="W" value={wins} />
-                  <PlayerStat label="P" value={losses} />
-                  <PlayerStat label="R" value={draws} />
-                  <PlayerStat label="Pkt" value={player.points ?? 0} emphasize />
+                <dl className="mt-4 grid grid-cols-4 gap-2 border-t border-white/6 pt-3 text-center">
+                  <PlayerStat label="Mecze" value={standing?.matchesPlayed ?? 0} />
+                  <PlayerStat label="W" value={standing?.matchWins ?? 0} />
+                  <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
+                  <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
                 </dl>
               </article>
             );

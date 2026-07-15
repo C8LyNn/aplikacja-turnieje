@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TournamentFormat } from './tournamentFormat';
+import type { TournamentRankingPolicy } from './tournamentRankingPolicy';
+import type { TournamentResultModelVersion } from './tournamentResultModelVersion';
 import type { TournamentStatus } from './tournamentStatus';
 import type { TournamentVisibility } from './tournamentVisibility';
 
@@ -20,10 +22,10 @@ export interface Tournament {
   maxPlayers?: number | null;
   /** @nullable */
   swissRounds?: number | null;
-  /** @nullable */
-  allowDraws?: boolean | null;
-  /** @nullable */
-  defaultBestOf?: number | null;
+  resultModelVersion: TournamentResultModelVersion;
+  rankingPolicy: TournamentRankingPolicy;
+  /** @minimum 1 */
+  defaultBestOf: number;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

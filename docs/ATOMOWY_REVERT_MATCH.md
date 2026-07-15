@@ -1,5 +1,9 @@
 # Atomowy RevertMatch
 
+> Status: dokument historyczny, zastąpiony przez
+> `ADR_SERIES_V1_CLEAN_CUTOVER.md`. Aktualny RevertMatch nie mutuje liczników
+> gracza, ponieważ standings są projekcją z meczów.
+
 ## Zakres
 
 `POST /api/matches/{id}/revert` oraz cofnięcie ostatniej akcji typu

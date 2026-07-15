@@ -1,7 +1,10 @@
 # ADR: `series_v1` i atomowe `CompleteMatch`
 
 Data: 2026-07-14
-Status: zaakceptowane jako kierunek; wdrożenie etapowe
+Status: zastąpione przez `ADR_SERIES_V1_CLEAN_CUTOVER.md`
+
+> Dokument historyczny opisujący etap pośredni. Nie jest instrukcją bieżącego
+> modelu danych ani API; pełny cutover `series_v1` usunął opisane niżej elementy legacy.
 
 ## Kontekst
 

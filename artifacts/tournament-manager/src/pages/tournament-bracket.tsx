@@ -17,7 +17,6 @@ const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
-  double_elimination: "Podwójna eliminacja",
 };
 
 const ZOOM_MIN = 0.2;

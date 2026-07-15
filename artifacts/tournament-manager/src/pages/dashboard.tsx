@@ -33,7 +33,6 @@ const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
-  double_elimination: "Podwójna eliminacja",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -81,7 +80,6 @@ export default function Dashboard() {
               format: "single_elimination",
               maxPlayers: testDataSize,
               defaultBestOf: 1,
-              allowDraws: false,
             },
           },
           { onSuccess: (data) => resolve(data), onError: reject },

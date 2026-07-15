@@ -20,9 +20,5 @@ export interface Player {
   /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
-  wins?: number;
-  draws?: number;
-  losses?: number;
-  points?: number;
   createdAt: string;
 }

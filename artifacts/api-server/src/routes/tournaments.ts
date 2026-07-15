@@ -15,6 +15,14 @@ import {
   type RevertMatchErrorCode,
 } from "../application/matches/revert-match";
 import {
+  BackupV2ValidationError,
+  importBackupV2,
+} from "../application/backups/backup-v2";
+import { calculateMatchRecordStandings } from "../domain/tournament/standings";
+import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
+import { generateSwissPairings } from "../domain/tournament/swiss";
+import { validatePlayedSeriesResult } from "../domain/match/series-result";
+import {
   CreateTournamentBody,
   UpdateTournamentBody,
   GetTournamentParams,
@@ -54,6 +62,7 @@ import {
   ImportTournamentBody,
   VerifyHostCodeParams,
   VerifyHostCodeBody,
+  type TournamentBackup,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -85,8 +94,9 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     createdAt: formatDate(t.createdAt) ?? new Date().toISOString(),
     maxPlayers: t.maxPlayers ?? null,
     swissRounds: t.swissRounds ?? null,
-    allowDraws: t.allowDraws ?? null,
-    defaultBestOf: t.defaultBestOf ?? null,
+    resultModelVersion: t.resultModelVersion,
+    rankingPolicy: t.rankingPolicy,
+    defaultBestOf: t.defaultBestOf,
     currentRound: t.currentRound ?? null,
     totalRounds: t.totalRounds ?? null,
     winnerId: t.winnerId ?? null,
@@ -200,12 +210,14 @@ function mapMatch(
     score1: m.score1 ?? null,
     score2: m.score2 ?? null,
     winnerId: m.winnerId ?? null,
-    isDraw: m.isDraw ?? null,
-    bestOf: m.bestOf ?? null,
+    bestOf: m.bestOf,
+    resultType: m.resultType ?? null,
+    resultReason: m.resultReason ?? null,
     note: m.note ?? null,
     nextMatchId: m.nextMatchId ?? null,
     sortOrder: m.sortOrder ?? null,
     scheduledAt: formatDate(m.scheduledAt),
+    completedAt: formatDate(m.completedAt),
   };
 }
 
@@ -288,8 +300,11 @@ function generateSingleElimination(
       player1Id: p1?.id ?? null,
       player2Id: p2?.id ?? null,
       bestOf: defaultBestOf,
-      status: isBye ? "bye" : "pending",
+      status: isBye ? "completed" : "pending",
+      resultType: isBye ? "bye" : null,
+      resultReason: isBye ? "system_bye" : null,
       winnerId: isBye ? p1!.id : null,
+      completedAt: isBye ? new Date() : null,
     });
   }
 
@@ -314,23 +329,20 @@ function generateRoundRobin(
   tournamentId: number,
   defaultBestOf: number,
 ) {
-  const n = players.length;
-  const matches: (typeof matchesTable.$inferInsert)[] = [];
-  let matchNum = 1;
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = i + 1; j < n; j++) {
-      matches.push({
-        tournamentId,
-        round: 1,
-        matchNumber: matchNum++,
-        player1Id: players[i].id,
-        player2Id: players[j].id,
-        bestOf: defaultBestOf,
-        status: "pending",
-      });
-    }
-  }
-  return { matches, totalRounds: 1 };
+  const schedule = generateRoundRobinSchedule(players);
+  const matches: (typeof matchesTable.$inferInsert)[] = schedule.map((pairing) => ({
+    tournamentId,
+    round: pairing.round,
+    matchNumber: pairing.matchNumber,
+    player1Id: pairing.player1Id,
+    player2Id: pairing.player2Id,
+    bestOf: defaultBestOf,
+    status: "pending",
+  }));
+  return {
+    matches,
+    totalRounds: schedule.reduce((maximum, pairing) => Math.max(maximum, pairing.round), 1),
+  };
 }
 
 function generateSwissRound(
@@ -340,80 +352,26 @@ function generateSwissRound(
   roundIndex: number,
   defaultBestOf: number,
 ): (typeof matchesTable.$inferInsert)[] {
-  // Build played-against map
-  const played = new Map<number, Set<number>>();
-  for (const p of players) played.set(p.id, new Set());
-  for (const m of completedMatches) {
-    if (m.player1Id && m.player2Id) {
-      played.get(m.player1Id)?.add(m.player2Id);
-      played.get(m.player2Id)?.add(m.player1Id);
-    }
-  }
-
-  // Sort by points desc, then wins desc
-  const sorted = [...players].sort(
-    (a, b) => b.points - a.points || b.wins - a.wins,
-  );
-
-  const newMatches: (typeof matchesTable.$inferInsert)[] = [];
-  const paired = new Set<number>();
-  let matchNum = 1;
-
-  // Greedy pairing
-  for (let i = 0; i < sorted.length; i++) {
-    const a = sorted[i];
-    if (paired.has(a.id)) continue;
-    // Find best unpaired opponent not yet played
-    let partner: (typeof playersTable.$inferSelect) | null = null;
-    for (let j = i + 1; j < sorted.length; j++) {
-      const b = sorted[j];
-      if (paired.has(b.id)) continue;
-      if (!played.get(a.id)?.has(b.id)) {
-        partner = b;
-        break;
-      }
-    }
-    // Fallback: allow repeat pairing
-    if (!partner) {
-      for (let j = i + 1; j < sorted.length; j++) {
-        const b = sorted[j];
-        if (!paired.has(b.id)) {
-          partner = b;
-          break;
-        }
-      }
-    }
-    if (!partner) {
-      // Bye
-      newMatches.push({
-        tournamentId,
-        round: roundIndex,
-        matchNumber: matchNum++,
-        player1Id: a.id,
-        player2Id: null,
-        bestOf: defaultBestOf,
-        status: "bye",
-        winnerId: a.id,
-        score1: 1,
-        score2: 0,
-      });
-      paired.add(a.id);
-      continue;
-    }
-    paired.add(a.id);
-    paired.add(partner.id);
-    newMatches.push({
-      tournamentId,
-      round: roundIndex,
-      matchNumber: matchNum++,
-      player1Id: a.id,
-      player2Id: partner.id,
-      bestOf: defaultBestOf,
-      status: "pending",
-    });
-  }
-
-  return newMatches;
+  const standings = calculateMatchRecordStandings(players, completedMatches, "swiss");
+  const now = new Date();
+  return generateSwissPairings({
+    players,
+    standings,
+    previousMatches: completedMatches,
+    round: roundIndex,
+  }).map((pairing) => ({
+    tournamentId,
+    round: pairing.round,
+    matchNumber: pairing.matchNumber,
+    player1Id: pairing.player1Id,
+    player2Id: pairing.player2Id,
+    bestOf: defaultBestOf,
+    status: pairing.resultType === "bye" ? "completed" : "pending",
+    resultType: pairing.resultType,
+    resultReason: pairing.resultType === "bye" ? "system_bye" : null,
+    winnerId: pairing.resultType === "bye" ? pairing.player1Id : null,
+    completedAt: pairing.resultType === "bye" ? now : null,
+  }));
 }
 
 // ========== STANDINGS ==========
@@ -423,95 +381,7 @@ function calculateStandings(
   matches: (typeof matchesTable.$inferSelect)[],
   tournament: typeof tournamentsTable.$inferSelect,
 ) {
-  const pointsForWin = 3;
-  const pointsForDraw = 1;
-  const pointsForLoss = 0;
-
-  const completedMatches = matches.filter((m) => m.status === "completed" || m.status === "bye");
-
-  // Build points map from scratch
-  const pts = new Map<number, number>();
-  const gf = new Map<number, number>();
-  const ga = new Map<number, number>();
-  const opponents = new Map<number, number[]>();
-
-  for (const p of players) {
-    pts.set(p.id, 0);
-    gf.set(p.id, 0);
-    ga.set(p.id, 0);
-    opponents.set(p.id, []);
-  }
-
-  for (const m of completedMatches) {
-    if (!m.player1Id) continue;
-    const p1 = m.player1Id;
-    const p2 = m.player2Id;
-
-    if (m.status === "bye") {
-      pts.set(p1, (pts.get(p1) ?? 0) + pointsForWin);
-      continue;
-    }
-
-    if (!p2) continue;
-    opponents.get(p1)?.push(p2);
-    opponents.get(p2)?.push(p1);
-
-    gf.set(p1, (gf.get(p1) ?? 0) + (m.score1 ?? 0));
-    ga.set(p1, (ga.get(p1) ?? 0) + (m.score2 ?? 0));
-    gf.set(p2, (gf.get(p2) ?? 0) + (m.score2 ?? 0));
-    ga.set(p2, (ga.get(p2) ?? 0) + (m.score1 ?? 0));
-
-    if (m.isDraw) {
-      pts.set(p1, (pts.get(p1) ?? 0) + pointsForDraw);
-      pts.set(p2, (pts.get(p2) ?? 0) + pointsForDraw);
-    } else if (m.winnerId === p1) {
-      pts.set(p1, (pts.get(p1) ?? 0) + pointsForWin);
-      pts.set(p2, (pts.get(p2) ?? 0) + pointsForLoss);
-    } else if (m.winnerId === p2) {
-      pts.set(p2, (pts.get(p2) ?? 0) + pointsForWin);
-      pts.set(p1, (pts.get(p1) ?? 0) + pointsForLoss);
-    }
-  }
-
-  // Buchholz = sum of opponent points
-  const buchholz = new Map<number, number>();
-  for (const p of players) {
-    const opps = opponents.get(p.id) ?? [];
-    const buch = opps.reduce((sum, oppId) => sum + (pts.get(oppId) ?? 0), 0);
-    buchholz.set(p.id, buch);
-  }
-
-  const standings = players.map((p) => ({
-    playerId: p.id,
-    playerName: p.name,
-    rank_name: p.rank ?? null,
-    teamName: p.teamName ?? null,
-    country: p.country ?? null,
-    seed: p.seed ?? null,
-    points: pts.get(p.id) ?? 0,
-    wins: p.wins,
-    draws: p.draws,
-    losses: p.losses,
-    buchholz: buchholz.get(p.id) ?? 0,
-    gamesFor: gf.get(p.id) ?? 0,
-    gamesAgainst: ga.get(p.id) ?? 0,
-    pointDiff: (gf.get(p.id) ?? 0) - (ga.get(p.id) ?? 0),
-    rank: 0,
-  }));
-
-  standings.sort(
-    (a, b) =>
-      b.points - a.points ||
-      b.buchholz - a.buchholz ||
-      b.pointDiff - a.pointDiff ||
-      (a.seed ?? 999) - (b.seed ?? 999),
-  );
-
-  standings.forEach((s, i) => {
-    s.rank = i + 1;
-  });
-
-  return standings;
+  return calculateMatchRecordStandings(players, matches, tournament.format);
 }
 
 // ========== CSV IMPORT ==========
@@ -568,9 +438,20 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
 });
 
 router.post("/tournaments", async (req, res): Promise<void> => {
+  if (req.body?.format === "double_elimination") {
+    res.status(422).json({
+      error: "Double elimination jest wyłączone do czasu osobnej, kompletnej implementacji.",
+      code: "DOUBLE_ELIMINATION_UNAVAILABLE",
+    });
+    return;
+  }
   const parsed = CreateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.defaultBestOf != null && (!Number.isInteger(parsed.data.defaultBestOf) || parsed.data.defaultBestOf % 2 === 0)) {
+    res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
   const { organizerPassword, supportPassword, viewerPassword, ...rest } = parsed.data as any;
@@ -599,9 +480,17 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+  if (req.body?.format === "double_elimination") {
+    res.status(422).json({ error: "Double elimination jest obecnie niedostępne.", code: "DOUBLE_ELIMINATION_UNAVAILABLE" });
+    return;
+  }
   const parsed = UpdateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (parsed.data.defaultBestOf != null && (!Number.isInteger(parsed.data.defaultBestOf) || parsed.data.defaultBestOf % 2 === 0)) {
+    res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
   if (!await checkHostAuth(req, res, params.data.id)) return;
@@ -706,7 +595,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     generatedMatches = generateSwissRound(players, [], params.data.id, 1, bestOf);
     totalRounds = swissRounds;
   } else {
-    // single_elimination / double_elimination
+    // single_elimination
     const r = generateSingleElimination(players, params.data.id, bestOf);
     generatedMatches = r.matches;
     totalRounds = r.totalRounds;
@@ -717,9 +606,10 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     .values(generatedMatches)
     .returning();
 
-  // For single elimination: advance bye winners to round 2
-  if (tournament.format !== "round_robin" && tournament.format !== "swiss") {
-    const byeMatches = inserted.filter((m) => m.status === "bye" && m.winnerId);
+  const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId);
+
+  // Single-elimination bye advances structurally but is not a match win.
+  if (tournament.format === "single_elimination") {
     for (const byeMatch of byeMatches) {
       const round2Matches = inserted.filter((m) => m.round === 2);
       round2Matches.sort((a, b) => a.matchNumber - b.matchNumber);
@@ -733,28 +623,33 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
           .where(eq(matchesTable.id, targetMatch.id));
       }
     }
-    // Update bye matches stats
-    for (const byeMatch of byeMatches) {
-      if (byeMatch.winnerId) {
-        await db
-          .update(playersTable)
-          .set({ wins: sql`${playersTable.wins} + 1`, points: sql`${playersTable.points} + 3` })
-          .where(eq(playersTable.id, byeMatch.winnerId));
-      }
-    }
   }
 
-  // For swiss: advance bye winners stats too
-  if (tournament.format === "swiss") {
-    const byeMatches = inserted.filter((m) => m.status === "bye" && m.winnerId);
-    for (const byeMatch of byeMatches) {
-      if (byeMatch.winnerId) {
-        await db
-          .update(playersTable)
-          .set({ wins: sql`${playersTable.wins} + 1`, points: sql`${playersTable.points} + 3` })
-          .where(eq(playersTable.id, byeMatch.winnerId));
-      }
-    }
+  for (const byeMatch of byeMatches) {
+    await db.insert(resultHistoryTable).values({
+      matchId: byeMatch.id,
+      tournamentId: byeMatch.tournamentId,
+      revision: 1,
+      round: byeMatch.round,
+      matchNumber: byeMatch.matchNumber,
+      player1Id: byeMatch.player1Id,
+      player2Id: null,
+      score1: null,
+      score2: null,
+      winnerId: byeMatch.winnerId,
+      bestOf: byeMatch.bestOf,
+      resultType: "bye",
+      resultReason: "system_bye",
+      completedAt: byeMatch.completedAt!,
+    });
+    await db.insert(actionLogTable).values({
+      tournamentId: byeMatch.tournamentId,
+      actionType: "system_bye_assigned",
+      description: `Systemowy bye R${byeMatch.round}M${byeMatch.matchNumber}`,
+      matchId: byeMatch.id,
+      undoPayload: null,
+      isUndone: false,
+    });
   }
 
   const swissRounds = tournament.format === "swiss" ? (tournament.swissRounds ?? Math.ceil(Math.log2(players.length))) : undefined;
@@ -783,63 +678,112 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
 
   const access = await requireTournamentWrite(req, res, params.data.id);
   if (!access) return;
-  const tournament = access.tournament;
-  if (tournament.format !== "swiss") {
-    res.status(400).json({ error: "Only Swiss format supports round generation" });
-    return;
+
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [tournament] = await tx
+        .select()
+        .from(tournamentsTable)
+        .where(eq(tournamentsTable.id, params.data.id))
+        .for("update");
+      if (!tournament) throw new Error("TOURNAMENT_NOT_FOUND");
+      if (tournament.format !== "swiss") throw new Error("NOT_SWISS");
+      if (tournament.status !== "active") throw new Error("TOURNAMENT_NOT_ACTIVE");
+
+      const currentRound = tournament.currentRound ?? 1;
+      const maxRounds = tournament.swissRounds ?? tournament.totalRounds ?? 1;
+      const currentMatches = await tx
+        .select()
+        .from(matchesTable)
+        .where(
+          and(
+            eq(matchesTable.tournamentId, tournament.id),
+            eq(matchesTable.round, currentRound),
+          ),
+        )
+        .orderBy(matchesTable.matchNumber)
+        .for("update");
+      if (currentMatches.length === 0 || currentMatches.some((match) => match.status !== "completed")) {
+        throw new Error("ROUND_NOT_COMPLETE");
+      }
+      if (currentRound >= maxRounds) throw new Error("ALL_ROUNDS_GENERATED");
+
+      const nextRound = currentRound + 1;
+      const existingNextRound = await tx
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(
+          and(
+            eq(matchesTable.tournamentId, tournament.id),
+            eq(matchesTable.round, nextRound),
+          ),
+        );
+      if (existingNextRound.length > 0) throw new Error("ROUND_ALREADY_GENERATED");
+
+      const players = await tx
+        .select()
+        .from(playersTable)
+        .where(eq(playersTable.tournamentId, tournament.id));
+      const allMatches = await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.tournamentId, tournament.id));
+      const generated = generateSwissRound(
+        players,
+        allMatches,
+        tournament.id,
+        nextRound,
+        tournament.defaultBestOf,
+      );
+      const inserted = await tx.insert(matchesTable).values(generated).returning();
+      for (const byeMatch of inserted.filter((match) => match.resultType === "bye")) {
+        await tx.insert(resultHistoryTable).values({
+          matchId: byeMatch.id,
+          tournamentId: byeMatch.tournamentId,
+          revision: 1,
+          round: byeMatch.round,
+          matchNumber: byeMatch.matchNumber,
+          player1Id: byeMatch.player1Id,
+          player2Id: null,
+          score1: null,
+          score2: null,
+          winnerId: byeMatch.winnerId,
+          bestOf: byeMatch.bestOf,
+          resultType: "bye",
+          resultReason: "system_bye",
+          completedAt: byeMatch.completedAt!,
+        });
+        await tx.insert(actionLogTable).values({
+          tournamentId: tournament.id,
+          actionType: "system_bye_assigned",
+          description: `Systemowy bye R${byeMatch.round}M${byeMatch.matchNumber}`,
+          matchId: byeMatch.id,
+          undoPayload: null,
+          isUndone: false,
+        });
+      }
+
+      const [saved] = await tx
+        .update(tournamentsTable)
+        .set({ currentRound: nextRound })
+        .where(eq(tournamentsTable.id, tournament.id))
+        .returning();
+      return saved;
+    });
+    res.json(mapTournament(updated));
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "UNKNOWN";
+    const status = code === "TOURNAMENT_NOT_FOUND" ? 404 : 409;
+    const messages: Record<string, string> = {
+      TOURNAMENT_NOT_FOUND: "Tournament not found",
+      NOT_SWISS: "Only Swiss format supports round generation",
+      TOURNAMENT_NOT_ACTIVE: "Tournament not active",
+      ROUND_NOT_COMPLETE: "All matches in the current round must have final results",
+      ALL_ROUNDS_GENERATED: "All Swiss rounds already generated",
+      ROUND_ALREADY_GENERATED: "The next Swiss round already exists",
+    };
+    res.status(status).json({ error: messages[code] ?? "Could not generate Swiss round", code });
   }
-  if (tournament.status !== "active") {
-    res.status(400).json({ error: "Tournament not active" });
-    return;
-  }
-
-  const currentRound = tournament.currentRound ?? 1;
-  const maxRounds = tournament.swissRounds ?? 99;
-
-  // Check all current round matches are done
-  const currentMatches = await db
-    .select()
-    .from(matchesTable)
-    .where(
-      and(
-        eq(matchesTable.tournamentId, params.data.id),
-        eq(matchesTable.round, currentRound),
-      ),
-    );
-  const allDone = currentMatches.every(
-    (m) => m.status === "completed" || m.status === "bye" || m.status === "walkover" || m.status === "postponed",
-  );
-  if (!allDone) {
-    res.status(400).json({ error: "Not all matches in current round are finished" });
-    return;
-  }
-
-  if (currentRound >= maxRounds) {
-    res.status(400).json({ error: "All Swiss rounds already generated" });
-    return;
-  }
-
-  const nextRound = currentRound + 1;
-  const players = await db
-    .select()
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-  const allMatches = await db
-    .select()
-    .from(matchesTable)
-    .where(eq(matchesTable.tournamentId, params.data.id));
-
-  const bestOf = tournament.defaultBestOf ?? 1;
-  const newMatches = generateSwissRound(players, allMatches, params.data.id, nextRound, bestOf);
-  await db.insert(matchesTable).values(newMatches);
-
-  const [updated] = await db
-    .update(tournamentsTable)
-    .set({ currentRound: nextRound })
-    .where(eq(tournamentsTable.id, params.data.id))
-    .returning();
-
-  res.json(mapTournament(updated));
 });
 
 router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
@@ -908,13 +852,18 @@ router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
     .where(eq(matchesTable.tournamentId, params.data.id));
 
   const completedMatches = matches.filter((m) => m.status === "completed").length;
-  const pendingMatches = matches.filter((m) => m.status === "pending" || m.status === "ready").length;
+  const pendingMatches = matches.filter((m) => m.status === "pending" || m.status === "postponed").length;
   const inProgressMatches = matches.filter((m) => m.status === "in_progress").length;
 
-  const topPlayers = [...players]
-    .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
+  const topPlayers = calculateStandings(players, matches, tournament)
     .slice(0, 5)
-    .map((p) => ({ id: p.id, name: p.name, wins: p.wins, losses: p.losses, points: p.points }));
+    .map((standing) => ({
+      id: standing.playerId,
+      name: standing.playerName,
+      matchWins: standing.matchWins,
+      matchLosses: standing.matchLosses,
+      gameDiff: standing.gameDiff,
+    }));
 
   res.json({
     totalPlayers: players.length,
@@ -995,9 +944,12 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       score2: h.score2 ?? null,
       winnerId: h.winnerId ?? null,
       winnerName: h.winnerId ? (playerMap.get(h.winnerId) ?? null) : null,
-      isDraw: h.isDraw ?? null,
-      status: h.status,
+      bestOf: h.bestOf,
+      resultType: h.resultType,
+      resultReason: h.resultReason ?? null,
+      revision: h.revision,
       completedAt: formatDate(h.completedAt) ?? new Date().toISOString(),
+      recordedAt: formatDate(h.recordedAt) ?? new Date().toISOString(),
     })),
   );
 });
@@ -1042,9 +994,9 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
       }
     }
   } else if (tournament.status === "active") {
-    const pending = matches.filter((m) => m.status === "pending" || m.status === "ready");
+    const pending = matches.filter((m) => m.status === "pending" || m.status === "postponed");
     const live = matches.filter((m) => m.status === "in_progress");
-    const done = matches.filter((m) => m.status === "completed" || m.status === "bye" || m.status === "walkover");
+    const done = matches.filter((m) => m.status === "completed");
 
     if (live.length > 0) {
       stepTitle = "Krok 4/5: Mecz w toku";
@@ -1388,7 +1340,6 @@ function sendRevertMatchError(
     "MATCH_NOT_FOUND",
     "TOURNAMENT_NOT_FOUND",
     "PARTICIPANT_NOT_FOUND",
-    "RESULT_HISTORY_NOT_FOUND",
   ]);
   const conflictCodes = new Set<RevertMatchErrorCode>([
     "MATCH_NOT_COMPLETED",
@@ -1396,6 +1347,7 @@ function sendRevertMatchError(
     "UNDO_ACTION_CHANGED",
     "DOWNSTREAM_BLOCKED",
     "CONCURRENT_MODIFICATION",
+    "SYSTEM_BYE_REVERT_BLOCKED",
   ]);
   const status = notFoundCodes.has(error.code)
     ? 404
@@ -1595,7 +1547,14 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   const rawBody = req.body && typeof req.body === "object"
     ? req.body as Record<string, unknown>
     : {};
-  const forbiddenResultFields = ["score1", "score2", "winnerId", "isDraw"].filter((field) =>
+  const forbiddenResultFields = [
+    "score1",
+    "score2",
+    "winnerId",
+    "resultType",
+    "resultReason",
+    "completedAt",
+  ].filter((field) =>
     Object.prototype.hasOwnProperty.call(rawBody, field),
   );
   if (forbiddenResultFields.length > 0) {
@@ -1605,11 +1564,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     });
     return;
   }
-  if (
-    rawBody.status === "completed" ||
-    rawBody.status === "walkover" ||
-    rawBody.status === "bye"
-  ) {
+  if (rawBody.status === "completed") {
     res.status(422).json({
       error: "Ten status wymaga dedykowanego przypadku użycia.",
       code: "MATCH_FINAL_STATUS_REQUIRES_DEDICATED_ACTION",
@@ -1628,7 +1583,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   if (!await checkHostAuth(req, res, prevMatch.tournamentId)) return;
 
   if (
-    (prevMatch.status === "completed" || prevMatch.status === "walkover" || prevMatch.status === "bye") &&
+    prevMatch.status === "completed" &&
     (parsed.data.status != null || parsed.data.bestOf != null)
   ) {
     res.status(422).json({
@@ -1645,7 +1600,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       });
       return;
     }
-    if (prevMatch.status !== "pending" && prevMatch.status !== "ready") {
+    if (prevMatch.status !== "pending") {
       res.status(422).json({
         error: "bestOf można zmienić tylko przed rozpoczęciem meczu.",
         code: "BEST_OF_CHANGE_NOT_ALLOWED",
@@ -1656,12 +1611,12 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   const updateCondition = parsed.data.bestOf != null
     ? and(
       eq(matchesTable.id, params.data.id),
-      inArray(matchesTable.status, ["pending", "ready"]),
+      eq(matchesTable.status, "pending"),
     )
     : parsed.data.status != null
       ? and(
         eq(matchesTable.id, params.data.id),
-        sql`${matchesTable.status} NOT IN ('completed', 'walkover', 'bye')`,
+        ne(matchesTable.status, "completed"),
       )
       : eq(matchesTable.id, params.data.id);
   const [match] = await db
@@ -1714,7 +1669,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
   }
   const parsed = CompleteMatchBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(422).json({ error: parsed.error.message, code: "INVALID_MATCH_RESULT" });
     return;
   }
 
@@ -1729,14 +1684,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
   if (!await requireTournamentWrite(req, res, matchReference.tournamentId)) return;
 
   try {
-    const updatedMatch = await completeMatch({
-      matchId: params.data.id,
-      score1: parsed.data.score1,
-      score2: parsed.data.score2,
-      winnerId: parsed.data.winnerId,
-      isDraw: parsed.data.isDraw,
-      note: parsed.data.note,
-    });
+    const updatedMatch = await completeMatch({ matchId: params.data.id, ...parsed.data });
     const [enriched] = await enrichMatches([updatedMatch]);
     res.json(enriched);
   } catch (error) {
@@ -1800,7 +1748,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  const blockedStatuses = ["completed", "bye", "walkover", "cancelled"];
+  const blockedStatuses = ["completed", "cancelled"];
   if (blockedStatuses.includes(match.status)) {
     res.status(400).json({ error: `Nie można anulować meczu o statusie: ${match.status}` });
     return;
@@ -1860,7 +1808,7 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  const blockedStatuses = ["completed", "bye", "walkover"];
+  const blockedStatuses = ["completed"];
   if (blockedStatuses.includes(match.status)) {
     res.status(400).json({ error: `Nie można zamieniać zawodników w meczu o statusie: ${match.status}` });
     return;
@@ -1930,9 +1878,22 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
   const history = await db.select().from(resultHistoryTable).where(eq(resultHistoryTable.tournamentId, tid));
   const log = await db.select().from(actionLogTable).where(eq(actionLogTable.tournamentId, tid)).orderBy(desc(actionLogTable.createdAt));
 
-  // Build player backup-id map (use actual DB id as backupId)
-  const backup = {
-    version: "1",
+  const parseUndoPayload = (value: string | null): Record<string, unknown> | null => {
+    if (!value) return null;
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const backup: TournamentBackup = {
+    schemaVersion: 2,
+    resultModelVersion: "series_v1",
+    rankingPolicy: "match_record_v1",
     exportedAt: new Date().toISOString(),
     tournament: {
       name: tournament.name,
@@ -1943,7 +1904,10 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
       currentRound: tournament.currentRound ?? null,
       totalRounds: tournament.totalRounds ?? null,
       swissRounds: tournament.swissRounds ?? null,
-      featuredMatchId: null, // resolved on import
+      defaultBestOf: tournament.defaultBestOf,
+      visibility: tournament.visibility as "public_online" | "private_online" | "private_offline",
+      winnerBackupId: tournament.winnerId ?? null,
+      featuredMatchBackupId: tournament.featuredMatchId ?? null,
     },
     players: players.map((p) => ({
       backupId: p.id,
@@ -1952,10 +1916,6 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
       country: p.country ?? null,
       teamName: p.teamName ?? null,
       seed: p.seed ?? null,
-      wins: p.wins,
-      draws: p.draws,
-      losses: p.losses,
-      points: p.points,
       status: p.status,
     })),
     matches: matches.map((m) => ({
@@ -1967,14 +1927,19 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
       winnerBackupId: m.winnerId ?? null,
       score1: m.score1 ?? null,
       score2: m.score2 ?? null,
-      isDraw: m.isDraw ?? false,
-      bestOf: m.bestOf ?? 1,
+      resultType: m.resultType ?? null,
+      resultReason: m.resultReason ?? null,
+      bestOf: m.bestOf,
       status: m.status,
       note: m.note ?? null,
+      nextMatchBackupId: m.nextMatchId ?? null,
+      sortOrder: m.sortOrder ?? null,
       scheduledAt: m.scheduledAt ? m.scheduledAt.toISOString() : null,
       completedAt: m.completedAt ? m.completedAt.toISOString() : null,
     })),
     resultHistory: history.map((r) => ({
+      matchBackupId: r.matchId,
+      revision: r.revision,
       round: r.round,
       matchNumber: r.matchNumber,
       player1BackupId: r.player1Id ?? null,
@@ -1982,13 +1947,18 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
       winnerBackupId: r.winnerId ?? null,
       score1: r.score1 ?? null,
       score2: r.score2 ?? null,
-      isDraw: r.isDraw ?? false,
-      status: r.status ?? "completed",
+      bestOf: r.bestOf,
+      resultType: r.resultType,
+      resultReason: r.resultReason ?? null,
+      completedAt: r.completedAt.toISOString(),
+      recordedAt: r.recordedAt.toISOString(),
     })),
     actionLog: log.map((a) => ({
       actionType: a.actionType,
       description: a.description,
       matchBackupId: a.matchId ?? null,
+      canUndo: UNDOABLE_TYPES.has(a.actionType) && !a.isUndone && !!a.undoPayload,
+      undoPayload: parseUndoPayload(a.undoPayload),
       isUndone: a.isUndone ?? false,
       createdAt: a.createdAt.toISOString(),
     })),
@@ -1999,115 +1969,51 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
 
 // ===== IMPORT =====
 router.post("/tournaments/import", async (req, res): Promise<void> => {
+  const rawBody = req.body && typeof req.body === "object"
+    ? req.body as Record<string, unknown>
+    : {};
+  if (rawBody.version === "1" || rawBody.schemaVersion === 1) {
+    res.status(400).json({
+      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1/v2.",
+      code: "LEGACY_BACKUP_UNSUPPORTED",
+    });
+    return;
+  }
   const parsed = ImportTournamentBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Nieprawidłowy plik backup. Sprawdź czy plik nie jest uszkodzony i pochodzi z TM_SYS." });
+    res.status(400).json({ error: "Nieprawidłowy backup v2.", code: "INVALID_BACKUP_V2" });
     return;
   }
-  const bk = parsed.data;
+  const parsedBackup = parsed.data;
 
-  // Validate version
-  if (bk.version !== "1") {
-    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${bk.version}). Aplikacja obsługuje wersję 1.` });
+  if (parsedBackup.schemaVersion !== 2) {
+    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${parsedBackup.schemaVersion}). Wymagany jest format v2.`, code: "BACKUP_VERSION_UNSUPPORTED" });
     return;
   }
+  const bk: TournamentBackup = { ...parsedBackup, schemaVersion: 2 };
 
-  // Create tournament (as copy)
-  const copyName = `${bk.tournament.name} (kopia)`;
-  const [newTournament] = await db.insert(tournamentsTable).values({
-    name: copyName,
-    description: bk.tournament.description ?? null,
-    format: bk.tournament.format as any,
-    status: bk.tournament.status as any,
-    maxPlayers: bk.tournament.maxPlayers ?? null,
-    currentRound: bk.tournament.currentRound ?? null,
-    totalRounds: bk.tournament.totalRounds ?? null,
-    swissRounds: bk.tournament.swissRounds ?? null,
-  }).returning();
-
-  const tid = newTournament.id;
-
-  // Import players — build backupId → new DB id map
-  const playerIdMap = new Map<number, number>();
-  for (const p of (bk.players ?? [])) {
-    const [newP] = await db.insert(playersTable).values({
-      tournamentId: tid,
-      name: p.name,
-      rank: p.rank ?? null,
-      country: p.country ?? null,
-      teamName: p.teamName ?? null,
-      seed: p.seed ?? null,
-      wins: p.wins ?? 0,
-      draws: p.draws ?? 0,
-      losses: p.losses ?? 0,
-      points: p.points ?? 0,
-      status: (p.status ?? "active") as any,
-    }).returning();
-    playerIdMap.set(p.backupId, newP.id);
-  }
-
-  // Import matches — build backupId → new DB id map
-  const matchIdMap = new Map<number, number>();
-  for (const m of (bk.matches ?? [])) {
-    const [newM] = await db.insert(matchesTable).values({
-      tournamentId: tid,
-      round: m.round,
-      matchNumber: m.matchNumber,
-      player1Id: m.player1BackupId ? (playerIdMap.get(m.player1BackupId) ?? null) : null,
-      player2Id: m.player2BackupId ? (playerIdMap.get(m.player2BackupId) ?? null) : null,
-      winnerId: m.winnerBackupId ? (playerIdMap.get(m.winnerBackupId) ?? null) : null,
-      score1: m.score1 ?? null,
-      score2: m.score2 ?? null,
-      isDraw: m.isDraw ?? false,
-      bestOf: m.bestOf ?? 1,
-      status: (m.status ?? "pending") as any,
-      note: m.note ?? null,
-      completedAt: m.completedAt ? new Date(m.completedAt) : null,
-    }).returning();
-    matchIdMap.set(m.backupId, newM.id);
-  }
-
-  // Import result history
-  for (const r of (bk.resultHistory ?? [])) {
-    const matchEntry = (bk.matches ?? []).find((m) => m.round === r.round && m.matchNumber === r.matchNumber);
-    const matchId = matchEntry ? (matchIdMap.get(matchEntry.backupId) ?? null) : null;
-    if (!matchId) continue;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.insert(resultHistoryTable).values({
-      matchId: matchId as number,
-      tournamentId: tid,
-      round: r.round,
-      matchNumber: r.matchNumber,
-      player1Id: r.player1BackupId ? (playerIdMap.get(r.player1BackupId) ?? null) : null,
-      player2Id: r.player2BackupId ? (playerIdMap.get(r.player2BackupId) ?? null) : null,
-      winnerId: r.winnerBackupId ? (playerIdMap.get(r.winnerBackupId) ?? null) : null,
-      score1: r.score1 ?? null,
-      score2: r.score2 ?? null,
-      isDraw: r.isDraw ?? false,
-      status: (r.status ?? "completed") as string,
-    } as any);
-  }
-
-  // Import action log
-  for (const a of (bk.actionLog ?? [])) {
-    await db.insert(actionLogTable).values({
-      tournamentId: tid,
-      actionType: a.actionType as any,
-      description: (a.description as string | undefined) ?? "",
-      matchId: a.matchBackupId ? (matchIdMap.get(a.matchBackupId) ?? null) : null,
-      isUndone: a.isUndone ?? false,
-      createdAt: a.createdAt ? new Date(a.createdAt as string) : undefined,
+  try {
+    const imported = await importBackupV2(bk);
+    res.status(201).json({
+      tournament: mapTournament(imported.tournament),
+      playersImported: imported.playersImported,
+      matchesImported: imported.matchesImported,
+    });
+  } catch (error) {
+    if (error instanceof BackupV2ValidationError) {
+      res.status(400).json({
+        error: "Backup v2 nie przeszedł pełnej walidacji.",
+        code: "INVALID_BACKUP_V2",
+        details: error.details,
+      });
+      return;
+    }
+    res.status(400).json({
+      error: "Import backupu v2 został wycofany; nie zapisano częściowych danych.",
+      code: "BACKUP_IMPORT_ROLLED_BACK",
     });
   }
 
-  // Log import action
-  await logAction({ tournamentId: tid, actionType: "tournament_started", description: `Przywrócono z backupu: ${bk.tournament.name} (eksport: ${new Date(bk.exportedAt).toLocaleString("pl")})` });
-
-  res.status(201).json({
-    tournament: mapTournament(newTournament),
-    playersImported: playerIdMap.size,
-    matchesImported: matchIdMap.size,
-  });
 });
 
 export default router;

@@ -80,7 +80,7 @@ export default function HelpPage() {
             <Step n={1}>
               Kliknij <strong>Nowy turniej</strong> na dashboardzie i uzupełnij:
               nazwę, opis (opcjonalnie), format (polecamy <em>Drabinka eliminacyjna</em> dla 1v1),
-              maksymalną liczbę graczy (np. 32) i domyślny format meczów (BO1 / BO3 / BO5).
+              maksymalną liczbę graczy (np. 32) i domyślny format meczów (BO1 / BO3 / BO5 / BO7).
             </Step>
             <Step n={2}>
               Przejdź do zakładki <strong>Gracze</strong> i dodaj zawodników.
@@ -105,7 +105,8 @@ Charlie,,Ancient`}
               Bez kodu każdy ze znającym link może prowadzić turniej.
             </Step>
             <Step n={5}>
-              Kliknij <strong>Wystartuj turniej</strong> — generuje drabinkę i blokuje listę graczy.
+              Kliknij <strong>Wystartuj turniej</strong> — aplikacja wygeneruje drabinkę,
+              harmonogram Round Robin albo pierwszą rundę Swiss i zablokuje listę graczy.
             </Step>
             <Tip>Sprawdź drabinkę w zakładce Drabinka zanim zaczniesz grę — po wystartowaniu nie można już edytować listy graczy.</Tip>
           </div>
@@ -123,21 +124,21 @@ Charlie,,Ancient`}
             </Step>
             <Step n={3}>
               Klikaj <strong>+</strong> / <strong>-</strong> przy każdym zawodniku, by aktualizować wynik.
-              Format BO1/BO3/BO5 możesz zmienić przyciskami w nagłówku meczu.
+              Format BO1/BO3/BO5/BO7 możesz zmienić przyciskami w nagłówku meczu przed jego rozpoczęciem.
             </Step>
             <Step n={4}>
-              Po zakończeniu meczu kliknij <strong>Zatwierdź wynik</strong>.
-              Zwycięzca automatycznie awansuje do następnej rundy.
+              Po osiągnięciu pełnego progu serii kliknij <strong>Zakończ rozegrany mecz</strong>.
+              Dla BO3 poprawne wyniki to 2:0 albo 2:1. W eliminacjach zwycięzca automatycznie awansuje.
             </Step>
             <Step n={5}>
               Jeśli zawodnik <strong>nie pojawił się</strong> (walkower): użyj przycisku <strong>W.O.</strong>
-              i wybierz kto wygrał. Wynik zostanie zapisany jako 1:0.
+              i wybierz zwycięzcę. Walkower jest osobnym rozstrzygnięciem i nie zapisuje sztucznego score 1:0.
             </Step>
             <Step n={6}>
               Mecze możesz <strong>przełożyć</strong> (znikają z kolejki, wróć do nich później)
-              lub <strong>anulować</strong> (mecz nie wpływa na drabinkę — używaj ostrożnie).
+              albo oznaczyć jako <strong>no contest</strong> w formacie, który pozwala zakończyć mecz bez zwycięzcy.
             </Step>
-            <Good>Wszystkie akcje można cofnąć przyciskiem Cofnij w górnym pasku lub z zakładki Log akcji.</Good>
+            <Good>Wynik można cofnąć, dopóki nie rozpoczęto zależnego meczu lub kolejnej rundy. Systemowego bye nie cofa się ręcznie.</Good>
             <Tip>Po zakończeniu wszystkich meczów rundy aplikacja automatycznie zaproponuje przejście do następnej rundy (dla Swiss). Dla drabinki eliminacyjnej kolejne mecze wypełniają się automatycznie.</Tip>
           </div>
         </Section>
@@ -150,7 +151,7 @@ Charlie,,Ancient`}
             </Step>
             <Step n={2}>
               Widok odświeża się automatycznie co 4 sekundy.
-              Pokazuje: bieżący mecz LIVE, ranking, ostatnie wyniki i nadchodzące mecze.
+              Pokazuje: bieżący mecz LIVE, klasyfikację lub bilans, ostatnie wyniki i nadchodzące mecze.
             </Step>
             <Step n={3}>
               Możesz <strong>wyróżnić konkretny mecz</strong> (gwiazdka ★ w panelu prowadzącego),
@@ -167,8 +168,8 @@ Charlie,,Ancient`}
         <Section icon={<RotateCcw className="w-5 h-5" />} title="4. Co zrobić przy pomyłce">
           <div className="space-y-2">
             <Step n={1}>
-              <strong>Błędny wynik:</strong> kliknij <em>Cofnij wynik</em> (przycisk czerwony przy zakończonym meczu)
-              lub użyj <em>Cofnij</em> w górnym pasku. Zwycięzca zostanie przywrócony do meczu.
+              <strong>Błędny wynik:</strong> kliknij <em>Cofnij wynik</em> przy zakończonym meczu
+              albo użyj <em>Cofnij</em> w górnym pasku. Mecz wróci do stanu oczekującego, a jego historia pozostanie w audycie.
             </Step>
             <Step n={2}>
               <strong>Cofnięcie działa tylko o 1 akcję w tył.</strong> Jeśli popełniłeś kilka błędów pod rząd,
@@ -193,7 +194,7 @@ Charlie,,Ancient`}
           <div className="space-y-2">
             <Step n={1}>
               Na dashboardzie najedź na kartę turnieju i kliknij ikonę <strong>↓</strong> (Pobierz backup).
-              Plik JSON zostaje zapisany na Twoim komputerze.
+              Powstanie backup JSON w formacie v2 dla modelu `series_v1`.
             </Step>
             <Step n={2}>
               Rób backup <strong>po każdej rundzie</strong> i zawsze przed przerwą lub zakończeniem turnieju.
@@ -215,7 +216,7 @@ Charlie,,Ancient`}
               <div>✅ Format: <strong>Drabinka eliminacyjna</strong></div>
               <div>✅ Maks. graczy: <strong>32</strong></div>
               <div>✅ Domyślny format meczu: <strong>BO3</strong> (lub BO1 dla szybszego turnieju)</div>
-              <div>✅ Remisy: <strong>wyłączone</strong> (Deadlock zawsze wyłania zwycięzcę)</div>
+              <div>✅ Model wyniku: <strong>series_v1</strong> — rezultat oznacza wygrane gry lub mapy, a mecz wyłania zwycięzcę.</div>
               <div>✅ Losowanie przez import CSV bez seedów = losowe pary R1</div>
               <div>✅ Backup po każdej rundzie</div>
             </div>

@@ -9,7 +9,7 @@
 export type TournamentStatsTopPlayersItem = {
   id?: number;
   name?: string;
-  wins?: number;
-  losses?: number;
-  points?: number;
+  matchWins?: number;
+  matchLosses?: number;
+  gameDiff?: number;
 };

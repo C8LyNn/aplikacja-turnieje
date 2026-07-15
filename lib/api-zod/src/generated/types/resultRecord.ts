@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { ResultRecordResultType } from './resultRecordResultType';
 
 export interface ResultRecord {
   id: number;
@@ -20,11 +21,14 @@ export interface ResultRecord {
   /** @nullable */
   score2: number | null;
   /** @nullable */
-  winnerId?: number | null;
+  winnerId: number | null;
   /** @nullable */
-  winnerName?: string | null;
+  winnerName: string | null;
+  bestOf: number;
+  resultType: ResultRecordResultType;
   /** @nullable */
-  isDraw?: boolean | null;
-  status: string;
+  resultReason: string | null;
+  revision: number;
   completedAt: string;
+  recordedAt: string;
 }

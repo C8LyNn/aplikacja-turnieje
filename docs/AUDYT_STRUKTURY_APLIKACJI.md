@@ -1,5 +1,8 @@
 # Audyt struktury aplikacji Tournament Manager
 
+> Status: dokument historyczny. Wnioski dotyczą stanu kodu z chwili audytu;
+> bieżący model wyników opisuje `ADR_SERIES_V1_CLEAN_CUTOVER.md`.
+
 Data audytu: 2026-07-14
 Zakres: cały kod śledzony w repozytorium, konfiguracja workspace, frontend, API, baza danych, generowany klient i schematy, skrypty uruchomieniowe oraz dostępne mechanizmy testowania.
 Charakter audytu: analiza bez szerokiego refaktoru; w kodzie produktu nie wprowadzono zmian.

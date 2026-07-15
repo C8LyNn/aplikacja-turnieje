@@ -12,7 +12,9 @@ import type { TournamentBackupResultHistoryItem } from './tournamentBackupResult
 import type { TournamentBackupTournament } from './tournamentBackupTournament';
 
 export interface TournamentBackup {
-  version: string;
+  schemaVersion: 2;
+  resultModelVersion: 'series_v1';
+  rankingPolicy: 'match_record_v1';
   exportedAt: string;
   tournament: TournamentBackupTournament;
   players: TournamentBackupPlayersItem[];

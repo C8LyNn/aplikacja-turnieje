@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -7,6 +7,7 @@ import {
   resultHistoryTable,
   tournamentsTable,
 } from "@workspace/db";
+import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 
 export type RevertMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -17,11 +18,11 @@ export type RevertMatchErrorCode =
   | "COMPLETION_ALREADY_UNDONE"
   | "UNDO_ACTION_CHANGED"
   | "DOWNSTREAM_BLOCKED"
+  | "SYSTEM_BYE_REVERT_BLOCKED"
   | "CONCURRENT_MODIFICATION"
   | "TOURNAMENT_MISMATCH"
   | "PARTICIPANT_TOURNAMENT_MISMATCH"
   | "RESULT_INCONSISTENT"
-  | "STATISTICS_INCONSISTENT"
   | "HISTORY_INCONSISTENT"
   | "COMPLETION_LOG_AMBIGUOUS"
   | "TOURNAMENT_FINALIZATION_INCONSISTENT";
@@ -34,12 +35,12 @@ const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   MATCH_NOT_COMPLETED: "Mecz nie ma wyniku, który można cofnąć.",
   COMPLETION_ALREADY_UNDONE: "Zatwierdzenie tego wyniku zostało już cofnięte.",
   UNDO_ACTION_CHANGED: "Ostatnia akcja do cofnięcia uległa zmianie.",
-  DOWNSTREAM_BLOCKED: "Kolejny mecz został zmieniony i blokuje cofnięcie wyniku.",
+  DOWNSTREAM_BLOCKED: "Kolejny mecz lub runda blokuje cofnięcie wyniku.",
+  SYSTEM_BYE_REVERT_BLOCKED: "Systemowego bye nie można cofnąć ręcznie.",
   CONCURRENT_MODIFICATION: "Stan meczu zmienił się podczas cofania wyniku.",
   TOURNAMENT_MISMATCH: "Mecz nie należy do wskazanego turnieju.",
   PARTICIPANT_TOURNAMENT_MISMATCH: "Uczestnicy nie należą do turnieju meczu.",
-  RESULT_INCONSISTENT: "Zapisany wynik meczu jest niespójny.",
-  STATISTICS_INCONSISTENT: "Statystyk uczestników nie można dokładnie odwrócić.",
+  RESULT_INCONSISTENT: "Zapisany wynik meczu jest niespójny z series_v1.",
   HISTORY_INCONSISTENT: "Historia nie odpowiada aktualnemu wynikowi meczu.",
   COMPLETION_LOG_AMBIGUOUS: "Nie można jednoznacznie wskazać logu zatwierdzenia wyniku.",
   TOURNAMENT_FINALIZATION_INCONSISTENT: "Finalizacja turnieju jest niespójna z wynikiem meczu.",
@@ -69,78 +70,66 @@ export interface RevertMatchResult {
   revertAction: typeof actionLogTable.$inferSelect;
 }
 
-type LockedPlayer = typeof playersTable.$inferSelect;
-
-function requireConsistentLegacyResult(match: typeof matchesTable.$inferSelect): {
+interface ConsistentResult {
+  resultType: "played" | "walkover" | "no_contest";
   winnerId: number | null;
   loserId: number | null;
-  isDraw: boolean;
-} {
-  if (
-    match.score1 == null ||
-    match.score2 == null ||
-    !Number.isInteger(match.score1) ||
-    !Number.isInteger(match.score2) ||
-    match.score1 < 0 ||
-    match.score2 < 0 ||
-    match.completedAt == null
-  ) {
-    throw new RevertMatchError("RESULT_INCONSISTENT");
-  }
-
-  if (match.isDraw === true) {
-    if (match.winnerId != null || match.score1 !== match.score2) {
-      throw new RevertMatchError("RESULT_INCONSISTENT");
-    }
-    return { winnerId: null, loserId: null, isDraw: true };
-  }
-
-  if (
-    match.isDraw !== false ||
-    match.winnerId == null ||
-    match.player1Id == null ||
-    match.player2Id == null ||
-    match.score1 === match.score2
-  ) {
-    throw new RevertMatchError("RESULT_INCONSISTENT");
-  }
-
-  const scoreWinnerId = match.score1 > match.score2 ? match.player1Id : match.player2Id;
-  if (match.winnerId !== scoreWinnerId) {
-    throw new RevertMatchError("RESULT_INCONSISTENT");
-  }
-
-  return {
-    winnerId: match.winnerId,
-    loserId: match.winnerId === match.player1Id ? match.player2Id : match.player1Id,
-    isDraw: false,
-  };
 }
 
-function requireRevertibleStatistics(params: {
-  participants: LockedPlayer[];
-  winnerId: number | null;
-  loserId: number | null;
-  isDraw: boolean;
-  singleElimination: boolean;
-}): void {
-  const playersById = new Map(params.participants.map((player) => [player.id, player]));
+function requireConsistentResult(match: typeof matchesTable.$inferSelect): ConsistentResult {
+  if (match.completedAt == null || match.resultType == null) {
+    throw new RevertMatchError("RESULT_INCONSISTENT");
+  }
+  if (match.resultType === "bye") {
+    throw new RevertMatchError("SYSTEM_BYE_REVERT_BLOCKED");
+  }
+  if (match.player1Id == null || match.player2Id == null || match.player1Id === match.player2Id) {
+    throw new RevertMatchError("RESULT_INCONSISTENT");
+  }
 
-  if (params.isDraw) {
-    if (params.participants.some((player) => player.draws < 1 || player.points < 1)) {
-      throw new RevertMatchError("STATISTICS_INCONSISTENT");
+  if (match.resultType === "played") {
+    if (match.score1 == null || match.score2 == null || match.winnerId == null) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
     }
-    return;
+    const validation = validatePlayedSeriesResult({
+      resultType: "played",
+      bestOf: match.bestOf,
+      score1: match.score1,
+      score2: match.score2,
+    });
+    if (!validation.ok) throw new RevertMatchError("RESULT_INCONSISTENT");
+    const expectedWinner = validation.value.winnerSide === "player1"
+      ? match.player1Id
+      : match.player2Id;
+    if (match.winnerId !== expectedWinner || match.resultReason != null) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
+    return {
+      resultType: "played",
+      winnerId: match.winnerId,
+      loserId: match.winnerId === match.player1Id ? match.player2Id : match.player1Id,
+    };
   }
 
-  const winner = params.winnerId == null ? null : playersById.get(params.winnerId);
-  const loser = params.loserId == null ? null : playersById.get(params.loserId);
-  if (!winner || !loser || winner.wins < 1 || winner.points < 3 || loser.losses < 1) {
-    throw new RevertMatchError("STATISTICS_INCONSISTENT");
+  if (match.resultType === "walkover") {
+    if (
+      match.score1 != null ||
+      match.score2 != null ||
+      (match.winnerId !== match.player1Id && match.winnerId !== match.player2Id)
+    ) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
+    return {
+      resultType: "walkover",
+      winnerId: match.winnerId,
+      loserId: match.winnerId === match.player1Id ? match.player2Id : match.player1Id,
+    };
   }
-  if (params.singleElimination && loser.status !== "eliminated") {
-    throw new RevertMatchError("STATISTICS_INCONSISTENT");
+
+  if (match.score1 != null || match.score2 != null || match.winnerId != null) {
+    throw new RevertMatchError("RESULT_INCONSISTENT");
   }
+  return { resultType: "no_contest", winnerId: null, loserId: null };
 }
 
 function historyMatchesCurrentResult(
@@ -156,15 +145,14 @@ function historyMatchesCurrentResult(
     history.score1 === match.score1 &&
     history.score2 === match.score2 &&
     history.winnerId === match.winnerId &&
-    history.isDraw === match.isDraw &&
-    history.status === "completed"
+    history.bestOf === match.bestOf &&
+    history.resultType === match.resultType &&
+    history.resultReason === match.resultReason &&
+    history.completedAt.getTime() === match.completedAt?.getTime()
   );
 }
 
-function completionLogMatches(
-  action: typeof actionLogTable.$inferSelect,
-  matchId: number,
-): boolean {
+function completionLogMatches(action: typeof actionLogTable.$inferSelect, matchId: number): boolean {
   if (!action.undoPayload) return false;
   try {
     const payload = JSON.parse(action.undoPayload) as Record<string, unknown>;
@@ -174,24 +162,20 @@ function completionLogMatches(
   }
 }
 
-/**
- * Reverts exactly one legacy CompleteMatch revision in a single transaction.
- * Lock order mirrors CompleteMatch: tournament, match, participants, downstream,
- * then the history and action-log records that prove the current revision.
- */
+/** Reverts one series_v1 result in a transaction shared by direct revert and undo-last. */
 export async function revertMatch(
   input: RevertMatchInput,
   testHooks: RevertMatchTestHooks = {},
 ): Promise<RevertMatchResult> {
   return db.transaction(async (tx) => {
     const [matchReference] = await tx
-      .select({ id: matchesTable.id, tournamentId: matchesTable.tournamentId })
+      .select({ tournamentId: matchesTable.tournamentId })
       .from(matchesTable)
       .where(eq(matchesTable.id, input.matchId));
     if (!matchReference) throw new RevertMatchError("MATCH_NOT_FOUND");
     if (
       input.expectedTournamentId != null &&
-      matchReference.tournamentId !== input.expectedTournamentId
+      input.expectedTournamentId !== matchReference.tournamentId
     ) {
       throw new RevertMatchError("TOURNAMENT_MISMATCH");
     }
@@ -210,33 +194,30 @@ export async function revertMatch(
       .for("update");
     if (!match) throw new RevertMatchError("MATCH_NOT_FOUND");
     if (match.status !== "completed") throw new RevertMatchError("MATCH_NOT_COMPLETED");
-    if (match.player1Id == null || match.player2Id == null) {
-      throw new RevertMatchError("RESULT_INCONSISTENT");
-    }
-    if (match.player1Id === match.player2Id) {
-      throw new RevertMatchError("RESULT_INCONSISTENT");
-    }
+    const result = requireConsistentResult(match);
 
-    const result = requireConsistentLegacyResult(match);
+    const participantIds = [match.player1Id, match.player2Id].filter(
+      (playerId): playerId is number => playerId != null,
+    );
     const participants = await tx
       .select()
       .from(playersTable)
-      .where(inArray(playersTable.id, [match.player1Id, match.player2Id]))
+      .where(inArray(playersTable.id, participantIds))
       .orderBy(playersTable.id)
       .for("update");
-    if (participants.length !== 2) throw new RevertMatchError("PARTICIPANT_NOT_FOUND");
+    if (participants.length !== participantIds.length) {
+      throw new RevertMatchError("PARTICIPANT_NOT_FOUND");
+    }
     if (participants.some((player) => player.tournamentId !== match.tournamentId)) {
       throw new RevertMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
-
-    const isElimination = tournament.format !== "round_robin" && tournament.format !== "swiss";
-    requireRevertibleStatistics({
-      participants,
-      winnerId: result.winnerId,
-      loserId: result.loserId,
-      isDraw: result.isDraw,
-      singleElimination: tournament.format === "single_elimination",
-    });
+    if (
+      tournament.format === "single_elimination" &&
+      result.loserId != null &&
+      participants.find((player) => player.id === result.loserId)?.status !== "eliminated"
+    ) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
 
     if (tournament.format === "swiss") {
       const laterPairings = await tx
@@ -260,11 +241,8 @@ export async function revertMatch(
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
     let downstreamSlot: "player1" | "player2" | null = null;
-    if (isElimination && result.winnerId != null) {
-      if (match.round < 1 || match.matchNumber < 1) {
-        throw new RevertMatchError("RESULT_INCONSISTENT");
-      }
-      const nextRoundReferences = await tx
+    if (tournament.format === "single_elimination" && result.winnerId != null) {
+      const nextRoundMatches = await tx
         .select({ id: matchesTable.id })
         .from(matchesTable)
         .where(
@@ -274,10 +252,8 @@ export async function revertMatch(
           ),
         )
         .orderBy(matchesTable.matchNumber);
-      const nextMatchIndex = Math.floor((match.matchNumber - 1) / 2);
-      const nextReference = nextRoundReferences[nextMatchIndex];
-
-      if (!nextReference && tournament.totalRounds != null && match.round < tournament.totalRounds) {
+      const nextReference = nextRoundMatches[Math.floor((match.matchNumber - 1) / 2)];
+      if (!nextReference && match.round < (tournament.totalRounds ?? match.round)) {
         throw new RevertMatchError("DOWNSTREAM_BLOCKED");
       }
       if (nextReference) {
@@ -287,38 +263,34 @@ export async function revertMatch(
           .where(eq(matchesTable.id, nextReference.id))
           .for("update");
         if (!downstreamMatch) throw new RevertMatchError("MATCH_NOT_FOUND");
-
-        const advancesToPlayer1 = (match.matchNumber - 1) % 2 === 0;
-        const expectedSlotPlayer = advancesToPlayer1
+        downstreamSlot = (match.matchNumber - 1) % 2 === 0 ? "player1" : "player2";
+        const expectedSlot = downstreamSlot === "player1"
           ? downstreamMatch.player1Id
           : downstreamMatch.player2Id;
-        const otherSlotPlayer = advancesToPlayer1
+        const otherSlot = downstreamSlot === "player1"
           ? downstreamMatch.player2Id
           : downstreamMatch.player1Id;
-        const downstreamIsPristine =
+        const pristine =
           downstreamMatch.status === "pending" &&
+          downstreamMatch.resultType == null &&
+          downstreamMatch.resultReason == null &&
           downstreamMatch.score1 == null &&
           downstreamMatch.score2 == null &&
           downstreamMatch.winnerId == null &&
-          downstreamMatch.isDraw !== true &&
           downstreamMatch.completedAt == null;
-
-        if (
-          !downstreamIsPristine ||
-          expectedSlotPlayer !== result.winnerId ||
-          otherSlotPlayer === result.winnerId
-        ) {
+        if (!pristine || expectedSlot !== result.winnerId || otherSlot === result.winnerId) {
           throw new RevertMatchError("DOWNSTREAM_BLOCKED");
         }
-        downstreamSlot = advancesToPlayer1 ? "player1" : "player2";
       }
     }
 
-    let finalizedWinner: LockedPlayer | null = null;
     const shouldReopenElimination =
-      isElimination && downstreamMatch == null && tournament.status === "completed";
+      tournament.format === "single_elimination" &&
+      downstreamMatch == null &&
+      tournament.status === "completed";
     const shouldReopenRoundRobin =
       tournament.format === "round_robin" && tournament.status === "completed";
+    let finalizedWinner: typeof playersTable.$inferSelect | null = null;
     if (shouldReopenElimination) {
       if (result.winnerId == null || tournament.winnerId !== result.winnerId) {
         throw new RevertMatchError("TOURNAMENT_FINALIZATION_INCONSISTENT");
@@ -337,15 +309,12 @@ export async function revertMatch(
           .for("update");
       }
     } else if (
-      (isElimination || tournament.format === "round_robin") &&
+      (tournament.format === "single_elimination" || tournament.format === "round_robin") &&
       tournament.status !== "completed" &&
       tournament.winnerId != null
     ) {
       throw new RevertMatchError("TOURNAMENT_FINALIZATION_INCONSISTENT");
-    } else if (isElimination && downstreamMatch != null && tournament.status === "completed") {
-      throw new RevertMatchError("TOURNAMENT_FINALIZATION_INCONSISTENT");
     }
-
     if (
       finalizedWinner &&
       (finalizedWinner.tournamentId !== tournament.id || finalizedWinner.status !== "winner")
@@ -360,7 +329,7 @@ export async function revertMatch(
       .select()
       .from(resultHistoryTable)
       .where(eq(resultHistoryTable.matchId, match.id))
-      .orderBy(desc(resultHistoryTable.id))
+      .orderBy(desc(resultHistoryTable.revision))
       .limit(1)
       .for("update");
     if (!latestHistory) throw new RevertMatchError("RESULT_HISTORY_NOT_FOUND");
@@ -399,72 +368,24 @@ export async function revertMatch(
       throw new RevertMatchError("UNDO_ACTION_CHANGED");
     }
 
-    if (result.isDraw) {
-      const updatedParticipants = await tx
-        .update(playersTable)
-        .set({
-          draws: sql`${playersTable.draws} - 1`,
-          points: sql`${playersTable.points} - 1`,
-        })
-        .where(
-          and(
-            inArray(playersTable.id, [match.player1Id, match.player2Id]),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        )
-        .returning({ id: playersTable.id });
-      if (updatedParticipants.length !== 2) {
-        throw new RevertMatchError("CONCURRENT_MODIFICATION");
-      }
-    } else {
-      const [updatedWinner] = await tx
-        .update(playersTable)
-        .set({
-          wins: sql`${playersTable.wins} - 1`,
-          points: sql`${playersTable.points} - 3`,
-        })
-        .where(
-          and(
-            eq(playersTable.id, result.winnerId!),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        )
-        .returning({ id: playersTable.id });
-      const [updatedLoser] = await tx
-        .update(playersTable)
-        .set({
-          losses: sql`${playersTable.losses} - 1`,
-          ...(tournament.format === "single_elimination" ? { status: "active" as const } : {}),
-        })
-        .where(
-          and(
-            eq(playersTable.id, result.loserId!),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        )
-        .returning({ id: playersTable.id });
-      if (!updatedWinner || !updatedLoser) {
-        throw new RevertMatchError("CONCURRENT_MODIFICATION");
-      }
-    }
-
     if (downstreamMatch && downstreamSlot) {
-      const [clearedDownstream] = await tx
+      const [cleared] = await tx
         .update(matchesTable)
         .set(downstreamSlot === "player1" ? { player1Id: null } : { player2Id: null })
         .where(eq(matchesTable.id, downstreamMatch.id))
         .returning({ id: matchesTable.id });
-      if (!clearedDownstream) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+      if (!cleared) throw new RevertMatchError("CONCURRENT_MODIFICATION");
     }
 
     const [revertedMatch] = await tx
       .update(matchesTable)
       .set({
         status: "pending",
+        resultType: null,
+        resultReason: null,
         score1: null,
         score2: null,
         winnerId: null,
-        isDraw: false,
         completedAt: null,
       })
       .where(and(eq(matchesTable.id, match.id), eq(matchesTable.status, "completed")))
@@ -473,16 +394,25 @@ export async function revertMatch(
 
     await testHooks.afterMatchReset?.();
 
+    if (tournament.format === "single_elimination" && result.loserId != null) {
+      const [reactivatedLoser] = await tx
+        .update(playersTable)
+        .set({ status: "active" })
+        .where(
+          and(
+            eq(playersTable.id, result.loserId),
+            eq(playersTable.status, "eliminated"),
+          ),
+        )
+        .returning({ id: playersTable.id });
+      if (!reactivatedLoser) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
+
     if (shouldReopenElimination || shouldReopenRoundRobin) {
       const [reopenedTournament] = await tx
         .update(tournamentsTable)
         .set({ status: "active", winnerId: null })
-        .where(
-          and(
-            eq(tournamentsTable.id, tournament.id),
-            eq(tournamentsTable.status, "completed"),
-          ),
-        )
+        .where(and(eq(tournamentsTable.id, tournament.id), eq(tournamentsTable.status, "completed")))
         .returning({ id: tournamentsTable.id });
       const [reactivatedWinner] = await tx
         .update(playersTable)
@@ -490,7 +420,6 @@ export async function revertMatch(
         .where(
           and(
             eq(playersTable.id, finalizedWinner!.id),
-            eq(playersTable.tournamentId, tournament.id),
             eq(playersTable.status, "winner"),
           ),
         )
@@ -503,16 +432,9 @@ export async function revertMatch(
     const [undoneCompletionAction] = await tx
       .update(actionLogTable)
       .set({ isUndone: true })
-      .where(
-        and(
-          eq(actionLogTable.id, completionAction.id),
-          eq(actionLogTable.isUndone, false),
-        ),
-      )
+      .where(and(eq(actionLogTable.id, completionAction.id), eq(actionLogTable.isUndone, false)))
       .returning();
-    if (!undoneCompletionAction) {
-      throw new RevertMatchError("CONCURRENT_MODIFICATION");
-    }
+    if (!undoneCompletionAction) throw new RevertMatchError("CONCURRENT_MODIFICATION");
 
     const [revertAction] = await tx
       .insert(actionLogTable)

@@ -561,6 +561,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Match"
+        "409":
+          description: Match was already finalized or changed concurrently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Result payload or current tournament state violates series_v1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /matches/{id}/cancel:
     post:
@@ -683,7 +695,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Match"
         "404":
-          description: Match or required legacy result record not found
+          description: Match, tournament, or participant not found
           content:
             application/json:
               schema:
@@ -695,7 +707,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
         "422":
-          description: Stored result, participants, statistics, history, or finalization is inconsistent
+          description: Stored result, participants, history, or finalization is inconsistent
           content:
             application/json:
               schema:
@@ -720,7 +732,7 @@ components:
 
     Tournament:
       type: object
-      required: [id, name, format, status, createdAt, hasHostCode]
+      required: [id, name, format, status, resultModelVersion, rankingPolicy, defaultBestOf, createdAt, hasHostCode]
       properties:
         id:
           type: integer
@@ -730,7 +742,7 @@ components:
           type: ["string", "null"]
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin, swiss]
+          enum: [single_elimination, round_robin, swiss]
         status:
           type: string
           enum: [draft, active, completed]
@@ -738,10 +750,15 @@ components:
           type: ["integer", "null"]
         swissRounds:
           type: ["integer", "null"]
-        allowDraws:
-          type: ["boolean", "null"]
+        resultModelVersion:
+          type: string
+          enum: [series_v1]
+        rankingPolicy:
+          type: string
+          enum: [match_record_v1]
         defaultBestOf:
-          type: ["integer", "null"]
+          type: integer
+          minimum: 1
         currentRound:
           type: ["integer", "null"]
         totalRounds:
@@ -780,15 +797,14 @@ components:
           type: string
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin, swiss]
+          enum: [single_elimination, round_robin, swiss]
         maxPlayers:
           type: integer
         swissRounds:
           type: integer
-        allowDraws:
-          type: boolean
         defaultBestOf:
           type: integer
+          minimum: 1
         organizerPassword:
           type: string
           description: Optional password to protect organizer access
@@ -812,7 +828,7 @@ components:
           type: string
         format:
           type: string
-          enum: [single_elimination, double_elimination, round_robin, swiss]
+          enum: [single_elimination, round_robin, swiss]
         status:
           type: string
           enum: [draft, active, completed]
@@ -820,10 +836,9 @@ components:
           type: integer
         swissRounds:
           type: integer
-        allowDraws:
-          type: boolean
         defaultBestOf:
           type: integer
+          minimum: 1
         featuredMatchId:
           type: integer
         hostCode:
@@ -872,14 +887,6 @@ components:
         status:
           type: string
           enum: [active, eliminated, winner]
-        wins:
-          type: integer
-        draws:
-          type: integer
-        losses:
-          type: integer
-        points:
-          type: integer
         createdAt:
           type: string
 
@@ -961,7 +968,7 @@ components:
 
     Match:
       type: object
-      required: [id, tournamentId, round, matchNumber, status]
+      required: [id, tournamentId, round, matchNumber, bestOf, status]
       properties:
         id:
           type: integer
@@ -985,20 +992,26 @@ components:
           type: ["integer", "null"]
         winnerId:
           type: ["integer", "null"]
-        isDraw:
-          type: ["boolean", "null"]
+        resultType:
+          type: ["string", "null"]
+          enum: [played, walkover, bye, no_contest, null]
+        resultReason:
+          type: ["string", "null"]
         bestOf:
-          type: ["integer", "null"]
+          type: integer
+          minimum: 1
         note:
           type: ["string", "null"]
         status:
           type: string
-          enum: [pending, ready, in_progress, completed, bye, walkover, postponed, cancelled]
+          enum: [pending, in_progress, postponed, completed, cancelled]
         nextMatchId:
           type: ["integer", "null"]
         sortOrder:
           type: ["integer", "null"]
         scheduledAt:
+          type: ["string", "null"]
+        completedAt:
           type: ["string", "null"]
 
     MatchCancelInput:
@@ -1021,30 +1034,50 @@ components:
       properties:
         status:
           type: string
-          enum: [pending, ready, in_progress, postponed, cancelled]
+          enum: [pending, in_progress, postponed, cancelled]
         note:
           type: string
         bestOf:
           type: integer
+          minimum: 1
 
     MatchResult:
-      type: object
-      required: [score1, score2]
-      properties:
-        winnerId:
-          type: [integer, "null"]
-        score1:
-          type: integer
-        score2:
-          type: integer
-        isDraw:
-          type: boolean
-        note:
-          type: string
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [resultType, score1, score2]
+          properties:
+            resultType:
+              type: string
+              const: played
+            score1:
+              type: integer
+            score2:
+              type: integer
+        - type: object
+          additionalProperties: false
+          required: [resultType, winnerId]
+          properties:
+            resultType:
+              type: string
+              const: walkover
+            winnerId:
+              type: integer
+            reason:
+              type: ["string", "null"]
+        - type: object
+          additionalProperties: false
+          required: [resultType]
+          properties:
+            resultType:
+              type: string
+              const: no_contest
+            reason:
+              type: ["string", "null"]
 
     Standing:
       type: object
-      required: [rank, playerId, playerName, points, wins, draws, losses, buchholz, pointDiff, seed]
+      required: [rank, playerId, playerName, rankName, teamName, country, seed, status, matchesPlayed, matchWins, matchLosses, gameWins, gameLosses, gameDiff, buchholz]
       properties:
         rank:
           type: integer
@@ -1052,7 +1085,7 @@ components:
           type: integer
         playerName:
           type: string
-        rank_name:
+        rankName:
           type: ["string", "null"]
         teamName:
           type: ["string", "null"]
@@ -1060,26 +1093,27 @@ components:
           type: ["string", "null"]
         seed:
           type: ["integer", "null"]
-        points:
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+        matchesPlayed:
           type: integer
-        wins:
+        matchWins:
           type: integer
-        draws:
+        matchLosses:
           type: integer
-        losses:
+        gameWins:
+          type: integer
+        gameLosses:
+          type: integer
+        gameDiff:
           type: integer
         buchholz:
-          type: integer
-        pointDiff:
-          type: integer
-        gamesFor:
-          type: integer
-        gamesAgainst:
-          type: integer
+          type: ["integer", "null"]
 
     ResultRecord:
       type: object
-      required: [id, matchId, round, matchNumber, player1Name, player2Name, score1, score2, status, completedAt]
+      required: [id, matchId, round, matchNumber, player1Name, player2Name, score1, score2, winnerId, winnerName, bestOf, resultType, resultReason, revision, completedAt, recordedAt]
       properties:
         id:
           type: integer
@@ -1101,11 +1135,18 @@ components:
           type: ["integer", "null"]
         winnerName:
           type: ["string", "null"]
-        isDraw:
-          type: ["boolean", "null"]
-        status:
+        bestOf:
+          type: integer
+        resultType:
           type: string
+          enum: [played, walkover, bye, no_contest]
+        resultReason:
+          type: ["string", "null"]
+        revision:
+          type: integer
         completedAt:
+          type: string
+        recordedAt:
           type: string
 
     ActionLogEntry:
@@ -1183,15 +1224,24 @@ components:
 
     TournamentBackup:
       type: object
-      required: [version, exportedAt, tournament, players, matches, resultHistory, actionLog]
+      additionalProperties: false
+      required: [schemaVersion, resultModelVersion, rankingPolicy, exportedAt, tournament, players, matches, resultHistory, actionLog]
       properties:
-        version:
+        schemaVersion:
+          type: integer
+          const: 2
+        resultModelVersion:
           type: string
+          const: series_v1
+        rankingPolicy:
+          type: string
+          const: match_record_v1
         exportedAt:
           type: string
         tournament:
           type: object
-          required: [name, format, status]
+          additionalProperties: false
+          required: [name, format, status, defaultBestOf, visibility]
           properties:
             name:
               type: string
@@ -1199,8 +1249,10 @@ components:
               type: ["string", "null"]
             format:
               type: string
+              enum: [single_elimination, round_robin, swiss]
             status:
               type: string
+              enum: [draft, active, completed]
             maxPlayers:
               type: ["integer", "null"]
             currentRound:
@@ -1209,13 +1261,22 @@ components:
               type: ["integer", "null"]
             swissRounds:
               type: ["integer", "null"]
-            featuredMatchId:
+            defaultBestOf:
+              type: integer
+              minimum: 1
+            visibility:
+              type: string
+              enum: [public_online, private_online, private_offline]
+            winnerBackupId:
+              type: ["integer", "null"]
+            featuredMatchBackupId:
               type: ["integer", "null"]
         players:
           type: array
           items:
             type: object
-            required: [backupId, name]
+            additionalProperties: false
+            required: [backupId, name, status]
             properties:
               backupId:
                 type: integer
@@ -1229,21 +1290,15 @@ components:
                 type: ["string", "null"]
               seed:
                 type: ["integer", "null"]
-              wins:
-                type: integer
-              draws:
-                type: integer
-              losses:
-                type: integer
-              points:
-                type: integer
               status:
                 type: string
+                enum: [active, eliminated, winner]
         matches:
           type: array
           items:
             type: object
-            required: [backupId, round, matchNumber]
+            additionalProperties: false
+            required: [backupId, round, matchNumber, bestOf, status, resultType, resultReason]
             properties:
               backupId:
                 type: integer
@@ -1261,14 +1316,23 @@ components:
                 type: ["integer", "null"]
               score2:
                 type: ["integer", "null"]
-              isDraw:
-                type: boolean
+              resultType:
+                type: ["string", "null"]
+                enum: [played, walkover, bye, no_contest, null]
+              resultReason:
+                type: ["string", "null"]
               bestOf:
                 type: integer
+                minimum: 1
               status:
                 type: string
+                enum: [pending, in_progress, postponed, completed, cancelled]
               note:
                 type: ["string", "null"]
+              nextMatchBackupId:
+                type: ["integer", "null"]
+              sortOrder:
+                type: ["integer", "null"]
               scheduledAt:
                 type: ["string", "null"]
               completedAt:
@@ -1277,7 +1341,13 @@ components:
           type: array
           items:
             type: object
+            additionalProperties: false
+            required: [matchBackupId, revision, round, matchNumber, bestOf, resultType, resultReason, completedAt, recordedAt]
             properties:
+              matchBackupId:
+                type: integer
+              revision:
+                type: integer
               round:
                 type: integer
               matchNumber:
@@ -1292,14 +1362,23 @@ components:
                 type: ["integer", "null"]
               score2:
                 type: ["integer", "null"]
-              isDraw:
-                type: boolean
-              status:
+              bestOf:
+                type: integer
+              resultType:
+                type: string
+                enum: [played, walkover, bye, no_contest]
+              resultReason:
+                type: ["string", "null"]
+              completedAt:
+                type: string
+              recordedAt:
                 type: string
         actionLog:
           type: array
           items:
             type: object
+            additionalProperties: false
+            required: [actionType, description, matchBackupId, canUndo, undoPayload, isUndone, createdAt]
             properties:
               actionType:
                 type: string
@@ -1307,6 +1386,11 @@ components:
                 type: string
               matchBackupId:
                 type: ["integer", "null"]
+              canUndo:
+                type: boolean
+              undoPayload:
+                type: ["object", "null"]
+                additionalProperties: true
               isUndone:
                 type: boolean
               createdAt:
@@ -1350,9 +1434,9 @@ components:
                 type: integer
               name:
                 type: string
-              wins:
+              matchWins:
                 type: integer
-              losses:
+              matchLosses:
                 type: integer
-              points:
+              gameDiff:
                 type: integer

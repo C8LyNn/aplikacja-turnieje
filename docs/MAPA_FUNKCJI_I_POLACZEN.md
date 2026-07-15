@@ -1,5 +1,8 @@
 # Mapa funkcji i połączeń Tournament Manager
 
+> Status: mapa historyczna sprzed cutoveru `series_v1`. Nie jest specyfikacją
+> bieżącego schematu; aktualną decyzję opisuje `ADR_SERIES_V1_CLEAN_CUTOVER.md`.
+
 Data mapy: 2026-07-14
 Zakres: runtime produktu (`tournament-manager` + `api-server` + `db`) oraz kontrakt generowany. Makieta `mockup-sandbox` jest wymieniona jako osobny artefakt, ale nie jest liczona jako funkcja produktu.
 

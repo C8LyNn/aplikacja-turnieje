@@ -5,6 +5,8 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupMatchesItemResultType } from './tournamentBackupMatchesItemResultType';
+import type { TournamentBackupMatchesItemStatus } from './tournamentBackupMatchesItemStatus';
 
 export type TournamentBackupMatchesItem = {
   backupId: number;
@@ -20,11 +22,19 @@ export type TournamentBackupMatchesItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
-  isDraw?: boolean;
-  bestOf?: number;
-  status?: string;
+  /** @nullable */
+  resultType: TournamentBackupMatchesItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  /** @minimum 1 */
+  bestOf: number;
+  status: TournamentBackupMatchesItemStatus;
   /** @nullable */
   note?: string | null;
+  /** @nullable */
+  nextMatchBackupId?: number | null;
+  /** @nullable */
+  sortOrder?: number | null;
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */

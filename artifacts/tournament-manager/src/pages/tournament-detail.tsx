@@ -33,12 +33,12 @@ import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
+import { parseTournamentBackupFile } from "@/lib/backup-file";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
-  double_elimination: "Podwójna eliminacja",
 };
 
 export default function TournamentDetail() {
@@ -232,20 +232,12 @@ export default function TournamentDetail() {
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target?.result as string);
-        if (!data.version || !data.tournament || !Array.isArray(data.players)) {
-          setImportError("Plik nie wygląda jak backup TM_SYS. Sprawdź czy to właściwy plik.");
-          return;
-        }
-        if (data.version !== "1") {
-          setImportError(`Nieobsługiwana wersja backupu (${data.version}). Aplikacja obsługuje wersję 1.`);
-          return;
-        }
-        setImportPreview(data);
-      } catch {
-        setImportError("Nie można odczytać pliku. Plik jest uszkodzony lub nie jest prawidłowym JSON-em.");
+      const parsed = parseTournamentBackupFile(String(ev.target?.result ?? ""));
+      if (!parsed.ok) {
+        setImportError(parsed.error);
+        return;
       }
+      setImportPreview(parsed.backup);
     };
     reader.readAsText(file);
   };
@@ -499,7 +491,7 @@ export default function TournamentDetail() {
               {FORMAT_LABELS[tournament.format] ?? tournament.format}
               {tournament.format === "swiss" && tournament.swissRounds && ` · ${tournament.swissRounds} rund`}
               {tournament.currentRound && ` · Runda ${tournament.currentRound}${tournament.totalRounds ? `/${tournament.totalRounds}` : ""}`}
-              {tournament.allowDraws && " · Remisy OK"}
+              {` · BO${tournament.defaultBestOf} · series_v1`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -681,7 +673,7 @@ export default function TournamentDetail() {
             {tournament.status !== "draft" && (
               <>
                 <TabsTrigger value="matches" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Mecze</TabsTrigger>
-                <TabsTrigger value="standings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Tabela</TabsTrigger>
+                <TabsTrigger value="standings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">{tournament.format === "single_elimination" ? "Bilans" : "Tabela"}</TabsTrigger>
                 <TabsTrigger value="bracket" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Drabinka</TabsTrigger>
                 <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Historia</TabsTrigger>
               </>
@@ -759,8 +751,8 @@ export default function TournamentDetail() {
                           <span className="font-semibold">{p.name}</span>
                         </div>
                         <div className="flex gap-4 text-sm text-muted-foreground">
-                          <span>{p.wins}W/{p.losses}L</span>
-                          <span className="font-bold text-primary">{p.points} pkt</span>
+                          <span>{p.matchWins}W/{p.matchLosses}L</span>
+                          <span className="font-bold text-primary">Gry {(p.gameDiff ?? 0) > 0 ? "+" : ""}{p.gameDiff ?? 0}</span>
                         </div>
                       </div>
                     ))}
@@ -1000,7 +992,12 @@ export default function TournamentDetail() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {tournament.status !== "draft" && (
-                                  <span className="text-xs text-muted-foreground font-mono">{p.wins}W {p.draws}R {p.losses}L · {p.points} pkt</span>
+                                  <span className="text-xs text-muted-foreground font-mono">
+                                    {(() => {
+                                      const standing = standings?.find((entry) => entry.playerId === p.id);
+                                      return `${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L · gry ${standing?.gameWins ?? 0}:${standing?.gameLosses ?? 0}`;
+                                    })()}
+                                  </span>
                                 )}
                                 <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
                                   {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
@@ -1100,26 +1097,27 @@ export default function TournamentDetail() {
                           {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">BO{m.bestOf}</Badge>}
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className={`text-right w-28 truncate text-sm ${m.winnerId === m.player1Id && !m.isDraw ? "font-bold text-primary" : ""}`}>
+                          <div className={`text-right w-28 truncate text-sm ${m.winnerId === m.player1Id ? "font-bold text-primary" : ""}`}>
                             {m.player1Name || "TBD"}
                           </div>
                           <div className="flex items-center gap-2 font-mono bg-muted/50 px-2 py-1 rounded text-sm">
-                            <span>{m.score1 !== null ? m.score1 : "-"}</span>
-                            <span className="text-muted-foreground">:</span>
-                            <span>{m.score2 !== null ? m.score2 : "-"}</span>
+                             {m.resultType === "played" || m.status !== "completed" ? (
+                               <><span>{m.score1 !== null ? m.score1 : "-"}</span><span className="text-muted-foreground">:</span><span>{m.score2 !== null ? m.score2 : "-"}</span></>
+                             ) : (
+                               <span>{m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}</span>
+                             )}
                           </div>
-                          <div className={`w-28 truncate text-sm ${m.winnerId === m.player2Id && !m.isDraw ? "font-bold text-primary" : ""}`}>
+                          <div className={`w-28 truncate text-sm ${m.winnerId === m.player2Id ? "font-bold text-primary" : ""}`}>
                             {m.player2Name || "TBD"}
                           </div>
                         </div>
                         <div className="mt-1 md:mt-0">
                           <Badge variant="secondary" className={
                             m.status === "in_progress" ? "bg-yellow-500/20 text-yellow-400" :
-                            m.status === "completed" ? "bg-green-500/20 text-green-400" :
-                            m.status === "bye" ? "bg-muted text-muted-foreground" : "bg-transparent border"
+                            m.status === "completed" ? "bg-green-500/20 text-green-400" : "bg-transparent border"
                           }>
                             {m.status === "pending" ? "oczekuje" : m.status === "in_progress" ? "LIVE" :
-                             m.status === "completed" ? m.isDraw ? "remis" : "zakończony" : m.status === "bye" ? "bye" : m.status}
+                             m.status === "completed" ? m.resultType === "walkover" ? "walkower" : m.resultType === "bye" ? "wolny los" : m.resultType === "no_contest" ? "no contest" : "zakończony" : m.status}
                           </Badge>
                         </div>
                       </div>
@@ -1132,10 +1130,34 @@ export default function TournamentDetail() {
 
           <TabsContent value="standings" className="pt-6">
             <Card>
-              <CardHeader><CardTitle>Klasyfikacja</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{tournament.format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}</CardTitle></CardHeader>
               <CardContent>
                 {!standings || standings.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">Brak danych klasyfikacji.</div>
+                ) : tournament.format === "single_elimination" ? (
+                  <div>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Awans i mistrz wynikają wyłącznie z drabinki. Bilans nie ustala kolejności eliminacji.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {standings.map((s) => (
+                        <div key={s.playerId} className="rounded-lg border bg-muted/10 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold">{s.playerName}</div>
+                              <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
+                            </div>
+                            <Badge variant="outline">{s.status}</Badge>
+                          </div>
+                          <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                            <div><strong className="block text-base text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
+                            <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>Gry</div>
+                            <div><strong className="block text-base text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -1143,10 +1165,10 @@ export default function TournamentDetail() {
                         <tr className="border-b text-left text-muted-foreground">
                           <th className="py-2 px-2 w-8">#</th>
                           <th className="py-2 px-2">Gracz</th>
-                          <th className="py-2 px-2 text-center">Pkt</th>
+                          <th className="py-2 px-2 text-center">Mecze</th>
                           <th className="py-2 px-2 text-center">W</th>
-                          <th className="py-2 px-2 text-center">R</th>
                           <th className="py-2 px-2 text-center">P</th>
+                          <th className="py-2 px-2 text-center">Gry</th>
                           <th className="py-2 px-2 text-center">Buchh.</th>
                           <th className="py-2 px-2 text-center">+/-</th>
                         </tr>
@@ -1160,19 +1182,19 @@ export default function TournamentDetail() {
                             <td className="py-2 px-2">
                               <div className="font-semibold">{s.playerName}</div>
                               <div className="flex gap-2 text-xs text-muted-foreground">
-                                {s.rank_name && <span>{s.rank_name}</span>}
+                                {s.rankName && <span>{s.rankName}</span>}
                                 {s.teamName && <span>{s.teamName}</span>}
                                 {s.country && <span>{s.country}</span>}
                               </div>
                             </td>
-                            <td className="py-2 px-2 text-center font-bold text-primary">{s.points}</td>
-                            <td className="py-2 px-2 text-center text-green-400">{s.wins}</td>
-                            <td className="py-2 px-2 text-center text-yellow-400">{s.draws}</td>
-                            <td className="py-2 px-2 text-center text-red-400">{s.losses}</td>
-                            <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz}</td>
+                            <td className="py-2 px-2 text-center">{s.matchesPlayed}</td>
+                            <td className="py-2 px-2 text-center text-green-400">{s.matchWins}</td>
+                            <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
+                            <td className="py-2 px-2 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
+                            <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>
                             <td className="py-2 px-2 text-center text-muted-foreground">
-                              <span className={s.pointDiff > 0 ? "text-green-400" : s.pointDiff < 0 ? "text-red-400" : ""}>
-                                {s.pointDiff > 0 ? "+" : ""}{s.pointDiff}
+                              <span className={s.gameDiff > 0 ? "text-green-400" : s.gameDiff < 0 ? "text-red-400" : ""}>
+                                {s.gameDiff > 0 ? "+" : ""}{s.gameDiff}
                               </span>
                             </td>
                           </tr>
@@ -1258,19 +1280,17 @@ export default function TournamentDetail() {
                         <div className="flex items-center gap-3">
                           <Badge variant="outline" className="text-xs">R{r.round} M{r.matchNumber}</Badge>
                           <div className="text-sm">
-                            <span className={r.winnerName === r.player1Name && !r.isDraw ? "font-bold text-primary" : ""}>{r.player1Name}</span>
-                            <span className="text-muted-foreground mx-2">{r.score1}:{r.score2}</span>
-                            <span className={r.winnerName === r.player2Name && !r.isDraw ? "font-bold text-primary" : ""}>{r.player2Name}</span>
+                            <span className={r.winnerName === r.player1Name ? "font-bold text-primary" : ""}>{r.player1Name}</span>
+                            <span className="text-muted-foreground mx-2">{r.resultType === "played" ? `${r.score1}:${r.score2}` : r.resultType === "walkover" ? "W.O." : r.resultType === "bye" ? "BYE" : "N/C"}</span>
+                            <span className={r.winnerName === r.player2Name ? "font-bold text-primary" : ""}>{r.player2Name}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          {r.isDraw ? (
-                            <Badge variant="secondary">remis</Badge>
-                          ) : r.winnerName ? (
+                          {r.winnerName ? (
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <ChevronRight className="w-3 h-3 text-primary" /> {r.winnerName}
                             </span>
-                          ) : null}
+                          ) : <Badge variant="secondary">no contest</Badge>}
                           <span className="text-xs text-muted-foreground">
                             {new Date(r.completedAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit" })}
                           </span>
@@ -1371,7 +1391,7 @@ export default function TournamentDetail() {
                           <p>⚔️ <strong className="text-foreground">Mecze:</strong> {importPreview.matches?.length ?? 0}</p>
                           <p>📊 <strong className="text-foreground">Status:</strong> {importPreview.tournament.status} · Runda {importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
                           <p>📅 <strong className="text-foreground">Data backupu:</strong> {new Date(importPreview.exportedAt).toLocaleString("pl")}</p>
-                          <p>🔖 <strong className="text-foreground">Wersja formatu:</strong> {importPreview.version}</p>
+                          <p>🔖 <strong className="text-foreground">Wersja formatu:</strong> {importPreview.schemaVersion}</p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
