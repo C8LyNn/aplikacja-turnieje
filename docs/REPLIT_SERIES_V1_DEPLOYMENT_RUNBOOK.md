@@ -30,15 +30,43 @@ Wartości nie mogą trafić do repozytorium, logów, eksportu diagnostycznego an
 
 ## Runner zadań Production
 
-Replit nie udostępnia Deployment Shell, dlatego entrypoint API obsługuje dwa jawne, tymczasowe tryby ustawiane w Production Secrets:
+Replit nie udostępnia Deployment Shell, dlatego entrypoint API obsługuje jawne, tymczasowe tryby ustawiane w Production Secrets:
 
 - bez `DEPLOYMENT_TASK` aplikacja startuje normalnie i nie uruchamia żadnego zadania DB;
 - `DEPLOYMENT_TASK=series_v1_preflight` uruchamia `pnpm --filter @workspace/db reset:series-v1:preflight`, wypisuje bezpieczny raport i kończy proces bez uruchamiania API;
 - `DEPLOYMENT_TASK=series_v1_reset` uruchamia `pnpm --filter @workspace/db reset:series-v1:destructive`; dopiero kod zakończenia `0` pozwala uruchomić API, a każdy błąd blokuje jego start.
+- `DEPLOYMENT_TASK=tournament_stages_v1_preflight` uruchamia wyłącznie odczytową kontrolę migracji `0002` i kończy proces bez uruchamiania API;
+- `DEPLOYMENT_TASK=tournament_stages_v1_migrate` uruchamia kontrolowaną migrację `0002`; po sukcesie uruchamia API, a każdy błąd blokuje jego start.
 
 Runner przekazuje skryptom wyłącznie odziedziczone środowisko procesu. Nie umieszcza `DATABASE_URL` ani innych sekretów w argumentach i nie zmienia guardów, markera, transakcji ani advisory locka istniejącego resetu. Nieznana wartość `DEPLOYMENT_TASK` blokuje start.
 
 Tryb wybiera się przez tymczasowe ustawienie odpowiedniej wartości `DEPLOYMENT_TASK` wraz z wymaganymi niżej zmiennymi Production, a następnie uruchomienie kontrolowanego Republish. Po odczytaniu raportu preflight usuń `DEPLOYMENT_TASK`. Po udanym resecie natychmiast usuń `DEPLOYMENT_TASK` i wszystkie jednorazowe zmienne resetu, a potem wykonaj zwykły Republish. Pozostawienie `series_v1_reset` spowoduje, że kolejny restart zostanie poprawnie zablokowany przez istniejący marker i API nie wystartuje.
+
+## Migracja Tournament Stages v1 na Replit
+
+Migrację etapów wykonuje się dopiero na bazie ze spójnym modelem `series_v1` i markerem `series_v1_clean_cutover`. Oba tryby wymagają stałego produkcyjnego `DATABASE_URL` oraz następujących tymczasowych guardów:
+
+```bash
+export EXPECTED_DATABASE_NAME='<EXPECTED_PRODUCTION_DATABASE_NAME>'
+export EXPECTED_DATABASE_SCHEMA='public'
+export EXPECTED_DEPLOYMENT_ENVIRONMENT='production'
+export DEPLOYMENT_ENVIRONMENT='production'
+export APP_COMMIT='<DEPLOYED_RUNNER_GIT_COMMIT>'
+```
+
+`APP_COMMIT` musi być pełnym 40-znakowym SHA commita, z którego zbudowano faktycznie wdrażany artefakt zawierający runner. Nie jest identyfikatorem wersji migracji i nie należy wpisywać tu bazowego commita `30cc0195a26fe13a7d8ac7f732c55321682ba8e5`, jeżeli deployment zawiera późniejszy commit runnera. Wersję migracji identyfikują niezależnie plik `0002_tournament_stages_v1.sql` i marker `tournament_stages_v1`. Po utworzeniu commita wdrożeniowego ustaw dokładnie hash tego commita, który Replit ma zbudować.
+
+Najpierw ustaw `DEPLOYMENT_TASK=tournament_stages_v1_preflight` i wykonaj jeden kontrolowany Republish. Preflight działa w transakcji `READ ONLY`, nie wykonuje DDL ani DML, nie uruchamia API i klasyfikuje migrację jako:
+
+- `needed` — spójne `series_v1`, poprawny marker cutoveru i brak obiektów oraz markera `tournament_stages_v1`;
+- `applied` — pełny wymagany schemat oraz marker zgodny z guardami;
+- `inconsistent` — każdy stan częściowy, rozbieżny marker, błędna baza, schemat albo model bazowy.
+
+Tylko `needed` i `applied` zwracają `safe: true`. Po odczytaniu raportu usuń `DEPLOYMENT_TASK`; nie przechodź do migracji przy `inconsistent`.
+
+Jeżeli raport wskazuje `needed`, ustaw `DEPLOYMENT_TASK=tournament_stages_v1_migrate` i wykonaj jeden kontrolowany Republish. Runner ponawia preflight pod transakcyjnym advisory lockiem, uruchamia istniejący `migrate-tournament-stages-v1.mjs` w jednej transakcji i zapisuje marker. Błąd powoduje rollback i blokuje start API. Sukces zwraca `applied: true` i uruchamia API. Ponowne uruchomienie z tym samym, zgodnym markerem zwraca `applied: false`, nie wykonuje backfillu ponownie i również uruchamia API.
+
+Po sukcesie usuń `DEPLOYMENT_TASK` oraz pięć tymczasowych guardów, pozostawiając wyłącznie stałe Secrets aplikacji, i wykonaj zwykły Republish. Nie uruchamiaj `db push`, nie wykonuj pliku `0002` ręcznie i nie dodawaj sposobu wywołania migracji przez HTTP.
 
 ## Jednorazowa synchronizacja Development DB
 

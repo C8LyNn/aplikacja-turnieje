@@ -17,13 +17,27 @@ parametrów `stageId` do istniejącego API.
 
 ## Strategia migracji
 
-Migracja jest wykonywana przez wersjonowany runner:
+Przed migracją runner Replit udostępnia odczytowy preflight:
+
+```text
+pnpm --filter @workspace/db migrate:tournament-stages:preflight
+```
+
+Właściwa migracja jest wykonywana przez wersjonowany runner:
 
 ```text
 pnpm --filter @workspace/db migrate:tournament-stages
 ```
 
-Runner wymaga jawnych `DATABASE_URL` i `DATABASE_SCHEMA`, obejmuje całą migrację
+Oba polecenia wymagają produkcyjnego `DATABASE_URL` oraz jawnych
+`EXPECTED_DATABASE_NAME`, `EXPECTED_DATABASE_SCHEMA=public`,
+`EXPECTED_DEPLOYMENT_ENVIRONMENT=production`, `DEPLOYMENT_ENVIRONMENT=production`
+i `APP_COMMIT=<DEPLOYED_RUNNER_GIT_COMMIT>`. `APP_COMMIT` jest pełnym
+40-znakowym SHA faktycznie wdrażanego artefaktu, a nie wersją migracji. Wersję
+migracji identyfikują plik `0002_tournament_stages_v1.sql` i marker
+`tournament_stages_v1`. Preflight działa w transakcji `READ ONLY` i klasyfikuje
+migrację jako `needed`, `applied` albo `inconsistent`.
+Runner migracji ponawia tę kontrolę pod lockiem, obejmuje całą migrację
 transakcją, serializuje wykonanie advisory lockiem i zapisuje marker
 `tournament_stages_v1` w `app_schema_migrations`. Powtórne uruchomienie z
 istniejącym markerem jest operacją no-op dopiero po potwierdzeniu, że wymagane
