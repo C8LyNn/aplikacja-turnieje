@@ -4,6 +4,7 @@ import { after, before, describe, test } from "node:test";
 import {
   dropTestSchema,
   getSafeTestDatabaseConfig,
+  renderSeriesV1MigrationForTestSchema,
   resetTestSchema,
   type TestDatabaseConfig,
   type TestPool,
@@ -74,8 +75,18 @@ describe("versioned destructive series_v1 migration", () => {
       [tournamentId],
     );
 
-    const migrationSql = await readFile(MIGRATION_URL, "utf8");
-    await database.pool.query(migrationSql);
+    const migrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(MIGRATION_URL, "utf8"),
+      testConfig.schema,
+    );
+    await database.pool.query("BEGIN");
+    try {
+      await database.pool.query(migrationSql);
+      await database.pool.query("COMMIT");
+    } catch (error) {
+      await database.pool.query("ROLLBACK");
+      throw error;
+    }
 
     const [{ count: tournamentCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     const [{ count: playerCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM players");

@@ -10,8 +10,25 @@ export interface DomainError {
   code: string;
 }
 
+export type HealthStatusStatus = typeof HealthStatusStatus[keyof typeof HealthStatusStatus];
+
+
+export const HealthStatusStatus = {
+  ok: 'ok',
+  error: 'error',
+} as const;
+
+export type HealthStatusDatabase = typeof HealthStatusDatabase[keyof typeof HealthStatusDatabase];
+
+
+export const HealthStatusDatabase = {
+  ok: 'ok',
+  unavailable: 'unavailable',
+} as const;
+
 export interface HealthStatus {
-  status: string;
+  status: HealthStatusStatus;
+  database: HealthStatusDatabase;
 }
 
 export type TournamentFormat = typeof TournamentFormat[keyof typeof TournamentFormat];

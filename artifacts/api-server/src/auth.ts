@@ -1,6 +1,28 @@
 import crypto from "crypto";
 
-const SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-in-prod";
+export const DEVELOPMENT_SESSION_SECRET = "dev-secret-change-in-prod";
+export const MINIMUM_PRODUCTION_SESSION_SECRET_LENGTH = 32;
+
+export function resolveSessionSecret(env: NodeJS.ProcessEnv = process.env): string {
+  const secret = env.SESSION_SECRET;
+  if (env.NODE_ENV !== "production") {
+    return secret || DEVELOPMENT_SESSION_SECRET;
+  }
+  if (!secret) {
+    throw new Error("SESSION_SECRET is required when NODE_ENV=production.");
+  }
+  if (secret === DEVELOPMENT_SESSION_SECRET) {
+    throw new Error("The development SESSION_SECRET cannot be used in production.");
+  }
+  if (secret.length < MINIMUM_PRODUCTION_SESSION_SECRET_LENGTH) {
+    throw new Error(
+      `SESSION_SECRET must contain at least ${MINIMUM_PRODUCTION_SESSION_SECRET_LENGTH} characters in production.`,
+    );
+  }
+  return secret;
+}
+
+const SECRET = resolveSessionSecret();
 
 export function hashPassword(password: string): Promise<string> {
   return new Promise((resolve, reject) => {

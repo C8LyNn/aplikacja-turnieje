@@ -23,6 +23,11 @@ export interface TestPool {
   end: () => Promise<void>;
 }
 
+export function renderSeriesV1MigrationForTestSchema(sql: string, schema: string): string {
+  assertSafeTestSchema(schema);
+  return sql.replaceAll("public.", `"${schema}".`);
+}
+
 export function getSafeTestDatabaseConfig(env: NodeJS.ProcessEnv = process.env): TestDatabaseConfig {
   if (!env.NODE_TEST_CONTEXT) {
     throw new Error("Integration database setup may run only under the Node test runner.");
@@ -75,8 +80,18 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
     await pool.query(`CREATE SCHEMA "${schema}"`);
     schemaCreated = true;
     await pool.query(`SET search_path TO "${schema}"`);
-    const migrationSql = await readFile(SERIES_V1_MIGRATION_URL, "utf8");
-    await pool.query(migrationSql);
+    const migrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(SERIES_V1_MIGRATION_URL, "utf8"),
+      schema,
+    );
+    await pool.query("BEGIN");
+    try {
+      await pool.query(migrationSql);
+      await pool.query("COMMIT");
+    } catch (error) {
+      await pool.query("ROLLBACK");
+      throw error;
+    }
   } catch (error) {
     if (schemaCreated) {
       try {

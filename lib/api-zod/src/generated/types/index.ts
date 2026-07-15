@@ -17,6 +17,8 @@ export * from './csvImportResult';
 export * from './csvRowError';
 export * from './domainError';
 export * from './healthStatus';
+export * from './healthStatusDatabase';
+export * from './healthStatusStatus';
 export * from './importResult';
 export * from './match';
 export * from './matchCancelInput';
