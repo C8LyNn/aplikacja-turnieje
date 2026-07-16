@@ -10,6 +10,62 @@ export interface DomainError {
   code: string;
 }
 
+export type StageLifecycleErrorCode = typeof StageLifecycleErrorCode[keyof typeof StageLifecycleErrorCode];
+
+
+export const StageLifecycleErrorCode = {
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_NOT_FOUND: 'STAGE_NOT_FOUND',
+  STAGE_NOT_ACTIVE: 'STAGE_NOT_ACTIVE',
+  STAGE_NOT_NEXT_PLANNED: 'STAGE_NOT_NEXT_PLANNED',
+  ACTIVE_STAGE_EXISTS: 'ACTIVE_STAGE_EXISTS',
+  PREVIOUS_STAGE_NOT_COMPLETED: 'PREVIOUS_STAGE_NOT_COMPLETED',
+  STAGE_INCOMPLETE: 'STAGE_INCOMPLETE',
+  STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  QUALIFICATION_CONFIGURATION_INVALID: 'QUALIFICATION_CONFIGURATION_INVALID',
+  STAGE_FORMAT_NOT_SUPPORTED: 'STAGE_FORMAT_NOT_SUPPORTED',
+  STAGE_ALREADY_COMPLETED: 'STAGE_ALREADY_COMPLETED',
+  STAGE_ALREADY_STARTED: 'STAGE_ALREADY_STARTED',
+  MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
+  GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
+  RANKING_INCONSISTENT: 'RANKING_INCONSISTENT',
+} as const;
+
+export interface StageLifecycleError {
+  error: string;
+  code: StageLifecycleErrorCode;
+}
+
+export type StagePlanErrorDetailsItem = {
+  code: string;
+  path: string;
+  message: string;
+};
+
+export interface StagePlanError {
+  error: string;
+  code: 'INVALID_STAGE_PLAN';
+  details: StagePlanErrorDetailsItem[];
+}
+
+export type BackupImportErrorCode = typeof BackupImportErrorCode[keyof typeof BackupImportErrorCode];
+
+
+export const BackupImportErrorCode = {
+  LEGACY_BACKUP_UNSUPPORTED: 'LEGACY_BACKUP_UNSUPPORTED',
+  INVALID_BACKUP: 'INVALID_BACKUP',
+  INVALID_BACKUP_V2: 'INVALID_BACKUP_V2',
+  INVALID_BACKUP_V3: 'INVALID_BACKUP_V3',
+  BACKUP_VERSION_UNSUPPORTED: 'BACKUP_VERSION_UNSUPPORTED',
+  BACKUP_IMPORT_ROLLED_BACK: 'BACKUP_IMPORT_ROLLED_BACK',
+} as const;
+
+export interface BackupImportError {
+  error: string;
+  code: BackupImportErrorCode;
+  details?: string[];
+}
+
 export type HealthStatusStatus = typeof HealthStatusStatus[keyof typeof HealthStatusStatus];
 
 
@@ -98,6 +154,8 @@ export interface Tournament {
   winnerId?: number | null;
   /** @nullable */
   featuredMatchId?: number | null;
+  /** @nullable */
+  activeStageId?: number | null;
   /** Whether a host access code has been set for this tournament */
   hasHostCode: boolean;
   /** Whether an organizer password has been set */
@@ -132,6 +190,80 @@ export const TournamentInputVisibility = {
   private_offline: 'private_offline',
 } as const;
 
+export type TournamentStagePlanItemInputFormat = typeof TournamentStagePlanItemInputFormat[keyof typeof TournamentStagePlanItemInputFormat];
+
+
+export const TournamentStagePlanItemInputFormat = {
+  swiss: 'swiss',
+  round_robin: 'round_robin',
+  group_stage: 'group_stage',
+  single_elimination: 'single_elimination',
+} as const;
+
+export type TournamentStagePlanItemInputBestOf = typeof TournamentStagePlanItemInputBestOf[keyof typeof TournamentStagePlanItemInputBestOf];
+
+
+export const TournamentStagePlanItemInputBestOf = {
+  NUMBER_1: 1,
+  NUMBER_3: 3,
+  NUMBER_5: 5,
+  NUMBER_7: 7,
+} as const;
+
+export type TournamentStagePlanItemInputGroupCount = typeof TournamentStagePlanItemInputGroupCount[keyof typeof TournamentStagePlanItemInputGroupCount];
+
+
+export const TournamentStagePlanItemInputGroupCount = {
+  NUMBER_2: 2,
+  NUMBER_4: 4,
+} as const;
+
+export type TournamentStagePlanItemInputQualifiersPerGroup = typeof TournamentStagePlanItemInputQualifiersPerGroup[keyof typeof TournamentStagePlanItemInputQualifiersPerGroup];
+
+
+export const TournamentStagePlanItemInputQualifiersPerGroup = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export interface TournamentStagePlanItemInput {
+  /** @minLength 1 */
+  key: string;
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  position: number;
+  /** @minLength 1 */
+  name: string;
+  format: TournamentStagePlanItemInputFormat;
+  /** @minimum 2 */
+  participantCount: number;
+  bestOf: TournamentStagePlanItemInputBestOf;
+  /** @minimum 1 */
+  rounds?: number;
+  /** @minimum 2 */
+  advancingCount?: number;
+  groupCount?: TournamentStagePlanItemInputGroupCount;
+  /**
+     * @minimum 3
+     * @maximum 8
+     */
+  participantsPerGroup?: number;
+  qualifiersPerGroup?: TournamentStagePlanItemInputQualifiersPerGroup;
+  seedingMethod?: 'snake';
+}
+
+export interface TournamentStagePlanInput {
+  /** @minimum 2 */
+  initialParticipantCount: number;
+  /**
+     * @minItems 1
+     * @maxItems 3
+     */
+  stages: TournamentStagePlanItemInput[];
+}
+
 export interface TournamentInput {
   /** @minLength 1 */
   name: string;
@@ -149,6 +281,237 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
+  /** Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection. */
+  stagePlan?: TournamentStagePlanInput;
+}
+
+export type TournamentStageFormat = typeof TournamentStageFormat[keyof typeof TournamentStageFormat];
+
+
+export const TournamentStageFormat = {
+  swiss: 'swiss',
+  round_robin: 'round_robin',
+  group_stage: 'group_stage',
+  single_elimination: 'single_elimination',
+} as const;
+
+export type TournamentStageStatus = typeof TournamentStageStatus[keyof typeof TournamentStageStatus];
+
+
+export const TournamentStageStatus = {
+  planned: 'planned',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type TournamentStageRankingPolicy = typeof TournamentStageRankingPolicy[keyof typeof TournamentStageRankingPolicy];
+
+
+export const TournamentStageRankingPolicy = {
+  swiss_v1: 'swiss_v1',
+  round_robin_v1: 'round_robin_v1',
+  group_v1: 'group_v1',
+  elimination_bracket_v1: 'elimination_bracket_v1',
+} as const;
+
+export type TournamentStageQualificationMode = typeof TournamentStageQualificationMode[keyof typeof TournamentStageQualificationMode];
+
+
+export const TournamentStageQualificationMode = {
+  none: 'none',
+  top_n: 'top_n',
+  top_n_per_group: 'top_n_per_group',
+} as const;
+
+export type TournamentStageSeedingPolicy = typeof TournamentStageSeedingPolicy[keyof typeof TournamentStageSeedingPolicy];
+
+
+export const TournamentStageSeedingPolicy = {
+  standings_order: 'standings_order',
+  snake_groups: 'snake_groups',
+  cross_group: 'cross_group',
+} as const;
+
+export interface TournamentStage {
+  id: number;
+  tournamentId: number;
+  stageKey: string;
+  position: number;
+  name: string;
+  format: TournamentStageFormat;
+  status: TournamentStageStatus;
+  participantCount: number;
+  bestOf: number;
+  /** @nullable */
+  plannedRounds?: number | null;
+  /** @nullable */
+  currentRound?: number | null;
+  /** @nullable */
+  totalRounds?: number | null;
+  rankingPolicy: TournamentStageRankingPolicy;
+  qualificationMode: TournamentStageQualificationMode;
+  /** @nullable */
+  advancingCount?: number | null;
+  /** @nullable */
+  groupCount?: number | null;
+  /** @nullable */
+  participantsPerGroup?: number | null;
+  /** @nullable */
+  qualifiersPerGroup?: number | null;
+  seedingPolicy: TournamentStageSeedingPolicy;
+  /** @nullable */
+  winnerId?: number | null;
+  version: number;
+  createdAt: string;
+  /** @nullable */
+  startedAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+}
+
+export type StageGroupGroupKey = typeof StageGroupGroupKey[keyof typeof StageGroupGroupKey];
+
+
+export const StageGroupGroupKey = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+} as const;
+
+export interface StageGroup {
+  id: number;
+  stageId: number;
+  groupKey: StageGroupGroupKey;
+  position: number;
+  participantCount: number;
+  qualifiersCount: number;
+  createdAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type StageParticipantGroupKey = typeof StageParticipantGroupKey[keyof typeof StageParticipantGroupKey] | null;
+
+
+export const StageParticipantGroupKey = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+} as const;
+
+export type StageParticipantStatus = typeof StageParticipantStatus[keyof typeof StageParticipantStatus];
+
+
+export const StageParticipantStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  qualified: 'qualified',
+  winner: 'winner',
+} as const;
+
+export type StageParticipantQualificationSource = typeof StageParticipantQualificationSource[keyof typeof StageParticipantQualificationSource];
+
+
+export const StageParticipantQualificationSource = {
+  registration: 'registration',
+  standings: 'standings',
+  group_position: 'group_position',
+} as const;
+
+export interface StageParticipant {
+  id: number;
+  tournamentId: number;
+  stageId: number;
+  playerId: number;
+  playerName: string;
+  stageSeed: number;
+  /** @nullable */
+  groupId?: number | null;
+  /** @nullable */
+  groupKey?: StageParticipantGroupKey;
+  status: StageParticipantStatus;
+  qualificationSource: StageParticipantQualificationSource;
+  /** @nullable */
+  finalRank?: number | null;
+  /** @nullable */
+  groupRank?: number | null;
+  /** @nullable */
+  qualificationRank?: number | null;
+  /** @nullable */
+  nextStageSeed?: number | null;
+  /** @nullable */
+  sourceStageParticipantId?: number | null;
+  /** @nullable */
+  qualifiedAt?: string | null;
+  createdAt: string;
+}
+
+export interface TournamentStageDetails {
+  stage: TournamentStage;
+  groups: StageGroup[];
+  participants: StageParticipant[];
+  /** Frozen ranking rows. Empty until a stage has been completed. */
+  ranking: StageParticipant[];
+  qualifiers: StageParticipant[];
+}
+
+/**
+ * @nullable
+ */
+export type StageRankingEntryGroupKey = typeof StageRankingEntryGroupKey[keyof typeof StageRankingEntryGroupKey] | null;
+
+
+export const StageRankingEntryGroupKey = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+} as const;
+
+export interface StageRankingEntry {
+  stageParticipantId: number;
+  playerId: number;
+  playerName: string;
+  stageSeed: number;
+  rank: number;
+  matchWins: number;
+  matchLosses: number;
+  gameWins: number;
+  gameLosses: number;
+  gameDiff: number;
+  /** @nullable */
+  buchholz?: number | null;
+  /** @nullable */
+  groupId?: number | null;
+  /** @nullable */
+  groupKey?: StageRankingEntryGroupKey;
+  /** @nullable */
+  groupRank?: number | null;
+}
+
+export type StageQualifierQualificationSource = typeof StageQualifierQualificationSource[keyof typeof StageQualifierQualificationSource];
+
+
+export const StageQualifierQualificationSource = {
+  standings: 'standings',
+  group_position: 'group_position',
+} as const;
+
+export type StageQualifier = StageRankingEntry & {
+  qualificationSource: StageQualifierQualificationSource;
+  nextStageSeed: number;
+};
+
+export interface StageQualificationPreview {
+  tournamentId: number;
+  stageId: number;
+  stageVersion: number;
+  fingerprint: string;
+  ranking: StageRankingEntry[];
+  qualifiers: StageQualifier[];
 }
 
 export type TournamentUpdateFormat = typeof TournamentUpdateFormat[keyof typeof TournamentUpdateFormat];
@@ -493,39 +856,39 @@ export interface Bracket {
   winner?: BracketWinner;
 }
 
-export type TournamentBackupTournamentFormat = typeof TournamentBackupTournamentFormat[keyof typeof TournamentBackupTournamentFormat];
+export type TournamentBackupV2TournamentFormat = typeof TournamentBackupV2TournamentFormat[keyof typeof TournamentBackupV2TournamentFormat];
 
 
-export const TournamentBackupTournamentFormat = {
+export const TournamentBackupV2TournamentFormat = {
   single_elimination: 'single_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
 } as const;
 
-export type TournamentBackupTournamentStatus = typeof TournamentBackupTournamentStatus[keyof typeof TournamentBackupTournamentStatus];
+export type TournamentBackupV2TournamentStatus = typeof TournamentBackupV2TournamentStatus[keyof typeof TournamentBackupV2TournamentStatus];
 
 
-export const TournamentBackupTournamentStatus = {
+export const TournamentBackupV2TournamentStatus = {
   draft: 'draft',
   active: 'active',
   completed: 'completed',
 } as const;
 
-export type TournamentBackupTournamentVisibility = typeof TournamentBackupTournamentVisibility[keyof typeof TournamentBackupTournamentVisibility];
+export type TournamentBackupV2TournamentVisibility = typeof TournamentBackupV2TournamentVisibility[keyof typeof TournamentBackupV2TournamentVisibility];
 
 
-export const TournamentBackupTournamentVisibility = {
+export const TournamentBackupV2TournamentVisibility = {
   public_online: 'public_online',
   private_online: 'private_online',
   private_offline: 'private_offline',
 } as const;
 
-export type TournamentBackupTournament = {
+export type TournamentBackupV2Tournament = {
   name: string;
   /** @nullable */
   description?: string | null;
-  format: TournamentBackupTournamentFormat;
-  status: TournamentBackupTournamentStatus;
+  format: TournamentBackupV2TournamentFormat;
+  status: TournamentBackupV2TournamentStatus;
   /** @nullable */
   maxPlayers?: number | null;
   /** @nullable */
@@ -536,23 +899,23 @@ export type TournamentBackupTournament = {
   swissRounds?: number | null;
   /** @minimum 1 */
   defaultBestOf: number;
-  visibility: TournamentBackupTournamentVisibility;
+  visibility: TournamentBackupV2TournamentVisibility;
   /** @nullable */
   winnerBackupId?: number | null;
   /** @nullable */
   featuredMatchBackupId?: number | null;
 };
 
-export type TournamentBackupPlayersItemStatus = typeof TournamentBackupPlayersItemStatus[keyof typeof TournamentBackupPlayersItemStatus];
+export type TournamentBackupV2PlayersItemStatus = typeof TournamentBackupV2PlayersItemStatus[keyof typeof TournamentBackupV2PlayersItemStatus];
 
 
-export const TournamentBackupPlayersItemStatus = {
+export const TournamentBackupV2PlayersItemStatus = {
   active: 'active',
   eliminated: 'eliminated',
   winner: 'winner',
 } as const;
 
-export type TournamentBackupPlayersItem = {
+export type TournamentBackupV2PlayersItem = {
   backupId: number;
   name: string;
   /** @nullable */
@@ -563,26 +926,26 @@ export type TournamentBackupPlayersItem = {
   teamName?: string | null;
   /** @nullable */
   seed?: number | null;
-  status: TournamentBackupPlayersItemStatus;
+  status: TournamentBackupV2PlayersItemStatus;
 };
 
 /**
  * @nullable
  */
-export type TournamentBackupMatchesItemResultType = typeof TournamentBackupMatchesItemResultType[keyof typeof TournamentBackupMatchesItemResultType] | null;
+export type TournamentBackupV2MatchesItemResultType = typeof TournamentBackupV2MatchesItemResultType[keyof typeof TournamentBackupV2MatchesItemResultType] | null;
 
 
-export const TournamentBackupMatchesItemResultType = {
+export const TournamentBackupV2MatchesItemResultType = {
   played: 'played',
   walkover: 'walkover',
   bye: 'bye',
   no_contest: 'no_contest',
 } as const;
 
-export type TournamentBackupMatchesItemStatus = typeof TournamentBackupMatchesItemStatus[keyof typeof TournamentBackupMatchesItemStatus];
+export type TournamentBackupV2MatchesItemStatus = typeof TournamentBackupV2MatchesItemStatus[keyof typeof TournamentBackupV2MatchesItemStatus];
 
 
-export const TournamentBackupMatchesItemStatus = {
+export const TournamentBackupV2MatchesItemStatus = {
   pending: 'pending',
   in_progress: 'in_progress',
   postponed: 'postponed',
@@ -590,7 +953,7 @@ export const TournamentBackupMatchesItemStatus = {
   cancelled: 'cancelled',
 } as const;
 
-export type TournamentBackupMatchesItem = {
+export type TournamentBackupV2MatchesItem = {
   backupId: number;
   round: number;
   matchNumber: number;
@@ -605,12 +968,12 @@ export type TournamentBackupMatchesItem = {
   /** @nullable */
   score2?: number | null;
   /** @nullable */
-  resultType: TournamentBackupMatchesItemResultType;
+  resultType: TournamentBackupV2MatchesItemResultType;
   /** @nullable */
   resultReason: string | null;
   /** @minimum 1 */
   bestOf: number;
-  status: TournamentBackupMatchesItemStatus;
+  status: TournamentBackupV2MatchesItemStatus;
   /** @nullable */
   note?: string | null;
   /** @nullable */
@@ -623,17 +986,17 @@ export type TournamentBackupMatchesItem = {
   completedAt?: string | null;
 };
 
-export type TournamentBackupResultHistoryItemResultType = typeof TournamentBackupResultHistoryItemResultType[keyof typeof TournamentBackupResultHistoryItemResultType];
+export type TournamentBackupV2ResultHistoryItemResultType = typeof TournamentBackupV2ResultHistoryItemResultType[keyof typeof TournamentBackupV2ResultHistoryItemResultType];
 
 
-export const TournamentBackupResultHistoryItemResultType = {
+export const TournamentBackupV2ResultHistoryItemResultType = {
   played: 'played',
   walkover: 'walkover',
   bye: 'bye',
   no_contest: 'no_contest',
 } as const;
 
-export type TournamentBackupResultHistoryItem = {
+export type TournamentBackupV2ResultHistoryItem = {
   matchBackupId: number;
   revision: number;
   round: number;
@@ -649,7 +1012,7 @@ export type TournamentBackupResultHistoryItem = {
   /** @nullable */
   score2?: number | null;
   bestOf: number;
-  resultType: TournamentBackupResultHistoryItemResultType;
+  resultType: TournamentBackupV2ResultHistoryItemResultType;
   /** @nullable */
   resultReason: string | null;
   completedAt: string;
@@ -659,31 +1022,367 @@ export type TournamentBackupResultHistoryItem = {
 /**
  * @nullable
  */
-export type TournamentBackupActionLogItemUndoPayload = { [key: string]: unknown } | null;
+export type TournamentBackupV2ActionLogItemUndoPayload = { [key: string]: unknown } | null;
 
-export type TournamentBackupActionLogItem = {
+export type TournamentBackupV2ActionLogItem = {
   actionType: string;
   description: string;
   /** @nullable */
   matchBackupId: number | null;
   canUndo: boolean;
   /** @nullable */
-  undoPayload: TournamentBackupActionLogItemUndoPayload;
+  undoPayload: TournamentBackupV2ActionLogItemUndoPayload;
   isUndone: boolean;
   createdAt: string;
 };
 
-export interface TournamentBackup {
+export interface TournamentBackupV2 {
   schemaVersion: 2;
   resultModelVersion: 'series_v1';
   rankingPolicy: 'match_record_v1';
   exportedAt: string;
-  tournament: TournamentBackupTournament;
-  players: TournamentBackupPlayersItem[];
-  matches: TournamentBackupMatchesItem[];
-  resultHistory: TournamentBackupResultHistoryItem[];
-  actionLog: TournamentBackupActionLogItem[];
+  tournament: TournamentBackupV2Tournament;
+  players: TournamentBackupV2PlayersItem[];
+  matches: TournamentBackupV2MatchesItem[];
+  resultHistory: TournamentBackupV2ResultHistoryItem[];
+  actionLog: TournamentBackupV2ActionLogItem[];
 }
+
+export type TournamentBackupV3TournamentStatus = typeof TournamentBackupV3TournamentStatus[keyof typeof TournamentBackupV3TournamentStatus];
+
+
+export const TournamentBackupV3TournamentStatus = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupV3TournamentVisibility = typeof TournamentBackupV3TournamentVisibility[keyof typeof TournamentBackupV3TournamentVisibility];
+
+
+export const TournamentBackupV3TournamentVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
+} as const;
+
+export type TournamentBackupV3Tournament = {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  status: TournamentBackupV3TournamentStatus;
+  /** @nullable */
+  maxPlayers?: number | null;
+  /** @nullable */
+  activeStageBackupId?: number | null;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  /** @nullable */
+  featuredMatchBackupId?: number | null;
+  visibility: TournamentBackupV3TournamentVisibility;
+};
+
+export type TournamentBackupV3PlayersItemStatus = typeof TournamentBackupV3PlayersItemStatus[keyof typeof TournamentBackupV3PlayersItemStatus];
+
+
+export const TournamentBackupV3PlayersItemStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  winner: 'winner',
+} as const;
+
+export type TournamentBackupV3PlayersItem = {
+  backupId: number;
+  name: string;
+  /** @nullable */
+  rank?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  teamName?: string | null;
+  /** @nullable */
+  seed?: number | null;
+  status: TournamentBackupV3PlayersItemStatus;
+};
+
+export type TournamentBackupV3StagesItemFormat = typeof TournamentBackupV3StagesItemFormat[keyof typeof TournamentBackupV3StagesItemFormat];
+
+
+export const TournamentBackupV3StagesItemFormat = {
+  swiss: 'swiss',
+  round_robin: 'round_robin',
+  group_stage: 'group_stage',
+  single_elimination: 'single_elimination',
+} as const;
+
+export type TournamentBackupV3StagesItemStatus = typeof TournamentBackupV3StagesItemStatus[keyof typeof TournamentBackupV3StagesItemStatus];
+
+
+export const TournamentBackupV3StagesItemStatus = {
+  planned: 'planned',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupV3StagesItemRankingPolicy = typeof TournamentBackupV3StagesItemRankingPolicy[keyof typeof TournamentBackupV3StagesItemRankingPolicy];
+
+
+export const TournamentBackupV3StagesItemRankingPolicy = {
+  swiss_v1: 'swiss_v1',
+  round_robin_v1: 'round_robin_v1',
+  group_v1: 'group_v1',
+  elimination_bracket_v1: 'elimination_bracket_v1',
+} as const;
+
+export type TournamentBackupV3StagesItemQualificationMode = typeof TournamentBackupV3StagesItemQualificationMode[keyof typeof TournamentBackupV3StagesItemQualificationMode];
+
+
+export const TournamentBackupV3StagesItemQualificationMode = {
+  none: 'none',
+  top_n: 'top_n',
+  top_n_per_group: 'top_n_per_group',
+} as const;
+
+export type TournamentBackupV3StagesItemSeedingPolicy = typeof TournamentBackupV3StagesItemSeedingPolicy[keyof typeof TournamentBackupV3StagesItemSeedingPolicy];
+
+
+export const TournamentBackupV3StagesItemSeedingPolicy = {
+  standings_order: 'standings_order',
+  snake_groups: 'snake_groups',
+  cross_group: 'cross_group',
+} as const;
+
+export type TournamentBackupV3StagesItem = {
+  backupId: number;
+  stageKey: string;
+  position: number;
+  name: string;
+  format: TournamentBackupV3StagesItemFormat;
+  status: TournamentBackupV3StagesItemStatus;
+  participantCount: number;
+  bestOf: number;
+  /** @nullable */
+  plannedRounds?: number | null;
+  /** @nullable */
+  currentRound?: number | null;
+  /** @nullable */
+  totalRounds?: number | null;
+  rankingPolicy: TournamentBackupV3StagesItemRankingPolicy;
+  qualificationMode: TournamentBackupV3StagesItemQualificationMode;
+  /** @nullable */
+  advancingCount?: number | null;
+  /** @nullable */
+  groupCount?: number | null;
+  /** @nullable */
+  participantsPerGroup?: number | null;
+  /** @nullable */
+  qualifiersPerGroup?: number | null;
+  seedingPolicy: TournamentBackupV3StagesItemSeedingPolicy;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  version: number;
+  createdAt: string;
+  /** @nullable */
+  startedAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+};
+
+export type TournamentBackupV3GroupsItemGroupKey = typeof TournamentBackupV3GroupsItemGroupKey[keyof typeof TournamentBackupV3GroupsItemGroupKey];
+
+
+export const TournamentBackupV3GroupsItemGroupKey = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D',
+} as const;
+
+export type TournamentBackupV3GroupsItem = {
+  backupId: number;
+  stageBackupId: number;
+  groupKey: TournamentBackupV3GroupsItemGroupKey;
+  position: number;
+  participantCount: number;
+  qualifiersCount: number;
+  createdAt: string;
+};
+
+export type TournamentBackupV3StageParticipantsItemStatus = typeof TournamentBackupV3StageParticipantsItemStatus[keyof typeof TournamentBackupV3StageParticipantsItemStatus];
+
+
+export const TournamentBackupV3StageParticipantsItemStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  qualified: 'qualified',
+  winner: 'winner',
+} as const;
+
+export type TournamentBackupV3StageParticipantsItemQualificationSource = typeof TournamentBackupV3StageParticipantsItemQualificationSource[keyof typeof TournamentBackupV3StageParticipantsItemQualificationSource];
+
+
+export const TournamentBackupV3StageParticipantsItemQualificationSource = {
+  registration: 'registration',
+  standings: 'standings',
+  group_position: 'group_position',
+} as const;
+
+export type TournamentBackupV3StageParticipantsItem = {
+  backupId: number;
+  stageBackupId: number;
+  playerBackupId: number;
+  stageSeed: number;
+  /** @nullable */
+  groupBackupId?: number | null;
+  status: TournamentBackupV3StageParticipantsItemStatus;
+  qualificationSource: TournamentBackupV3StageParticipantsItemQualificationSource;
+  /** @nullable */
+  finalRank?: number | null;
+  /** @nullable */
+  groupRank?: number | null;
+  /** @nullable */
+  qualificationRank?: number | null;
+  /** @nullable */
+  nextStageSeed?: number | null;
+  /** @nullable */
+  sourceStageParticipantBackupId?: number | null;
+  /** @nullable */
+  qualifiedAt?: string | null;
+  createdAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3MatchesItemResultType = typeof TournamentBackupV3MatchesItemResultType[keyof typeof TournamentBackupV3MatchesItemResultType] | null;
+
+
+export const TournamentBackupV3MatchesItemResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
+
+export type TournamentBackupV3MatchesItemStatus = typeof TournamentBackupV3MatchesItemStatus[keyof typeof TournamentBackupV3MatchesItemStatus];
+
+
+export const TournamentBackupV3MatchesItemStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  postponed: 'postponed',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type TournamentBackupV3MatchesItem = {
+  backupId: number;
+  stageBackupId: number;
+  /** @nullable */
+  stageGroupBackupId?: number | null;
+  round: number;
+  matchNumber: number;
+  /** @nullable */
+  player1BackupId?: number | null;
+  /** @nullable */
+  player2BackupId?: number | null;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  /** @nullable */
+  score1?: number | null;
+  /** @nullable */
+  score2?: number | null;
+  /** @nullable */
+  resultType: TournamentBackupV3MatchesItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  bestOf: number;
+  status: TournamentBackupV3MatchesItemStatus;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  nextMatchBackupId?: number | null;
+  /** @nullable */
+  sortOrder?: number | null;
+  /** @nullable */
+  scheduledAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+};
+
+export type TournamentBackupV3ResultHistoryItemResultType = typeof TournamentBackupV3ResultHistoryItemResultType[keyof typeof TournamentBackupV3ResultHistoryItemResultType];
+
+
+export const TournamentBackupV3ResultHistoryItemResultType = {
+  played: 'played',
+  walkover: 'walkover',
+  bye: 'bye',
+  no_contest: 'no_contest',
+} as const;
+
+export type TournamentBackupV3ResultHistoryItem = {
+  matchBackupId: number;
+  stageBackupId: number;
+  revision: number;
+  round: number;
+  matchNumber: number;
+  /** @nullable */
+  player1BackupId?: number | null;
+  /** @nullable */
+  player2BackupId?: number | null;
+  /** @nullable */
+  winnerBackupId?: number | null;
+  /** @nullable */
+  score1?: number | null;
+  /** @nullable */
+  score2?: number | null;
+  bestOf: number;
+  resultType: TournamentBackupV3ResultHistoryItemResultType;
+  /** @nullable */
+  resultReason: string | null;
+  completedAt: string;
+  recordedAt: string;
+};
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3ActionLogItemUndoPayload = { [key: string]: unknown } | null;
+
+export type TournamentBackupV3ActionLogItem = {
+  actionType: string;
+  description: string;
+  /** @nullable */
+  stageBackupId: number | null;
+  /** @nullable */
+  matchBackupId: number | null;
+  canUndo: boolean;
+  /** @nullable */
+  undoPayload: TournamentBackupV3ActionLogItemUndoPayload;
+  isUndone: boolean;
+  createdAt: string;
+};
+
+export interface TournamentBackupV3 {
+  schemaVersion: 3;
+  resultModelVersion: 'series_v1';
+  rankingPolicy: 'match_record_v1';
+  exportedAt: string;
+  tournament: TournamentBackupV3Tournament;
+  players: TournamentBackupV3PlayersItem[];
+  /**
+     * @minItems 1
+     * @maxItems 3
+     */
+  stages: TournamentBackupV3StagesItem[];
+  groups: TournamentBackupV3GroupsItem[];
+  stageParticipants: TournamentBackupV3StageParticipantsItem[];
+  matches: TournamentBackupV3MatchesItem[];
+  resultHistory: TournamentBackupV3ResultHistoryItem[];
+  actionLog: TournamentBackupV3ActionLogItem[];
+}
+
+export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;
 
 export interface ImportResult {
   tournament: Tournament;

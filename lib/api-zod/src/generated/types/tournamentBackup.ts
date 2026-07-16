@@ -5,20 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { TournamentBackupActionLogItem } from './tournamentBackupActionLogItem';
-import type { TournamentBackupMatchesItem } from './tournamentBackupMatchesItem';
-import type { TournamentBackupPlayersItem } from './tournamentBackupPlayersItem';
-import type { TournamentBackupResultHistoryItem } from './tournamentBackupResultHistoryItem';
-import type { TournamentBackupTournament } from './tournamentBackupTournament';
+import type { TournamentBackupV2 } from './tournamentBackupV2';
+import type { TournamentBackupV3 } from './tournamentBackupV3';
 
-export interface TournamentBackup {
-  schemaVersion: 2;
-  resultModelVersion: 'series_v1';
-  rankingPolicy: 'match_record_v1';
-  exportedAt: string;
-  tournament: TournamentBackupTournament;
-  players: TournamentBackupPlayersItem[];
-  matches: TournamentBackupMatchesItem[];
-  resultHistory: TournamentBackupResultHistoryItem[];
-  actionLog: TournamentBackupActionLogItem[];
-}
+export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;

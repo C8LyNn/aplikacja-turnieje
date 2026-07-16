@@ -468,7 +468,7 @@ describe("single-stage compatibility lifecycle", () => {
       .get(`/api/tournaments/${fixture.tournamentId}/export`)
       .set(fixture.organizerHeaders)
       .expect(200);
-    assert.equal(exported.body.schemaVersion, 2);
+    assert.equal(exported.body.schemaVersion, 3);
     assert.ok(exported.body.resultHistory.length > 0);
 
     const imported = await request(app)

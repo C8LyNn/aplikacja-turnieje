@@ -294,7 +294,7 @@ describe("Swiss generation policy", () => {
   });
 });
 
-describe("backup v2", () => {
+describe("backup v3 export and import", () => {
   test("round-trips a complete tournament and preserves standings", async () => {
     const fixture = await createStartedTournament("round_robin", 3);
     const roundRows = await rows<{ round: number }>(
@@ -307,7 +307,7 @@ describe("backup v2", () => {
       .get(`/api/tournaments/${fixture.tournamentId}/export`)
       .set(fixture.organizerHeaders)
       .expect(200);
-    assert.equal(exported.body.schemaVersion, 2);
+    assert.equal(exported.body.schemaVersion, 3);
     assert.equal(exported.body.resultModelVersion, "series_v1");
 
     const imported = await request(app).post("/api/tournaments/import").send(exported.body).expect(201);

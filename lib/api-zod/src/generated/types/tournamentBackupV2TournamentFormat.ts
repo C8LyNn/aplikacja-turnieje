@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type TournamentBackupTournamentFormat = typeof TournamentBackupTournamentFormat[keyof typeof TournamentBackupTournamentFormat];
+export type TournamentBackupV2TournamentFormat = typeof TournamentBackupV2TournamentFormat[keyof typeof TournamentBackupV2TournamentFormat];
 
 
-export const TournamentBackupTournamentFormat = {
+export const TournamentBackupV2TournamentFormat = {
   single_elimination: 'single_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',

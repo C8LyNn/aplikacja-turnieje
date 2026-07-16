@@ -9,10 +9,10 @@
 /**
  * @nullable
  */
-export type TournamentBackupMatchesItemResultType = typeof TournamentBackupMatchesItemResultType[keyof typeof TournamentBackupMatchesItemResultType] | null;
+export type TournamentBackupV2MatchesItemResultType = typeof TournamentBackupV2MatchesItemResultType[keyof typeof TournamentBackupV2MatchesItemResultType] | null;
 
 
-export const TournamentBackupMatchesItemResultType = {
+export const TournamentBackupV2MatchesItemResultType = {
   played: 'played',
   walkover: 'walkover',
   bye: 'bye',

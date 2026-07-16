@@ -7,7 +7,7 @@ import {
   resultHistoryTable,
   tournamentsTable,
 } from "@workspace/db";
-import type { TournamentBackup } from "@workspace/api-zod";
+import type { TournamentBackupV2 } from "@workspace/api-zod";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 
 export class BackupV2ValidationError extends Error {
@@ -20,7 +20,7 @@ export class BackupV2ValidationError extends Error {
 const isPositiveInteger = (value: number): boolean => Number.isInteger(value) && value > 0;
 const isValidDate = (value: string): boolean => !Number.isNaN(Date.parse(value));
 
-export function validateBackupV2(backup: TournamentBackup): void {
+export function validateBackupV2(backup: TournamentBackupV2): void {
   const errors: string[] = [];
   const playerIds = new Set<number>();
   const matchIds = new Set<number>();
@@ -244,7 +244,7 @@ function remapUndoPayload(
   return remap(payload) as Record<string, unknown>;
 }
 
-export async function importBackupV2(backup: TournamentBackup) {
+export async function importBackupV2(backup: TournamentBackupV2) {
   validateBackupV2(backup);
   return db.transaction(async (tx) => {
     const [tournament] = await tx.insert(tournamentsTable).values({

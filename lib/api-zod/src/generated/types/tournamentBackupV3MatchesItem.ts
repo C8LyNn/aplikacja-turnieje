@@ -5,11 +5,14 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { TournamentBackupMatchesItemResultType } from './tournamentBackupMatchesItemResultType';
-import type { TournamentBackupMatchesItemStatus } from './tournamentBackupMatchesItemStatus';
+import type { TournamentBackupV3MatchesItemResultType } from './tournamentBackupV3MatchesItemResultType';
+import type { TournamentBackupV3MatchesItemStatus } from './tournamentBackupV3MatchesItemStatus';
 
-export type TournamentBackupMatchesItem = {
+export type TournamentBackupV3MatchesItem = {
   backupId: number;
+  stageBackupId: number;
+  /** @nullable */
+  stageGroupBackupId?: number | null;
   round: number;
   matchNumber: number;
   /** @nullable */
@@ -23,12 +26,11 @@ export type TournamentBackupMatchesItem = {
   /** @nullable */
   score2?: number | null;
   /** @nullable */
-  resultType: TournamentBackupMatchesItemResultType;
+  resultType: TournamentBackupV3MatchesItemResultType;
   /** @nullable */
   resultReason: string | null;
-  /** @minimum 1 */
   bestOf: number;
-  status: TournamentBackupMatchesItemStatus;
+  status: TournamentBackupV3MatchesItemStatus;
   /** @nullable */
   note?: string | null;
   /** @nullable */

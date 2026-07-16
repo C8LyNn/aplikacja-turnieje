@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type TournamentBackupTournamentStatus = typeof TournamentBackupTournamentStatus[keyof typeof TournamentBackupTournamentStatus];
+export type TournamentBackupV2TournamentStatus = typeof TournamentBackupV2TournamentStatus[keyof typeof TournamentBackupV2TournamentStatus];
 
 
-export const TournamentBackupTournamentStatus = {
+export const TournamentBackupV2TournamentStatus = {
   draft: 'draft',
   active: 'active',
   completed: 'completed',

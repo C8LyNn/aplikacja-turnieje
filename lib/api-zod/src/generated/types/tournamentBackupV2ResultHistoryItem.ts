@@ -5,9 +5,9 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { TournamentBackupResultHistoryItemResultType } from './tournamentBackupResultHistoryItemResultType';
+import type { TournamentBackupV2ResultHistoryItemResultType } from './tournamentBackupV2ResultHistoryItemResultType';
 
-export type TournamentBackupResultHistoryItem = {
+export type TournamentBackupV2ResultHistoryItem = {
   matchBackupId: number;
   revision: number;
   round: number;
@@ -23,7 +23,7 @@ export type TournamentBackupResultHistoryItem = {
   /** @nullable */
   score2?: number | null;
   bestOf: number;
-  resultType: TournamentBackupResultHistoryItemResultType;
+  resultType: TournamentBackupV2ResultHistoryItemResultType;
   /** @nullable */
   resultReason: string | null;
   completedAt: string;

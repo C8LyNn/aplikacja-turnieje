@@ -7,6 +7,7 @@
  */
 import type { TournamentInputFormat } from './tournamentInputFormat';
 import type { TournamentInputVisibility } from './tournamentInputVisibility';
+import type { TournamentStagePlanInput } from './tournamentStagePlanInput';
 
 export interface TournamentInput {
   /** @minLength 1 */
@@ -25,4 +26,6 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
+  /** Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection. */
+  stagePlan?: TournamentStagePlanInput;
 }

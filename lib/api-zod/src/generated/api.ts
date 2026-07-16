@@ -38,6 +38,7 @@ export const ListTournamentsResponseItem = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -53,6 +54,22 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
  */
 
 
+export const createTournamentBodyStagePlanInitialParticipantCountMin = 2;
+
+
+export const createTournamentBodyStagePlanStagesItemPositionMax = 3;
+
+
+export const createTournamentBodyStagePlanStagesItemParticipantCountMin = 2;
+
+
+export const createTournamentBodyStagePlanStagesItemAdvancingCountMin = 2;
+
+export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin = 3;
+export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMax = 8;
+
+export const createTournamentBodyStagePlanStagesMax = 3;
+
 
 
 export const CreateTournamentBody = zod.object({
@@ -65,7 +82,24 @@ export const CreateTournamentBody = zod.object({
   "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
   "supportPassword": zod.string().optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().optional().describe('Optional password for viewer access (required when visibility=private_online)'),
-  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode')
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),
+  "stagePlan": zod.object({
+  "initialParticipantCount": zod.number().min(createTournamentBodyStagePlanInitialParticipantCountMin),
+  "stages": zod.array(zod.object({
+  "key": zod.string().min(1),
+  "position": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemPositionMax),
+  "name": zod.string().min(1),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "participantCount": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantCountMin),
+  "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
+  "rounds": zod.number().min(1).optional(),
+  "advancingCount": zod.number().min(createTournamentBodyStagePlanStagesItemAdvancingCountMin).optional(),
+  "groupCount": zod.union([zod.literal(2),zod.literal(4)]).optional(),
+  "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).max(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMax).optional(),
+  "qualifiersPerGroup": zod.union([zod.literal(1),zod.literal(2)]).optional(),
+  "seedingMethod": zod.literal("snake").optional()
+})).min(1).max(createTournamentBodyStagePlanStagesMax)
+}).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.')
 })
 
 
@@ -91,6 +125,7 @@ export const GetTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -139,6 +174,7 @@ export const UpdateTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -150,6 +186,303 @@ export const UpdateTournamentResponse = zod.object({
 
 export const DeleteTournamentParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary List the configured stages of a tournament
+ */
+
+
+
+export const ListTournamentStagesParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const ListTournamentStagesResponseItem = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "winnerId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+export const ListTournamentStagesResponse = zod.array(ListTournamentStagesResponseItem)
+
+
+/**
+ * @summary Get a stage with groups, participants, frozen ranking and qualifiers
+ */
+
+
+
+
+export const GetTournamentStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const GetTournamentStageResponse = zod.object({
+  "stage": zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "winnerId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+}),
+  "groups": zod.array(zod.object({
+  "id": zod.number(),
+  "stageId": zod.number(),
+  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "position": zod.number(),
+  "participantCount": zod.number(),
+  "qualifiersCount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "participants": zod.array(zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
+  "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
+  "finalRank": zod.number().nullish(),
+  "groupRank": zod.number().nullish(),
+  "qualificationRank": zod.number().nullish(),
+  "nextStageSeed": zod.number().nullish(),
+  "sourceStageParticipantId": zod.number().nullish(),
+  "qualifiedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "ranking": zod.array(zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
+  "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
+  "finalRank": zod.number().nullish(),
+  "groupRank": zod.number().nullish(),
+  "qualificationRank": zod.number().nullish(),
+  "nextStageSeed": zod.number().nullish(),
+  "sourceStageParticipantId": zod.number().nullish(),
+  "qualifiedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).describe('Frozen ranking rows. Empty until a stage has been completed.'),
+  "qualifiers": zod.array(zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
+  "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
+  "finalRank": zod.number().nullish(),
+  "groupRank": zod.number().nullish(),
+  "qualificationRank": zod.number().nullish(),
+  "nextStageSeed": zod.number().nullish(),
+  "sourceStageParticipantId": zod.number().nullish(),
+  "qualifiedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Preview the deterministic ranking and qualification result of an active stage
+ */
+
+
+
+
+export const PreviewStageQualificationParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const PreviewStageQualificationResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageVersion": zod.number(),
+  "fingerprint": zod.string(),
+  "ranking": zod.array(zod.object({
+  "stageParticipantId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "rank": zod.number(),
+  "matchWins": zod.number(),
+  "matchLosses": zod.number(),
+  "gameWins": zod.number(),
+  "gameLosses": zod.number(),
+  "gameDiff": zod.number(),
+  "buchholz": zod.number().nullish(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupRank": zod.number().nullish()
+})),
+  "qualifiers": zod.array(zod.object({
+  "stageParticipantId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "rank": zod.number(),
+  "matchWins": zod.number(),
+  "matchLosses": zod.number(),
+  "gameWins": zod.number(),
+  "gameLosses": zod.number(),
+  "gameDiff": zod.number(),
+  "buchholz": zod.number().nullish(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupRank": zod.number().nullish()
+}).and(zod.object({
+  "qualificationSource": zod.enum(['standings', 'group_position']),
+  "nextStageSeed": zod.number()
+})))
+})
+
+
+/**
+ * @summary Atomically complete the active stage and create next-stage participants
+ */
+
+
+
+
+export const CompleteTournamentStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const CompleteTournamentStageResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageVersion": zod.number(),
+  "fingerprint": zod.string(),
+  "ranking": zod.array(zod.object({
+  "stageParticipantId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "rank": zod.number(),
+  "matchWins": zod.number(),
+  "matchLosses": zod.number(),
+  "gameWins": zod.number(),
+  "gameLosses": zod.number(),
+  "gameDiff": zod.number(),
+  "buchholz": zod.number().nullish(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupRank": zod.number().nullish()
+})),
+  "qualifiers": zod.array(zod.object({
+  "stageParticipantId": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "stageSeed": zod.number(),
+  "rank": zod.number(),
+  "matchWins": zod.number(),
+  "matchLosses": zod.number(),
+  "gameWins": zod.number(),
+  "gameLosses": zod.number(),
+  "gameDiff": zod.number(),
+  "buchholz": zod.number().nullish(),
+  "groupId": zod.number().nullish(),
+  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupRank": zod.number().nullish()
+}).and(zod.object({
+  "qualificationSource": zod.enum(['standings', 'group_position']),
+  "nextStageSeed": zod.number()
+})))
+})
+
+
+/**
+ * @summary Atomically start the next planned stage and generate its first matches
+ */
+
+
+
+
+export const StartTournamentStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const StartTournamentStageResponse = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "winnerId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
 })
 
 
@@ -175,6 +508,7 @@ export const StartTournamentResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -228,6 +562,7 @@ export const GenerateNextRoundResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -261,6 +596,7 @@ export const GetTournamentBracketResponse = zod.object({
   "totalRounds": zod.number().nullish(),
   "winnerId": zod.number().nullish(),
   "featuredMatchId": zod.number().nullish(),
+  "activeStageId": zod.number().nullish(),
   "hasHostCode": zod.boolean().describe('Whether a host access code has been set for this tournament'),
   "hasOrganizerPassword": zod.boolean().optional().describe('Whether an organizer password has been set'),
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
@@ -420,13 +756,13 @@ export const GetResultsHistoryResponse = zod.array(GetResultsHistoryResponseItem
 
 
 /**
- * @summary Export full tournament backup
+ * @summary Export a complete Tournament Stages Backup v3
  */
 export const ExportTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
-
+export const exportTournamentResponseStagesMax = 3;
 
 
 
@@ -438,16 +774,12 @@ export const ExportTournamentResponse = zod.object({
   "tournament": zod.object({
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
-  "currentRound": zod.number().nullish(),
-  "totalRounds": zod.number().nullish(),
-  "swissRounds": zod.number().nullish(),
-  "defaultBestOf": zod.number().min(1),
-  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "activeStageBackupId": zod.number().nullish(),
   "winnerBackupId": zod.number().nullish(),
-  "featuredMatchBackupId": zod.number().nullish()
+  "featuredMatchBackupId": zod.number().nullish(),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline'])
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -458,8 +790,60 @@ export const ExportTournamentResponse = zod.object({
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner'])
 })),
+  "stages": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "winnerBackupId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})).min(1).max(exportTournamentResponseStagesMax),
+  "groups": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "position": zod.number(),
+  "participantCount": zod.number(),
+  "qualifiersCount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "stageParticipants": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "playerBackupId": zod.number(),
+  "stageSeed": zod.number(),
+  "groupBackupId": zod.number().nullish(),
+  "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
+  "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
+  "finalRank": zod.number().nullish(),
+  "groupRank": zod.number().nullish(),
+  "qualificationRank": zod.number().nullish(),
+  "nextStageSeed": zod.number().nullish(),
+  "sourceStageParticipantBackupId": zod.number().nullish(),
+  "qualifiedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
   "matches": zod.array(zod.object({
   "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "stageGroupBackupId": zod.number().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1BackupId": zod.number().nullish(),
@@ -469,7 +853,7 @@ export const ExportTournamentResponse = zod.object({
   "score2": zod.number().nullish(),
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
   "resultReason": zod.string().nullable(),
-  "bestOf": zod.number().min(1),
+  "bestOf": zod.number(),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "note": zod.string().nullish(),
   "nextMatchBackupId": zod.number().nullish(),
@@ -479,6 +863,7 @@ export const ExportTournamentResponse = zod.object({
 })),
   "resultHistory": zod.array(zod.object({
   "matchBackupId": zod.number(),
+  "stageBackupId": zod.number(),
   "revision": zod.number(),
   "round": zod.number(),
   "matchNumber": zod.number(),
@@ -496,6 +881,7 @@ export const ExportTournamentResponse = zod.object({
   "actionLog": zod.array(zod.object({
   "actionType": zod.string(),
   "description": zod.string(),
+  "stageBackupId": zod.number().nullable(),
   "matchBackupId": zod.number().nullable(),
   "canUndo": zod.boolean(),
   "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
@@ -506,13 +892,15 @@ export const ExportTournamentResponse = zod.object({
 
 
 /**
- * @summary Import tournament from backup (creates new copy)
+ * @summary Import Backup v2 or v3 as a new tournament copy
  */
 
 
+export const importTournamentBodyTwoStagesMax = 3;
 
 
-export const ImportTournamentBody = zod.object({
+
+export const ImportTournamentBody = zod.union([zod.object({
   "schemaVersion": zod.number(),
   "resultModelVersion": zod.literal("series_v1"),
   "rankingPolicy": zod.literal("match_record_v1"),
@@ -584,7 +972,129 @@ export const ImportTournamentBody = zod.object({
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
 }))
-})
+}),zod.object({
+  "schemaVersion": zod.number(),
+  "resultModelVersion": zod.literal("series_v1"),
+  "rankingPolicy": zod.literal("match_record_v1"),
+  "exportedAt": zod.string(),
+  "tournament": zod.object({
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['draft', 'active', 'completed']),
+  "maxPlayers": zod.number().nullish(),
+  "activeStageBackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "featuredMatchBackupId": zod.number().nullish(),
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline'])
+}),
+  "players": zod.array(zod.object({
+  "backupId": zod.number(),
+  "name": zod.string(),
+  "rank": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "teamName": zod.string().nullish(),
+  "seed": zod.number().nullish(),
+  "status": zod.enum(['active', 'eliminated', 'winner'])
+})),
+  "stages": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "winnerBackupId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})).min(1).max(importTournamentBodyTwoStagesMax),
+  "groups": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "position": zod.number(),
+  "participantCount": zod.number(),
+  "qualifiersCount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "stageParticipants": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "playerBackupId": zod.number(),
+  "stageSeed": zod.number(),
+  "groupBackupId": zod.number().nullish(),
+  "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
+  "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
+  "finalRank": zod.number().nullish(),
+  "groupRank": zod.number().nullish(),
+  "qualificationRank": zod.number().nullish(),
+  "nextStageSeed": zod.number().nullish(),
+  "sourceStageParticipantBackupId": zod.number().nullish(),
+  "qualifiedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})),
+  "matches": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "stageGroupBackupId": zod.number().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
+  "resultReason": zod.string().nullable(),
+  "bestOf": zod.number(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "note": zod.string().nullish(),
+  "nextMatchBackupId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})),
+  "resultHistory": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "revision": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1BackupId": zod.number().nullish(),
+  "player2BackupId": zod.number().nullish(),
+  "winnerBackupId": zod.number().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "bestOf": zod.number(),
+  "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
+  "resultReason": zod.string().nullable(),
+  "completedAt": zod.string(),
+  "recordedAt": zod.string()
+})),
+  "actionLog": zod.array(zod.object({
+  "actionType": zod.string(),
+  "description": zod.string(),
+  "stageBackupId": zod.number().nullable(),
+  "matchBackupId": zod.number().nullable(),
+  "canUndo": zod.boolean(),
+  "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
+  "isUndone": zod.boolean(),
+  "createdAt": zod.string()
+}))
+})])
 
 
 /**

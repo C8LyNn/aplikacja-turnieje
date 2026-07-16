@@ -22,6 +22,7 @@ import type {
 import type {
   ActionLogEntry,
   AssistantSnapshot,
+  BackupImportError,
   Bracket,
   CsvImportInput,
   CsvImportResult,
@@ -37,10 +38,16 @@ import type {
   PlayerUpdate,
   ReorderMatchesInput,
   ResultRecord,
+  StageLifecycleError,
+  StagePlanError,
+  StageQualificationPreview,
   Standing,
   Tournament,
   TournamentBackup,
+  TournamentBackupV3,
   TournamentInput,
+  TournamentStage,
+  TournamentStageDetails,
   TournamentStats,
   TournamentUpdate,
   UndoLastAction404,
@@ -241,7 +248,7 @@ export const createTournament = async (tournamentInput: TournamentInput, options
 
 
 
-export const getCreateTournamentMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateTournamentMutationOptions = <TError = ErrorType<StagePlanError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext> => {
 
@@ -270,12 +277,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof createTournament>>>
     export type CreateTournamentMutationBody = BodyType<TournamentInput>
-    export type CreateTournamentMutationError = ErrorType<unknown>
+    export type CreateTournamentMutationError = ErrorType<StagePlanError>
 
     /**
  * @summary Create a new tournament
  */
-export const useCreateTournament = <TError = ErrorType<unknown>,
+export const useCreateTournament = <TError = ErrorType<StagePlanError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createTournament>>,
@@ -485,6 +492,391 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteTournamentMutationOptions(options));
+    }
+
+export const getListTournamentStagesUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages`
+}
+
+/**
+ * @summary List the configured stages of a tournament
+ */
+export const listTournamentStages = async (id: number, options?: RequestInit): Promise<TournamentStage[]> => {
+
+  return customFetch<TournamentStage[]>(getListTournamentStagesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTournamentStagesQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/stages`
+    ] as const;
+    }
+
+
+export const getListTournamentStagesQueryOptions = <TData = Awaited<ReturnType<typeof listTournamentStages>>, TError = ErrorType<DomainError | void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTournamentStages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTournamentStagesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTournamentStages>>> = ({ signal }) => listTournamentStages(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTournamentStages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTournamentStagesQueryResult = NonNullable<Awaited<ReturnType<typeof listTournamentStages>>>
+export type ListTournamentStagesQueryError = ErrorType<DomainError | void>
+
+
+/**
+ * @summary List the configured stages of a tournament
+ */
+
+export function useListTournamentStages<TData = Awaited<ReturnType<typeof listTournamentStages>>, TError = ErrorType<DomainError | void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTournamentStages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTournamentStagesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetTournamentStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}`
+}
+
+/**
+ * @summary Get a stage with groups, participants, frozen ranking and qualifiers
+ */
+export const getTournamentStage = async (id: number,
+    stageId: number, options?: RequestInit): Promise<TournamentStageDetails> => {
+
+  return customFetch<TournamentStageDetails>(getGetTournamentStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentStageQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}`
+    ] as const;
+    }
+
+
+export const getGetTournamentStageQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentStage>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentStageQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentStage>>> = ({ signal }) => getTournamentStage(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentStage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentStageQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentStage>>>
+export type GetTournamentStageQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Get a stage with groups, participants, frozen ranking and qualifiers
+ */
+
+export function useGetTournamentStage<TData = Awaited<ReturnType<typeof getTournamentStage>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentStageQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getPreviewStageQualificationUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/qualification-preview`
+}
+
+/**
+ * @summary Preview the deterministic ranking and qualification result of an active stage
+ */
+export const previewStageQualification = async (id: number,
+    stageId: number, options?: RequestInit): Promise<StageQualificationPreview> => {
+
+  return customFetch<StageQualificationPreview>(getPreviewStageQualificationUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getPreviewStageQualificationQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/qualification-preview`
+    ] as const;
+    }
+
+
+export const getPreviewStageQualificationQueryOptions = <TData = Awaited<ReturnType<typeof previewStageQualification>>, TError = ErrorType<DomainError | StageLifecycleError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewStageQualification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewStageQualificationQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof previewStageQualification>>> = ({ signal }) => previewStageQualification(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof previewStageQualification>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type PreviewStageQualificationQueryResult = NonNullable<Awaited<ReturnType<typeof previewStageQualification>>>
+export type PreviewStageQualificationQueryError = ErrorType<DomainError | StageLifecycleError>
+
+
+/**
+ * @summary Preview the deterministic ranking and qualification result of an active stage
+ */
+
+export function usePreviewStageQualification<TData = Awaited<ReturnType<typeof previewStageQualification>>, TError = ErrorType<DomainError | StageLifecycleError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof previewStageQualification>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getPreviewStageQualificationQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCompleteTournamentStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/complete`
+}
+
+/**
+ * @summary Atomically complete the active stage and create next-stage participants
+ */
+export const completeTournamentStage = async (id: number,
+    stageId: number, options?: RequestInit): Promise<StageQualificationPreview> => {
+
+  return customFetch<StageQualificationPreview>(getCompleteTournamentStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCompleteTournamentStageMutationOptions = <TError = ErrorType<DomainError | StageLifecycleError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeTournamentStage>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeTournamentStage>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['completeTournamentStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeTournamentStage>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  completeTournamentStage(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteTournamentStageMutationResult = NonNullable<Awaited<ReturnType<typeof completeTournamentStage>>>
+
+    export type CompleteTournamentStageMutationError = ErrorType<DomainError | StageLifecycleError>
+
+    /**
+ * @summary Atomically complete the active stage and create next-stage participants
+ */
+export const useCompleteTournamentStage = <TError = ErrorType<DomainError | StageLifecycleError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeTournamentStage>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeTournamentStage>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getCompleteTournamentStageMutationOptions(options));
+    }
+
+export const getStartTournamentStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/start`
+}
+
+/**
+ * @summary Atomically start the next planned stage and generate its first matches
+ */
+export const startTournamentStage = async (id: number,
+    stageId: number, options?: RequestInit): Promise<TournamentStage> => {
+
+  return customFetch<TournamentStage>(getStartTournamentStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getStartTournamentStageMutationOptions = <TError = ErrorType<DomainError | StageLifecycleError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTournamentStage>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startTournamentStage>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['startTournamentStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startTournamentStage>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  startTournamentStage(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartTournamentStageMutationResult = NonNullable<Awaited<ReturnType<typeof startTournamentStage>>>
+
+    export type StartTournamentStageMutationError = ErrorType<DomainError | StageLifecycleError>
+
+    /**
+ * @summary Atomically start the next planned stage and generate its first matches
+ */
+export const useStartTournamentStage = <TError = ErrorType<DomainError | StageLifecycleError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startTournamentStage>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startTournamentStage>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getStartTournamentStageMutationOptions(options));
     }
 
 export const getStartTournamentUrl = (id: number,) => {
@@ -1145,11 +1537,11 @@ export const getExportTournamentUrl = (id: number,) => {
 }
 
 /**
- * @summary Export full tournament backup
+ * @summary Export a complete Tournament Stages Backup v3
  */
-export const exportTournament = async (id: number, options?: RequestInit): Promise<TournamentBackup> => {
+export const exportTournament = async (id: number, options?: RequestInit): Promise<TournamentBackupV3> => {
 
-  return customFetch<TournamentBackup>(getExportTournamentUrl(id),
+  return customFetch<TournamentBackupV3>(getExportTournamentUrl(id),
   {
     ...options,
     method: 'GET'
@@ -1192,7 +1584,7 @@ export type ExportTournamentQueryError = ErrorType<void>
 
 
 /**
- * @summary Export full tournament backup
+ * @summary Export a complete Tournament Stages Backup v3
  */
 
 export function useExportTournament<TData = Awaited<ReturnType<typeof exportTournament>>, TError = ErrorType<void>>(
@@ -1222,7 +1614,7 @@ export const getImportTournamentUrl = () => {
 }
 
 /**
- * @summary Import tournament from backup (creates new copy)
+ * @summary Import Backup v2 or v3 as a new tournament copy
  */
 export const importTournament = async (tournamentBackup: TournamentBackup, options?: RequestInit): Promise<ImportResult> => {
 
@@ -1239,7 +1631,7 @@ export const importTournament = async (tournamentBackup: TournamentBackup, optio
 
 
 
-export const getImportTournamentMutationOptions = <TError = ErrorType<void>,
+export const getImportTournamentMutationOptions = <TError = ErrorType<BackupImportError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext> => {
 
@@ -1268,12 +1660,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ImportTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof importTournament>>>
     export type ImportTournamentMutationBody = BodyType<TournamentBackup>
-    export type ImportTournamentMutationError = ErrorType<void>
+    export type ImportTournamentMutationError = ErrorType<BackupImportError>
 
     /**
- * @summary Import tournament from backup (creates new copy)
+ * @summary Import Backup v2 or v3 as a new tournament copy
  */
-export const useImportTournament = <TError = ErrorType<void>,
+export const useImportTournament = <TError = ErrorType<BackupImportError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof importTournament>>,

@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type TournamentBackupTournamentVisibility = typeof TournamentBackupTournamentVisibility[keyof typeof TournamentBackupTournamentVisibility];
+export type TournamentBackupV3TournamentVisibility = typeof TournamentBackupV3TournamentVisibility[keyof typeof TournamentBackupV3TournamentVisibility];
 
 
-export const TournamentBackupTournamentVisibility = {
+export const TournamentBackupV3TournamentVisibility = {
   public_online: 'public_online',
   private_online: 'private_online',
   private_offline: 'private_offline',

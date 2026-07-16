@@ -25,6 +25,21 @@ import {
   BackupV2ValidationError,
   importBackupV2,
 } from "../application/backups/backup-v2";
+import {
+  BackupV3ValidationError,
+  exportBackupV3,
+  importBackupV3,
+} from "../application/backups/backup-v3";
+import {
+  addPlayerWithStagePlanCompatibility,
+  createTournamentWithStagePlan,
+  TournamentStagePlanError,
+} from "../application/stages/create-tournament-with-plan";
+import {
+  getTournamentStageDetails,
+  listTournamentStages,
+  serializeTournamentStage,
+} from "../application/stages/stage-queries";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
@@ -67,9 +82,15 @@ import {
   UndoLastActionParams,
   ExportTournamentParams,
   ImportTournamentBody,
+  ListTournamentStagesParams,
+  GetTournamentStageParams,
+  PreviewStageQualificationParams,
+  CompleteTournamentStageParams,
+  StartTournamentStageParams,
   VerifyHostCodeParams,
   VerifyHostCodeBody,
-  type TournamentBackup,
+  type TournamentBackupV2,
+  type TournamentBackupV3,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -487,13 +508,21 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  const { organizerPassword, supportPassword, viewerPassword, ...rest } = parsed.data as any;
+  const { organizerPassword, supportPassword, viewerPassword, stagePlan, ...rest } = parsed.data;
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
-  const [t] = await db.insert(tournamentsTable).values(insertValues).returning();
-  res.status(201).json(mapTournament(t));
+  try {
+    const tournament = await createTournamentWithStagePlan({ tournament: insertValues, stagePlan });
+    res.status(201).json(mapTournament(tournament));
+  } catch (error) {
+    if (error instanceof TournamentStagePlanError) {
+      res.status(422).json({ error: error.message, code: "INVALID_STAGE_PLAN", details: error.problems });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.get("/tournaments/:id", async (req, res): Promise<void> => {
@@ -507,17 +536,31 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
   res.json(mapTournament(access.tournament));
 });
 
-// Internal stage lifecycle routes. They deliberately remain outside the public OpenAPI contract.
-router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req, res): Promise<void> => {
-  const tournamentId = parsePositiveInteger(req.params.id);
-  const stageId = parsePositiveInteger(req.params.stageId);
-  if (tournamentId == null || stageId == null) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
-  if (!await requireOrganizer(req, res, tournamentId)) return;
+router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
+  const params = ListTournamentStagesParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  res.json(await listTournamentStages(params.data.id));
+});
+
+router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
   try {
-    res.json(await getQualificationPreview({ tournamentId, stageId }));
+    res.json(await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req, res): Promise<void> => {
+  const params = PreviewStageQualificationParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json(await getQualificationPreview({ tournamentId: params.data.id, stageId: params.data.stageId }));
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       sendStageLifecycleError(error, res);
@@ -528,15 +571,11 @@ router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req,
 });
 
 router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promise<void> => {
-  const tournamentId = parsePositiveInteger(req.params.id);
-  const stageId = parsePositiveInteger(req.params.stageId);
-  if (tournamentId == null || stageId == null) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
-  if (!await requireOrganizer(req, res, tournamentId)) return;
+  const params = CompleteTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
   try {
-    res.json(await completeStage({ tournamentId, stageId }));
+    res.json(await completeStage({ tournamentId: params.data.id, stageId: params.data.stageId }));
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       sendStageLifecycleError(error, res);
@@ -547,15 +586,11 @@ router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promi
 });
 
 router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<void> => {
-  const tournamentId = parsePositiveInteger(req.params.id);
-  const stageId = parsePositiveInteger(req.params.stageId);
-  if (tournamentId == null || stageId == null) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
-  if (!await requireOrganizer(req, res, tournamentId)) return;
+  const params = StartTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
   try {
-    res.json(await startStage({ tournamentId, stageId }));
+    res.json(serializeTournamentStage(await startStage({ tournamentId: params.data.id, stageId: params.data.stageId })));
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       sendStageLifecycleError(error, res);
@@ -1261,10 +1296,11 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     return;
   }
 
-  const [player] = await db
-    .insert(playersTable)
-    .values({ tournamentId: params.data.id, ...parsed.data, name: trimmedName })
-    .returning();
+  const player = await addPlayerWithStagePlanCompatibility({
+    tournamentId: params.data.id,
+    ...parsed.data,
+    name: trimmedName,
+  });
   await logAction({
     tournamentId: params.data.id,
     actionType: "player_added",
@@ -2068,100 +2104,7 @@ router.get("/tournaments/:id/export", async (req, res): Promise<void> => {
 
   const access = await requireOrganizer(req, res, tid);
   if (!access) return;
-  const tournament = access.tournament;
-
-  const players = await db.select().from(playersTable).where(eq(playersTable.tournamentId, tid));
-  const matches = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, tid)).orderBy(matchesTable.round, matchesTable.matchNumber);
-  const history = await db.select().from(resultHistoryTable).where(eq(resultHistoryTable.tournamentId, tid));
-  const log = await db.select().from(actionLogTable).where(eq(actionLogTable.tournamentId, tid)).orderBy(desc(actionLogTable.createdAt));
-
-  const parseUndoPayload = (value: string | null): Record<string, unknown> | null => {
-    if (!value) return null;
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      return parsed != null && typeof parsed === "object" && !Array.isArray(parsed)
-        ? parsed as Record<string, unknown>
-        : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const backup: TournamentBackup = {
-    schemaVersion: 2,
-    resultModelVersion: "series_v1",
-    rankingPolicy: "match_record_v1",
-    exportedAt: new Date().toISOString(),
-    tournament: {
-      name: tournament.name,
-      description: tournament.description ?? null,
-      format: tournament.format,
-      status: tournament.status,
-      maxPlayers: tournament.maxPlayers ?? null,
-      currentRound: tournament.currentRound ?? null,
-      totalRounds: tournament.totalRounds ?? null,
-      swissRounds: tournament.swissRounds ?? null,
-      defaultBestOf: tournament.defaultBestOf,
-      visibility: tournament.visibility as "public_online" | "private_online" | "private_offline",
-      winnerBackupId: tournament.winnerId ?? null,
-      featuredMatchBackupId: tournament.featuredMatchId ?? null,
-    },
-    players: players.map((p) => ({
-      backupId: p.id,
-      name: p.name,
-      rank: p.rank ?? null,
-      country: p.country ?? null,
-      teamName: p.teamName ?? null,
-      seed: p.seed ?? null,
-      status: p.status,
-    })),
-    matches: matches.map((m) => ({
-      backupId: m.id,
-      round: m.round,
-      matchNumber: m.matchNumber,
-      player1BackupId: m.player1Id ?? null,
-      player2BackupId: m.player2Id ?? null,
-      winnerBackupId: m.winnerId ?? null,
-      score1: m.score1 ?? null,
-      score2: m.score2 ?? null,
-      resultType: m.resultType ?? null,
-      resultReason: m.resultReason ?? null,
-      bestOf: m.bestOf,
-      status: m.status,
-      note: m.note ?? null,
-      nextMatchBackupId: m.nextMatchId ?? null,
-      sortOrder: m.sortOrder ?? null,
-      scheduledAt: m.scheduledAt ? m.scheduledAt.toISOString() : null,
-      completedAt: m.completedAt ? m.completedAt.toISOString() : null,
-    })),
-    resultHistory: history.map((r) => ({
-      matchBackupId: r.matchId,
-      revision: r.revision,
-      round: r.round,
-      matchNumber: r.matchNumber,
-      player1BackupId: r.player1Id ?? null,
-      player2BackupId: r.player2Id ?? null,
-      winnerBackupId: r.winnerId ?? null,
-      score1: r.score1 ?? null,
-      score2: r.score2 ?? null,
-      bestOf: r.bestOf,
-      resultType: r.resultType,
-      resultReason: r.resultReason ?? null,
-      completedAt: r.completedAt.toISOString(),
-      recordedAt: r.recordedAt.toISOString(),
-    })),
-    actionLog: log.map((a) => ({
-      actionType: a.actionType,
-      description: a.description,
-      matchBackupId: a.matchId ?? null,
-      canUndo: UNDOABLE_TYPES.has(a.actionType) && !a.isUndone && !!a.undoPayload,
-      undoPayload: parseUndoPayload(a.undoPayload),
-      isUndone: a.isUndone ?? false,
-      createdAt: a.createdAt.toISOString(),
-    })),
-  };
-
-  res.json(backup);
+  res.json(await exportBackupV3(tid));
 });
 
 // ===== IMPORT =====
@@ -2171,32 +2114,41 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     : {};
   if (rawBody.version === "1" || rawBody.schemaVersion === 1) {
     res.status(400).json({
-      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1/v2.",
+      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1/v2 albo v3.",
       code: "LEGACY_BACKUP_UNSUPPORTED",
     });
     return;
   }
   const parsed = ImportTournamentBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Nieprawidłowy backup v2.", code: "INVALID_BACKUP_V2" });
+    res.status(400).json({ error: "Nieprawidłowy backup v2/v3.", code: "INVALID_BACKUP" });
     return;
   }
   const parsedBackup = parsed.data;
 
-  if (parsedBackup.schemaVersion !== 2) {
-    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${parsedBackup.schemaVersion}). Wymagany jest format v2.`, code: "BACKUP_VERSION_UNSUPPORTED" });
+  if (parsedBackup.schemaVersion !== 2 && parsedBackup.schemaVersion !== 3) {
+    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${parsedBackup.schemaVersion}). Wymagany jest format v2 albo v3.`, code: "BACKUP_VERSION_UNSUPPORTED" });
     return;
   }
-  const bk: TournamentBackup = { ...parsedBackup, schemaVersion: 2 };
 
   try {
-    const imported = await importBackupV2(bk);
+    const imported = parsedBackup.schemaVersion === 2
+      ? await importBackupV2(parsedBackup as TournamentBackupV2)
+      : await importBackupV3(parsedBackup as TournamentBackupV3);
     res.status(201).json({
       tournament: mapTournament(imported.tournament),
       playersImported: imported.playersImported,
       matchesImported: imported.matchesImported,
     });
   } catch (error) {
+    if (error instanceof BackupV3ValidationError) {
+      res.status(400).json({
+        error: "Backup v3 nie przeszedł pełnej walidacji.",
+        code: "INVALID_BACKUP_V3",
+        details: error.details,
+      });
+      return;
+    }
     if (error instanceof BackupV2ValidationError) {
       res.status(400).json({
         error: "Backup v2 nie przeszedł pełnej walidacji.",
@@ -2206,7 +2158,7 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
       return;
     }
     res.status(400).json({
-      error: "Import backupu v2 został wycofany; nie zapisano częściowych danych.",
+      error: "Import backupu został wycofany; nie zapisano częściowych danych.",
       code: "BACKUP_IMPORT_ROLLED_BACK",
     });
   }

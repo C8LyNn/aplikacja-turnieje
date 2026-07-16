@@ -1,0 +1,210 @@
+import { asc, eq } from "drizzle-orm";
+import {
+  db,
+  playersTable,
+  tournamentStagesTable,
+  tournamentsTable,
+} from "@workspace/db";
+import {
+  validateTournamentStagePlan,
+  type TournamentStagePlan,
+  type TournamentStagePlanProblem,
+  type TournamentStagesPlan,
+} from "../../domain/tournament/tournament-stage-plan";
+
+export class TournamentStagePlanError extends Error {
+  constructor(public readonly problems: TournamentStagePlanProblem[]) {
+    super("Tournament stage plan is invalid.");
+    this.name = "TournamentStagePlanError";
+  }
+}
+
+function compatibilityFormat(
+  format: TournamentStagePlan["format"],
+): "swiss" | "round_robin" | "single_elimination" {
+  return format === "group_stage" ? "round_robin" : format;
+}
+
+function rankingPolicy(format: TournamentStagePlan["format"]) {
+  switch (format) {
+    case "swiss":
+      return "swiss_v1" as const;
+    case "round_robin":
+      return "round_robin_v1" as const;
+    case "group_stage":
+      return "group_v1" as const;
+    case "single_elimination":
+      return "elimination_bracket_v1" as const;
+  }
+}
+
+function persistedStage(
+  tournamentId: number,
+  stage: TournamentStagePlan,
+  plan: TournamentStagesPlan,
+): typeof tournamentStagesTable.$inferInsert {
+  const previous = plan.stages[stage.position - 2];
+  const final = stage.position === plan.stages.length;
+  return {
+    tournamentId,
+    stageKey: stage.key,
+    position: stage.position,
+    name: stage.name,
+    format: stage.format,
+    status: "planned",
+    participantCount: stage.participantCount,
+    bestOf: stage.bestOf,
+    plannedRounds: stage.format === "swiss" ? stage.rounds : null,
+    currentRound: null,
+    totalRounds: null,
+    rankingPolicy: rankingPolicy(stage.format),
+    qualificationMode: final
+      ? "none"
+      : stage.format === "group_stage"
+        ? "top_n_per_group"
+        : "top_n",
+    advancingCount:
+      !final && (stage.format === "swiss" || stage.format === "round_robin")
+        ? (stage.advancingCount ?? null)
+        : null,
+    groupCount: stage.format === "group_stage" ? stage.groupCount : null,
+    participantsPerGroup:
+      stage.format === "group_stage" ? stage.participantsPerGroup : null,
+    qualifiersPerGroup:
+      stage.format === "group_stage" ? stage.qualifiersPerGroup : null,
+    seedingPolicy:
+      stage.format === "group_stage"
+        ? "snake_groups"
+        : stage.format === "single_elimination" &&
+            previous?.format === "group_stage"
+          ? "cross_group"
+          : "standings_order",
+  };
+}
+
+export async function createTournamentWithStagePlan(input: {
+  tournament: typeof tournamentsTable.$inferInsert;
+  stagePlan?: unknown;
+}): Promise<typeof tournamentsTable.$inferSelect> {
+  if (input.stagePlan == null) {
+    const [created] = await db
+      .insert(tournamentsTable)
+      .values(input.tournament)
+      .returning();
+    return created;
+  }
+
+  const validation = validateTournamentStagePlan(input.stagePlan);
+  if (!validation.valid)
+    throw new TournamentStagePlanError(validation.problems);
+  const plan = validation.value;
+  const first = plan.stages[0];
+
+  return db.transaction(async (tx) => {
+    const [tournament] = await tx
+      .insert(tournamentsTable)
+      .values({
+        ...input.tournament,
+        format: compatibilityFormat(first.format),
+        defaultBestOf: first.bestOf,
+        swissRounds: first.format === "swiss" ? first.rounds : null,
+        maxPlayers: plan.initialParticipantCount,
+      })
+      .returning();
+
+    const [generated] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+      .orderBy(asc(tournamentStagesTable.position));
+    const firstValues = persistedStage(tournament.id, first, plan);
+    await tx
+      .update(tournamentStagesTable)
+      .set({
+        stageKey: firstValues.stageKey,
+        name: firstValues.name,
+        format: firstValues.format,
+        participantCount: firstValues.participantCount,
+        bestOf: firstValues.bestOf,
+        plannedRounds: firstValues.plannedRounds,
+        currentRound: null,
+        totalRounds: null,
+        rankingPolicy: firstValues.rankingPolicy,
+        qualificationMode: firstValues.qualificationMode,
+        advancingCount: firstValues.advancingCount,
+        groupCount: firstValues.groupCount,
+        participantsPerGroup: firstValues.participantsPerGroup,
+        qualifiersPerGroup: firstValues.qualifiersPerGroup,
+        seedingPolicy: firstValues.seedingPolicy,
+      })
+      .where(eq(tournamentStagesTable.id, generated.id));
+
+    if (plan.stages.length > 1) {
+      await tx
+        .insert(tournamentStagesTable)
+        .values(
+          plan.stages
+            .slice(1)
+            .map((stage) => persistedStage(tournament.id, stage, plan)),
+        );
+    }
+    return tournament;
+  });
+}
+
+export async function addPlayerWithStagePlanCompatibility(
+  values: typeof playersTable.$inferInsert,
+): Promise<typeof playersTable.$inferSelect> {
+  return db.transaction(async (tx) => {
+    const [firstStage] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(eq(tournamentStagesTable.tournamentId, values.tournamentId))
+      .orderBy(asc(tournamentStagesTable.position))
+      .for("update");
+    if (
+      firstStage?.format !== "group_stage" ||
+      firstStage.status !== "planned"
+    ) {
+      const [created] = await tx
+        .insert(playersTable)
+        .values(values)
+        .returning();
+      return created;
+    }
+
+    // The migration's legacy player trigger maintains the live one-stage participant count.
+    // A planned group stage has a fixed configured count, so expose a constraint-valid
+    // compatibility projection only inside this transaction while that trigger runs.
+    await tx
+      .update(tournamentStagesTable)
+      .set({
+        format: "round_robin",
+        rankingPolicy: "round_robin_v1",
+        qualificationMode: "top_n",
+        advancingCount:
+          (firstStage.groupCount ?? 0) * (firstStage.qualifiersPerGroup ?? 0),
+        groupCount: null,
+        participantsPerGroup: null,
+        qualifiersPerGroup: null,
+        seedingPolicy: "standings_order",
+      })
+      .where(eq(tournamentStagesTable.id, firstStage.id));
+    const [created] = await tx.insert(playersTable).values(values).returning();
+    await tx
+      .update(tournamentStagesTable)
+      .set({
+        format: firstStage.format,
+        participantCount: firstStage.participantCount,
+        rankingPolicy: firstStage.rankingPolicy,
+        qualificationMode: firstStage.qualificationMode,
+        advancingCount: firstStage.advancingCount,
+        groupCount: firstStage.groupCount,
+        participantsPerGroup: firstStage.participantsPerGroup,
+        qualifiersPerGroup: firstStage.qualifiersPerGroup,
+        seedingPolicy: firstStage.seedingPolicy,
+      })
+      .where(eq(tournamentStagesTable.id, firstStage.id));
+    return created;
+  });
+}

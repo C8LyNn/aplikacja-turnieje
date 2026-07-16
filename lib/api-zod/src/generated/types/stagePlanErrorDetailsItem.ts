@@ -6,7 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-/**
- * @nullable
- */
-export type TournamentBackupActionLogItemUndoPayload = { [key: string]: unknown } | null;
+export type StagePlanErrorDetailsItem = {
+  code: string;
+  path: string;
+  message: string;
+};

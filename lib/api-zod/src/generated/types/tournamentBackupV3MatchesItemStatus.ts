@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type TournamentBackupMatchesItemStatus = typeof TournamentBackupMatchesItemStatus[keyof typeof TournamentBackupMatchesItemStatus];
+export type TournamentBackupV3MatchesItemStatus = typeof TournamentBackupV3MatchesItemStatus[keyof typeof TournamentBackupV3MatchesItemStatus];
 
 
-export const TournamentBackupMatchesItemStatus = {
+export const TournamentBackupV3MatchesItemStatus = {
   pending: 'pending',
   in_progress: 'in_progress',
   postponed: 'postponed',

@@ -385,12 +385,14 @@ describe("full export access", () => {
 
         if (actor === "organizer") {
           assert.equal(response.status, 200);
-          assert.equal(response.body.schemaVersion, 2);
+          assert.equal(response.body.schemaVersion, 3);
           assert.equal(response.body.resultModelVersion, "series_v1");
           assert.equal(response.body.rankingPolicy, "match_record_v1");
           assert.equal(response.body.tournament.name, fixture.name);
           assert.ok(Array.isArray(response.body.players));
           assert.ok(Array.isArray(response.body.matches));
+          assert.ok(Array.isArray(response.body.stages));
+          assert.ok(Array.isArray(response.body.stageParticipants));
           assert.ok(Array.isArray(response.body.resultHistory));
           assert.ok(Array.isArray(response.body.actionLog));
           assertNoSensitiveKeys(response.body);

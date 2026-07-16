@@ -62,6 +62,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Tournament"
+        "422":
+          description: Stage plan rejected by the domain validator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagePlanError"
 
   /tournaments/{id}:
     get:
@@ -116,6 +122,179 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /tournaments/{id}/stages:
+    get:
+      operationId: listTournamentStages
+      tags: [tournaments]
+      summary: List the configured stages of a tournament
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Tournament stages in execution order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament not found
+
+  /tournaments/{id}/stages/{stageId}:
+    get:
+      operationId: getTournamentStage
+      tags: [tournaments]
+      summary: Get a stage with groups, participants, frozen ranking and qualifiers
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Tournament stage details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStageDetails"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/qualification-preview:
+    get:
+      operationId: previewStageQualification
+      tags: [tournaments]
+      summary: Preview the deterministic ranking and qualification result of an active stage
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Qualification preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageQualificationPreview"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage is incomplete or its qualification configuration is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/stages/{stageId}/complete:
+    post:
+      operationId: completeTournamentStage
+      tags: [tournaments]
+      summary: Atomically complete the active stage and create next-stage participants
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Frozen ranking and qualification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageQualificationPreview"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage lifecycle conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage is incomplete or inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/stages/{stageId}/start:
+    post:
+      operationId: startTournamentStage
+      tags: [tournaments]
+      summary: Atomically start the next planned stage and generate its first matches
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Started stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage lifecycle conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage configuration or participants are inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
 
   /tournaments/{id}/start:
     post:
@@ -324,7 +503,7 @@ paths:
     get:
       operationId: exportTournament
       tags: [tournaments]
-      summary: Export full tournament backup
+      summary: Export a complete Tournament Stages Backup v3
       parameters:
         - name: id
           in: path
@@ -337,7 +516,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TournamentBackup"
+                $ref: "#/components/schemas/TournamentBackupV3"
         "404":
           description: Tournament not found
 
@@ -345,7 +524,7 @@ paths:
     post:
       operationId: importTournament
       tags: [tournaments]
-      summary: Import tournament from backup (creates new copy)
+      summary: Import Backup v2 or v3 as a new tournament copy
       requestBody:
         required: true
         content:
@@ -361,6 +540,10 @@ paths:
                 $ref: "#/components/schemas/ImportResult"
         "400":
           description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupImportError"
 
   /tournaments/{id}/assistant:
     get:
@@ -720,6 +903,21 @@ paths:
                 $ref: "#/components/schemas/DomainError"
 
 components:
+  parameters:
+    TournamentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    StageId:
+      name: stageId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
   schemas:
     DomainError:
       type: object
@@ -729,6 +927,55 @@ components:
           type: string
         code:
           type: string
+    StageLifecycleError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_ACTIVE
+            - STAGE_NOT_NEXT_PLANNED
+            - ACTIVE_STAGE_EXISTS
+            - PREVIOUS_STAGE_NOT_COMPLETED
+            - STAGE_INCOMPLETE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - QUALIFICATION_CONFIGURATION_INVALID
+            - STAGE_FORMAT_NOT_SUPPORTED
+            - STAGE_ALREADY_COMPLETED
+            - STAGE_ALREADY_STARTED
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+            - RANKING_INCONSISTENT
+    StagePlanError:
+      type: object
+      required: [error, code, details]
+      properties:
+        error: { type: string }
+        code: { type: string, const: INVALID_STAGE_PLAN }
+        details:
+          type: array
+          items:
+            type: object
+            required: [code, path, message]
+            properties:
+              code: { type: string }
+              path: { type: string }
+              message: { type: string }
+    BackupImportError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK]
+        details:
+          type: array
+          items: { type: string }
     HealthStatus:
       type: object
       properties:
@@ -776,6 +1023,8 @@ components:
         winnerId:
           type: ["integer", "null"]
         featuredMatchId:
+          type: ["integer", "null"]
+        activeStageId:
           type: ["integer", "null"]
         hasHostCode:
           type: boolean
@@ -828,6 +1077,210 @@ components:
           type: string
           enum: [public_online, private_online, private_offline]
           description: Tournament visibility mode
+        stagePlan:
+          $ref: "#/components/schemas/TournamentStagePlanInput"
+          description: Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.
+
+    TournamentStagePlanInput:
+      type: object
+      additionalProperties: false
+      required: [initialParticipantCount, stages]
+      properties:
+        initialParticipantCount:
+          type: integer
+          minimum: 2
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/TournamentStagePlanItemInput"
+
+    TournamentStagePlanItemInput:
+      type: object
+      additionalProperties: false
+      required: [key, position, name, format, participantCount, bestOf]
+      properties:
+        key:
+          type: string
+          minLength: 1
+        position:
+          type: integer
+          minimum: 1
+          maximum: 3
+        name:
+          type: string
+          minLength: 1
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
+        participantCount:
+          type: integer
+          minimum: 2
+        bestOf:
+          type: integer
+          enum: [1, 3, 5, 7]
+        rounds:
+          type: integer
+          minimum: 1
+        advancingCount:
+          type: integer
+          minimum: 2
+        groupCount:
+          type: integer
+          enum: [2, 4]
+        participantsPerGroup:
+          type: integer
+          minimum: 3
+          maximum: 8
+        qualifiersPerGroup:
+          type: integer
+          enum: [1, 2]
+        seedingMethod:
+          type: string
+          const: snake
+
+    TournamentStage:
+      type: object
+      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        stageKey: { type: string }
+        position: { type: integer }
+        name: { type: string }
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
+        status:
+          type: string
+          enum: [planned, active, completed]
+        participantCount: { type: integer }
+        bestOf: { type: integer }
+        plannedRounds: { type: ["integer", "null"] }
+        currentRound: { type: ["integer", "null"] }
+        totalRounds: { type: ["integer", "null"] }
+        rankingPolicy:
+          type: string
+          enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1]
+        qualificationMode:
+          type: string
+          enum: [none, top_n, top_n_per_group]
+        advancingCount: { type: ["integer", "null"] }
+        groupCount: { type: ["integer", "null"] }
+        participantsPerGroup: { type: ["integer", "null"] }
+        qualifiersPerGroup: { type: ["integer", "null"] }
+        seedingPolicy:
+          type: string
+          enum: [standings_order, snake_groups, cross_group]
+        winnerId: { type: ["integer", "null"] }
+        version: { type: integer }
+        createdAt: { type: string }
+        startedAt: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
+
+    StageGroup:
+      type: object
+      required: [id, stageId, groupKey, position, participantCount, qualifiersCount, createdAt]
+      properties:
+        id: { type: integer }
+        stageId: { type: integer }
+        groupKey: { type: string, enum: [A, B, C, D] }
+        position: { type: integer }
+        participantCount: { type: integer }
+        qualifiersCount: { type: integer }
+        createdAt: { type: string }
+
+    StageParticipant:
+      type: object
+      required: [id, tournamentId, stageId, playerId, playerName, stageSeed, status, qualificationSource, createdAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        stageId: { type: integer }
+        playerId: { type: integer }
+        playerName: { type: string }
+        stageSeed: { type: integer }
+        groupId: { type: ["integer", "null"] }
+        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        status:
+          type: string
+          enum: [active, eliminated, qualified, winner]
+        qualificationSource:
+          type: string
+          enum: [registration, standings, group_position]
+        finalRank: { type: ["integer", "null"] }
+        groupRank: { type: ["integer", "null"] }
+        qualificationRank: { type: ["integer", "null"] }
+        nextStageSeed: { type: ["integer", "null"] }
+        sourceStageParticipantId: { type: ["integer", "null"] }
+        qualifiedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    TournamentStageDetails:
+      type: object
+      required: [stage, groups, participants, ranking, qualifiers]
+      properties:
+        stage:
+          $ref: "#/components/schemas/TournamentStage"
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/StageGroup" }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/StageParticipant" }
+        ranking:
+          type: array
+          description: Frozen ranking rows. Empty until a stage has been completed.
+          items: { $ref: "#/components/schemas/StageParticipant" }
+        qualifiers:
+          type: array
+          items: { $ref: "#/components/schemas/StageParticipant" }
+
+    StageRankingEntry:
+      type: object
+      required: [stageParticipantId, playerId, playerName, stageSeed, rank, matchWins, matchLosses, gameWins, gameLosses, gameDiff]
+      properties:
+        stageParticipantId: { type: integer }
+        playerId: { type: integer }
+        playerName: { type: string }
+        stageSeed: { type: integer }
+        rank: { type: integer }
+        matchWins: { type: integer }
+        matchLosses: { type: integer }
+        gameWins: { type: integer }
+        gameLosses: { type: integer }
+        gameDiff: { type: integer }
+        buchholz: { type: ["integer", "null"] }
+        groupId: { type: ["integer", "null"] }
+        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupRank: { type: ["integer", "null"] }
+
+    StageQualifier:
+      allOf:
+        - $ref: "#/components/schemas/StageRankingEntry"
+        - type: object
+          required: [qualificationSource, nextStageSeed]
+          properties:
+            qualificationSource:
+              type: string
+              enum: [standings, group_position]
+            nextStageSeed: { type: integer }
+
+    StageQualificationPreview:
+      type: object
+      required: [tournamentId, stageId, stageVersion, fingerprint, ranking, qualifiers]
+      properties:
+        tournamentId: { type: integer }
+        stageId: { type: integer }
+        stageVersion: { type: integer }
+        fingerprint: { type: string }
+        ranking:
+          type: array
+          items: { $ref: "#/components/schemas/StageRankingEntry" }
+        qualifiers:
+          type: array
+          items: { $ref: "#/components/schemas/StageQualifier" }
 
     TournamentUpdate:
       type: object
@@ -1232,7 +1685,7 @@ components:
           items:
             $ref: "#/components/schemas/Match"
 
-    TournamentBackup:
+    TournamentBackupV2:
       type: object
       additionalProperties: false
       required: [schemaVersion, resultModelVersion, rankingPolicy, exportedAt, tournament, players, matches, resultHistory, actionLog]
@@ -1405,6 +1858,180 @@ components:
                 type: boolean
               createdAt:
                 type: string
+
+    TournamentBackupV3:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, resultModelVersion, rankingPolicy, exportedAt, tournament, players, stages, groups, stageParticipants, matches, resultHistory, actionLog]
+      properties:
+        schemaVersion: { type: integer, const: 3 }
+        resultModelVersion: { type: string, const: series_v1 }
+        rankingPolicy: { type: string, const: match_record_v1 }
+        exportedAt: { type: string }
+        tournament:
+          type: object
+          additionalProperties: false
+          required: [name, status, visibility]
+          properties:
+            name: { type: string }
+            description: { type: ["string", "null"] }
+            status: { type: string, enum: [draft, active, completed] }
+            maxPlayers: { type: ["integer", "null"] }
+            activeStageBackupId: { type: ["integer", "null"] }
+            winnerBackupId: { type: ["integer", "null"] }
+            featuredMatchBackupId: { type: ["integer", "null"] }
+            visibility: { type: string, enum: [public_online, private_online, private_offline] }
+        players:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, name, status]
+            properties:
+              backupId: { type: integer }
+              name: { type: string }
+              rank: { type: ["string", "null"] }
+              country: { type: ["string", "null"] }
+              teamName: { type: ["string", "null"] }
+              seed: { type: ["integer", "null"] }
+              status: { type: string, enum: [active, eliminated, winner] }
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageKey: { type: string }
+              position: { type: integer }
+              name: { type: string }
+              format: { type: string, enum: [swiss, round_robin, group_stage, single_elimination] }
+              status: { type: string, enum: [planned, active, completed] }
+              participantCount: { type: integer }
+              bestOf: { type: integer }
+              plannedRounds: { type: ["integer", "null"] }
+              currentRound: { type: ["integer", "null"] }
+              totalRounds: { type: ["integer", "null"] }
+              rankingPolicy: { type: string, enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1] }
+              qualificationMode: { type: string, enum: [none, top_n, top_n_per_group] }
+              advancingCount: { type: ["integer", "null"] }
+              groupCount: { type: ["integer", "null"] }
+              participantsPerGroup: { type: ["integer", "null"] }
+              qualifiersPerGroup: { type: ["integer", "null"] }
+              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group] }
+              winnerBackupId: { type: ["integer", "null"] }
+              version: { type: integer }
+              createdAt: { type: string }
+              startedAt: { type: ["string", "null"] }
+              completedAt: { type: ["string", "null"] }
+        groups:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, groupKey, position, participantCount, qualifiersCount, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              groupKey: { type: string, enum: [A, B, C, D] }
+              position: { type: integer }
+              participantCount: { type: integer }
+              qualifiersCount: { type: integer }
+              createdAt: { type: string }
+        stageParticipants:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, playerBackupId, stageSeed, status, qualificationSource, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              playerBackupId: { type: integer }
+              stageSeed: { type: integer }
+              groupBackupId: { type: ["integer", "null"] }
+              status: { type: string, enum: [active, eliminated, qualified, winner] }
+              qualificationSource: { type: string, enum: [registration, standings, group_position] }
+              finalRank: { type: ["integer", "null"] }
+              groupRank: { type: ["integer", "null"] }
+              qualificationRank: { type: ["integer", "null"] }
+              nextStageSeed: { type: ["integer", "null"] }
+              sourceStageParticipantBackupId: { type: ["integer", "null"] }
+              qualifiedAt: { type: ["string", "null"] }
+              createdAt: { type: string }
+        matches:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, round, matchNumber, bestOf, status, resultType, resultReason]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              stageGroupBackupId: { type: ["integer", "null"] }
+              round: { type: integer }
+              matchNumber: { type: integer }
+              player1BackupId: { type: ["integer", "null"] }
+              player2BackupId: { type: ["integer", "null"] }
+              winnerBackupId: { type: ["integer", "null"] }
+              score1: { type: ["integer", "null"] }
+              score2: { type: ["integer", "null"] }
+              resultType: { type: ["string", "null"], enum: [played, walkover, bye, no_contest, null] }
+              resultReason: { type: ["string", "null"] }
+              bestOf: { type: integer }
+              status: { type: string, enum: [pending, in_progress, postponed, completed, cancelled] }
+              note: { type: ["string", "null"] }
+              nextMatchBackupId: { type: ["integer", "null"] }
+              sortOrder: { type: ["integer", "null"] }
+              scheduledAt: { type: ["string", "null"] }
+              completedAt: { type: ["string", "null"] }
+        resultHistory:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, stageBackupId, revision, round, matchNumber, bestOf, resultType, resultReason, completedAt, recordedAt]
+            properties:
+              matchBackupId: { type: integer }
+              stageBackupId: { type: integer }
+              revision: { type: integer }
+              round: { type: integer }
+              matchNumber: { type: integer }
+              player1BackupId: { type: ["integer", "null"] }
+              player2BackupId: { type: ["integer", "null"] }
+              winnerBackupId: { type: ["integer", "null"] }
+              score1: { type: ["integer", "null"] }
+              score2: { type: ["integer", "null"] }
+              bestOf: { type: integer }
+              resultType: { type: string, enum: [played, walkover, bye, no_contest] }
+              resultReason: { type: ["string", "null"] }
+              completedAt: { type: string }
+              recordedAt: { type: string }
+        actionLog:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [actionType, description, stageBackupId, matchBackupId, canUndo, undoPayload, isUndone, createdAt]
+            properties:
+              actionType: { type: string }
+              description: { type: string }
+              stageBackupId: { type: ["integer", "null"] }
+              matchBackupId: { type: ["integer", "null"] }
+              canUndo: { type: boolean }
+              undoPayload:
+                type: ["object", "null"]
+                additionalProperties: true
+              isUndone: { type: boolean }
+              createdAt: { type: string }
+
+    TournamentBackup:
+      oneOf:
+        - $ref: "#/components/schemas/TournamentBackupV2"
+        - $ref: "#/components/schemas/TournamentBackupV3"
 
     ImportResult:
       type: object
