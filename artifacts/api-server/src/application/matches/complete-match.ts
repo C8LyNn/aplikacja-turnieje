@@ -194,6 +194,13 @@ export async function completeMatch(
     if (!stage || stage.status !== "active") {
       throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
     }
+    const tournamentStages = await tx
+      .select({ id: tournamentStagesTable.id })
+      .from(tournamentStagesTable)
+      .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+      .orderBy(tournamentStagesTable.position)
+      .for("update");
+    const isSingleStageTournament = tournamentStages.length === 1;
 
     const [match] = await tx
       .select()
@@ -295,15 +302,17 @@ export async function completeMatch(
       stage.format === "single_elimination" &&
       result.loserId != null
     ) {
-      await tx
-        .update(playersTable)
-        .set({ status: "eliminated" })
-        .where(
-          and(
-            eq(playersTable.id, result.loserId),
-            eq(playersTable.tournamentId, match.tournamentId),
-          ),
-        );
+      if (isSingleStageTournament) {
+        await tx
+          .update(playersTable)
+          .set({ status: "eliminated" })
+          .where(
+            and(
+              eq(playersTable.id, result.loserId),
+              eq(playersTable.tournamentId, match.tournamentId),
+            ),
+          );
+      }
       await tx
         .update(stageParticipantsTable)
         .set({ status: "eliminated" })
@@ -366,7 +375,7 @@ export async function completeMatch(
     }
 
     if (stage.format === "single_elimination") {
-      if (!downstreamMatch && result.winnerId != null) {
+      if (isSingleStageTournament && !downstreamMatch && result.winnerId != null) {
         const remaining = await tx
           .select({ id: matchesTable.id })
           .from(matchesTable)
@@ -428,7 +437,7 @@ export async function completeMatch(
           .set({ currentRound: match.round + 1 })
           .where(eq(tournamentsTable.id, tournament.id));
       }
-    } else if (stage.format === "round_robin") {
+    } else if (stage.format === "round_robin" && isSingleStageTournament) {
       const allMatches = await tx
         .select()
         .from(matchesTable)

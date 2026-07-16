@@ -15,6 +15,13 @@ import {
   type RevertMatchErrorCode,
 } from "../application/matches/revert-match";
 import {
+  completeStage,
+  getQualificationPreview,
+  startStage,
+  StageLifecycleError,
+  type StageLifecycleErrorCode,
+} from "../application/stages/stage-lifecycle";
+import {
   BackupV2ValidationError,
   importBackupV2,
 } from "../application/backups/backup-v2";
@@ -72,6 +79,31 @@ const router: IRouter = Router();
 function parseId(raw: unknown): number {
   const val = Array.isArray(raw) ? raw[0] : raw;
   return parseInt(val as string, 10);
+}
+
+function parsePositiveInteger(raw: unknown): number | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function sendStageLifecycleError(
+  error: StageLifecycleError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set<StageLifecycleErrorCode>(["TOURNAMENT_NOT_FOUND", "STAGE_NOT_FOUND"]);
+  const conflict = new Set<StageLifecycleErrorCode>([
+    "STAGE_NOT_ACTIVE",
+    "STAGE_NOT_NEXT_PLANNED",
+    "ACTIVE_STAGE_EXISTS",
+    "PREVIOUS_STAGE_NOT_COMPLETED",
+    "STAGE_ALREADY_COMPLETED",
+    "STAGE_ALREADY_STARTED",
+    "MATCHES_ALREADY_EXIST",
+  ]);
+  res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
+    .json({ error: error.message, code: error.code });
 }
 
 function formatDate(d: Date | null | undefined): string | null {
@@ -472,6 +504,64 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
   res.json(mapTournament(access.tournament));
+});
+
+// Internal stage lifecycle routes. They deliberately remain outside the public OpenAPI contract.
+router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req, res): Promise<void> => {
+  const tournamentId = parsePositiveInteger(req.params.id);
+  const stageId = parsePositiveInteger(req.params.stageId);
+  if (tournamentId == null || stageId == null) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  if (!await requireOrganizer(req, res, tournamentId)) return;
+  try {
+    res.json(await getQualificationPreview({ tournamentId, stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) {
+      sendStageLifecycleError(error, res);
+      return;
+    }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promise<void> => {
+  const tournamentId = parsePositiveInteger(req.params.id);
+  const stageId = parsePositiveInteger(req.params.stageId);
+  if (tournamentId == null || stageId == null) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  if (!await requireOrganizer(req, res, tournamentId)) return;
+  try {
+    res.json(await completeStage({ tournamentId, stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) {
+      sendStageLifecycleError(error, res);
+      return;
+    }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<void> => {
+  const tournamentId = parsePositiveInteger(req.params.id);
+  const stageId = parsePositiveInteger(req.params.stageId);
+  if (tournamentId == null || stageId == null) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+  if (!await requireOrganizer(req, res, tournamentId)) return;
+  try {
+    res.json(await startStage({ tournamentId, stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) {
+      sendStageLifecycleError(error, res);
+      return;
+    }
+    throw error;
+  }
 });
 
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {
@@ -1451,6 +1541,7 @@ function sendRevertMatchError(
     "COMPLETION_ALREADY_UNDONE",
     "UNDO_ACTION_CHANGED",
     "DOWNSTREAM_BLOCKED",
+    "STAGE_ALREADY_ADVANCED",
     "CONCURRENT_MODIFICATION",
     "SYSTEM_BYE_REVERT_BLOCKED",
   ]);
