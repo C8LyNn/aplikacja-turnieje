@@ -443,6 +443,7 @@ export async function revertMatch(
         .set({
           status: "active",
           finalRank: null,
+          groupRank: null,
           qualificationRank: null,
           nextStageSeed: null,
           qualifiedAt: null,
@@ -470,6 +471,7 @@ export async function revertMatch(
         .update(stageParticipantsTable)
         .set({
           finalRank: null,
+          groupRank: null,
           qualificationRank: null,
           nextStageSeed: null,
           qualifiedAt: null,

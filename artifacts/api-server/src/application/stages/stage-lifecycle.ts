@@ -6,10 +6,15 @@ import {
   matchesTable,
   playersTable,
   resultHistoryTable,
+  stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
+import {
+  buildGroupPlayoffSlots,
+  type GroupKey,
+} from "../../domain/tournament/group-playoff";
 import { generateRoundRobinSchedule } from "../../domain/tournament/round-robin";
 import {
   rankRoundRobinOrGroup,
@@ -33,6 +38,7 @@ export type StageLifecycleErrorCode =
   | "STAGE_ALREADY_COMPLETED"
   | "STAGE_ALREADY_STARTED"
   | "MATCHES_ALREADY_EXIST"
+  | "GROUPS_ALREADY_EXIST"
   | "RANKING_INCONSISTENT";
 
 const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
@@ -49,6 +55,7 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   STAGE_ALREADY_COMPLETED: "Etap został już zakończony.",
   STAGE_ALREADY_STARTED: "Etap został już uruchomiony.",
   MATCHES_ALREADY_EXIST: "Planowany etap zawiera już mecze.",
+  GROUPS_ALREADY_EXIST: "Planowany etap zawiera już grupy.",
   RANKING_INCONSISTENT: "Nie można wyliczyć jednoznacznego rankingu etapu.",
 };
 
@@ -60,6 +67,8 @@ export class StageLifecycleError extends Error {
 }
 
 export interface StageLifecycleTestHooks {
+  /** Test-only fault seam. It is never wired to an HTTP field, header, or environment variable. */
+  afterGroupsWritten?: () => void | Promise<void>;
   /** Test-only fault seam. It is never wired to an HTTP field, header, or environment variable. */
   afterStageParticipantsWritten?: () => void | Promise<void>;
   /** Test-only fault seam. It is never wired to an HTTP field, header, or environment variable. */
@@ -78,6 +87,9 @@ interface RankedParticipant {
   gameLosses: number;
   gameDiff: number;
   buchholz: number | null;
+  groupId?: number;
+  groupKey?: GroupKey;
+  groupRank?: number;
 }
 
 export interface QualificationPreview {
@@ -87,7 +99,7 @@ export interface QualificationPreview {
   fingerprint: string;
   ranking: RankedParticipant[];
   qualifiers: Array<RankedParticipant & {
-    qualificationSource: "standings";
+    qualificationSource: "standings" | "group_position";
     nextStageSeed: number;
   }>;
 }
@@ -126,6 +138,28 @@ function assertStageComplete(
 
   if (stage.format === "round_robin") {
     if (matches.length !== (participantCount * (participantCount - 1)) / 2) {
+      throw new StageLifecycleError("STAGE_INCOMPLETE");
+    }
+    return;
+  }
+
+  if (stage.format === "group_stage") {
+    const groupCount = stage.groupCount;
+    const groupSize = stage.participantsPerGroup;
+    if (groupCount == null || groupSize == null || groupCount * groupSize !== participantCount) {
+      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+    }
+    const expectedPerGroup = (groupSize * (groupSize - 1)) / 2;
+    const matchesByGroup = new Map<number, number>();
+    for (const match of matches) {
+      if (match.stageGroupId == null) throw new StageLifecycleError("STAGE_INCOMPLETE");
+      matchesByGroup.set(match.stageGroupId, (matchesByGroup.get(match.stageGroupId) ?? 0) + 1);
+    }
+    if (
+      matches.length !== groupCount * expectedPerGroup ||
+      matchesByGroup.size !== groupCount ||
+      [...matchesByGroup.values()].some((count) => count !== expectedPerGroup)
+    ) {
       throw new StageLifecycleError("STAGE_INCOMPLETE");
     }
     return;
@@ -267,6 +301,127 @@ function calculateRanking(
   throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
 }
 
+function calculateGroupRanking(
+  stage: typeof tournamentStagesTable.$inferSelect,
+  groups: Array<typeof stageGroupsTable.$inferSelect>,
+  memberships: Array<typeof stageParticipantsTable.$inferSelect>,
+  players: Array<typeof playersTable.$inferSelect>,
+  matches: Array<typeof matchesTable.$inferSelect>,
+): RankedParticipant[] {
+  const playerById = new Map(players.map((player) => [player.id, player]));
+  const ranking: RankedParticipant[] = [];
+  for (const group of [...groups].sort((left, right) => left.position - right.position)) {
+    const groupMemberships = memberships
+      .filter((membership) => membership.groupId === group.id)
+      .sort((left, right) => left.stageSeed - right.stageSeed);
+    if (groupMemberships.length !== group.participantCount) {
+      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+    }
+    const groupPlayers = groupMemberships.map((membership) => {
+      const player = playerById.get(membership.playerId);
+      if (!player) throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+      return { ...player, seed: membership.stageSeed, status: "active" as const };
+    });
+    const groupMatches = matches.filter((match) => match.stageGroupId === group.id);
+    const projections = calculateMatchRecordStandings(groupPlayers, groupMatches, "round_robin");
+    const projectionByPlayerId = new Map(projections.map((entry) => [entry.playerId, entry]));
+    const result = rankRoundRobinOrGroup(
+      projections.map((entry) => ({
+        participantKey: String(entry.playerId),
+        matchWins: entry.matchWins,
+        gameDiff: entry.gameDiff,
+        gameWins: entry.gameWins,
+        stageSeed: groupMemberships.find((membership) => membership.playerId === entry.playerId)?.stageSeed,
+      })),
+      groupMatches.map((match) => ({
+        participant1Key: String(match.player1Id),
+        participant2Key: String(match.player2Id),
+        status: match.status,
+        resultType: match.resultType === "bye" ? null : match.resultType,
+        winnerKey: match.winnerId == null ? null : String(match.winnerId),
+      })),
+    );
+    if (!result.valid) throw new StageLifecycleError("RANKING_INCONSISTENT");
+    for (const entry of result.standings) {
+      const playerId = Number(entry.participantKey);
+      const projection = projectionByPlayerId.get(playerId)!;
+      const membership = groupMemberships.find((candidate) => candidate.playerId === playerId)!;
+      ranking.push({
+        stageParticipantId: membership.id,
+        playerId,
+        playerName: projection.playerName,
+        stageSeed: membership.stageSeed,
+        rank: entry.rank,
+        matchWins: projection.matchWins,
+        matchLosses: projection.matchLosses,
+        gameWins: projection.gameWins,
+        gameLosses: projection.gameLosses,
+        gameDiff: projection.gameDiff,
+        buchholz: null,
+        groupId: group.id,
+        groupKey: group.groupKey as GroupKey,
+        groupRank: entry.rank,
+      });
+    }
+  }
+  if (ranking.length !== stage.participantCount) {
+    throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+  }
+  return ranking;
+}
+
+function buildGroupPreview(params: {
+  tournamentId: number;
+  stage: typeof tournamentStagesTable.$inferSelect;
+  ranking: RankedParticipant[];
+}): QualificationPreview {
+  const groupCount = params.stage.groupCount;
+  const qualifiersPerGroup = params.stage.qualifiersPerGroup;
+  if (groupCount == null || qualifiersPerGroup == null) {
+    throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+  }
+  const playoff = buildGroupPlayoffSlots({ groupCount, qualifiersPerGroup });
+  if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+  const bracketSeeds = bracketPositions(groupCount * qualifiersPerGroup);
+  const qualifiers = playoff.slots.map((slot, slotIndex) => {
+    const qualifier = params.ranking.find(
+      (entry) => entry.groupKey === slot.source.groupKey && entry.groupRank === slot.source.groupRank,
+    );
+    if (!qualifier) throw new StageLifecycleError("RANKING_INCONSISTENT");
+    return {
+      ...qualifier,
+      qualificationSource: "group_position" as const,
+      nextStageSeed: bracketSeeds[slotIndex],
+    };
+  });
+  const fingerprint = createHash("sha256").update(JSON.stringify({
+    tournamentId: params.tournamentId,
+    stageId: params.stage.id,
+    stageVersion: params.stage.version,
+    ranking: params.ranking.map(({ playerId, groupKey, groupRank, stageSeed, matchWins, gameDiff, gameWins }) => ({
+      playerId, groupKey, groupRank, stageSeed, matchWins, gameDiff, gameWins,
+    })),
+    qualifiers: qualifiers.map(({ playerId, groupKey, groupRank, nextStageSeed }) => ({
+      playerId, groupKey, groupRank, nextStageSeed,
+    })),
+  })).digest("hex");
+  return {
+    tournamentId: params.tournamentId,
+    stageId: params.stage.id,
+    stageVersion: params.stage.version,
+    fingerprint,
+    ranking: params.ranking,
+    qualifiers,
+  };
+}
+
+function snakeGroupIndex(participantIndex: number, groupCount: number): number {
+  const position = participantIndex % (groupCount * 2);
+  return position < groupCount ? position : groupCount * 2 - 1 - position;
+}
+
+const GROUP_KEYS: readonly GroupKey[] = ["A", "B", "C", "D"];
+
 function buildPreview(params: {
   tournamentId: number;
   stage: typeof tournamentStagesTable.$inferSelect;
@@ -310,7 +465,6 @@ export async function getQualificationPreview(input: {
   if (stage.status !== "active" || tournament.activeStageId !== stage.id) {
     throw new StageLifecycleError("STAGE_NOT_ACTIVE");
   }
-  if (stage.format === "group_stage") throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
   const memberships = await db.select().from(stageParticipantsTable)
     .where(eq(stageParticipantsTable.stageId, stage.id)).orderBy(asc(stageParticipantsTable.stageSeed));
   const players = memberships.length === 0 ? [] : await db.select().from(playersTable)
@@ -322,6 +476,25 @@ export async function getQualificationPreview(input: {
   }
   assertStageComplete(stage, matches, memberships.length);
   const nextStage = stages.find((candidate) => candidate.position === stage.position + 1);
+  if (stage.format === "group_stage") {
+    const groups = await db.select().from(stageGroupsTable)
+      .where(eq(stageGroupsTable.stageId, stage.id)).orderBy(asc(stageGroupsTable.position));
+    const qualifierCount = (stage.groupCount ?? 0) * (stage.qualifiersPerGroup ?? 0);
+    if (
+      groups.length !== stage.groupCount ||
+      stage.qualificationMode !== "top_n_per_group" ||
+      !nextStage ||
+      nextStage.format !== "single_elimination" ||
+      nextStage.participantCount !== qualifierCount
+    ) {
+      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    }
+    return buildGroupPreview({
+      tournamentId: tournament.id,
+      stage,
+      ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
+    });
+  }
   const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
   if (nextStage && (
     stage.qualificationMode !== "top_n" ||
@@ -356,8 +529,6 @@ export async function completeStage(
     if (stage.status !== "active" || tournament.activeStageId !== stage.id) {
       throw new StageLifecycleError("STAGE_NOT_ACTIVE");
     }
-    if (stage.format === "group_stage") throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
-
     const memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
@@ -372,35 +543,57 @@ export async function completeStage(
     assertStageComplete(stage, matches, memberships.length);
 
     const nextStage = stages.find((candidate) => candidate.position === stage.position + 1);
-    const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
-    if (nextStage && (
-      stage.qualificationMode !== "top_n" ||
-      advancingCount !== nextStage.participantCount ||
-      advancingCount < 2 ||
-      advancingCount >= memberships.length
-    )) {
-      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    let preview: QualificationPreview;
+    if (stage.format === "group_stage") {
+      const groups = await tx.select().from(stageGroupsTable)
+        .where(eq(stageGroupsTable.stageId, stage.id))
+        .orderBy(asc(stageGroupsTable.position)).for("update");
+      const qualifierCount = (stage.groupCount ?? 0) * (stage.qualifiersPerGroup ?? 0);
+      if (
+        groups.length !== stage.groupCount ||
+        stage.qualificationMode !== "top_n_per_group" ||
+        !nextStage ||
+        nextStage.format !== "single_elimination" ||
+        nextStage.participantCount !== qualifierCount
+      ) {
+        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+      }
+      preview = buildGroupPreview({
+        tournamentId: tournament.id,
+        stage,
+        ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
+      });
+    } else {
+      const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
+      if (nextStage && (
+        stage.qualificationMode !== "top_n" ||
+        advancingCount !== nextStage.participantCount ||
+        advancingCount < 2 ||
+        advancingCount >= memberships.length
+      )) {
+        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+      }
+      if (!nextStage && stage.qualificationMode !== "none") {
+        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+      }
+      preview = buildPreview({
+        tournamentId: tournament.id,
+        stage,
+        ranking: calculateRanking(stage, memberships, players, matches),
+        advancingCount,
+      });
     }
-    if (!nextStage && stage.qualificationMode !== "none") {
-      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-    }
-
-    const preview = buildPreview({
-      tournamentId: tournament.id,
-      stage,
-      ranking: calculateRanking(stage, memberships, players, matches),
-      advancingCount,
-    });
     const qualifierByPlayerId = new Map(preview.qualifiers.map((qualifier) => [qualifier.playerId, qualifier]));
     const now = new Date();
     for (const entry of preview.ranking) {
       const qualifier = qualifierByPlayerId.get(entry.playerId);
       await tx.update(stageParticipantsTable).set({
-        finalRank: entry.rank,
+        finalRank: stage.format === "group_stage" ? null : entry.rank,
+        groupRank: stage.format === "group_stage" ? entry.groupRank : null,
         status: nextStage == null
           ? entry.rank === 1 ? "winner" : "eliminated"
           : qualifier ? "qualified" : "eliminated",
-        qualificationRank: qualifier?.rank ?? null,
+        qualificationRank: qualifier?.groupRank ?? qualifier?.rank ?? null,
         nextStageSeed: qualifier?.nextStageSeed ?? null,
         qualifiedAt: qualifier ? now : null,
       }).where(eq(stageParticipantsTable.id, entry.stageParticipantId));
@@ -416,13 +609,13 @@ export async function completeStage(
         playerId: qualifier.playerId,
         stageSeed: qualifier.nextStageSeed,
         status: "active" as const,
-        qualificationSource: "standings" as const,
+        qualificationSource: qualifier.qualificationSource,
         sourceStageParticipantId: qualifier.stageParticipantId,
       })));
     }
     await testHooks.afterStageParticipantsWritten?.();
 
-    const winnerId = preview.ranking[0]?.playerId ?? null;
+    const winnerId = stage.format === "group_stage" ? null : preview.ranking[0]?.playerId ?? null;
     await tx.update(tournamentStagesTable).set({
       status: "completed",
       winnerId,
@@ -545,11 +738,13 @@ export async function startStage(
     if (!nextPlanned || nextPlanned.id !== stage.id) throw new StageLifecycleError("STAGE_NOT_NEXT_PLANNED");
     const previous = stages.find((candidate) => candidate.position === stage.position - 1);
     if (previous && previous.status !== "completed") throw new StageLifecycleError("PREVIOUS_STAGE_NOT_COMPLETED");
-    if (stage.format === "group_stage") throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
 
     const existingMatches = await tx.select({ id: matchesTable.id }).from(matchesTable)
       .where(eq(matchesTable.stageId, stage.id)).for("update");
     if (existingMatches.length > 0) throw new StageLifecycleError("MATCHES_ALREADY_EXIST");
+    const existingGroups = await tx.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
+      .where(eq(stageGroupsTable.stageId, stage.id)).for("update");
+    if (existingGroups.length > 0) throw new StageLifecycleError("GROUPS_ALREADY_EXIST");
     const memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
@@ -575,6 +770,36 @@ export async function startStage(
       })) {
         throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
+      if (previous.format === "group_stage") {
+        if (stage.format !== "single_elimination") {
+          throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+        }
+        const sourceGroups = await tx.select().from(stageGroupsTable)
+          .where(eq(stageGroupsTable.stageId, previous.id)).for("update");
+        const groupById = new Map(sourceGroups.map((group) => [group.id, group]));
+        const playoff = buildGroupPlayoffSlots({
+          groupCount: previous.groupCount ?? 0,
+          qualifiersPerGroup: previous.qualifiersPerGroup ?? 0,
+        });
+        if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+        const bracketSeeds = bracketPositions(playoff.slots.length);
+        const expectedSeedBySource = new Map(playoff.slots.map((slot, index) => [
+          `${slot.source.groupKey}:${slot.source.groupRank}`,
+          bracketSeeds[index],
+        ]));
+        if (memberships.some((membership) => {
+          const source = membership.sourceStageParticipantId == null
+            ? null
+            : sourceById.get(membership.sourceStageParticipantId);
+          const group = source?.groupId == null ? null : groupById.get(source.groupId);
+          const expectedSeed = group && source?.groupRank != null
+            ? expectedSeedBySource.get(`${group.groupKey}:${source.groupRank}`)
+            : null;
+          return membership.qualificationSource !== "group_position" || expectedSeed !== membership.stageSeed;
+        })) {
+          throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+        }
+      }
     } else if (memberships.some(
       (membership) => membership.sourceStageParticipantId != null || membership.qualificationSource !== "registration",
     )) {
@@ -591,8 +816,83 @@ export async function startStage(
       seed: membership.stageSeed,
       status: "active" as const,
     }));
-    const generated = generateStageMatches({ tournamentId: tournament.id, stageId: stage.id, stage, players: stagePlayers });
-    const inserted = await tx.insert(matchesTable).values(generated.values).returning();
+    let inserted: Array<typeof matchesTable.$inferSelect>;
+    let totalRounds: number;
+    if (stage.format === "group_stage") {
+      const groupCount = stage.groupCount;
+      const groupSize = stage.participantsPerGroup;
+      const qualifiersPerGroup = stage.qualifiersPerGroup;
+      if (
+        (groupCount !== 2 && groupCount !== 4) ||
+        groupSize == null ||
+        groupSize < 3 ||
+        groupSize > 8 ||
+        (qualifiersPerGroup !== 1 && qualifiersPerGroup !== 2) ||
+        qualifiersPerGroup >= groupSize ||
+        memberships.length !== groupCount * groupSize ||
+        stage.qualificationMode !== "top_n_per_group" ||
+        stage.seedingPolicy !== "snake_groups"
+      ) {
+        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+      }
+      const groups = (await tx.insert(stageGroupsTable).values(
+        GROUP_KEYS.slice(0, groupCount).map((groupKey, index) => ({
+          stageId: stage.id,
+          groupKey,
+          position: index + 1,
+          participantCount: groupSize,
+          qualifiersCount: qualifiersPerGroup,
+        })),
+      ).returning()).sort((left, right) => left.position - right.position);
+      const membershipsByGroup = new Map<number, Array<typeof stageParticipantsTable.$inferSelect>>();
+      for (let index = 0; index < memberships.length; index += 1) {
+        const group = groups[snakeGroupIndex(index, groupCount)];
+        const membership = memberships[index];
+        await tx.update(stageParticipantsTable).set({ groupId: group.id })
+          .where(eq(stageParticipantsTable.id, membership.id));
+        const assigned = membershipsByGroup.get(group.id) ?? [];
+        assigned.push({ ...membership, groupId: group.id });
+        membershipsByGroup.set(group.id, assigned);
+      }
+      await testHooks.afterGroupsWritten?.();
+
+      const nextMatchNumberByRound = new Map<number, number>();
+      const values: Array<typeof matchesTable.$inferInsert> = [];
+      totalRounds = 1;
+      for (const group of groups) {
+        const groupPlayers = (membershipsByGroup.get(group.id) ?? []).map((membership) => ({
+          ...playerById.get(membership.playerId)!,
+          seed: membership.stageSeed,
+        }));
+        const pairings = generateRoundRobinSchedule(groupPlayers);
+        for (const pairing of pairings) {
+          const matchNumber = nextMatchNumberByRound.get(pairing.round) ?? 1;
+          values.push({
+            tournamentId: tournament.id,
+            stageId: stage.id,
+            stageGroupId: group.id,
+            round: pairing.round,
+            matchNumber,
+            player1Id: pairing.player1Id,
+            player2Id: pairing.player2Id,
+            bestOf: stage.bestOf,
+            status: "pending",
+          });
+          nextMatchNumberByRound.set(pairing.round, matchNumber + 1);
+          totalRounds = Math.max(totalRounds, pairing.round);
+        }
+      }
+      inserted = await tx.insert(matchesTable).values(values).returning();
+    } else {
+      const generated = generateStageMatches({
+        tournamentId: tournament.id,
+        stageId: stage.id,
+        stage,
+        players: stagePlayers,
+      });
+      totalRounds = generated.totalRounds;
+      inserted = await tx.insert(matchesTable).values(generated.values).returning();
+    }
 
     const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId != null);
     if (stage.format === "single_elimination") {
@@ -623,18 +923,18 @@ export async function startStage(
 
     const now = new Date();
     const [updatedStage] = await tx.update(tournamentStagesTable).set({
-      status: "active", currentRound: 1, totalRounds: generated.totalRounds,
+      status: "active", currentRound: 1, totalRounds,
       startedAt: now, completedAt: null, winnerId: null, version: stage.version + 1,
     }).where(and(eq(tournamentStagesTable.id, stage.id), eq(tournamentStagesTable.status, "planned"))).returning();
     if (!updatedStage) throw new StageLifecycleError("STAGE_ALREADY_STARTED");
     await tx.update(tournamentsTable).set({
       status: "active",
       activeStageId: stage.id,
-      format: stage.format,
+      ...(stage.format === "group_stage" ? {} : { format: stage.format }),
       defaultBestOf: stage.bestOf,
       currentRound: 1,
-      totalRounds: generated.totalRounds,
-      swissRounds: stage.format === "swiss" ? generated.totalRounds : null,
+      totalRounds,
+      swissRounds: stage.format === "swiss" ? totalRounds : null,
       winnerId: null,
     }).where(eq(tournamentsTable.id, tournament.id));
     await tx.insert(actionLogTable).values({

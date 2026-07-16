@@ -101,6 +101,7 @@ function sendStageLifecycleError(
     "STAGE_ALREADY_COMPLETED",
     "STAGE_ALREADY_STARTED",
     "MATCHES_ALREADY_EXIST",
+    "GROUPS_ALREADY_EXIST",
   ]);
   res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
     .json({ error: error.message, code: error.code });
