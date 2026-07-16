@@ -692,6 +692,30 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     return;
   }
   if (!await checkHostAuth(req, res, tournament.id)) return;
+
+  const stages = await db
+    .select({ id: tournamentStagesTable.id })
+    .from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+    .orderBy(tournamentStagesTable.position);
+  if (stages.length > 1) {
+    try {
+      await startStage({ tournamentId: tournament.id, stageId: stages[0].id });
+      const [updated] = await db
+        .select()
+        .from(tournamentsTable)
+        .where(eq(tournamentsTable.id, tournament.id));
+      res.json(mapTournament(updated));
+    } catch (error) {
+      if (error instanceof StageLifecycleError) {
+        sendStageLifecycleError(error, res);
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+
   try {
     const updated = await db.transaction(async (tx) => {
       const [lockedTournament] = await tx
