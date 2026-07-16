@@ -1,281 +1,429 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { Globe, Eye, EyeOff, Layers3, Lock, Trophy } from "lucide-react";
+import {
+  useCreateTournament,
+  type TournamentInput,
+} from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
-import { useCreateTournament } from "@workspace/api-client-react";
+import { StagePlanEditor } from "@/components/stage-plan-editor";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Lock, Eye, EyeOff, Globe } from "lucide-react";
+import {
+  createStageDraft,
+  getApiErrorMessage,
+  normalizeStageDrafts,
+  type StageDraft,
+  validateStageDrafts,
+  withOptionalStagePlan,
+} from "@/lib/tournament-stages-ui";
 
-const FORMAT_INFO: Record<string, { label: string; desc: string }> = {
+const FORMAT_INFO: Record<
+  TournamentInput["format"],
+  { label: string; desc: string }
+> = {
   single_elimination: {
     label: "Drabinka eliminacyjna",
-    desc: "Przegrana = odpadnięcie. Szybki format, idealny dla dużych grup.",
+    desc: "Przegrana oznacza odpadnięcie z turnieju.",
   },
   swiss: {
     label: "System szwajcarski",
-    desc: "Wszyscy grają ustaloną liczbę rund. Parowanie uwzględnia bilans meczów i Buchholza.",
+    desc: "Wszyscy grają ustaloną liczbę rund, a ranking uwzględnia bilans i Buchholza.",
   },
   round_robin: {
     label: "Każdy z każdym",
-    desc: "Każdy gracz zmierzy się z każdym. Najdokładniejszy wynik.",
+    desc: "Każdy uczestnik rozgrywa mecz z każdym pozostałym.",
   },
 };
+
+type Visibility = NonNullable<TournamentInput["visibility"]>;
 
 export default function CreateTournament() {
   const [, navigate] = useLocation();
   const createTournament = useCreateTournament();
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [format, setFormat] = useState("single_elimination");
+  const [format, setFormat] =
+    useState<TournamentInput["format"]>("single_elimination");
   const [maxPlayers, setMaxPlayers] = useState("");
   const [swissRounds, setSwissRounds] = useState("");
   const [defaultBestOf, setDefaultBestOf] = useState("1");
   const [organizerPassword, setOrganizerPassword] = useState("");
   const [supportPassword, setSupportPassword] = useState("");
   const [viewerPassword, setViewerPassword] = useState("");
-  const [visibility, setVisibility] = useState<"public_online" | "private_online" | "private_offline">("public_online");
+  const [visibility, setVisibility] = useState<Visibility>("public_online");
   const [showOrgPass, setShowOrgPass] = useState(false);
   const [showSupPass, setShowSupPass] = useState(false);
   const [showViewerPass, setShowViewerPass] = useState(false);
+  const [stageMode, setStageMode] = useState(false);
+  const [stages, setStages] = useState<StageDraft[]>([
+    createStageDraft(1, "swiss"),
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 4,
+      bestOf: 3,
+    },
+  ]);
+  const [showValidation, setShowValidation] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validationErrors = useMemo(
+    () => (stageMode ? validateStageDrafts(stages) : []),
+    [stageMode, stages],
+  );
+  const info = FORMAT_INFO[format];
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitError(undefined);
+    setShowValidation(true);
+    if (stageMode && validationErrors.length > 0) return;
+
+    const legacyPayload: TournamentInput = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      format,
+      maxPlayers: maxPlayers ? Number.parseInt(maxPlayers, 10) : undefined,
+      swissRounds:
+        format === "swiss" && swissRounds
+          ? Number.parseInt(swissRounds, 10)
+          : undefined,
+      defaultBestOf: Number.parseInt(defaultBestOf, 10) || 1,
+      organizerPassword: organizerPassword || undefined,
+      supportPassword: supportPassword || undefined,
+      viewerPassword:
+        visibility === "private_online"
+          ? viewerPassword || undefined
+          : undefined,
+      visibility,
+    };
+
     createTournament.mutate(
+      { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
       {
-        data: {
-          name,
-          description: description || undefined,
-          format: format as any,
-          maxPlayers: maxPlayers ? parseInt(maxPlayers, 10) : undefined,
-          swissRounds: format === "swiss" && swissRounds ? parseInt(swissRounds, 10) : undefined,
-          defaultBestOf: parseInt(defaultBestOf, 10) || 1,
-          organizerPassword: organizerPassword || undefined,
-          supportPassword: supportPassword || undefined,
-          viewerPassword: visibility === "private_online" ? (viewerPassword || undefined) : undefined,
-          visibility,
-        },
-      },
-      {
-        onSuccess: (t) => navigate(`/tournaments/${t.id}`),
+        onSuccess: (tournament) => navigate(`/tournaments/${tournament.id}`),
+        onError: (error) => setSubmitError(getApiErrorMessage(error)),
       },
     );
   };
 
-  const info = FORMAT_INFO[format];
-
   return (
     <Layout>
-      <div className="max-w-xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-6 flex items-center gap-3">
+          <Trophy className="h-7 w-7 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Trophy className="text-primary w-6 h-6" /> Nowy turniej
-            </h1>
-            <p className="text-sm text-muted-foreground">Wypełnij dane turnieju</p>
+            <h1 className="text-2xl font-bold">Nowy turniej</h1>
+            <p className="text-sm text-muted-foreground">
+              Skonfiguruj pojedynczy format albo plan do trzech etapów.
+            </p>
           </div>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Dane turnieju</CardTitle>
-            <CardDescription>Podstawowe informacje</CardDescription>
+            <CardDescription>
+              Podstawowe informacje i przebieg rozgrywek
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label>Nazwa turnieju *</Label>
+                <Label htmlFor="tournament-name">Nazwa turnieju *</Label>
                 <Input
+                  id="tournament-name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(event) => setName(event.target.value)}
                   placeholder="np. Spring Championship 2026"
                   required
                 />
               </div>
-
               <div className="space-y-2">
-                <Label>Opis (opcjonalnie)</Label>
+                <Label htmlFor="tournament-description">
+                  Opis (opcjonalnie)
+                </Label>
                 <Textarea
+                  id="tournament-description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Krótki opis turnieju..."
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Krótki opis turnieju…"
                   rows={2}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Format *</Label>
-                <Select value={format} onValueChange={setFormat}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(FORMAT_INFO).map(([key, val]) => (
-                      <SelectItem key={key} value={key}>{val.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {info && (
-                  <p className="text-xs text-muted-foreground">{info.desc}</p>
-                )}
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Layers3 className="mt-0.5 h-5 w-5 text-primary" />
+                    <div>
+                      <Label htmlFor="stage-mode" className="text-base">
+                        Turniej wieloetapowy
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Włącz, aby połączyć 1–3 formaty z osobnymi BO i zasadami
+                        awansu.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="stage-mode"
+                    checked={stageMode}
+                    onCheckedChange={(checked) => {
+                      setStageMode(checked);
+                      setShowValidation(false);
+                    }}
+                  />
+                </div>
               </div>
 
-              {format === "swiss" && (
-                <div className="space-y-2">
-                  <Label>Liczba rund (Swiss)</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={swissRounds}
-                    onChange={(e) => setSwissRounds(e.target.value)}
-                    placeholder="Automatycznie (log₂ graczy)"
-                  />
-                  <p className="text-xs text-muted-foreground">Zostaw puste = automatycznie na podstawie liczby graczy</p>
+              {stageMode ? (
+                <StagePlanEditor
+                  stages={stages}
+                  errors={showValidation ? validationErrors : []}
+                  onChange={(next) => {
+                    setStages(normalizeStageDrafts(next));
+                    setShowValidation(false);
+                  }}
+                />
+              ) : (
+                <div className="space-y-5 rounded-lg border p-4">
+                  <div className="space-y-2">
+                    <Label>Format *</Label>
+                    <Select
+                      value={format}
+                      onValueChange={(value) =>
+                        setFormat(value as TournamentInput["format"])
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(FORMAT_INFO).map(([key, value]) => (
+                          <SelectItem key={key} value={key}>
+                            {value.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">{info.desc}</p>
+                  </div>
+                  {format === "swiss" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="swiss-rounds">Liczba rund Swiss</Label>
+                      <Input
+                        id="swiss-rounds"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={swissRounds}
+                        onChange={(event) => setSwissRounds(event.target.value)}
+                        placeholder="Automatycznie"
+                      />
+                    </div>
+                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="max-players">Maks. graczy</Label>
+                      <Input
+                        id="max-players"
+                        type="number"
+                        min="2"
+                        value={maxPlayers}
+                        onChange={(event) => setMaxPlayers(event.target.value)}
+                        placeholder="Bez limitu"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Best of</Label>
+                      <Select
+                        value={defaultBestOf}
+                        onValueChange={setDefaultBestOf}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 3, 5, 7].map((bestOf) => (
+                            <SelectItem key={bestOf} value={String(bestOf)}>
+                              Best of {bestOf}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Maks. graczy</Label>
-                  <Input
-                    type="number"
-                    min="2"
-                    value={maxPlayers}
-                    onChange={(e) => setMaxPlayers(e.target.value)}
-                    placeholder="Bez limitu"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Best of (domyślnie)</Label>
-                  <Select value={defaultBestOf} onValueChange={setDefaultBestOf}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Best of 1</SelectItem>
-                      <SelectItem value="3">Best of 3</SelectItem>
-                      <SelectItem value="5">Best of 5</SelectItem>
-                      <SelectItem value="7">Best of 7</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">
+                    Wynik oznacza wygrane gry lub mapy.
+                  </strong>
+                </p>
+                <p className="mt-1">
+                  BO3 wymaga 2 wygranych, BO5 wymaga 3. Wynik 2:1 jest wynikiem
+                  serii, nie liczbą goli.
+                </p>
               </div>
 
-              <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground space-y-1">
-                <p><strong className="text-foreground">Wynik oznacza wygrane gry lub mapy.</strong></p>
-                <p>BO3 wymaga 2 wygranych, BO5 wymaga 3. Wynik 2:1 to wynik serii, nie gole ani punkty klasyfikacyjne.</p>
-                <p>Każdy rozegrany mecz wyłania zwycięzcę; remis całego meczu nie jest obsługiwany.</p>
-              </div>
-
-              {/* Visibility */}
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Globe className="w-4 h-4" />
+              <div className="space-y-3 border-t pt-5">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Globe className="h-4 w-4" />
                   Widoczność turnieju
                 </div>
-                <div className="space-y-2">
-                  {[
-                    { val: "public_online", label: "Publiczny online", desc: "Widoczny na liście. Kibic może wejść bez hasła." },
-                    { val: "private_online", label: "Prywatny online", desc: "Widoczny na liście. Kibic musi podać hasło widza." },
-                    { val: "private_offline", label: "Prywatny offline", desc: "Niewidoczny na liście. Dostęp tylko przez link dla organizatora/wsparcia." },
-                  ].map(({ val, label, desc }) => (
-                    <label key={val} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${visibility === val ? "border-primary bg-primary/5" : "border-border hover:bg-muted/20"}`}>
-                      <input type="radio" name="visibility" value={val} checked={visibility === val} onChange={() => setVisibility(val as any)} className="mt-0.5 accent-primary" />
-                      <div>
-                        <p className="text-sm font-medium">{label}</p>
-                        <p className="text-xs text-muted-foreground">{desc}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+                {[
+                  {
+                    value: "public_online",
+                    label: "Publiczny online",
+                    description: "Kibic może wejść bez hasła.",
+                  },
+                  {
+                    value: "private_online",
+                    label: "Prywatny online",
+                    description: "Kibic musi podać hasło widza.",
+                  },
+                  {
+                    value: "private_offline",
+                    label: "Prywatny offline",
+                    description: "Dostęp tylko dla organizatora i wsparcia.",
+                  },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${visibility === option.value ? "border-primary bg-primary/5" : "hover:bg-muted/20"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value={option.value}
+                      checked={visibility === option.value}
+                      onChange={() => setVisibility(option.value as Visibility)}
+                      className="mt-1 accent-primary"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium">
+                        {option.label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </span>
+                  </label>
+                ))}
               </div>
 
-              {/* Security passwords */}
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Lock className="w-4 h-4" />
+              <div className="space-y-4 border-t pt-5">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Lock className="h-4 w-4" />
                   Hasła dostępu (opcjonalne)
                 </div>
-                <div className="space-y-2">
-                  <Label>Hasło organizatora</Label>
-                  <div className="relative">
-                    <Input
-                      type={showOrgPass ? "text" : "password"}
-                      value={organizerPassword}
-                      onChange={(e) => setOrganizerPassword(e.target.value)}
-                      placeholder="Hasło do panelu prowadzącego..."
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowOrgPass((v) => !v)}
-                    >
-                      {showOrgPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Zastąpi stary system kodu prowadzącego. Możesz ustawić później w zakładce Bezpieczeństwo.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Hasło wsparcia</Label>
-                  <div className="relative">
-                    <Input
-                      type={showSupPass ? "text" : "password"}
-                      value={supportPassword}
-                      onChange={(e) => setSupportPassword(e.target.value)}
-                      placeholder="Hasło dla ekipy wsparcia..."
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowSupPass((v) => !v)}
-                    >
-                      {showSupPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Umożliwia logowanie z nickiem — organizator widzi kto jest zalogowany.</p>
-                </div>
+                <PasswordField
+                  id="organizer-password"
+                  label="Hasło organizatora"
+                  value={organizerPassword}
+                  onChange={setOrganizerPassword}
+                  visible={showOrgPass}
+                  onToggle={() => setShowOrgPass((value) => !value)}
+                />
+                <PasswordField
+                  id="support-password"
+                  label="Hasło wsparcia"
+                  value={supportPassword}
+                  onChange={setSupportPassword}
+                  visible={showSupPass}
+                  onToggle={() => setShowSupPass((value) => !value)}
+                />
                 {visibility === "private_online" && (
-                  <div className="space-y-2">
-                    <Label>Hasło widza</Label>
-                    <div className="relative">
-                      <Input
-                        type={showViewerPass ? "text" : "password"}
-                        value={viewerPassword}
-                        onChange={(e) => setViewerPassword(e.target.value)}
-                        placeholder="Hasło dla widzów..."
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowViewerPass((v) => !v)}
-                      >
-                        {showViewerPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Kibice muszą podać to hasło, aby zobaczyć turniej.</p>
-                  </div>
+                  <PasswordField
+                    id="viewer-password"
+                    label="Hasło widza"
+                    value={viewerPassword}
+                    onChange={setViewerPassword}
+                    visible={showViewerPass}
+                    onToggle={() => setShowViewerPass((value) => !value)}
+                  />
                 )}
               </div>
 
+              {submitError && (
+                <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                  {submitError}
+                </div>
+              )}
               <Button
                 type="submit"
-                className="w-full bg-primary"
+                className="w-full"
                 disabled={createTournament.isPending || !name.trim()}
               >
-                {createTournament.isPending ? "Tworzenie..." : "Utwórz turniej"}
+                {createTournament.isPending ? "Tworzenie…" : "Utwórz turniej"}
               </Button>
             </form>
           </CardContent>
         </Card>
       </div>
     </Layout>
+  );
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  visible,
+  onToggle,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="pr-10"
+        />
+        <button
+          type="button"
+          aria-label={visible ? "Ukryj hasło" : "Pokaż hasło"}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          onClick={onToggle}
+        >
+          {visible ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </div>
   );
 }

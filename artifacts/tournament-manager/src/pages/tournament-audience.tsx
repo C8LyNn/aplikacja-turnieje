@@ -26,6 +26,7 @@ import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
 import { BracketView } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
+import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -39,10 +40,11 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "ZAKOŃCZONY",
 };
 
-type AudienceSection = "live" | "matches" | "standings" | "players" | "bracket";
+type AudienceSection = "live" | "stages" | "matches" | "standings" | "players" | "bracket";
 
 const AUDIENCE_SECTIONS: Array<{ id: AudienceSection; label: string }> = [
   { id: "live", label: "Na żywo" },
+  { id: "stages", label: "Etapy" },
   { id: "matches", label: "Mecze" },
   { id: "standings", label: "Tabela" },
   { id: "players", label: "Gracze" },
@@ -524,6 +526,15 @@ export default function TournamentAudience() {
         )}
         </>}
 
+        {activeSection === "stages" && tournament && (
+          <TournamentStagesPanel
+            tournamentId={id}
+            tournamentStatus={tournament.status}
+            activeStageId={tournament.activeStageId}
+            matches={matches ?? []}
+            audience
+          />
+        )}
         {activeSection === "matches" && <PublicMatchesSection matches={matches ?? []} />}
         {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} />}
         {activeSection === "players" && <PublicPlayersSection players={players ?? []} standings={standings ?? []} />}

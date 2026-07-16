@@ -33,6 +33,7 @@ import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
+import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -669,6 +670,7 @@ export default function TournamentDetail() {
         {readOk && <Tabs defaultValue="overview" className="w-full">
           <TabsList className="bg-card w-full justify-start border-b rounded-none px-0 h-auto flex-wrap">
             <TabsTrigger value="overview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Przegląd</TabsTrigger>
+            <TabsTrigger value="stages" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Etapy</TabsTrigger>
             <TabsTrigger value="players" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Gracze</TabsTrigger>
             {tournament.status !== "draft" && (
               <>
@@ -760,6 +762,17 @@ export default function TournamentDetail() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="stages" className="pt-6">
+            <TournamentStagesPanel
+              tournamentId={id}
+              tournamentStatus={tournament.status}
+              activeStageId={tournament.activeStageId}
+              matches={matches ?? []}
+              canManage={!!orgToken}
+              onChanged={invalidateAll}
+            />
           </TabsContent>
 
           <TabsContent value="players" className="pt-6">
