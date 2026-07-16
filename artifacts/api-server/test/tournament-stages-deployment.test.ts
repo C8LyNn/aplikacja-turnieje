@@ -64,6 +64,7 @@ const absentStageSchema = {
   hasActionLogStage: false,
   hasActiveStagePointer: false,
   hasCriticalConstraints: false,
+  hasMatchNextStageIntegrity: false,
   hasCompatibilityFunctions: false,
   hasCompatibilityTriggers: false,
 };

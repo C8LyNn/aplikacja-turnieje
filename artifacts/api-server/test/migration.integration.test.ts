@@ -360,8 +360,8 @@ describe("non-destructive Tournament Stages v1 migration", () => {
         (error: unknown) =>
           error instanceof Error &&
           "code" in error &&
-          error.code === "42P07" &&
-          error.message.includes("tournament_stages"),
+          error.code === "P0001" &&
+          error.message.includes("Partial Tournament Stages v1 schema"),
       );
       const [marker] = await rows<{ count: number }>(
         `SELECT count(*)::int AS count FROM ${quotedSchema}.app_schema_migrations

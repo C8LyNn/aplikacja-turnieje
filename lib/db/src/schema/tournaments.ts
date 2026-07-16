@@ -10,6 +10,7 @@ import {
   serial,
   text,
   timestamp,
+  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -348,7 +349,7 @@ export const matchesTable = pgTable(
       table.round,
       table.matchNumber,
     ),
-    uniqueIndex("matches_stage_id_id_unique").on(table.stageId, table.id),
+    unique("matches_id_stage_id_unique").on(table.id, table.stageId),
     uniqueIndex("matches_tournament_stage_id_id_unique").on(
       table.tournamentId,
       table.stageId,
@@ -396,10 +397,10 @@ export const matchesTable = pgTable(
       name: "matches_winner_same_tournament_fk",
     }),
     foreignKey({
-      columns: [table.stageId, table.nextMatchId],
-      foreignColumns: [table.stageId, table.id],
+      columns: [table.nextMatchId, table.stageId],
+      foreignColumns: [table.id, table.stageId],
       name: "matches_next_match_same_stage_fk",
-    }),
+    }).onDelete("no action"),
     check("matches_round_positive", sql`${table.round} > 0`),
     check("matches_number_positive", sql`${table.matchNumber} > 0`),
     check("matches_best_of_positive_odd", sql`${table.bestOf} > 0 AND ${table.bestOf} % 2 = 1`),

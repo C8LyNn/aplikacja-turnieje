@@ -53,8 +53,11 @@ transakcją, serializuje wykonanie advisory lockiem i zapisuje marker
 `tournament_stages_v1` w `app_schema_migrations`. Powtórne uruchomienie z
 istniejącym markerem jest operacją no-op dopiero po potwierdzeniu, że wymagane
 tabele i obowiązkowe kolumny etapowe rzeczywiście istnieją. Marker i schemat nie
-mogą więc cicho się rozjechać. Jest to jedyny obowiązujący sposób wykonania
-`0002`; pliku SQL nie uruchamia się osobno. Migracja nie używa `db push` ani
+mogą więc cicho się rozjechać. Runner jest podstawowym sposobem wykonania
+`0002`. Ten sam plik jest również samodzielnym, transakcyjnym wariantem dla
+konsoli Replit Production Database, gdy Publishing blokuje runner własnym DDL;
+wymaga zastąpienia jawnych placeholderów nazwy bazy i pełnego SHA artefaktu.
+Szczegółowa procedura znajduje się w runbooku. Migracja nie używa `db push` ani
 `DROP CASCADE`.
 
 Kolejność operacji:
@@ -136,6 +139,9 @@ DB wymusza między innymi:
 - wspólny turniej etapu, uczestnika, gracza i meczu;
 - grupę należącą do `group_stage` i zgodną z jego konfiguracją;
 - uczestników, zwycięzcę, następną parę i historię z tego samego etapu;
+- `UNIQUE (id, stage_id)` jako dokładny cel self-FK
+  `(next_match_id, stage_id) -> (id, stage_id)`; self-FK używa `ON DELETE NO
+  ACTION`, więc nigdy nie próbuje wyzerować obowiązkowego `stage_id`;
 - dodatnie, nieparzyste BO zgodne z obecnym jednoetapowym API;
 - spójne statusy oraz znaczniki `started_at` i `completed_at`.
 

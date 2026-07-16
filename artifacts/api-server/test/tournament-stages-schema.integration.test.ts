@@ -439,7 +439,7 @@ describe("single-stage compatibility lifecycle", () => {
     assert.equal(reopenedPointer.active_stage_id, fixture.stageId);
   });
 
-  test("round-trips Backup v2 through a normal single stage", async () => {
+  test("round-trips Backup v3 through a normal single stage", async () => {
     const fixture = await createDraftTournament("round_robin", 3, { bestOf: 3 });
     await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/start`)
@@ -519,7 +519,7 @@ describe("single-stage compatibility lifecycle", () => {
         completed_at: undefined,
       },
     );
-    assert.equal(importedStage.started_at, null);
+    assert.ok(importedStage.started_at);
     assert.equal(
       importedStage.completed_at.toISOString(),
       completionEvidence.completed_at.toISOString(),

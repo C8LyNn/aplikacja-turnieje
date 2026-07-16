@@ -68,7 +68,20 @@ Tylko `needed` i `applied` zwracają `safe: true`. Po odczytaniu raportu usuń `
 
 Jeżeli raport wskazuje `needed`, ustaw `DEPLOYMENT_TASK=tournament_stages_v1_migrate` i wykonaj jeden kontrolowany Republish. Runner ponawia preflight pod transakcyjnym advisory lockiem, uruchamia istniejący `migrate-tournament-stages-v1.mjs` w jednej transakcji i zapisuje marker. Błąd powoduje rollback i blokuje start API. Sukces zwraca `applied: true` i uruchamia API. Ponowne uruchomienie z tym samym, zgodnym markerem zwraca `applied: false`, nie wykonuje backfillu ponownie i również uruchamia API.
 
-Po sukcesie usuń `DEPLOYMENT_TASK` oraz pięć tymczasowych guardów, pozostawiając wyłącznie stałe Secrets aplikacji, i wykonaj zwykły Republish. Nie uruchamiaj `db push`, nie wykonuj pliku `0002` ręcznie i nie dodawaj sposobu wywołania migracji przez HTTP.
+Po sukcesie usuń `DEPLOYMENT_TASK` oraz pięć tymczasowych guardów, pozostawiając wyłącznie stałe Secrets aplikacji, i wykonaj zwykły Republish. Nie uruchamiaj `db push` i nie dodawaj sposobu wywołania migracji przez HTTP.
+
+Jeżeli Replit Publishing blokuje uruchomienie runnera własnym, wygenerowanym DDL,
+kontrolowanym wariantem awaryjnym jest dokładnie plik
+`lib/db/migrations/0002_tournament_stages_v1.sql`. Po wyniku preflight
+`safe: true`, `needed` otwórz właściwą konsolę SQL Production Database, zastąp
+`__EXPECTED_DATABASE_NAME__` nazwą widoczną w tej konsoli, a
+`__DEPLOYED_APP_COMMIT__` pełnym 40-znakowym SHA wdrażanego artefaktu i wykonaj
+cały plik jako jedno polecenie. Skrypt nie potrzebuje `DATABASE_URL`: sam otwiera
+transakcję, pobiera advisory lock, weryfikuje bazę i marker `series_v1`, wykonuje
+backfill przed `NOT NULL`, zapisuje marker i robi rollback przy błędzie. Ponowne
+wykonanie jest no-op tylko wtedy, gdy marker i krytyczne constrainty nadal są
+spójne; stan częściowy jest odrzucany. Nie uruchamiaj tego wariantu przy
+`inconsistent` ani w konsoli Development.
 
 ## Migracja Tournament Stages v1 na Development
 

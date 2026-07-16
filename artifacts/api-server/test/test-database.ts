@@ -10,6 +10,8 @@ const TOURNAMENT_STAGES_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0002_tournament_stages_v1.sql",
   import.meta.url,
 );
+const MIGRATION_RUNNER_TRANSACTION_BLOCK =
+  /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
 function assertSafeTestSchema(schema: string): void {
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
@@ -91,7 +93,7 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
     const stagesMigrationSql = renderSeriesV1MigrationForTestSchema(
       await readFile(TOURNAMENT_STAGES_MIGRATION_URL, "utf8"),
       schema,
-    );
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);

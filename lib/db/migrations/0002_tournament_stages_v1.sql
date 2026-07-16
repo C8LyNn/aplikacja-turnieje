@@ -1,6 +1,19 @@
 -- Tournament Stages v1: non-destructive schema migration and one-stage backfill.
 -- Existing tournaments, players, matches, results and logs are preserved.
 -- Compatibility triggers are intentionally limited to the legacy single-stage write paths.
+-- This file can be pasted directly into the Replit Production Database SQL console.
+-- The Node migration runner removes only the marked transaction wrapper because it
+-- already owns the same transaction and advisory lock.
+
+-- migration-runner-strip-begin
+BEGIN;
+SELECT pg_advisory_xact_lock(841730021);
+-- Before pasting into the Replit Production Database SQL console, replace both
+-- placeholders below. Neither value is a secret.
+SELECT set_config('tournament_manager.expected_database_name', '__EXPECTED_DATABASE_NAME__', true);
+SELECT set_config('tournament_manager.deployment_environment', 'production', true);
+SELECT set_config('tournament_manager.app_commit', '__DEPLOYED_APP_COMMIT__', true);
+-- migration-runner-strip-end
 
 CREATE TABLE IF NOT EXISTS public.app_schema_migrations (
   migration_key TEXT PRIMARY KEY,
@@ -9,6 +22,120 @@ CREATE TABLE IF NOT EXISTS public.app_schema_migrations (
   target_schema TEXT NOT NULL,
   deployment_environment TEXT NOT NULL
 );
+
+CREATE OR REPLACE PROCEDURE public.apply_tournament_stages_v1()
+LANGUAGE plpgsql
+AS $tournament_stages_migration$
+DECLARE
+  expected_database_name TEXT := NULLIF(
+    current_setting('tournament_manager.expected_database_name', true), ''
+  );
+  migration_environment TEXT := COALESCE(NULLIF(
+    current_setting('tournament_manager.deployment_environment', true), ''
+  ), 'migration');
+  migration_app_commit TEXT := COALESCE(NULLIF(
+    current_setting('tournament_manager.app_commit', true), ''
+  ), 'schema-migration');
+  migration_target_schema TEXT := (
+    SELECT namespace.nspname
+    FROM pg_class class
+    JOIN pg_namespace namespace ON namespace.oid = class.relnamespace
+    WHERE class.oid = to_regclass('public.tournaments')
+  );
+BEGIN
+  IF expected_database_name IS NOT NULL
+    AND current_database() <> expected_database_name
+  THEN
+    RAISE EXCEPTION 'Connected database % does not match expected database %',
+      current_database(), expected_database_name;
+  END IF;
+
+  IF migration_environment = 'production'
+    AND migration_app_commit !~ '^[0-9a-fA-F]{40}$'
+  THEN
+    RAISE EXCEPTION 'Production SQL console migration requires a full 40-character deployed APP_COMMIT';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.app_schema_migrations
+    WHERE migration_key = 'tournament_stages_v1'
+  ) THEN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.app_schema_migrations
+        WHERE migration_key = 'tournament_stages_v1'
+          AND target_schema = migration_target_schema
+      )
+      OR to_regclass('public.tournament_stages') IS NULL
+      OR to_regclass('public.stage_participants') IS NULL
+      OR to_regclass('public.stage_groups') IS NULL
+      OR NOT EXISTS (
+        SELECT 1
+        FROM pg_attribute
+        WHERE attrelid = to_regclass('public.matches')
+          AND attname = 'stage_id' AND attnotnull AND NOT attisdropped
+      )
+      OR NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint constraint_row
+        WHERE constraint_row.conrelid = to_regclass('public.matches')
+          AND constraint_row.conname = 'matches_id_stage_id_unique'
+          AND constraint_row.contype = 'u'
+          AND ARRAY(
+            SELECT attribute.attname::text
+            FROM unnest(constraint_row.conkey) WITH ORDINALITY AS key(attnum, position)
+            JOIN pg_attribute attribute
+              ON attribute.attrelid = constraint_row.conrelid AND attribute.attnum = key.attnum
+            ORDER BY key.position
+          ) = ARRAY['id', 'stage_id']::text[]
+      )
+      OR NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint constraint_row
+        WHERE constraint_row.conrelid = to_regclass('public.matches')
+          AND constraint_row.confrelid = to_regclass('public.matches')
+          AND constraint_row.conname = 'matches_next_match_same_stage_fk'
+          AND constraint_row.contype = 'f'
+          AND constraint_row.confdeltype = 'a'
+          AND ARRAY(
+            SELECT attribute.attname::text
+            FROM unnest(constraint_row.conkey) WITH ORDINALITY AS key(attnum, position)
+            JOIN pg_attribute attribute
+              ON attribute.attrelid = constraint_row.conrelid AND attribute.attnum = key.attnum
+            ORDER BY key.position
+          ) = ARRAY['next_match_id', 'stage_id']::text[]
+          AND ARRAY(
+            SELECT attribute.attname::text
+            FROM unnest(constraint_row.confkey) WITH ORDINALITY AS key(attnum, position)
+            JOIN pg_attribute attribute
+              ON attribute.attrelid = constraint_row.confrelid AND attribute.attnum = key.attnum
+            ORDER BY key.position
+          ) = ARRAY['id', 'stage_id']::text[]
+      )
+    THEN
+      RAISE EXCEPTION 'Tournament Stages v1 marker exists but the required schema or match constraints are inconsistent';
+    END IF;
+    RETURN;
+  END IF;
+
+  IF migration_environment = 'production' AND NOT EXISTS (
+    SELECT 1 FROM public.app_schema_migrations
+    WHERE migration_key = 'series_v1_clean_cutover'
+  ) THEN
+    RAISE EXCEPTION 'Tournament Stages v1 requires the series_v1_clean_cutover marker';
+  END IF;
+
+  IF to_regclass('public.tournament_stages') IS NOT NULL
+    OR to_regclass('public.stage_participants') IS NOT NULL
+    OR to_regclass('public.stage_groups') IS NOT NULL
+    OR EXISTS (
+      SELECT 1
+      FROM pg_attribute
+      WHERE attrelid = to_regclass('public.matches')
+        AND attname IN ('stage_id', 'stage_group_id') AND NOT attisdropped
+    )
+  THEN
+    RAISE EXCEPTION 'Partial Tournament Stages v1 schema exists without its migration marker';
+  END IF;
 
 CREATE TYPE public.tournament_stage_format AS ENUM (
   'swiss', 'round_robin', 'group_stage', 'single_elimination'
@@ -295,7 +422,7 @@ ALTER TABLE public.matches
   DROP CONSTRAINT IF EXISTS matches_tournament_round_number_unique;
 ALTER TABLE public.matches
   ADD CONSTRAINT matches_stage_round_number_unique UNIQUE (stage_id, round, match_number),
-  ADD CONSTRAINT matches_stage_id_id_unique UNIQUE (stage_id, id),
+  ADD CONSTRAINT matches_id_stage_id_unique UNIQUE (id, stage_id),
   ADD CONSTRAINT matches_tournament_stage_id_id_unique UNIQUE (tournament_id, stage_id, id),
   ADD CONSTRAINT matches_stage_same_tournament_fk
     FOREIGN KEY (tournament_id, stage_id)
@@ -316,8 +443,8 @@ ALTER TABLE public.matches
 ALTER TABLE public.matches DROP CONSTRAINT IF EXISTS matches_next_match_fk;
 ALTER TABLE public.matches
   ADD CONSTRAINT matches_next_match_same_stage_fk
-  FOREIGN KEY (stage_id, next_match_id)
-  REFERENCES public.matches(stage_id, id) ON DELETE SET NULL (next_match_id);
+  FOREIGN KEY (next_match_id, stage_id)
+  REFERENCES public.matches(id, stage_id) ON DELETE NO ACTION;
 
 ALTER TABLE public.result_history
   ADD CONSTRAINT result_history_match_same_stage_fk
@@ -726,5 +853,15 @@ FOR EACH ROW EXECUTE FUNCTION public.compat_assign_action_log_stage();
 INSERT INTO public.app_schema_migrations (
   migration_key, app_commit, target_schema, deployment_environment
 ) VALUES (
-  'tournament_stages_v1', 'schema-migration', current_schema(), 'migration'
+  'tournament_stages_v1', migration_app_commit, migration_target_schema, migration_environment
 );
+
+END;
+$tournament_stages_migration$;
+
+CALL public.apply_tournament_stages_v1();
+DROP PROCEDURE public.apply_tournament_stages_v1();
+
+-- migration-runner-strip-begin
+COMMIT;
+-- migration-runner-strip-end
