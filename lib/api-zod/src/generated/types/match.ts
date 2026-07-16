@@ -11,6 +11,9 @@ import type { MatchStatus } from './matchStatus';
 export interface Match {
   id: number;
   tournamentId: number;
+  stageId: number;
+  /** @nullable */
+  stageGroupId?: number | null;
   round: number;
   matchNumber: number;
   /** @nullable */

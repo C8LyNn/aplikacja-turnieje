@@ -17,7 +17,6 @@ import {
   useStartTournamentStage,
 } from "@workspace/api-client-react";
 import {
-  AlertCircle,
   CheckCircle2,
   Circle,
   Loader2,
@@ -39,7 +38,6 @@ import {
 import {
   filterMatchesForStage,
   getApiErrorMessage,
-  type StageLinkedMatch,
   STAGE_FORMAT_LABELS,
   STAGE_STATUS_LABELS,
 } from "@/lib/tournament-stages-ui";
@@ -64,7 +62,7 @@ interface PlayerRecord {
 }
 
 function getPlayerRecord(
-  matches: StageLinkedMatch[],
+  matches: Match[],
   playerId: number,
 ): PlayerRecord {
   return matches.reduce<PlayerRecord>(
@@ -171,7 +169,7 @@ function ParticipantTable({
   groupMode = false,
 }: {
   participants: StageParticipant[];
-  matches: StageLinkedMatch[];
+  matches: Match[];
   title?: string;
   groupMode?: boolean;
 }) {
@@ -238,7 +236,7 @@ function ParticipantTable({
   );
 }
 
-function MatchList({ matches }: { matches: StageLinkedMatch[] }) {
+function MatchList({ matches }: { matches: Match[] }) {
   if (matches.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -282,7 +280,7 @@ export function StageGroupTables({
   matches,
 }: {
   details: TournamentStageDetails;
-  matches: StageLinkedMatch[];
+  matches: Match[];
 }) {
   return (
     <div
@@ -317,6 +315,40 @@ export function StageGroupTables({
           </section>
         );
       })}
+    </div>
+  );
+}
+
+export function PlannedStageParticipants({
+  stagePosition,
+  participants,
+}: {
+  stagePosition: number;
+  participants: StageParticipant[];
+}) {
+  if (participants.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {stagePosition === 1
+          ? "Uczestnicy pierwszego etapu pochodzą z listy graczy turnieju. Dodaj graczy, aby pojawili się tutaj."
+          : "Uczestnicy pojawią się po kwalifikacji z poprzedniego etapu."}
+      </p>
+    );
+  }
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {participants.map((participant) => (
+        <div
+          key={participant.id}
+          className="flex items-center gap-2 rounded-lg border p-3"
+        >
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span>{participant.playerName}</span>
+          <Badge variant="secondary" className="ml-auto">
+            #{participant.stageSeed}
+          </Badge>
+        </div>
+      ))}
     </div>
   );
 }
@@ -492,16 +524,10 @@ export function TournamentStagesPanel({
   const selectedMatches = useMemo(
     () =>
       selectedStageId
-        ? filterMatchesForStage(matches, selectedStageId, stages.length)
+        ? filterMatchesForStage(matches, selectedStageId)
         : [],
-    [matches, selectedStageId, stages.length],
+    [matches, selectedStageId],
   );
-  const linksMissing =
-    stages.length > 1 &&
-    matches.length > 0 &&
-    !(matches as StageLinkedMatch[]).some((match) =>
-      Number.isInteger(match.stageId),
-    );
   const previous = selected
     ? stages.find((stage) => stage.position === selected.position - 1)
     : undefined;
@@ -604,13 +630,6 @@ export function TournamentStagesPanel({
           setActionError(undefined);
         }}
       />
-      {linksMissing && (
-        <div className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          Nie można jednoznacznie przypisać historycznych meczów do etapów. Dane
-          etapów pozostają dostępne.
-        </div>
-      )}
       {actionError && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {actionError}
@@ -669,26 +688,10 @@ export function TournamentStagesPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {detailQuery.data.participants.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Uczestnicy pojawią się po kwalifikacji z poprzedniego etapu.
-                  </p>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {detailQuery.data.participants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className="flex items-center gap-2 rounded-lg border p-3"
-                      >
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{participant.playerName}</span>
-                        <Badge variant="secondary" className="ml-auto">
-                          #{participant.stageSeed}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <PlannedStageParticipants
+                  stagePosition={selected.position}
+                  participants={detailQuery.data.participants}
+                />
               </CardContent>
             </Card>
           ) : selected.format === "group_stage" ? (

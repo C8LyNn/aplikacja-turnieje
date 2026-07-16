@@ -26,11 +26,6 @@ export interface StagePlanValidationError {
   message: string;
 }
 
-export type StageLinkedMatch = Match & {
-  stageId?: number;
-  stageGroupId?: number | null;
-};
-
 export const STAGE_FORMAT_LABELS: Record<StageFormat, string> = {
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
@@ -277,12 +272,8 @@ export function withOptionalStagePlan(
 export function filterMatchesForStage(
   matches: Match[],
   stageId: number,
-  stageCount: number,
-): StageLinkedMatch[] {
-  const linked = matches as StageLinkedMatch[];
-  const hasStageLinks = linked.some((match) => Number.isInteger(match.stageId));
-  if (!hasStageLinks) return stageCount === 1 ? linked : [];
-  return linked.filter((match) => match.stageId === stageId);
+): Match[] {
+  return matches.filter((match) => match.stageId === stageId);
 }
 
 export function canShowStageActions(

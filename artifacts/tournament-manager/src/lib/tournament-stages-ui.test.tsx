@@ -3,6 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type {
+  Match,
   StageGroup,
   StageParticipant,
   TournamentInput,
@@ -10,6 +11,7 @@ import type {
   TournamentStageDetails,
 } from "@workspace/api-client-react";
 import {
+  PlannedStageParticipants,
   StageActionBar,
   StageGroupTables,
   StageNavigation,
@@ -18,10 +20,17 @@ import {
   buildStagePlan,
   canShowStageActions,
   createStageDraft,
+  filterMatchesForStage,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
 } from "./tournament-stages-ui";
+
+type MatchStageIdIsRequired = {} extends Pick<Match, "stageId">
+  ? false
+  : true;
+const matchStageIdIsRequired: MatchStageIdIsRequired = true;
+void matchStageIdIsRequired;
 
 function stage(
   id: number,
@@ -188,6 +197,51 @@ test("renderuje listę etapów i statusy planned, active, completed", () => {
   assert.match(html, /Aktywny/);
   assert.match(html, /Planowany/);
   assert.match(html, /Faza grupowa/);
+});
+
+test("opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy", () => {
+  const empty = renderToStaticMarkup(
+    <PlannedStageParticipants stagePosition={1} participants={[]} />,
+  );
+  assert.match(empty, /pochodzą z listy graczy turnieju/);
+  assert.doesNotMatch(empty, /kwalifikacji z poprzedniego etapu/);
+
+  const populated = renderToStaticMarkup(
+    <PlannedStageParticipants
+      stagePosition={1}
+      participants={[participant(1, 10, 1, "A", 1)]}
+    />,
+  );
+  assert.match(populated, /Gracz 1/);
+  assert.doesNotMatch(populated, /Dodaj graczy/);
+});
+
+test("zachowuje komunikat kwalifikacyjny dla późniejszego planowanego etapu", () => {
+  const html = renderToStaticMarkup(
+    <PlannedStageParticipants stagePosition={2} participants={[]} />,
+  );
+  assert.match(html, /kwalifikacji z poprzedniego etapu/);
+  assert.doesNotMatch(html, /listy graczy turnieju/);
+});
+
+test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
+  const first: Match = {
+    id: 1,
+    tournamentId: 1,
+    stageId: 10,
+    round: 1,
+    matchNumber: 1,
+    bestOf: 1,
+    status: "pending",
+  };
+  const second: Match = { ...first, id: 2, stageId: 20 };
+  const grouped: Match = { ...first, id: 3, stageGroupId: 30 };
+  assert.deepEqual(filterMatchesForStage([first, second, grouped], 10), [
+    first,
+    grouped,
+  ]);
+  assert.equal(first.stageGroupId, undefined);
+  assert.equal(grouped.stageGroupId, 30);
 });
 
 for (const count of [2, 4] as const) {

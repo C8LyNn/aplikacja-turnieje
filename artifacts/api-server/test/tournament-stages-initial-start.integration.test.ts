@@ -147,6 +147,15 @@ describe("initial Tournament Stages start", () => {
     assert.equal(firstRound.rows.length, 8);
     assert.ok(firstRound.rows.every((match) =>
       match.stage_id === fixture.stageIds[0] && match.round === 1 && match.status === "pending"));
+    const apiMatches = await request(app)
+      .get(`/api/tournaments/${fixture.tournamentId}/matches`)
+      .expect(200);
+    assert.equal(apiMatches.body.length, 8);
+    assert.ok(apiMatches.body.every((match: Record<string, unknown>) =>
+      Object.hasOwn(match, "stageId") &&
+      Object.hasOwn(match, "stageGroupId") &&
+      match.stageId === fixture.stageIds[0] &&
+      match.stageGroupId === null));
 
     const retry = await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/start`)

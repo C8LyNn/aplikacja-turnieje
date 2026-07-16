@@ -1431,12 +1431,16 @@ components:
 
     Match:
       type: object
-      required: [id, tournamentId, round, matchNumber, bestOf, status]
+      required: [id, tournamentId, stageId, round, matchNumber, bestOf, status]
       properties:
         id:
           type: integer
         tournamentId:
           type: integer
+        stageId:
+          type: integer
+        stageGroupId:
+          type: ["integer", "null"]
         round:
           type: integer
         matchNumber:
