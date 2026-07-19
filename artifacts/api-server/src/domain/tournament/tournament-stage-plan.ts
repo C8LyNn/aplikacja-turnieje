@@ -1,4 +1,7 @@
-import { isSupportedGroupPlayoffVariant } from "./group-playoff";
+import {
+  calculateBalancedGroupSizes,
+  calculateGroupAdvancingCount,
+} from "./group-stage";
 
 export const TOURNAMENT_STAGE_FORMATS = [
   "swiss",
@@ -26,8 +29,6 @@ export type StageQualificationRule =
   | { type: "top_n"; advancingCount: number }
   | { type: "top_n_per_group"; qualifiersPerGroup: number };
 
-export type StageSeedingMethod = "standings_order" | "snake" | "cross_group";
-
 export interface BaseTournamentStagePlan {
   key: string;
   position: number;
@@ -50,9 +51,11 @@ export interface RoundRobinTournamentStagePlan extends BaseTournamentStagePlan {
 
 export interface GroupTournamentStagePlan extends BaseTournamentStagePlan {
   format: "group_stage";
-  groupCount: 2 | 4;
+  groupCount: number;
+  /** Derived largest group size; retained in the persisted V1-compatible shape. */
   participantsPerGroup: number;
-  qualifiersPerGroup: 1 | 2;
+  /** Maximum qualifiers taken from a group; smaller groups may qualify everyone. */
+  qualifiersPerGroup: number;
   seedingMethod: "snake";
 }
 
@@ -89,9 +92,7 @@ export type TournamentStagePlanProblemCode =
   | "INVALID_GROUP_COUNT"
   | "INVALID_GROUP_SIZE"
   | "INVALID_GROUP_SEEDING_METHOD"
-  | "INVALID_GROUP_QUALIFIER_COUNT"
-  | "INVALID_GROUP_PARTICIPANT_COUNT"
-  | "UNSUPPORTED_GROUP_PLAYOFF_TRANSITION";
+  | "INVALID_GROUP_QUALIFIER_COUNT";
 
 export interface TournamentStagePlanProblem {
   code: TournamentStagePlanProblemCode;
@@ -249,64 +250,60 @@ function validateFormatConfiguration(
     }
 
     if (record.format === "group_stage") {
-      if (record.groupCount !== 2 && record.groupCount !== 4) {
+      const participantCount = isPositiveInteger(record.participantCount)
+        ? record.participantCount
+        : null;
+      const groupCount = isPositiveInteger(record.groupCount)
+        ? record.groupCount
+        : null;
+
+      if (
+        groupCount == null ||
+        participantCount == null ||
+        groupCount > Math.floor(participantCount / 2)
+      ) {
         addProblem(
           problems,
           "INVALID_GROUP_COUNT",
           `${path}.groupCount`,
-          "groupCount must equal 2 or 4.",
+          "groupCount must be an integer from 1 to floor(participantCount / 2).",
         );
       }
+
+      let largestGroupSize: number | null = null;
+      if (participantCount != null && groupCount != null && groupCount <= Math.floor(participantCount / 2)) {
+        largestGroupSize = Math.max(...calculateBalancedGroupSizes(participantCount, groupCount));
+        if (
+          record.participantsPerGroup !== undefined &&
+          record.participantsPerGroup !== largestGroupSize
+        ) {
+          addProblem(
+            problems,
+            "INVALID_GROUP_SIZE",
+            `${path}.participantsPerGroup`,
+            "participantsPerGroup is derived and must equal ceil(participantCount / groupCount).",
+          );
+        }
+      }
+
       if (
-        !Number.isInteger(record.participantsPerGroup) ||
-        (record.participantsPerGroup as number) < 3 ||
-        (record.participantsPerGroup as number) > 8
-      ) {
-        addProblem(
-          problems,
-          "INVALID_GROUP_SIZE",
-          `${path}.participantsPerGroup`,
-          "participantsPerGroup must be an integer from 3 to 8.",
-        );
-      }
-      if (record.qualifiersPerGroup !== 1 && record.qualifiersPerGroup !== 2) {
-        addProblem(
-          problems,
-          "INVALID_GROUP_QUALIFIER_COUNT",
-          `${path}.qualifiersPerGroup`,
-          "qualifiersPerGroup must equal 1 or 2.",
-        );
-      } else if (
-        Number.isInteger(record.participantsPerGroup) &&
-        record.qualifiersPerGroup >= (record.participantsPerGroup as number)
+        !isPositiveInteger(record.qualifiersPerGroup) ||
+        (largestGroupSize != null && record.qualifiersPerGroup > largestGroupSize)
       ) {
         addProblem(
           problems,
           "INVALID_GROUP_QUALIFIER_COUNT",
           `${path}.qualifiersPerGroup`,
-          "qualifiersPerGroup must be smaller than participantsPerGroup.",
+          "qualifiersPerGroup must be an integer from 1 to the largest group size.",
         );
       }
+
       if (record.seedingMethod !== "snake") {
         addProblem(
           problems,
           "INVALID_GROUP_SEEDING_METHOD",
           `${path}.seedingMethod`,
           "group_stage seedingMethod must equal snake.",
-        );
-      }
-
-      if (
-        isPositiveInteger(record.groupCount) &&
-        isPositiveInteger(record.participantsPerGroup) &&
-        isPositiveInteger(record.participantCount) &&
-        record.participantCount !== record.groupCount * record.participantsPerGroup
-      ) {
-        addProblem(
-          problems,
-          "INVALID_GROUP_PARTICIPANT_COUNT",
-          `${path}.participantCount`,
-          "participantCount must equal groupCount multiplied by participantsPerGroup.",
         );
       }
     }
@@ -394,27 +391,29 @@ function validateParticipantFlow(
       }
     } else if (record.format === "group_stage") {
       if (
+        isPositiveInteger(record.participantCount) &&
         isPositiveInteger(record.groupCount) &&
+        record.groupCount <= Math.floor(record.participantCount / 2) &&
         isPositiveInteger(record.qualifiersPerGroup)
       ) {
-        advancingCount = record.groupCount * record.qualifiersPerGroup;
-      }
-
-      if (
-        next.record.format === "single_elimination" &&
-        Number.isInteger(record.groupCount) &&
-        Number.isInteger(record.qualifiersPerGroup) &&
-        !isSupportedGroupPlayoffVariant(
-          record.groupCount as number,
-          record.qualifiersPerGroup as number,
-        )
-      ) {
-        addProblem(
-          problems,
-          "UNSUPPORTED_GROUP_PLAYOFF_TRANSITION",
-          `${path}.qualifiersPerGroup`,
-          "The group_stage to single_elimination transition has no supported cross-seeding.",
-        );
+        try {
+          advancingCount = calculateGroupAdvancingCount(
+            record.participantCount,
+            record.groupCount,
+            record.qualifiersPerGroup,
+          );
+          if (advancingCount < 2) {
+            addProblem(
+              problems,
+              "INVALID_ADVANCING_COUNT",
+              `${path}.qualifiersPerGroup`,
+              "A non-final group stage must advance at least 2 participants in total.",
+            );
+            advancingCount = null;
+          }
+        } catch {
+          advancingCount = null;
+        }
       }
     }
 
@@ -461,15 +460,20 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
           ? {}
           : { advancingCount: record.advancingCount as number }),
       };
-    case "group_stage":
+    case "group_stage": {
+      const groupCount = record.groupCount as number;
+      const participantsPerGroup = Math.max(
+        ...calculateBalancedGroupSizes(common.participantCount, groupCount),
+      );
       return {
         ...common,
         format: "group_stage",
-        groupCount: record.groupCount as 2 | 4,
-        participantsPerGroup: record.participantsPerGroup as number,
-        qualifiersPerGroup: record.qualifiersPerGroup as 1 | 2,
+        groupCount,
+        participantsPerGroup,
+        qualifiersPerGroup: record.qualifiersPerGroup as number,
         seedingMethod: "snake",
       };
+    }
     case "single_elimination":
       return { ...common, format: "single_elimination" };
   }

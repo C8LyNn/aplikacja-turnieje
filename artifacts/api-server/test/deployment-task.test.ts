@@ -2,6 +2,14 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   DeploymentTaskError,
+  FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT,
+  FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK,
+  FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT,
+  FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_TASK,
+  FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT,
+  FLEXIBLE_GROUP_STAGES_V2_MIGRATE_TASK,
+  FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT,
+  FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_TASK,
   SERIES_V1_PREFLIGHT_SCRIPT,
   SERIES_V1_PREFLIGHT_TASK,
   SERIES_V1_RESET_SCRIPT,
@@ -267,5 +275,89 @@ describe("Replit production deployment task runner", () => {
         error instanceof DeploymentTaskError && error.exitCode === 31,
     );
     assert.equal(apiStarted, false);
+  });
+
+
+  test("runs the read-only Flexible Group Stages preflight without starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "flexible_group_stages_preflight",
+      apiStarted: false,
+      exitCode: 0,
+    });
+  });
+
+  test("runs the guarded Flexible Group Stages migration before starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: FLEXIBLE_GROUP_STAGES_V2_MIGRATE_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT, "api"]);
+    assert.deepEqual(result, {
+      mode: "flexible_group_stages_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    });
+  });
+
+  test("keeps the API stopped when the Flexible Group Stages migration fails", async () => {
+    let apiStarted = false;
+    await assert.rejects(
+      runDeploymentStartup(
+        { DEPLOYMENT_TASK: FLEXIBLE_GROUP_STAGES_V2_MIGRATE_TASK },
+        {
+          runDatabaseScript: async () => 37,
+          startApi: () => { apiStarted = true; },
+        },
+      ),
+      (error: unknown) => error instanceof DeploymentTaskError && error.exitCode === 37,
+    );
+    assert.equal(apiStarted, false);
+  });
+
+  test("runs the Development Flexible Group Stages preflight without starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "flexible_group_stages_development_preflight",
+      apiStarted: false,
+      exitCode: 0,
+    });
+  });
+
+  test("runs the Development Flexible Group Stages migration before starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT, "api"]);
+    assert.deepEqual(result, {
+      mode: "flexible_group_stages_development_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    });
   });
 });

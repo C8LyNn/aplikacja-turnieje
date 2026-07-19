@@ -1128,14 +1128,16 @@ components:
           minimum: 2
         groupCount:
           type: integer
-          enum: [2, 4]
+          minimum: 1
+          description: Number of balanced groups. Must not exceed floor(participantCount / 2).
         participantsPerGroup:
           type: integer
-          minimum: 3
-          maximum: 8
+          minimum: 2
+          description: Derived largest group size, equal to ceil(participantCount / groupCount).
         qualifiersPerGroup:
           type: integer
-          enum: [1, 2]
+          minimum: 1
+          description: Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
         seedingMethod:
           type: string
           const: snake
@@ -1185,7 +1187,7 @@ components:
       properties:
         id: { type: integer }
         stageId: { type: integer }
-        groupKey: { type: string, enum: [A, B, C, D] }
+        groupKey: { type: string, minLength: 1 }
         position: { type: integer }
         participantCount: { type: integer }
         qualifiersCount: { type: integer }
@@ -1202,7 +1204,7 @@ components:
         playerName: { type: string }
         stageSeed: { type: integer }
         groupId: { type: ["integer", "null"] }
-        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupKey: { type: ["string", "null"], minLength: 1 }
         status:
           type: string
           enum: [active, eliminated, qualified, winner]
@@ -1253,7 +1255,7 @@ components:
         gameDiff: { type: integer }
         buchholz: { type: ["integer", "null"] }
         groupId: { type: ["integer", "null"] }
-        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupKey: { type: ["string", "null"], minLength: 1 }
         groupRank: { type: ["integer", "null"] }
 
     StageQualifier:
@@ -1940,7 +1942,7 @@ components:
             properties:
               backupId: { type: integer }
               stageBackupId: { type: integer }
-              groupKey: { type: string, enum: [A, B, C, D] }
+              groupKey: { type: string, minLength: 1 }
               position: { type: integer }
               participantCount: { type: integer }
               qualifiersCount: { type: integer }

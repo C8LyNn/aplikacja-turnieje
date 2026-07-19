@@ -7,8 +7,6 @@
  */
 import type { TournamentStagePlanItemInputBestOf } from './tournamentStagePlanItemInputBestOf';
 import type { TournamentStagePlanItemInputFormat } from './tournamentStagePlanItemInputFormat';
-import type { TournamentStagePlanItemInputGroupCount } from './tournamentStagePlanItemInputGroupCount';
-import type { TournamentStagePlanItemInputQualifiersPerGroup } from './tournamentStagePlanItemInputQualifiersPerGroup';
 
 export interface TournamentStagePlanItemInput {
   /** @minLength 1 */
@@ -28,12 +26,20 @@ export interface TournamentStagePlanItemInput {
   rounds?: number;
   /** @minimum 2 */
   advancingCount?: number;
-  groupCount?: TournamentStagePlanItemInputGroupCount;
   /**
-     * @minimum 3
-     * @maximum 8
+     * Number of balanced groups. Must not exceed floor(participantCount / 2).
+     * @minimum 1
+     */
+  groupCount?: number;
+  /**
+     * Derived largest group size, equal to ceil(participantCount / groupCount).
+     * @minimum 2
      */
   participantsPerGroup?: number;
-  qualifiersPerGroup?: TournamentStagePlanItemInputQualifiersPerGroup;
+  /**
+     * Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+     * @minimum 1
+     */
+  qualifiersPerGroup?: number;
   seedingMethod?: 'snake';
 }

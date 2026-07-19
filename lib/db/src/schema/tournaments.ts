@@ -232,9 +232,11 @@ export const tournamentStagesTable = pgTable(
       OR (${table.format} = 'single_elimination' AND ${table.rankingPolicy} = 'elimination_bracket_v1' AND ${table.plannedRounds} IS NULL
         AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
       OR (${table.format} = 'group_stage' AND ${table.rankingPolicy} = 'group_v1' AND ${table.plannedRounds} IS NULL
-        AND ${table.groupCount} IN (2, 4) AND ${table.participantsPerGroup} BETWEEN 3 AND 8
-        AND ${table.qualifiersPerGroup} IN (1, 2) AND ${table.qualifiersPerGroup} < ${table.participantsPerGroup}
-        AND ${table.participantCount} = ${table.groupCount} * ${table.participantsPerGroup})`),
+        AND ${table.groupCount} >= 1 AND ${table.groupCount} * 2 <= ${table.participantCount}
+        AND ${table.participantsPerGroup} >= 2
+        AND ${table.participantCount} <= ${table.groupCount} * ${table.participantsPerGroup}
+        AND ${table.participantCount} > ${table.groupCount} * (${table.participantsPerGroup} - 1)
+        AND ${table.qualifiersPerGroup} BETWEEN 1 AND ${table.participantsPerGroup})`),
   ],
 );
 
@@ -255,10 +257,10 @@ export const stageGroupsTable = pgTable(
     uniqueIndex("stage_groups_stage_key_unique").on(table.stageId, table.groupKey),
     uniqueIndex("stage_groups_stage_position_unique").on(table.stageId, table.position),
     uniqueIndex("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
-    check("stage_groups_key_supported", sql`${table.groupKey} IN ('A', 'B', 'C', 'D')`),
-    check("stage_groups_position_range", sql`${table.position} BETWEEN 1 AND 4`),
-    check("stage_groups_participant_count_range", sql`${table.participantCount} BETWEEN 3 AND 8`),
-    check("stage_groups_qualifiers_count_supported", sql`${table.qualifiersCount} IN (1, 2) AND ${table.qualifiersCount} < ${table.participantCount}`),
+    check("stage_groups_key_nonempty", sql`length(${table.groupKey}) > 0`),
+    check("stage_groups_position_positive", sql`${table.position} > 0`),
+    check("stage_groups_participant_count_minimum", sql`${table.participantCount} >= 2`),
+    check("stage_groups_qualifiers_count_range", sql`${table.qualifiersCount} BETWEEN 1 AND ${table.participantCount}`),
   ],
 );
 

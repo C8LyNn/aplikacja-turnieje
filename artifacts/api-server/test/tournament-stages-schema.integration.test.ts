@@ -915,6 +915,68 @@ describe("Tournament Stages database integrity", () => {
     );
   });
 
+  test("accepts arbitrary balanced group counts and enforces each derived group size", async () => {
+    const fixture = await createDraftTournament("round_robin", 1);
+    const [groupStage] = await rows<{ id: number }>(
+      `INSERT INTO tournament_stages (
+         tournament_id, stage_key, position, name, format, participant_count,
+         best_of, ranking_policy, qualification_mode, group_count,
+         participants_per_group, qualifiers_per_group, seeding_policy
+       ) VALUES (
+         $1, 'stage-2', 2, 'Flexible groups', 'group_stage', 11,
+         1, 'group_v1', 'top_n_per_group', 5, 3, 3, 'snake_groups'
+       ) RETURNING id`,
+      [fixture.tournamentId],
+    );
+
+    for (const [position, key, participantCount, qualifiersCount] of [
+      [1, "A", 3, 3],
+      [2, "B", 2, 2],
+      [3, "C", 2, 2],
+      [4, "D", 2, 2],
+      [5, "E", 2, 2],
+    ] as const) {
+      await database.pool.query(
+        `INSERT INTO stage_groups (stage_id, group_key, position, participant_count, qualifiers_count)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [groupStage.id, key, position, participantCount, qualifiersCount],
+      );
+    }
+
+    const groups = await rows<{
+      group_key: string;
+      participant_count: number;
+      qualifiers_count: number;
+    }>(
+      `SELECT group_key, participant_count, qualifiers_count
+       FROM stage_groups WHERE stage_id = $1 ORDER BY position`,
+      [groupStage.id],
+    );
+    assert.deepEqual(groups, [
+      { group_key: "A", participant_count: 3, qualifiers_count: 3 },
+      { group_key: "B", participant_count: 2, qualifiers_count: 2 },
+      { group_key: "C", participant_count: 2, qualifiers_count: 2 },
+      { group_key: "D", participant_count: 2, qualifiers_count: 2 },
+      { group_key: "E", participant_count: 2, qualifiers_count: 2 },
+    ]);
+
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        `INSERT INTO stage_groups (stage_id, group_key, position, participant_count, qualifiers_count)
+         VALUES ($1, 'F', 6, 2, 2)`,
+        [groupStage.id],
+      ),
+      "stage group position must fit its tournament stage",
+    );
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        `UPDATE stage_groups SET participant_count = 3 WHERE stage_id = $1 AND position = 2`,
+        [groupStage.id],
+      ),
+      "stage group configuration must match its balanced tournament stage",
+    );
+  });
+
   test("prevents deleting the last stage without blocking tournament cascade deletion", async () => {
     const fixture = await createDraftTournament("round_robin", 1);
     await expectDatabaseRejection(

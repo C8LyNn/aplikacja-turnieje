@@ -325,10 +325,13 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     player1_rank: number;
     player2_group: string;
     player2_rank: number;
+    player1_seed: number;
+    player2_seed: number;
   }>(
     `SELECT match_row.match_number,
             group1.group_key AS player1_group, source1.group_rank AS player1_rank,
-            group2.group_key AS player2_group, source2.group_rank AS player2_rank
+            group2.group_key AS player2_group, source2.group_rank AS player2_rank,
+            target1.stage_seed AS player1_seed, target2.stage_seed AS player2_seed
      FROM matches match_row
      JOIN stage_participants target1
        ON target1.stage_id = match_row.stage_id AND target1.player_id = match_row.player1_id
@@ -343,13 +346,12 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     [playoffStage.id],
   );
   assert.deepEqual(
-    semifinalSources.map((match) => [
-      `${match.player1_group}${match.player1_rank}`,
-      `${match.player2_group}${match.player2_rank}`,
-    ]),
-    [["A1", "B2"], ["B1", "A2"]],
+    semifinalSources.map((match) => [match.player1_seed, match.player2_seed]),
+    [[1, 4], [2, 3]],
   );
-  assert.ok(semifinalSources.every((match) => match.player1_group !== match.player2_group));
+  assert.ok(semifinalSources.every(
+    (match) => match.player1_rank + match.player2_rank === 3,
+  ));
 
   assert.equal(await playPendingMatches(tournamentId, playoffStage.id, headers, 1), 2);
   assert.equal(await playPendingMatches(tournamentId, playoffStage.id, headers, 2), 1);

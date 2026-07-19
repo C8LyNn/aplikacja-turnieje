@@ -12,9 +12,12 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import {
-  buildGroupPlayoffSlots,
-  type GroupKey,
-} from "../../domain/tournament/group-playoff";
+  buildSnakeGroupAssignments,
+  calculateBalancedGroupSizes,
+  calculateGroupQualifierCounts,
+  groupKeyFromIndex,
+  seedQualifiedGroupEntries,
+} from "../../domain/tournament/group-stage";
 import { generateRoundRobinSchedule } from "../../domain/tournament/round-robin";
 import {
   rankRoundRobinOrGroup,
@@ -88,7 +91,7 @@ interface RankedParticipant {
   gameDiff: number;
   buchholz: number | null;
   groupId?: number;
-  groupKey?: GroupKey;
+  groupKey?: string;
   groupRank?: number;
 }
 
@@ -118,6 +121,7 @@ function assertStageComplete(
   stage: typeof tournamentStagesTable.$inferSelect,
   matches: Array<typeof matchesTable.$inferSelect>,
   participantCount: number,
+  groups: Array<typeof stageGroupsTable.$inferSelect> = [],
 ): void {
   if (matches.length === 0 || matches.some((match) => match.status !== "completed")) {
     throw new StageLifecycleError("STAGE_INCOMPLETE");
@@ -144,21 +148,38 @@ function assertStageComplete(
   }
 
   if (stage.format === "group_stage") {
-    const groupCount = stage.groupCount;
-    const groupSize = stage.participantsPerGroup;
-    if (groupCount == null || groupSize == null || groupCount * groupSize !== participantCount) {
+    if (
+      stage.groupCount == null ||
+      groups.length !== stage.groupCount ||
+      groups.reduce((sum, group) => sum + group.participantCount, 0) !== participantCount
+    ) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
-    const expectedPerGroup = (groupSize * (groupSize - 1)) / 2;
+    const expectedMatchesByGroup = new Map(
+      groups.map((group) => [
+        group.id,
+        (group.participantCount * (group.participantCount - 1)) / 2,
+      ]),
+    );
     const matchesByGroup = new Map<number, number>();
     for (const match of matches) {
-      if (match.stageGroupId == null) throw new StageLifecycleError("STAGE_INCOMPLETE");
-      matchesByGroup.set(match.stageGroupId, (matchesByGroup.get(match.stageGroupId) ?? 0) + 1);
+      if (match.stageGroupId == null || !expectedMatchesByGroup.has(match.stageGroupId)) {
+        throw new StageLifecycleError("STAGE_INCOMPLETE");
+      }
+      matchesByGroup.set(
+        match.stageGroupId,
+        (matchesByGroup.get(match.stageGroupId) ?? 0) + 1,
+      );
     }
+    const expectedTotal = [...expectedMatchesByGroup.values()].reduce(
+      (sum, count) => sum + count,
+      0,
+    );
     if (
-      matches.length !== groupCount * expectedPerGroup ||
-      matchesByGroup.size !== groupCount ||
-      [...matchesByGroup.values()].some((count) => count !== expectedPerGroup)
+      matches.length !== expectedTotal ||
+      [...expectedMatchesByGroup].some(
+        ([groupId, count]) => (matchesByGroup.get(groupId) ?? 0) !== count,
+      )
     ) {
       throw new StageLifecycleError("STAGE_INCOMPLETE");
     }
@@ -359,7 +380,7 @@ function calculateGroupRanking(
         gameDiff: projection.gameDiff,
         buchholz: null,
         groupId: group.id,
-        groupKey: group.groupKey as GroupKey,
+        groupKey: group.groupKey,
         groupRank: entry.rank,
       });
     }
@@ -373,33 +394,68 @@ function calculateGroupRanking(
 function buildGroupPreview(params: {
   tournamentId: number;
   stage: typeof tournamentStagesTable.$inferSelect;
+  groups: Array<typeof stageGroupsTable.$inferSelect>;
   ranking: RankedParticipant[];
 }): QualificationPreview {
-  const groupCount = params.stage.groupCount;
-  const qualifiersPerGroup = params.stage.qualifiersPerGroup;
-  if (groupCount == null || qualifiersPerGroup == null) {
+  if (
+    params.stage.groupCount == null ||
+    params.groups.length !== params.stage.groupCount
+  ) {
     throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
   }
-  const playoff = buildGroupPlayoffSlots({ groupCount, qualifiersPerGroup });
-  if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-  const bracketSeeds = bracketPositions(groupCount * qualifiersPerGroup);
-  const qualifiers = playoff.slots.map((slot, slotIndex) => {
-    const qualifier = params.ranking.find(
-      (entry) => entry.groupKey === slot.source.groupKey && entry.groupRank === slot.source.groupRank,
-    );
-    if (!qualifier) throw new StageLifecycleError("RANKING_INCONSISTENT");
-    return {
-      ...qualifier,
-      qualificationSource: "group_position" as const,
-      nextStageSeed: bracketSeeds[slotIndex],
-    };
+
+  const qualifierLimitByGroupKey = new Map(
+    params.groups.map((group) => [group.groupKey, group.qualifiersCount]),
+  );
+  const selected = params.ranking.filter((entry) => {
+    const qualifierLimit = entry.groupKey == null
+      ? null
+      : qualifierLimitByGroupKey.get(entry.groupKey);
+    return qualifierLimit != null && entry.groupRank != null && entry.groupRank <= qualifierLimit;
   });
+  const qualifiers = seedQualifiedGroupEntries(
+    selected.map((entry) => ({
+      ...entry,
+      groupKey: entry.groupKey!,
+      groupRank: entry.groupRank!,
+    })),
+  ).map((entry) => ({
+    ...entry,
+    qualificationSource: "group_position" as const,
+  }));
+
+  const expectedQualifierCount = params.groups.reduce(
+    (sum, group) => sum + group.qualifiersCount,
+    0,
+  );
+  if (qualifiers.length !== expectedQualifierCount) {
+    throw new StageLifecycleError("RANKING_INCONSISTENT");
+  }
+
   const fingerprint = createHash("sha256").update(JSON.stringify({
     tournamentId: params.tournamentId,
     stageId: params.stage.id,
     stageVersion: params.stage.version,
-    ranking: params.ranking.map(({ playerId, groupKey, groupRank, stageSeed, matchWins, gameDiff, gameWins }) => ({
-      playerId, groupKey, groupRank, stageSeed, matchWins, gameDiff, gameWins,
+    ranking: params.ranking.map(({
+      playerId,
+      groupKey,
+      groupRank,
+      stageSeed,
+      matchWins,
+      matchLosses,
+      gameWins,
+      gameLosses,
+      gameDiff,
+    }) => ({
+      playerId,
+      groupKey,
+      groupRank,
+      stageSeed,
+      matchWins,
+      matchLosses,
+      gameWins,
+      gameLosses,
+      gameDiff,
     })),
     qualifiers: qualifiers.map(({ playerId, groupKey, groupRank, nextStageSeed }) => ({
       playerId, groupKey, groupRank, nextStageSeed,
@@ -414,13 +470,6 @@ function buildGroupPreview(params: {
     qualifiers,
   };
 }
-
-function snakeGroupIndex(participantIndex: number, groupCount: number): number {
-  const position = participantIndex % (groupCount * 2);
-  return position < groupCount ? position : groupCount * 2 - 1 - position;
-}
-
-const GROUP_KEYS: readonly GroupKey[] = ["A", "B", "C", "D"];
 
 function buildPreview(params: {
   tournamentId: number;
@@ -474,17 +523,18 @@ export async function getQualificationPreview(input: {
   if (memberships.length !== stage.participantCount || players.length !== memberships.length) {
     throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
-  assertStageComplete(stage, matches, memberships.length);
+  const groups = stage.format === "group_stage"
+    ? await db.select().from(stageGroupsTable)
+      .where(eq(stageGroupsTable.stageId, stage.id)).orderBy(asc(stageGroupsTable.position))
+    : [];
+  assertStageComplete(stage, matches, memberships.length, groups);
   const nextStage = stages.find((candidate) => candidate.position === stage.position + 1);
   if (stage.format === "group_stage") {
-    const groups = await db.select().from(stageGroupsTable)
-      .where(eq(stageGroupsTable.stageId, stage.id)).orderBy(asc(stageGroupsTable.position));
-    const qualifierCount = (stage.groupCount ?? 0) * (stage.qualifiersPerGroup ?? 0);
+    const qualifierCount = groups.reduce((sum, group) => sum + group.qualifiersCount, 0);
     if (
       groups.length !== stage.groupCount ||
       stage.qualificationMode !== "top_n_per_group" ||
       !nextStage ||
-      nextStage.format !== "single_elimination" ||
       nextStage.participantCount !== qualifierCount
     ) {
       throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
@@ -492,6 +542,7 @@ export async function getQualificationPreview(input: {
     return buildGroupPreview({
       tournamentId: tournament.id,
       stage,
+      groups,
       ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
     });
   }
@@ -500,7 +551,7 @@ export async function getQualificationPreview(input: {
     stage.qualificationMode !== "top_n" ||
     advancingCount !== nextStage.participantCount ||
     advancingCount < 2 ||
-    advancingCount >= memberships.length
+    advancingCount > memberships.length
   )) {
     throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
   }
@@ -540,20 +591,21 @@ export async function completeStage(
     if (memberships.length !== stage.participantCount || players.length !== memberships.length) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
-    assertStageComplete(stage, matches, memberships.length);
+    const groups = stage.format === "group_stage"
+      ? await tx.select().from(stageGroupsTable)
+        .where(eq(stageGroupsTable.stageId, stage.id))
+        .orderBy(asc(stageGroupsTable.position)).for("update")
+      : [];
+    assertStageComplete(stage, matches, memberships.length, groups);
 
     const nextStage = stages.find((candidate) => candidate.position === stage.position + 1);
     let preview: QualificationPreview;
     if (stage.format === "group_stage") {
-      const groups = await tx.select().from(stageGroupsTable)
-        .where(eq(stageGroupsTable.stageId, stage.id))
-        .orderBy(asc(stageGroupsTable.position)).for("update");
-      const qualifierCount = (stage.groupCount ?? 0) * (stage.qualifiersPerGroup ?? 0);
+      const qualifierCount = groups.reduce((sum, group) => sum + group.qualifiersCount, 0);
       if (
         groups.length !== stage.groupCount ||
         stage.qualificationMode !== "top_n_per_group" ||
         !nextStage ||
-        nextStage.format !== "single_elimination" ||
         nextStage.participantCount !== qualifierCount
       ) {
         throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
@@ -561,6 +613,7 @@ export async function completeStage(
       preview = buildGroupPreview({
         tournamentId: tournament.id,
         stage,
+        groups,
         ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
       });
     } else {
@@ -569,7 +622,7 @@ export async function completeStage(
         stage.qualificationMode !== "top_n" ||
         advancingCount !== nextStage.participantCount ||
         advancingCount < 2 ||
-        advancingCount >= memberships.length
+        advancingCount > memberships.length
       )) {
         throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
       }
@@ -770,35 +823,13 @@ export async function startStage(
       })) {
         throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
-      if (previous.format === "group_stage") {
-        if (stage.format !== "single_elimination") {
-          throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-        }
-        const sourceGroups = await tx.select().from(stageGroupsTable)
-          .where(eq(stageGroupsTable.stageId, previous.id)).for("update");
-        const groupById = new Map(sourceGroups.map((group) => [group.id, group]));
-        const playoff = buildGroupPlayoffSlots({
-          groupCount: previous.groupCount ?? 0,
-          qualifiersPerGroup: previous.qualifiersPerGroup ?? 0,
-        });
-        if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-        const bracketSeeds = bracketPositions(playoff.slots.length);
-        const expectedSeedBySource = new Map(playoff.slots.map((slot, index) => [
-          `${slot.source.groupKey}:${slot.source.groupRank}`,
-          bracketSeeds[index],
-        ]));
-        if (memberships.some((membership) => {
-          const source = membership.sourceStageParticipantId == null
-            ? null
-            : sourceById.get(membership.sourceStageParticipantId);
-          const group = source?.groupId == null ? null : groupById.get(source.groupId);
-          const expectedSeed = group && source?.groupRank != null
-            ? expectedSeedBySource.get(`${group.groupKey}:${source.groupRank}`)
-            : null;
-          return membership.qualificationSource !== "group_position" || expectedSeed !== membership.stageSeed;
-        })) {
-          throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-        }
+      const expectedQualificationSource = previous.format === "group_stage"
+        ? "group_position"
+        : "standings";
+      if (memberships.some(
+        (membership) => membership.qualificationSource !== expectedQualificationSource,
+      )) {
+        throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
     } else if (memberships.some(
       (membership) => membership.sourceStageParticipantId != null || membership.qualificationSource !== "registration",
@@ -820,33 +851,48 @@ export async function startStage(
     let totalRounds: number;
     if (stage.format === "group_stage") {
       const groupCount = stage.groupCount;
-      const groupSize = stage.participantsPerGroup;
+      const largestGroupSize = stage.participantsPerGroup;
       const qualifiersPerGroup = stage.qualifiersPerGroup;
-      if (
-        (groupCount !== 2 && groupCount !== 4) ||
-        groupSize == null ||
-        groupSize < 3 ||
-        groupSize > 8 ||
-        (qualifiersPerGroup !== 1 && qualifiersPerGroup !== 2) ||
-        qualifiersPerGroup >= groupSize ||
-        memberships.length !== groupCount * groupSize ||
-        stage.qualificationMode !== "top_n_per_group" ||
-        stage.seedingPolicy !== "snake_groups"
-      ) {
+      let groupSizes: number[];
+      let qualifierCounts: number[];
+      try {
+        if (
+          groupCount == null ||
+          largestGroupSize == null ||
+          qualifiersPerGroup == null ||
+          stage.qualificationMode !== "top_n_per_group" ||
+          stage.seedingPolicy !== "snake_groups"
+        ) {
+          throw new Error("invalid group stage settings");
+        }
+        groupSizes = calculateBalancedGroupSizes(memberships.length, groupCount);
+        if (Math.max(...groupSizes) !== largestGroupSize) {
+          throw new Error("derived group size mismatch");
+        }
+        qualifierCounts = calculateGroupQualifierCounts(
+          groupSizes,
+          qualifiersPerGroup,
+        );
+      } catch {
         throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
       }
+
       const groups = (await tx.insert(stageGroupsTable).values(
-        GROUP_KEYS.slice(0, groupCount).map((groupKey, index) => ({
+        groupSizes.map((participantCount, index) => ({
           stageId: stage.id,
-          groupKey,
+          groupKey: groupKeyFromIndex(index),
           position: index + 1,
-          participantCount: groupSize,
-          qualifiersCount: qualifiersPerGroup,
+          participantCount,
+          qualifiersCount: qualifierCounts[index],
         })),
       ).returning()).sort((left, right) => left.position - right.position);
+      const assignments = buildSnakeGroupAssignments(
+        memberships.length,
+        groupCount!,
+      );
       const membershipsByGroup = new Map<number, Array<typeof stageParticipantsTable.$inferSelect>>();
       for (let index = 0; index < memberships.length; index += 1) {
-        const group = groups[snakeGroupIndex(index, groupCount)];
+        const group = groups[assignments[index]];
         const membership = memberships[index];
         await tx.update(stageParticipantsTable).set({ groupId: group.id })
           .where(eq(stageParticipantsTable.id, membership.id));

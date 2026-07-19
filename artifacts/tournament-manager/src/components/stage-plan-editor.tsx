@@ -11,7 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  balancedGroupSizes,
   createStageDraft,
+  groupAdvancingCount,
+  stageOutputParticipantCount,
   type StageDraft,
   type StageFormat,
   type StagePlanValidationError,
@@ -29,41 +32,77 @@ function integer(value: string, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function defaultGroupCount(participantCount: number): number {
+  return Math.min(2, Math.max(1, Math.floor(participantCount / 2)));
+}
+
+function normalizeGroupPatch(stage: StageDraft): StageDraft {
+  if (stage.format !== "group_stage") return stage;
+  const maxGroupCount = Math.max(1, Math.floor(stage.participantCount / 2));
+  const groupCount = Math.min(
+    Math.max(1, stage.groupCount ?? defaultGroupCount(stage.participantCount)),
+    maxGroupCount,
+  );
+  const sizes = balancedGroupSizes(stage.participantCount, groupCount);
+  const largestGroupSize = sizes.length > 0 ? Math.max(...sizes) : 1;
+  const qualifiersPerGroup = Math.min(
+    Math.max(1, stage.qualifiersPerGroup ?? Math.min(2, largestGroupSize)),
+    largestGroupSize,
+  );
+  return {
+    ...stage,
+    groupCount,
+    participantsPerGroup: largestGroupSize,
+    qualifiersPerGroup,
+  };
+}
+
 export function StagePlanEditor({
   stages,
   errors,
   onChange,
 }: StagePlanEditorProps) {
   const update = (index: number, patch: Partial<StageDraft>) => {
-    onChange(
-      stages.map((stage, stageIndex) =>
-        stageIndex === index ? { ...stage, ...patch } : stage,
-      ),
+    const next = stages.map((stage, stageIndex) =>
+      stageIndex === index
+        ? normalizeGroupPatch({ ...stage, ...patch })
+        : stage,
     );
+    const changed = next[index];
+    if (index < next.length - 1 && changed.format !== "single_elimination") {
+      const advancing = stageOutputParticipantCount(changed);
+      if (advancing >= 2) {
+        next[index + 1] = normalizeGroupPatch({
+          ...next[index + 1],
+          participantCount: advancing,
+        });
+      }
+    }
+    onChange(next);
   };
+
   const changeFormat = (index: number, format: StageFormat) => {
     const current = stages[index];
     const defaults = createStageDraft(index + 1, format);
+    const participantCount = current.participantCount;
+    const groupCount = defaultGroupCount(participantCount);
     update(index, {
       format,
       rounds:
         format === "swiss" ? (current.rounds ?? defaults.rounds) : undefined,
-      groupCount:
-        format === "group_stage" ? (current.groupCount ?? 2) : undefined,
+      groupCount: format === "group_stage" ? groupCount : undefined,
       participantsPerGroup:
         format === "group_stage"
-          ? (current.participantsPerGroup ?? 4)
+          ? Math.ceil(participantCount / groupCount)
           : undefined,
       qualifiersPerGroup:
         format === "group_stage"
-          ? (current.qualifiersPerGroup ?? 2)
+          ? Math.min(current.qualifiersPerGroup ?? 2, Math.ceil(participantCount / groupCount))
           : undefined,
-      participantCount:
-        format === "group_stage"
-          ? (current.groupCount ?? 2) * (current.participantsPerGroup ?? 4)
-          : current.participantCount,
+      participantCount,
     });
   };
+
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= stages.length) return;
@@ -93,13 +132,26 @@ export function StagePlanEditor({
           type="button"
           variant="outline"
           size="sm"
-          disabled={stages.length >= 3}
-          onClick={() =>
+          disabled={
+            stages.length >= 3 ||
+            stages[stages.length - 1]?.format === "single_elimination"
+          }
+          onClick={() => {
+            const previous = stages[stages.length - 1];
+            const participantCount = previous
+              ? stageOutputParticipantCount(previous)
+              : 8;
             onChange([
               ...stages,
-              createStageDraft(stages.length + 1, "single_elimination"),
-            ])
-          }
+              {
+                ...createStageDraft(
+                  stages.length + 1,
+                  "single_elimination",
+                ),
+                participantCount: Math.max(2, participantCount),
+              },
+            ]);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Dodaj etap
@@ -111,6 +163,16 @@ export function StagePlanEditor({
           (error) => error.stageIndex === index,
         );
         const isLast = index === stages.length - 1;
+        const groupSizes =
+          stage.format === "group_stage"
+            ? balancedGroupSizes(stage.participantCount, stage.groupCount ?? 0)
+            : [];
+        const advancing =
+          stage.format === "group_stage" ? groupAdvancingCount(stage) : 0;
+        const everyoneAdvances =
+          stage.format === "group_stage" &&
+          advancing === stage.participantCount;
+
         return (
           <Card
             key={stage.clientId}
@@ -210,24 +272,22 @@ export function StagePlanEditor({
                   </SelectContent>
                 </Select>
               </div>
-              {stage.format !== "group_stage" && (
-                <div className="space-y-2">
-                  <Label htmlFor={`stage-${index}-participants`}>
-                    Liczba uczestników
-                  </Label>
-                  <Input
-                    id={`stage-${index}-participants`}
-                    type="number"
-                    min={2}
-                    value={stage.participantCount}
-                    onChange={(event) =>
-                      update(index, {
-                        participantCount: integer(event.target.value, 0),
-                      })
-                    }
-                  />
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor={`stage-${index}-participants`}>
+                  Liczba uczestników
+                </Label>
+                <Input
+                  id={`stage-${index}-participants`}
+                  type="number"
+                  min={2}
+                  value={stage.participantCount}
+                  onChange={(event) =>
+                    update(index, {
+                      participantCount: integer(event.target.value, 0),
+                    })
+                  }
+                />
+              </div>
               {stage.format === "swiss" && (
                 <div className="space-y-2">
                   <Label htmlFor={`stage-${index}-rounds`}>Liczba rund</Label>
@@ -267,72 +327,60 @@ export function StagePlanEditor({
               {stage.format === "group_stage" && (
                 <>
                   <div className="space-y-2">
-                    <Label>Liczba grup</Label>
-                    <Select
-                      value={String(stage.groupCount ?? 2)}
-                      onValueChange={(value) => {
-                        const groupCount = Number(value) as 2 | 4;
-                        update(index, {
-                          groupCount,
-                          participantCount:
-                            groupCount * (stage.participantsPerGroup ?? 4),
-                        });
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2">2 grupy</SelectItem>
-                        <SelectItem value="4">4 grupy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`stage-${index}-group-size`}>
-                      Uczestników w grupie
+                    <Label htmlFor={`stage-${index}-group-count`}>
+                      Liczba grup
                     </Label>
                     <Input
-                      id={`stage-${index}-group-size`}
+                      id={`stage-${index}-group-count`}
                       type="number"
-                      min={3}
-                      max={8}
-                      value={stage.participantsPerGroup ?? 4}
-                      onChange={(event) => {
-                        const participantsPerGroup = integer(
-                          event.target.value,
-                          0,
-                        );
+                      min={1}
+                      max={Math.max(1, Math.floor(stage.participantCount / 2))}
+                      value={stage.groupCount ?? 1}
+                      onChange={(event) =>
                         update(index, {
-                          participantsPerGroup,
-                          participantCount:
-                            (stage.groupCount ?? 2) * participantsPerGroup,
-                        });
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Kwalifikantów z grupy</Label>
-                    <Select
-                      value={String(stage.qualifiersPerGroup ?? 2)}
-                      onValueChange={(value) =>
-                        update(index, {
-                          qualifiersPerGroup: Number(value) as 1 | 2,
+                          groupCount: integer(event.target.value, 0),
                         })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 osoba</SelectItem>
-                        <SelectItem value="2">2 osoby</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Każda grupa musi mieć co najmniej 2 uczestników.
+                    </p>
                   </div>
-                  <div className="rounded-md border bg-muted/30 p-3 text-sm">
-                    Łącznie: <strong>{stage.participantCount}</strong>{" "}
-                    uczestników · snake seeding
+                  <div className="space-y-2">
+                    <Label htmlFor={`stage-${index}-qualifiers`}>
+                      Maks. kwalifikantów z grupy
+                    </Label>
+                    <Input
+                      id={`stage-${index}-qualifiers`}
+                      type="number"
+                      min={1}
+                      max={groupSizes.length > 0 ? Math.max(...groupSizes) : 1}
+                      value={stage.qualifiersPerGroup ?? 1}
+                      onChange={(event) =>
+                        update(index, {
+                          qualifiersPerGroup: integer(event.target.value, 0),
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Jeśli grupa jest mniejsza od limitu, przechodzą z niej wszyscy.
+                    </p>
+                  </div>
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
+                    <div>
+                      Rozmiary grup: <strong>{groupSizes.join(", ") || "—"}</strong>
+                    </div>
+                    <div>
+                      Dalej przechodzi: <strong>{advancing}</strong> z {stage.participantCount}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Snake seeding · nowe seedy według miejsca w grupie
+                    </div>
+                    {everyoneAdvances && (
+                      <div className="mt-1 font-medium">
+                        Wszyscy uczestnicy awansują — etap służy rozstawieniu.
+                      </div>
+                    )}
                   </div>
                 </>
               )}

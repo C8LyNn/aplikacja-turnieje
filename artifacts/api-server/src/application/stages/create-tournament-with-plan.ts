@@ -5,6 +5,7 @@ import {
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
+import { calculateGroupAdvancingCount } from "../../domain/tournament/group-stage";
 import {
   validateTournamentStagePlan,
   type TournamentStagePlan,
@@ -43,7 +44,6 @@ function persistedStage(
   stage: TournamentStagePlan,
   plan: TournamentStagesPlan,
 ): typeof tournamentStagesTable.$inferInsert {
-  const previous = plan.stages[stage.position - 2];
   const final = stage.position === plan.stages.length;
   return {
     tournamentId,
@@ -75,10 +75,7 @@ function persistedStage(
     seedingPolicy:
       stage.format === "group_stage"
         ? "snake_groups"
-        : stage.format === "single_elimination" &&
-            previous?.format === "group_stage"
-          ? "cross_group"
-          : "standings_order",
+        : "standings_order",
   };
 }
 
@@ -183,7 +180,13 @@ export async function addPlayerWithStagePlanCompatibility(
         rankingPolicy: "round_robin_v1",
         qualificationMode: "top_n",
         advancingCount:
-          (firstStage.groupCount ?? 0) * (firstStage.qualifiersPerGroup ?? 0),
+          firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
+            ? calculateGroupAdvancingCount(
+                firstStage.participantCount,
+                firstStage.groupCount,
+                firstStage.qualifiersPerGroup,
+              )
+            : 0,
         groupCount: null,
         participantsPerGroup: null,
         qualifiersPerGroup: null,

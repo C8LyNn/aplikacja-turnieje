@@ -210,22 +210,6 @@ export const TournamentStagePlanItemInputBestOf = {
   NUMBER_7: 7,
 } as const;
 
-export type TournamentStagePlanItemInputGroupCount = typeof TournamentStagePlanItemInputGroupCount[keyof typeof TournamentStagePlanItemInputGroupCount];
-
-
-export const TournamentStagePlanItemInputGroupCount = {
-  NUMBER_2: 2,
-  NUMBER_4: 4,
-} as const;
-
-export type TournamentStagePlanItemInputQualifiersPerGroup = typeof TournamentStagePlanItemInputQualifiersPerGroup[keyof typeof TournamentStagePlanItemInputQualifiersPerGroup];
-
-
-export const TournamentStagePlanItemInputQualifiersPerGroup = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
-} as const;
-
 export interface TournamentStagePlanItemInput {
   /** @minLength 1 */
   key: string;
@@ -244,13 +228,21 @@ export interface TournamentStagePlanItemInput {
   rounds?: number;
   /** @minimum 2 */
   advancingCount?: number;
-  groupCount?: TournamentStagePlanItemInputGroupCount;
   /**
-     * @minimum 3
-     * @maximum 8
+     * Number of balanced groups. Must not exceed floor(participantCount / 2).
+     * @minimum 1
+     */
+  groupCount?: number;
+  /**
+     * Derived largest group size, equal to ceil(participantCount / groupCount).
+     * @minimum 2
      */
   participantsPerGroup?: number;
-  qualifiersPerGroup?: TournamentStagePlanItemInputQualifiersPerGroup;
+  /**
+     * Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+     * @minimum 1
+     */
+  qualifiersPerGroup?: number;
   seedingMethod?: 'snake';
 }
 
@@ -369,38 +361,16 @@ export interface TournamentStage {
   completedAt?: string | null;
 }
 
-export type StageGroupGroupKey = typeof StageGroupGroupKey[keyof typeof StageGroupGroupKey];
-
-
-export const StageGroupGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export interface StageGroup {
   id: number;
   stageId: number;
-  groupKey: StageGroupGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;
   createdAt: string;
 }
-
-/**
- * @nullable
- */
-export type StageParticipantGroupKey = typeof StageParticipantGroupKey[keyof typeof StageParticipantGroupKey] | null;
-
-
-export const StageParticipantGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
 
 export type StageParticipantStatus = typeof StageParticipantStatus[keyof typeof StageParticipantStatus];
 
@@ -430,8 +400,11 @@ export interface StageParticipant {
   stageSeed: number;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageParticipantGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   status: StageParticipantStatus;
   qualificationSource: StageParticipantQualificationSource;
   /** @nullable */
@@ -458,19 +431,6 @@ export interface TournamentStageDetails {
   qualifiers: StageParticipant[];
 }
 
-/**
- * @nullable
- */
-export type StageRankingEntryGroupKey = typeof StageRankingEntryGroupKey[keyof typeof StageRankingEntryGroupKey] | null;
-
-
-export const StageRankingEntryGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export interface StageRankingEntry {
   stageParticipantId: number;
   playerId: number;
@@ -486,8 +446,11 @@ export interface StageRankingEntry {
   buchholz?: number | null;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageRankingEntryGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   /** @nullable */
   groupRank?: number | null;
 }
@@ -1191,20 +1154,11 @@ export type TournamentBackupV3StagesItem = {
   completedAt?: string | null;
 };
 
-export type TournamentBackupV3GroupsItemGroupKey = typeof TournamentBackupV3GroupsItemGroupKey[keyof typeof TournamentBackupV3GroupsItemGroupKey];
-
-
-export const TournamentBackupV3GroupsItemGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export type TournamentBackupV3GroupsItem = {
   backupId: number;
   stageBackupId: number;
-  groupKey: TournamentBackupV3GroupsItemGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;

@@ -65,8 +65,9 @@ export const createTournamentBodyStagePlanStagesItemParticipantCountMin = 2;
 
 export const createTournamentBodyStagePlanStagesItemAdvancingCountMin = 2;
 
-export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin = 3;
-export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMax = 8;
+
+export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin = 2;
+
 
 export const createTournamentBodyStagePlanStagesMax = 3;
 
@@ -94,9 +95,9 @@ export const CreateTournamentBody = zod.object({
   "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
   "rounds": zod.number().min(1).optional(),
   "advancingCount": zod.number().min(createTournamentBodyStagePlanStagesItemAdvancingCountMin).optional(),
-  "groupCount": zod.union([zod.literal(2),zod.literal(4)]).optional(),
-  "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).max(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMax).optional(),
-  "qualifiersPerGroup": zod.union([zod.literal(1),zod.literal(2)]).optional(),
+  "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
+  "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
+  "qualifiersPerGroup": zod.number().min(1).optional().describe('Maximum qualifiers taken from each group. Smaller groups may qualify everyone.'),
   "seedingMethod": zod.literal("snake").optional()
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
 }).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.')
@@ -240,6 +241,12 @@ export const GetTournamentStageParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
+
+
+
+
+
+
 export const GetTournamentStageResponse = zod.object({
   "stage": zod.object({
   "id": zod.number(),
@@ -270,7 +277,7 @@ export const GetTournamentStageResponse = zod.object({
   "groups": zod.array(zod.object({
   "id": zod.number(),
   "stageId": zod.number(),
-  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "groupKey": zod.string().min(1),
   "position": zod.number(),
   "participantCount": zod.number(),
   "qualifiersCount": zod.number(),
@@ -284,7 +291,7 @@ export const GetTournamentStageResponse = zod.object({
   "playerName": zod.string(),
   "stageSeed": zod.number(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
   "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
   "finalRank": zod.number().nullish(),
@@ -303,7 +310,7 @@ export const GetTournamentStageResponse = zod.object({
   "playerName": zod.string(),
   "stageSeed": zod.number(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
   "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
   "finalRank": zod.number().nullish(),
@@ -322,7 +329,7 @@ export const GetTournamentStageResponse = zod.object({
   "playerName": zod.string(),
   "stageSeed": zod.number(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "status": zod.enum(['active', 'eliminated', 'qualified', 'winner']),
   "qualificationSource": zod.enum(['registration', 'standings', 'group_position']),
   "finalRank": zod.number().nullish(),
@@ -348,6 +355,10 @@ export const PreviewStageQualificationParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
+
+
+
+
 export const PreviewStageQualificationResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
@@ -366,7 +377,7 @@ export const PreviewStageQualificationResponse = zod.object({
   "gameDiff": zod.number(),
   "buchholz": zod.number().nullish(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "groupRank": zod.number().nullish()
 })),
   "qualifiers": zod.array(zod.object({
@@ -382,7 +393,7 @@ export const PreviewStageQualificationResponse = zod.object({
   "gameDiff": zod.number(),
   "buchholz": zod.number().nullish(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "groupRank": zod.number().nullish()
 }).and(zod.object({
   "qualificationSource": zod.enum(['standings', 'group_position']),
@@ -403,6 +414,10 @@ export const CompleteTournamentStageParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
+
+
+
+
 export const CompleteTournamentStageResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
@@ -421,7 +436,7 @@ export const CompleteTournamentStageResponse = zod.object({
   "gameDiff": zod.number(),
   "buchholz": zod.number().nullish(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "groupRank": zod.number().nullish()
 })),
   "qualifiers": zod.array(zod.object({
@@ -437,7 +452,7 @@ export const CompleteTournamentStageResponse = zod.object({
   "gameDiff": zod.number(),
   "buchholz": zod.number().nullish(),
   "groupId": zod.number().nullish(),
-  "groupKey": zod.union([zod.literal('A'),zod.literal('B'),zod.literal('C'),zod.literal('D'),zod.literal(null)]).nullish(),
+  "groupKey": zod.string().min(1).nullish(),
   "groupRank": zod.number().nullish()
 }).and(zod.object({
   "qualificationSource": zod.enum(['standings', 'group_position']),
@@ -768,6 +783,7 @@ export const exportTournamentResponseStagesMax = 3;
 
 
 
+
 export const ExportTournamentResponse = zod.object({
   "schemaVersion": zod.number(),
   "resultModelVersion": zod.literal("series_v1"),
@@ -820,7 +836,7 @@ export const ExportTournamentResponse = zod.object({
   "groups": zod.array(zod.object({
   "backupId": zod.number(),
   "stageBackupId": zod.number(),
-  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "groupKey": zod.string().min(1),
   "position": zod.number(),
   "participantCount": zod.number(),
   "qualifiersCount": zod.number(),
@@ -899,6 +915,7 @@ export const ExportTournamentResponse = zod.object({
 
 
 export const importTournamentBodyTwoStagesMax = 3;
+
 
 
 
@@ -1026,7 +1043,7 @@ export const ImportTournamentBody = zod.union([zod.object({
   "groups": zod.array(zod.object({
   "backupId": zod.number(),
   "stageBackupId": zod.number(),
-  "groupKey": zod.enum(['A', 'B', 'C', 'D']),
+  "groupKey": zod.string().min(1),
   "position": zod.number(),
   "participantCount": zod.number(),
   "qualifiersCount": zod.number(),

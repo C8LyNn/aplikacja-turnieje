@@ -9,6 +9,14 @@ export const TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_TASK =
   "tournament_stages_v1_development_preflight";
 export const TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_TASK =
   "tournament_stages_v1_development_migrate";
+export const FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_TASK =
+  "flexible_group_stages_v2_preflight";
+export const FLEXIBLE_GROUP_STAGES_V2_MIGRATE_TASK =
+  "flexible_group_stages_v2_migrate";
+export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_TASK =
+  "flexible_group_stages_v2_development_preflight";
+export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK =
+  "flexible_group_stages_v2_development_migrate";
 
 export const SERIES_V1_PREFLIGHT_SCRIPT = "reset:series-v1:preflight";
 export const SERIES_V1_RESET_SCRIPT = "reset:series-v1:destructive";
@@ -19,6 +27,14 @@ export const TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_SCRIPT =
   "migrate:tournament-stages:development:preflight";
 export const TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT =
   "migrate:tournament-stages:development";
+export const FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT =
+  "migrate:flexible-group-stages:preflight";
+export const FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT =
+  "migrate:flexible-group-stages";
+export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT =
+  "migrate:flexible-group-stages:development:preflight";
+export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT =
+  "migrate:flexible-group-stages:development";
 
 type DeploymentEnvironment = Readonly<Record<string, string | undefined>>;
 type DatabaseScript =
@@ -27,7 +43,11 @@ type DatabaseScript =
   | typeof TOURNAMENT_STAGES_V1_PREFLIGHT_SCRIPT
   | typeof TOURNAMENT_STAGES_V1_MIGRATE_SCRIPT
   | typeof TOURNAMENT_STAGES_V1_DEVELOPMENT_PREFLIGHT_SCRIPT
-  | typeof TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT;
+  | typeof TOURNAMENT_STAGES_V1_DEVELOPMENT_MIGRATE_SCRIPT
+  | typeof FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT
+  | typeof FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT
+  | typeof FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT
+  | typeof FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT;
 
 export interface DeploymentTaskDependencies {
   runDatabaseScript: (script: DatabaseScript) => Promise<number>;
@@ -42,7 +62,11 @@ export interface DeploymentTaskResult {
     | "tournament_stages_preflight"
     | "tournament_stages_migrate"
     | "tournament_stages_development_preflight"
-    | "tournament_stages_development_migrate";
+    | "tournament_stages_development_migrate"
+    | "flexible_group_stages_preflight"
+    | "flexible_group_stages_migrate"
+    | "flexible_group_stages_development_preflight"
+    | "flexible_group_stages_development_migrate";
   apiStarted: boolean;
   exitCode: number;
 }
@@ -175,6 +199,66 @@ export async function runDeploymentStartup(
     await dependencies.startApi();
     return {
       mode: "tournament_stages_development_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    };
+  }
+
+  if (task === FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT,
+    );
+    return {
+      mode: "flexible_group_stages_preflight",
+      apiStarted: false,
+      exitCode,
+    };
+  }
+
+  if (task === FLEXIBLE_GROUP_STAGES_V2_MIGRATE_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT,
+    );
+    if (exitCode !== 0) {
+      throw new DeploymentTaskError(
+        `The ${FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT} deployment task failed with exit code ${exitCode}.`,
+        exitCode,
+      );
+    }
+
+    await dependencies.startApi();
+    return {
+      mode: "flexible_group_stages_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    };
+  }
+
+  if (task === FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT,
+    );
+    return {
+      mode: "flexible_group_stages_development_preflight",
+      apiStarted: false,
+      exitCode,
+    };
+  }
+
+  if (task === FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT,
+    );
+    if (exitCode !== 0) {
+      throw new DeploymentTaskError(
+        `The ${FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT} deployment task failed with exit code ${exitCode}.`,
+        exitCode,
+      );
+    }
+
+    await dependencies.startApi();
+    return {
+      mode: "flexible_group_stages_development_migrate",
       apiStarted: true,
       exitCode: 0,
     };

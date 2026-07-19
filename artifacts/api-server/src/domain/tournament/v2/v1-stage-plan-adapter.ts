@@ -62,12 +62,15 @@ function transitionSelection(stage: TournamentStagePlan): ParticipantSelectionRu
 function transitionSeeding(stage: TournamentStagePlan): SeedAssignmentPolicyV2 {
   if (stage.format === "group_stage") {
     return {
-      type: "policy_ref",
-      policyId: "legacy_group_cross_seed_v1",
-      settings: {
-        groupCount: stage.groupCount,
-        qualifiersPerGroup: stage.qualifiersPerGroup,
-      },
+      type: "classification_order",
+      criteria: [
+        { metric: "group_rank", direction: "ascending", scope: "global" },
+        { metric: "match_win_rate", direction: "descending", scope: "within_rank_band" },
+        { metric: "game_diff_per_match", direction: "descending", scope: "within_rank_band" },
+        { metric: "game_wins_per_match", direction: "descending", scope: "within_rank_band" },
+        { metric: "stage_seed", direction: "ascending", scope: "within_rank_band" },
+      ],
+      unresolvedTie: "previous_seed",
     };
   }
   return {
@@ -84,16 +87,6 @@ function transitionPlacement(
   source: TournamentStagePlan,
   target: TournamentStagePlan,
 ): StagePlacementPolicyV2 {
-  if (source.format === "group_stage" && target.format === "single_elimination") {
-    return {
-      type: "policy_ref",
-      policyId: "legacy_group_playoff_slots_v1",
-      settings: {
-        groupCount: source.groupCount,
-        qualifiersPerGroup: source.qualifiersPerGroup,
-      },
-    };
-  }
   if (target.format === "group_stage") return { type: "snake_groups" };
   if (target.format === "single_elimination") {
     return { type: "standard_seeded_bracket", reseedEachRound: false };

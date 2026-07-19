@@ -5,7 +5,6 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { StageRankingEntryGroupKey } from './stageRankingEntryGroupKey';
 
 export interface StageRankingEntry {
   stageParticipantId: number;
@@ -22,8 +21,11 @@ export interface StageRankingEntry {
   buchholz?: number | null;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageRankingEntryGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   /** @nullable */
   groupRank?: number | null;
 }

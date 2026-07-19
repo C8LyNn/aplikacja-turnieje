@@ -12,6 +12,11 @@ import {
 } from "@workspace/db";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
+import {
+  calculateBalancedGroupSizes,
+  calculateGroupAdvancingCount,
+  calculateGroupQualifierCounts,
+} from "../../domain/tournament/group-stage";
 import { validateTournamentStagePlan } from "../../domain/tournament/tournament-stage-plan";
 
 export class BackupV3ValidationError extends Error {
@@ -202,7 +207,7 @@ export async function exportBackupV3(
     groups: groups.map((group) => ({
       backupId: group.id,
       stageBackupId: group.stageId,
-      groupKey: group.groupKey as "A" | "B" | "C" | "D",
+      groupKey: group.groupKey,
       position: group.position,
       participantCount: group.participantCount,
       qualifiersCount: group.qualifiersCount,
@@ -456,17 +461,33 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   const groupPositions = new Set<string>();
   for (const group of backup.groups) {
     const stage = stageById.get(group.stageBackupId);
-    if (!stage || stage.format !== "group_stage")
+    if (!stage || stage.format !== "group_stage") {
       errors.push(`Group ${group.backupId} does not belong to a group stage.`);
-    if (
-      stage &&
-      (group.position > (stage.groupCount ?? 0) ||
-        group.participantCount !== stage.participantsPerGroup ||
-        group.qualifiersCount !== stage.qualifiersPerGroup)
-    )
-      errors.push(
-        `Group ${group.backupId} configuration differs from its stage.`,
-      );
+    } else {
+      try {
+        const sizes = calculateBalancedGroupSizes(
+          stage.participantCount,
+          stage.groupCount ?? 0,
+        );
+        const qualifierCounts = calculateGroupQualifierCounts(
+          sizes,
+          stage.qualifiersPerGroup ?? 0,
+        );
+        const expectedIndex = group.position - 1;
+        if (
+          expectedIndex < 0 ||
+          expectedIndex >= sizes.length ||
+          group.participantCount !== sizes[expectedIndex] ||
+          group.qualifiersCount !== qualifierCounts[expectedIndex]
+        ) {
+          errors.push(
+            `Group ${group.backupId} configuration differs from its stage.`,
+          );
+        }
+      } catch {
+        errors.push(`Group ${group.backupId} has invalid stage configuration.`);
+      }
+    }
     const key = `${group.stageBackupId}:${group.groupKey}`;
     const position = `${group.stageBackupId}:${group.position}`;
     if (
@@ -954,7 +975,13 @@ export async function importBackupV3(backup: TournamentBackupV3) {
           rankingPolicy: "round_robin_v1",
           qualificationMode: "top_n",
           advancingCount:
-            (first.groupCount ?? 0) * (first.qualifiersPerGroup ?? 0),
+            first.groupCount != null && first.qualifiersPerGroup != null
+              ? calculateGroupAdvancingCount(
+                  first.participantCount,
+                  first.groupCount,
+                  first.qualifiersPerGroup,
+                )
+              : 0,
           groupCount: null,
           participantsPerGroup: null,
           qualifiersPerGroup: null,

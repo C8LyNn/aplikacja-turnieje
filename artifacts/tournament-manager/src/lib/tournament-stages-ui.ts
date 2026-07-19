@@ -15,9 +15,11 @@ export interface StageDraft {
   bestOf: 1 | 3 | 5 | 7;
   rounds?: number;
   advancingCount?: number;
-  groupCount?: 2 | 4;
+  groupCount?: number;
+  /** Derived largest group size. */
   participantsPerGroup?: number;
-  qualifiersPerGroup?: 1 | 2;
+  /** Maximum number advancing from each group; smaller groups may advance everyone. */
+  qualifiersPerGroup?: number;
 }
 
 export interface StagePlanValidationError {
@@ -38,6 +40,59 @@ export const STAGE_STATUS_LABELS = {
   active: "Aktywny",
   completed: "Ukończony",
 } as const;
+
+export function balancedGroupSizes(
+  participantCount: number,
+  groupCount: number,
+): number[] {
+  if (
+    !Number.isInteger(participantCount) ||
+    participantCount < 2 ||
+    !Number.isInteger(groupCount) ||
+    groupCount < 1 ||
+    groupCount > Math.floor(participantCount / 2)
+  ) {
+    return [];
+  }
+  const smallerSize = Math.floor(participantCount / groupCount);
+  const largerGroupCount = participantCount % groupCount;
+  return Array.from(
+    { length: groupCount },
+    (_, index) => smallerSize + (index < largerGroupCount ? 1 : 0),
+  );
+}
+
+export function groupAdvancingCount(stage: Pick<
+  StageDraft,
+  "participantCount" | "groupCount" | "qualifiersPerGroup"
+>): number {
+  const sizes = balancedGroupSizes(
+    stage.participantCount,
+    stage.groupCount ?? 0,
+  );
+  const qualifierLimit = stage.qualifiersPerGroup ?? 0;
+  if (sizes.length === 0 || !Number.isInteger(qualifierLimit) || qualifierLimit < 1) {
+    return 0;
+  }
+  return sizes.reduce((sum, size) => sum + Math.min(size, qualifierLimit), 0);
+}
+
+export function stageOutputParticipantCount(
+  stage: Pick<
+    StageDraft,
+    | "format"
+    | "participantCount"
+    | "advancingCount"
+    | "groupCount"
+    | "qualifiersPerGroup"
+  >,
+): number {
+  if (stage.format === "group_stage") return groupAdvancingCount(stage);
+  if (stage.format === "swiss" || stage.format === "round_robin") {
+    return stage.advancingCount ?? stage.participantCount;
+  }
+  return 1;
+}
 
 export function createStageDraft(
   position: number,
@@ -125,48 +180,44 @@ export function validateStageDrafts(
           message: "Faza grupowa wymaga kolejnego etapu.",
         });
       }
-      if (stage.groupCount !== 2 && stage.groupCount !== 4) {
+      const maxGroupCount = Math.floor(stage.participantCount / 2);
+      if (
+        !Number.isInteger(stage.groupCount) ||
+        (stage.groupCount ?? 0) < 1 ||
+        (stage.groupCount ?? 0) > maxGroupCount
+      ) {
         errors.push({
           stageIndex: index,
           field: "groupCount",
-          message: "Faza grupowa wymaga 2 albo 4 grup.",
+          message: `Liczba grup musi wynosić od 1 do ${Math.max(1, maxGroupCount)}, aby każda grupa miała co najmniej 2 osoby.`,
         });
       }
+      const sizes = balancedGroupSizes(
+        stage.participantCount,
+        stage.groupCount ?? 0,
+      );
+      const largestGroupSize = sizes.length > 0 ? Math.max(...sizes) : 0;
       if (
-        !Number.isInteger(stage.participantsPerGroup) ||
-        (stage.participantsPerGroup ?? 0) < 3 ||
-        (stage.participantsPerGroup ?? 0) > 8
-      ) {
-        errors.push({
-          stageIndex: index,
-          field: "participantsPerGroup",
-          message: "Grupa musi mieć od 3 do 8 uczestników.",
-        });
-      }
-      if (stage.qualifiersPerGroup !== 1 && stage.qualifiersPerGroup !== 2) {
-        errors.push({
-          stageIndex: index,
-          field: "qualifiersPerGroup",
-          message: "Z grupy może awansować 1 albo 2 uczestników.",
-        });
-      }
-      if (
-        (stage.qualifiersPerGroup ?? 0) >= (stage.participantsPerGroup ?? 0)
+        !Number.isInteger(stage.qualifiersPerGroup) ||
+        (stage.qualifiersPerGroup ?? 0) < 1 ||
+        (stage.qualifiersPerGroup ?? 0) > largestGroupSize
       ) {
         errors.push({
           stageIndex: index,
           field: "qualifiersPerGroup",
-          message:
-            "Liczba kwalifikantów musi być mniejsza od liczby osób w grupie.",
+          message: `Maksymalna liczba kwalifikantów z grupy musi wynosić od 1 do ${Math.max(1, largestGroupSize)}.`,
         });
       }
-      const expected =
-        (stage.groupCount ?? 0) * (stage.participantsPerGroup ?? 0);
-      if (stage.participantCount !== expected) {
+      if (
+        !isLast &&
+        sizes.length > 0 &&
+        Number.isInteger(stage.qualifiersPerGroup) &&
+        groupAdvancingCount(stage) < 2
+      ) {
         errors.push({
           stageIndex: index,
-          field: "participantCount",
-          message: `Faza grupowa wymaga dokładnie ${expected} uczestników.`,
+          field: "qualifiersPerGroup",
+          message: "Faza grupowa musi przekazać co najmniej 2 uczestników do kolejnego etapu.",
         });
       }
     }
@@ -200,7 +251,7 @@ export function validateStageDrafts(
     const next = stages[index + 1];
     const advancing =
       stage.format === "group_stage"
-        ? (stage.groupCount ?? 0) * (stage.qualifiersPerGroup ?? 0)
+        ? groupAdvancingCount(stage)
         : (stage.advancingCount ?? 0);
     if (advancing !== next.participantCount) {
       errors.push({
@@ -241,8 +292,12 @@ export function buildStagePlan(stages: StageDraft[]): TournamentStagePlanInput {
         item.advancingCount = stage.advancingCount;
       }
       if (stage.format === "group_stage") {
+        const sizes = balancedGroupSizes(
+          stage.participantCount,
+          stage.groupCount ?? 0,
+        );
         item.groupCount = stage.groupCount;
-        item.participantsPerGroup = stage.participantsPerGroup;
+        item.participantsPerGroup = Math.max(...sizes);
         item.qualifiersPerGroup = stage.qualifiersPerGroup;
         item.seedingMethod = "snake";
       }

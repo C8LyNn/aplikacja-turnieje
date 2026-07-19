@@ -17,10 +17,13 @@ import {
   StageNavigation,
 } from "../components/tournament-stages-panel";
 import {
+  balancedGroupSizes,
   buildStagePlan,
   canShowStageActions,
   createStageDraft,
   filterMatchesForStage,
+  groupAdvancingCount,
+  stageOutputParticipantCount,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
@@ -169,6 +172,72 @@ test("buduje payload planu trzech etapów", () => {
   assert.equal(plan.stages[2].participantCount, 4);
 });
 
+test("buduje elastyczną fazę grupową, w której wszyscy przechodzą dalej", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 17,
+      groupCount: 4,
+      participantsPerGroup: 5,
+      qualifiersPerGroup: 5,
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 17,
+    },
+  ];
+
+  assert.deepEqual(balancedGroupSizes(17, 4), [5, 4, 4, 4]);
+  assert.equal(groupAdvancingCount(stages[0]), 17);
+  const plan = buildStagePlan(stages);
+  assert.equal(plan.stages[0].groupCount, 4);
+  assert.equal(plan.stages[0].participantsPerGroup, 5);
+  assert.equal(plan.stages[0].qualifiersPerGroup, 5);
+  assert.equal(plan.stages[1].participantCount, 17);
+});
+
+test("wylicza liczbę uczestników następnego etapu z bieżących zasad awansu", () => {
+  const groupStage: StageDraft = {
+    ...createStageDraft(1, "group_stage"),
+    participantCount: 17,
+    groupCount: 4,
+    qualifiersPerGroup: 5,
+  };
+  const swissStage: StageDraft = {
+    ...createStageDraft(1, "swiss"),
+    participantCount: 17,
+    advancingCount: 12,
+  };
+
+  assert.equal(stageOutputParticipantCount(groupStage), 17);
+  assert.equal(stageOutputParticipantCount(swissStage), 12);
+  assert.equal(
+    stageOutputParticipantCount(createStageDraft(1, "single_elimination")),
+    1,
+  );
+});
+
+test("odrzuca liczbę grup, która utworzyłaby grupę jednoosobową", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 17,
+      groupCount: 9,
+      participantsPerGroup: 2,
+      qualifiersPerGroup: 1,
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 9,
+    },
+  ];
+  assert.ok(
+    validateStageDrafts(stages).some((error) =>
+      error.message.includes("każda grupa miała co najmniej 2 osoby"),
+    ),
+  );
+});
+
 test("odrzuca Single Elimination przed ostatnim etapem", () => {
   const invalid = [
     { ...createStageDraft(1, "single_elimination"), participantCount: 8 },
@@ -244,12 +313,13 @@ test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   assert.equal(grouped.stageGroupId, 30);
 });
 
-for (const count of [2, 4] as const) {
+for (const count of [2, 5] as const) {
   test(`renderuje widok ${count} grup`, () => {
     const stageId = 10;
-    const keys = ["A", "B", "C", "D"] as const;
+    const keys = Array.from({ length: count }, (_, index) =>
+      String.fromCharCode(65 + index),
+    );
     const groups = keys
-      .slice(0, count)
       .map((key, index) => group(index + 1, stageId, key, index + 1));
     const participants = groups.flatMap((entry) =>
       [1, 2, 3, 4].map((rank) =>
@@ -332,4 +402,21 @@ test("zachowuje payload historycznego kreatora jednoetapowego", () => {
   ]);
   assert.strictEqual(payload, legacy);
   assert.equal(payload.stagePlan, undefined);
+});
+
+test("rejects a group stage that would pass only one participant to another stage", () => {
+  const stages: StageDraft[] = [
+    {
+      clientId: "groups", name: "Groups", format: "group_stage",
+      participantCount: 4, bestOf: 1, groupCount: 1,
+      participantsPerGroup: 4, qualifiersPerGroup: 1,
+    },
+    {
+      clientId: "playoff", name: "Playoff", format: "single_elimination",
+      participantCount: 2, bestOf: 1,
+    },
+  ];
+  assert.ok(validateStageDrafts(stages).some(
+    (error) => error.field === "qualifiersPerGroup" && /co najmniej 2/.test(error.message),
+  ));
 });

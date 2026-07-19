@@ -234,7 +234,7 @@ describe("adaptV1StagePlanToV2", () => {
     assert.equal(result.value.transitions[0].source.type, "registration");
   });
 
-  test("maps group qualification, cross-seeding and bracket placement to separate policies", () => {
+  test("maps group qualification, rank-band reseeding and standard bracket placement to separate policies", () => {
     const result = adaptV1StagePlanToV2({
       initialParticipantCount: 8,
       stages: [
@@ -269,8 +269,21 @@ describe("adaptV1StagePlanToV2", () => {
     assert.ok(transition);
     if (!transition) return;
     assert.deepEqual(transition.selection, { type: "top_n_per_group", count: 2 });
-    assert.equal(transition.seedAssignment.type, "policy_ref");
-    assert.equal(transition.placement.type, "policy_ref");
+    assert.deepEqual(transition.seedAssignment, {
+      type: "classification_order",
+      criteria: [
+        { metric: "group_rank", direction: "ascending", scope: "global" },
+        { metric: "match_win_rate", direction: "descending", scope: "within_rank_band" },
+        { metric: "game_diff_per_match", direction: "descending", scope: "within_rank_band" },
+        { metric: "game_wins_per_match", direction: "descending", scope: "within_rank_band" },
+        { metric: "stage_seed", direction: "ascending", scope: "within_rank_band" },
+      ],
+      unresolvedTie: "previous_seed",
+    });
+    assert.deepEqual(transition.placement, {
+      type: "standard_seeded_bracket",
+      reseedEachRound: false,
+    });
     assert.equal(transition.reservedSlots, 4);
   });
 

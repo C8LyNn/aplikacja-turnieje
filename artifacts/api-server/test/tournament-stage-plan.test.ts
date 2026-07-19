@@ -168,6 +168,52 @@ describe("validateTournamentStagePlan valid plans", () => {
 
     assert.equal(validateTournamentStagePlan(input).valid, true);
   });
+
+  test("accepts uneven balanced groups and lets everyone advance", () => {
+    const input = {
+      initialParticipantCount: 17,
+      stages: [
+        {
+          key: "groups",
+          position: 1,
+          name: "Groups",
+          format: "group_stage",
+          participantCount: 17,
+          bestOf: 1,
+          groupCount: 4,
+          participantsPerGroup: 5,
+          qualifiersPerGroup: 5,
+          seedingMethod: "snake",
+        },
+        {
+          key: "playoff",
+          position: 2,
+          name: "Play-off",
+          format: "single_elimination",
+          participantCount: 17,
+          bestOf: 3,
+        },
+      ],
+    };
+
+    const result = validateTournamentStagePlan(input);
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groupStage = result.value.stages[0];
+    assert.equal(groupStage.format, "group_stage");
+    if (groupStage.format !== "group_stage") return;
+    assert.equal(groupStage.participantsPerGroup, 5);
+    assert.equal(result.value.stages[1].participantCount, 17);
+  });
+
+  test("accepts an arbitrary valid group count", () => {
+    const input = groupToEliminationPlan();
+    input.stages[0].groupCount = 3;
+    input.stages[0].participantsPerGroup = 3;
+    input.stages[0].qualifiersPerGroup = 3;
+    input.stages[1].participantCount = 8;
+    assert.equal(validateTournamentStagePlan(input).valid, true);
+  });
 });
 
 describe("validateTournamentStagePlan invalid plans", () => {
@@ -276,7 +322,7 @@ describe("validateTournamentStagePlan invalid plans", () => {
       name: "invalid group count",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].groupCount = 3;
+        plan.stages[0].groupCount = 5;
         return plan;
       },
       code: "INVALID_GROUP_COUNT",
@@ -291,34 +337,14 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "INVALID_GROUP_SIZE",
     },
     {
-      name: "unequal group configuration",
-      mutate: () => {
-        const plan = groupToEliminationPlan();
-        plan.initialParticipantCount = 7;
-        plan.stages[0].participantCount = 7;
-        return plan;
-      },
-      code: "INVALID_GROUP_PARTICIPANT_COUNT",
-    },
-    {
       name: "too many group qualifiers",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].qualifiersPerGroup = 3;
-        plan.stages[1].participantCount = 6;
+        plan.stages[0].qualifiersPerGroup = 5;
+        plan.stages[1].participantCount = 8;
         return plan;
       },
       code: "INVALID_GROUP_QUALIFIER_COUNT",
-    },
-    {
-      name: "inconsistent group participant count",
-      mutate: () => {
-        const plan = groupToEliminationPlan();
-        plan.initialParticipantCount = 10;
-        plan.stages[0].participantCount = 10;
-        return plan;
-      },
-      code: "INVALID_GROUP_PARTICIPANT_COUNT",
     },
     {
       name: "invalid Swiss rounds",
@@ -380,12 +406,6 @@ describe("validateTournamentStagePlan invalid plans", () => {
     });
   }
 
-  test("reports unsupported group playoff transition with a stable code", () => {
-    const plan = groupToEliminationPlan();
-    plan.stages[0].qualifiersPerGroup = 3;
-    plan.stages[1].participantCount = 6;
-    assert.ok(problemCodes(plan).includes("UNSUPPORTED_GROUP_PLAYOFF_TRANSITION"));
-  });
 
   test("returns an ordered problem list with code, path and message", () => {
     const input = { initialParticipantCount: 1, stages: [] };
@@ -401,6 +421,28 @@ describe("validateTournamentStagePlan invalid plans", () => {
     for (const problem of first.problems) {
       assert.ok(problem.path.length > 0);
       assert.ok(problem.message.length > 0);
+    }
+  });
+
+
+  test("rejects a non-final group stage that advances only one participant in total", () => {
+    const result = validateTournamentStagePlan({
+      initialParticipantCount: 4,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 4, bestOf: 1, groupCount: 1,
+          participantsPerGroup: 4, qualifiersPerGroup: 1, seedingMethod: "snake",
+        },
+        {
+          key: "playoff", position: 2, name: "Playoff", format: "single_elimination",
+          participantCount: 1, bestOf: 1,
+        },
+      ],
+    });
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.ok(result.problems.some((problem) => problem.code === "INVALID_ADVANCING_COUNT"));
     }
   });
 });

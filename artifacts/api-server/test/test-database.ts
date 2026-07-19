@@ -10,6 +10,10 @@ const TOURNAMENT_STAGES_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0002_tournament_stages_v1.sql",
   import.meta.url,
 );
+const FLEXIBLE_GROUP_STAGES_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0003_flexible_group_stages_v2.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -94,10 +98,15 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(TOURNAMENT_STAGES_MIGRATION_URL, "utf8"),
       schema,
     ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const flexibleGroupsMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(FLEXIBLE_GROUP_STAGES_MIGRATION_URL, "utf8"),
+      schema,
+    );
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
       await pool.query(stagesMigrationSql);
+      await pool.query(flexibleGroupsMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
