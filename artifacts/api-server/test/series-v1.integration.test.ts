@@ -339,7 +339,7 @@ describe("backup v3 export and import", () => {
     assert.equal(afterCount, beforeCount);
   });
 
-  test("validates the full v2 document before any insert", async () => {
+  test("validates the full v3 document before any insert", async () => {
     const fixture = await createStartedTournament("single_elimination", 2);
     await completePendingRound(fixture, 1);
     const exported = await request(app)
@@ -349,7 +349,7 @@ describe("backup v3 export and import", () => {
     exported.body.matches[0].winnerBackupId = 999_999;
     const [{ count: beforeCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     const response = await request(app).post("/api/tournaments/import").send(exported.body).expect(400);
-    assert.equal(response.body.code, "INVALID_BACKUP_V2");
+    assert.equal(response.body.code, "INVALID_BACKUP_V3");
     const [{ count: afterCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     assert.equal(afterCount, beforeCount);
   });
