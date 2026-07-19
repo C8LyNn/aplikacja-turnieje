@@ -78,7 +78,7 @@ async function createPlan(sourceFormat: SourceFormat): Promise<PlanFixture> {
     bestOf: 3,
     rankingPolicy: "elimination_bracket_v1",
     qualificationMode: "none",
-    seedingPolicy: "standings_order",
+    seedingPolicy: "standard_bracket",
   }).returning();
   return {
     tournamentId: tournament.id,

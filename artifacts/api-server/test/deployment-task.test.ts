@@ -2,6 +2,14 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   DeploymentTaskError,
+  CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT,
+  CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_TASK,
+  CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT,
+  CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_TASK,
+  CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT,
+  CONFIGURABLE_SEEDING_V2_MIGRATE_TASK,
+  CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT,
+  CONFIGURABLE_SEEDING_V2_PREFLIGHT_TASK,
   FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT,
   FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK,
   FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT,
@@ -360,4 +368,78 @@ describe("Replit production deployment task runner", () => {
       exitCode: 0,
     });
   });
+
+  test("runs the read-only Configurable Seeding preflight without starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: CONFIGURABLE_SEEDING_V2_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "configurable_seeding_preflight",
+      apiStarted: false,
+      exitCode: 0,
+    });
+  });
+
+  test("runs the guarded Configurable Seeding migration before starting the API", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: CONFIGURABLE_SEEDING_V2_MIGRATE_TASK },
+      {
+        runDatabaseScript: async (script) => { events.push(script); return 0; },
+        startApi: () => { events.push("api"); },
+      },
+    );
+    assert.deepEqual(events, [CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT, "api"]);
+    assert.deepEqual(result, {
+      mode: "configurable_seeding_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    });
+  });
+
+  test("keeps the API stopped when the Configurable Seeding migration fails", async () => {
+    let apiStarted = false;
+    await assert.rejects(
+      runDeploymentStartup(
+        { DEPLOYMENT_TASK: CONFIGURABLE_SEEDING_V2_MIGRATE_TASK },
+        {
+          runDatabaseScript: async () => 41,
+          startApi: () => { apiStarted = true; },
+        },
+      ),
+      (error: unknown) => error instanceof DeploymentTaskError && error.exitCode === 41,
+    );
+    assert.equal(apiStarted, false);
+  });
+
+  test("supports Development Configurable Seeding tasks", async () => {
+    const preflightEvents: string[] = [];
+    const preflight = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => { preflightEvents.push(script); return 0; },
+        startApi: () => { preflightEvents.push("api"); },
+      },
+    );
+    assert.deepEqual(preflightEvents, [CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT]);
+    assert.equal(preflight.mode, "configurable_seeding_development_preflight");
+
+    const migrationEvents: string[] = [];
+    const migration = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_TASK },
+      {
+        runDatabaseScript: async (script) => { migrationEvents.push(script); return 0; },
+        startApi: () => { migrationEvents.push("api"); },
+      },
+    );
+    assert.deepEqual(migrationEvents, [CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT, "api"]);
+    assert.equal(migration.mode, "configurable_seeding_development_migrate");
+  });
+
 });

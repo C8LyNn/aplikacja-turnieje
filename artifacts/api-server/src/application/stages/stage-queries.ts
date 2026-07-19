@@ -24,6 +24,8 @@ export function serializeTournamentStage(
     groupCount: stage.groupCount ?? null,
     participantsPerGroup: stage.participantsPerGroup ?? null,
     qualifiersPerGroup: stage.qualifiersPerGroup ?? null,
+    randomSeed: stage.randomSeed ?? null,
+    seedingAudit: stage.seedingAudit ?? null,
     winnerId: stage.winnerId ?? null,
     createdAt: stage.createdAt.toISOString(),
     startedAt: iso(stage.startedAt),

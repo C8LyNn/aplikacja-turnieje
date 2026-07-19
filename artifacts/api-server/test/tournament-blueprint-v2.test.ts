@@ -270,9 +270,9 @@ describe("adaptV1StagePlanToV2", () => {
     if (!transition) return;
     assert.deepEqual(transition.selection, { type: "top_n_per_group", count: 2 });
     assert.deepEqual(transition.seedAssignment, {
-      type: "classification_order",
-      criteria: [
-        { metric: "group_rank", direction: "ascending", scope: "global" },
+      type: "rank_bands",
+      bandMetric: "group_rank",
+      withinBand: [
         { metric: "match_win_rate", direction: "descending", scope: "within_rank_band" },
         { metric: "game_diff_per_match", direction: "descending", scope: "within_rank_band" },
         { metric: "game_wins_per_match", direction: "descending", scope: "within_rank_band" },

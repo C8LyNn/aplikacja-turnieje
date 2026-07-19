@@ -5,6 +5,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -57,6 +58,25 @@ export const stageSeedingPolicyEnum = pgEnum("stage_seeding_policy", [
   "standings_order",
   "snake_groups",
   "cross_group",
+  "random_groups",
+  "standard_bracket",
+  "random_bracket",
+]);
+export const stageEntrySeedingPolicyEnum = pgEnum("stage_entry_seeding_policy", [
+  "preserve",
+  "registration_order",
+  "alphabetical",
+  "random",
+  "manual",
+]);
+export const stageResultSeedingPolicyEnum = pgEnum("stage_result_seeding_policy", [
+  "standings_order",
+  "rank_bands",
+  "global_ranking",
+]);
+export const stageRandomRevealOrderEnum = pgEnum("stage_random_reveal_order", [
+  "instant",
+  "sequential",
 ]);
 export const stageParticipantStatusEnum = pgEnum("stage_participant_status", [
   "active",
@@ -187,6 +207,11 @@ export const tournamentStagesTable = pgTable(
     participantsPerGroup: integer("participants_per_group"),
     qualifiersPerGroup: integer("qualifiers_per_group"),
     seedingPolicy: stageSeedingPolicyEnum("seeding_policy").notNull().default("standings_order"),
+    entrySeedingPolicy: stageEntrySeedingPolicyEnum("entry_seeding_policy").notNull().default("preserve"),
+    resultSeedingPolicy: stageResultSeedingPolicyEnum("result_seeding_policy").notNull().default("standings_order"),
+    randomSeed: text("random_seed"),
+    randomRevealOrder: stageRandomRevealOrderEnum("random_reveal_order").notNull().default("instant"),
+    seedingAudit: jsonb("seeding_audit"),
     winnerId: integer("winner_id"),
     version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -219,6 +244,20 @@ export const tournamentStagesTable = pgTable(
         AND ${table.advancingCount} IS NOT NULL)
       OR (${table.qualificationMode} = 'top_n_per_group' AND ${table.format} = 'group_stage'
         AND ${table.advancingCount} IS NULL)`),
+    check("tournament_stages_seeding_configuration", sql`
+      (${table.format} IN ('swiss', 'round_robin') AND ${table.seedingPolicy} = 'standings_order')
+      OR (${table.format} = 'group_stage' AND ${table.seedingPolicy} IN ('snake_groups', 'random_groups'))
+      OR (${table.format} = 'single_elimination' AND ${table.seedingPolicy} IN ('standard_bracket', 'random_bracket'))`),
+    check("tournament_stages_result_seeding_configuration", sql`
+      (${table.format} = 'group_stage' AND ${table.resultSeedingPolicy} IN ('rank_bands', 'global_ranking'))
+      OR (${table.format} <> 'group_stage' AND ${table.resultSeedingPolicy} = 'standings_order')`),
+    check("tournament_stages_random_seed_configuration", sql`
+      (${table.randomSeed} IS NULL OR length(trim(${table.randomSeed})) BETWEEN 1 AND 200)
+      AND ((${table.entrySeedingPolicy} <> 'random'
+        AND ${table.seedingPolicy} NOT IN ('random_groups', 'random_bracket'))
+        OR ${table.randomSeed} IS NOT NULL)`),
+    check("tournament_stages_seeding_audit_shape", sql`
+      ${table.seedingAudit} IS NULL OR jsonb_typeof(${table.seedingAudit}) = 'object'`),
     check("tournament_stages_version_positive", sql`${table.version} > 0`),
     check("tournament_stages_lifecycle_timestamps", sql`
       (${table.status} = 'planned' AND ${table.startedAt} IS NULL AND ${table.completedAt} IS NULL)

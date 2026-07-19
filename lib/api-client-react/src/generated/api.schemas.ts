@@ -29,6 +29,7 @@ export const StageLifecycleErrorCode = {
   MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
   GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
   RANKING_INCONSISTENT: 'RANKING_INCONSISTENT',
+  STAGE_SEEDING_CONFIGURATION_INVALID: 'STAGE_SEEDING_CONFIGURATION_INVALID',
 } as const;
 
 export interface StageLifecycleError {
@@ -210,6 +211,64 @@ export const TournamentStagePlanItemInputBestOf = {
   NUMBER_7: 7,
 } as const;
 
+/**
+ * How incoming participants are converted into stage seeds.
+ */
+export type TournamentStagePlanItemInputEntrySeedingMethod = typeof TournamentStagePlanItemInputEntrySeedingMethod[keyof typeof TournamentStagePlanItemInputEntrySeedingMethod];
+
+
+export const TournamentStagePlanItemInputEntrySeedingMethod = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+/**
+ * Format-specific placement. Groups use snake/random; brackets use standard/random.
+ */
+export type TournamentStagePlanItemInputPlacementMethod = typeof TournamentStagePlanItemInputPlacementMethod[keyof typeof TournamentStagePlanItemInputPlacementMethod];
+
+
+export const TournamentStagePlanItemInputPlacementMethod = {
+  standings_order: 'standings_order',
+  snake: 'snake',
+  random: 'random',
+  standard: 'standard',
+} as const;
+
+/**
+ * How group qualifiers receive new seeds.
+ */
+export type TournamentStagePlanItemInputResultSeedingMethod = typeof TournamentStagePlanItemInputResultSeedingMethod[keyof typeof TournamentStagePlanItemInputResultSeedingMethod];
+
+
+export const TournamentStagePlanItemInputResultSeedingMethod = {
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentStagePlanItemInputRandomRevealOrder = typeof TournamentStagePlanItemInputRandomRevealOrder[keyof typeof TournamentStagePlanItemInputRandomRevealOrder];
+
+
+export const TournamentStagePlanItemInputRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * Compatibility alias for group placementMethod.
+ * @deprecated
+ */
+export type TournamentStagePlanItemInputSeedingMethod = typeof TournamentStagePlanItemInputSeedingMethod[keyof typeof TournamentStagePlanItemInputSeedingMethod];
+
+
+export const TournamentStagePlanItemInputSeedingMethod = {
+  snake: 'snake',
+  random: 'random',
+} as const;
+
 export interface TournamentStagePlanItemInput {
   /** @minLength 1 */
   key: string;
@@ -243,7 +302,24 @@ export interface TournamentStagePlanItemInput {
      * @minimum 1
      */
   qualifiersPerGroup?: number;
-  seedingMethod?: 'snake';
+  /** How incoming participants are converted into stage seeds. */
+  entrySeedingMethod?: TournamentStagePlanItemInputEntrySeedingMethod;
+  /** Format-specific placement. Groups use snake/random; brackets use standard/random. */
+  placementMethod?: TournamentStagePlanItemInputPlacementMethod;
+  /** How group qualifiers receive new seeds. */
+  resultSeedingMethod?: TournamentStagePlanItemInputResultSeedingMethod;
+  /**
+     * Deterministic key required by random seeding or placement.
+     * @minLength 1
+     * @maxLength 200
+     */
+  randomSeed?: string;
+  randomRevealOrder?: TournamentStagePlanItemInputRandomRevealOrder;
+  /**
+     * Compatibility alias for group placementMethod.
+     * @deprecated
+     */
+  seedingMethod?: TournamentStagePlanItemInputSeedingMethod;
 }
 
 export interface TournamentStagePlanInput {
@@ -322,7 +398,43 @@ export const TournamentStageSeedingPolicy = {
   standings_order: 'standings_order',
   snake_groups: 'snake_groups',
   cross_group: 'cross_group',
+  random_groups: 'random_groups',
+  standard_bracket: 'standard_bracket',
+  random_bracket: 'random_bracket',
 } as const;
+
+export type TournamentStageEntrySeedingPolicy = typeof TournamentStageEntrySeedingPolicy[keyof typeof TournamentStageEntrySeedingPolicy];
+
+
+export const TournamentStageEntrySeedingPolicy = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export type TournamentStageResultSeedingPolicy = typeof TournamentStageResultSeedingPolicy[keyof typeof TournamentStageResultSeedingPolicy];
+
+
+export const TournamentStageResultSeedingPolicy = {
+  standings_order: 'standings_order',
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentStageRandomRevealOrder = typeof TournamentStageRandomRevealOrder[keyof typeof TournamentStageRandomRevealOrder];
+
+
+export const TournamentStageRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentStageSeedingAudit = { [key: string]: unknown } | null;
 
 export interface TournamentStage {
   id: number;
@@ -351,6 +463,13 @@ export interface TournamentStage {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentStageSeedingPolicy;
+  entrySeedingPolicy: TournamentStageEntrySeedingPolicy;
+  resultSeedingPolicy: TournamentStageResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder: TournamentStageRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentStageSeedingAudit;
   /** @nullable */
   winnerId?: number | null;
   version: number;
@@ -1116,7 +1235,43 @@ export const TournamentBackupV3StagesItemSeedingPolicy = {
   standings_order: 'standings_order',
   snake_groups: 'snake_groups',
   cross_group: 'cross_group',
+  random_groups: 'random_groups',
+  standard_bracket: 'standard_bracket',
+  random_bracket: 'random_bracket',
 } as const;
+
+export type TournamentBackupV3StagesItemEntrySeedingPolicy = typeof TournamentBackupV3StagesItemEntrySeedingPolicy[keyof typeof TournamentBackupV3StagesItemEntrySeedingPolicy];
+
+
+export const TournamentBackupV3StagesItemEntrySeedingPolicy = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export type TournamentBackupV3StagesItemResultSeedingPolicy = typeof TournamentBackupV3StagesItemResultSeedingPolicy[keyof typeof TournamentBackupV3StagesItemResultSeedingPolicy];
+
+
+export const TournamentBackupV3StagesItemResultSeedingPolicy = {
+  standings_order: 'standings_order',
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentBackupV3StagesItemRandomRevealOrder = typeof TournamentBackupV3StagesItemRandomRevealOrder[keyof typeof TournamentBackupV3StagesItemRandomRevealOrder];
+
+
+export const TournamentBackupV3StagesItemRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3StagesItemSeedingAudit = { [key: string]: unknown } | null;
 
 export type TournamentBackupV3StagesItem = {
   backupId: number;
@@ -1144,6 +1299,13 @@ export type TournamentBackupV3StagesItem = {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentBackupV3StagesItemSeedingPolicy;
+  entrySeedingPolicy?: TournamentBackupV3StagesItemEntrySeedingPolicy;
+  resultSeedingPolicy?: TournamentBackupV3StagesItemResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder?: TournamentBackupV3StagesItemRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentBackupV3StagesItemSeedingAudit;
   /** @nullable */
   winnerBackupId?: number | null;
   version: number;

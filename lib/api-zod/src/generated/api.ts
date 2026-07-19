@@ -69,6 +69,10 @@ export const createTournamentBodyStagePlanStagesItemAdvancingCountMin = 2;
 export const createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin = 2;
 
 
+export const createTournamentBodyStagePlanStagesItemEntrySeedingMethodDefault = `preserve`;
+export const createTournamentBodyStagePlanStagesItemRandomSeedMax = 200;
+
+export const createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault = `instant`;
 export const createTournamentBodyStagePlanStagesMax = 3;
 
 
@@ -98,7 +102,12 @@ export const CreateTournamentBody = zod.object({
   "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
   "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
   "qualifiersPerGroup": zod.number().min(1).optional().describe('Maximum qualifiers taken from each group. Smaller groups may qualify everyone.'),
-  "seedingMethod": zod.literal("snake").optional()
+  "entrySeedingMethod": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']).default(createTournamentBodyStagePlanStagesItemEntrySeedingMethodDefault).describe('How incoming participants are converted into stage seeds.'),
+  "placementMethod": zod.enum(['standings_order', 'snake', 'random', 'standard']).optional().describe('Format-specific placement. Groups use snake\/random; brackets use standard\/random.'),
+  "resultSeedingMethod": zod.enum(['rank_bands', 'global_ranking']).optional().describe('How group qualifiers receive new seeds.'),
+  "randomSeed": zod.string().min(1).max(createTournamentBodyStagePlanStagesItemRandomSeedMax).optional().describe('Deterministic key required by random seeding or placement.'),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']).default(createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault),
+  "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
 }).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.')
 })
@@ -219,7 +228,12 @@ export const ListTournamentStagesResponseItem = zod.object({
   "groupCount": zod.number().nullish(),
   "participantsPerGroup": zod.number().nullish(),
   "qualifiersPerGroup": zod.number().nullish(),
-  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
   "winnerId": zod.number().nullish(),
   "version": zod.number(),
   "createdAt": zod.string(),
@@ -267,7 +281,12 @@ export const GetTournamentStageResponse = zod.object({
   "groupCount": zod.number().nullish(),
   "participantsPerGroup": zod.number().nullish(),
   "qualifiersPerGroup": zod.number().nullish(),
-  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
   "winnerId": zod.number().nullish(),
   "version": zod.number(),
   "createdAt": zod.string(),
@@ -492,7 +511,12 @@ export const StartTournamentStageResponse = zod.object({
   "groupCount": zod.number().nullish(),
   "participantsPerGroup": zod.number().nullish(),
   "qualifiersPerGroup": zod.number().nullish(),
-  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
   "winnerId": zod.number().nullish(),
   "version": zod.number(),
   "createdAt": zod.string(),
@@ -826,7 +850,12 @@ export const ExportTournamentResponse = zod.object({
   "groupCount": zod.number().nullish(),
   "participantsPerGroup": zod.number().nullish(),
   "qualifiersPerGroup": zod.number().nullish(),
-  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']).optional(),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']).optional(),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']).optional(),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
   "winnerBackupId": zod.number().nullish(),
   "version": zod.number(),
   "createdAt": zod.string(),
@@ -1033,7 +1062,12 @@ export const ImportTournamentBody = zod.union([zod.object({
   "groupCount": zod.number().nullish(),
   "participantsPerGroup": zod.number().nullish(),
   "qualifiersPerGroup": zod.number().nullish(),
-  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group']),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']).optional(),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']).optional(),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']).optional(),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
   "winnerBackupId": zod.number().nullish(),
   "version": zod.number(),
   "createdAt": zod.string(),

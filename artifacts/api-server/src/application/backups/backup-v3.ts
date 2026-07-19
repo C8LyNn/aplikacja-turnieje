@@ -198,6 +198,11 @@ export async function exportBackupV3(
       participantsPerGroup: stage.participantsPerGroup ?? null,
       qualifiersPerGroup: stage.qualifiersPerGroup ?? null,
       seedingPolicy: stage.seedingPolicy,
+      entrySeedingPolicy: stage.entrySeedingPolicy ?? "preserve",
+      resultSeedingPolicy: stage.resultSeedingPolicy ?? (stage.format === "group_stage" ? "rank_bands" : "standings_order"),
+      randomSeed: stage.randomSeed ?? null,
+      randomRevealOrder: stage.randomRevealOrder ?? "instant",
+      seedingAudit: (stage.seedingAudit as Record<string, unknown> | null) ?? null,
       winnerBackupId: stage.winnerId ?? null,
       version: stage.version,
       createdAt: stage.createdAt.toISOString(),
@@ -362,9 +367,17 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
             groupCount: stage.groupCount,
             participantsPerGroup: stage.participantsPerGroup,
             qualifiersPerGroup: stage.qualifiersPerGroup,
-            seedingMethod: "snake",
+            seedingMethod: stage.seedingPolicy === "random_groups" ? "random" : "snake",
+            placementMethod: stage.seedingPolicy === "random_groups" ? "random" : "snake",
+            resultSeedingMethod: (stage.resultSeedingPolicy ?? "rank_bands") === "global_ranking" ? "global_ranking" : "rank_bands",
           }
         : {}),
+      ...(stage.format === "single_elimination"
+        ? { placementMethod: stage.seedingPolicy === "random_bracket" ? "random" : "standard" }
+        : {}),
+      entrySeedingMethod: stage.entrySeedingPolicy ?? "preserve",
+      randomSeed: stage.randomSeed ?? undefined,
+      randomRevealOrder: stage.randomRevealOrder ?? "instant",
     })),
   });
   if (!planValidation.valid)
@@ -572,7 +585,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
         source.playerBackupId !== participant.playerBackupId ||
         sourceStage?.position !== stage.position - 1 ||
         source.status !== "qualified" ||
-        source.nextStageSeed !== participant.stageSeed ||
+        ((stage.entrySeedingPolicy ?? "preserve") === "preserve" && source.nextStageSeed !== participant.stageSeed) ||
         participant.qualificationSource === "registration" ||
         (sourceStage?.format === "group_stage" &&
           participant.qualificationSource !== "group_position") ||
@@ -886,6 +899,23 @@ function compatibilityFormat(
   return format === "group_stage" ? ("round_robin" as const) : format;
 }
 
+function compatibleSeedingPolicy(
+  stage: TournamentBackupV3["stages"][number],
+):
+  | "standings_order"
+  | "snake_groups"
+  | "random_groups"
+  | "standard_bracket"
+  | "random_bracket" {
+  if (stage.format === "group_stage") {
+    return stage.seedingPolicy === "random_groups" ? "random_groups" : "snake_groups";
+  }
+  if (stage.format === "single_elimination") {
+    return stage.seedingPolicy === "random_bracket" ? "random_bracket" : "standard_bracket";
+  }
+  return "standings_order";
+}
+
 export async function importBackupV3(backup: TournamentBackupV3) {
   validateBackupV3(backup);
   return db.transaction(async (tx) => {
@@ -931,7 +961,12 @@ export async function importBackupV3(backup: TournamentBackupV3) {
       groupCount: stage.groupCount ?? null,
       participantsPerGroup: stage.participantsPerGroup ?? null,
       qualifiersPerGroup: stage.qualifiersPerGroup ?? null,
-      seedingPolicy: stage.seedingPolicy,
+      seedingPolicy: compatibleSeedingPolicy(stage),
+      entrySeedingPolicy: stage.entrySeedingPolicy ?? "preserve",
+      resultSeedingPolicy: stage.resultSeedingPolicy ?? (stage.format === "group_stage" ? "rank_bands" : "standings_order"),
+      randomSeed: stage.randomSeed ?? null,
+      randomRevealOrder: stage.randomRevealOrder ?? "instant",
+      seedingAudit: stage.seedingAudit ?? null,
       winnerId: null,
       version: stage.version,
       createdAt: new Date(stage.createdAt),
@@ -986,6 +1021,7 @@ export async function importBackupV3(backup: TournamentBackupV3) {
           participantsPerGroup: null,
           qualifiersPerGroup: null,
           seedingPolicy: "standings_order",
+          resultSeedingPolicy: "standings_order",
         })
         .where(eq(tournamentStagesTable.id, generated.id));
     }

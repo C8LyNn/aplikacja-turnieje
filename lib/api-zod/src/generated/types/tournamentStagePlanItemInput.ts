@@ -6,7 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TournamentStagePlanItemInputBestOf } from './tournamentStagePlanItemInputBestOf';
+import type { TournamentStagePlanItemInputEntrySeedingMethod } from './tournamentStagePlanItemInputEntrySeedingMethod';
 import type { TournamentStagePlanItemInputFormat } from './tournamentStagePlanItemInputFormat';
+import type { TournamentStagePlanItemInputPlacementMethod } from './tournamentStagePlanItemInputPlacementMethod';
+import type { TournamentStagePlanItemInputRandomRevealOrder } from './tournamentStagePlanItemInputRandomRevealOrder';
+import type { TournamentStagePlanItemInputResultSeedingMethod } from './tournamentStagePlanItemInputResultSeedingMethod';
+import type { TournamentStagePlanItemInputSeedingMethod } from './tournamentStagePlanItemInputSeedingMethod';
 
 export interface TournamentStagePlanItemInput {
   /** @minLength 1 */
@@ -41,5 +46,22 @@ export interface TournamentStagePlanItemInput {
      * @minimum 1
      */
   qualifiersPerGroup?: number;
-  seedingMethod?: 'snake';
+  /** How incoming participants are converted into stage seeds. */
+  entrySeedingMethod?: TournamentStagePlanItemInputEntrySeedingMethod;
+  /** Format-specific placement. Groups use snake/random; brackets use standard/random. */
+  placementMethod?: TournamentStagePlanItemInputPlacementMethod;
+  /** How group qualifiers receive new seeds. */
+  resultSeedingMethod?: TournamentStagePlanItemInputResultSeedingMethod;
+  /**
+     * Deterministic key required by random seeding or placement.
+     * @minLength 1
+     * @maxLength 200
+     */
+  randomSeed?: string;
+  randomRevealOrder?: TournamentStagePlanItemInputRandomRevealOrder;
+  /**
+     * Compatibility alias for group placementMethod.
+     * @deprecated
+     */
+  seedingMethod?: TournamentStagePlanItemInputSeedingMethod;
 }

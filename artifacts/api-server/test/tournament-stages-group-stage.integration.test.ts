@@ -95,6 +95,7 @@ async function createGroupPlan({
     participantsPerGroup: Math.max(...groupSizes),
     qualifiersPerGroup,
     seedingPolicy: "snake_groups",
+    resultSeedingPolicy: "rank_bands",
   }).where(eq(database.tournamentStagesTable.id, generatedStage.id)).returning();
   const [targetStage] = await database.db.insert(database.tournamentStagesTable).values({
     tournamentId: tournament.id,
@@ -110,7 +111,7 @@ async function createGroupPlan({
         ? "elimination_bracket_v1"
         : "round_robin_v1",
     qualificationMode: "none",
-    seedingPolicy: "standings_order",
+    seedingPolicy: targetFormat === "single_elimination" ? "standard_bracket" : "standings_order",
   }).returning();
   return {
     tournamentId: tournament.id,
@@ -183,6 +184,53 @@ describe("group_stage runtime", () => {
     const fixture = await createGroupPlan({ groupCount: 2, qualifiersPerGroup: 1 });
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
     assert.deepEqual(await groupAssignments(fixture), ["A", "B", "B", "A", "A", "B"]);
+  });
+
+  test("keeps random entry seeding and random placement deterministic without cancelling each other", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 8,
+      groupCount: 2,
+      qualifiersPerGroup: 2,
+    });
+    await database.db.update(database.tournamentStagesTable).set({
+      entrySeedingPolicy: "random",
+      seedingPolicy: "random_groups",
+      randomSeed: "live-draw",
+      randomRevealOrder: "sequential",
+    }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
+
+    const started = await startStage({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.groupStageId,
+    });
+    const assignment = await database.pool.query(
+      `SELECT player.seed AS original_seed, participant.stage_seed, group_row.group_key
+       FROM stage_participants participant
+       JOIN players player ON player.id = participant.player_id
+       JOIN stage_groups group_row ON group_row.id = participant.group_id
+       WHERE participant.stage_id = $1
+       ORDER BY player.seed`,
+      [fixture.groupStageId],
+    );
+
+    assert.deepEqual(
+      assignment.rows.map((row: any) => row.stage_seed),
+      [7, 3, 2, 5, 8, 6, 4, 1],
+    );
+    assert.deepEqual(
+      assignment.rows.map((row: any) => row.group_key),
+      ["A", "B", "A", "A", "B", "B", "B", "A"],
+    );
+    const audit = started.seedingAudit as {
+      randomSeed?: string | null;
+      placementRandomSeed?: string | null;
+      revealOrder?: string;
+      draws?: unknown[];
+    };
+    assert.equal(audit.randomSeed, "live-draw");
+    assert.equal(audit.placementRandomSeed, "live-draw:placement");
+    assert.equal(audit.revealOrder, "sequential");
+    assert.equal(audit.draws?.length, 8);
   });
 
   test("creates arbitrary uneven groups and fills the larger groups first", async () => {
@@ -375,7 +423,17 @@ describe("group_stage runtime", () => {
   });
 
   test("rolls back groups, assignments and matches when group generation fails", async () => {
-    const fixture = await createGroupPlan({ groupCount: 2, qualifiersPerGroup: 1 });
+    const fixture = await createGroupPlan({
+      participantCount: 8,
+      groupCount: 2,
+      qualifiersPerGroup: 1,
+    });
+    await database.db.update(database.tournamentStagesTable).set({
+      entrySeedingPolicy: "random",
+      seedingPolicy: "random_groups",
+      randomSeed: "rollback-draw",
+      randomRevealOrder: "sequential",
+    }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
     await assert.rejects(
       () => startStage(
         { tournamentId: fixture.tournamentId, stageId: fixture.groupStageId },
@@ -384,19 +442,25 @@ describe("group_stage runtime", () => {
       /group-generation-fault/,
     );
     const state = await database.pool.query(
-      `SELECT t.active_stage_id, s.status,
+      `SELECT t.active_stage_id, s.status, s.seeding_audit,
               (SELECT count(*) FROM stage_groups WHERE stage_id = $1) AS groups,
               (SELECT count(*) FROM matches WHERE stage_id = $1) AS matches,
-              (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_id IS NOT NULL) AS assigned
+              (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_id IS NOT NULL) AS assigned,
+              (SELECT bool_and(participant.stage_seed = player.seed)
+                 FROM stage_participants participant
+                 JOIN players player ON player.id = participant.player_id
+                WHERE participant.stage_id = $1) AS seeds_restored
        FROM tournaments t JOIN tournament_stages s ON s.id = $1 WHERE t.id = $2`,
       [fixture.groupStageId, fixture.tournamentId],
     );
     assert.deepEqual(state.rows[0], {
       active_stage_id: null,
       status: "planned",
+      seeding_audit: null,
       groups: "0",
       matches: "0",
       assigned: "0",
+      seeds_restored: true,
     });
   });
 

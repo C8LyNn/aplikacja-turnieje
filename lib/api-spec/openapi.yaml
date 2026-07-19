@@ -950,6 +950,7 @@ components:
             - MATCHES_ALREADY_EXIST
             - GROUPS_ALREADY_EXIST
             - RANKING_INCONSISTENT
+            - STAGE_SEEDING_CONFIGURATION_INVALID
     StagePlanError:
       type: object
       required: [error, code, details]
@@ -1138,13 +1139,37 @@ components:
           type: integer
           minimum: 1
           description: Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+        entrySeedingMethod:
+          type: string
+          enum: [preserve, registration_order, alphabetical, random, manual]
+          default: preserve
+          description: How incoming participants are converted into stage seeds.
+        placementMethod:
+          type: string
+          enum: [standings_order, snake, random, standard]
+          description: Format-specific placement. Groups use snake/random; brackets use standard/random.
+        resultSeedingMethod:
+          type: string
+          enum: [rank_bands, global_ranking]
+          description: How group qualifiers receive new seeds.
+        randomSeed:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Deterministic key required by random seeding or placement.
+        randomRevealOrder:
+          type: string
+          enum: [instant, sequential]
+          default: instant
         seedingMethod:
           type: string
-          const: snake
+          enum: [snake, random]
+          deprecated: true
+          description: Compatibility alias for group placementMethod.
 
     TournamentStage:
       type: object
-      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, entrySeedingPolicy, resultSeedingPolicy, randomRevealOrder, version, createdAt]
       properties:
         id: { type: integer }
         tournamentId: { type: integer }
@@ -1174,7 +1199,20 @@ components:
         qualifiersPerGroup: { type: ["integer", "null"] }
         seedingPolicy:
           type: string
-          enum: [standings_order, snake_groups, cross_group]
+          enum: [standings_order, snake_groups, cross_group, random_groups, standard_bracket, random_bracket]
+        entrySeedingPolicy:
+          type: string
+          enum: [preserve, registration_order, alphabetical, random, manual]
+        resultSeedingPolicy:
+          type: string
+          enum: [standings_order, rank_bands, global_ranking]
+        randomSeed: { type: ["string", "null"] }
+        randomRevealOrder:
+          type: string
+          enum: [instant, sequential]
+        seedingAudit:
+          type: ["object", "null"]
+          additionalProperties: true
         winnerId: { type: ["integer", "null"] }
         version: { type: integer }
         createdAt: { type: string }
@@ -1927,7 +1965,14 @@ components:
               groupCount: { type: ["integer", "null"] }
               participantsPerGroup: { type: ["integer", "null"] }
               qualifiersPerGroup: { type: ["integer", "null"] }
-              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group] }
+              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group, random_groups, standard_bracket, random_bracket] }
+              entrySeedingPolicy: { type: string, enum: [preserve, registration_order, alphabetical, random, manual] }
+              resultSeedingPolicy: { type: string, enum: [standings_order, rank_bands, global_ranking] }
+              randomSeed: { type: ["string", "null"] }
+              randomRevealOrder: { type: string, enum: [instant, sequential] }
+              seedingAudit:
+                type: ["object", "null"]
+                additionalProperties: true
               winnerBackupId: { type: ["integer", "null"] }
               version: { type: integer }
               createdAt: { type: string }

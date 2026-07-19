@@ -5,9 +5,13 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupV3StagesItemEntrySeedingPolicy } from './tournamentBackupV3StagesItemEntrySeedingPolicy';
 import type { TournamentBackupV3StagesItemFormat } from './tournamentBackupV3StagesItemFormat';
 import type { TournamentBackupV3StagesItemQualificationMode } from './tournamentBackupV3StagesItemQualificationMode';
+import type { TournamentBackupV3StagesItemRandomRevealOrder } from './tournamentBackupV3StagesItemRandomRevealOrder';
 import type { TournamentBackupV3StagesItemRankingPolicy } from './tournamentBackupV3StagesItemRankingPolicy';
+import type { TournamentBackupV3StagesItemResultSeedingPolicy } from './tournamentBackupV3StagesItemResultSeedingPolicy';
+import type { TournamentBackupV3StagesItemSeedingAudit } from './tournamentBackupV3StagesItemSeedingAudit';
 import type { TournamentBackupV3StagesItemSeedingPolicy } from './tournamentBackupV3StagesItemSeedingPolicy';
 import type { TournamentBackupV3StagesItemStatus } from './tournamentBackupV3StagesItemStatus';
 
@@ -37,6 +41,13 @@ export type TournamentBackupV3StagesItem = {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentBackupV3StagesItemSeedingPolicy;
+  entrySeedingPolicy?: TournamentBackupV3StagesItemEntrySeedingPolicy;
+  resultSeedingPolicy?: TournamentBackupV3StagesItemResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder?: TournamentBackupV3StagesItemRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentBackupV3StagesItemSeedingAudit;
   /** @nullable */
   winnerBackupId?: number | null;
   version: number;

@@ -424,6 +424,142 @@ describe("Backup v3", () => {
     assert.equal(memberships.length, 1);
   });
 
+  test("round-trips configurable seeding, placement and its audit", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Configurable backup ${randomUUID()}`,
+        format: "round_robin",
+        stagePlan: {
+          ...groupPlan,
+          stages: [
+            {
+              ...groupPlan.stages[0],
+              entrySeedingMethod: "random",
+              placementMethod: "random",
+              resultSeedingMethod: "global_ranking",
+              randomSeed: "backup-random-draw",
+              randomRevealOrder: "sequential",
+            },
+            {
+              ...groupPlan.stages[1],
+              placementMethod: "random",
+              randomSeed: "backup-random-bracket",
+            },
+          ],
+        },
+      });
+    assert.equal(created.status, 201, created.text);
+    const tournamentId = created.body.id as number;
+    await database.db.insert(database.playersTable).values(
+      Array.from({ length: 6 }, (_, index) => ({
+        tournamentId,
+        name: `Backup seeded ${index + 1}`,
+        seed: index + 1,
+      })),
+    );
+    const stages = await database.db
+      .select()
+      .from(database.tournamentStagesTable)
+      .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
+    stages.sort((left, right) => left.position - right.position);
+    await request(app)
+      .post(`/api/tournaments/${tournamentId}/stages/${stages[0].id}/start`)
+      .set({ "x-organizer-token": signOrganizerToken(tournamentId) })
+      .expect(200);
+
+    const exported = await request(app)
+      .get(`/api/tournaments/${tournamentId}/export`)
+      .set({ "x-organizer-token": signOrganizerToken(tournamentId) });
+    assert.equal(exported.status, 200, exported.text);
+    const exportedGroup = exported.body.stages.find(
+      (stage: { format: string }) => stage.format === "group_stage",
+    );
+    assert.equal(exportedGroup.entrySeedingPolicy, "random");
+    assert.equal(exportedGroup.seedingPolicy, "random_groups");
+    assert.equal(exportedGroup.resultSeedingPolicy, "global_ranking");
+    assert.equal(exportedGroup.randomSeed, "backup-random-draw");
+    assert.equal(exportedGroup.randomRevealOrder, "sequential");
+    assert.equal(exportedGroup.seedingAudit.randomSeed, "backup-random-draw");
+    assert.equal(
+      exportedGroup.seedingAudit.placementRandomSeed,
+      "backup-random-draw:placement",
+    );
+
+    const imported = await request(app)
+      .post("/api/tournaments/import")
+      .send(exported.body);
+    assert.equal(imported.status, 201, imported.text);
+    const importedStages = await database.db
+      .select()
+      .from(database.tournamentStagesTable)
+      .where(
+        eq(
+          database.tournamentStagesTable.tournamentId,
+          imported.body.tournament.id,
+        ),
+      );
+    const importedGroup = importedStages.find(
+      (stage) => stage.format === "group_stage",
+    )!;
+    assert.equal(importedGroup.entrySeedingPolicy, "random");
+    assert.equal(importedGroup.seedingPolicy, "random_groups");
+    assert.equal(importedGroup.resultSeedingPolicy, "global_ranking");
+    assert.equal(importedGroup.randomSeed, "backup-random-draw");
+    assert.equal(importedGroup.randomRevealOrder, "sequential");
+    assert.deepEqual(importedGroup.seedingAudit, exportedGroup.seedingAudit);
+  });
+
+  test("imports a pre-Patch-04 Backup v3 with safe seeding defaults", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Legacy v3 backup ${randomUUID()}`,
+        format: "round_robin",
+        stagePlan: groupPlan,
+      });
+    assert.equal(created.status, 201, created.text);
+    const exported = await request(app)
+      .get(`/api/tournaments/${created.body.id}/export`)
+      .set({ "x-organizer-token": signOrganizerToken(created.body.id) });
+    assert.equal(exported.status, 200, exported.text);
+    const legacy = structuredClone(exported.body);
+    for (const stage of legacy.stages) {
+      delete stage.entrySeedingPolicy;
+      delete stage.resultSeedingPolicy;
+      delete stage.randomSeed;
+      delete stage.randomRevealOrder;
+      delete stage.seedingAudit;
+      if (stage.format === "single_elimination") stage.seedingPolicy = "cross_group";
+    }
+
+    const imported = await request(app)
+      .post("/api/tournaments/import")
+      .send(legacy);
+    assert.equal(imported.status, 201, imported.text);
+    const importedStages = await database.db
+      .select()
+      .from(database.tournamentStagesTable)
+      .where(
+        eq(
+          database.tournamentStagesTable.tournamentId,
+          imported.body.tournament.id,
+        ),
+      );
+    const importedGroup = importedStages.find(
+      (stage) => stage.format === "group_stage",
+    )!;
+    const importedPlayoff = importedStages.find(
+      (stage) => stage.format === "single_elimination",
+    )!;
+    assert.equal(importedGroup.entrySeedingPolicy, "preserve");
+    assert.equal(importedGroup.seedingPolicy, "snake_groups");
+    assert.equal(importedGroup.resultSeedingPolicy, "rank_bands");
+    assert.equal(importedGroup.randomRevealOrder, "instant");
+    assert.equal(importedPlayoff.seedingPolicy, "standard_bracket");
+    assert.equal(importedPlayoff.resultSeedingPolicy, "standings_order");
+  });
+
   test("round-trips a group stage and cross-seeded play-off with all stage relations", async () => {
     const fixture = await createGroupTournament();
     await request(app)

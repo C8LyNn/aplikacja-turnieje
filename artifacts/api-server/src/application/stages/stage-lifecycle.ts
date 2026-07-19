@@ -12,17 +12,21 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import {
-  buildSnakeGroupAssignments,
   calculateBalancedGroupSizes,
   calculateGroupQualifierCounts,
   groupKeyFromIndex,
   seedQualifiedGroupEntries,
+  seedQualifiedGroupEntriesGlobally,
 } from "../../domain/tournament/group-stage";
 import { generateRoundRobinSchedule } from "../../domain/tournament/round-robin";
 import {
+  buildRandomBracket,
+  buildRandomGroupPlacements,
+  buildSnakeGroupPlacements,
   buildStandardSeededBracket,
   nextPowerOfTwo,
 } from "../../domain/tournament/stage-placement";
+import { assignSeeds, type SeedingPolicy } from "../../domain/tournament/seeding";
 import {
   rankRoundRobinOrGroup,
   rankSwissStage,
@@ -46,7 +50,8 @@ export type StageLifecycleErrorCode =
   | "STAGE_ALREADY_STARTED"
   | "MATCHES_ALREADY_EXIST"
   | "GROUPS_ALREADY_EXIST"
-  | "RANKING_INCONSISTENT";
+  | "RANKING_INCONSISTENT"
+  | "STAGE_SEEDING_CONFIGURATION_INVALID";
 
 const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   TOURNAMENT_NOT_FOUND: "Turniej nie istnieje.",
@@ -64,6 +69,7 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   MATCHES_ALREADY_EXIST: "Planowany etap zawiera już mecze.",
   GROUPS_ALREADY_EXIST: "Planowany etap zawiera już grupy.",
   RANKING_INCONSISTENT: "Nie można wyliczyć jednoznacznego rankingu etapu.",
+  STAGE_SEEDING_CONFIGURATION_INVALID: "Konfiguracja seedowania lub rozmieszczenia etapu jest niespójna.",
 };
 
 export class StageLifecycleError extends Error {
@@ -407,13 +413,15 @@ function buildGroupPreview(params: {
       : qualifierLimitByGroupKey.get(entry.groupKey);
     return qualifierLimit != null && entry.groupRank != null && entry.groupRank <= qualifierLimit;
   });
-  const qualifiers = seedQualifiedGroupEntries(
-    selected.map((entry) => ({
-      ...entry,
-      groupKey: entry.groupKey!,
-      groupRank: entry.groupRank!,
-    })),
-  ).map((entry) => ({
+  const selectedEntries = selected.map((entry) => ({
+    ...entry,
+    groupKey: entry.groupKey!,
+    groupRank: entry.groupRank!,
+  }));
+  const seeded = params.stage.resultSeedingPolicy === "global_ranking"
+    ? seedQualifiedGroupEntriesGlobally(selectedEntries)
+    : seedQualifiedGroupEntries(selectedEntries);
+  const qualifiers = seeded.map((entry) => ({
     ...entry,
     qualificationSource: "group_position" as const,
   }));
@@ -574,7 +582,7 @@ export async function completeStage(
     if (stage.status !== "active" || tournament.activeStageId !== stage.id) {
       throw new StageLifecycleError("STAGE_NOT_ACTIVE");
     }
-    const memberships = await tx.select().from(stageParticipantsTable)
+    let memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
     const players = memberships.length === 0 ? [] : await tx.select().from(playersTable)
@@ -736,12 +744,13 @@ function generateStageMatches(params: {
   }
   if (stage.format === "single_elimination") {
     const playerByKey = new Map(players.map((player) => [String(player.id), player]));
-    const bracket = buildStandardSeededBracket(
-      players.map((player) => ({
-        participantKey: String(player.id),
-        seed: player.seed ?? 0,
-      })),
-    );
+    const bracketParticipants = players.map((player) => ({
+      participantKey: String(player.id),
+      seed: player.seed ?? 0,
+    }));
+    const bracket = stage.seedingPolicy === "random_bracket"
+      ? buildRandomBracket(bracketParticipants, `${stage.randomSeed ?? ""}:placement`)
+      : buildStandardSeededBracket(bracketParticipants);
     const totalRounds = Math.ceil(Math.log2(bracket.bracketSize));
     const values: Array<typeof matchesTable.$inferInsert> = [];
     const now = new Date();
@@ -804,7 +813,7 @@ export async function startStage(
     const existingGroups = await tx.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
       .where(eq(stageGroupsTable.stageId, stage.id)).for("update");
     if (existingGroups.length > 0) throw new StageLifecycleError("GROUPS_ALREADY_EXIST");
-    const memberships = await tx.select().from(stageParticipantsTable)
+    let memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
     if (memberships.length !== stage.participantCount || memberships.length < 2) {
@@ -848,6 +857,59 @@ export async function startStage(
     if (players.length !== memberships.length || players.some((player) => player.tournamentId !== tournament.id)) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
+
+    const entryPolicy: SeedingPolicy = (() => {
+      switch (stage.entrySeedingPolicy) {
+        case "registration_order": return { type: "registration_order" };
+        case "alphabetical": return { type: "alphabetical", locale: "pl" };
+        case "random": return {
+          type: "random",
+          randomSeed: stage.randomSeed ?? "",
+          revealOrder: "participant_order",
+        };
+        case "manual": return { type: "manual" };
+        case "preserve": return { type: "preserve" };
+      }
+    })();
+    const seedingResult = assignSeeds(
+      memberships.map((membership) => {
+        const player = playerById.get(membership.playerId)!;
+        return {
+          participantKey: String(membership.playerId),
+          displayName: player.name,
+          registrationOrder: player.id,
+          previousSeed: membership.stageSeed,
+          manualSeed: player.seed,
+          membership,
+        };
+      }),
+      entryPolicy,
+    );
+    if (!seedingResult.ok) {
+      throw new StageLifecycleError("STAGE_SEEDING_CONFIGURATION_INVALID");
+    }
+    const nextMemberships = seedingResult.seeded.map(({ entry, seed }) => ({
+      ...entry.membership,
+      stageSeed: seed,
+    }));
+    for (const membership of nextMemberships) {
+      await tx.update(stageParticipantsTable)
+        .set({ stageSeed: membership.stageSeed })
+        .where(eq(stageParticipantsTable.id, membership.id));
+    }
+    memberships = nextMemberships.sort((left, right) => left.stageSeed - right.stageSeed);
+    const seedingAudit = {
+      ...seedingResult.audit,
+      entrySeedingPolicy: stage.entrySeedingPolicy,
+      placementPolicy: stage.seedingPolicy,
+      resultSeedingPolicy: stage.resultSeedingPolicy,
+      revealOrder: stage.randomRevealOrder,
+      placementRandomSeed: ["random_groups", "random_bracket"].includes(stage.seedingPolicy)
+        ? `${stage.randomSeed ?? ""}:placement`
+        : null,
+      appliedAt: new Date().toISOString(),
+    };
+
     const stagePlayers = memberships.map((membership) => ({
       ...playerById.get(membership.playerId)!,
       seed: membership.stageSeed,
@@ -867,7 +929,7 @@ export async function startStage(
           largestGroupSize == null ||
           qualifiersPerGroup == null ||
           stage.qualificationMode !== "top_n_per_group" ||
-          stage.seedingPolicy !== "snake_groups"
+          !["snake_groups", "random_groups"].includes(stage.seedingPolicy)
         ) {
           throw new Error("invalid group stage settings");
         }
@@ -892,14 +954,22 @@ export async function startStage(
           qualifiersCount: qualifierCounts[index],
         })),
       ).returning()).sort((left, right) => left.position - right.position);
-      const assignments = buildSnakeGroupAssignments(
-        memberships.length,
-        groupCount!,
+      const placementParticipants = memberships.map((membership) => ({
+        participantKey: String(membership.playerId),
+        seed: membership.stageSeed,
+        membership,
+      }));
+      const placements = stage.seedingPolicy === "random_groups"
+        ? buildRandomGroupPlacements(placementParticipants, groupSizes, `${stage.randomSeed ?? ""}:placement`)
+        : buildSnakeGroupPlacements(placementParticipants, groupSizes);
+      const placementByPlayerId = new Map(
+        placements.map((placement) => [Number(placement.participant.participantKey), placement]),
       );
       const membershipsByGroup = new Map<number, Array<typeof stageParticipantsTable.$inferSelect>>();
-      for (let index = 0; index < memberships.length; index += 1) {
-        const group = groups[assignments[index]];
-        const membership = memberships[index];
+      for (const membership of memberships) {
+        const placement = placementByPlayerId.get(membership.playerId);
+        if (!placement) throw new StageLifecycleError("STAGE_SEEDING_CONFIGURATION_INVALID");
+        const group = groups[placement.groupIndex];
         await tx.update(stageParticipantsTable).set({ groupId: group.id })
           .where(eq(stageParticipantsTable.id, membership.id));
         const assigned = membershipsByGroup.get(group.id) ?? [];
@@ -976,7 +1046,9 @@ export async function startStage(
     const now = new Date();
     const [updatedStage] = await tx.update(tournamentStagesTable).set({
       status: "active", currentRound: 1, totalRounds,
-      startedAt: now, completedAt: null, winnerId: null, version: stage.version + 1,
+      startedAt: now, completedAt: null, winnerId: null,
+      seedingAudit,
+      version: stage.version + 1,
     }).where(and(eq(tournamentStagesTable.id, stage.id), eq(tournamentStagesTable.status, "planned"))).returning();
     if (!updatedStage) throw new StageLifecycleError("STAGE_ALREADY_STARTED");
     await tx.update(tournamentsTable).set({
@@ -991,7 +1063,7 @@ export async function startStage(
     }).where(eq(tournamentsTable.id, tournament.id));
     await tx.insert(actionLogTable).values({
       tournamentId: tournament.id, stageId: stage.id, actionType: "stage_started",
-      description: `Uruchomiono etap ${stage.name}`,
+      description: `Uruchomiono etap ${stage.name}; seedowanie=${stage.entrySeedingPolicy}; rozmieszczenie=${stage.seedingPolicy}`,
       matchId: null, undoPayload: null, isUndone: false,
     });
     return updatedStage;

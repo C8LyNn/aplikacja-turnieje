@@ -23,7 +23,12 @@
     "reset:series-v1:destructive": "node ./scripts/destructive-series-v1-reset.mjs",
     "reset:series-v1:development:preflight": "node ./scripts/preflight-development-series-v1-reset.mjs",
     "reset:series-v1:development": "node ./scripts/destructive-development-series-v1-reset.mjs",
-    "test:reset-safety": "node --test --test-concurrency=1 ./test/development-reset-config.test.mjs ./test/reset-safety.integration.test.mjs"
+    "test:reset-safety": "node --test --test-concurrency=1 ./test/development-reset-config.test.mjs ./test/reset-safety.integration.test.mjs",
+    "migrate:configurable-seeding:preflight": "node ./scripts/preflight-configurable-seeding-v2.mjs",
+    "migrate:configurable-seeding": "node ./scripts/migrate-configurable-seeding-v2.mjs",
+    "migrate:configurable-seeding:development:preflight": "node ./scripts/preflight-development-configurable-seeding-v2.mjs",
+    "migrate:configurable-seeding:development": "node ./scripts/migrate-development-configurable-seeding-v2.mjs",
+    "test:configurable-seeding-deployment": "node --test ./test/configurable-seeding-v2-deployment.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

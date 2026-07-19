@@ -7,6 +7,7 @@ import {
   calculateGroupQualifierCounts,
   groupKeyFromIndex,
   seedQualifiedGroupEntries,
+  seedQualifiedGroupEntriesGlobally,
 } from "../src/domain/tournament/group-stage";
 
 describe("flexible group sizes", () => {
@@ -109,5 +110,22 @@ describe("rank-band reseeding", () => {
         { playerId: 40, groupRank: 2, nextStageSeed: 4 },
       ],
     );
+  });
+});
+
+
+describe("global group reseeding", () => {
+  test("compares uneven groups by normalized performance instead of raw totals", () => {
+    const seeded = seedQualifiedGroupEntriesGlobally([
+      {
+        playerId: 1, groupKey: "A", groupRank: 2, stageSeed: 2,
+        matchWins: 3, matchLosses: 1, gameWins: 6, gameLosses: 3, gameDiff: 3,
+      },
+      {
+        playerId: 2, groupKey: "B", groupRank: 1, stageSeed: 1,
+        matchWins: 2, matchLosses: 0, gameWins: 4, gameLosses: 0, gameDiff: 4,
+      },
+    ]);
+    assert.deepEqual(seeded.map((entry) => [entry.playerId, entry.nextStageSeed]), [[2, 1], [1, 2]]);
   });
 });

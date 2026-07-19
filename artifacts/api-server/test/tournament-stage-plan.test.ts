@@ -388,13 +388,13 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "INVALID_SWISS_ROUNDS",
     },
     {
-      name: "unsupported group seeding method",
+      name: "unsupported group placement method",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].seedingMethod = "random";
+        plan.stages[0].seedingMethod = "unsupported";
         return plan;
       },
-      code: "INVALID_GROUP_SEEDING_METHOD",
+      code: "INVALID_GROUP_PLACEMENT_METHOD",
     },
   ];
 
@@ -444,5 +444,51 @@ describe("validateTournamentStagePlan invalid plans", () => {
     if (!result.valid) {
       assert.ok(result.problems.some((problem) => problem.code === "INVALID_ADVANCING_COUNT"));
     }
+  });
+});
+
+
+describe("configurable seeding and placement", () => {
+  test("accepts deterministic random entry seeding and group placement", () => {
+    const plan = groupToEliminationPlan();
+    Object.assign(plan.stages[0], {
+      entrySeedingMethod: "random",
+      placementMethod: "random",
+      resultSeedingMethod: "global_ranking",
+      randomSeed: "draw-2026",
+      randomRevealOrder: "sequential",
+      seedingMethod: "random",
+    });
+    Object.assign(plan.stages[1], { placementMethod: "standard" });
+    const result = validateTournamentStagePlan(plan);
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groups = result.value.stages[0];
+    assert.equal(groups.entrySeedingMethod, "random");
+    assert.equal(groups.randomRevealOrder, "sequential");
+    if (groups.format !== "group_stage") return;
+    assert.equal(groups.placementMethod, "random");
+    assert.equal(groups.resultSeedingMethod, "global_ranking");
+  });
+
+  test("rejects random configuration without a deterministic key", () => {
+    const plan = singleStagePlan();
+    Object.assign(plan.stages[0], {
+      entrySeedingMethod: "random",
+      placementMethod: "standard",
+    });
+    assert.ok(problemCodes(plan).includes("RANDOM_SEED_REQUIRED"));
+  });
+
+  test("keeps Patch 02 defaults for old plans", () => {
+    const result = validateTournamentStagePlan(groupToEliminationPlan());
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groups = result.value.stages[0];
+    assert.equal(groups.entrySeedingMethod, "preserve");
+    assert.equal(groups.randomRevealOrder, "instant");
+    if (groups.format !== "group_stage") return;
+    assert.equal(groups.placementMethod, "snake");
+    assert.equal(groups.resultSeedingMethod, "rank_bands");
   });
 });

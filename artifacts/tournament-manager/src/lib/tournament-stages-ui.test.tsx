@@ -23,11 +23,20 @@ import {
   createStageDraft,
   filterMatchesForStage,
   groupAdvancingCount,
+  groupLabelFromIndex,
+  previewBracketPairs,
+  previewGroupSeedPlacement,
   stageOutputParticipantCount,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
 } from "./tournament-stages-ui";
+
+test("etykietuje grupy także powyżej Z", () => {
+  assert.equal(groupLabelFromIndex(0), "A");
+  assert.equal(groupLabelFromIndex(25), "Z");
+  assert.equal(groupLabelFromIndex(26), "AA");
+});
 
 type MatchStageIdIsRequired = {} extends Pick<Match, "stageId">
   ? false
@@ -68,7 +77,16 @@ function stage(
     participantsPerGroup: format === "group_stage" ? 4 : null,
     qualifiersPerGroup: format === "group_stage" ? 2 : null,
     seedingPolicy:
-      format === "group_stage" ? "snake_groups" : "standings_order",
+      format === "group_stage"
+        ? "snake_groups"
+        : format === "single_elimination"
+          ? "standard_bracket"
+          : "standings_order",
+    entrySeedingPolicy: "preserve",
+    resultSeedingPolicy: format === "group_stage" ? "rank_bands" : "standings_order",
+    randomSeed: null,
+    randomRevealOrder: "instant",
+    seedingAudit: null,
     winnerId: null,
     version: 1,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -407,16 +425,88 @@ test("zachowuje payload historycznego kreatora jednoetapowego", () => {
 test("rejects a group stage that would pass only one participant to another stage", () => {
   const stages: StageDraft[] = [
     {
-      clientId: "groups", name: "Groups", format: "group_stage",
+      ...createStageDraft(1, "group_stage"),
+      clientId: "groups", name: "Groups",
       participantCount: 4, bestOf: 1, groupCount: 1,
       participantsPerGroup: 4, qualifiersPerGroup: 1,
     },
     {
-      clientId: "playoff", name: "Playoff", format: "single_elimination",
+      ...createStageDraft(2, "single_elimination"),
+      clientId: "playoff", name: "Playoff",
       participantCount: 2, bestOf: 1,
     },
   ];
   assert.ok(validateStageDrafts(stages).some(
     (error) => error.field === "qualifiersPerGroup" && /co najmniej 2/.test(error.message),
   ));
+});
+
+
+test("zapisuje konfigurowalne seedowanie i rozmieszczenie w payloadzie", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 8,
+      groupCount: 2,
+      participantsPerGroup: 4,
+      qualifiersPerGroup: 4,
+      entrySeedingMethod: "alphabetical",
+      placementMethod: "random",
+      resultSeedingMethod: "global_ranking",
+      randomSeed: "public-draw-2026",
+      randomRevealOrder: "sequential",
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 8,
+      placementMethod: "standard",
+    },
+  ];
+
+  const plan = buildStagePlan(stages);
+  assert.equal(plan.stages[0].entrySeedingMethod, "alphabetical");
+  assert.equal(plan.stages[0].placementMethod, "random");
+  assert.equal(plan.stages[0].resultSeedingMethod, "global_ranking");
+  assert.equal(plan.stages[0].randomSeed, "public-draw-2026");
+  assert.equal(plan.stages[0].randomRevealOrder, "sequential");
+});
+
+test("podgląd losowego rozmieszczenia jest deterministyczny", () => {
+  const groups: StageDraft = {
+    ...createStageDraft(1, "group_stage"),
+    participantCount: 17,
+    groupCount: 4,
+    qualifiersPerGroup: 5,
+    placementMethod: "random",
+    randomSeed: "same-seed",
+  };
+  assert.deepEqual(previewGroupSeedPlacement(groups), previewGroupSeedPlacement(groups));
+
+  const bracket: StageDraft = {
+    ...createStageDraft(1, "single_elimination"),
+    participantCount: 17,
+    placementMethod: "random",
+    randomSeed: "same-seed",
+  };
+  assert.deepEqual(previewBracketPairs(bracket), previewBracketPairs(bracket));
+});
+
+test("wymaga klucza dla losowego seedowania lub rozmieszczenia", () => {
+  const stage = {
+    ...createStageDraft(1, "single_elimination"),
+    entrySeedingMethod: "random" as const,
+    randomSeed: "",
+  };
+  assert.ok(validateStageDrafts([stage]).some((error) => error.field === "randomSeed"));
+});
+
+test("domyślnie zachowuje dotychczasowe seedy uczestników", () => {
+  const firstStage = createStageDraft(1, "swiss");
+  const laterStage = createStageDraft(2, "single_elimination");
+
+  assert.equal(firstStage.entrySeedingMethod, "preserve");
+  assert.equal(laterStage.entrySeedingMethod, "preserve");
+
+  const plan = buildStagePlan([createStageDraft(1, "single_elimination")]);
+  assert.equal(plan.stages[0]?.entrySeedingMethod, "preserve");
 });

@@ -614,7 +614,7 @@ describe("Tournament Stages database integrity", () => {
            seeding_policy, started_at
          ) VALUES (
            $1, 'stage-2', 2, 'Etap 2', 'single_elimination', 'active',
-           0, 3, 'elimination_bracket_v1', 'none', 'standings_order', now()
+           0, 3, 'elimination_bracket_v1', 'none', 'standard_bracket', now()
          )`,
         [fixture.tournamentId],
       ),
@@ -652,7 +652,7 @@ describe("Tournament Stages database integrity", () => {
          tournament_id, stage_key, position, name, format, participant_count,
          best_of, ranking_policy, qualification_mode, seeding_policy
        ) VALUES ($1, 'stage-2', 2, 'Later stage', 'single_elimination', 0, 3,
-                 'elimination_bracket_v1', 'none', 'standings_order')`,
+                 'elimination_bracket_v1', 'none', 'standard_bracket')`,
       [first.tournamentId],
     );
     await expectDatabaseRejection(
@@ -718,7 +718,7 @@ describe("Tournament Stages database integrity", () => {
            tournament_id, stage_key, position, name, format, status,
            participant_count, best_of, ranking_policy, qualification_mode, seeding_policy
          ) VALUES ($1, 'stage-2', 2, 'Completed without time', 'single_elimination', 'completed',
-                   0, 3, 'elimination_bracket_v1', 'none', 'standings_order')`,
+                   0, 3, 'elimination_bracket_v1', 'none', 'standard_bracket')`,
         [fixture.tournamentId],
       ),
       "tournament_stages_lifecycle_timestamps",
@@ -730,7 +730,7 @@ describe("Tournament Stages database integrity", () => {
            participant_count, best_of, ranking_policy, qualification_mode,
            seeding_policy, completed_at
          ) VALUES ($1, 'stage-3', 3, 'Planned with completion', 'single_elimination', 'planned',
-                   0, 3, 'elimination_bracket_v1', 'none', 'standings_order', now())`,
+                   0, 3, 'elimination_bracket_v1', 'none', 'standard_bracket', now())`,
         [fixture.tournamentId],
       ),
       "tournament_stages_lifecycle_timestamps",
@@ -839,7 +839,7 @@ describe("Tournament Stages database integrity", () => {
          tournament_id, stage_key, position, name, format, participant_count,
          best_of, ranking_policy, qualification_mode, seeding_policy
        ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 0, 1,
-                 'elimination_bracket_v1', 'none', 'standings_order') RETURNING id`,
+                 'elimination_bracket_v1', 'none', 'standard_bracket') RETURNING id`,
       [first.tournamentId],
     );
     await expectDatabaseRejection(
@@ -867,10 +867,11 @@ describe("Tournament Stages database integrity", () => {
       `INSERT INTO tournament_stages (
          tournament_id, stage_key, position, name, format, participant_count,
          best_of, ranking_policy, qualification_mode, group_count,
-         participants_per_group, qualifiers_per_group, seeding_policy
+         participants_per_group, qualifiers_per_group, seeding_policy,
+         result_seeding_policy
        ) VALUES (
          $1, 'stage-2', 2, 'Groups', 'group_stage', 6,
-         3, 'group_v1', 'top_n_per_group', 2, 3, 1, 'snake_groups'
+         3, 'group_v1', 'top_n_per_group', 2, 3, 1, 'snake_groups', 'rank_bands'
        ) RETURNING id`,
       [fixture.tournamentId],
     );
@@ -921,10 +922,11 @@ describe("Tournament Stages database integrity", () => {
       `INSERT INTO tournament_stages (
          tournament_id, stage_key, position, name, format, participant_count,
          best_of, ranking_policy, qualification_mode, group_count,
-         participants_per_group, qualifiers_per_group, seeding_policy
+         participants_per_group, qualifiers_per_group, seeding_policy,
+         result_seeding_policy
        ) VALUES (
          $1, 'stage-2', 2, 'Flexible groups', 'group_stage', 11,
-         1, 'group_v1', 'top_n_per_group', 5, 3, 3, 'snake_groups'
+         1, 'group_v1', 'top_n_per_group', 5, 3, 3, 'snake_groups', 'rank_bands'
        ) RETURNING id`,
       [fixture.tournamentId],
     );
@@ -1041,7 +1043,7 @@ describe("Tournament Stages database integrity", () => {
          tournament_id, stage_key, position, name, format, participant_count,
          best_of, ranking_policy, qualification_mode, seeding_policy
        ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 1, 3,
-                 'elimination_bracket_v1', 'none', 'standings_order')
+                 'elimination_bracket_v1', 'none', 'standard_bracket')
        RETURNING id`,
       [fixture.tournamentId],
     );
@@ -1053,4 +1055,51 @@ describe("Tournament Stages database integrity", () => {
       "tournament_stages_winner_same_stage_fk",
     );
   });
+
+  test("enforces configurable seeding, deterministic random keys and audit shape", async () => {
+    const fixture = await createDraftTournament("round_robin", 2);
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        "UPDATE tournament_stages SET entry_seeding_policy = 'random' WHERE id = $1",
+        [fixture.stageId],
+      ),
+      "tournament_stages_random_seed_configuration",
+    );
+    await database.pool.query(
+      `UPDATE tournament_stages
+       SET entry_seeding_policy = 'random', random_seed = 'draw-2026',
+           random_reveal_order = 'sequential'
+       WHERE id = $1`,
+      [fixture.stageId],
+    );
+    const [configured] = await rows<{
+      entry_seeding_policy: string;
+      random_seed: string;
+      random_reveal_order: string;
+    }>(
+      `SELECT entry_seeding_policy, random_seed, random_reveal_order
+       FROM tournament_stages WHERE id = $1`,
+      [fixture.stageId],
+    );
+    assert.deepEqual(configured, {
+      entry_seeding_policy: "random",
+      random_seed: "draw-2026",
+      random_reveal_order: "sequential",
+    });
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        "UPDATE tournament_stages SET seeding_audit = '[]'::jsonb WHERE id = $1",
+        [fixture.stageId],
+      ),
+      "tournament_stages_seeding_audit_shape",
+    );
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        "UPDATE tournament_stages SET result_seeding_policy = 'global_ranking' WHERE id = $1",
+        [fixture.stageId],
+      ),
+      "tournament_stages_result_seeding_configuration",
+    );
+  });
+
 });

@@ -74,8 +74,18 @@ function persistedStage(
       stage.format === "group_stage" ? stage.qualifiersPerGroup : null,
     seedingPolicy:
       stage.format === "group_stage"
-        ? "snake_groups"
+        ? stage.placementMethod === "random" ? "random_groups" : "snake_groups"
+        : stage.format === "single_elimination"
+          ? stage.placementMethod === "random" ? "random_bracket" : "standard_bracket"
+          : "standings_order",
+    entrySeedingPolicy: stage.entrySeedingMethod,
+    resultSeedingPolicy:
+      stage.format === "group_stage"
+        ? stage.resultSeedingMethod === "global_ranking" ? "global_ranking" : "rank_bands"
         : "standings_order",
+    randomSeed: stage.randomSeed ?? null,
+    randomRevealOrder: stage.randomRevealOrder,
+    seedingAudit: null,
   };
 }
 
@@ -133,6 +143,11 @@ export async function createTournamentWithStagePlan(input: {
         participantsPerGroup: firstValues.participantsPerGroup,
         qualifiersPerGroup: firstValues.qualifiersPerGroup,
         seedingPolicy: firstValues.seedingPolicy,
+        entrySeedingPolicy: firstValues.entrySeedingPolicy,
+        resultSeedingPolicy: firstValues.resultSeedingPolicy,
+        randomSeed: firstValues.randomSeed,
+        randomRevealOrder: firstValues.randomRevealOrder,
+        seedingAudit: firstValues.seedingAudit,
       })
       .where(eq(tournamentStagesTable.id, generated.id));
 
@@ -191,6 +206,7 @@ export async function addPlayerWithStagePlanCompatibility(
         participantsPerGroup: null,
         qualifiersPerGroup: null,
         seedingPolicy: "standings_order",
+        resultSeedingPolicy: "standings_order",
       })
       .where(eq(tournamentStagesTable.id, firstStage.id));
     const [created] = await tx.insert(playersTable).values(values).returning();
@@ -206,6 +222,7 @@ export async function addPlayerWithStagePlanCompatibility(
         participantsPerGroup: firstStage.participantsPerGroup,
         qualifiersPerGroup: firstStage.qualifiersPerGroup,
         seedingPolicy: firstStage.seedingPolicy,
+        resultSeedingPolicy: firstStage.resultSeedingPolicy,
       })
       .where(eq(tournamentStagesTable.id, firstStage.id));
     return created;

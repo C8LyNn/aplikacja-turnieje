@@ -17,6 +17,14 @@ export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_TASK =
   "flexible_group_stages_v2_development_preflight";
 export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_TASK =
   "flexible_group_stages_v2_development_migrate";
+export const CONFIGURABLE_SEEDING_V2_PREFLIGHT_TASK =
+  "configurable_seeding_v2_preflight";
+export const CONFIGURABLE_SEEDING_V2_MIGRATE_TASK =
+  "configurable_seeding_v2_migrate";
+export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_TASK =
+  "configurable_seeding_v2_development_preflight";
+export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_TASK =
+  "configurable_seeding_v2_development_migrate";
 
 export const SERIES_V1_PREFLIGHT_SCRIPT = "reset:series-v1:preflight";
 export const SERIES_V1_RESET_SCRIPT = "reset:series-v1:destructive";
@@ -35,6 +43,14 @@ export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT =
   "migrate:flexible-group-stages:development:preflight";
 export const FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT =
   "migrate:flexible-group-stages:development";
+export const CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT =
+  "migrate:configurable-seeding:preflight";
+export const CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT =
+  "migrate:configurable-seeding";
+export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT =
+  "migrate:configurable-seeding:development:preflight";
+export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT =
+  "migrate:configurable-seeding:development";
 
 type DeploymentEnvironment = Readonly<Record<string, string | undefined>>;
 type DatabaseScript =
@@ -47,7 +63,11 @@ type DatabaseScript =
   | typeof FLEXIBLE_GROUP_STAGES_V2_PREFLIGHT_SCRIPT
   | typeof FLEXIBLE_GROUP_STAGES_V2_MIGRATE_SCRIPT
   | typeof FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_PREFLIGHT_SCRIPT
-  | typeof FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT;
+  | typeof FLEXIBLE_GROUP_STAGES_V2_DEVELOPMENT_MIGRATE_SCRIPT
+  | typeof CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT
+  | typeof CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT
+  | typeof CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT
+  | typeof CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT;
 
 export interface DeploymentTaskDependencies {
   runDatabaseScript: (script: DatabaseScript) => Promise<number>;
@@ -66,7 +86,11 @@ export interface DeploymentTaskResult {
     | "flexible_group_stages_preflight"
     | "flexible_group_stages_migrate"
     | "flexible_group_stages_development_preflight"
-    | "flexible_group_stages_development_migrate";
+    | "flexible_group_stages_development_migrate"
+    | "configurable_seeding_preflight"
+    | "configurable_seeding_migrate"
+    | "configurable_seeding_development_preflight"
+    | "configurable_seeding_development_migrate";
   apiStarted: boolean;
   exitCode: number;
 }
@@ -259,6 +283,56 @@ export async function runDeploymentStartup(
     await dependencies.startApi();
     return {
       mode: "flexible_group_stages_development_migrate",
+      apiStarted: true,
+      exitCode: 0,
+    };
+  }
+
+  if (task === CONFIGURABLE_SEEDING_V2_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT,
+    );
+    return { mode: "configurable_seeding_preflight", apiStarted: false, exitCode };
+  }
+
+  if (task === CONFIGURABLE_SEEDING_V2_MIGRATE_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT,
+    );
+    if (exitCode !== 0) {
+      throw new DeploymentTaskError(
+        `The ${CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT} deployment task failed with exit code ${exitCode}.`,
+        exitCode,
+      );
+    }
+    await dependencies.startApi();
+    return { mode: "configurable_seeding_migrate", apiStarted: true, exitCode: 0 };
+  }
+
+  if (task === CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT,
+    );
+    return {
+      mode: "configurable_seeding_development_preflight",
+      apiStarted: false,
+      exitCode,
+    };
+  }
+
+  if (task === CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT,
+    );
+    if (exitCode !== 0) {
+      throw new DeploymentTaskError(
+        `The ${CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT} deployment task failed with exit code ${exitCode}.`,
+        exitCode,
+      );
+    }
+    await dependencies.startApi();
+    return {
+      mode: "configurable_seeding_development_migrate",
       apiStarted: true,
       exitCode: 0,
     };
