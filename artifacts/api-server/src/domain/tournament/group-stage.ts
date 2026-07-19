@@ -1,3 +1,6 @@
+import { assignSeeds } from "./seeding";
+import { buildSnakeGroupPlacements } from "./stage-placement";
+
 export interface GroupStageRankingEntry {
   playerId: number;
   groupKey: string;
@@ -92,30 +95,13 @@ export function buildSnakeGroupAssignments(
   groupCount: number,
 ): number[] {
   const groupSizes = calculateBalancedGroupSizes(participantCount, groupCount);
-  const largestGroupSize = Math.max(...groupSizes);
-  const assignments: number[] = [];
-
-  for (let tier = 0; tier < largestGroupSize; tier += 1) {
-    const groupIndexes = Array.from({ length: groupCount }, (_, index) => index);
-    if (tier % 2 === 1) groupIndexes.reverse();
-    for (const groupIndex of groupIndexes) {
-      if (groupSizes[groupIndex] > tier) assignments.push(groupIndex);
-    }
-  }
-
-  if (assignments.length !== participantCount) {
-    throw new Error("Unable to build a complete snake group assignment.");
-  }
-  return assignments;
-}
-
-function compareRate(
-  leftValue: number,
-  leftDivisor: number,
-  rightValue: number,
-  rightDivisor: number,
-): number {
-  return rightValue * leftDivisor - leftValue * rightDivisor;
+  return buildSnakeGroupPlacements(
+    Array.from({ length: participantCount }, (_, index) => ({
+      participantKey: String(index + 1),
+      seed: index + 1,
+    })),
+    groupSizes,
+  ).map((placement) => placement.groupIndex);
 }
 
 /**
@@ -126,43 +112,39 @@ function compareRate(
 export function seedQualifiedGroupEntries<T extends GroupStageRankingEntry>(
   entries: readonly T[],
 ): Array<T & { nextStageSeed: number }> {
-  const ordered = [...entries].sort((left, right) => {
-    if (left.groupRank !== right.groupRank) return left.groupRank - right.groupRank;
-
-    const leftMatches = Math.max(1, left.matchWins + left.matchLosses);
-    const rightMatches = Math.max(1, right.matchWins + right.matchLosses);
-
-    const winRate = compareRate(
-      left.matchWins,
-      leftMatches,
-      right.matchWins,
-      rightMatches,
-    );
-    if (winRate !== 0) return winRate;
-
-    const gameDiffRate = compareRate(
-      left.gameDiff,
-      leftMatches,
-      right.gameDiff,
-      rightMatches,
-    );
-    if (gameDiffRate !== 0) return gameDiffRate;
-
-    const gameWinRate = compareRate(
-      left.gameWins,
-      leftMatches,
-      right.gameWins,
-      rightMatches,
-    );
-    if (gameWinRate !== 0) return gameWinRate;
-
-    if (left.stageSeed !== right.stageSeed) return left.stageSeed - right.stageSeed;
-    if (left.groupKey !== right.groupKey) return left.groupKey.localeCompare(right.groupKey);
-    return left.playerId - right.playerId;
-  });
-
-  return ordered.map((entry, index) => ({
-    ...entry,
-    nextStageSeed: index + 1,
+  const result = assignSeeds(
+    entries.map((entry) => {
+      const matches = Math.max(1, entry.matchWins + entry.matchLosses);
+      return {
+        participantKey: String(entry.playerId),
+        displayName: String(entry.playerId),
+        previousSeed: entry.stageSeed,
+        rankBand: entry.groupRank,
+        metrics: {
+          match_win_rate: entry.matchWins / matches,
+          game_diff_per_match: entry.gameDiff / matches,
+          game_wins_per_match: entry.gameWins / matches,
+          group_key: entry.groupKey,
+        },
+        source: entry,
+      };
+    }),
+    {
+      type: "rank_bands",
+      withinBand: [
+        { field: "metric:match_win_rate", direction: "descending" },
+        { field: "metric:game_diff_per_match", direction: "descending" },
+        { field: "metric:game_wins_per_match", direction: "descending" },
+        { field: "previous_seed", direction: "ascending" },
+        { field: "metric:group_key", direction: "ascending" },
+      ],
+    },
+  );
+  if ("problems" in result) {
+    throw new Error(`Unable to seed group qualifiers: ${result.problems.map((problem) => problem.code).join(", ")}`);
+  }
+  return result.seeded.map(({ entry, seed }) => ({
+    ...entry.source,
+    nextStageSeed: seed,
   }));
 }

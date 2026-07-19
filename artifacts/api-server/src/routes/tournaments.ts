@@ -43,6 +43,7 @@ import {
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
+import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
 import {
   CreateTournamentBody,
@@ -304,71 +305,58 @@ async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[]) {
 
 // ========== BRACKET GENERATION ==========
 
-function nextPow2(n: number): number {
-  return Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
-}
-
-/**
- * Standard single-elimination bracket seeding positions.
- * Returns an array of seed ranks (1-indexed) in bracket slot order.
- * Guarantees: seeds 1 & 2 can only meet in the final, 1–4 in semis, etc.
- * Example (size=8): [1, 8, 5, 4, 3, 6, 7, 2] — no, correct is [1,8,4,5,2,7,3,6]
- * Algorithm: recursively interleave prev positions with their complements.
- */
-function generateBracketPositions(size: number): number[] {
-  if (size === 2) return [1, 2];
-  const prev = generateBracketPositions(size / 2);
-  const result: number[] = [];
-  for (const seed of prev) {
-    result.push(seed);
-    result.push(size + 1 - seed);
-  }
-  return result;
-}
-
 function generateSingleElimination(
   players: (typeof playersTable.$inferSelect)[],
   tournamentId: number,
   defaultBestOf: number,
 ) {
-  const seeded = [...players].sort((a, b) => (a.seed ?? 999) - (b.seed ?? 999));
-  const n = seeded.length;
-  const bracketSize = nextPow2(n);
-  const totalRounds = Math.ceil(Math.log2(bracketSize));
-
+  const ordered = [...players].sort((left, right) =>
+    (left.seed ?? Number.MAX_SAFE_INTEGER) - (right.seed ?? Number.MAX_SAFE_INTEGER) ||
+    left.createdAt.getTime() - right.createdAt.getTime() ||
+    left.id - right.id,
+  );
+  const playerByKey = new Map(ordered.map((player) => [String(player.id), player]));
+  const bracket = buildStandardSeededBracket(
+    ordered.map((player, index) => ({ participantKey: String(player.id), seed: index + 1 })),
+  );
+  const totalRounds = Math.ceil(Math.log2(bracket.bracketSize));
   const matches: (typeof matchesTable.$inferInsert)[] = [];
+  const now = new Date();
 
-  const positions = generateBracketPositions(bracketSize);
-
-  const firstRoundCount = bracketSize / 2;
-  for (let i = 0; i < firstRoundCount; i++) {
-    const seed1 = positions[i * 2];
-    const seed2 = positions[i * 2 + 1];
-    const p1 = seeded[seed1 - 1] ?? null;
-    const p2 = seeded[seed2 - 1] ?? null;
-    const isBye = p1 && !p2;
+  for (const pairing of bracket.firstRound) {
+    const player1 = pairing.player1.participant == null
+      ? null
+      : playerByKey.get(pairing.player1.participant.participantKey) ?? null;
+    const player2 = pairing.player2.participant == null
+      ? null
+      : playerByKey.get(pairing.player2.participant.participantKey) ?? null;
+    const byeWinner = pairing.byeWinner == null
+      ? null
+      : playerByKey.get(pairing.byeWinner.participantKey) ?? null;
     matches.push({
       tournamentId,
       round: 1,
-      matchNumber: i + 1,
-      player1Id: p1?.id ?? null,
-      player2Id: p2?.id ?? null,
+      matchNumber: pairing.matchNumber,
+      player1Id: player1?.id ?? null,
+      player2Id: player2?.id ?? null,
       bestOf: defaultBestOf,
-      status: isBye ? "completed" : "pending",
-      resultType: isBye ? "bye" : null,
-      resultReason: isBye ? "system_bye" : null,
-      winnerId: isBye ? p1!.id : null,
-      completedAt: isBye ? new Date() : null,
+      status: byeWinner == null ? "pending" : "completed",
+      resultType: byeWinner == null ? null : "bye",
+      resultReason: byeWinner == null ? null : "system_bye",
+      winnerId: byeWinner?.id ?? null,
+      completedAt: byeWinner == null ? null : now,
     });
   }
 
-  for (let r = 2; r <= totalRounds; r++) {
-    const count = Math.pow(2, totalRounds - r);
-    for (let i = 0; i < count; i++) {
+  for (let round = 2; round <= totalRounds; round += 1) {
+    const count = 2 ** (totalRounds - round);
+    for (let index = 0; index < count; index += 1) {
       matches.push({
         tournamentId,
-        round: r,
-        matchNumber: i + 1,
+        round,
+        matchNumber: index + 1,
+        player1Id: null,
+        player2Id: null,
         bestOf: defaultBestOf,
         status: "pending",
       });

@@ -20,6 +20,10 @@ import {
 } from "../../domain/tournament/group-stage";
 import { generateRoundRobinSchedule } from "../../domain/tournament/round-robin";
 import {
+  buildStandardSeededBracket,
+  nextPowerOfTwo,
+} from "../../domain/tournament/stage-placement";
+import {
   rankRoundRobinOrGroup,
   rankSwissStage,
   type StageHeadToHeadResult,
@@ -105,16 +109,6 @@ export interface QualificationPreview {
     qualificationSource: "standings" | "group_position";
     nextStageSeed: number;
   }>;
-}
-
-function nextPowerOfTwo(value: number): number {
-  return 2 ** Math.ceil(Math.log2(Math.max(2, value)));
-}
-
-function bracketPositions(size: number): number[] {
-  if (size === 2) return [1, 2];
-  const previous = bracketPositions(size / 2);
-  return previous.flatMap((seed) => [seed, size + 1 - seed]);
 }
 
 function assertStageComplete(
@@ -741,22 +735,34 @@ function generateStageMatches(params: {
     };
   }
   if (stage.format === "single_elimination") {
-    const ordered = [...players].sort((left, right) => (left.seed ?? Number.MAX_SAFE_INTEGER) - (right.seed ?? Number.MAX_SAFE_INTEGER));
-    const size = nextPowerOfTwo(ordered.length);
-    const totalRounds = Math.ceil(Math.log2(size));
-    const positions = bracketPositions(size);
+    const playerByKey = new Map(players.map((player) => [String(player.id), player]));
+    const bracket = buildStandardSeededBracket(
+      players.map((player) => ({
+        participantKey: String(player.id),
+        seed: player.seed ?? 0,
+      })),
+    );
+    const totalRounds = Math.ceil(Math.log2(bracket.bracketSize));
     const values: Array<typeof matchesTable.$inferInsert> = [];
     const now = new Date();
-    for (let index = 0; index < size / 2; index += 1) {
-      const player1 = ordered[positions[index * 2] - 1] ?? null;
-      const player2 = ordered[positions[index * 2 + 1] - 1] ?? null;
-      const bye = player1 != null && player2 == null;
+    for (const pairing of bracket.firstRound) {
+      const player1 = pairing.player1.participant == null
+        ? null
+        : playerByKey.get(pairing.player1.participant.participantKey) ?? null;
+      const player2 = pairing.player2.participant == null
+        ? null
+        : playerByKey.get(pairing.player2.participant.participantKey) ?? null;
+      const byeWinner = pairing.byeWinner == null
+        ? null
+        : playerByKey.get(pairing.byeWinner.participantKey) ?? null;
       values.push({
-        tournamentId, stageId, round: 1, matchNumber: index + 1,
+        tournamentId, stageId, round: 1, matchNumber: pairing.matchNumber,
         player1Id: player1?.id ?? null, player2Id: player2?.id ?? null,
-        bestOf: stage.bestOf, status: bye ? "completed" : "pending",
-        resultType: bye ? "bye" : null, resultReason: bye ? "system_bye" : null,
-        winnerId: bye ? player1.id : null, completedAt: bye ? now : null,
+        bestOf: stage.bestOf, status: byeWinner == null ? "pending" : "completed",
+        resultType: byeWinner == null ? null : "bye",
+        resultReason: byeWinner == null ? null : "system_bye",
+        winnerId: byeWinner?.id ?? null,
+        completedAt: byeWinner == null ? null : now,
       });
     }
     for (let round = 2; round <= totalRounds; round += 1) {
