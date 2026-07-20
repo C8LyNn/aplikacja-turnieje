@@ -98,7 +98,7 @@ export const CreateTournamentBody = zod.object({
   "participantCount": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantCountMin),
   "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
   "rounds": zod.number().min(1).optional(),
-  "advancingCount": zod.number().min(createTournamentBodyStagePlanStagesItemAdvancingCountMin).optional(),
+  "advancingCount": zod.number().min(createTournamentBodyStagePlanStagesItemAdvancingCountMin).optional().describe('Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.'),
   "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
   "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
   "qualifiersPerGroup": zod.number().min(1).optional().describe('Maximum qualifiers taken from each group. Smaller groups may qualify everyone.'),

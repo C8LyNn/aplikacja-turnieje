@@ -88,8 +88,89 @@ export function groupAdvancingCount(stage: Pick<StageDraft, "participantCount" |
 
 export function stageOutputParticipantCount(stage: Pick<StageDraft, "format" | "participantCount" | "advancingCount" | "groupCount" | "qualifiersPerGroup">): number {
   if (stage.format === "group_stage") return groupAdvancingCount(stage);
-  if (stage.format === "swiss" || stage.format === "round_robin") return stage.advancingCount ?? stage.participantCount;
+  if (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination") {
+    return stage.advancingCount ?? (stage.format === "single_elimination" ? 1 : stage.participantCount);
+  }
   return 1;
+}
+
+function nextPowerOfTwo(value: number): number {
+  return 2 ** Math.ceil(Math.log2(Math.max(2, value)));
+}
+
+export function singleEliminationAdvancingOptions(participantCount: number): number[] {
+  if (!Number.isInteger(participantCount) || participantCount < 2) return [];
+  const options: number[] = [];
+  for (let remaining = nextPowerOfTwo(participantCount) / 2; remaining >= 1; remaining /= 2) {
+    options.push(remaining);
+  }
+  return options;
+}
+
+export function singleEliminationStageMetrics(
+  stage: Pick<StageDraft, "participantCount" | "advancingCount">,
+): { advancingCount: number; rounds: number; matchCount: number; bracketSize: number } | null {
+  const advancingCount = stage.advancingCount ?? 1;
+  if (!singleEliminationAdvancingOptions(stage.participantCount).includes(advancingCount)) return null;
+  const bracketSize = nextPowerOfTwo(stage.participantCount);
+  return {
+    advancingCount,
+    rounds: Math.log2(bracketSize / advancingCount),
+    matchCount: stage.participantCount - advancingCount,
+    bracketSize,
+  };
+}
+
+function normalizeStageForFlow(stage: StageDraft, participantCount: number, isLast: boolean): StageDraft {
+  let normalized: StageDraft = { ...stage, participantCount };
+  if (normalized.format === "group_stage") {
+    const maxGroups = Math.max(1, Math.floor(participantCount / 2));
+    const groupCount = Math.min(Math.max(1, normalized.groupCount ?? 2), maxGroups);
+    const sizes = balancedGroupSizes(participantCount, groupCount);
+    const largest = Math.max(...sizes);
+    let qualifiersPerGroup = Math.min(Math.max(1, normalized.qualifiersPerGroup ?? 2), largest);
+    if (!isLast && sizes.reduce((sum, size) => sum + Math.min(size, qualifiersPerGroup), 0) < 2) {
+      qualifiersPerGroup = Math.min(2, largest);
+    }
+    normalized = {
+      ...normalized,
+      groupCount,
+      participantsPerGroup: largest,
+      qualifiersPerGroup,
+    };
+  }
+  if (isLast) return { ...normalized, advancingCount: undefined };
+  if (normalized.format === "single_elimination") {
+    const options = singleEliminationAdvancingOptions(participantCount);
+    return {
+      ...normalized,
+      advancingCount: options.includes(normalized.advancingCount ?? 0)
+        ? normalized.advancingCount
+        : options[0],
+    };
+  }
+  if (normalized.format === "swiss" || normalized.format === "round_robin") {
+    const current = normalized.advancingCount;
+    return {
+      ...normalized,
+      advancingCount: Number.isInteger(current) && current! >= 2 && current! <= participantCount
+        ? current
+        : Math.max(2, Math.min(participantCount, Math.floor(participantCount / 2))),
+    };
+  }
+  return normalized;
+}
+
+/** Recomputes every derived input count without mutating the form state. */
+export function synchronizeStageParticipantFlow(stages: readonly StageDraft[]): StageDraft[] {
+  const result: StageDraft[] = [];
+  stages.forEach((stage, index) => {
+    const participantCount = index === 0
+      ? stage.participantCount
+      : stageOutputParticipantCount(result[index - 1]);
+    result.push(normalizeStageForFlow(stage, participantCount, index === stages.length - 1));
+  });
+  return result;
 }
 
 function defaultPlacement(format: StageFormat): StagePlacementMethod {
@@ -106,7 +187,7 @@ export function createStageDraft(position: number, format: StageFormat = "swiss"
     participantCount: 8,
     bestOf: 1,
     rounds: format === "swiss" ? 3 : undefined,
-    advancingCount: 4,
+    advancingCount: format === "swiss" || format === "round_robin" ? 4 : undefined,
     groupCount: format === "group_stage" ? 2 : undefined,
     participantsPerGroup: format === "group_stage" ? 4 : undefined,
     qualifiersPerGroup: format === "group_stage" ? 2 : undefined,
@@ -119,7 +200,7 @@ export function createStageDraft(position: number, format: StageFormat = "swiss"
 }
 
 export function normalizeStageDrafts(stages: StageDraft[]): StageDraft[] {
-  return stages.map((stage, index) => ({
+  return synchronizeStageParticipantFlow(stages.map((stage, index) => ({
     ...stage,
     name: /^Etap \d+$/.test(stage.name) ? `Etap ${index + 1}` : stage.name,
     entrySeedingMethod: stage.entrySeedingMethod ?? "preserve",
@@ -127,7 +208,7 @@ export function normalizeStageDrafts(stages: StageDraft[]): StageDraft[] {
     resultSeedingMethod: stage.resultSeedingMethod ?? "rank_bands",
     randomRevealOrder: stage.randomRevealOrder ?? "instant",
     randomSeed: stage.randomSeed ?? `stage-${index + 1}-seed`,
-  }));
+  })));
 }
 
 export function stageUsesRandom(stage: Pick<StageDraft, "format" | "entrySeedingMethod" | "placementMethod">): boolean {
@@ -152,8 +233,17 @@ export function validateStageDrafts(stages: StageDraft[]): StagePlanValidationEr
     if (stageUsesRandom(stage) && (!stage.randomSeed?.trim() || stage.randomSeed.trim().length > 200)) errors.push({ stageIndex: index, field: "randomSeed", message: "Losowe seedowanie wymaga klucza losowania od 1 do 200 znaków." });
     if (stage.format === "swiss" && (!Number.isInteger(stage.rounds) || (stage.rounds ?? 0) < 1)) errors.push({ stageIndex: index, field: "rounds", message: `Etap ${index + 1} wymaga liczby rund Swiss.` });
     if (stage.format === "single_elimination") {
-      if (!isLast) errors.push({ stageIndex: index, field: "format", message: "Single Elimination może być wyłącznie ostatnim etapem." });
       if (!["standard", "random"].includes(stage.placementMethod)) errors.push({ stageIndex: index, field: "placementMethod", message: "Drabinka wymaga standardowego albo losowego rozmieszczenia." });
+      if (!isLast) {
+        const options = singleEliminationAdvancingOptions(stage.participantCount);
+        if (!options.includes(stage.advancingCount ?? 0)) {
+          errors.push({
+            stageIndex: index,
+            field: "advancingCount",
+            message: `Drabinka kwalifikacyjna może przekazać wyłącznie: ${options.join(", ")} uczestników.`,
+          });
+        }
+      }
     } else if (stage.format !== "group_stage" && stage.placementMethod !== "standings_order") {
       errors.push({ stageIndex: index, field: "placementMethod", message: "Ten format używa kolejności seedów bez dodatkowego rozmieszczenia." });
     }
@@ -176,7 +266,7 @@ export function validateStageDrafts(stages: StageDraft[]): StagePlanValidationEr
   for (let index = 0; index < stages.length - 1; index += 1) {
     const stage = stages[index];
     const next = stages[index + 1];
-    const advancing = stage.format === "group_stage" ? groupAdvancingCount(stage) : (stage.advancingCount ?? 0);
+    const advancing = stageOutputParticipantCount(stage);
     if (advancing !== next.participantCount) errors.push({ stageIndex: index, field: stage.format === "group_stage" ? "qualifiersPerGroup" : "advancingCount", message: `Etap ${index + 1} przekazuje ${advancing} osób, a etap ${index + 2} oczekuje ${next.participantCount}.` });
   }
   return errors;
@@ -232,9 +322,6 @@ export function previewGroupSeedPlacement(stage: StageDraft): number[][] {
   return groups;
 }
 
-function nextPowerOfTwo(value: number): number {
-  return 2 ** Math.ceil(Math.log2(Math.max(2, value)));
-}
 function standardBracketSeedOrder(size: number): number[] {
   if (size === 2) return [1, 2];
   const previous = standardBracketSeedOrder(size / 2);
@@ -275,7 +362,7 @@ export function buildStagePlan(stages: StageDraft[]): TournamentStagePlanInput {
         randomSeed: stageUsesRandom(stage) ? stage.randomSeed?.trim() : undefined,
       };
       if (stage.format === "swiss") item.rounds = stage.rounds;
-      if (!isLast && (stage.format === "swiss" || stage.format === "round_robin")) item.advancingCount = stage.advancingCount;
+      if (!isLast && (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination")) item.advancingCount = stage.advancingCount;
       if (stage.format === "group_stage") {
         const sizes = balancedGroupSizes(stage.participantCount, stage.groupCount ?? 0);
         item.groupCount = stage.groupCount;

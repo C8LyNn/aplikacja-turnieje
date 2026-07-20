@@ -118,6 +118,76 @@ async function prepareCompletedSource(sourceFormat: SourceFormat): Promise<{
   return { fixture, matchIds, previewPlayerIds: preview.qualifiers.map((entry) => entry.playerId) };
 }
 
+async function createEliminationQualifierPlan(
+  participantCount: number,
+  advancingCount: number,
+): Promise<PlanFixture> {
+  const suffix = randomUUID();
+  const [tournament] = await database.db.insert(database.tournamentsTable).values({
+    name: `Elimination qualifier ${participantCount}-${advancingCount}-${suffix}`,
+    format: "single_elimination",
+    status: "draft",
+    visibility: "public_online",
+    defaultBestOf: 1,
+  }).returning();
+  const players = await database.db.insert(database.playersTable).values(
+    Array.from({ length: participantCount }, (_, index) => ({
+      tournamentId: tournament.id,
+      name: `E${index + 1}-${suffix}`,
+      seed: index + 1,
+    })),
+  ).returning();
+  const [sourceStage] = await database.db.select().from(database.tournamentStagesTable)
+    .where(eq(database.tournamentStagesTable.tournamentId, tournament.id));
+  const [configuredSource] = await database.db.update(database.tournamentStagesTable).set({
+    format: "single_elimination",
+    qualificationMode: "top_n",
+    advancingCount,
+    participantCount,
+    plannedRounds: null,
+    rankingPolicy: "elimination_bracket_v1",
+    seedingPolicy: "standard_bracket",
+  }).where(eq(database.tournamentStagesTable.id, sourceStage.id)).returning();
+  const [targetStage] = await database.db.insert(database.tournamentStagesTable).values({
+    tournamentId: tournament.id,
+    stageKey: "stage-2",
+    position: 2,
+    name: "Terminal play-off",
+    format: "single_elimination",
+    status: "planned",
+    participantCount: advancingCount,
+    bestOf: 1,
+    rankingPolicy: "elimination_bracket_v1",
+    qualificationMode: "none",
+    seedingPolicy: "standard_bracket",
+  }).returning();
+  return {
+    tournamentId: tournament.id,
+    sourceStageId: configuredSource.id,
+    targetStageId: targetStage.id,
+    playerIds: players.map((player) => player.id),
+    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
+  };
+}
+
+async function completePlayableEliminationMatches(stageId: number): Promise<number> {
+  let completed = 0;
+  while (true) {
+    const playable = await database.pool.query(
+      `SELECT id FROM matches
+       WHERE stage_id = $1 AND status = 'pending'
+         AND player1_id IS NOT NULL AND player2_id IS NOT NULL
+       ORDER BY round, match_number`,
+      [stageId],
+    );
+    if (playable.rows.length === 0) return completed;
+    for (const row of playable.rows as Array<{ id: number }>) {
+      await completeMatch({ matchId: row.id, resultType: "played", score1: 1, score2: 0 });
+      completed += 1;
+    }
+  }
+}
+
 before(async () => {
   testConfig = getSafeTestDatabaseConfig();
   process.env.NODE_ENV = "test";
@@ -502,5 +572,74 @@ describe("Tournament stages lifecycle", () => {
     assert.equal(state.rows[0].winner_id, preview.ranking[0].playerId);
     assert.equal(state.rows[0].stage_status, "completed");
     assert.ok(state.rows[0].completed_at instanceof Date);
+  });
+
+  test("ends a 16 to 8 qualifying bracket after one round and does not finalize the tournament", async () => {
+    const fixture = await createEliminationQualifierPlan(16, 8);
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    const generated = await database.pool.query(
+      "SELECT round, count(*)::int AS count FROM matches WHERE stage_id = $1 GROUP BY round ORDER BY round",
+      [fixture.sourceStageId],
+    );
+    assert.deepEqual(generated.rows, [{ round: 1, count: 8 }]);
+    assert.equal(await completePlayableEliminationMatches(fixture.sourceStageId), 8);
+    const result = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    assert.equal(result.qualifiers.length, 8);
+    const state = await database.pool.query(
+      `SELECT tournament.status, tournament.active_stage_id,
+              (SELECT count(*)::int FROM stage_participants WHERE stage_id = $2) AS next_count
+       FROM tournaments tournament WHERE tournament.id = $1`,
+      [fixture.tournamentId, fixture.targetStageId],
+    );
+    assert.deepEqual(state.rows[0], { status: "active", active_stage_id: null, next_count: 8 });
+    assert.deepEqual(result.qualifiers.map((entry) => entry.nextStageSeed), [1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+
+  test("generates exactly two rounds and twelve matches for a 16 to 4 qualifier", async () => {
+    const fixture = await createEliminationQualifierPlan(16, 4);
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    const generated = await database.pool.query(
+      "SELECT round, count(*)::int AS count FROM matches WHERE stage_id = $1 GROUP BY round ORDER BY round",
+      [fixture.sourceStageId],
+    );
+    assert.deepEqual(generated.rows, [{ round: 1, count: 8 }, { round: 2, count: 4 }]);
+    assert.equal(await completePlayableEliminationMatches(fixture.sourceStageId), 12);
+    const result = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    assert.equal(result.qualifiers.length, 4);
+  });
+
+  test("handles a 17 to 16 boundary with fifteen BYEs and one played match", async () => {
+    const fixture = await createEliminationQualifierPlan(17, 16);
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    const generated = await database.pool.query(
+      `SELECT count(*)::int AS total,
+              count(*) FILTER (WHERE result_type = 'bye')::int AS byes,
+              count(*) FILTER (WHERE status = 'pending')::int AS pending
+       FROM matches WHERE stage_id = $1`,
+      [fixture.sourceStageId],
+    );
+    assert.deepEqual(generated.rows[0], { total: 16, byes: 15, pending: 1 });
+    assert.equal(await completePlayableEliminationMatches(fixture.sourceStageId), 1);
+    const result = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    assert.equal(result.qualifiers.length, 16);
+  });
+
+  test("still completes a terminal 8 to 1 bracket after an intermediate qualifier", async () => {
+    const fixture = await createEliminationQualifierPlan(16, 8);
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    await completePlayableEliminationMatches(fixture.sourceStageId);
+    await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.sourceStageId });
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
+    assert.equal(await completePlayableEliminationMatches(fixture.targetStageId), 7);
+    const result = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
+    assert.equal(result.qualifiers.length, 0);
+    assert.equal(result.ranking.length, 8);
+    const state = await database.pool.query(
+      "SELECT status, active_stage_id, winner_id FROM tournaments WHERE id = $1",
+      [fixture.tournamentId],
+    );
+    assert.equal(state.rows[0].status, "completed");
+    assert.equal(state.rows[0].active_stage_id, null);
+    assert.equal(state.rows[0].winner_id, result.ranking[0].playerId);
   });
 });

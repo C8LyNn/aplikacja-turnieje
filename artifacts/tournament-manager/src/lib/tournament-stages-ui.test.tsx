@@ -27,10 +27,14 @@ import {
   previewBracketPairs,
   previewGroupSeedPlacement,
   stageOutputParticipantCount,
+  singleEliminationAdvancingOptions,
+  singleEliminationStageMetrics,
+  synchronizeStageParticipantFlow,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
 } from "./tournament-stages-ui";
+import { StagePlanEditor } from "../components/stage-plan-editor";
 
 test("etykietuje grupy także powyżej Z", () => {
   assert.equal(groupLabelFromIndex(0), "A");
@@ -256,16 +260,51 @@ test("odrzuca liczbę grup, która utworzyłaby grupę jednoosobową", () => {
   );
 });
 
-test("odrzuca Single Elimination przed ostatnim etapem", () => {
-  const invalid = [
-    { ...createStageDraft(1, "single_elimination"), participantCount: 8 },
-    { ...createStageDraft(2, "round_robin"), participantCount: 4 },
+test("obsługuje pośrednią drabinkę wyłącznie na granicy pełnej rundy", () => {
+  const valid = [
+    { ...createStageDraft(1, "single_elimination"), participantCount: 16, advancingCount: 8 },
+    { ...createStageDraft(2, "single_elimination"), participantCount: 8 },
   ];
-  assert.ok(
-    validateStageDrafts(invalid).some((error) =>
-      error.message.includes("wyłącznie ostatnim"),
-    ),
+  assert.equal(validateStageDrafts(valid).length, 0);
+  for (const advancingCount of [7, 10]) {
+    assert.ok(validateStageDrafts([
+      { ...valid[0], advancingCount },
+      { ...valid[1], participantCount: advancingCount },
+    ]).some((error) => error.field === "advancingCount"));
+  }
+  assert.deepEqual(singleEliminationAdvancingOptions(17), [16, 8, 4, 2, 1]);
+  assert.deepEqual(singleEliminationStageMetrics({ participantCount: 17, advancingCount: 16 }), {
+    advancingCount: 16,
+    rounds: 1,
+    matchCount: 1,
+    bracketSize: 32,
+  });
+});
+
+test("przelicza wszystkie dalsze etapy i blokuje ich ręczną liczbę uczestników", () => {
+  const stages = synchronizeStageParticipantFlow([
+    {
+      ...createStageDraft(1, "group_stage"), participantCount: 32,
+      groupCount: 8, participantsPerGroup: 4, qualifiersPerGroup: 2,
+    },
+    { ...createStageDraft(2, "single_elimination"), participantCount: 99, advancingCount: 8 },
+    { ...createStageDraft(3, "single_elimination"), participantCount: 99 },
+  ]);
+  assert.deepEqual(stages.map((stage) => stage.participantCount), [32, 16, 8]);
+
+  const updated = synchronizeStageParticipantFlow([
+    { ...stages[0], qualifiersPerGroup: 1 },
+    ...stages.slice(1),
+  ]);
+  assert.deepEqual(updated.map((stage) => stage.participantCount), [32, 8, 4]);
+
+  const html = renderToStaticMarkup(
+    <StagePlanEditor stages={stages} errors={[]} onChange={() => undefined} />,
   );
+  assert.match(html, /16 uczestników — awansujący z Etapu 1/);
+  assert.match(html, /8 uczestników — awansujący z Etapu 2/);
+  assert.match(html, /stage-1-participants[^>]*disabled/);
+  assert.match(html, /stage-2-participants[^>]*disabled/);
 });
 
 test("renderuje listę etapów i statusy planned, active, completed", () => {

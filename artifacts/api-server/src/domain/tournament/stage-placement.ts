@@ -33,6 +33,51 @@ export function nextPowerOfTwo(value: number): number {
   return 2 ** Math.ceil(Math.log2(Math.max(2, value)));
 }
 
+export interface SingleEliminationProgression {
+  participantCount: number;
+  advancingCount: number;
+  bracketSize: number;
+  /** Number of generated bracket rounds needed to reach advancingCount. */
+  rounds: number;
+  /** Number of persisted bracket nodes, including system BYEs. */
+  bracketMatchCount: number;
+  /** Number of series that participants actually have to play. */
+  playedMatchCount: number;
+}
+
+/** Full round boundaries below the initial field, from the first cut to a champion. */
+export function singleEliminationAdvancingOptions(participantCount: number): number[] {
+  if (!positiveInteger(participantCount) || participantCount < 2) {
+    throw new RangeError("participantCount must be an integer of at least 2.");
+  }
+  const options: number[] = [];
+  for (let remaining = nextPowerOfTwo(participantCount) / 2; remaining >= 1; remaining /= 2) {
+    options.push(remaining);
+  }
+  return options;
+}
+
+export function calculateSingleEliminationProgression(
+  participantCount: number,
+  advancingCount: number,
+): SingleEliminationProgression {
+  const options = singleEliminationAdvancingOptions(participantCount);
+  if (!positiveInteger(advancingCount) || !options.includes(advancingCount)) {
+    throw new RangeError(
+      `advancingCount must be a full round boundary: ${options.join(", ")}.`,
+    );
+  }
+  const bracketSize = nextPowerOfTwo(participantCount);
+  return {
+    participantCount,
+    advancingCount,
+    bracketSize,
+    rounds: Math.log2(bracketSize / advancingCount),
+    bracketMatchCount: bracketSize - advancingCount,
+    playedMatchCount: participantCount - advancingCount,
+  };
+}
+
 export function standardBracketSeedOrder(size: number): number[] {
   if (!positiveInteger(size) || size < 2 || (size & (size - 1)) !== 0) {
     throw new RangeError("Bracket size must be a power of two of at least 2.");

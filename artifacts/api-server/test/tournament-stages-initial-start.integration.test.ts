@@ -122,6 +122,33 @@ after(async () => {
 });
 
 describe("initial Tournament Stages start", () => {
+  test("rejects a direct API request with an inconsistent participant flow", async () => {
+    const response = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Invalid participant flow ${randomUUID()}`,
+        format: "round_robin",
+        defaultBestOf: 1,
+        stagePlan: {
+          initialParticipantCount: 32,
+          stages: [
+            {
+              key: "groups", position: 1, name: "Groups", format: "group_stage",
+              participantCount: 32, bestOf: 1, groupCount: 8,
+              participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+            },
+            {
+              key: "playoff", position: 2, name: "Play-off", format: "single_elimination",
+              participantCount: 15, bestOf: 3,
+            },
+          ],
+        },
+      })
+      .expect(422);
+    assert.equal(response.body.code, "INVALID_STAGE_PLAN");
+    assert.ok(response.body.details.some((problem: { code: string }) => problem.code === "PARTICIPANT_FLOW_MISMATCH"));
+  });
+
   test("starts Swiss -> Group Stage -> Single Elimination through the frontend endpoint exactly once", async () => {
     const fixture = await createMultiStageTournament();
     const response = await request(app)

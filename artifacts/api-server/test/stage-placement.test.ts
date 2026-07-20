@@ -6,7 +6,9 @@ import {
   buildReseededRoundPairings,
   buildSnakeGroupPlacements,
   buildStandardSeededBracket,
+  calculateSingleEliminationProgression,
   nextPowerOfTwo,
+  singleEliminationAdvancingOptions,
   standardBracketSeedOrder,
 } from "../src/domain/tournament/stage-placement";
 
@@ -88,5 +90,37 @@ describe("capacity helpers", () => {
     assert.equal(nextPowerOfTwo(2), 2);
     assert.equal(nextPowerOfTwo(17), 32);
     assert.equal(nextPowerOfTwo(32), 32);
+  });
+
+  test("calculates only complete elimination-round boundaries", () => {
+    assert.deepEqual(singleEliminationAdvancingOptions(16), [8, 4, 2, 1]);
+    assert.deepEqual(singleEliminationAdvancingOptions(17), [16, 8, 4, 2, 1]);
+    assert.deepEqual(singleEliminationAdvancingOptions(12), [8, 4, 2, 1]);
+    assert.deepEqual(calculateSingleEliminationProgression(16, 8), {
+      participantCount: 16,
+      advancingCount: 8,
+      bracketSize: 16,
+      rounds: 1,
+      bracketMatchCount: 8,
+      playedMatchCount: 8,
+    });
+    assert.deepEqual(calculateSingleEliminationProgression(16, 4), {
+      participantCount: 16,
+      advancingCount: 4,
+      bracketSize: 16,
+      rounds: 2,
+      bracketMatchCount: 12,
+      playedMatchCount: 12,
+    });
+    assert.deepEqual(calculateSingleEliminationProgression(17, 16), {
+      participantCount: 17,
+      advancingCount: 16,
+      bracketSize: 32,
+      rounds: 1,
+      bracketMatchCount: 16,
+      playedMatchCount: 1,
+    });
+    assert.throws(() => calculateSingleEliminationProgression(16, 7), /full round boundary/);
+    assert.throws(() => calculateSingleEliminationProgression(16, 10), /full round boundary/);
   });
 });

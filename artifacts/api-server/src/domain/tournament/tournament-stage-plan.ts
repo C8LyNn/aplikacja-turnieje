@@ -2,6 +2,10 @@ import {
   calculateBalancedGroupSizes,
   calculateGroupAdvancingCount,
 } from "./group-stage";
+import {
+  calculateSingleEliminationProgression,
+  singleEliminationAdvancingOptions,
+} from "./stage-placement";
 
 export const TOURNAMENT_STAGE_FORMATS = [
   "swiss",
@@ -89,6 +93,8 @@ export interface GroupTournamentStagePlan extends BaseTournamentStagePlan {
 export interface SingleEliminationTournamentStagePlan extends BaseTournamentStagePlan {
   format: "single_elimination";
   placementMethod: BracketPlacementMethod;
+  /** Required only when the bracket feeds another stage. */
+  advancingCount?: number;
 }
 
 export type TournamentStagePlan =
@@ -114,7 +120,7 @@ export type TournamentStagePlanProblemCode =
   | "INVALID_PARTICIPANT_COUNT"
   | "PARTICIPANT_FLOW_MISMATCH"
   | "INVALID_ADVANCING_COUNT"
-  | "SINGLE_ELIMINATION_NOT_FINAL"
+  | "INVALID_ELIMINATION_ADVANCING_COUNT"
   | "GROUP_STAGE_CANNOT_BE_FINAL"
   | "INVALID_SWISS_ROUNDS"
   | "INVALID_GROUP_COUNT"
@@ -304,10 +310,6 @@ function validateParticipantFlow(
     const { index, record } = stage;
     const path = `stages[${index}]`;
     const isFinal = orderedIndex === ordered.length - 1;
-    if (record.format === "single_elimination" && !isFinal) {
-      addProblem(problems, "SINGLE_ELIMINATION_NOT_FINAL", `${path}.format`, "single_elimination may only be the final stage.");
-      return;
-    }
     if (isFinal) {
       if (record.format === "group_stage") addProblem(problems, "GROUP_STAGE_CANNOT_BE_FINAL", `${path}.format`, "group_stage must qualify participants to a following stage.");
       if (record.advancingCount !== undefined) addProblem(problems, "INVALID_ADVANCING_COUNT", `${path}.advancingCount`, "The final stage cannot qualify participants to another stage.");
@@ -328,6 +330,25 @@ function validateParticipantFlow(
             advancingCount = null;
           }
         } catch { advancingCount = null; }
+      }
+    } else if (record.format === "single_elimination") {
+      if (!isPositiveInteger(record.participantCount)) {
+        advancingCount = null;
+      } else {
+        try {
+          calculateSingleEliminationProgression(
+            record.participantCount,
+            record.advancingCount as number,
+          );
+          advancingCount = record.advancingCount as number;
+        } catch {
+          addProblem(
+            problems,
+            "INVALID_ELIMINATION_ADVANCING_COUNT",
+            `${path}.advancingCount`,
+            `A non-final single-elimination stage must advance at a full round boundary: ${singleEliminationAdvancingOptions(record.participantCount).join(", ")}.`,
+          );
+        }
       }
     }
     if (advancingCount != null && isPositiveInteger(next.record.participantCount) && next.record.participantCount !== advancingCount) {
@@ -366,7 +387,14 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
       };
     }
     case "single_elimination":
-      return { ...common, format: "single_elimination", placementMethod: normalizedBracketPlacement(record)! };
+      return {
+        ...common,
+        format: "single_elimination",
+        placementMethod: normalizedBracketPlacement(record)!,
+        ...(record.advancingCount === undefined
+          ? {}
+          : { advancingCount: record.advancingCount as number }),
+      };
   }
 }
 

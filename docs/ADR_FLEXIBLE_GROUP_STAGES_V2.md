@@ -87,8 +87,8 @@ Backup V3 export/import and validation use the same balanced-group rules.
 ## Compatibility
 
 - Existing single-stage tournaments are unchanged.
-- Existing Swiss, Round Robin, and Single Elimination behavior is unchanged except that a non-final Swiss or Round Robin stage may now pass all participants onward.
-- Existing stage-plan limits remain in place, including the maximum of three stages and the rule that Single Elimination is final.
+- Existing Swiss and Round Robin behavior remains unchanged. A later participant-flow amendment permits Single Elimination to be a non-terminal qualifying stage when its output is a complete round boundary.
+- Existing stage-plan limits remain in place, including the maximum of three stages. Every linear transition must now reserve exactly the number of participants output by its source stage.
 - The old `group-playoff` module is retained for compatibility/history but is no longer used to assign new seeds for newly completed flexible group stages.
 - No automatic deployment or push is part of this patch.
 

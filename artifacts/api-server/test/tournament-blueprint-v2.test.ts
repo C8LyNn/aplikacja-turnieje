@@ -144,6 +144,16 @@ describe("validateTournamentBlueprintV2", () => {
     assert.ok(problemCodes(blueprint).includes("TARGET_CAPACITY_EXCEEDED"));
   });
 
+  test("requires explicit sources to reserve exactly every target slot", () => {
+    const missingReservation = minimalBlueprint();
+    delete missingReservation.transitions[0].reservedSlots;
+    assert.ok(problemCodes(missingReservation).includes("TARGET_CAPACITY_UNRESERVED"));
+
+    const unexplainedParticipants = minimalBlueprint();
+    unexplainedParticipants.transitions[0].reservedSlots = 7;
+    assert.ok(problemCodes(unexplainedParticipants).includes("TARGET_CAPACITY_MISMATCH"));
+  });
+
   test("rejects overbooking a flexible target capacity", () => {
     const blueprint = minimalBlueprint();
     blueprint.stages = [

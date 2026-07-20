@@ -64,7 +64,7 @@ function persistedStage(
         ? "top_n_per_group"
         : "top_n",
     advancingCount:
-      !final && (stage.format === "swiss" || stage.format === "round_robin")
+      !final && (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination")
         ? (stage.advancingCount ?? null)
         : null,
     groupCount: stage.format === "group_stage" ? stage.groupCount : null,

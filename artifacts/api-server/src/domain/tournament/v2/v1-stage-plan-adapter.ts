@@ -32,7 +32,10 @@ function stageDefinition(stage: TournamentStagePlan): TournamentStageDefinitionV
   settings.entrySeeding = stage.entrySeedingMethod;
   settings.randomRevealOrder = stage.randomRevealOrder;
   if (stage.randomSeed != null) settings.randomSeed = stage.randomSeed;
-  if (stage.format === "single_elimination") settings.initialPlacement = stage.placementMethod;
+  if (stage.format === "single_elimination") {
+    settings.initialPlacement = stage.placementMethod;
+    if (stage.advancingCount != null) settings.advancingCount = stage.advancingCount;
+  }
 
   const policyId =
     stage.format === "swiss"
@@ -58,10 +61,10 @@ function transitionSelection(stage: TournamentStagePlan): ParticipantSelectionRu
   if (stage.format === "group_stage") {
     return { type: "top_n_per_group", count: stage.qualifiersPerGroup };
   }
-  if (stage.format === "swiss" || stage.format === "round_robin") {
+  if (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination") {
     return { type: "top_n", count: stage.advancingCount! };
   }
-  throw new Error("A v1 single-elimination stage cannot have an outgoing transition.");
+  throw new Error("Unsupported outgoing stage transition.");
 }
 
 function transitionSeeding(stage: TournamentStagePlan): SeedAssignmentPolicyV2 {

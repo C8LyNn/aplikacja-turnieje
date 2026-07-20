@@ -269,22 +269,22 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "PARTICIPANT_FLOW_MISMATCH",
     },
     {
-      name: "single elimination before the final stage",
+      name: "single elimination with a non-round boundary qualifier count",
       mutate: () => ({
-        initialParticipantCount: 8,
+        initialParticipantCount: 16,
         stages: [
-          { ...singleStagePlan().stages[0], participantCount: 8 },
+          { ...singleStagePlan().stages[0], participantCount: 16, advancingCount: 7 },
           {
             key: "rr",
             position: 2,
             name: "RR",
             format: "round_robin",
-            participantCount: 4,
+            participantCount: 7,
             bestOf: 3,
           },
         ],
       }),
-      code: "SINGLE_ELIMINATION_NOT_FINAL",
+      code: "INVALID_ELIMINATION_ADVANCING_COUNT",
     },
     {
       name: "group stage as the final stage",
@@ -444,6 +444,68 @@ describe("validateTournamentStagePlan invalid plans", () => {
     if (!result.valid) {
       assert.ok(result.problems.some((problem) => problem.code === "INVALID_ADVANCING_COUNT"));
     }
+  });
+
+  test("accepts groups 32 to 16 and rejects every mismatched downstream capacity", () => {
+    const create = (nextCount: number) => ({
+      initialParticipantCount: 32,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 32, bestOf: 1, groupCount: 8,
+          participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+        },
+        {
+          key: "playoff", position: 2, name: "Playoff", format: "single_elimination",
+          participantCount: nextCount, bestOf: 3,
+        },
+      ],
+    });
+    assert.equal(validateTournamentStagePlan(create(16)).valid, true);
+    for (const count of [15, 17, 19, 21]) {
+      assert.ok(problemCodes(create(count)).includes("PARTICIPANT_FLOW_MISMATCH"));
+    }
+  });
+
+  test("supports qualifying elimination rounds and rejects arbitrary cut lines", () => {
+    const create = (participantCount: number, advancingCount: number) => ({
+      initialParticipantCount: participantCount,
+      stages: [
+        {
+          key: "qualifier", position: 1, name: "Qualifier", format: "single_elimination",
+          participantCount, bestOf: 1, advancingCount,
+        },
+        {
+          key: "final", position: 2, name: "Final", format: "single_elimination",
+          participantCount: advancingCount, bestOf: 3,
+        },
+      ],
+    });
+    for (const count of [8, 4, 2, 1]) assert.equal(validateTournamentStagePlan(create(16, count)).valid, true);
+    for (const count of [16, 8, 4, 2, 1]) assert.equal(validateTournamentStagePlan(create(17, count)).valid, true);
+    for (const count of [7, 10]) assert.ok(problemCodes(create(16, count)).includes("INVALID_ELIMINATION_ADVANCING_COUNT"));
+  });
+
+  test("accepts three consecutive stages with an intermediate elimination qualifier", () => {
+    const result = validateTournamentStagePlan({
+      initialParticipantCount: 32,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 32, bestOf: 1, groupCount: 8,
+          participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+        },
+        {
+          key: "qualifier", position: 2, name: "Qualifier", format: "single_elimination",
+          participantCount: 16, bestOf: 3, advancingCount: 8,
+        },
+        {
+          key: "final", position: 3, name: "Final", format: "single_elimination",
+          participantCount: 8, bestOf: 5,
+        },
+      ],
+    });
+    assert.equal(result.valid, true);
   });
 });
 

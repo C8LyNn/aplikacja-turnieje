@@ -24,7 +24,7 @@ import {
   buildRandomGroupPlacements,
   buildSnakeGroupPlacements,
   buildStandardSeededBracket,
-  nextPowerOfTwo,
+  calculateSingleEliminationProgression,
 } from "../../domain/tournament/stage-placement";
 import { assignSeeds, type SeedingPolicy } from "../../domain/tournament/seeding";
 import {
@@ -200,12 +200,28 @@ function assertStageComplete(
   }
 
   if (stage.format === "single_elimination") {
-    if (matches.length !== nextPowerOfTwo(participantCount) - 1) {
+    let progression;
+    try {
+      progression = calculateSingleEliminationProgression(
+        participantCount,
+        stage.qualificationMode === "top_n" ? stage.advancingCount ?? 0 : 1,
+      );
+    } catch {
+      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    }
+    if (
+      matches.length !== progression.bracketMatchCount ||
+      matches.some((match) => match.round < 1 || match.round > progression.rounds)
+    ) {
       throw new StageLifecycleError("STAGE_INCOMPLETE");
     }
     const finalRound = Math.max(...matches.map((match) => match.round));
     const finalMatches = matches.filter((match) => match.round === finalRound);
-    if (finalMatches.length !== 1 || finalMatches[0].winnerId == null) {
+    if (
+      finalRound !== progression.rounds ||
+      finalMatches.length !== progression.advancingCount ||
+      finalMatches.some((match) => match.winnerId == null)
+    ) {
       throw new StageLifecycleError("STAGE_INCOMPLETE");
     }
     return;
@@ -301,19 +317,22 @@ function calculateRanking(
 
   if (stage.format === "single_elimination") {
     const lossRoundByPlayerId = new Map<number, number>();
-    let winnerId: number | null = null;
     for (const match of matches) {
       if (match.winnerId == null) continue;
       if (match.player1Id != null && match.player1Id !== match.winnerId) lossRoundByPlayerId.set(match.player1Id, match.round);
       if (match.player2Id != null && match.player2Id !== match.winnerId) lossRoundByPlayerId.set(match.player2Id, match.round);
-      winnerId = match.round >= Math.max(...matches.map((candidate) => candidate.round)) ? match.winnerId : winnerId;
     }
     const ordered = [...memberships].sort((left, right) => {
-      if (left.playerId === winnerId) return -1;
-      if (right.playerId === winnerId) return 1;
+      const leftLost = lossRoundByPlayerId.has(left.playerId);
+      const rightLost = lossRoundByPlayerId.has(right.playerId);
+      if (leftLost !== rightLost) return leftLost ? 1 : -1;
       return (lossRoundByPlayerId.get(right.playerId) ?? 0) - (lossRoundByPlayerId.get(left.playerId) ?? 0)
         || left.stageSeed - right.stageSeed;
     });
+    const expectedSurvivors = stage.qualificationMode === "top_n" ? stage.advancingCount ?? 0 : 1;
+    if (ordered.filter((membership) => !lossRoundByPlayerId.has(membership.playerId)).length !== expectedSurvivors) {
+      throw new StageLifecycleError("RANKING_INCONSISTENT");
+    }
     return ordered.map((membership, index) => {
       const projection = projectionByPlayerId.get(membership.playerId)!;
       return {
@@ -683,7 +702,9 @@ export async function completeStage(
     }
     await testHooks.afterStageParticipantsWritten?.();
 
-    const winnerId = stage.format === "group_stage" ? null : preview.ranking[0]?.playerId ?? null;
+    const winnerId = stage.format === "group_stage" || (stage.format === "single_elimination" && nextStage)
+      ? null
+      : preview.ranking[0]?.playerId ?? null;
     await tx.update(tournamentStagesTable).set({
       status: "completed",
       winnerId,
@@ -764,7 +785,16 @@ function generateStageMatches(params: {
     const bracket = stage.seedingPolicy === "random_bracket"
       ? buildRandomBracket(bracketParticipants, `${stage.randomSeed ?? ""}:placement`)
       : buildStandardSeededBracket(bracketParticipants);
-    const totalRounds = Math.ceil(Math.log2(bracket.bracketSize));
+    let progression;
+    try {
+      progression = calculateSingleEliminationProgression(
+        players.length,
+        stage.qualificationMode === "top_n" ? stage.advancingCount ?? 0 : 1,
+      );
+    } catch {
+      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    }
+    const totalRounds = progression.rounds;
     const values: Array<typeof matchesTable.$inferInsert> = [];
     const now = new Date();
     for (const pairing of bracket.firstRound) {
@@ -788,7 +818,8 @@ function generateStageMatches(params: {
       });
     }
     for (let round = 2; round <= totalRounds; round += 1) {
-      for (let matchNumber = 1; matchNumber <= 2 ** (totalRounds - round); matchNumber += 1) {
+      const matchesInRound = progression.advancingCount * 2 ** (totalRounds - round);
+      for (let matchNumber = 1; matchNumber <= matchesInRound; matchNumber += 1) {
         values.push({ tournamentId, stageId, round, matchNumber, bestOf: stage.bestOf, status: "pending" });
       }
     }

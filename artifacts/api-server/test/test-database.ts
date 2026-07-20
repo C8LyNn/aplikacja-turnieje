@@ -18,6 +18,10 @@ const CONFIGURABLE_SEEDING_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0004_configurable_seeding_v2.sql",
   import.meta.url,
 );
+const STAGE_PARTICIPANT_FLOW_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0005_stage_participant_flow.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -110,12 +114,20 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(CONFIGURABLE_SEEDING_MIGRATION_URL, "utf8"),
       schema,
     );
+    const stageParticipantFlowMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(STAGE_PARTICIPANT_FLOW_MIGRATION_URL, "utf8"),
+      schema,
+    );
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
       await pool.query(stagesMigrationSql);
       await pool.query(flexibleGroupsMigrationSql);
       await pool.query(configurableSeedingMigrationSql);
+      await pool.query(stageParticipantFlowMigrationSql);
+      // Every isolated integration schema proves that the constraint-only migration
+      // is safe to replay before any product test starts.
+      await pool.query(stageParticipantFlowMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

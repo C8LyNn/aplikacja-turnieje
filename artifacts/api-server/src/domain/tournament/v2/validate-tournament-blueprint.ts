@@ -33,6 +33,9 @@ export type TournamentBlueprintProblemCodeV2 =
   | "INVALID_SEED_ASSIGNMENT"
   | "INVALID_PLACEMENT"
   | "INVALID_RESERVED_SLOTS"
+  | "TARGET_CAPACITY_UNRESERVED"
+  | "TARGET_CAPACITY_MISMATCH"
+  | "TARGET_CAPACITY_OUT_OF_RANGE"
   | "TARGET_CAPACITY_EXCEEDED"
   | "STAGE_WITHOUT_INPUT"
   | "UNREACHABLE_STAGE"
@@ -271,6 +274,7 @@ export function validateTournamentBlueprintV2(
   const transitionKeys = new Set<string>();
   const incomingCount = new Map<string, number>();
   const reservedByTarget = new Map<string, number>();
+  const unreservedByTarget = new Set<string>();
   const edges = new Map<string, string[]>();
   const registrationTargets = new Set<string>();
 
@@ -377,6 +381,8 @@ export function validateTournamentBlueprintV2(
           transition.target.stageKey,
           (reservedByTarget.get(transition.target.stageKey) ?? 0) + transition.reservedSlots,
         );
+      } else {
+        unreservedByTarget.add(transition.target.stageKey);
       }
     }
 
@@ -401,6 +407,31 @@ export function validateTournamentBlueprintV2(
     }
     const maximum = maximumCapacity(stage.capacity);
     const reserved = reservedByTarget.get(stage.key) ?? 0;
+    if ((incomingCount.get(stage.key) ?? 0) > 0 && unreservedByTarget.has(stage.key)) {
+      add(
+        "TARGET_CAPACITY_UNRESERVED",
+        `stages[${index}].capacity`,
+        `Every incoming route to ${stage.key} must reserve its participant slots explicitly.`,
+      );
+    }
+    if (!unreservedByTarget.has(stage.key) && stage.capacity.type === "exact" && reserved !== stage.capacity.count) {
+      add(
+        "TARGET_CAPACITY_MISMATCH",
+        `stages[${index}].capacity`,
+        `Incoming routes reserve ${reserved} slots, but exact capacity is ${stage.capacity.count}.`,
+      );
+    }
+    if (
+      !unreservedByTarget.has(stage.key) &&
+      stage.capacity.type === "range" &&
+      (reserved < stage.capacity.minimum || reserved > stage.capacity.maximum)
+    ) {
+      add(
+        "TARGET_CAPACITY_OUT_OF_RANGE",
+        `stages[${index}].capacity`,
+        `Incoming routes reserve ${reserved} slots, outside ${stage.capacity.minimum}-${stage.capacity.maximum}.`,
+      );
+    }
     if (reserved > maximum) {
       add(
         "TARGET_CAPACITY_EXCEEDED",

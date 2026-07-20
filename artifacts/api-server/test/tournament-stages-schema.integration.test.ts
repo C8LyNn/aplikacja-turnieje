@@ -637,6 +637,30 @@ describe("Tournament Stages database integrity", () => {
   test("keeps active_stage_id in the same tournament and clears it on completion", async () => {
     const first = await createDraftTournament("round_robin", 2);
     const second = await createDraftTournament("round_robin", 2);
+    const setupClient = await database.pool.connect();
+    try {
+      await setupClient.query("BEGIN");
+      await setupClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 2
+         WHERE id = $1`,
+        [first.stageId],
+      );
+      await setupClient.query(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-2', 2, 'Later stage', 'single_elimination', 2, 3,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')`,
+        [first.tournamentId],
+      );
+      await setupClient.query("COMMIT");
+    } catch (error) {
+      await setupClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      setupClient.release();
+    }
     await transitionSingleStageLifecycle(first, "active");
     await transitionSingleStageLifecycle(second, "active");
 
@@ -647,14 +671,6 @@ describe("Tournament Stages database integrity", () => {
       ),
       "must identify the active stage",
     );
-    await database.pool.query(
-      `INSERT INTO tournament_stages (
-         tournament_id, stage_key, position, name, format, participant_count,
-         best_of, ranking_policy, qualification_mode, seeding_policy
-       ) VALUES ($1, 'stage-2', 2, 'Later stage', 'single_elimination', 0, 3,
-                 'elimination_bracket_v1', 'none', 'standard_bracket')`,
-      [first.tournamentId],
-    );
     await expectDatabaseRejection(
       () => database.pool.query(
         "DELETE FROM tournament_stages WHERE id = $1",
@@ -662,10 +678,26 @@ describe("Tournament Stages database integrity", () => {
       ),
       "tournaments_active_stage_same_tournament_fk",
     );
-    await database.pool.query(
-      "DELETE FROM tournament_stages WHERE tournament_id = $1 AND position = 2",
-      [first.tournamentId],
-    );
+    const teardownClient = await database.pool.connect();
+    try {
+      await teardownClient.query("BEGIN");
+      await teardownClient.query(
+        "DELETE FROM tournament_stages WHERE tournament_id = $1 AND position = 2",
+        [first.tournamentId],
+      );
+      await teardownClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'none', advancing_count = NULL
+         WHERE id = $1`,
+        [first.stageId],
+      );
+      await teardownClient.query("COMMIT");
+    } catch (error) {
+      await teardownClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      teardownClient.release();
+    }
     await transitionSingleStageLifecycle(first, "completed");
     const [state] = await rows<{
       active_stage_id: number | null;
@@ -834,14 +866,31 @@ describe("Tournament Stages database integrity", () => {
       "result_history_match_same_tournament_stage_fk",
     );
 
-    const [secondStage] = await rows<{ id: number }>(
-      `INSERT INTO tournament_stages (
-         tournament_id, stage_key, position, name, format, participant_count,
-         best_of, ranking_policy, qualification_mode, seeding_policy
-       ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 0, 1,
-                 'elimination_bracket_v1', 'none', 'standard_bracket') RETURNING id`,
-      [first.tournamentId],
-    );
+    const crossStageClient = await database.pool.connect();
+    let secondStage!: { id: number };
+    try {
+      await crossStageClient.query("BEGIN");
+      await crossStageClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 1
+         WHERE id = $1`,
+        [first.stageId],
+      );
+      secondStage = (await crossStageClient.query<{ id: number }>(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 1, 1,
+                   'elimination_bracket_v1', 'none', 'standard_bracket') RETURNING id`,
+        [first.tournamentId],
+      )).rows[0];
+      await crossStageClient.query("COMMIT");
+    } catch (error) {
+      await crossStageClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      crossStageClient.release();
+    }
     await expectDatabaseRejection(
       () => database.pool.query(
         `INSERT INTO action_log (
@@ -854,7 +903,7 @@ describe("Tournament Stages database integrity", () => {
   });
 
   test("rejects a missing stage in multi-stage data and a group from another stage", async () => {
-    const fixture = await createDraftTournament("round_robin", 1);
+    const fixture = await createDraftTournament("round_robin", 6);
     await expectDatabaseRejection(
       () => database.pool.query(
         `INSERT INTO stage_groups (stage_id, group_key, position, participant_count, qualifiers_count)
@@ -863,18 +912,43 @@ describe("Tournament Stages database integrity", () => {
       ),
       "stage_groups may belong only to group_stage",
     );
-    const [groupStage] = await rows<{ id: number }>(
-      `INSERT INTO tournament_stages (
-         tournament_id, stage_key, position, name, format, participant_count,
-         best_of, ranking_policy, qualification_mode, group_count,
-         participants_per_group, qualifiers_per_group, seeding_policy,
-         result_seeding_policy
-       ) VALUES (
-         $1, 'stage-2', 2, 'Groups', 'group_stage', 6,
-         3, 'group_v1', 'top_n_per_group', 2, 3, 1, 'snake_groups', 'rank_bands'
-       ) RETURNING id`,
-      [fixture.tournamentId],
-    );
+    const groupSetupClient = await database.pool.connect();
+    let groupStage!: { id: number };
+    try {
+      await groupSetupClient.query("BEGIN");
+      await groupSetupClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 6
+         WHERE id = $1`,
+        [fixture.stageId],
+      );
+      groupStage = (await groupSetupClient.query<{ id: number }>(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, group_count,
+           participants_per_group, qualifiers_per_group, seeding_policy,
+           result_seeding_policy
+         ) VALUES (
+           $1, 'stage-2', 2, 'Groups', 'group_stage', 6,
+           3, 'group_v1', 'top_n_per_group', 2, 3, 1, 'snake_groups', 'rank_bands'
+         ) RETURNING id`,
+        [fixture.tournamentId],
+      )).rows[0];
+      await groupSetupClient.query(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-3', 3, 'Final', 'single_elimination', 2, 3,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')`,
+        [fixture.tournamentId],
+      );
+      await groupSetupClient.query("COMMIT");
+    } catch (error) {
+      await groupSetupClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      groupSetupClient.release();
+    }
     const [group] = await rows<{ id: number }>(
       `INSERT INTO stage_groups (stage_id, group_key, position, participant_count, qualifiers_count)
        VALUES ($1, 'A', 1, 3, 1) RETURNING id`,
@@ -917,19 +991,44 @@ describe("Tournament Stages database integrity", () => {
   });
 
   test("accepts arbitrary balanced group counts and enforces each derived group size", async () => {
-    const fixture = await createDraftTournament("round_robin", 1);
-    const [groupStage] = await rows<{ id: number }>(
-      `INSERT INTO tournament_stages (
-         tournament_id, stage_key, position, name, format, participant_count,
-         best_of, ranking_policy, qualification_mode, group_count,
-         participants_per_group, qualifiers_per_group, seeding_policy,
-         result_seeding_policy
-       ) VALUES (
-         $1, 'stage-2', 2, 'Flexible groups', 'group_stage', 11,
-         1, 'group_v1', 'top_n_per_group', 5, 3, 3, 'snake_groups', 'rank_bands'
-       ) RETURNING id`,
-      [fixture.tournamentId],
-    );
+    const fixture = await createDraftTournament("round_robin", 11);
+    const groupSetupClient = await database.pool.connect();
+    let groupStage!: { id: number };
+    try {
+      await groupSetupClient.query("BEGIN");
+      await groupSetupClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 11
+         WHERE id = $1`,
+        [fixture.stageId],
+      );
+      groupStage = (await groupSetupClient.query<{ id: number }>(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, group_count,
+           participants_per_group, qualifiers_per_group, seeding_policy,
+           result_seeding_policy
+         ) VALUES (
+           $1, 'stage-2', 2, 'Flexible groups', 'group_stage', 11,
+           1, 'group_v1', 'top_n_per_group', 5, 3, 3, 'snake_groups', 'rank_bands'
+         ) RETURNING id`,
+        [fixture.tournamentId],
+      )).rows[0];
+      await groupSetupClient.query(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-3', 3, 'Final', 'single_elimination', 11, 3,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')`,
+        [fixture.tournamentId],
+      );
+      await groupSetupClient.query("COMMIT");
+    } catch (error) {
+      await groupSetupClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      groupSetupClient.release();
+    }
 
     for (const [position, key, participantCount, qualifiersCount] of [
       [1, "A", 3, 3],
@@ -1038,15 +1137,32 @@ describe("Tournament Stages database integrity", () => {
 
   test("requires a stage winner to be a participant of that stage", async () => {
     const fixture = await createDraftTournament("round_robin", 1);
-    const [secondStage] = await rows<{ id: number }>(
-      `INSERT INTO tournament_stages (
-         tournament_id, stage_key, position, name, format, participant_count,
-         best_of, ranking_policy, qualification_mode, seeding_policy
-       ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 1, 3,
-                 'elimination_bracket_v1', 'none', 'standard_bracket')
-       RETURNING id`,
-      [fixture.tournamentId],
-    );
+    const winnerSetupClient = await database.pool.connect();
+    let secondStage!: { id: number };
+    try {
+      await winnerSetupClient.query("BEGIN");
+      await winnerSetupClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 1
+         WHERE id = $1`,
+        [fixture.stageId],
+      );
+      secondStage = (await winnerSetupClient.query<{ id: number }>(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-2', 2, 'Final', 'single_elimination', 1, 3,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')
+         RETURNING id`,
+        [fixture.tournamentId],
+      )).rows[0];
+      await winnerSetupClient.query("COMMIT");
+    } catch (error) {
+      await winnerSetupClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      winnerSetupClient.release();
+    }
     await expectDatabaseRejection(
       () => database.pool.query(
         "UPDATE tournament_stages SET winner_id = $1 WHERE id = $2",
@@ -1099,6 +1215,103 @@ describe("Tournament Stages database integrity", () => {
         [fixture.stageId],
       ),
       "tournament_stages_result_seeding_configuration",
+    );
+  });
+
+  test("enforces exact persisted flow and elimination round boundaries at commit", async () => {
+    const fixture = await createDraftTournament("round_robin", 0);
+    const client = await database.pool.connect();
+    let secondStageId: number;
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE tournament_stages
+         SET format = 'group_stage', participant_count = 32,
+             ranking_policy = 'group_v1', qualification_mode = 'top_n_per_group',
+             advancing_count = NULL, group_count = 8, participants_per_group = 4,
+             qualifiers_per_group = 2, seeding_policy = 'snake_groups',
+             result_seeding_policy = 'rank_bands'
+         WHERE id = $1`,
+        [fixture.stageId],
+      );
+      const inserted = await client.query(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-2', 2, 'Qualifier', 'single_elimination', 16, 1,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')
+         RETURNING id`,
+        [fixture.tournamentId],
+      );
+      secondStageId = inserted.rows[0].id;
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    await assert.rejects(
+      database.pool.query(
+        "UPDATE tournament_stages SET participant_count = 15 WHERE id = $1",
+        [secondStageId!],
+      ),
+      /stage participant flow mismatch/,
+    );
+    await assert.rejects(
+      database.pool.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 7
+         WHERE id = $1`,
+        [secondStageId!],
+      ),
+      (error: unknown) => error instanceof Error &&
+        "constraint" in error && error.constraint === "tournament_stages_elimination_advancing_boundary",
+    );
+
+    const threeStageClient = await database.pool.connect();
+    try {
+      await threeStageClient.query("BEGIN");
+      await threeStageClient.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 8
+         WHERE id = $1`,
+        [secondStageId!],
+      );
+      await threeStageClient.query(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-3', 3, 'Final', 'single_elimination', 8, 3,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')`,
+        [fixture.tournamentId],
+      );
+      await threeStageClient.query("COMMIT");
+    } catch (error) {
+      await threeStageClient.query("ROLLBACK");
+      throw error;
+    } finally {
+      threeStageClient.release();
+    }
+    const persisted = await rows<{ position: number; participant_count: number; advancing_count: number | null }>(
+      `SELECT position, participant_count, advancing_count
+       FROM tournament_stages WHERE tournament_id = $1 ORDER BY position`,
+      [fixture.tournamentId],
+    );
+    assert.deepEqual(persisted, [
+      { position: 1, participant_count: 32, advancing_count: null },
+      { position: 2, participant_count: 16, advancing_count: 8 },
+      { position: 3, participant_count: 8, advancing_count: null },
+    ]);
+
+    const other = await createDraftTournament("round_robin", 0);
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        "UPDATE tournament_stages SET tournament_id = $1 WHERE id = $2",
+        [other.tournamentId, secondStageId!],
+      ),
+      "cannot move between tournaments",
     );
   });
 

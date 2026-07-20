@@ -1,3 +1,4 @@
+import React from "react";
 import { ArrowDown, ArrowUp, Dices, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +19,10 @@ import {
   groupLabelFromIndex,
   previewBracketPairs,
   previewGroupSeedPlacement,
-  stageOutputParticipantCount,
+  singleEliminationAdvancingOptions,
+  singleEliminationStageMetrics,
   stageUsesRandom,
+  synchronizeStageParticipantFlow,
   type EntrySeedingMethod,
   type GroupResultSeedingMethod,
   type RandomRevealOrder,
@@ -51,27 +54,6 @@ function defaultPlacement(format: StageFormat): StagePlacementMethod {
   return "standings_order";
 }
 
-function normalizeGroupPatch(stage: StageDraft): StageDraft {
-  if (stage.format !== "group_stage") return stage;
-  const maxGroupCount = Math.max(1, Math.floor(stage.participantCount / 2));
-  const groupCount = Math.min(
-    Math.max(1, stage.groupCount ?? defaultGroupCount(stage.participantCount)),
-    maxGroupCount,
-  );
-  const sizes = balancedGroupSizes(stage.participantCount, groupCount);
-  const largestGroupSize = sizes.length > 0 ? Math.max(...sizes) : 1;
-  const qualifiersPerGroup = Math.min(
-    Math.max(1, stage.qualifiersPerGroup ?? Math.min(2, largestGroupSize)),
-    largestGroupSize,
-  );
-  return {
-    ...stage,
-    groupCount,
-    participantsPerGroup: largestGroupSize,
-    qualifiersPerGroup,
-  };
-}
-
 function previewSeedLabel(seed: number | null): string {
   return seed == null ? "BYE" : `#${seed}`;
 }
@@ -79,19 +61,9 @@ function previewSeedLabel(seed: number | null): string {
 export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorProps) {
   const update = (index: number, patch: Partial<StageDraft>) => {
     const next = stages.map((stage, stageIndex) =>
-      stageIndex === index ? normalizeGroupPatch({ ...stage, ...patch }) : stage,
+      stageIndex === index ? { ...stage, ...patch } : stage,
     );
-    const changed = next[index];
-    if (index < next.length - 1 && changed.format !== "single_elimination") {
-      const advancing = stageOutputParticipantCount(changed);
-      if (advancing >= 2) {
-        next[index + 1] = normalizeGroupPatch({
-          ...next[index + 1],
-          participantCount: advancing,
-        });
-      }
-    }
-    onChange(next);
+    onChange(synchronizeStageParticipantFlow(next));
   };
 
   const changeFormat = (index: number, format: StageFormat) => {
@@ -118,10 +90,10 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
     if (target < 0 || target >= stages.length) return;
     const next = [...stages];
     [next[index], next[target]] = [next[target], next[index]];
-    onChange(next.map((stage, stageIndex) => ({
+    onChange(synchronizeStageParticipantFlow(next.map((stage, stageIndex) => ({
       ...stage,
       name: /^Etap \d+$/.test(stage.name) ? `Etap ${stageIndex + 1}` : stage.name,
-    })));
+    }))));
   };
 
   return (
@@ -137,17 +109,15 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
           type="button"
           variant="outline"
           size="sm"
-          disabled={stages.length >= 3 || stages[stages.length - 1]?.format === "single_elimination"}
+          disabled={stages.length >= 3}
           onClick={() => {
-            const previous = stages[stages.length - 1];
-            const participantCount = previous ? stageOutputParticipantCount(previous) : 8;
-            onChange([
+            onChange(synchronizeStageParticipantFlow([
               ...stages,
               {
                 ...createStageDraft(stages.length + 1, "single_elimination"),
-                participantCount: Math.max(2, participantCount),
+                participantCount: 2,
               },
-            ]);
+            ]));
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -165,6 +135,9 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
         const everyoneAdvances = stage.format === "group_stage" && advancing === stage.participantCount;
         const groupPreview = stage.format === "group_stage" ? previewGroupSeedPlacement(stage) : [];
         const bracketPreview = stage.format === "single_elimination" ? previewBracketPairs(stage) : [];
+        const eliminationMetrics = stage.format === "single_elimination"
+          ? singleEliminationStageMetrics(stage)
+          : null;
 
         return (
           <Card key={stage.clientId} className={stageErrors.length > 0 ? "border-destructive/50" : ""}>
@@ -177,7 +150,7 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
                 <Button type="button" variant="ghost" size="icon" aria-label="Przesuń etap w dół" disabled={isLast} onClick={() => move(index, 1)}>
                   <ArrowDown className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" aria-label="Usuń etap" disabled={stages.length === 1} onClick={() => onChange(stages.filter((_, stageIndex) => stageIndex !== index))}>
+                <Button type="button" variant="ghost" size="icon" aria-label="Usuń etap" disabled={stages.length === 1} onClick={() => onChange(synchronizeStageParticipantFlow(stages.filter((_, stageIndex) => stageIndex !== index)))}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -209,7 +182,12 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
               </div>
               <div className="space-y-2">
                 <Label htmlFor={`stage-${index}-participants`}>Liczba uczestników</Label>
-                <Input id={`stage-${index}-participants`} type="number" min={2} value={stage.participantCount} onChange={(event) => update(index, { participantCount: integer(event.target.value, 0) })} />
+                <Input id={`stage-${index}-participants`} type="number" min={2} value={stage.participantCount} disabled={index > 0} onChange={(event) => update(index, { participantCount: integer(event.target.value, 0) })} />
+                {index > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {stage.participantCount} uczestników — awansujący z Etapu {index}.
+                  </p>
+                )}
               </div>
               {stage.format === "swiss" && (
                 <div className="space-y-2">
@@ -221,6 +199,28 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
                 <div className="space-y-2">
                   <Label htmlFor={`stage-${index}-advancing`}>Liczba kwalifikantów</Label>
                   <Input id={`stage-${index}-advancing`} type="number" min={2} max={stage.participantCount} value={stage.advancingCount ?? ""} onChange={(event) => update(index, { advancingCount: integer(event.target.value, 0) })} />
+                </div>
+              )}
+              {!isLast && stage.format === "single_elimination" && (
+                <div className="space-y-2">
+                  <Label>Liczba kwalifikantów</Label>
+                  <Select value={String(stage.advancingCount ?? "")} onValueChange={(value) => update(index, { advancingCount: Number(value) })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {singleEliminationAdvancingOptions(stage.participantCount).map((count) => (
+                        <SelectItem key={count} value={String(count)}>{count}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {eliminationMetrics && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
+                  <div>Awansuje: <strong>{eliminationMetrics.advancingCount}</strong></div>
+                  <div>Rundy do rozegrania: <strong>{eliminationMetrics.rounds}</strong></div>
+                  <div>Przewidywana liczba meczów: <strong>{eliminationMetrics.matchCount}</strong></div>
+                  <div>Etap docelowy: <strong>{isLast ? "zakończenie turnieju" : `Etap ${index + 2}`}</strong></div>
                 </div>
               )}
 

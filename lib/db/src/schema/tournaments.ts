@@ -241,9 +241,18 @@ export const tournamentStagesTable = pgTable(
     check("tournament_stages_qualification_configuration", sql`
       (${table.qualificationMode} = 'none' AND ${table.advancingCount} IS NULL)
       OR (${table.qualificationMode} = 'top_n' AND ${table.format} IN ('swiss', 'round_robin')
+        AND ${table.advancingCount} IS NOT NULL
+        AND ${table.advancingCount} <= ${table.participantCount})
+      OR (${table.qualificationMode} = 'top_n' AND ${table.format} = 'single_elimination'
         AND ${table.advancingCount} IS NOT NULL)
       OR (${table.qualificationMode} = 'top_n_per_group' AND ${table.format} = 'group_stage'
         AND ${table.advancingCount} IS NULL)`),
+    check("tournament_stages_elimination_advancing_boundary", sql`
+      ${table.format} <> 'single_elimination'
+      OR ${table.qualificationMode} = 'none'
+      OR (${table.qualificationMode} = 'top_n'
+        AND ${table.advancingCount} < ${table.participantCount}
+        AND (${table.advancingCount} & (${table.advancingCount} - 1)) = 0)`),
     check("tournament_stages_seeding_configuration", sql`
       (${table.format} IN ('swiss', 'round_robin') AND ${table.seedingPolicy} = 'standings_order')
       OR (${table.format} = 'group_stage' AND ${table.seedingPolicy} IN ('snake_groups', 'random_groups'))
