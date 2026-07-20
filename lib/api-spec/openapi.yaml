@@ -176,6 +176,166 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony:
+    get:
+      operationId: getStageSeedingCeremony
+      tags: [tournaments]
+      summary: Read the persisted pre-stage seeding ceremony
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Current ceremony or null when it has not been prepared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeedingCeremonyResponse"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+    delete:
+      operationId: resetStageSeedingCeremony
+      tags: [tournaments]
+      summary: Reset a prepared ceremony before the stage starts
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "204": { description: Ceremony reset }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Stage is no longer planned or the ceremony is stale
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/prepare:
+    post:
+      operationId: prepareStageSeedingCeremony
+      tags: [tournaments]
+      summary: Persist every deterministic draw before revealing it
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Prepared ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Stage cannot be prepared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/reveal-next:
+    post:
+      operationId: revealNextStageSeedingDraw
+      tags: [tournaments]
+      summary: Reveal exactly one previously persisted draw
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Updated ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Ceremony is unavailable, stale or already complete
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/reveal-all:
+    post:
+      operationId: revealAllStageSeedingDraws
+      tags: [tournaments]
+      summary: Reveal every remaining persisted draw without animation
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Completed ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Ceremony is unavailable, stale or already complete
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
   /tournaments/{id}/stages/{stageId}/qualification-preview:
     get:
       operationId: previewStageQualification
@@ -951,6 +1111,123 @@ components:
             - GROUPS_ALREADY_EXIST
             - RANKING_INCONSISTENT
             - STAGE_SEEDING_CONFIGURATION_INVALID
+            - SEEDING_CEREMONY_REQUIRED
+            - SEEDING_CEREMONY_INCOMPLETE
+            - SEEDING_CEREMONY_STALE
+    SeedingCeremonyError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_PLANNED
+            - SEEDING_CEREMONY_NOT_AVAILABLE
+            - SEEDING_CEREMONY_NOT_PREPARED
+            - SEEDING_CEREMONY_ALREADY_COMPLETE
+            - SEEDING_CEREMONY_STALE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+
+    SeedingCeremonyGroupPlacement:
+      type: object
+      required: [kind, label, groupIndex, groupKey, groupPosition]
+      properties:
+        kind: { type: string, const: group }
+        label: { type: string }
+        groupIndex: { type: integer }
+        groupKey: { type: string }
+        groupPosition: { type: integer }
+
+    SeedingCeremonyBracketPlacement:
+      type: object
+      required: [kind, label, bracketSlot, matchNumber, side, bye]
+      properties:
+        kind: { type: string, const: bracket }
+        label: { type: string }
+        bracketSlot: { type: integer }
+        matchNumber: { type: integer }
+        side:
+          type: string
+          enum: [player1, player2]
+        bye: { type: boolean }
+
+    SeedingCeremonyStandingsPlacement:
+      type: object
+      required: [kind, label, position]
+      properties:
+        kind: { type: string, const: standings }
+        label: { type: string }
+        position: { type: integer }
+
+    SeedingCeremonyPlacement:
+      oneOf:
+        - $ref: "#/components/schemas/SeedingCeremonyGroupPlacement"
+        - $ref: "#/components/schemas/SeedingCeremonyBracketPlacement"
+        - $ref: "#/components/schemas/SeedingCeremonyStandingsPlacement"
+      discriminator:
+        propertyName: kind
+
+    SeedingCeremonyDraw:
+      type: object
+      required: [drawNumber, participantKey, playerId, playerName, seed, placement]
+      properties:
+        drawNumber: { type: integer, minimum: 1 }
+        participantKey: { type: string }
+        playerId: { type: integer }
+        playerName: { type: string }
+        seed: { type: integer, minimum: 1 }
+        placement:
+          $ref: "#/components/schemas/SeedingCeremonyPlacement"
+
+    SeedingCeremony:
+      type: object
+      required: [kind, version, stageId, status, drawMode, entrySeedingPolicy, placementPolicy, resultSeedingPolicy, revealOrder, randomSeed, participantSignature, configurationSignature, participantOrder, draws, revealedCount, preparedAt, updatedAt]
+      properties:
+        kind: { type: string, const: seeding_ceremony_v1 }
+        version: { type: integer, const: 1 }
+        stageId: { type: integer }
+        status:
+          type: string
+          enum: [prepared, in_progress, completed, applied]
+        drawMode:
+          type: string
+          enum: [seed, placement]
+        entrySeedingPolicy: { type: string }
+        placementPolicy: { type: string }
+        resultSeedingPolicy: { type: string }
+        revealOrder:
+          type: string
+          enum: [instant, sequential]
+        randomSeed: { type: string }
+        placementRandomSeed: { type: [string, "null"] }
+        participantSignature: { type: string }
+        configurationSignature: { type: string }
+        participantOrder:
+          type: array
+          items: { type: string }
+        draws:
+          type: array
+          items: { $ref: "#/components/schemas/SeedingCeremonyDraw" }
+        revealedCount: { type: integer, minimum: 0 }
+        preparedAt: { type: string }
+        updatedAt: { type: string }
+        completedAt: { type: [string, "null"] }
+        appliedAt: { type: [string, "null"] }
+
+    SeedingCeremonyResponse:
+      type: object
+      required: [ceremony]
+      properties:
+        ceremony:
+          oneOf:
+            - $ref: "#/components/schemas/SeedingCeremony"
+            - type: "null"
+
     StagePlanError:
       type: object
       required: [error, code, details]

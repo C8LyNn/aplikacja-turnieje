@@ -50,6 +50,8 @@ let completeMatch: typeof import("../src/application/matches/complete-match").co
 let completeStage: typeof import("../src/application/stages/stage-lifecycle").completeStage;
 let getQualificationPreview: typeof import("../src/application/stages/stage-lifecycle").getQualificationPreview;
 let startStage: typeof import("../src/application/stages/stage-lifecycle").startStage;
+let prepareSeedingCeremony: typeof import("../src/application/stages/seeding-ceremony").prepareSeedingCeremony;
+let revealAllSeedingDraws: typeof import("../src/application/stages/seeding-ceremony").revealAllSeedingDraws;
 
 async function createGroupPlan({
   groupCount,
@@ -171,6 +173,7 @@ before(async () => {
   schemaInitialized = true;
   ({ completeMatch } = await import("../src/application/matches/complete-match"));
   ({ completeStage, getQualificationPreview, startStage } = await import("../src/application/stages/stage-lifecycle"));
+  ({ prepareSeedingCeremony, revealAllSeedingDraws } = await import("../src/application/stages/seeding-ceremony"));
 });
 
 after(async () => {
@@ -198,13 +201,18 @@ describe("group_stage runtime", () => {
       randomSeed: "live-draw",
       randomRevealOrder: "sequential",
     }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
+    await prepareSeedingCeremony({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    const completedCeremony = await revealAllSeedingDraws({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.groupStageId,
+    });
 
     const started = await startStage({
       tournamentId: fixture.tournamentId,
       stageId: fixture.groupStageId,
     });
     const assignment = await database.pool.query(
-      `SELECT player.seed AS original_seed, participant.stage_seed, group_row.group_key
+      `SELECT player.id AS player_id, player.seed AS original_seed, participant.stage_seed, group_row.group_key
        FROM stage_participants participant
        JOIN players player ON player.id = participant.player_id
        JOIN stage_groups group_row ON group_row.id = participant.group_id
@@ -231,6 +239,12 @@ describe("group_stage runtime", () => {
     assert.equal(audit.placementRandomSeed, "live-draw:placement");
     assert.equal(audit.revealOrder, "sequential");
     assert.equal(audit.draws?.length, 8);
+    const groupByPlayerId = new Map(
+      assignment.rows.map((row: any) => [Number(row.player_id), row.group_key]),
+    );
+    assert.ok(completedCeremony.draws.every((draw) =>
+      draw.placement.kind === "group" &&
+      groupByPlayerId.get(draw.playerId) === draw.placement.groupKey));
   });
 
   test("creates arbitrary uneven groups and fills the larger groups first", async () => {
@@ -434,6 +448,8 @@ describe("group_stage runtime", () => {
       randomSeed: "rollback-draw",
       randomRevealOrder: "sequential",
     }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
+    await prepareSeedingCeremony({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    await revealAllSeedingDraws({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
     await assert.rejects(
       () => startStage(
         { tournamentId: fixture.tournamentId, stageId: fixture.groupStageId },
@@ -442,7 +458,7 @@ describe("group_stage runtime", () => {
       /group-generation-fault/,
     );
     const state = await database.pool.query(
-      `SELECT t.active_stage_id, s.status, s.seeding_audit,
+      `SELECT t.active_stage_id, s.status, s.seeding_audit->>'status' AS ceremony_status,
               (SELECT count(*) FROM stage_groups WHERE stage_id = $1) AS groups,
               (SELECT count(*) FROM matches WHERE stage_id = $1) AS matches,
               (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_id IS NOT NULL) AS assigned,
@@ -456,7 +472,7 @@ describe("group_stage runtime", () => {
     assert.deepEqual(state.rows[0], {
       active_stage_id: null,
       status: "planned",
-      seeding_audit: null,
+      ceremony_status: "completed",
       groups: "0",
       matches: "0",
       assigned: "0",

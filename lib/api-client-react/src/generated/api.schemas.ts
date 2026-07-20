@@ -30,11 +30,136 @@ export const StageLifecycleErrorCode = {
   GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
   RANKING_INCONSISTENT: 'RANKING_INCONSISTENT',
   STAGE_SEEDING_CONFIGURATION_INVALID: 'STAGE_SEEDING_CONFIGURATION_INVALID',
+  SEEDING_CEREMONY_REQUIRED: 'SEEDING_CEREMONY_REQUIRED',
+  SEEDING_CEREMONY_INCOMPLETE: 'SEEDING_CEREMONY_INCOMPLETE',
+  SEEDING_CEREMONY_STALE: 'SEEDING_CEREMONY_STALE',
 } as const;
 
 export interface StageLifecycleError {
   error: string;
   code: StageLifecycleErrorCode;
+}
+
+export type SeedingCeremonyErrorCode = typeof SeedingCeremonyErrorCode[keyof typeof SeedingCeremonyErrorCode];
+
+
+export const SeedingCeremonyErrorCode = {
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_NOT_FOUND: 'STAGE_NOT_FOUND',
+  STAGE_NOT_PLANNED: 'STAGE_NOT_PLANNED',
+  SEEDING_CEREMONY_NOT_AVAILABLE: 'SEEDING_CEREMONY_NOT_AVAILABLE',
+  SEEDING_CEREMONY_NOT_PREPARED: 'SEEDING_CEREMONY_NOT_PREPARED',
+  SEEDING_CEREMONY_ALREADY_COMPLETE: 'SEEDING_CEREMONY_ALREADY_COMPLETE',
+  SEEDING_CEREMONY_STALE: 'SEEDING_CEREMONY_STALE',
+  STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
+  GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
+} as const;
+
+export interface SeedingCeremonyError {
+  error: string;
+  code: SeedingCeremonyErrorCode;
+}
+
+export interface SeedingCeremonyGroupPlacement {
+  kind: 'group';
+  label: string;
+  groupIndex: number;
+  groupKey: string;
+  groupPosition: number;
+}
+
+export type SeedingCeremonyBracketPlacementSide = typeof SeedingCeremonyBracketPlacementSide[keyof typeof SeedingCeremonyBracketPlacementSide];
+
+
+export const SeedingCeremonyBracketPlacementSide = {
+  player1: 'player1',
+  player2: 'player2',
+} as const;
+
+export interface SeedingCeremonyBracketPlacement {
+  kind: 'bracket';
+  label: string;
+  bracketSlot: number;
+  matchNumber: number;
+  side: SeedingCeremonyBracketPlacementSide;
+  bye: boolean;
+}
+
+export interface SeedingCeremonyStandingsPlacement {
+  kind: 'standings';
+  label: string;
+  position: number;
+}
+
+export type SeedingCeremonyPlacement = SeedingCeremonyGroupPlacement | SeedingCeremonyBracketPlacement | SeedingCeremonyStandingsPlacement;
+
+export interface SeedingCeremonyDraw {
+  /** @minimum 1 */
+  drawNumber: number;
+  participantKey: string;
+  playerId: number;
+  playerName: string;
+  /** @minimum 1 */
+  seed: number;
+  placement: SeedingCeremonyPlacement;
+}
+
+export type SeedingCeremonyStatus = typeof SeedingCeremonyStatus[keyof typeof SeedingCeremonyStatus];
+
+
+export const SeedingCeremonyStatus = {
+  prepared: 'prepared',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  applied: 'applied',
+} as const;
+
+export type SeedingCeremonyDrawMode = typeof SeedingCeremonyDrawMode[keyof typeof SeedingCeremonyDrawMode];
+
+
+export const SeedingCeremonyDrawMode = {
+  seed: 'seed',
+  placement: 'placement',
+} as const;
+
+export type SeedingCeremonyRevealOrder = typeof SeedingCeremonyRevealOrder[keyof typeof SeedingCeremonyRevealOrder];
+
+
+export const SeedingCeremonyRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+export interface SeedingCeremony {
+  kind: 'seeding_ceremony_v1';
+  version: 1;
+  stageId: number;
+  status: SeedingCeremonyStatus;
+  drawMode: SeedingCeremonyDrawMode;
+  entrySeedingPolicy: string;
+  placementPolicy: string;
+  resultSeedingPolicy: string;
+  revealOrder: SeedingCeremonyRevealOrder;
+  randomSeed: string;
+  /** @nullable */
+  placementRandomSeed?: string | null;
+  participantSignature: string;
+  configurationSignature: string;
+  participantOrder: string[];
+  draws: SeedingCeremonyDraw[];
+  /** @minimum 0 */
+  revealedCount: number;
+  preparedAt: string;
+  updatedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  appliedAt?: string | null;
+}
+
+export interface SeedingCeremonyResponse {
+  ceremony: SeedingCeremony | null;
 }
 
 export type StagePlanErrorDetailsItem = {

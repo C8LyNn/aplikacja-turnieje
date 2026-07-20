@@ -28,6 +28,13 @@ import {
 } from "../../domain/tournament/stage-placement";
 import { assignSeeds, type SeedingPolicy } from "../../domain/tournament/seeding";
 import {
+  buildSeedingCeremonyState,
+  isCeremonyCurrent,
+  markCeremonyApplied,
+  parseSeedingCeremonyState,
+  stageUsesRandomCeremony,
+} from "./seeding-ceremony";
+import {
   rankRoundRobinOrGroup,
   rankSwissStage,
   type StageHeadToHeadResult,
@@ -51,7 +58,10 @@ export type StageLifecycleErrorCode =
   | "MATCHES_ALREADY_EXIST"
   | "GROUPS_ALREADY_EXIST"
   | "RANKING_INCONSISTENT"
-  | "STAGE_SEEDING_CONFIGURATION_INVALID";
+  | "STAGE_SEEDING_CONFIGURATION_INVALID"
+  | "SEEDING_CEREMONY_REQUIRED"
+  | "SEEDING_CEREMONY_INCOMPLETE"
+  | "SEEDING_CEREMONY_STALE";
 
 const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   TOURNAMENT_NOT_FOUND: "Turniej nie istnieje.",
@@ -70,6 +80,9 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   GROUPS_ALREADY_EXIST: "Planowany etap zawiera już grupy.",
   RANKING_INCONSISTENT: "Nie można wyliczyć jednoznacznego rankingu etapu.",
   STAGE_SEEDING_CONFIGURATION_INVALID: "Konfiguracja seedowania lub rozmieszczenia etapu jest niespójna.",
+  SEEDING_CEREMONY_REQUIRED: "Przed uruchomieniem etapu trzeba przygotować i przeprowadzić zaplanowane losowanie.",
+  SEEDING_CEREMONY_INCOMPLETE: "Losowanie nie zostało jeszcze w całości ujawnione.",
+  SEEDING_CEREMONY_STALE: "Przygotowane losowanie nie odpowiada aktualnym uczestnikom lub ustawieniom etapu.",
 };
 
 export class StageLifecycleError extends Error {
@@ -888,17 +901,51 @@ export async function startStage(
     if (!seedingResult.ok) {
       throw new StageLifecycleError("STAGE_SEEDING_CONFIGURATION_INVALID");
     }
-    const nextMemberships = seedingResult.seeded.map(({ entry, seed }) => ({
-      ...entry.membership,
-      stageSeed: seed,
-    }));
+    const ceremonyEnabled = stageUsesRandomCeremony(stage);
+    const preparedCeremony = parseSeedingCeremonyState(stage.seedingAudit);
+    let nextMemberships: Array<typeof stageParticipantsTable.$inferSelect>;
+    let appliedCeremony: ReturnType<typeof markCeremonyApplied> | null = null;
+    if (ceremonyEnabled && preparedCeremony) {
+      if (!isCeremonyCurrent({ ceremony: preparedCeremony, stage, memberships, players })) {
+        throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+      }
+      if (stage.randomRevealOrder === "sequential" &&
+          preparedCeremony.status !== "completed" && preparedCeremony.status !== "applied") {
+        throw new StageLifecycleError("SEEDING_CEREMONY_INCOMPLETE");
+      }
+      const seedByPlayerId = new Map(preparedCeremony.draws.map((draw) => [draw.playerId, draw.seed]));
+      if (seedByPlayerId.size !== memberships.length) {
+        throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+      }
+      nextMemberships = memberships.map((membership) => {
+        const seed = seedByPlayerId.get(membership.playerId);
+        if (seed == null) throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+        return { ...membership, stageSeed: seed };
+      });
+      appliedCeremony = markCeremonyApplied(preparedCeremony);
+    } else {
+      if (ceremonyEnabled && stage.randomRevealOrder === "sequential") {
+        throw new StageLifecycleError("SEEDING_CEREMONY_REQUIRED");
+      }
+      nextMemberships = seedingResult.seeded.map(({ entry, seed }) => ({
+        ...entry.membership,
+        stageSeed: seed,
+      }));
+      if (ceremonyEnabled) {
+        appliedCeremony = markCeremonyApplied(buildSeedingCeremonyState({
+          stage,
+          memberships,
+          players,
+        }));
+      }
+    }
     for (const membership of nextMemberships) {
       await tx.update(stageParticipantsTable)
         .set({ stageSeed: membership.stageSeed })
         .where(eq(stageParticipantsTable.id, membership.id));
     }
     memberships = nextMemberships.sort((left, right) => left.stageSeed - right.stageSeed);
-    const seedingAudit = {
+    const seedingAudit = appliedCeremony ?? {
       ...seedingResult.audit,
       entrySeedingPolicy: stage.entrySeedingPolicy,
       placementPolicy: stage.seedingPolicy,
@@ -909,6 +956,17 @@ export async function startStage(
         : null,
       appliedAt: new Date().toISOString(),
     };
+    const ceremonyDrawByPlayerId = appliedCeremony == null
+      ? null
+      : new Map(appliedCeremony.draws.map((draw) => [draw.playerId, draw]));
+    if (ceremonyDrawByPlayerId) {
+      if (ceremonyDrawByPlayerId.size !== memberships.length || memberships.some((membership) => {
+        const draw = ceremonyDrawByPlayerId.get(membership.playerId);
+        return !draw || draw.seed !== membership.stageSeed;
+      })) {
+        throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+      }
+    }
 
     const stagePlayers = memberships.map((membership) => ({
       ...playerById.get(membership.playerId)!,
@@ -962,6 +1020,15 @@ export async function startStage(
       const placements = stage.seedingPolicy === "random_groups"
         ? buildRandomGroupPlacements(placementParticipants, groupSizes, `${stage.randomSeed ?? ""}:placement`)
         : buildSnakeGroupPlacements(placementParticipants, groupSizes);
+      if (ceremonyDrawByPlayerId && placements.some((placement) => {
+        const draw = ceremonyDrawByPlayerId.get(Number(placement.participant.participantKey));
+        return !draw || draw.placement.kind !== "group" ||
+          draw.placement.groupIndex !== placement.groupIndex ||
+          draw.placement.groupKey !== groupKeyFromIndex(placement.groupIndex) ||
+          draw.placement.groupPosition !== placement.groupPosition;
+      })) {
+        throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+      }
       const placementByPlayerId = new Map(
         placements.map((placement) => [Number(placement.participant.participantKey), placement]),
       );
@@ -1012,6 +1079,36 @@ export async function startStage(
         stage,
         players: stagePlayers,
       });
+      if (ceremonyDrawByPlayerId) {
+        if (stage.format === "single_elimination") {
+          const firstRoundByMatchNumber = new Map(
+            generated.values
+              .filter((match) => match.round === 1)
+              .map((match) => [match.matchNumber, match]),
+          );
+          if (memberships.some((membership) => {
+            const draw = ceremonyDrawByPlayerId.get(membership.playerId);
+            if (!draw || draw.placement.kind !== "bracket") return true;
+            const match = firstRoundByMatchNumber.get(draw.placement.matchNumber);
+            if (!match) return true;
+            const playerId = draw.placement.side === "player1" ? match.player1Id : match.player2Id;
+            const expectedSlot = ((draw.placement.matchNumber - 1) * 2) +
+              (draw.placement.side === "player1" ? 1 : 2);
+            const isBye = match.resultType === "bye" && match.winnerId === membership.playerId;
+            return playerId !== membership.playerId ||
+              draw.placement.bracketSlot !== expectedSlot ||
+              draw.placement.bye !== isBye;
+          })) {
+            throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+          }
+        } else if (memberships.some((membership) => {
+          const draw = ceremonyDrawByPlayerId.get(membership.playerId);
+          return !draw || draw.placement.kind !== "standings" ||
+            draw.placement.position !== membership.stageSeed;
+        })) {
+          throw new StageLifecycleError("SEEDING_CEREMONY_STALE");
+        }
+      }
       totalRounds = generated.totalRounds;
       inserted = await tx.insert(matchesTable).values(generated.values).returning();
     }

@@ -463,14 +463,20 @@ describe("Backup v3", () => {
       .from(database.tournamentStagesTable)
       .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
     stages.sort((left, right) => left.position - right.position);
+    const organizerHeaders = { "x-organizer-token": signOrganizerToken(tournamentId) };
+    const ceremonyUrl = `/api/tournaments/${tournamentId}/stages/${stages[0].id}/seeding-ceremony`;
     await request(app)
-      .post(`/api/tournaments/${tournamentId}/stages/${stages[0].id}/start`)
-      .set({ "x-organizer-token": signOrganizerToken(tournamentId) })
+      .post(`${ceremonyUrl}/prepare`)
+      .set(organizerHeaders)
+      .expect(200);
+    await request(app)
+      .post(`${ceremonyUrl}/reveal-all`)
+      .set(organizerHeaders)
       .expect(200);
 
     const exported = await request(app)
       .get(`/api/tournaments/${tournamentId}/export`)
-      .set({ "x-organizer-token": signOrganizerToken(tournamentId) });
+      .set(organizerHeaders);
     assert.equal(exported.status, 200, exported.text);
     const exportedGroup = exported.body.stages.find(
       (stage: { format: string }) => stage.format === "group_stage",
@@ -485,6 +491,7 @@ describe("Backup v3", () => {
       exportedGroup.seedingAudit.placementRandomSeed,
       "backup-random-draw:placement",
     );
+    assert.equal(exportedGroup.seedingAudit.status, "completed");
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -508,6 +515,26 @@ describe("Backup v3", () => {
     assert.equal(importedGroup.randomSeed, "backup-random-draw");
     assert.equal(importedGroup.randomRevealOrder, "sequential");
     assert.deepEqual(importedGroup.seedingAudit, exportedGroup.seedingAudit);
+
+    const importedHeaders = {
+      "x-organizer-token": signOrganizerToken(imported.body.tournament.id),
+    };
+    const importedCeremonyUrl = `/api/tournaments/${imported.body.tournament.id}/stages/${importedGroup.id}/seeding-ceremony`;
+    const staleImported = await request(app)
+      .get(importedCeremonyUrl)
+      .set(importedHeaders)
+      .expect(200);
+    assert.equal(staleImported.body.ceremony, null);
+    const preparedAgain = await request(app)
+      .post(`${importedCeremonyUrl}/prepare`)
+      .set(importedHeaders)
+      .expect(200);
+    assert.equal(preparedAgain.body.ceremony.stageId, importedGroup.id);
+    assert.equal(preparedAgain.body.ceremony.status, "prepared");
+    assert.notEqual(
+      preparedAgain.body.ceremony.participantSignature,
+      exportedGroup.seedingAudit.participantSignature,
+    );
   });
 
   test("imports a pre-Patch-04 Backup v3 with safe seeding defaults", async () => {

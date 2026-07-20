@@ -40,6 +40,15 @@ import {
   listTournamentStages,
   serializeTournamentStage,
 } from "../application/stages/stage-queries";
+import {
+  getSeedingCeremony,
+  prepareSeedingCeremony,
+  resetSeedingCeremony,
+  revealAllSeedingDraws,
+  revealNextSeedingDraw,
+  SeedingCeremonyError,
+  type SeedingCeremonyErrorCode,
+} from "../application/stages/seeding-ceremony";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
@@ -122,6 +131,26 @@ function sendStageLifecycleError(
     "PREVIOUS_STAGE_NOT_COMPLETED",
     "STAGE_ALREADY_COMPLETED",
     "STAGE_ALREADY_STARTED",
+    "MATCHES_ALREADY_EXIST",
+    "GROUPS_ALREADY_EXIST",
+    "SEEDING_CEREMONY_REQUIRED",
+    "SEEDING_CEREMONY_INCOMPLETE",
+    "SEEDING_CEREMONY_STALE",
+  ]);
+  res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
+    .json({ error: error.message, code: error.code });
+}
+
+function sendSeedingCeremonyError(
+  error: SeedingCeremonyError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set<SeedingCeremonyErrorCode>(["TOURNAMENT_NOT_FOUND", "STAGE_NOT_FOUND"]);
+  const conflict = new Set<SeedingCeremonyErrorCode>([
+    "STAGE_NOT_PLANNED",
+    "SEEDING_CEREMONY_NOT_PREPARED",
+    "SEEDING_CEREMONY_ALREADY_COMPLETE",
+    "SEEDING_CEREMONY_STALE",
     "MATCHES_ALREADY_EXIST",
     "GROUPS_ALREADY_EXIST",
   ]);
@@ -554,6 +583,67 @@ router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req,
       sendStageLifecycleError(error, res);
       return;
     }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json({ ceremony: await getSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/prepare", async (req, res): Promise<void> => {
+  const params = StartTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
+  try {
+    res.json({ ceremony: await prepareSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-next", async (req, res): Promise<void> => {
+  const params = StartTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
+  try {
+    res.json({ ceremony: await revealNextSeedingDraw({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-all", async (req, res): Promise<void> => {
+  const params = StartTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
+  try {
+    res.json({ ceremony: await revealAllSeedingDraws({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
+    throw error;
+  }
+});
+
+router.delete("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, res): Promise<void> => {
+  const params = StartTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireOrganizer(req, res, params.data.id)) return;
+  try {
+    await resetSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId });
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
   }
 });

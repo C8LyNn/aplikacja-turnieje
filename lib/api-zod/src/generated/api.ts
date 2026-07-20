@@ -363,6 +363,291 @@ export const GetTournamentStageResponse = zod.object({
 
 
 /**
+ * @summary Read the persisted pre-stage seeding ceremony
+ */
+
+
+
+
+export const GetStageSeedingCeremonyParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+export const getStageSeedingCeremonyResponseCeremonyOneRevealedCountMin = 0;
+
+
+
+export const GetStageSeedingCeremonyResponse = zod.object({
+  "ceremony": zod.union([zod.object({
+  "kind": zod.literal("seeding_ceremony_v1"),
+  "version": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['prepared', 'in_progress', 'completed', 'applied']),
+  "drawMode": zod.enum(['seed', 'placement']),
+  "entrySeedingPolicy": zod.string(),
+  "placementPolicy": zod.string(),
+  "resultSeedingPolicy": zod.string(),
+  "revealOrder": zod.enum(['instant', 'sequential']),
+  "randomSeed": zod.string(),
+  "placementRandomSeed": zod.string().nullish(),
+  "participantSignature": zod.string(),
+  "configurationSignature": zod.string(),
+  "participantOrder": zod.array(zod.string()),
+  "draws": zod.array(zod.object({
+  "drawNumber": zod.number().min(1),
+  "participantKey": zod.string(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "seed": zod.number().min(1),
+  "placement": zod.union([zod.object({
+  "kind": zod.literal("group"),
+  "label": zod.string(),
+  "groupIndex": zod.number(),
+  "groupKey": zod.string(),
+  "groupPosition": zod.number()
+}),zod.object({
+  "kind": zod.literal("bracket"),
+  "label": zod.string(),
+  "bracketSlot": zod.number(),
+  "matchNumber": zod.number(),
+  "side": zod.enum(['player1', 'player2']),
+  "bye": zod.boolean()
+}),zod.object({
+  "kind": zod.literal("standings"),
+  "label": zod.string(),
+  "position": zod.number()
+})])
+})),
+  "revealedCount": zod.number().min(getStageSeedingCeremonyResponseCeremonyOneRevealedCountMin),
+  "preparedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "appliedAt": zod.string().nullish()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Reset a prepared ceremony before the stage starts
+ */
+
+
+
+
+export const ResetStageSeedingCeremonyParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+/**
+ * @summary Persist every deterministic draw before revealing it
+ */
+
+
+
+
+export const PrepareStageSeedingCeremonyParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+export const prepareStageSeedingCeremonyResponseCeremonyOneRevealedCountMin = 0;
+
+
+
+export const PrepareStageSeedingCeremonyResponse = zod.object({
+  "ceremony": zod.union([zod.object({
+  "kind": zod.literal("seeding_ceremony_v1"),
+  "version": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['prepared', 'in_progress', 'completed', 'applied']),
+  "drawMode": zod.enum(['seed', 'placement']),
+  "entrySeedingPolicy": zod.string(),
+  "placementPolicy": zod.string(),
+  "resultSeedingPolicy": zod.string(),
+  "revealOrder": zod.enum(['instant', 'sequential']),
+  "randomSeed": zod.string(),
+  "placementRandomSeed": zod.string().nullish(),
+  "participantSignature": zod.string(),
+  "configurationSignature": zod.string(),
+  "participantOrder": zod.array(zod.string()),
+  "draws": zod.array(zod.object({
+  "drawNumber": zod.number().min(1),
+  "participantKey": zod.string(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "seed": zod.number().min(1),
+  "placement": zod.union([zod.object({
+  "kind": zod.literal("group"),
+  "label": zod.string(),
+  "groupIndex": zod.number(),
+  "groupKey": zod.string(),
+  "groupPosition": zod.number()
+}),zod.object({
+  "kind": zod.literal("bracket"),
+  "label": zod.string(),
+  "bracketSlot": zod.number(),
+  "matchNumber": zod.number(),
+  "side": zod.enum(['player1', 'player2']),
+  "bye": zod.boolean()
+}),zod.object({
+  "kind": zod.literal("standings"),
+  "label": zod.string(),
+  "position": zod.number()
+})])
+})),
+  "revealedCount": zod.number().min(prepareStageSeedingCeremonyResponseCeremonyOneRevealedCountMin),
+  "preparedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "appliedAt": zod.string().nullish()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Reveal exactly one previously persisted draw
+ */
+
+
+
+
+export const RevealNextStageSeedingDrawParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+export const revealNextStageSeedingDrawResponseCeremonyOneRevealedCountMin = 0;
+
+
+
+export const RevealNextStageSeedingDrawResponse = zod.object({
+  "ceremony": zod.union([zod.object({
+  "kind": zod.literal("seeding_ceremony_v1"),
+  "version": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['prepared', 'in_progress', 'completed', 'applied']),
+  "drawMode": zod.enum(['seed', 'placement']),
+  "entrySeedingPolicy": zod.string(),
+  "placementPolicy": zod.string(),
+  "resultSeedingPolicy": zod.string(),
+  "revealOrder": zod.enum(['instant', 'sequential']),
+  "randomSeed": zod.string(),
+  "placementRandomSeed": zod.string().nullish(),
+  "participantSignature": zod.string(),
+  "configurationSignature": zod.string(),
+  "participantOrder": zod.array(zod.string()),
+  "draws": zod.array(zod.object({
+  "drawNumber": zod.number().min(1),
+  "participantKey": zod.string(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "seed": zod.number().min(1),
+  "placement": zod.union([zod.object({
+  "kind": zod.literal("group"),
+  "label": zod.string(),
+  "groupIndex": zod.number(),
+  "groupKey": zod.string(),
+  "groupPosition": zod.number()
+}),zod.object({
+  "kind": zod.literal("bracket"),
+  "label": zod.string(),
+  "bracketSlot": zod.number(),
+  "matchNumber": zod.number(),
+  "side": zod.enum(['player1', 'player2']),
+  "bye": zod.boolean()
+}),zod.object({
+  "kind": zod.literal("standings"),
+  "label": zod.string(),
+  "position": zod.number()
+})])
+})),
+  "revealedCount": zod.number().min(revealNextStageSeedingDrawResponseCeremonyOneRevealedCountMin),
+  "preparedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "appliedAt": zod.string().nullish()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Reveal every remaining persisted draw without animation
+ */
+
+
+
+
+export const RevealAllStageSeedingDrawsParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+export const revealAllStageSeedingDrawsResponseCeremonyOneRevealedCountMin = 0;
+
+
+
+export const RevealAllStageSeedingDrawsResponse = zod.object({
+  "ceremony": zod.union([zod.object({
+  "kind": zod.literal("seeding_ceremony_v1"),
+  "version": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['prepared', 'in_progress', 'completed', 'applied']),
+  "drawMode": zod.enum(['seed', 'placement']),
+  "entrySeedingPolicy": zod.string(),
+  "placementPolicy": zod.string(),
+  "resultSeedingPolicy": zod.string(),
+  "revealOrder": zod.enum(['instant', 'sequential']),
+  "randomSeed": zod.string(),
+  "placementRandomSeed": zod.string().nullish(),
+  "participantSignature": zod.string(),
+  "configurationSignature": zod.string(),
+  "participantOrder": zod.array(zod.string()),
+  "draws": zod.array(zod.object({
+  "drawNumber": zod.number().min(1),
+  "participantKey": zod.string(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "seed": zod.number().min(1),
+  "placement": zod.union([zod.object({
+  "kind": zod.literal("group"),
+  "label": zod.string(),
+  "groupIndex": zod.number(),
+  "groupKey": zod.string(),
+  "groupPosition": zod.number()
+}),zod.object({
+  "kind": zod.literal("bracket"),
+  "label": zod.string(),
+  "bracketSlot": zod.number(),
+  "matchNumber": zod.number(),
+  "side": zod.enum(['player1', 'player2']),
+  "bye": zod.boolean()
+}),zod.object({
+  "kind": zod.literal("standings"),
+  "label": zod.string(),
+  "position": zod.number()
+})])
+})),
+  "revealedCount": zod.number().min(revealAllStageSeedingDrawsResponseCeremonyOneRevealedCountMin),
+  "preparedAt": zod.string(),
+  "updatedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "appliedAt": zod.string().nullish()
+}),zod.null()])
+})
+
+
+/**
  * @summary Preview the deterministic ranking and qualification result of an active stage
  */
 
