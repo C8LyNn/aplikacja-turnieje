@@ -18,14 +18,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
+import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
-import { BracketView } from "@/components/bracket-view";
-import { SwissRoundsView } from "@/components/swiss-rounds-view";
-import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
+import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
@@ -154,8 +152,6 @@ export default function TournamentDetail() {
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
-  const [bracketZoom, setBracketZoom] = useState(0.85);
-  const clampBracketZoom = (z: number) => Math.round(Math.min(2, Math.max(0.2, z)) * 100) / 100;
   const [csvText, setCsvText] = useState("");
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
   const [csvConfirmReplace, setCsvConfirmReplace] = useState(false);
@@ -1221,63 +1217,11 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="bracket" className="pt-4">
-            {bracket ? (
-              tournament.format === "swiss" ? (
-                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
-                  <SwissRoundsView
-                    bracket={bracket}
-                    currentRound={tournament.currentRound}
-                    totalRounds={tournament.totalRounds}
-                  />
-                </div>
-              ) : tournament.format === "round_robin" ? (
-                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
-                  <RoundRobinView bracket={bracket} standings={standings} />
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-muted-foreground">
-                      Przewijaj poziomo/pionowo. Otwórz widok projektora dla pełnoekranowego trybu.
-                    </p>
-                    <div className="flex items-center gap-1 border border-border rounded-lg px-2 py-1">
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        onClick={() => setBracketZoom((z) => clampBracketZoom(z - 0.1))}
-                        disabled={bracketZoom <= 0.2}
-                      >
-                        <ZoomOut className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        className="min-w-[38px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors"
-                        onClick={() => setBracketZoom(0.85)}
-                        title="Reset do 85%"
-                      >
-                        {Math.round(bracketZoom * 100)}%
-                      </button>
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        onClick={() => setBracketZoom((z) => clampBracketZoom(z + 0.1))}
-                        disabled={bracketZoom >= 2}
-                      >
-                        <ZoomIn className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overflow-auto border border-border rounded-lg bg-background/50" style={{ maxHeight: "70vh" }}>
-                    <div style={{ display: "inline-block", minWidth: "100%" }}>
-                      <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: "top left", display: "inline-block" }}>
-                        <BracketView bracket={bracket} format={tournament.format} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
-                Brak drabinki. Wystartuj turniej.
-              </div>
-            )}
+            <StageProgressView
+              tournamentId={id}
+              activeStageId={tournament.activeStageId}
+              matches={matches ?? []}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="pt-6">

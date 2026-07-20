@@ -168,7 +168,7 @@ function RecordCells({ record }: { record: PlayerRecord }) {
   );
 }
 
-function ParticipantTable({
+export function ParticipantTable({
   participants,
   matches,
   title,
