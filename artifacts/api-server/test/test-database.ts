@@ -22,6 +22,10 @@ const STAGE_PARTICIPANT_FLOW_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0005_stage_participant_flow.sql",
   import.meta.url,
 );
+const MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0006_fix_multistage_participant_compat.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -118,6 +122,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(STAGE_PARTICIPANT_FLOW_MIGRATION_URL, "utf8"),
       schema,
     );
+    const multistageParticipantCompatMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL, "utf8"),
+      schema,
+    );
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -125,9 +133,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(flexibleGroupsMigrationSql);
       await pool.query(configurableSeedingMigrationSql);
       await pool.query(stageParticipantFlowMigrationSql);
-      // Every isolated integration schema proves that the constraint-only migration
-      // is safe to replay before any product test starts.
-      await pool.query(stageParticipantFlowMigrationSql);
+      await pool.query(multistageParticipantCompatMigrationSql);
+      // Every isolated integration schema proves that the forward-only compatibility
+      // fix is safe to replay after the participant-flow migration.
+      await pool.query(multistageParticipantCompatMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

@@ -33,15 +33,18 @@ let config: TestDatabaseConfig;
 let schemaInitialized = false;
 let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
 
-async function addPlayers(tournamentId: number, count: number): Promise<void> {
+async function addPlayers(tournamentId: number, count: number): Promise<number[]> {
   const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+  const playerIds: number[] = [];
   for (let seed = 1; seed <= count; seed += 1) {
-    await request(app)
+    const response = await request(app)
       .post(`/api/tournaments/${tournamentId}/players`)
       .set(headers)
       .send({ name: `Player ${seed}-${randomUUID()}`, seed })
       .expect(201);
+    playerIds.push(response.body.id as number);
   }
+  return playerIds;
 }
 
 async function createMultiStageTournament(): Promise<TournamentFixture> {
@@ -122,6 +125,91 @@ after(async () => {
 });
 
 describe("initial Tournament Stages start", () => {
+  test("keeps the persisted 32 -> 16 -> 8 plan fixed while players are added and removed", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Fixed participant plan ${randomUUID()}`,
+        format: "round_robin",
+        defaultBestOf: 1,
+        stagePlan: {
+          initialParticipantCount: 32,
+          stages: [
+            {
+              key: "groups", position: 1, name: "Groups", format: "group_stage",
+              participantCount: 32, bestOf: 1, groupCount: 8,
+              participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+            },
+            {
+              key: "qualifier", position: 2, name: "Qualifier", format: "single_elimination",
+              participantCount: 16, bestOf: 3, advancingCount: 8,
+            },
+            {
+              key: "final", position: 3, name: "Final", format: "single_elimination",
+              participantCount: 8, bestOf: 5,
+            },
+          ],
+        },
+      })
+      .expect(201);
+    const tournamentId = created.body.id as number;
+    const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+    const initialStages = await database.pool.query(
+      "SELECT id, participant_count FROM tournament_stages WHERE tournament_id = $1 ORDER BY position",
+      [tournamentId],
+    );
+    assert.deepEqual(initialStages.rows.map((stage) => stage.participant_count), [32, 16, 8]);
+
+    const first = await request(app)
+      .post(`/api/tournaments/${tournamentId}/players`)
+      .set(headers)
+      .send({ name: `First-${randomUUID()}`, seed: 1 })
+      .expect(201);
+    assert.deepEqual(
+      (await database.pool.query(
+        "SELECT participant_count FROM tournament_stages WHERE tournament_id = $1 ORDER BY position",
+        [tournamentId],
+      )).rows.map((stage) => stage.participant_count),
+      [32, 16, 8],
+    );
+
+    const remainingIds = await addPlayers(tournamentId, 31);
+    assert.deepEqual(
+      (await database.pool.query(
+        "SELECT participant_count FROM tournament_stages WHERE tournament_id = $1 ORDER BY position",
+        [tournamentId],
+      )).rows.map((stage) => stage.participant_count),
+      [32, 16, 8],
+    );
+    assert.equal(
+      (await database.pool.query(
+        "SELECT count(*)::int AS count FROM stage_participants WHERE stage_id = $1",
+        [initialStages.rows[0].id],
+      )).rows[0].count,
+      32,
+    );
+
+    await request(app)
+      .delete(`/api/players/${remainingIds.at(-1)}`)
+      .set(headers)
+      .expect(204);
+    assert.deepEqual(
+      (await database.pool.query(
+        "SELECT participant_count FROM tournament_stages WHERE tournament_id = $1 ORDER BY position",
+        [tournamentId],
+      )).rows.map((stage) => stage.participant_count),
+      [32, 16, 8],
+    );
+    assert.equal(
+      (await database.pool.query(
+        "SELECT count(*)::int AS count FROM stage_participants WHERE stage_id = $1",
+        [initialStages.rows[0].id],
+      )).rows[0].count,
+      31,
+    );
+    assert.ok(first.body.id);
+  });
+
   test("rejects a direct API request with an inconsistent participant flow", async () => {
     const response = await request(app)
       .post("/api/tournaments")
