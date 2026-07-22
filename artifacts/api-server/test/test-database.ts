@@ -34,6 +34,10 @@ const STAGE_PROCEDURAL_OBJECTS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0008_restore_stage_procedural_objects.sql",
   import.meta.url,
 );
+const COMPOSITE_FOREIGN_KEYS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0009_reconcile_composite_foreign_keys.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -142,6 +146,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(STAGE_PROCEDURAL_OBJECTS_MIGRATION_URL, "utf8"),
       schema,
     ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const compositeForeignKeysMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(COMPOSITE_FOREIGN_KEYS_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -157,6 +165,7 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       // Replaying the reconciliation is part of every integration database setup.
       await pool.query(stageSchemaReconciliationMigrationSql);
       await pool.query(stageProceduralObjectsMigrationSql);
+      await pool.query(compositeForeignKeysMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
