@@ -26,6 +26,10 @@ const MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0006_fix_multistage_participant_compat.sql",
   import.meta.url,
 );
+const STAGE_SCHEMA_RECONCILIATION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0007_reconcile_stage_schema.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -126,6 +130,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL, "utf8"),
       schema,
     );
+    const stageSchemaReconciliationMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(STAGE_SCHEMA_RECONCILIATION_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -137,6 +145,9 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       // Every isolated integration schema proves that the forward-only compatibility
       // fix is safe to replay after the participant-flow migration.
       await pool.query(multistageParticipantCompatMigrationSql);
+      await pool.query(stageSchemaReconciliationMigrationSql);
+      // Replaying the reconciliation is part of every integration database setup.
+      await pool.query(stageSchemaReconciliationMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
