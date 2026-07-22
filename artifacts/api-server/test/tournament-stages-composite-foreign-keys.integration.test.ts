@@ -32,6 +32,7 @@ interface CompositeForeignKeySpec {
 }
 
 interface ForeignKeyMetadata {
+  constraint_oid: number;
   table_name: string;
   constraint_name: string;
   columns: string[];
@@ -42,6 +43,17 @@ interface ForeignKeyMetadata {
   is_deferrable: boolean;
   initially_deferred: boolean;
   validated: boolean;
+}
+
+interface UniqueMetadata {
+  index_oid: number;
+  index_name: string;
+  table_name: string;
+  columns: string[];
+  is_unique: boolean;
+  is_valid: boolean;
+  is_ready: boolean;
+  owner_constraint: string | null;
 }
 
 const execFileAsync = promisify(execFile);
@@ -229,6 +241,70 @@ const TARGET_FOREIGN_KEYS: CompositeForeignKeySpec[] = [
   },
 ];
 
+const RESULT_HISTORY_FOREIGN_KEYS: CompositeForeignKeySpec[] = [
+  {
+    table: "result_history",
+    name: "result_history_match_same_stage_fk",
+    columns: ["stage_id", "match_id"],
+    foreignTable: "matches",
+    foreignColumns: ["stage_id", "id"],
+    deleteAction: "a",
+    deleteClause: "ON DELETE NO ACTION",
+  },
+  {
+    table: "result_history",
+    name: "result_history_match_same_tournament_stage_fk",
+    columns: ["tournament_id", "stage_id", "match_id"],
+    foreignTable: "matches",
+    foreignColumns: ["tournament_id", "stage_id", "id"],
+    deleteAction: "c",
+    deleteClause: "ON DELETE CASCADE",
+  },
+];
+
+const EXPECTED_FOREIGN_KEYS = [
+  ...TARGET_FOREIGN_KEYS,
+  ...RESULT_HISTORY_FOREIGN_KEYS,
+];
+
+const REQUIRED_UNIQUES = [
+  {
+    table: "tournament_stages",
+    name: "tournament_stages_tournament_id_id_unique",
+    columns: ["tournament_id", "id"],
+  },
+  {
+    table: "players",
+    name: "players_tournament_id_id_unique",
+    columns: ["tournament_id", "id"],
+  },
+  {
+    table: "stage_groups",
+    name: "stage_groups_stage_id_id_unique",
+    columns: ["stage_id", "id"],
+  },
+  {
+    table: "stage_participants",
+    name: "stage_participants_stage_player_unique",
+    columns: ["stage_id", "player_id"],
+  },
+  {
+    table: "stage_participants",
+    name: "stage_participants_tournament_id_id_unique",
+    columns: ["tournament_id", "id"],
+  },
+  {
+    table: "matches",
+    name: "matches_id_stage_id_unique",
+    columns: ["id", "stage_id"],
+  },
+  {
+    table: "matches",
+    name: "matches_tournament_stage_id_id_unique",
+    columns: ["tournament_id", "stage_id", "id"],
+  },
+] as const;
+
 let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
@@ -301,11 +377,38 @@ async function installReversedForeignKeys(): Promise<void> {
     await database.pool.query(
       `ALTER TABLE ${qualifiedTable(config.schema, spec.table)} DROP CONSTRAINT IF EXISTS ${quoteIdentifier(spec.name)}`,
     );
+  }
+
+  await database.pool.query(`
+    ALTER TABLE ${qualifiedTable(config.schema, "result_history")}
+    DROP CONSTRAINT IF EXISTS ${quoteIdentifier("result_history_match_same_stage_fk")}
+  `);
+  await database.pool.query(`
+    ALTER TABLE ${qualifiedTable(config.schema, "matches")}
+    DROP CONSTRAINT ${quoteIdentifier("matches_id_stage_id_unique")}
+  `);
+  await database.pool.query(`
+    ALTER TABLE ${qualifiedTable(config.schema, "matches")}
+    ADD CONSTRAINT ${quoteIdentifier("matches_id_stage_id_unique")}
+    UNIQUE (${columnList(["stage_id", "id"])})
+  `);
+  await database.pool.query(`
+    ALTER TABLE ${qualifiedTable(config.schema, "result_history")}
+    ADD CONSTRAINT ${quoteIdentifier("result_history_match_same_stage_fk")}
+    FOREIGN KEY (${columnList(["stage_id", "match_id"])})
+    REFERENCES ${qualifiedTable(config.schema, "matches")} (${columnList(["stage_id", "id"])})
+    ON UPDATE NO ACTION ON DELETE NO ACTION
+  `);
+
+  for (const spec of TARGET_FOREIGN_KEYS) {
+    const reversedForeignColumns = spec.name === "matches_next_match_same_stage_fk"
+      ? [...spec.foreignColumns].reverse()
+      : spec.foreignColumns;
     await database.pool.query(`
       ALTER TABLE ${qualifiedTable(config.schema, spec.table)}
       ADD CONSTRAINT ${quoteIdentifier(spec.name)}
       FOREIGN KEY (${columnList([...spec.columns].reverse())})
-      REFERENCES ${qualifiedTable(config.schema, spec.foreignTable)} (${columnList(spec.foreignColumns)})
+      REFERENCES ${qualifiedTable(config.schema, spec.foreignTable)} (${columnList(reversedForeignColumns)})
       ON UPDATE NO ACTION ${spec.deleteClause}
       ${spec.deferrable ? "DEFERRABLE INITIALLY DEFERRED" : "NOT DEFERRABLE"}
     `);
@@ -315,6 +418,7 @@ async function installReversedForeignKeys(): Promise<void> {
 async function foreignKeyMetadata(names: string[]): Promise<ForeignKeyMetadata[]> {
   const result = await database.pool.query<ForeignKeyMetadata>(`
     SELECT
+      constraint_row.oid AS constraint_oid,
       table_row.relname AS table_name,
       constraint_row.conname AS constraint_name,
       ARRAY(
@@ -361,6 +465,39 @@ async function foreignKeyMetadata(names: string[]): Promise<ForeignKeyMetadata[]
   return result.rows;
 }
 
+async function uniqueMetadata(names: string[]): Promise<UniqueMetadata[]> {
+  const result = await database.pool.query<UniqueMetadata>(`
+    SELECT
+      index_class.oid AS index_oid,
+      index_class.relname AS index_name,
+      table_row.relname AS table_name,
+      ARRAY(
+        SELECT attribute_row.attname::text
+        FROM unnest(index_row.indkey::smallint[]) WITH ORDINALITY
+          AS index_column(attribute_number, position)
+        JOIN pg_attribute attribute_row
+          ON attribute_row.attrelid = index_row.indrelid
+         AND attribute_row.attnum = index_column.attribute_number
+        WHERE index_column.position <= index_row.indnkeyatts
+        ORDER BY index_column.position
+      ) AS columns,
+      index_row.indisunique AS is_unique,
+      index_row.indisvalid AS is_valid,
+      index_row.indisready AS is_ready,
+      owner_constraint.conname AS owner_constraint
+    FROM pg_class index_class
+    JOIN pg_namespace namespace_row ON namespace_row.oid = index_class.relnamespace
+    JOIN pg_index index_row ON index_row.indexrelid = index_class.oid
+    JOIN pg_class table_row ON table_row.oid = index_row.indrelid
+    LEFT JOIN pg_constraint owner_constraint ON owner_constraint.conindid = index_class.oid
+      AND owner_constraint.contype IN ('u', 'p')
+    WHERE namespace_row.nspname = current_schema()
+      AND index_class.relname = ANY($1::text[])
+    ORDER BY index_class.relname
+  `, [names]);
+  return result.rows;
+}
+
 before(async () => {
   config = getSafeTestDatabaseConfig();
   process.env.NODE_ENV = "test";
@@ -398,40 +535,61 @@ after(async () => {
 
 describe("0009 composite foreign key reconciliation", () => {
   test("repairs reversed Production constraints, preserves result_history, and remains idempotent", async () => {
-    const targetNames = TARGET_FOREIGN_KEYS.map((spec) => spec.name);
-    const reversed = await foreignKeyMetadata(targetNames);
+    const targetNames = EXPECTED_FOREIGN_KEYS.map((spec) => spec.name);
+    const uniqueNames = REQUIRED_UNIQUES.map((spec) => spec.name);
+    const reversed = await foreignKeyMetadata(TARGET_FOREIGN_KEYS.map((spec) => spec.name));
     assert.equal(reversed.length, TARGET_FOREIGN_KEYS.length);
     for (const spec of TARGET_FOREIGN_KEYS) {
       const actual = reversed.find((constraint) => constraint.constraint_name === spec.name);
       assert.deepEqual(actual?.columns, [...spec.columns].reverse());
+      assert.deepEqual(
+        actual?.foreign_columns,
+        spec.name === "matches_next_match_same_stage_fk"
+          ? [...spec.foreignColumns].reverse()
+          : spec.foreignColumns,
+      );
     }
 
-    const resultHistoryBefore = await database.pool.query(`
-      SELECT constraint_row.oid, constraint_row.conname, pg_get_constraintdef(constraint_row.oid) AS definition
-      FROM pg_constraint constraint_row
-      JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
-      JOIN pg_namespace namespace_row ON namespace_row.oid = table_row.relnamespace
-      WHERE namespace_row.nspname = current_schema()
-        AND table_row.relname = 'result_history'
-        AND constraint_row.conname IN (
-          'result_history_match_same_stage_fk',
-          'result_history_match_same_tournament_stage_fk'
-        )
-      ORDER BY constraint_row.conname
-    `);
-    assert.equal(resultHistoryBefore.rows.length, 2);
+    const uniqueBefore = await uniqueMetadata(uniqueNames);
+    assert.equal(uniqueBefore.length, REQUIRED_UNIQUES.length);
+    for (const spec of REQUIRED_UNIQUES) {
+      const actual = uniqueBefore.find((index) => index.index_name === spec.name);
+      assert.ok(actual, `missing pre-migration ${spec.name}`);
+      assert.equal(actual.table_name, spec.table);
+      assert.deepEqual(
+        actual.columns,
+        spec.name === "matches_id_stage_id_unique"
+          ? ["stage_id", "id"]
+          : [...spec.columns],
+      );
+    }
 
     const migrationSql = renderSeriesV1MigrationForTestSchema(
       await readFile(COMPOSITE_FOREIGN_KEYS_MIGRATION_URL, "utf8"),
       config.schema,
     );
     await database.pool.query(migrationSql);
-    await database.pool.query(migrationSql);
 
-    const reconciled = await foreignKeyMetadata(targetNames);
-    assert.equal(reconciled.length, TARGET_FOREIGN_KEYS.length);
-    for (const spec of TARGET_FOREIGN_KEYS) {
-      const actual = reconciled.find((constraint) => constraint.constraint_name === spec.name);
+    const firstPassForeignKeys = await foreignKeyMetadata(targetNames);
+    const firstPassUniques = await uniqueMetadata(uniqueNames);
+    assert.equal(firstPassForeignKeys.length, EXPECTED_FOREIGN_KEYS.length);
+    assert.equal(firstPassUniques.length, REQUIRED_UNIQUES.length);
+    for (const spec of REQUIRED_UNIQUES) {
+      const actual = firstPassUniques.find((index) => index.index_name === spec.name);
+      assert.ok(actual, `missing ${spec.name}`);
+      assert.equal(actual.table_name, spec.table, spec.name);
+      assert.deepEqual(actual.columns, [...spec.columns], spec.name);
+      assert.equal(actual.is_unique, true, spec.name);
+      assert.equal(actual.is_valid, true, spec.name);
+      assert.equal(actual.is_ready, true, spec.name);
+      assert.equal(
+        actual.owner_constraint,
+        spec.name === "matches_id_stage_id_unique" ? spec.name : null,
+        spec.name,
+      );
+    }
+    for (const spec of EXPECTED_FOREIGN_KEYS) {
+      const actual = firstPassForeignKeys.find((constraint) => constraint.constraint_name === spec.name);
       assert.ok(actual, `missing ${spec.name}`);
       assert.deepEqual(actual.columns, spec.columns, spec.name);
       assert.equal(actual.foreign_table, spec.foreignTable, spec.name);
@@ -443,20 +601,9 @@ describe("0009 composite foreign key reconciliation", () => {
       assert.equal(actual.validated, true, spec.name);
     }
 
-    const resultHistoryAfter = await database.pool.query(`
-      SELECT constraint_row.oid, constraint_row.conname, pg_get_constraintdef(constraint_row.oid) AS definition
-      FROM pg_constraint constraint_row
-      JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
-      JOIN pg_namespace namespace_row ON namespace_row.oid = table_row.relnamespace
-      WHERE namespace_row.nspname = current_schema()
-        AND table_row.relname = 'result_history'
-        AND constraint_row.conname IN (
-          'result_history_match_same_stage_fk',
-          'result_history_match_same_tournament_stage_fk'
-        )
-      ORDER BY constraint_row.conname
-    `);
-    assert.deepEqual(resultHistoryAfter.rows, resultHistoryBefore.rows);
+    await database.pool.query(migrationSql);
+    assert.deepEqual(await foreignKeyMetadata(targetNames), firstPassForeignKeys);
+    assert.deepEqual(await uniqueMetadata(uniqueNames), firstPassUniques);
 
     const tournament = await request(app)
       .post("/api/tournaments")

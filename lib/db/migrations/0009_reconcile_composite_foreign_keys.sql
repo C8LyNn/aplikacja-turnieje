@@ -10,7 +10,21 @@ DO $composite_foreign_key_reconciliation$
 DECLARE
   required_table TEXT;
   required_column RECORD;
-  required_unique RECORD;
+  unique_requirement JSONB;
+  expected_unique_columns TEXT[];
+  actual_unique_columns TEXT[];
+  unique_index_oid OID;
+  unique_index_relkind "char";
+  unique_index_table TEXT;
+  unique_index_is_unique BOOLEAN;
+  unique_index_is_valid BOOLEAN;
+  unique_index_is_ready BOOLEAN;
+  unique_index_is_partial BOOLEAN;
+  unique_index_has_expressions BOOLEAN;
+  unique_index_exists BOOLEAN;
+  unique_owner_table TEXT;
+  unique_owner_constraint TEXT;
+  dependent_foreign_key RECORD;
   foreign_key JSONB;
   local_columns TEXT[];
   foreign_columns TEXT[];
@@ -29,6 +43,28 @@ DECLARE
   foreign_column_list TEXT;
   delete_clause TEXT;
   deferrability_clause TEXT;
+  known_foreign_key_names TEXT[] := ARRAY[
+    'stage_participants_stage_same_tournament_fk',
+    'stage_participants_player_same_tournament_fk',
+    'stage_participants_group_same_stage_fk',
+    'stage_participants_source_same_tournament_fk',
+    'tournaments_active_stage_same_tournament_fk',
+    'tournament_stages_winner_same_tournament_fk',
+    'tournament_stages_winner_same_stage_fk',
+    'matches_stage_same_tournament_fk',
+    'matches_group_same_stage_fk',
+    'matches_player1_same_stage_fk',
+    'matches_player2_same_stage_fk',
+    'matches_winner_same_stage_fk',
+    'matches_player1_same_tournament_fk',
+    'matches_player2_same_tournament_fk',
+    'matches_winner_same_tournament_fk',
+    'matches_next_match_same_stage_fk',
+    'action_log_stage_same_tournament_fk',
+    'action_log_match_same_tournament_stage_fk',
+    'result_history_match_same_stage_fk',
+    'result_history_match_same_tournament_stage_fk'
+  ];
 BEGIN
   FOREACH required_table IN ARRAY ARRAY[
     'stage_participants',
@@ -95,31 +131,69 @@ BEGIN
     END IF;
   END LOOP;
 
-  FOR required_unique IN
-    SELECT *
-    FROM (VALUES
-      ('tournament_stages', ARRAY['tournament_id', 'id']::TEXT[]),
-      ('players', ARRAY['tournament_id', 'id']::TEXT[]),
-      ('stage_groups', ARRAY['stage_id', 'id']::TEXT[]),
-      ('stage_participants', ARRAY['stage_id', 'player_id']::TEXT[]),
-      ('stage_participants', ARRAY['tournament_id', 'id']::TEXT[]),
-      ('matches', ARRAY['id', 'stage_id']::TEXT[]),
-      ('matches', ARRAY['tournament_id', 'stage_id', 'id']::TEXT[])
-    ) AS required(table_name, column_names)
+  -- Foreign keys must be removed before correcting a unique index that backs
+  -- them. Unknown dependencies abort the transaction instead of being dropped.
+  FOR unique_requirement IN
+    SELECT value
+    FROM jsonb_array_elements($unique_requirements$[
+      {
+        "table": "tournament_stages",
+        "name": "tournament_stages_tournament_id_id_unique",
+        "columns": ["tournament_id", "id"],
+        "kind": "index"
+      },
+      {
+        "table": "players",
+        "name": "players_tournament_id_id_unique",
+        "columns": ["tournament_id", "id"],
+        "kind": "index"
+      },
+      {
+        "table": "stage_groups",
+        "name": "stage_groups_stage_id_id_unique",
+        "columns": ["stage_id", "id"],
+        "kind": "index"
+      },
+      {
+        "table": "stage_participants",
+        "name": "stage_participants_stage_player_unique",
+        "columns": ["stage_id", "player_id"],
+        "kind": "index"
+      },
+      {
+        "table": "stage_participants",
+        "name": "stage_participants_tournament_id_id_unique",
+        "columns": ["tournament_id", "id"],
+        "kind": "index"
+      },
+      {
+        "table": "matches",
+        "name": "matches_id_stage_id_unique",
+        "columns": ["id", "stage_id"],
+        "kind": "constraint"
+      },
+      {
+        "table": "matches",
+        "name": "matches_tournament_stage_id_id_unique",
+        "columns": ["tournament_id", "stage_id", "id"],
+        "kind": "index"
+      }
+    ]$unique_requirements$::JSONB)
   LOOP
-    IF NOT EXISTS (
-      SELECT 1
-      FROM pg_index index_row
-      JOIN pg_class table_row ON table_row.oid = index_row.indrelid
-      JOIN pg_namespace namespace_row ON namespace_row.oid = table_row.relnamespace
-      WHERE namespace_row.nspname = current_schema()
-        AND table_row.relname = required_unique.table_name
-        AND index_row.indisunique
-        AND index_row.indisvalid
-        AND index_row.indisready
-        AND index_row.indpred IS NULL
-        AND index_row.indexprs IS NULL
-        AND ARRAY(
+    expected_unique_columns := ARRAY(
+      SELECT jsonb_array_elements_text(unique_requirement -> 'columns')
+    );
+
+    SELECT
+      index_class.oid,
+      index_class.relkind,
+      indexed_table.relname,
+      index_row.indisunique,
+      index_row.indisvalid,
+      index_row.indisready,
+      index_row.indpred IS NOT NULL,
+      index_row.indexprs IS NOT NULL,
+      ARRAY(
           SELECT attribute_row.attname::TEXT
           FROM unnest(index_row.indkey::SMALLINT[]) WITH ORDINALITY
             AS index_column(attribute_number, position)
@@ -128,12 +202,122 @@ BEGIN
            AND attribute_row.attnum = index_column.attribute_number
           WHERE index_column.position <= index_row.indnkeyatts
           ORDER BY index_column.position
-        ) = required_unique.column_names
-    ) THEN
-      RAISE EXCEPTION
-        '0009_reconcile_composite_foreign_keys requires a valid unique index on public.%(%)',
-        required_unique.table_name,
-        array_to_string(required_unique.column_names, ', ');
+      )
+    INTO
+      unique_index_oid,
+      unique_index_relkind,
+      unique_index_table,
+      unique_index_is_unique,
+      unique_index_is_valid,
+      unique_index_is_ready,
+      unique_index_is_partial,
+      unique_index_has_expressions,
+      actual_unique_columns
+    FROM pg_class index_class
+    JOIN pg_namespace index_namespace ON index_namespace.oid = index_class.relnamespace
+    LEFT JOIN pg_index index_row ON index_row.indexrelid = index_class.oid
+    LEFT JOIN pg_class indexed_table ON indexed_table.oid = index_row.indrelid
+    WHERE index_namespace.nspname = current_schema()
+      AND index_class.relname = unique_requirement ->> 'name';
+
+    unique_index_exists := FOUND;
+    definition_matches := unique_index_exists
+      AND unique_index_relkind IN ('i', 'I')
+      AND unique_index_table = unique_requirement ->> 'table'
+      AND COALESCE(unique_index_is_unique, FALSE)
+      AND COALESCE(unique_index_is_valid, FALSE)
+      AND COALESCE(unique_index_is_ready, FALSE)
+      AND NOT COALESCE(unique_index_is_partial, TRUE)
+      AND NOT COALESCE(unique_index_has_expressions, TRUE)
+      AND actual_unique_columns = expected_unique_columns;
+
+    IF NOT definition_matches THEN
+      IF unique_index_exists THEN
+        IF unique_index_relkind NOT IN ('i', 'I')
+          OR unique_index_table IS DISTINCT FROM unique_requirement ->> 'table'
+        THEN
+          RAISE EXCEPTION
+            '0009_reconcile_composite_foreign_keys found unexpected object % instead of index public.% on table public.%',
+            unique_index_relkind,
+            unique_requirement ->> 'name',
+            unique_requirement ->> 'table';
+        END IF;
+
+        FOR dependent_foreign_key IN
+          SELECT
+            dependent_namespace.nspname AS schema_name,
+            dependent_table.relname AS table_name,
+            constraint_row.conname AS constraint_name
+          FROM pg_constraint constraint_row
+          JOIN pg_class dependent_table ON dependent_table.oid = constraint_row.conrelid
+          JOIN pg_namespace dependent_namespace ON dependent_namespace.oid = dependent_table.relnamespace
+          WHERE constraint_row.contype = 'f'
+            AND constraint_row.conindid = unique_index_oid
+        LOOP
+          IF dependent_foreign_key.schema_name <> current_schema()
+            OR NOT (dependent_foreign_key.constraint_name = ANY(known_foreign_key_names))
+          THEN
+            RAISE EXCEPTION
+              '0009_reconcile_composite_foreign_keys refuses to drop unexpected dependent FK %.%.%',
+              dependent_foreign_key.schema_name,
+              dependent_foreign_key.table_name,
+              dependent_foreign_key.constraint_name;
+          END IF;
+
+          EXECUTE format(
+            'ALTER TABLE %I.%I DROP CONSTRAINT %I',
+            dependent_foreign_key.schema_name,
+            dependent_foreign_key.table_name,
+            dependent_foreign_key.constraint_name
+          );
+        END LOOP;
+
+        SELECT owner_table.relname, owner_constraint.conname
+        INTO unique_owner_table, unique_owner_constraint
+        FROM pg_constraint owner_constraint
+        JOIN pg_class owner_table ON owner_table.oid = owner_constraint.conrelid
+        JOIN pg_namespace owner_namespace ON owner_namespace.oid = owner_table.relnamespace
+        WHERE owner_constraint.conindid = unique_index_oid
+          AND owner_constraint.contype IN ('u', 'p')
+          AND owner_namespace.nspname = current_schema();
+
+        IF FOUND THEN
+          EXECUTE format(
+            'ALTER TABLE %I.%I DROP CONSTRAINT %I',
+            current_schema(),
+            unique_owner_table,
+            unique_owner_constraint
+          );
+        ELSE
+          EXECUTE format(
+            'DROP INDEX %I.%I',
+            current_schema(),
+            unique_requirement ->> 'name'
+          );
+        END IF;
+      END IF;
+
+      SELECT string_agg(format('%I', column_name), ', ')
+      INTO local_column_list
+      FROM unnest(expected_unique_columns) AS column_name;
+
+      IF unique_requirement ->> 'kind' = 'constraint' THEN
+        EXECUTE format(
+          'ALTER TABLE %I.%I ADD CONSTRAINT %I UNIQUE (%s)',
+          current_schema(),
+          unique_requirement ->> 'table',
+          unique_requirement ->> 'name',
+          local_column_list
+        );
+      ELSE
+        EXECUTE format(
+          'CREATE UNIQUE INDEX %I ON %I.%I (%s)',
+          unique_requirement ->> 'name',
+          current_schema(),
+          unique_requirement ->> 'table',
+          local_column_list
+        );
+      END IF;
     END IF;
   END LOOP;
 
