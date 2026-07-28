@@ -41,11 +41,31 @@ The repository currently pins Drizzle Kit 0.31.10. Its PostgreSQL `push`
 introspector has a separate false-positive problem for migration-created
 composite foreign keys and their supporting unique indexes: a local
 Production-shaped fixture caused it to propose drop/recreate cycles and then
-collide with an index that already existed. Therefore `drizzle-kit push` is not
-an approved Production verification or deployment command. The empty-diff
-expectation above applies to the targeted semantic reconciliation; any Replit
-or future Drizzle preview must still be reviewed and rejected if it proposes
-additional DDL.
+collide with an index that already existed.
+
+Filtering only `app_schema_migrations`, `tournament_stages` and `action_log`
+with `tablesFilter` is not safe in this version. A Production-shaped fixture
+still produced drop/recreate cycles for related composite keys and proposed
+dropping the serial sequences of excluded tables. The application therefore
+does not use a partial table filter.
+
+Instead, `lib/db/drizzle.config.ts` scopes the automatic Replit/Drizzle push to
+the built-in `information_schema` namespace and to a table pattern that matches
+no table. `lib/db/replit-push-schema.ts` contains only the matching empty
+namespace declaration. The complete runtime model remains in
+`lib/db/src/schema/index.ts`.
+
+This uses the officially supported `schemaFilter` and `tablesFilter`
+configuration surfaces and produces an empty Drizzle push for the complete
+Production-shaped catalog both before and after the guarded redundant-index
+cleanup. It does not generate or post-process SQL.
+
+Consequently, Drizzle push manages **no application object in `public`**.
+Every future change to application tables, constraints, indexes, enums,
+functions or triggers must be delivered by a reviewed forward-only SQL
+migration, its guarded deployment runner and PostgreSQL catalog tests. The
+schema-diff integration test must be rerun before changing Drizzle Kit or this
+filter configuration.
 
 ## Production preflight and one-index cleanup
 
@@ -164,4 +184,6 @@ before any further action.
 After success, verify that
 `to_regclass('public.matches_stage_id_id_unique')` is `NULL`, the canonical
 `matches_id_stage_id_unique` constraint remains validated, and the schema diff
-is empty.
+is empty. The automatic Replit/Drizzle push ignores the duplicate both before
+and after cleanup; the targeted catalog check above is the authority for this
+one manual cleanup.

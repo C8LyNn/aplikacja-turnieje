@@ -80,7 +80,7 @@ async function exportCurrentDrizzleSchema(): Promise<string> {
       fileURLToPath(DRIZZLE_KIT_URL),
       "export",
       "--schema",
-      "./src/schema/*.ts",
+      "./src/schema/index.ts",
       "--dialect",
       "postgresql",
     ],
@@ -159,6 +159,31 @@ async function targetedSchemaDiff(): Promise<string[]> {
   return duplicate.rows[0]?.duplicate_index
     ? ['DROP INDEX "public"."matches_stage_id_id_unique";']
     : [];
+}
+
+async function applyReplitPushToDisposableDatabase(): Promise<string> {
+  const { stdout, stderr } = await execFileAsync(
+    process.execPath,
+    [
+      fileURLToPath(DRIZZLE_KIT_URL),
+      "push",
+      "--config",
+      "./drizzle.config.ts",
+      "--force",
+      "--verbose",
+    ],
+    {
+      cwd: fileURLToPath(DB_WORKSPACE_URL),
+      env: {
+        ...process.env,
+        DATABASE_URL: testConnectionString,
+      },
+      timeout: 60_000,
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  );
+  return `${stdout}\n${stderr}`;
 }
 
 async function documentedProductionCleanupSql(): Promise<string> {
@@ -312,9 +337,27 @@ describe("targeted schema authority diff for the Production state through migrat
     assert.deepEqual(await targetedSchemaDiff(), [
       'DROP INDEX "public"."matches_stage_id_id_unique";',
     ]);
+    const firstPush = await applyReplitPushToDisposableDatabase();
+    assert.match(firstPush, /No changes detected/);
+    assert.doesNotMatch(
+      firstPush,
+      /\b(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:SCHEMA|TABLE|TYPE|SEQUENCE|INDEX|CONSTRAINT)\b/i,
+    );
+    assert.deepEqual(await targetedSchemaDiff(), [
+      'DROP INDEX "public"."matches_stage_id_id_unique";',
+    ]);
     const cleanupSql = await documentedProductionCleanupSql();
     await testPool.query(cleanupSql);
     await testPool.query(cleanupSql);
     assert.deepEqual(await targetedSchemaDiff(), []);
+    const secondPush = await applyReplitPushToDisposableDatabase();
+    assert.match(secondPush, /No changes detected/);
+    assert.deepEqual((await requiredSchemaMetadata()).rows, metadata.rows);
+    const migrationMarker = await testPool.query(
+      `SELECT count(*)::int AS count
+       FROM public.app_schema_migrations
+       WHERE migration_key = 'schema_authority_test'`,
+    );
+    assert.deepEqual(migrationMarker.rows[0], { count: 1 });
   });
 });

@@ -9,7 +9,7 @@ Webowa aplikacja do zarządzania turniejami sportowymi i esportowymi — tworzen
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm --filter @workspace/db run push` — guarded no-op used by Replit Publishing; application schema changes use reviewed forward-only SQL migrations
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
@@ -52,7 +52,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 ## Gotchas
 
 - Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change before touching frontend or backend
-- DB schema changes: `pnpm --filter @workspace/db run push` (dev only; prod handled by Publish flow)
+- DB schema changes: reviewed forward-only SQL migrations and their guarded runners; automatic Drizzle push intentionally manages no application table
 - API server must be restarted after code changes: it builds via esbuild before starting
 
 ## Pointers

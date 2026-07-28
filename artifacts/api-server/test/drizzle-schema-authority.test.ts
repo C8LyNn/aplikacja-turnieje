@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { describe, test } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   actionLogTable,
   appSchemaMigrationsTable,
@@ -7,6 +10,11 @@ import {
   tournamentStagesTable,
 } from "@workspace/db/schema";
 import { getTableConfig } from "drizzle-orm/pg-core";
+
+const repositoryRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../..",
+);
 
 function foreignKeyConfig(
   table: Parameters<typeof getTableConfig>[0],
@@ -26,6 +34,28 @@ function foreignKeyConfig(
 }
 
 describe("authoritative Drizzle schema", () => {
+  test("keeps Replit push outside the application-owned public schema", () => {
+    const pushSchema = readFileSync(
+      resolve(repositoryRoot, "lib/db/replit-push-schema.ts"),
+      "utf8",
+    );
+    const pushConfig = readFileSync(
+      resolve(repositoryRoot, "lib/db/drizzle.config.ts"),
+      "utf8",
+    );
+
+    assert.match(pushSchema, /pgSchema\(["']information_schema["']\)/);
+    assert.match(pushConfig, /schema:\s*["']\.\/replit-push-schema\.ts["']/);
+    assert.match(
+      pushConfig,
+      /tablesFilter:\s*\[\s*["']__replit_push_manages_no_tables__["']\s*\]/,
+    );
+    assert.match(
+      pushConfig,
+      /schemaFilter:\s*\[\s*["']information_schema["']\s*\]/,
+    );
+  });
+
   test("declares migration infrastructure and the required composite foreign keys", () => {
     const migrationConfig = getTableConfig(appSchemaMigrationsTable);
     assert.equal(migrationConfig.name, "app_schema_migrations");
