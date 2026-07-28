@@ -18,11 +18,20 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password to protect organizer access */
-  organizerPassword?: string;
-  /** Optional password for support staff access */
+  /**
+     * Required password protecting organizer access to every newly created tournament.
+     * @minLength 8
+     */
+  organizerPassword: string;
+  /**
+     * Optional password for support staff access
+     * @minLength 8
+     */
   supportPassword?: string;
-  /** Optional password for viewer access (required when visibility=private_online) */
+  /**
+     * Password for viewer access; required when visibility=private_online.
+     * @minLength 8
+     */
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;

@@ -11,4 +11,6 @@ export interface ImportResult {
   tournament: Tournament;
   playersImported: number;
   matchesImported: number;
+  /** Organizer token scoped to the newly restored tournament. */
+  organizerToken: string;
 }

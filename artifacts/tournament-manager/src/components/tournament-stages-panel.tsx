@@ -487,6 +487,7 @@ export function TournamentStagesPanel({
       enabled: tournamentId > 0,
       retry: false,
       queryKey: getListTournamentStagesQueryKey(tournamentId),
+      refetchInterval: audience ? 8000 : false,
     },
   });
   const stages = stagesQuery.data ?? [];
@@ -517,6 +518,7 @@ export function TournamentStagesPanel({
           tournamentId,
           selectedStageId ?? 0,
         ),
+        refetchInterval: audience ? 8000 : false,
       },
     },
   );

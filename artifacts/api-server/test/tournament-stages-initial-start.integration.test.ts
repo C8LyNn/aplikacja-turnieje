@@ -31,10 +31,20 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const result = await database.pool.query(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  const passwordHash = result.rows[0]?.organizer_password_hash as string | undefined;
+  assert.ok(passwordHash);
+  return signOrganizerToken(tournamentId, passwordHash);
+}
 
 async function addPlayers(tournamentId: number, count: number): Promise<number[]> {
-  const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+  const headers = { "x-organizer-token": await organizerTokenFor(tournamentId) };
   const playerIds: number[] = [];
   for (let seed = 1; seed <= count; seed += 1) {
     const response = await request(app)
@@ -51,6 +61,7 @@ async function createMultiStageTournament(): Promise<TournamentFixture> {
   const response = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "integration-organizer-password",
       name: `Initial multi-stage start ${randomUUID()}`,
       format: "swiss",
       defaultBestOf: 1,
@@ -101,7 +112,7 @@ async function createMultiStageTournament(): Promise<TournamentFixture> {
   return {
     tournamentId,
     stageIds: stages.map((stage) => stage.id),
-    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournamentId) },
+    organizerHeaders: { "x-organizer-token": await organizerTokenFor(tournamentId) },
   };
 }
 
@@ -113,7 +124,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signOrganizerToken } = await import("../src/auth"));
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   app = (await import("../src/app")).default;
 });
 
@@ -129,6 +140,7 @@ describe("initial Tournament Stages start", () => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Fixed participant plan ${randomUUID()}`,
         format: "round_robin",
         defaultBestOf: 1,
@@ -153,7 +165,7 @@ describe("initial Tournament Stages start", () => {
       })
       .expect(201);
     const tournamentId = created.body.id as number;
-    const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+    const headers = { "x-organizer-token": await organizerTokenFor(tournamentId) };
     const initialStages = await database.pool.query(
       "SELECT id, participant_count FROM tournament_stages WHERE tournament_id = $1 ORDER BY position",
       [tournamentId],
@@ -214,6 +226,7 @@ describe("initial Tournament Stages start", () => {
     const response = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Invalid participant flow ${randomUUID()}`,
         format: "round_robin",
         defaultBestOf: 1,
@@ -334,6 +347,7 @@ describe("initial Tournament Stages start", () => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Initial one-stage start ${randomUUID()}`,
         format: "swiss",
         defaultBestOf: 1,
@@ -349,7 +363,7 @@ describe("initial Tournament Stages start", () => {
 
     const response = await request(app)
       .post(`/api/tournaments/${tournamentId}/start`)
-      .set({ "x-organizer-token": signOrganizerToken(tournamentId) })
+      .set({ "x-organizer-token": await organizerTokenFor(tournamentId) })
       .expect(200);
     assert.equal(response.body.status, "active");
     assert.equal(response.body.activeStageId, stage.id);

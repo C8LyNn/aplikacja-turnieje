@@ -29,7 +29,17 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const result = await database.pool.query<{ organizer_password_hash: string }>(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  const passwordHash = result.rows[0]?.organizer_password_hash;
+  assert.ok(passwordHash, "created tournament must have organizer credentials");
+  return signOrganizerToken(tournamentId, passwordHash);
+}
 
 function oldProductionStateSql(schema: string): string {
   return renderSeriesV1MigrationForTestSchema(`
@@ -128,7 +138,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signOrganizerToken } = await import("../src/auth"));
+  ({ signVersionedOrganizerToken: signOrganizerToken } = await import("../src/auth"));
   app = (await import("../src/app")).default;
 });
 
@@ -206,6 +216,7 @@ describe("0007 stage schema reconciliation", () => {
     const multiStage = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Reconciled eliminations ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 1,
@@ -232,7 +243,7 @@ describe("0007 stage schema reconciliation", () => {
       .expect(201);
     const multiStageId = multiStage.body.id as number;
     const multiStageHeaders = {
-      "x-organizer-token": signOrganizerToken(multiStageId),
+      "x-organizer-token": await organizerTokenFor(multiStageId),
     };
     assert.deepEqual(await stageParticipantCounts(multiStageId), [32, 16, 8]);
 
@@ -251,6 +262,7 @@ describe("0007 stage schema reconciliation", () => {
     const singleStage = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Reconciled legacy ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 3,
@@ -258,7 +270,7 @@ describe("0007 stage schema reconciliation", () => {
       .expect(201);
     const singleStageId = singleStage.body.id as number;
     const singleStageHeaders = {
-      "x-organizer-token": signOrganizerToken(singleStageId),
+      "x-organizer-token": await organizerTokenFor(singleStageId),
     };
     const firstSinglePlayer = await request(app)
       .post(`/api/tournaments/${singleStageId}/players`)

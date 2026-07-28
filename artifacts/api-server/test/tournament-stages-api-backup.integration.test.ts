@@ -29,7 +29,7 @@ let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
 let completeMatch: typeof import("../src/application/matches/complete-match").completeMatch;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 let signViewerToken: typeof import("../src/auth").signViewerToken;
 
 const groupPlan = {
@@ -68,7 +68,10 @@ before(async () => {
   schemaInitialized = true;
   ({ completeMatch } =
     await import("../src/application/matches/complete-match"));
-  ({ signOrganizerToken, signViewerToken } = await import("../src/auth"));
+  ({
+    signVersionedOrganizerToken: signOrganizerToken,
+    signViewerToken,
+  } = await import("../src/auth"));
   app = (await import("../src/app")).default;
 });
 
@@ -88,6 +91,9 @@ async function createGroupTournament(
       format: "round_robin",
       visibility,
       organizerPassword: "organizer-test-password",
+      ...(visibility === "private_online"
+        ? { viewerPassword: "viewer-test-password" }
+        : {}),
       stagePlan: groupPlan,
     });
   assert.equal(response.status, 201, response.text);
@@ -107,13 +113,23 @@ async function createGroupTournament(
     .from(database.tournamentStagesTable)
     .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
   stages.sort((left, right) => left.position - right.position);
+  const organizerToken = await organizerTokenFor(tournamentId);
   return {
     tournamentId,
     playerIds: players.map((player) => player.id),
     groupStageId: stages[0].id,
     playoffStageId: stages[1].id,
-    organizer: { "x-organizer-token": signOrganizerToken(tournamentId) },
+    organizer: { "x-organizer-token": organizerToken },
   };
+}
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const [tournament] = await database.db
+    .select({ organizerPasswordHash: database.tournamentsTable.organizerPasswordHash })
+    .from(database.tournamentsTable)
+    .where(eq(database.tournamentsTable.id, tournamentId));
+  assert.ok(tournament?.organizerPasswordHash);
+  return signOrganizerToken(tournamentId, tournament.organizerPasswordHash);
 }
 
 async function completeGroupMatches(stageId: number): Promise<void> {
@@ -136,6 +152,7 @@ describe("public tournament stages API", () => {
     const legacy = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Legacy ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 3,
@@ -150,6 +167,7 @@ describe("public tournament stages API", () => {
     const two = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Two ${randomUUID()}`,
         format: "swiss",
         stagePlan: {
@@ -186,6 +204,7 @@ describe("public tournament stages API", () => {
     const three = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Three ${randomUUID()}`,
         format: "swiss",
         stagePlan: {
@@ -236,6 +255,7 @@ describe("public tournament stages API", () => {
     const invalid = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Invalid ${randomUUID()}`,
         format: "single_elimination",
         stagePlan: {
@@ -266,13 +286,18 @@ describe("public tournament stages API", () => {
     const groupDraft = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Group registration ${randomUUID()}`,
         format: "round_robin",
         stagePlan: groupPlan,
       });
     assert.equal(groupDraft.status, 201, groupDraft.text);
+    const groupDraftToken = await organizerTokenFor(groupDraft.body.id);
     const added = await request(app)
       .post(`/api/tournaments/${groupDraft.body.id}/players`)
+      .set({
+        "x-organizer-token": groupDraftToken,
+      })
       .send({ name: "First player", seed: 1 });
     assert.equal(added.status, 201, added.text);
     const configuredStages = await request(app).get(
@@ -378,22 +403,28 @@ describe("Backup v3", () => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Draft group backup ${randomUUID()}`,
         format: "round_robin",
         stagePlan: groupPlan,
       });
     assert.equal(created.status, 201, created.text);
+    const createdToken = await organizerTokenFor(created.body.id);
     await request(app)
       .post(`/api/tournaments/${created.body.id}/players`)
+      .set({ "x-organizer-token": createdToken })
       .send({ name: "Registered", seed: 1 })
       .expect(201);
     const exported = await request(app)
       .get(`/api/tournaments/${created.body.id}/export`)
-      .set({ "x-organizer-token": signOrganizerToken(created.body.id) });
+      .set({ "x-organizer-token": createdToken });
     assert.equal(exported.status, 200, exported.text);
     const imported = await request(app)
       .post("/api/tournaments/import")
-      .send(exported.body);
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      });
     assert.equal(imported.status, 201, imported.text);
     const stages = await database.db
       .select()
@@ -428,6 +459,7 @@ describe("Backup v3", () => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Configurable backup ${randomUUID()}`,
         format: "round_robin",
         stagePlan: {
@@ -463,7 +495,9 @@ describe("Backup v3", () => {
       .from(database.tournamentStagesTable)
       .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
     stages.sort((left, right) => left.position - right.position);
-    const organizerHeaders = { "x-organizer-token": signOrganizerToken(tournamentId) };
+    const organizerHeaders = {
+      "x-organizer-token": await organizerTokenFor(tournamentId),
+    };
     const ceremonyUrl = `/api/tournaments/${tournamentId}/stages/${stages[0].id}/seeding-ceremony`;
     await request(app)
       .post(`${ceremonyUrl}/prepare`)
@@ -495,7 +529,10 @@ describe("Backup v3", () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
-      .send(exported.body);
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      });
     assert.equal(imported.status, 201, imported.text);
     const importedStages = await database.db
       .select()
@@ -517,7 +554,7 @@ describe("Backup v3", () => {
     assert.deepEqual(importedGroup.seedingAudit, exportedGroup.seedingAudit);
 
     const importedHeaders = {
-      "x-organizer-token": signOrganizerToken(imported.body.tournament.id),
+      "x-organizer-token": imported.body.organizerToken as string,
     };
     const importedCeremonyUrl = `/api/tournaments/${imported.body.tournament.id}/stages/${importedGroup.id}/seeding-ceremony`;
     const staleImported = await request(app)
@@ -541,14 +578,16 @@ describe("Backup v3", () => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Legacy v3 backup ${randomUUID()}`,
         format: "round_robin",
         stagePlan: groupPlan,
       });
     assert.equal(created.status, 201, created.text);
+    const createdToken = await organizerTokenFor(created.body.id);
     const exported = await request(app)
       .get(`/api/tournaments/${created.body.id}/export`)
-      .set({ "x-organizer-token": signOrganizerToken(created.body.id) });
+      .set({ "x-organizer-token": createdToken });
     assert.equal(exported.status, 200, exported.text);
     const legacy = structuredClone(exported.body);
     for (const stage of legacy.stages) {
@@ -562,7 +601,10 @@ describe("Backup v3", () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
-      .send(legacy);
+      .send({
+        backup: legacy,
+        organizerPassword: "restored-organizer-password",
+      });
     assert.equal(imported.status, 201, imported.text);
     const importedStages = await database.db
       .select()
@@ -625,7 +667,10 @@ describe("Backup v3", () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
-      .send(exported.body);
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      });
     assert.equal(imported.status, 201, imported.text);
     const importedStages = await database.db
       .select()
@@ -674,28 +719,31 @@ describe("Backup v3", () => {
     const imported = await request(app)
       .post("/api/tournaments/import")
       .send({
-        schemaVersion: 2,
-        resultModelVersion: "series_v1",
-        rankingPolicy: "match_record_v1",
-        exportedAt: new Date().toISOString(),
-        tournament: {
-          name: `Backup v2 ${randomUUID()}`,
-          description: null,
-          format: "round_robin",
-          status: "draft",
-          maxPlayers: 4,
-          currentRound: null,
-          totalRounds: null,
-          swissRounds: null,
-          defaultBestOf: 3,
-          visibility: "public_online",
-          winnerBackupId: null,
-          featuredMatchBackupId: null,
+        organizerPassword: "restored-organizer-password",
+        backup: {
+          schemaVersion: 2,
+          resultModelVersion: "series_v1",
+          rankingPolicy: "match_record_v1",
+          exportedAt: new Date().toISOString(),
+          tournament: {
+            name: `Backup v2 ${randomUUID()}`,
+            description: null,
+            format: "round_robin",
+            status: "draft",
+            maxPlayers: 4,
+            currentRound: null,
+            totalRounds: null,
+            swissRounds: null,
+            defaultBestOf: 3,
+            visibility: "public_online",
+            winnerBackupId: null,
+            featuredMatchBackupId: null,
+          },
+          players: [],
+          matches: [],
+          resultHistory: [],
+          actionLog: [],
         },
-        players: [],
-        matches: [],
-        resultHistory: [],
-        actionLog: [],
       });
     assert.equal(imported.status, 201, imported.text);
     const stages = await database.db
@@ -750,7 +798,10 @@ describe("Backup v3", () => {
     });
     const response = await request(app)
       .post("/api/tournaments/import")
-      .send(corrupt);
+      .send({
+        backup: corrupt,
+        organizerPassword: "restored-organizer-password",
+      });
     assert.equal(response.status, 400, response.text);
     assert.equal(response.body.code, "INVALID_BACKUP_V3");
     assert.equal(

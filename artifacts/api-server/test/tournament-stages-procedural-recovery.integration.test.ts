@@ -70,7 +70,17 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const result = await database.pool.query<{ organizer_password_hash: string }>(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  const passwordHash = result.rows[0]?.organizer_password_hash;
+  assert.ok(passwordHash, "created tournament must have organizer credentials");
+  return signOrganizerToken(tournamentId, passwordHash);
+}
 
 function quoteIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
@@ -155,7 +165,7 @@ before(async () => {
   );
   await database.pool.query(drizzleSchema);
 
-  ({ signOrganizerToken } = await import("../src/auth"));
+  ({ signVersionedOrganizerToken: signOrganizerToken } = await import("../src/auth"));
   app = (await import("../src/app")).default;
 });
 
@@ -229,6 +239,7 @@ describe("0008 procedural object recovery", () => {
     const singleStage = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Recovered single stage ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 3,
@@ -236,7 +247,7 @@ describe("0008 procedural object recovery", () => {
       .expect(201);
     const singleStageId = singleStage.body.id as number;
     const singleHeaders = {
-      "x-organizer-token": signOrganizerToken(singleStageId),
+      "x-organizer-token": await organizerTokenFor(singleStageId),
     };
     assert.deepEqual(await stageParticipantCounts(singleStageId), [0]);
     const firstSinglePlayer = await request(app)
@@ -260,6 +271,7 @@ describe("0008 procedural object recovery", () => {
     const multiStage = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Recovered 32 to 16 to 8 ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 1,
@@ -286,7 +298,7 @@ describe("0008 procedural object recovery", () => {
       .expect(201);
     const multiStageId = multiStage.body.id as number;
     const multiHeaders = {
-      "x-organizer-token": signOrganizerToken(multiStageId),
+      "x-organizer-token": await organizerTokenFor(multiStageId),
     };
     assert.deepEqual(await stageParticipantCounts(multiStageId), [32, 16, 8]);
 

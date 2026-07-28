@@ -8,6 +8,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -595,6 +596,55 @@ export const authAuditLogTable = pgTable("auth_audit_log", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const authCredentialRateLimitsTable = pgTable(
+  "auth_credential_rate_limits",
+  {
+    scopeType: text("scope_type").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    credentialType: text("credential_type").notNull(),
+    sourceFingerprint: text("source_fingerprint").notNull(),
+    windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+    failureCount: integer("failure_count").notNull().default(0),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+    lastUpdatedAt: timestamp("last_updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "auth_credential_rate_limits_scope_pk",
+      columns: [
+        table.scopeType,
+        table.tournamentId,
+        table.credentialType,
+        table.sourceFingerprint,
+      ],
+    }),
+    check(
+      "auth_credential_rate_limits_scope_type_check",
+      sql`${table.scopeType} IN ('tournament', 'source')`,
+    ),
+    check(
+      "auth_credential_rate_limits_credential_type_check",
+      sql`${table.credentialType} IN ('organizer', 'viewer', 'support', 'legacy_upgrade')`,
+    ),
+    check(
+      "auth_credential_rate_limits_tournament_id_check",
+      sql`${table.tournamentId} > 0`,
+    ),
+    check(
+      "auth_credential_rate_limits_failure_count_check",
+      sql`${table.failureCount} >= 0`,
+    ),
+    check(
+      "auth_credential_rate_limits_source_fingerprint_check",
+      sql`length(${table.sourceFingerprint}) BETWEEN 1 AND 128`,
+    ),
+    index("auth_credential_rate_limits_cleanup_idx").on(table.lastUpdatedAt),
+    index("auth_credential_rate_limits_blocked_idx").on(table.blockedUntil),
+  ],
+);
+
 export const insertTournamentSchema = createInsertSchema(tournamentsTable).omit({ id: true, createdAt: true });
 export type InsertTournament = z.infer<typeof insertTournamentSchema>;
 export type Tournament = typeof tournamentsTable.$inferSelect;
@@ -626,3 +676,5 @@ export type ResultHistory = typeof resultHistoryTable.$inferSelect;
 export type ActionLog = typeof actionLogTable.$inferSelect;
 export type SupportSession = typeof supportSessionsTable.$inferSelect;
 export type AuthAuditLog = typeof authAuditLogTable.$inferSelect;
+export type AuthCredentialRateLimit =
+  typeof authCredentialRateLimitsTable.$inferSelect;

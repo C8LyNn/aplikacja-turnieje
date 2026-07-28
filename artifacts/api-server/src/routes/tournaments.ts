@@ -1,9 +1,21 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
-import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
-import { hashPassword, verifyOrganizerToken } from "../auth";
+import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable } from "@workspace/db";
+import {
+  hashPassword,
+  signVersionedOrganizerToken,
+} from "../auth";
 import { logAuditAction } from "./auth";
-import { requireOrganizer, requireTournamentRead, requireTournamentWrite } from "../access-policy";
+import { NEW_CREDENTIAL_MIN_LENGTH } from "../application/auth/credential-rate-limit";
+import {
+  getTournamentMutationActor,
+  revalidateTournamentMutationActor,
+  requireOrganizer,
+  requireTournamentRead,
+  requireTournamentWrite,
+  TournamentMutationAuthorizationError,
+  withTournamentMutationLock,
+} from "../access-policy";
 import {
   completeMatch,
   CompleteMatchError,
@@ -31,7 +43,6 @@ import {
   importBackupV3,
 } from "../application/backups/backup-v3";
 import {
-  addPlayerWithStagePlanCompatibility,
   createTournamentWithStagePlan,
   TournamentStagePlanError,
 } from "../application/stages/create-tournament-with-plan";
@@ -54,6 +65,14 @@ import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
+import {
+  addTournamentPlayer,
+  deleteTournamentPlayer,
+  importTournamentPlayers,
+  TournamentRosterError,
+  undoTournamentRosterAction,
+  updateTournamentPlayer,
+} from "../application/players/tournament-roster";
 import {
   CreateTournamentBody,
   UpdateTournamentBody,
@@ -97,8 +116,6 @@ import {
   PreviewStageQualificationParams,
   CompleteTournamentStageParams,
   StartTournamentStageParams,
-  VerifyHostCodeParams,
-  VerifyHostCodeBody,
   type TournamentBackupV2,
   type TournamentBackupV3,
 } from "@workspace/api-zod";
@@ -158,6 +175,18 @@ function sendSeedingCeremonyError(
     .json({ error: error.message, code: error.code });
 }
 
+function sendTournamentRosterError(
+  error: TournamentRosterError,
+  res: import("express").Response,
+): void {
+  const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND"
+    ? 404
+    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME"
+      ? 409
+      : 422;
+  res.status(status).json({ error: error.message, code: error.code });
+}
+
 function formatDate(d: Date | null | undefined): string | null {
   if (!d) return null;
   return d.toISOString();
@@ -191,78 +220,6 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     hasViewerPassword: !!t.viewerPasswordHash,
     visibility: t.visibility ?? "public_online",
   };
-}
-
-async function checkHostAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
-  const [t] = await db.select({
-    hostCode: tournamentsTable.hostCode,
-    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
-    supportPasswordHash: tournamentsTable.supportPasswordHash,
-    supportPasswordVersion: tournamentsTable.supportPasswordVersion,
-  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
-  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
-
-  // New-style auth: organizer token
-  const orgToken = req.headers["x-organizer-token"] as string | undefined;
-  if (orgToken) {
-    const valid = verifyOrganizerToken(orgToken, tournamentId);
-    if (valid) return true;
-    res.status(403).json({ error: "Nieprawidłowy token organizatora" }); return false;
-  }
-
-  // New-style auth: support token
-  const supToken = req.headers["x-support-token"] as string | undefined;
-  if (supToken) {
-    const [session] = await db.select().from(supportSessionsTable)
-      .where(and(eq(supportSessionsTable.tournamentId, tournamentId), eq(supportSessionsTable.sessionToken, supToken)));
-    if (!session) { res.status(403).json({ error: "Nieważna sesja wsparcia" }); return false; }
-    if (session.passwordVersion !== (t.supportPasswordVersion ?? 0)) {
-      res.status(403).json({ error: "Hasło wsparcia zostało zmienione. Zaloguj się ponownie." }); return false;
-    }
-    return true;
-  }
-
-  // Legacy host code
-  if (!t.hostCode && !t.organizerPasswordHash) return true;
-  if (t.organizerPasswordHash) {
-    res.status(403).json({ error: "Wymagany token organizatora lub wsparcia" }); return false;
-  }
-  const provided = req.headers["x-host-code"];
-  if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
-  return true;
-}
-
-/** Like checkHostAuth but explicitly rejects support tokens — only organizers can delete/archive. */
-async function checkOrganizerOnlyAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
-  const [t] = await db.select({
-    hostCode: tournamentsTable.hostCode,
-    organizerPasswordHash: tournamentsTable.organizerPasswordHash,
-  }).from(tournamentsTable).where(eq(tournamentsTable.id, tournamentId));
-  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return false; }
-
-  // Organizer token — the only accepted credential for destructive actions
-  const orgToken = req.headers["x-organizer-token"] as string | undefined;
-  if (orgToken) {
-    if (verifyOrganizerToken(orgToken, tournamentId)) return true;
-    res.status(403).json({ error: "Nieprawidłowy token organizatora" }); return false;
-  }
-
-  // Explicitly reject support tokens — support staff cannot delete tournaments
-  if (req.headers["x-support-token"]) {
-    res.status(403).json({ error: "Wsparcie nie ma uprawnień do usuwania turniejów" }); return false;
-  }
-
-  // Legacy host code
-  if (!t.hostCode && !t.organizerPasswordHash) {
-    // Unprotected tournament — block unless host code in header (backward compat for test cleanup)
-    return true;
-  }
-  if (t.organizerPasswordHash) {
-    res.status(403).json({ error: "Wymagane hasło organizatora" }); return false;
-  }
-  const provided = req.headers["x-host-code"] as string | undefined;
-  if (provided !== t.hostCode) { res.status(403).json({ error: "Nieprawidłowy kod prowadzącego" }); return false; }
-  return true;
 }
 
 async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
@@ -509,10 +466,49 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
 });
 
 router.post("/tournaments", async (req, res): Promise<void> => {
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "hostCode")) {
+    res.status(422).json({
+      error: "hostCode jest historycznym poświadczeniem i nie może być ustawiany dla nowego turnieju.",
+      code: "HOST_CODE_LEGACY_ONLY",
+    });
+    return;
+  }
   if (req.body?.format === "double_elimination") {
     res.status(422).json({
       error: "Double elimination jest wyłączone do czasu osobnej, kompletnej implementacji.",
       code: "DOUBLE_ELIMINATION_UNAVAILABLE",
+    });
+    return;
+  }
+  if (
+    typeof req.body?.organizerPassword !== "string" ||
+    req.body.organizerPassword.length < NEW_CREDENTIAL_MIN_LENGTH
+  ) {
+    res.status(422).json({
+      error: `Hasło organizatora jest wymagane i musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków, aby można było później zarządzać turniejem.`,
+      code: "ORGANIZER_PASSWORD_REQUIRED",
+    });
+    return;
+  }
+  if (
+    typeof req.body?.supportPassword === "string" &&
+    req.body.supportPassword.length > 0 &&
+    req.body.supportPassword.length < NEW_CREDENTIAL_MIN_LENGTH
+  ) {
+    res.status(422).json({
+      error: `Hasło wsparcia musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`,
+      code: "SUPPORT_PASSWORD_TOO_SHORT",
+    });
+    return;
+  }
+  if (
+    req.body?.visibility === "private_online" &&
+    (typeof req.body?.viewerPassword !== "string" ||
+      req.body.viewerPassword.length < NEW_CREDENTIAL_MIN_LENGTH)
+  ) {
+    res.status(422).json({
+      error: `Hasło widza jest wymagane dla prywatnego turnieju online i musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`,
+      code: "VIEWER_PASSWORD_REQUIRED",
     });
     return;
   }
@@ -697,29 +693,78 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  if (!await checkHostAuth(req, res, params.data.id)) return;
-  const [prevT] = await db.select().from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
-  const [t] = await db
-    .update(tournamentsTable)
-    .set(parsed.data)
-    .where(eq(tournamentsTable.id, params.data.id))
-    .returning();
-  if (!t) {
-    res.status(404).json({ error: "Tournament not found" });
+  const changedFields = Object.keys(parsed.data);
+  const onlyOperationalFields =
+    changedFields.length > 0 &&
+    changedFields.every((field) => field === "featuredMatchId");
+  const access = onlyOperationalFields
+    ? await requireTournamentWrite(req, res, params.data.id)
+    : await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "hostCode")) {
+    res.status(422).json({
+      error: "hostCode można wykorzystać wyłącznie w dedykowanej operacji upgrade'u historycznych poświadczeń.",
+      code: "HOST_CODE_LEGACY_ONLY",
+    });
     return;
   }
-  // Log featured match changes
-  if (prevT && "featuredMatchId" in (parsed.data as object)) {
-    const newFeatured = (parsed.data as any).featuredMatchId ?? null;
-    if (newFeatured !== prevT.featuredMatchId) {
-      if (newFeatured) {
-        const [fm] = await db.select().from(matchesTable).where(eq(matchesTable.id, newFeatured));
-        await logAction({ tournamentId: t.id, actionType: "match_featured", description: `Wyróżniono mecz R${fm?.round}M${fm?.matchNumber}`, matchId: newFeatured, undoPayload: { type: "restore_featured", prevFeaturedMatchId: prevT.featuredMatchId } });
-      } else {
-        await logAction({ tournamentId: t.id, actionType: "match_unfeatured", description: "Zdjęto wyróżnienie meczu", undoPayload: { type: "restore_featured", prevFeaturedMatchId: prevT.featuredMatchId } });
-      }
-    }
+  if (changedFields.includes("visibility") || changedFields.includes("viewerPassword")) {
+    res.status(422).json({
+      error: "Widoczność i hasło widza można zmienić wyłącznie przez dedykowaną operację bezpieczeństwa.",
+      code: "VISIBILITY_CHANGE_REQUIRES_DEDICATED_ACTION",
+    });
+    return;
   }
+  if (changedFields.includes("status")) {
+    res.status(422).json({
+      error: "Status turnieju można zmienić wyłącznie przez dedykowaną operację lifecycle.",
+      code: "TOURNAMENT_STATUS_REQUIRES_DEDICATED_ACTION",
+    });
+    return;
+  }
+  const t = await withTournamentMutationLock(
+    params.data.id,
+    getTournamentMutationActor(access),
+    async (tx, prevT) => {
+      const [updated] = await tx
+        .update(tournamentsTable)
+        .set(parsed.data)
+        .where(eq(tournamentsTable.id, params.data.id))
+        .returning();
+      if (!updated) throw new Error("Tournament disappeared during update");
+
+      if ("featuredMatchId" in (parsed.data as object)) {
+        const newFeatured = (parsed.data as any).featuredMatchId ?? null;
+        if (newFeatured !== prevT.featuredMatchId) {
+          const [featuredMatch] = newFeatured
+            ? await tx
+                .select()
+                .from(matchesTable)
+                .where(
+                  and(
+                    eq(matchesTable.id, newFeatured),
+                    eq(matchesTable.tournamentId, updated.id),
+                  ),
+                )
+            : [undefined];
+          await tx.insert(actionLogTable).values({
+            tournamentId: updated.id,
+            actionType: newFeatured ? "match_featured" : "match_unfeatured",
+            description: newFeatured
+              ? `Wyróżniono mecz R${featuredMatch?.round}M${featuredMatch?.matchNumber}`
+              : "Zdjęto wyróżnienie meczu",
+            matchId: newFeatured,
+            undoPayload: JSON.stringify({
+              type: "restore_featured",
+              prevFeaturedMatchId: prevT.featuredMatchId,
+            }),
+            isUndone: false,
+          });
+        }
+      }
+      return updated;
+    },
+  );
   res.json(mapTournament(t));
 });
 
@@ -729,29 +774,9 @@ router.delete("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  if (!await checkOrganizerOnlyAuth(req, res, params.data.id)) return;
+  if (!await requireOrganizer(req, res, params.data.id)) return;
   await db.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
   res.sendStatus(204);
-});
-
-router.post("/tournaments/:id/verify-host-code", async (req, res): Promise<void> => {
-  const params = VerifyHostCodeParams.safeParse(req.params);
-  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  const parsed = VerifyHostCodeBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-
-  const [t] = await db.select({ hostCode: tournamentsTable.hostCode }).from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
-  if (!t) { res.status(404).json({ error: "Turniej nie istnieje" }); return; }
-
-  if (!t.hostCode) {
-    res.json({ valid: true });
-    return;
-  }
-  if (parsed.data.code === t.hostCode) {
-    res.json({ valid: true });
-    return;
-  }
-  res.status(403).json({ valid: false, error: "Nieprawidłowy kod prowadzącego" });
 });
 
 router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
@@ -769,7 +794,9 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tournament not found" });
     return;
   }
-  if (!await checkHostAuth(req, res, tournament.id)) return;
+  const access = await requireTournamentWrite(req, res, tournament.id);
+  if (!access) return;
+  const mutationActor = getTournamentMutationActor(access);
 
   const stages = await db
     .select({ id: tournamentStagesTable.id })
@@ -778,7 +805,11 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     .orderBy(tournamentStagesTable.position);
   if (stages.length > 1) {
     try {
-      await startStage({ tournamentId: tournament.id, stageId: stages[0].id });
+      await startStage({
+        tournamentId: tournament.id,
+        stageId: stages[0].id,
+        actor: mutationActor,
+      });
       const [updated] = await db
         .select()
         .from(tournamentsTable)
@@ -802,6 +833,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
         .where(eq(tournamentsTable.id, params.data.id))
         .for("update");
       if (!lockedTournament) throw new Error("TOURNAMENT_NOT_FOUND");
+      await revalidateTournamentMutationActor(tx, lockedTournament, mutationActor);
       if (lockedTournament.status !== "draft") throw new Error("TOURNAMENT_ALREADY_STARTED");
 
       const stages = await tx
@@ -950,6 +982,9 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     });
     res.json(mapTournament(updated));
   } catch (error) {
+    if (error instanceof TournamentMutationAuthorizationError) {
+      throw error;
+    }
     const code = error instanceof Error ? error.message : "UNKNOWN";
     const messages: Record<string, string> = {
       TOURNAMENT_NOT_FOUND: "Tournament not found",
@@ -974,6 +1009,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
 
   const access = await requireTournamentWrite(req, res, params.data.id);
   if (!access) return;
+  const mutationActor = getTournamentMutationActor(access);
 
   try {
     const updated = await db.transaction(async (tx) => {
@@ -983,6 +1019,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .where(eq(tournamentsTable.id, params.data.id))
         .for("update");
       if (!tournament) throw new Error("TOURNAMENT_NOT_FOUND");
+      await revalidateTournamentMutationActor(tx, tournament, mutationActor);
       if (tournament.status !== "active") throw new Error("TOURNAMENT_NOT_ACTIVE");
 
       const [stage] = await tx
@@ -1384,32 +1421,22 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  if (!await checkHostAuth(req, res, params.data.id)) return;
-
-  // Duplicate name check (case-insensitive, trimmed)
-  const trimmedName = parsed.data.name.trim();
-  const existing = await db
-    .select({ name: playersTable.name })
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-  const duplicate = existing.find((p) => p.name.trim().toLowerCase() === trimmedName.toLowerCase());
-  if (duplicate) {
-    res.status(409).json({ error: `Zawodnik o nicku „${duplicate.name}" już istnieje w tym turnieju. Nicki muszą być unikalne (bez względu na wielkość liter).`, code: "DUPLICATE_PLAYER_NAME" });
-    return;
+  const access = await requireTournamentWrite(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const player = await addTournamentPlayer({
+      tournamentId: params.data.id,
+      player: parsed.data,
+      actor: getTournamentMutationActor(access),
+    });
+    res.status(201).json(mapPlayer(player));
+  } catch (error) {
+    if (error instanceof TournamentRosterError) {
+      sendTournamentRosterError(error, res);
+      return;
+    }
+    throw error;
   }
-
-  const player = await addPlayerWithStagePlanCompatibility({
-    tournamentId: params.data.id,
-    ...parsed.data,
-    name: trimmedName,
-  });
-  await logAction({
-    tournamentId: params.data.id,
-    actionType: "player_added",
-    description: `Dodano gracza: ${player.name}${parsed.data.seed ? ` (seed ${parsed.data.seed})` : ""}`,
-    undoPayload: { type: "delete_player", playerId: player.id },
-  });
-  res.status(201).json(mapPlayer(player));
 });
 
 router.post("/tournaments/:id/players/import", async (req, res): Promise<void> => {
@@ -1424,153 +1451,23 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
     return;
   }
 
-  const [tournament] = await db
-    .select()
-    .from(tournamentsTable)
-    .where(eq(tournamentsTable.id, params.data.id));
-  if (!tournament) {
-    res.status(404).json({ error: "Tournament not found" });
-    return;
-  }
-  if (!await checkHostAuth(req, res, tournament.id)) return;
-  if (tournament.status !== "draft") {
-    res.status(400).json({ error: "Cannot import players after tournament has started" });
-    return;
-  }
-
-  const mode = (parsed.data as any).mode === "replace" ? "replace" : "append";
-
-  // Get existing players
-  const existingPlayers = await db
-    .select()
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-
-  const existingNames = new Set(existingPlayers.map((p) => p.name.toLowerCase()));
-  const replacedCount = mode === "replace" ? existingPlayers.length : 0;
-
-  // Parse CSV with line numbers
-  type CsvRow = { name: string; rank?: string; seed?: number; teamName?: string; country?: string };
-  const rawLines = parsed.data.csv.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-  const sep = rawLines[0]?.includes(";") ? ";" : ",";
-  const headers = rawLines[0]?.split(sep).map((h) => h.trim().toLowerCase()) ?? [];
-
-  type RowError = { line: number; content: string; reason: string };
-  const errors: RowError[] = [];
-  const validRows: Array<CsvRow & { lineNum: number }> = [];
-  const seenNamesInCsv = new Set<string>();
-
-  for (let i = 1; i < rawLines.length; i++) {
-    const raw = rawLines[i];
-    if (!raw.trim()) continue;
-    const lineNum = i + 1;
-    const values = raw.split(sep).map((v) => v.trim());
-    const get = (key: string) => {
-      const idx = headers.indexOf(key);
-      return idx >= 0 && idx < values.length ? values[idx] : "";
-    };
-
-    // name is required (support "name" and "nick")
-    const nameIdx = headers.indexOf("name") >= 0 ? headers.indexOf("name") : headers.indexOf("nick");
-    const name = nameIdx >= 0 ? values[nameIdx]?.trim() ?? "" : "";
-
-    if (!name) {
-      errors.push({ line: lineNum, content: raw, reason: "Brak nazwy zawodnika (kolumna 'name' jest wymagana)" });
-      continue;
-    }
-    if (name.length > 100) {
-      errors.push({ line: lineNum, content: raw, reason: `Nazwa jest za długa (${name.length} znaków, max 100)` });
-      continue;
-    }
-
-    // Duplicate within CSV
-    const nameLower = name.toLowerCase();
-    if (seenNamesInCsv.has(nameLower)) {
-      errors.push({ line: lineNum, content: raw, reason: `Duplikat w pliku CSV: "${name}" już występuje wcześniej` });
-      continue;
-    }
-    seenNamesInCsv.add(nameLower);
-
-    // Duplicate against existing players (only in append mode)
-    if (mode === "append" && existingNames.has(nameLower)) {
-      errors.push({ line: lineNum, content: raw, reason: `Zawodnik "${name}" jest już na liście turnieju` });
-      continue;
-    }
-
-    // Validate seed
-    const seedStr = get("seed");
-    let seed: number | undefined;
-    if (seedStr) {
-      const parsed = parseInt(seedStr, 10);
-      if (isNaN(parsed) || parsed < 1 || parsed > 999) {
-        errors.push({ line: lineNum, content: raw, reason: `Nieprawidłowe rozstawienie (seed): "${seedStr}" — musi być liczbą 1–999` });
-        continue;
-      }
-      seed = parsed;
-    }
-
-    validRows.push({
-      lineNum,
-      name,
-      rank: get("rank") || get("ranga") || undefined,
-      seed,
-      teamName: get("team") || get("druzyna") || undefined,
-      country: get("country") || get("kraj") || undefined,
+  const access = await requireTournamentWrite(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const result = await importTournamentPlayers({
+      tournamentId: params.data.id,
+      csv: parsed.data.csv,
+      mode: parsed.data.mode === "replace" ? "replace" : "append",
+      actor: getTournamentMutationActor(access),
     });
+    res.json({ ...result, players: result.players.map(mapPlayer) });
+  } catch (error) {
+    if (error instanceof TournamentRosterError) {
+      sendTournamentRosterError(error, res);
+      return;
+    }
+    throw error;
   }
-
-  // Limit check
-  const currentCount = mode === "replace" ? 0 : existingPlayers.length;
-  const limit = tournament.maxPlayers ?? 256;
-  const available = limit - currentCount;
-  let limitExceeded = false;
-
-  let rowsToInsert = validRows;
-  if (validRows.length > available) {
-    // Mark the overflow rows as errors
-    const overflow = validRows.splice(available);
-    overflow.forEach((r) => {
-      errors.push({ line: r.lineNum, content: r.name, reason: `Limit graczy turnieju (${limit}) został osiągnięty — gracz pominięty` });
-    });
-    limitExceeded = true;
-    rowsToInsert = validRows;
-  }
-
-  // Apply import in a transaction-like sequence
-  if (mode === "replace" && existingPlayers.length > 0) {
-    await db
-      .delete(playersTable)
-      .where(eq(playersTable.tournamentId, params.data.id));
-  }
-
-  let inserted: typeof existingPlayers = [];
-  if (rowsToInsert.length > 0) {
-    inserted = await db
-      .insert(playersTable)
-      .values(
-        rowsToInsert.map((r) => ({
-          tournamentId: params.data.id,
-          name: r.name,
-          rank: r.rank ?? null,
-          seed: r.seed ?? null,
-          teamName: r.teamName ?? null,
-          country: r.country ?? null,
-        })),
-      )
-      .returning();
-  }
-
-  const totalCsvDataRows = rawLines.filter((l) => l.trim()).length - 1; // minus header
-  const skipped = errors.length;
-
-  res.json({
-    imported: inserted.length,
-    skipped,
-    replacedCount: mode === "replace" ? replacedCount : undefined,
-    limitExceeded,
-    players: inserted.map(mapPlayer),
-    errors,
-  });
 });
 
 router.patch("/players/:id", async (req, res): Promise<void> => {
@@ -1589,23 +1486,23 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Player not found" });
     return;
   }
-  if (!await checkHostAuth(req, res, existing.tournamentId)) return;
-  const [player] = await db
-    .update(playersTable)
-    .set(parsed.data)
-    .where(eq(playersTable.id, params.data.id))
-    .returning();
-  if (!player) {
-    res.status(404).json({ error: "Player not found" });
-    return;
+  const access = await requireTournamentWrite(req, res, existing.tournamentId);
+  if (!access) return;
+  try {
+    const player = await updateTournamentPlayer({
+      tournamentId: existing.tournamentId,
+      playerId: params.data.id,
+      changes: parsed.data,
+      actor: getTournamentMutationActor(access),
+    });
+    res.json(mapPlayer(player));
+  } catch (error) {
+    if (error instanceof TournamentRosterError) {
+      sendTournamentRosterError(error, res);
+      return;
+    }
+    throw error;
   }
-  await logAction({
-    tournamentId: existing.tournamentId,
-    actionType: "player_edited",
-    description: `Edytowano gracza: ${existing.name} → ${player.name}`,
-    undoPayload: { type: "restore_player", playerId: player.id, prevData: { name: existing.name, seed: existing.seed, rank: existing.rank, country: existing.country, teamName: existing.teamName } },
-  });
-  res.json(mapPlayer(player));
 });
 
 router.delete("/players/:id", async (req, res): Promise<void> => {
@@ -1615,16 +1512,23 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
     return;
   }
   const [toDelete] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
-  if (toDelete && !await checkHostAuth(req, res, toDelete.tournamentId)) return;
-  await db.delete(playersTable).where(eq(playersTable.id, params.data.id));
-  if (toDelete) {
-    await logAction({
+  if (!toDelete) { res.status(404).json({ error: "Player not found" }); return; }
+  const access = await requireTournamentWrite(req, res, toDelete.tournamentId);
+  if (!access) return;
+  try {
+    await deleteTournamentPlayer({
       tournamentId: toDelete.tournamentId,
-      actionType: "player_removed",
-      description: `Usunięto gracza: ${toDelete.name}`,
+      playerId: params.data.id,
+      actor: getTournamentMutationActor(access),
     });
+    res.sendStatus(204);
+  } catch (error) {
+    if (error instanceof TournamentRosterError) {
+      sendTournamentRosterError(error, res);
+      return;
+    }
+    throw error;
   }
-  res.sendStatus(204);
 });
 
 // ========== ACTION LOG HELPERS ==========
@@ -1636,14 +1540,16 @@ const UNDOABLE_TYPES = new Set([
   "match_cancelled", "match_players_swapped",
 ]);
 
+type RouteTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 async function logAction(params: {
   tournamentId: number;
   actionType: string;
   description: string;
   matchId?: number | null;
   undoPayload?: Record<string, unknown> | null;
-}) {
-  await db.insert(actionLogTable).values({
+}, executor: typeof db | RouteTransaction = db) {
+  await executor.insert(actionLogTable).values({
     tournamentId: params.tournamentId,
     actionType: params.actionType,
     description: params.description,
@@ -1717,7 +1623,9 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!await requireTournamentWrite(req, res, params.data.id)) return;
+  const access = await requireTournamentWrite(req, res, params.data.id);
+  if (!access) return;
+  const mutationActor = getTournamentMutationActor(access);
 
   // Find the last undoable, non-undone action
   const [lastAction] = await db
@@ -1750,92 +1658,145 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 
   const payload = JSON.parse(lastAction.undoPayload) as Record<string, unknown>;
 
+  if (payload.type === "delete_player" || payload.type === "restore_player") {
+    try {
+      const updated = await undoTournamentRosterAction({
+        tournamentId: params.data.id,
+        actionId: lastAction.id,
+        actor: mutationActor,
+      });
+      res.json({
+        action: mapActionLog(updated),
+        message: `Cofnięto: ${lastAction.description}`,
+      });
+    } catch (error) {
+      if (error instanceof TournamentRosterError) {
+        sendTournamentRosterError(error, res);
+        return;
+      }
+      throw error;
+    }
+    return;
+  }
+
   try {
-    switch (payload.type) {
-      case "revert_match": {
-        const matchId = payload.matchId as number;
-        if (!Number.isInteger(matchId) || matchId < 1) {
-          throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
-        }
-        const result = await revertMatch({
-          matchId,
-          expectedTournamentId: params.data.id,
-          expectedCompletionActionId: lastAction.id,
-        });
-        res.json({
-          action: mapActionLog(result.completionAction),
-          message: `Cofnięto: ${lastAction.description}`,
-        });
-        return;
+    if (payload.type === "revert_match") {
+      const matchId = payload.matchId as number;
+      if (!Number.isInteger(matchId) || matchId < 1) {
+        throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
       }
-      case "restore_status": {
-        const matchId = payload.matchId as number;
-        const prevStatus = payload.prevStatus as string;
-        await db.update(matchesTable).set({ status: prevStatus as any }).where(eq(matchesTable.id, matchId));
-        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto status meczu (przywrócono: ${prevStatus})`, matchId });
-        break;
-      }
-      case "restore_best_of": {
-        const matchId = payload.matchId as number;
-        const prevBestOf = payload.prevBestOf as number;
-        await db.update(matchesTable).set({ bestOf: prevBestOf }).where(eq(matchesTable.id, matchId));
-        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zmianę BO (przywrócono: BO${prevBestOf})`, matchId });
-        break;
-      }
-      case "restore_featured": {
-        const prevFeaturedMatchId = (payload.prevFeaturedMatchId as number) ?? null;
-        await db.update(tournamentsTable).set({ featuredMatchId: prevFeaturedMatchId }).where(eq(tournamentsTable.id, params.data.id));
-        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: "Cofnięto zmianę wyróżnionego meczu" });
-        break;
-      }
-      case "delete_player": {
-        const playerId = payload.playerId as number;
-        await db.delete(playersTable).where(eq(playersTable.id, playerId));
-        await logAction({ tournamentId: params.data.id, actionType: "player_removed", description: `Cofnięto dodanie gracza (usunięto ID ${playerId})` });
-        break;
-      }
-      case "restore_player": {
-        const playerId = payload.playerId as number;
-        const prevData = payload.prevData as Record<string, unknown>;
-        await db.update(playersTable).set(prevData as any).where(eq(playersTable.id, playerId));
-        await logAction({ tournamentId: params.data.id, actionType: "player_edited", description: `Cofnięto edycję gracza — przywrócono poprzednie dane` });
-        break;
-      }
-      case "restore_cancelled_match": {
-        const matchId = payload.matchId as number;
-        const prevStatus = payload.prevStatus as string;
-        const prevNote = (payload.prevNote as string | null) ?? null;
-        await db.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(eq(matchesTable.id, matchId));
-        await logAction({ tournamentId: params.data.id, actionType: "match_restored", description: `Cofnięto anulowanie meczu (przywrócono status: ${prevStatus})`, matchId });
-        break;
-      }
-      case "restore_players_swap": {
-        const matchId = payload.matchId as number;
-        await db.update(matchesTable).set({
-          player1Id: (payload.player1Id as number | null) ?? null,
-          player2Id: (payload.player2Id as number | null) ?? null,
-          score1: (payload.score1 as number | null) ?? null,
-          score2: (payload.score2 as number | null) ?? null,
-        }).where(eq(matchesTable.id, matchId));
-        await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zamianę zawodników w meczu ID ${matchId}`, matchId });
-        break;
-      }
-      default:
-        res.status(400).json({ error: `Nie można cofnąć akcji: ${payload.type}` });
-        return;
+      const result = await revertMatch({
+        matchId,
+        expectedTournamentId: params.data.id,
+        expectedCompletionActionId: lastAction.id,
+        actor: mutationActor,
+      });
+      res.json({
+        action: mapActionLog(result.completionAction),
+        message: `Cofnięto: ${lastAction.description}`,
+      });
+      return;
     }
 
-    // Mark as undone
-    await db.update(actionLogTable).set({ isUndone: true }).where(eq(actionLogTable.id, lastAction.id));
+    const updated = await withTournamentMutationLock(
+      params.data.id,
+      mutationActor,
+      async (tx) => {
+        const [lockedAction] = await tx
+          .select()
+          .from(actionLogTable)
+          .where(eq(actionLogTable.id, lastAction.id))
+          .for("update");
+        if (
+          !lockedAction ||
+          lockedAction.tournamentId !== params.data.id ||
+          lockedAction.isUndone ||
+          !lockedAction.undoPayload
+        ) {
+          throw new RevertMatchError("UNDO_ACTION_CHANGED");
+        }
+        const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
+        if (lockedPayload.type !== payload.type) {
+          throw new RevertMatchError("UNDO_ACTION_CHANGED");
+        }
 
-    const [updated] = await db.select().from(actionLogTable).where(eq(actionLogTable.id, lastAction.id));
+        switch (lockedPayload.type) {
+          case "restore_status": {
+            const matchId = lockedPayload.matchId as number;
+            const prevStatus = lockedPayload.prevStatus as string;
+            await tx.update(matchesTable).set({ status: prevStatus as any }).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            ));
+            await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto status meczu (przywrócono: ${prevStatus})`, matchId }, tx);
+            break;
+          }
+          case "restore_best_of": {
+            const matchId = lockedPayload.matchId as number;
+            const prevBestOf = lockedPayload.prevBestOf as number;
+            await tx.update(matchesTable).set({ bestOf: prevBestOf }).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            ));
+            await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zmianę BO (przywrócono: BO${prevBestOf})`, matchId }, tx);
+            break;
+          }
+          case "restore_featured": {
+            const prevFeaturedMatchId = (lockedPayload.prevFeaturedMatchId as number) ?? null;
+            await tx.update(tournamentsTable).set({ featuredMatchId: prevFeaturedMatchId }).where(eq(tournamentsTable.id, params.data.id));
+            await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: "Cofnięto zmianę wyróżnionego meczu" }, tx);
+            break;
+          }
+          case "restore_cancelled_match": {
+            const matchId = lockedPayload.matchId as number;
+            const prevStatus = lockedPayload.prevStatus as string;
+            const prevNote = (lockedPayload.prevNote as string | null) ?? null;
+            await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            ));
+            await logAction({ tournamentId: params.data.id, actionType: "match_restored", description: `Cofnięto anulowanie meczu (przywrócono status: ${prevStatus})`, matchId }, tx);
+            break;
+          }
+          case "restore_players_swap": {
+            const matchId = lockedPayload.matchId as number;
+            await tx.update(matchesTable).set({
+              player1Id: (lockedPayload.player1Id as number | null) ?? null,
+              player2Id: (lockedPayload.player2Id as number | null) ?? null,
+              score1: (lockedPayload.score1 as number | null) ?? null,
+              score2: (lockedPayload.score2 as number | null) ?? null,
+            }).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            ));
+            await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zamianę zawodników w meczu ID ${matchId}`, matchId }, tx);
+            break;
+          }
+          default:
+            throw new Error(`UNDO_TYPE_UNSUPPORTED:${String(lockedPayload.type)}`);
+        }
+
+        const [savedAction] = await tx
+          .update(actionLogTable)
+          .set({ isUndone: true })
+          .where(eq(actionLogTable.id, lockedAction.id))
+          .returning();
+        return savedAction;
+      },
+    );
     res.json({ action: mapActionLog(updated!), message: `Cofnięto: ${lastAction.description}` });
   } catch (err) {
     if (err instanceof RevertMatchError) {
       sendRevertMatchError(err, res);
       return;
     }
-    res.status(500).json({ error: "Błąd podczas cofania akcji" });
+    if (err instanceof Error && err.message.startsWith("UNDO_TYPE_UNSUPPORTED:")) {
+      res.status(400).json({
+        error: `Nie można cofnąć akcji: ${err.message.slice("UNDO_TYPE_UNSUPPORTED:".length)}`,
+      });
+      return;
+    }
+    throw err;
   }
 });
 
@@ -1915,83 +1876,93 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   // Read previous state before update for logging
   const [prevMatch] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!prevMatch) { res.status(404).json({ error: "Match not found" }); return; }
-  if (!await checkHostAuth(req, res, prevMatch.tournamentId)) return;
+  const access = await requireTournamentWrite(req, res, prevMatch.tournamentId);
+  if (!access) return;
+  const match = await withTournamentMutationLock(
+    prevMatch.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx) => {
+      const [lockedMatch] = await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.id, params.data.id))
+        .for("update");
+      if (!lockedMatch) throw new Error("MATCH_NOT_FOUND");
+      if (
+        lockedMatch.status === "completed" &&
+        (parsed.data.status != null || parsed.data.bestOf != null)
+      ) {
+        throw new Error("FINALIZED_MATCH_PATCH_FORBIDDEN");
+      }
+      if (parsed.data.bestOf != null) {
+        if (!Number.isInteger(parsed.data.bestOf) || parsed.data.bestOf <= 0 || parsed.data.bestOf % 2 === 0) {
+          throw new Error("INVALID_BEST_OF");
+        }
+        if (lockedMatch.status !== "pending") {
+          throw new Error("BEST_OF_CHANGE_NOT_ALLOWED");
+        }
+      }
+      const [saved] = await tx
+        .update(matchesTable)
+        .set(parsed.data)
+        .where(eq(matchesTable.id, params.data.id))
+        .returning();
+      if (!saved) throw new Error("MATCH_STATE_CHANGED");
 
-  if (
-    prevMatch.status === "completed" &&
-    (parsed.data.status != null || parsed.data.bestOf != null)
-  ) {
-    res.status(422).json({
-      error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
-      code: "FINALIZED_MATCH_PATCH_FORBIDDEN",
-    });
-    return;
-  }
-  if (parsed.data.bestOf != null) {
-    if (!Number.isInteger(parsed.data.bestOf) || parsed.data.bestOf <= 0 || parsed.data.bestOf % 2 === 0) {
-      res.status(422).json({
+      if (parsed.data.status && parsed.data.status !== lockedMatch.status) {
+        const participantIds = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
+        const players = participantIds.length > 0
+          ? await tx.select().from(playersTable).where(inArray(playersTable.id, participantIds))
+          : [];
+        const playerMap = new Map(players.map((player) => [player.id, player.name]));
+        const matchLabel = `R${lockedMatch.round}M${lockedMatch.matchNumber}: ${playerMap.get(lockedMatch.player1Id ?? 0) ?? "TBD"} vs ${playerMap.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`;
+        if (parsed.data.status === "in_progress") {
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+        } else if (parsed.data.status === "postponed") {
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+        } else if (parsed.data.status === "pending" && lockedMatch.status === "postponed") {
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: "postponed" } }, tx);
+        }
+      }
+      if (parsed.data.bestOf != null && parsed.data.bestOf !== lockedMatch.bestOf) {
+        await logAction({ tournamentId: saved.tournamentId, actionType: "match_bo_changed", description: `Zmieniono format meczu R${saved.round}M${saved.matchNumber}: BO${lockedMatch.bestOf ?? 1} → BO${saved.bestOf}`, matchId: saved.id, undoPayload: { type: "restore_best_of", matchId: saved.id, prevBestOf: lockedMatch.bestOf ?? 1 } }, tx);
+      }
+      return saved;
+    },
+  ).catch((error: unknown) => {
+    if (!(error instanceof Error)) throw error;
+    const responses: Record<string, { status: number; error: string; code?: string }> = {
+      MATCH_NOT_FOUND: { status: 404, error: "Match not found" },
+      FINALIZED_MATCH_PATCH_FORBIDDEN: {
+        status: 422,
+        error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
+        code: "FINALIZED_MATCH_PATCH_FORBIDDEN",
+      },
+      INVALID_BEST_OF: {
+        status: 422,
         error: "bestOf musi być dodatnią, nieparzystą liczbą całkowitą.",
         code: "INVALID_BEST_OF",
-      });
-      return;
-    }
-    if (prevMatch.status !== "pending") {
-      res.status(422).json({
+      },
+      BEST_OF_CHANGE_NOT_ALLOWED: {
+        status: 422,
         error: "bestOf można zmienić tylko przed rozpoczęciem meczu.",
         code: "BEST_OF_CHANGE_NOT_ALLOWED",
-      });
-      return;
-    }
-  }
-  const updateCondition = parsed.data.bestOf != null
-    ? and(
-      eq(matchesTable.id, params.data.id),
-      eq(matchesTable.status, "pending"),
-    )
-    : parsed.data.status != null
-      ? and(
-        eq(matchesTable.id, params.data.id),
-        ne(matchesTable.status, "completed"),
-      )
-      : eq(matchesTable.id, params.data.id);
-  const [match] = await db
-    .update(matchesTable)
-    .set(parsed.data)
-    .where(updateCondition)
-    .returning();
-  if (!match) {
-    const [currentMatch] = await db
-      .select({ id: matchesTable.id })
-      .from(matchesTable)
-      .where(eq(matchesTable.id, params.data.id));
-    if (!currentMatch) {
-      res.status(404).json({ error: "Match not found" });
-      return;
-    }
-    res.status(422).json({
-      error: "Stan meczu zmienił się i PATCH nie może zostać bezpiecznie zastosowany.",
-      code: "MATCH_STATE_CHANGED",
+      },
+      MATCH_STATE_CHANGED: {
+        status: 422,
+        error: "Stan meczu zmienił się i PATCH nie może zostać bezpiecznie zastosowany.",
+        code: "MATCH_STATE_CHANGED",
+      },
+    };
+    const response = responses[error.message];
+    if (!response) throw error;
+    res.status(response.status).json({
+      error: response.error,
+      ...(response.code ? { code: response.code } : {}),
     });
-    return;
-  }
-  // Log status changes
-  if (prevMatch && parsed.data.status && parsed.data.status !== prevMatch.status) {
-    const p1 = prevMatch.player1Id; const p2 = prevMatch.player2Id;
-    const [players] = p1 && p2 ? [await db.select().from(playersTable).where(inArray(playersTable.id, [p1, p2]))] : [[]];
-    const playerMap = new Map((players as any[]).map((p: any) => [p.id, p.name]));
-    const matchLabel = `R${prevMatch.round}M${prevMatch.matchNumber}: ${playerMap.get(p1 ?? 0) ?? "TBD"} vs ${playerMap.get(p2 ?? 0) ?? "TBD"}`;
-    if (parsed.data.status === "in_progress") {
-      await logAction({ tournamentId: match.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: prevMatch.status } });
-    } else if (parsed.data.status === "postponed") {
-      await logAction({ tournamentId: match.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: prevMatch.status } });
-    } else if (parsed.data.status === "pending" && prevMatch.status === "postponed") {
-      await logAction({ tournamentId: match.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: match.id, undoPayload: { type: "restore_status", matchId: match.id, prevStatus: "postponed" } });
-    }
-  }
-  // Log BO changes
-  if (prevMatch && parsed.data.bestOf != null && parsed.data.bestOf !== prevMatch.bestOf) {
-    await logAction({ tournamentId: match.tournamentId, actionType: "match_bo_changed", description: `Zmieniono format meczu R${match.round}M${match.matchNumber}: BO${prevMatch.bestOf ?? 1} → BO${match.bestOf}`, matchId: match.id, undoPayload: { type: "restore_best_of", matchId: match.id, prevBestOf: prevMatch.bestOf ?? 1 } });
-  }
+    return null;
+  });
+  if (!match) return;
   const [enriched] = await enrichMatches([match]);
   res.json(enriched);
 });
@@ -2016,10 +1987,15 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
-  if (!await requireTournamentWrite(req, res, matchReference.tournamentId)) return;
+  const access = await requireTournamentWrite(req, res, matchReference.tournamentId);
+  if (!access) return;
 
   try {
-    const updatedMatch = await completeMatch({ matchId: params.data.id, ...parsed.data });
+    const updatedMatch = await completeMatch({
+      matchId: params.data.id,
+      ...parsed.data,
+      actor: getTournamentMutationActor(access),
+    });
     const [enriched] = await enrichMatches([updatedMatch]);
     res.json(enriched);
   } catch (error) {
@@ -2037,7 +2013,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
       res.status(status).json({ error: error.message, code: error.code });
       return;
     }
-    res.status(500).json({ error: "Nie udało się zakończyć meczu." });
+    throw error;
   }
 });
 
@@ -2056,12 +2032,14 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" });
     return;
   }
-  if (!await requireTournamentWrite(req, res, matchReference.tournamentId)) return;
+  const access = await requireTournamentWrite(req, res, matchReference.tournamentId);
+  if (!access) return;
 
   try {
     const result = await revertMatch({
       matchId: params.data.id,
       expectedTournamentId: matchReference.tournamentId,
+      actor: getTournamentMutationActor(access),
     });
     const [enriched] = await enrichMatches([result.match]);
     res.json(enriched);
@@ -2070,7 +2048,7 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
       sendRevertMatchError(error, res);
       return;
     }
-    res.status(500).json({ error: "Nie udało się cofnąć wyniku meczu." });
+    throw error;
   }
 });
 
@@ -2082,32 +2060,60 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
-  if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  const blockedStatuses = ["completed", "cancelled"];
-  if (blockedStatuses.includes(match.status)) {
-    res.status(400).json({ error: `Nie można anulować meczu o statusie: ${match.status}` });
-    return;
-  }
-  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
-  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
-  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
-  const matchLabel = `R${match.round}M${match.matchNumber}: ${nm.get(match.player1Id ?? 0) ?? "TBD"} vs ${nm.get(match.player2Id ?? 0) ?? "TBD"}`;
-  const [updated] = await db.update(matchesTable).set({
-    status: "cancelled",
-    note: parsed.data.note ?? match.note ?? null,
-  }).where(eq(matchesTable.id, params.data.id)).returning();
-  await logAction({
-    tournamentId: match.tournamentId,
-    actionType: "match_cancelled",
-    description: `Anulowano mecz ${matchLabel}`,
-    matchId: match.id,
-    undoPayload: {
-      type: "restore_cancelled_match",
-      matchId: match.id,
-      prevStatus: match.status,
-      prevNote: match.note,
+  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  if (!access) return;
+  const updated = await withTournamentMutationLock(
+    match.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx) => {
+      const [lockedMatch] = await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.id, params.data.id))
+        .for("update");
+      if (!lockedMatch) throw new Error("Match disappeared during cancellation");
+      const blockedStatuses = ["completed", "cancelled"];
+      if (blockedStatuses.includes(lockedMatch.status)) {
+        throw new Error(`MATCH_CANNOT_CANCEL:${lockedMatch.status}`);
+      }
+      const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
+      const namePlayers = p1Ids.length > 0
+        ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
+        : [];
+      const names = new Map(namePlayers.map((player) => [player.id, player.name]));
+      const matchLabel = `R${lockedMatch.round}M${lockedMatch.matchNumber}: ${names.get(lockedMatch.player1Id ?? 0) ?? "TBD"} vs ${names.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`;
+      const [saved] = await tx
+        .update(matchesTable)
+        .set({
+          status: "cancelled",
+          note: parsed.data.note ?? lockedMatch.note ?? null,
+        })
+        .where(eq(matchesTable.id, params.data.id))
+        .returning();
+      await logAction({
+        tournamentId: lockedMatch.tournamentId,
+        actionType: "match_cancelled",
+        description: `Anulowano mecz ${matchLabel}`,
+        matchId: lockedMatch.id,
+        undoPayload: {
+          type: "restore_cancelled_match",
+          matchId: lockedMatch.id,
+          prevStatus: lockedMatch.status,
+          prevNote: lockedMatch.note,
+        },
+      }, tx);
+      return saved;
     },
+  ).catch((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("MATCH_CANNOT_CANCEL:")) {
+      res.status(400).json({
+        error: `Nie można anulować meczu o statusie: ${error.message.split(":")[1]}`,
+      });
+      return null;
+    }
+    throw error;
   });
+  if (!updated) return;
   const [enriched] = await enrichMatches([updated]);
   res.json(enriched);
 });
@@ -2118,20 +2124,47 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
-  if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  if (match.status !== "cancelled") { res.status(400).json({ error: "Mecz nie jest anulowany" }); return; }
-  const [updated] = await db.update(matchesTable).set({ status: "pending" }).where(eq(matchesTable.id, params.data.id)).returning();
-  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
-  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
-  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
-  const matchLabel = `R${match.round}M${match.matchNumber}: ${nm.get(match.player1Id ?? 0) ?? "TBD"} vs ${nm.get(match.player2Id ?? 0) ?? "TBD"}`;
-  await logAction({
-    tournamentId: match.tournamentId,
-    actionType: "match_restored",
-    description: `Przywrócono anulowany mecz ${matchLabel}`,
-    matchId: match.id,
-    undoPayload: { type: "restore_status", matchId: match.id, prevStatus: "cancelled" },
+  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  if (!access) return;
+  const updated = await withTournamentMutationLock(
+    match.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx) => {
+      const [lockedMatch] = await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.id, params.data.id))
+        .for("update");
+      if (!lockedMatch) throw new Error("Match disappeared during restore");
+      if (lockedMatch.status !== "cancelled") throw new Error("MATCH_NOT_CANCELLED");
+      const [saved] = await tx
+        .update(matchesTable)
+        .set({ status: "pending" })
+        .where(eq(matchesTable.id, params.data.id))
+        .returning();
+      const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
+      const namePlayers = p1Ids.length > 0
+        ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
+        : [];
+      const names = new Map(namePlayers.map((player) => [player.id, player.name]));
+      const matchLabel = `R${lockedMatch.round}M${lockedMatch.matchNumber}: ${names.get(lockedMatch.player1Id ?? 0) ?? "TBD"} vs ${names.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`;
+      await logAction({
+        tournamentId: lockedMatch.tournamentId,
+        actionType: "match_restored",
+        description: `Przywrócono anulowany mecz ${matchLabel}`,
+        matchId: lockedMatch.id,
+        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled" },
+      }, tx);
+      return saved;
+    },
+  ).catch((error: unknown) => {
+    if (error instanceof Error && error.message === "MATCH_NOT_CANCELLED") {
+      res.status(400).json({ error: "Mecz nie jest anulowany" });
+      return null;
+    }
+    throw error;
   });
+  if (!updated) return;
   const [enriched] = await enrichMatches([updated]);
   res.json(enriched);
 });
@@ -2142,37 +2175,60 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
-  if (!await checkHostAuth(req, res, match.tournamentId)) return;
-  const blockedStatuses = ["completed"];
-  if (blockedStatuses.includes(match.status)) {
-    res.status(400).json({ error: `Nie można zamieniać zawodników w meczu o statusie: ${match.status}` });
-    return;
-  }
-  const [updated] = await db.update(matchesTable).set({
-    player1Id: match.player2Id ?? null,
-    player2Id: match.player1Id ?? null,
-    score1: match.score2 ?? null,
-    score2: match.score1 ?? null,
-  }).where(eq(matchesTable.id, params.data.id)).returning();
-  const p1Ids = [match.player1Id, match.player2Id].filter(Boolean) as number[];
-  const namePlayers = p1Ids.length > 0 ? await db.select().from(playersTable).where(inArray(playersTable.id, p1Ids)) : [];
-  const nm = new Map(namePlayers.map((p) => [p.id, p.name]));
-  const p1n = nm.get(match.player1Id ?? 0) ?? "TBD";
-  const p2n = nm.get(match.player2Id ?? 0) ?? "TBD";
-  await logAction({
-    tournamentId: match.tournamentId,
-    actionType: "match_players_swapped",
-    description: `Zamieniono strony w R${match.round}M${match.matchNumber}: ${p1n} ↔ ${p2n}`,
-    matchId: match.id,
-    undoPayload: {
-      type: "restore_players_swap",
-      matchId: match.id,
-      player1Id: match.player1Id,
-      player2Id: match.player2Id,
-      score1: match.score1,
-      score2: match.score2,
+  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  if (!access) return;
+  const updated = await withTournamentMutationLock(
+    match.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx) => {
+      const [lockedMatch] = await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.id, params.data.id))
+        .for("update");
+      if (!lockedMatch) throw new Error("Match disappeared during swap");
+      if (lockedMatch.status === "completed") throw new Error("MATCH_CANNOT_SWAP");
+      const [saved] = await tx
+        .update(matchesTable)
+        .set({
+          player1Id: lockedMatch.player2Id ?? null,
+          player2Id: lockedMatch.player1Id ?? null,
+          score1: lockedMatch.score2 ?? null,
+          score2: lockedMatch.score1 ?? null,
+        })
+        .where(eq(matchesTable.id, params.data.id))
+        .returning();
+      const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
+      const namePlayers = p1Ids.length > 0
+        ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
+        : [];
+      const names = new Map(namePlayers.map((player) => [player.id, player.name]));
+      await logAction({
+        tournamentId: lockedMatch.tournamentId,
+        actionType: "match_players_swapped",
+        description: `Zamieniono strony w R${lockedMatch.round}M${lockedMatch.matchNumber}: ${names.get(lockedMatch.player1Id ?? 0) ?? "TBD"} ↔ ${names.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`,
+        matchId: lockedMatch.id,
+        undoPayload: {
+          type: "restore_players_swap",
+          matchId: lockedMatch.id,
+          player1Id: lockedMatch.player1Id,
+          player2Id: lockedMatch.player2Id,
+          score1: lockedMatch.score1,
+          score2: lockedMatch.score2,
+        },
+      }, tx);
+      return saved;
     },
+  ).catch((error: unknown) => {
+    if (error instanceof Error && error.message === "MATCH_CANNOT_SWAP") {
+      res.status(400).json({
+        error: "Nie można zamieniać zawodników w meczu o statusie: completed",
+      });
+      return null;
+    }
+    throw error;
   });
+  if (!updated) return;
   const [enriched] = await enrichMatches([updated]);
   res.json(enriched);
 });
@@ -2183,15 +2239,39 @@ router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> 
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = ReorderMatchesBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  if (!await checkHostAuth(req, res, params.data.id)) return;
+  const access = await requireTournamentWrite(req, res, params.data.id);
+  if (!access) return;
+  const mutationActor = getTournamentMutationActor(access);
   const { matchIds } = parsed.data;
-  // Assign sortOrder based on position in provided array
-  await Promise.all(
-    matchIds.map((matchId, idx) =>
-      db.update(matchesTable)
-        .set({ sortOrder: (idx + 1) * 10 })
-        .where(and(eq(matchesTable.id, matchId), eq(matchesTable.tournamentId, params.data.id))),
-    ),
+  await withTournamentMutationLock(
+    params.data.id,
+    mutationActor,
+    async (tx) => {
+      const existing = await tx
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(
+          and(
+            eq(matchesTable.tournamentId, params.data.id),
+            inArray(matchesTable.id, matchIds),
+          ),
+        )
+        .for("update");
+      if (existing.length !== new Set(matchIds).size) {
+        throw new Error("REORDER_MATCH_TOURNAMENT_MISMATCH");
+      }
+      for (const [index, matchId] of matchIds.entries()) {
+        await tx
+          .update(matchesTable)
+          .set({ sortOrder: (index + 1) * 10 })
+          .where(
+            and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            ),
+          );
+      }
+    },
   );
   const all = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, params.data.id)).orderBy(matchesTable.round, matchesTable.matchNumber);
   const enriched = await enrichMatches(all);
@@ -2214,33 +2294,130 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
   const rawBody = req.body && typeof req.body === "object"
     ? req.body as Record<string, unknown>
     : {};
-  if (rawBody.version === "1" || rawBody.schemaVersion === 1) {
+  const rawBackup =
+    rawBody.backup && typeof rawBody.backup === "object"
+      ? rawBody.backup as Record<string, unknown>
+      : rawBody;
+  const rawBackupTournament =
+    rawBackup.tournament &&
+    typeof rawBackup.tournament === "object" &&
+    !Array.isArray(rawBackup.tournament)
+      ? (rawBackup.tournament as Record<string, unknown>)
+      : null;
+  if (
+    Object.prototype.hasOwnProperty.call(rawBody, "hostCode") ||
+    (rawBackupTournament &&
+      Object.prototype.hasOwnProperty.call(rawBackupTournament, "hostCode"))
+  ) {
+    res.status(400).json({
+      error: "Backup nie może odtwarzać historycznego hostCode.",
+      code: "INVALID_BACKUP_CREDENTIALS",
+    });
+    return;
+  }
+  if (rawBackup.version === "1" || rawBackup.schemaVersion === 1) {
     res.status(400).json({
       error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1/v2 albo v3.",
       code: "LEGACY_BACKUP_UNSUPPORTED",
     });
     return;
   }
-  const parsed = ImportTournamentBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Nieprawidłowy backup v2/v3.", code: "INVALID_BACKUP" });
+  if (
+    typeof rawBody.organizerPassword !== "string" ||
+    rawBody.organizerPassword.length < NEW_CREDENTIAL_MIN_LENGTH
+  ) {
+    const restoringPrivateOnline =
+      rawBackup.tournament &&
+      typeof rawBackup.tournament === "object" &&
+      !Array.isArray(rawBackup.tournament) &&
+      (rawBackup.tournament as Record<string, unknown>).visibility === "private_online";
+    res.status(422).json({
+      error: restoringPrivateOnline
+        ? `Nowe hasło organizatora oraz hasło widza są wymagane dla odtwarzanego turnieju private_online i muszą mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`
+        : `Nowe hasło organizatora jest wymagane i musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`,
+      code: "ORGANIZER_PASSWORD_REQUIRED",
+      missingFields: restoringPrivateOnline
+        ? ["organizerPassword", "viewerPassword"]
+        : ["organizerPassword"],
+    });
     return;
   }
-  const parsedBackup = parsed.data;
+  if (
+    typeof rawBody.supportPassword === "string" &&
+    rawBody.supportPassword.length > 0 &&
+    rawBody.supportPassword.length < NEW_CREDENTIAL_MIN_LENGTH
+  ) {
+    res.status(422).json({
+      error: `Nowe hasło wsparcia musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`,
+      code: "SUPPORT_PASSWORD_TOO_SHORT",
+    });
+    return;
+  }
+  if (
+    rawBackup.tournament &&
+    typeof rawBackup.tournament === "object" &&
+    !Array.isArray(rawBackup.tournament) &&
+    (rawBackup.tournament as Record<string, unknown>).visibility === "private_online" &&
+    (typeof rawBody.viewerPassword !== "string" ||
+      rawBody.viewerPassword.length < NEW_CREDENTIAL_MIN_LENGTH)
+  ) {
+    res.status(422).json({
+      error: `Nowe hasło widza jest wymagane dla odtwarzanego turnieju private_online i musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków.`,
+      code: "VIEWER_PASSWORD_REQUIRED",
+    });
+    return;
+  }
+  if (rawBackup.schemaVersion !== 2 && rawBackup.schemaVersion !== 3) {
+    res.status(400).json({
+      error: `Nieobsługiwana wersja backupu (${String(rawBackup.schemaVersion)}). Wymagany jest format v2 albo v3.`,
+      code: "BACKUP_VERSION_UNSUPPORTED",
+    });
+    return;
+  }
+  const parsed = ImportTournamentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Nieprawidłowe żądanie odtworzenia backupu v2/v3.", code: "INVALID_BACKUP" });
+    return;
+  }
+  const {
+    backup: parsedBackup,
+    organizerPassword,
+    viewerPassword,
+    supportPassword,
+  } = parsed.data as unknown as {
+    backup: TournamentBackupV2 | TournamentBackupV3;
+    organizerPassword: string;
+    viewerPassword?: string;
+    supportPassword?: string;
+  };
 
-  if (parsedBackup.schemaVersion !== 2 && parsedBackup.schemaVersion !== 3) {
-    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${parsedBackup.schemaVersion}). Wymagany jest format v2 albo v3.`, code: "BACKUP_VERSION_UNSUPPORTED" });
+  const parsedSchemaVersion = Number(parsedBackup.schemaVersion);
+  if (parsedSchemaVersion !== 2 && parsedSchemaVersion !== 3) {
+    res.status(400).json({ error: `Nieobsługiwana wersja backupu (${parsedSchemaVersion}). Wymagany jest format v2 albo v3.`, code: "BACKUP_VERSION_UNSUPPORTED" });
     return;
   }
 
   try {
+    const organizerPasswordHash = await hashPassword(organizerPassword);
+    const credentials = {
+      hostCode: null,
+      organizerPasswordHash,
+      supportPasswordHash: supportPassword ? await hashPassword(supportPassword) : null,
+      supportPasswordVersion: 1,
+      viewerPasswordHash: viewerPassword ? await hashPassword(viewerPassword) : null,
+      viewerPasswordVersion: 1,
+    };
     const imported = parsedBackup.schemaVersion === 2
-      ? await importBackupV2(parsedBackup as TournamentBackupV2)
-      : await importBackupV3(parsedBackup as TournamentBackupV3);
+      ? await importBackupV2(parsedBackup as TournamentBackupV2, credentials)
+      : await importBackupV3(parsedBackup as TournamentBackupV3, credentials);
     res.status(201).json({
       tournament: mapTournament(imported.tournament),
       playersImported: imported.playersImported,
       matchesImported: imported.matchesImported,
+      organizerToken: signVersionedOrganizerToken(
+        imported.tournament.id,
+        organizerPasswordHash,
+      ),
     });
   } catch (error) {
     if (error instanceof BackupV3ValidationError) {

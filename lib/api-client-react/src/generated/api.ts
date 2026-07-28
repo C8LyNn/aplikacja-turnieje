@@ -23,16 +23,20 @@ import type {
   ActionLogEntry,
   AssistantSnapshot,
   BackupImportError,
+  BackupRestoreInput,
   Bracket,
   CsvImportInput,
   CsvImportResult,
   DomainError,
   HealthStatus,
   ImportResult,
+  LegacyOrganizerUpgradeInput,
   Match,
   MatchCancelInput,
   MatchResult,
   MatchUpdate,
+  OrganizerCredentialState,
+  OrganizerTokenResponse,
   Player,
   PlayerInput,
   PlayerUpdate,
@@ -45,7 +49,6 @@ import type {
   StageQualificationPreview,
   Standing,
   Tournament,
-  TournamentBackup,
   TournamentBackupV3,
   TournamentInput,
   TournamentStage,
@@ -53,9 +56,7 @@ import type {
   TournamentStats,
   TournamentUpdate,
   UndoLastAction404,
-  UndoResult,
-  VerifyHostCodeInput,
-  VerifyHostCodeResult
+  UndoResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1315,38 +1316,115 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getStartTournamentMutationOptions(options));
     }
 
-export const getVerifyHostCodeUrl = (id: number,) => {
+export const getGetOrganizerCredentialStateUrl = (id: number,) => {
 
 
 
 
-  return `/api/tournaments/${id}/verify-host-code`
+  return `/api/tournaments/${id}/auth/credential-state`
 }
 
 /**
- * @summary Verify the host access code for a tournament
+ * @summary Read the neutral organizer-credential bootstrap state
  */
-export const verifyHostCode = async (id: number,
-    verifyHostCodeInput: VerifyHostCodeInput, options?: RequestInit): Promise<VerifyHostCodeResult> => {
+export const getOrganizerCredentialState = async (id: number, options?: RequestInit): Promise<OrganizerCredentialState> => {
 
-  return customFetch<VerifyHostCodeResult>(getVerifyHostCodeUrl(id),
+  return customFetch<OrganizerCredentialState>(getGetOrganizerCredentialStateUrl(id),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      verifyHostCodeInput,)
+    method: 'GET'
+
+
   }
 );}
 
 
 
 
-export const getVerifyHostCodeMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext> => {
 
-const mutationKey = ['verifyHostCode'];
+export const getGetOrganizerCredentialStateQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/auth/credential-state`
+    ] as const;
+    }
+
+
+export const getGetOrganizerCredentialStateQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError = ErrorType<DomainError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizerCredentialStateQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizerCredentialState>>> = ({ signal }) => getOrganizerCredentialState(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOrganizerCredentialStateQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizerCredentialState>>>
+export type GetOrganizerCredentialStateQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read the neutral organizer-credential bootstrap state
+ */
+
+export function useGetOrganizerCredentialState<TData = Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError = ErrorType<DomainError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOrganizerCredentialStateQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpgradeLegacyOrganizerUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/auth/upgrade-legacy-organizer`
+}
+
+/**
+ * @summary Replace a historical hostCode with a new organizer password
+ */
+export const upgradeLegacyOrganizer = async (id: number,
+    legacyOrganizerUpgradeInput: LegacyOrganizerUpgradeInput, options?: RequestInit): Promise<OrganizerTokenResponse> => {
+
+  return customFetch<OrganizerTokenResponse>(getUpgradeLegacyOrganizerUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      legacyOrganizerUpgradeInput,)
+  }
+);}
+
+
+
+
+export const getUpgradeLegacyOrganizerMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext> => {
+
+const mutationKey = ['upgradeLegacyOrganizer'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1356,10 +1434,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyHostCode>>, {id: number;data: BodyType<VerifyHostCodeInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, {id: number;data: BodyType<LegacyOrganizerUpgradeInput>}> = (props) => {
           const {id,data} = props ?? {};
 
-          return  verifyHostCode(id,data,requestOptions)
+          return  upgradeLegacyOrganizer(id,data,requestOptions)
         }
 
 
@@ -1369,22 +1447,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type VerifyHostCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyHostCode>>>
-    export type VerifyHostCodeMutationBody = BodyType<VerifyHostCodeInput>
-    export type VerifyHostCodeMutationError = ErrorType<void>
+    export type UpgradeLegacyOrganizerMutationResult = NonNullable<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>>
+    export type UpgradeLegacyOrganizerMutationBody = BodyType<LegacyOrganizerUpgradeInput>
+    export type UpgradeLegacyOrganizerMutationError = ErrorType<DomainError>
 
     /**
- * @summary Verify the host access code for a tournament
+ * @summary Replace a historical hostCode with a new organizer password
  */
-export const useVerifyHostCode = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useUpgradeLegacyOrganizer = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof verifyHostCode>>,
+        Awaited<ReturnType<typeof upgradeLegacyOrganizer>>,
         TError,
-        {id: number;data: BodyType<VerifyHostCodeInput>},
+        {id: number;data: BodyType<LegacyOrganizerUpgradeInput>},
         TContext
       > => {
-      return useMutation(getVerifyHostCodeMutationOptions(options));
+      return useMutation(getUpgradeLegacyOrganizerMutationOptions(options));
     }
 
 export const getGenerateNextRoundUrl = (id: number,) => {
@@ -1986,9 +2064,9 @@ export const getImportTournamentUrl = () => {
 }
 
 /**
- * @summary Import Backup v2 or v3 as a new tournament copy
+ * @summary Import Backup v2 or v3 as an independent tournament with new credentials
  */
-export const importTournament = async (tournamentBackup: TournamentBackup, options?: RequestInit): Promise<ImportResult> => {
+export const importTournament = async (backupRestoreInput: BackupRestoreInput, options?: RequestInit): Promise<ImportResult> => {
 
   return customFetch<ImportResult>(getImportTournamentUrl(),
   {
@@ -1996,7 +2074,7 @@ export const importTournament = async (tournamentBackup: TournamentBackup, optio
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      tournamentBackup,)
+      backupRestoreInput,)
   }
 );}
 
@@ -2004,8 +2082,8 @@ export const importTournament = async (tournamentBackup: TournamentBackup, optio
 
 
 export const getImportTournamentMutationOptions = <TError = ErrorType<BackupImportError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext> => {
 
 const mutationKey = ['importTournament'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -2017,7 +2095,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTournament>>, {data: BodyType<TournamentBackup>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTournament>>, {data: BodyType<BackupRestoreInput>}> = (props) => {
           const {data} = props ?? {};
 
           return  importTournament(data,requestOptions)
@@ -2031,18 +2109,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ImportTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof importTournament>>>
-    export type ImportTournamentMutationBody = BodyType<TournamentBackup>
+    export type ImportTournamentMutationBody = BodyType<BackupRestoreInput>
     export type ImportTournamentMutationError = ErrorType<BackupImportError>
 
     /**
- * @summary Import Backup v2 or v3 as a new tournament copy
+ * @summary Import Backup v2 or v3 as an independent tournament with new credentials
  */
 export const useImportTournament = <TError = ErrorType<BackupImportError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof importTournament>>,
         TError,
-        {data: BodyType<TournamentBackup>},
+        {data: BodyType<BackupRestoreInput>},
         TContext
       > => {
       return useMutation(getImportTournamentMutationOptions(options));

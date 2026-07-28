@@ -25,11 +25,12 @@ interface TournamentFixture {
 }
 
 const SESSION_SECRET = `tournament-stages-schema-${randomUUID()}`;
+const ORGANIZER_PASSWORD_HASH = "test-organizer-password-hash";
 let app: Express;
 let database: DatabaseModule;
 let testConfig: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 
 async function rows<T = Record<string, unknown>>(
   sql: string,
@@ -45,14 +46,18 @@ async function createDraftTournament(
 ): Promise<TournamentFixture> {
   const suffix = randomUUID();
   const [tournament] = await rows<{ id: number }>(
-    `INSERT INTO tournaments (name, format, status, visibility, default_best_of, swiss_rounds)
-     VALUES ($1, $2::tournament_format, 'draft', 'public_online', $3, $4)
+    `INSERT INTO tournaments (
+       name, format, status, visibility, default_best_of, swiss_rounds,
+       organizer_password_hash
+     )
+     VALUES ($1, $2::tournament_format, 'draft', 'public_online', $3, $4, $5)
      RETURNING id`,
     [
       `Stages ${format} ${suffix}`,
       format,
       options.bestOf ?? 3,
       format === "swiss" ? (options.swissRounds ?? 2) : null,
+      ORGANIZER_PASSWORD_HASH,
     ],
   );
   const playerIds: number[] = [];
@@ -73,7 +78,12 @@ async function createDraftTournament(
     tournamentId: tournament.id,
     stageId: stage.id,
     playerIds,
-    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
+    organizerHeaders: {
+      "x-organizer-token": signOrganizerToken(
+        tournament.id,
+        ORGANIZER_PASSWORD_HASH,
+      ),
+    },
   };
 }
 
@@ -135,7 +145,7 @@ before(async () => {
   database = await import("@workspace/db") as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, testConfig.schema);
   schemaInitialized = true;
-  signOrganizerToken = (await import("../src/auth")).signOrganizerToken;
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   app = (await import("../src/app")).default;
 });
 
@@ -473,7 +483,10 @@ describe("single-stage compatibility lifecycle", () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
-      .send(exported.body)
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      })
       .expect(201);
     const importedId = imported.body.tournament.id as number;
     const [importedStage] = await rows<{

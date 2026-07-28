@@ -1,6 +1,9 @@
-import { useEffect } from "react";
-import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import {
+  clearTournamentAuthHeaders,
+  synchronizeTournamentAuthHeaders,
+} from "@/lib/tournament-auth-hydration";
 
 /**
  * Syncs per-tournament auth tokens from sessionStorage into the global
@@ -16,23 +19,19 @@ export function useSyncTournamentAuth(tournamentId: number) {
 
   const orgToken = getOrgToken(tournamentId);
   const supSession = getSupSession(tournamentId);
+  const [hydratedTournamentId, setHydratedTournamentId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
-    const tok = getOrgToken(tournamentId);
-    const sess = getSupSession(tournamentId);
-    if (tok) {
-      setActiveOrganizerToken(tok);
-      setActiveSupportToken(null);
-    } else if (sess) {
-      setActiveSupportToken(sess.token);
-      setActiveOrganizerToken(null);
-    } else {
-      setActiveOrganizerToken(null);
-      setActiveSupportToken(null);
-    }
+    synchronizeTournamentAuthHeaders(
+      tournamentId,
+      getOrgToken,
+      getSupSession,
+    );
+    setHydratedTournamentId(tournamentId);
     return () => {
-      setActiveOrganizerToken(null);
-      setActiveSupportToken(null);
+      clearTournamentAuthHeaders();
     };
   }, [tournamentId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Deps intentionally limited to [tournamentId]:
@@ -44,5 +43,7 @@ export function useSyncTournamentAuth(tournamentId: number) {
     orgToken,
     supSession,
     isAuthenticated: !!(orgToken || supSession),
+    isHydrated:
+      tournamentId > 0 && hydratedTournamentId === tournamentId,
   };
 }

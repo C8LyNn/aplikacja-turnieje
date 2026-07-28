@@ -309,7 +309,17 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const result = await database.pool.query<{ organizer_password_hash: string }>(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  const passwordHash = result.rows[0]?.organizer_password_hash;
+  assert.ok(passwordHash, "created tournament must have organizer credentials");
+  return signOrganizerToken(tournamentId, passwordHash);
+}
 
 function quoteIdentifier(value: string): string {
   return `"${value.replaceAll('"', '""')}"`;
@@ -522,7 +532,7 @@ before(async () => {
   await database.pool.query(proceduralMigration);
   await installReversedForeignKeys();
 
-  ({ signOrganizerToken } = await import("../src/auth"));
+  ({ signVersionedOrganizerToken: signOrganizerToken } = await import("../src/auth"));
   app = (await import("../src/app")).default;
 });
 
@@ -608,6 +618,7 @@ describe("0009 composite foreign key reconciliation", () => {
     const tournament = await request(app)
       .post("/api/tournaments")
       .send({
+        organizerPassword: "integration-organizer-password",
         name: `Composite FK 32 to 16 to 8 ${randomUUID()}`,
         format: "single_elimination",
         defaultBestOf: 1,
@@ -634,7 +645,7 @@ describe("0009 composite foreign key reconciliation", () => {
       .expect(201);
     const tournamentId = tournament.body.id as number;
     const organizerHeaders = {
-      "x-organizer-token": signOrganizerToken(tournamentId),
+      "x-organizer-token": await organizerTokenFor(tournamentId),
     };
     const csv = [
       "name,seed",

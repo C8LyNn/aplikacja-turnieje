@@ -29,11 +29,12 @@ interface StartedFixture {
 }
 
 const SESSION_SECRET = `series-v1-integration-${randomUUID()}`;
+const ORGANIZER_PASSWORD_HASH = "test-organizer-hash";
 let app: Express;
 let database: DatabaseModule;
 let testConfig: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 
 async function createStartedTournament(
   format: Format,
@@ -46,6 +47,7 @@ async function createStartedTournament(
     format,
     status: "draft",
     visibility: "public_online",
+    organizerPasswordHash: ORGANIZER_PASSWORD_HASH,
     defaultBestOf: options.bestOf ?? 1,
     swissRounds: format === "swiss" ? (options.swissRounds ?? 3) : null,
   }).returning();
@@ -56,7 +58,12 @@ async function createStartedTournament(
       seed: index + 1,
     })),
   ).returning();
-  const organizerHeaders = { "x-organizer-token": signOrganizerToken(tournament.id) };
+  const organizerHeaders = {
+    "x-organizer-token": signOrganizerToken(
+      tournament.id,
+      ORGANIZER_PASSWORD_HASH,
+    ),
+  };
   await request(app).post(`/api/tournaments/${tournament.id}/start`).set(organizerHeaders).expect(200);
   return { tournamentId: tournament.id, playerIds: players.map((player) => player.id), organizerHeaders };
 }
@@ -90,7 +97,7 @@ before(async () => {
   database = await import("@workspace/db") as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, testConfig.schema);
   schemaInitialized = true;
-  signOrganizerToken = (await import("../src/auth")).signOrganizerToken;
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   app = (await import("../src/app")).default;
 });
 
@@ -104,6 +111,7 @@ describe("series_v1 tournament creation", () => {
   test("creates series_v1 with match-record ranking and no legacy fields", async () => {
     const response = await request(app).post("/api/tournaments").send({
       name: `Creation ${randomUUID()}`,
+      organizerPassword: "integration-organizer-password",
       format: "single_elimination",
       defaultBestOf: 3,
     }).expect(201);
@@ -116,6 +124,7 @@ describe("series_v1 tournament creation", () => {
   test("rejects double elimination explicitly", async () => {
     const response = await request(app).post("/api/tournaments").send({
       name: "Unsupported double elimination",
+      organizerPassword: "integration-organizer-password",
       format: "double_elimination",
     }).expect(422);
     assert.equal(response.body.code, "DOUBLE_ELIMINATION_UNAVAILABLE");
@@ -124,6 +133,7 @@ describe("series_v1 tournament creation", () => {
   test("rejects an even defaultBestOf", async () => {
     const response = await request(app).post("/api/tournaments").send({
       name: "Invalid BO",
+      organizerPassword: "integration-organizer-password",
       format: "round_robin",
       defaultBestOf: 4,
     }).expect(422);
@@ -280,7 +290,11 @@ describe("Swiss generation policy", () => {
     assert.notEqual(roundTwoBye.winner_id, roundOneBye.winner_id);
 
     const pending = roundTwo.filter((match) => match.status === "pending");
-    await request(app).patch(`/api/matches/${pending[0].id}`).send({ status: "postponed" }).expect(200);
+    await request(app)
+      .patch(`/api/matches/${pending[0].id}`)
+      .set(fixture.organizerHeaders)
+      .send({ status: "postponed" })
+      .expect(200);
     await request(app)
       .post(`/api/matches/${pending[1].id}/complete`)
       .set(fixture.organizerHeaders)
@@ -310,7 +324,13 @@ describe("backup v3 export and import", () => {
     assert.equal(exported.body.schemaVersion, 3);
     assert.equal(exported.body.resultModelVersion, "series_v1");
 
-    const imported = await request(app).post("/api/tournaments/import").send(exported.body).expect(201);
+    const imported = await request(app)
+      .post("/api/tournaments/import")
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      })
+      .expect(201);
     const importedId = imported.body.tournament.id as number;
     const restoredStandings = await request(app).get(`/api/tournaments/${importedId}/standings`).expect(200);
     const semantic = (entries: Array<Record<string, unknown>>) => entries.map((entry) => ({
@@ -332,8 +352,15 @@ describe("backup v3 export and import", () => {
   });
 
   test("rejects legacy v1 without creating a tournament", async () => {
+    const source = await createStartedTournament("single_elimination", 2);
     const [{ count: beforeCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
-    const response = await request(app).post("/api/tournaments/import").send({ version: "1" }).expect(400);
+    const response = await request(app)
+      .post("/api/tournaments/import")
+      .send({
+        backup: { version: "1" },
+        organizerPassword: "restored-organizer-password",
+      })
+      .expect(400);
     assert.equal(response.body.code, "LEGACY_BACKUP_UNSUPPORTED");
     const [{ count: afterCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     assert.equal(afterCount, beforeCount);
@@ -348,7 +375,13 @@ describe("backup v3 export and import", () => {
       .expect(200);
     exported.body.matches[0].winnerBackupId = 999_999;
     const [{ count: beforeCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
-    const response = await request(app).post("/api/tournaments/import").send(exported.body).expect(400);
+    const response = await request(app)
+      .post("/api/tournaments/import")
+      .send({
+        backup: exported.body,
+        organizerPassword: "restored-organizer-password",
+      })
+      .expect(400);
     assert.equal(response.body.code, "INVALID_BACKUP_V3");
     const [{ count: afterCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     assert.equal(afterCount, beforeCount);

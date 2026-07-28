@@ -35,6 +35,45 @@ import {
   type StageDraft,
 } from "./tournament-stages-ui";
 import { StagePlanEditor } from "../components/stage-plan-editor";
+import { organizerCredentialScreen } from "./organizer-credential-screen";
+import { getTournament } from "@workspace/api-client-react";
+import {
+  clearTournamentAuthHeaders,
+  synchronizeTournamentAuthHeaders,
+} from "./tournament-auth-hydration";
+
+test("wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu", () => {
+  assert.equal(organizerCredentialScreen(null, true), "loading");
+  assert.equal(organizerCredentialScreen(null, false), "not_found");
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "legacy_upgrade", private: true },
+      false,
+    ),
+    "legacy_upgrade",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "organizer_login", private: true },
+      false,
+    ),
+    "organizer_login",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "admin_recovery", private: true },
+      false,
+    ),
+    "admin_recovery",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: false, accessMode: null, private: false },
+      false,
+    ),
+    "not_found",
+  );
+});
 
 test("etykietuje grupy także powyżej Z", () => {
   assert.equal(groupLabelFromIndex(0), "A");
@@ -453,6 +492,7 @@ test("zachowuje payload historycznego kreatora jednoetapowego", () => {
     format: "swiss",
     swissRounds: 3,
     defaultBestOf: 1,
+    organizerPassword: "organizer-pass",
   };
   const payload = withOptionalStagePlan(legacy, false, [
     createStageDraft(1, "swiss"),
@@ -548,4 +588,43 @@ test("domyślnie zachowuje dotychczasowe seedy uczestników", () => {
 
   const plan = buildStagePlan([createStageDraft(1, "single_elimination")]);
   assert.equal(plan.stages[0]?.entrySeedingMethod, "preserve");
+});
+
+test("odĹ›wieĹĽenie hydratyzuje token organizatora przed pierwszym requestem i czyĹ›ci go po wylogowaniu", async () => {
+  const storage = new Map<string, string>();
+  const tournamentId = 42;
+  const storageKey = `tm_org_${tournamentId}`;
+  const token = "persisted-organizer-token";
+  storage.set(storageKey, token);
+  const capturedHeaders: Headers[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    capturedHeaders.push(new Headers(init?.headers));
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    synchronizeTournamentAuthHeaders(
+      tournamentId,
+      (id) => storage.get(`tm_org_${id}`) ?? null,
+      () => null,
+    );
+    await getTournament(tournamentId);
+    assert.equal(capturedHeaders.at(-1)?.get("x-organizer-token"), token);
+
+    storage.delete(storageKey);
+    synchronizeTournamentAuthHeaders(
+      tournamentId,
+      (id) => storage.get(`tm_org_${id}`) ?? null,
+      () => null,
+    );
+    await getTournament(tournamentId);
+    assert.equal(capturedHeaders.at(-1)?.has("x-organizer-token"), false);
+  } finally {
+    clearTournamentAuthHeaders();
+    globalThis.fetch = originalFetch;
+  }
 });

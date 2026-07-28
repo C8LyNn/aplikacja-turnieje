@@ -54,6 +54,12 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
  */
 
 
+export const createTournamentBodyOrganizerPasswordMin = 8;
+
+export const createTournamentBodySupportPasswordMin = 8;
+
+export const createTournamentBodyViewerPasswordMin = 8;
+
 export const createTournamentBodyStagePlanInitialParticipantCountMin = 2;
 
 
@@ -84,9 +90,9 @@ export const CreateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
-  "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
-  "supportPassword": zod.string().optional().describe('Optional password for support staff access'),
-  "viewerPassword": zod.string().optional().describe('Optional password for viewer access (required when visibility=private_online)'),
+  "organizerPassword": zod.string().min(createTournamentBodyOrganizerPasswordMin).describe('Required password protecting organizer access to every newly created tournament.'),
+  "supportPassword": zod.string().min(createTournamentBodySupportPasswordMin).optional().describe('Optional password for support staff access'),
+  "viewerPassword": zod.string().min(createTournamentBodyViewerPasswordMin).optional().describe('Password for viewer access; required when visibility=private_online.'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),
   "stagePlan": zod.object({
   "initialParticipantCount": zod.number().min(createTournamentBodyStagePlanInitialParticipantCountMin),
@@ -161,7 +167,6 @@ export const UpdateTournamentBody = zod.object({
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
   "featuredMatchId": zod.number().optional(),
-  "hostCode": zod.string().optional().describe('Host access code (plain text, stored hashed)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional(),
   "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)')
 })
@@ -843,21 +848,38 @@ export const StartTournamentResponse = zod.object({
 
 
 /**
- * @summary Verify the host access code for a tournament
+ * @summary Read the neutral organizer-credential bootstrap state
  */
-export const VerifyHostCodeParams = zod.object({
+export const GetOrganizerCredentialStateParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetOrganizerCredentialStateResponse = zod.object({
+  "exists": zod.boolean(),
+  "accessMode": zod.union([zod.literal('organizer_login'),zod.literal('legacy_upgrade'),zod.literal('admin_recovery'),zod.literal(null)]).nullable(),
+  "private": zod.boolean()
+})
+
+
+/**
+ * @summary Replace a historical hostCode with a new organizer password
+ */
+export const UpgradeLegacyOrganizerParams = zod.object({
   "id": zod.coerce.number()
 })
 
 
+export const upgradeLegacyOrganizerBodyOrganizerPasswordMin = 8;
 
 
-export const VerifyHostCodeBody = zod.object({
-  "code": zod.string().min(1)
+
+export const UpgradeLegacyOrganizerBody = zod.object({
+  "hostCode": zod.string().min(1).describe('Historical host code; consumed and cleared by a successful upgrade.'),
+  "organizerPassword": zod.string().min(upgradeLegacyOrganizerBodyOrganizerPasswordMin).describe('New organizer password. This policy applies only to newly set passwords.')
 })
 
-export const VerifyHostCodeResponse = zod.object({
-  "valid": zod.boolean()
+export const UpgradeLegacyOrganizerResponse = zod.object({
+  "token": zod.string()
 })
 
 
@@ -1224,16 +1246,23 @@ export const ExportTournamentResponse = zod.object({
 
 
 /**
- * @summary Import Backup v2 or v3 as a new tournament copy
+ * @summary Import Backup v2 or v3 as an independent tournament with new credentials
  */
 
 
-export const importTournamentBodyTwoStagesMax = 3;
+export const importTournamentBodyBackupTwoStagesMax = 3;
+
+
+export const importTournamentBodyOrganizerPasswordMin = 8;
+
+export const importTournamentBodyViewerPasswordMin = 8;
+
+export const importTournamentBodySupportPasswordMin = 8;
 
 
 
-
-export const ImportTournamentBody = zod.union([zod.object({
+export const ImportTournamentBody = zod.object({
+  "backup": zod.union([zod.object({
   "schemaVersion": zod.number(),
   "resultModelVersion": zod.literal("series_v1"),
   "rankingPolicy": zod.literal("match_record_v1"),
@@ -1358,7 +1387,7 @@ export const ImportTournamentBody = zod.union([zod.object({
   "createdAt": zod.string(),
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish()
-})).min(1).max(importTournamentBodyTwoStagesMax),
+})).min(1).max(importTournamentBodyBackupTwoStagesMax),
   "groups": zod.array(zod.object({
   "backupId": zod.number(),
   "stageBackupId": zod.number(),
@@ -1432,7 +1461,11 @@ export const ImportTournamentBody = zod.union([zod.object({
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
 }))
-})])
+})]),
+  "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
+  "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),
+  "supportPassword": zod.string().min(importTournamentBodySupportPasswordMin).optional().describe('Optional new support password. When omitted, support access remains disabled.')
+})
 
 
 /**

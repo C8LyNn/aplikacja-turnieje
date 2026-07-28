@@ -33,11 +33,12 @@ interface PlanFixture {
 }
 
 const SESSION_SECRET = `stage-lifecycle-${randomUUID()}`;
+const ORGANIZER_PASSWORD_HASH = "test-organizer-hash";
 let app: Express;
 let database: DatabaseModule;
 let testConfig: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 let completeMatch: typeof import("../src/application/matches/complete-match").completeMatch;
 let revertMatch: typeof import("../src/application/matches/revert-match").revertMatch;
 let completeStage: typeof import("../src/application/stages/stage-lifecycle").completeStage;
@@ -52,6 +53,7 @@ async function createPlan(sourceFormat: SourceFormat): Promise<PlanFixture> {
     format: sourceFormat,
     status: "draft",
     visibility: "public_online",
+    organizerPasswordHash: ORGANIZER_PASSWORD_HASH,
     defaultBestOf: 1,
     swissRounds: sourceFormat === "swiss" ? 1 : null,
   }).returning();
@@ -85,7 +87,9 @@ async function createPlan(sourceFormat: SourceFormat): Promise<PlanFixture> {
     sourceStageId: configuredSource.id,
     targetStageId: targetStage.id,
     playerIds: players.map((player) => player.id),
-    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
+    organizerHeaders: {
+      "x-organizer-token": signOrganizerToken(tournament.id, ORGANIZER_PASSWORD_HASH),
+    },
   };
 }
 
@@ -128,6 +132,7 @@ async function createEliminationQualifierPlan(
     format: "single_elimination",
     status: "draft",
     visibility: "public_online",
+    organizerPasswordHash: ORGANIZER_PASSWORD_HASH,
     defaultBestOf: 1,
   }).returning();
   const players = await database.db.insert(database.playersTable).values(
@@ -166,7 +171,9 @@ async function createEliminationQualifierPlan(
     sourceStageId: configuredSource.id,
     targetStageId: targetStage.id,
     playerIds: players.map((player) => player.id),
-    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
+    organizerHeaders: {
+      "x-organizer-token": signOrganizerToken(tournament.id, ORGANIZER_PASSWORD_HASH),
+    },
   };
 }
 
@@ -196,7 +203,7 @@ before(async () => {
   database = await import("@workspace/db") as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, testConfig.schema);
   schemaInitialized = true;
-  signOrganizerToken = (await import("../src/auth")).signOrganizerToken;
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   ({ completeMatch } = await import("../src/application/matches/complete-match"));
   ({ revertMatch, RevertMatchError } = await import("../src/application/matches/revert-match"));
   ({ completeStage, startStage, StageLifecycleError } = await import("../src/application/stages/stage-lifecycle"));

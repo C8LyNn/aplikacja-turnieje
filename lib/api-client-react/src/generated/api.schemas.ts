@@ -184,12 +184,23 @@ export const BackupImportErrorCode = {
   INVALID_BACKUP_V3: 'INVALID_BACKUP_V3',
   BACKUP_VERSION_UNSUPPORTED: 'BACKUP_VERSION_UNSUPPORTED',
   BACKUP_IMPORT_ROLLED_BACK: 'BACKUP_IMPORT_ROLLED_BACK',
+  ORGANIZER_PASSWORD_REQUIRED: 'ORGANIZER_PASSWORD_REQUIRED',
+  VIEWER_PASSWORD_REQUIRED: 'VIEWER_PASSWORD_REQUIRED',
+} as const;
+
+export type BackupImportErrorMissingFieldsItem = typeof BackupImportErrorMissingFieldsItem[keyof typeof BackupImportErrorMissingFieldsItem];
+
+
+export const BackupImportErrorMissingFieldsItem = {
+  organizerPassword: 'organizerPassword',
+  viewerPassword: 'viewerPassword',
 } as const;
 
 export interface BackupImportError {
   error: string;
   code: BackupImportErrorCode;
   details?: string[];
+  missingFields?: BackupImportErrorMissingFieldsItem[];
 }
 
 export type HealthStatusStatus = typeof HealthStatusStatus[keyof typeof HealthStatusStatus];
@@ -469,11 +480,20 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password to protect organizer access */
-  organizerPassword?: string;
-  /** Optional password for support staff access */
+  /**
+     * Required password protecting organizer access to every newly created tournament.
+     * @minLength 8
+     */
+  organizerPassword: string;
+  /**
+     * Optional password for support staff access
+     * @minLength 8
+     */
   supportPassword?: string;
-  /** Optional password for viewer access (required when visibility=private_online) */
+  /**
+     * Password for viewer access; required when visibility=private_online.
+     * @minLength 8
+     */
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
@@ -761,20 +781,45 @@ export interface TournamentUpdate {
   /** @minimum 1 */
   defaultBestOf?: number;
   featuredMatchId?: number;
-  /** Host access code (plain text, stored hashed) */
-  hostCode?: string;
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
 }
 
-export interface VerifyHostCodeInput {
-  /** @minLength 1 */
-  code: string;
+/**
+ * @nullable
+ */
+export type OrganizerCredentialStateAccessMode = typeof OrganizerCredentialStateAccessMode[keyof typeof OrganizerCredentialStateAccessMode] | null;
+
+
+export const OrganizerCredentialStateAccessMode = {
+  organizer_login: 'organizer_login',
+  legacy_upgrade: 'legacy_upgrade',
+  admin_recovery: 'admin_recovery',
+} as const;
+
+export interface OrganizerCredentialState {
+  exists: boolean;
+  /** @nullable */
+  accessMode: OrganizerCredentialStateAccessMode;
+  private: boolean;
 }
 
-export interface VerifyHostCodeResult {
-  valid: boolean;
+export interface LegacyOrganizerUpgradeInput {
+  /**
+     * Historical host code; consumed and cleared by a successful upgrade.
+     * @minLength 1
+     */
+  hostCode: string;
+  /**
+     * New organizer password. This policy applies only to newly set passwords.
+     * @minLength 8
+     */
+  organizerPassword: string;
+}
+
+export interface OrganizerTokenResponse {
+  token: string;
 }
 
 export type PlayerStatus = typeof PlayerStatus[keyof typeof PlayerStatus];
@@ -1631,10 +1676,31 @@ export interface TournamentBackupV3 {
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;
 
+export interface BackupRestoreInput {
+  backup: TournamentBackup;
+  /**
+     * New organizer password. Credentials are never read from the backup.
+     * @minLength 8
+     */
+  organizerPassword: string;
+  /**
+     * New viewer password, required when the restored tournament is private_online.
+     * @minLength 8
+     */
+  viewerPassword?: string;
+  /**
+     * Optional new support password. When omitted, support access remains disabled.
+     * @minLength 8
+     */
+  supportPassword?: string;
+}
+
 export interface ImportResult {
   tournament: Tournament;
   playersImported: number;
   matchesImported: number;
+  /** Organizer token scoped to the newly restored tournament. */
+  organizerToken: string;
 }
 
 export type TournamentStatsTopPlayersItem = {

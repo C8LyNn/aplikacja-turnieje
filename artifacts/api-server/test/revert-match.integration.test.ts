@@ -38,11 +38,12 @@ interface Fixture {
 }
 
 const SESSION_SECRET = `revert-series-v1-${randomUUID()}`;
+const ORGANIZER_PASSWORD_HASH = "test-organizer-hash";
 let app: Express;
 let database: DatabaseModule;
 let testConfig: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 let signViewerToken: typeof import("../src/auth").signViewerToken;
 let revertUseCase: typeof import("../src/application/matches/revert-match").revertMatch;
 
@@ -56,6 +57,7 @@ async function createFixture(options: { format?: Format; bracket?: boolean; best
     format,
     status: "active",
     visibility: "public_online",
+    organizerPasswordHash: ORGANIZER_PASSWORD_HASH,
     defaultBestOf: bestOf,
     currentRound: 1,
     totalRounds: bracket ? 2 : 1,
@@ -88,7 +90,12 @@ async function createFixture(options: { format?: Format; bracket?: boolean; best
     secondMatchId: bracket ? matches[1].id : null,
     nextMatchId: bracket ? matches[2].id : null,
     playerIds: [players[0].id, players[1].id, players[2].id, players[3].id],
-    organizerHeaders: { "x-organizer-token": signOrganizerToken(tournament.id) },
+    organizerHeaders: {
+      "x-organizer-token": signOrganizerToken(
+        tournament.id,
+        ORGANIZER_PASSWORD_HASH,
+      ),
+    },
     supportHeaders: { "x-support-token": supportToken },
     viewerHeaders: { "x-viewer-token": signViewerToken(tournament.id) },
     format,
@@ -165,7 +172,7 @@ before(async () => {
   await resetTestSchema(database.pool as unknown as TestPool, testConfig.schema);
   schemaInitialized = true;
   const auth = await import("../src/auth");
-  signOrganizerToken = auth.signOrganizerToken;
+  signOrganizerToken = auth.signVersionedOrganizerToken;
   signViewerToken = auth.signViewerToken;
   revertUseCase = (await import("../src/application/matches/revert-match")).revertMatch;
   app = (await import("../src/app")).default;

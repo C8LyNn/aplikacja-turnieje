@@ -8,7 +8,6 @@ import {
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
-  useVerifyHostCode,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
@@ -28,12 +27,13 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
-import { useHostAuth } from "@/hooks/use-host-auth";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
+import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
+import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -43,35 +43,51 @@ export default function TournamentHost() {
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { storeOrgToken, storeSupSession } = useAuth();
+  const {
+    orgToken,
+    supSession,
+    isAuthenticated: isNewAuthTokenPresent,
+    isHydrated: isAuthHydrated,
+  } = useSyncTournamentAuth(id);
 
-  const { data: tournament } = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 5000 },
+  const {
+    data: tournament,
+    error: tournamentError,
+    isLoading: isLoadingTournament,
+  } = useGetTournament(id, {
+    query: {
+      enabled: !!id && isAuthHydrated,
+      queryKey: getGetTournamentQueryKey(id),
+      refetchInterval: 5000,
+      retry: false,
+    },
   });
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
+    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
   const { data: bracket } = useGetTournamentBracket(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
+    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
   });
   const { data: standings } = useGetTournamentStandings(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetTournamentStandingsQueryKey(id) },
+    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetTournamentStandingsQueryKey(id) },
   });
   const { data: history } = useGetResultsHistory(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
+    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
   });
   const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
+    query: { enabled: !!id && isAuthHydrated, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
   });
 
   const { data: actionLog } = useGetActionLog(id, {
-    query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
+    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
   });
 
   const updateMatch = useUpdateMatch();
+  const updateTournament = useUpdateTournament();
   const completeMatch = useCompleteMatch();
   const revertMatch = useRevertMatch();
   const generateNextRound = useGenerateNextRound();
-  const updateTournament = useUpdateTournament();
   const undoLastAction = useUndoLastAction();
   const cancelMatch = useCancelMatch();
   const restoreCancelledMatch = useRestoreCancelledMatch();
@@ -80,16 +96,11 @@ export default function TournamentHost() {
 
   const lastUndoableAction = actionLog?.find((a) => a.canUndo);
 
-  const { isAuthenticated, isReady, authenticate, clearAuth, updateStoredCode } = useHostAuth(id, tournament?.hasHostCode);
-  const verifyCode = useVerifyHostCode();
-
-  const { getOrgToken, getSupSession, storeOrgToken, storeSupSession } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
 
   // For new-style auth (hasOrganizerPassword), check existing session tokens
   const hasNewAuth = !!(tournament?.hasOrganizerPassword);
-  const { orgToken, supSession, isAuthenticated: isNewAuthTokenPresent } = useSyncTournamentAuth(id);
   const isNewAuthAuthenticated = !hasNewAuth || isNewAuthTokenPresent;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
@@ -105,9 +116,9 @@ export default function TournamentHost() {
   const [resultReason, setResultReason] = useState("");
 
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [codeInput, setCodeInput] = useState("");
-  const [newCodeInput, setNewCodeInput] = useState("");
+  const [legacyOrganizerPassword, setLegacyOrganizerPassword] = useState("");
+  const [legacyUpgradePending, setLegacyUpgradePending] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -119,48 +130,33 @@ export default function TournamentHost() {
     });
   };
 
-  const handleVerifyGate = () => {
+  const handleLegacyUpgrade = async () => {
     setCodeError(null);
-    verifyCode.mutate({ id, data: { code: codeInput } }, {
-      onSuccess: (data) => {
-        if (data.valid) {
-          authenticate(codeInput);
-          setCodeInput("");
-        } else {
-          setCodeError("Nieprawidłowy kod. Spróbuj ponownie.");
-        }
-      },
-      onError: () => setCodeError("Nieprawidłowy kod. Spróbuj ponownie."),
-    });
-  };
-
-  const handleSaveCode = () => {
-    const trimmed = newCodeInput.trim();
-    updateTournament.mutate({ id, data: { hostCode: trimmed || "" } }, {
-      onSuccess: () => {
-        if (trimmed) {
-          updateStoredCode(trimmed);
-          toast({ title: "Kod prowadzącego ustawiony", description: "Zapisano. Panel jest teraz chroniony kodem." });
-        } else {
-          clearAuth();
-          toast({ title: "Kod prowadzącego usunięty", description: "Panel jest teraz dostępny bez kodu." });
-        }
-        setShowCodeDialog(false);
-        setNewCodeInput("");
-        queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
-      },
-      onError: () => toast({ title: "Błąd", description: "Nie udało się zapisać kodu.", variant: "destructive" }),
-    });
+    setLegacyUpgradePending(true);
+    try {
+      const token = await apiUpgradeLegacyOrganizer(
+        id,
+        codeInput,
+        legacyOrganizerPassword,
+      );
+      storeOrgToken(id, token);
+      setActiveOrganizerToken(token);
+      setCodeInput("");
+      setLegacyOrganizerPassword("");
+      await queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
+      toast({
+        title: "Zabezpieczenia zaktualizowane",
+        description: "Kod legacy został wyłączony. Od teraz loguj się hasłem organizatora.",
+      });
+    } catch (error) {
+      setCodeError(error instanceof Error ? error.message : "Nie udało się zaktualizować zabezpieczeń.");
+    } finally {
+      setLegacyUpgradePending(false);
+    }
   };
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getListMatchesQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getGetTournamentBracketQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getGetTournamentStandingsQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getGetResultsHistoryQueryKey(id) });
-    queryClient.invalidateQueries({ queryKey: getGetTournamentAssistantQueryKey(id) });
+    void invalidateTournamentDependentQueries(queryClient, id);
     queryClient.invalidateQueries({ queryKey: getGetActionLogQueryKey(id) });
   };
 
@@ -421,7 +417,48 @@ export default function TournamentHost() {
   };
 
   // --- Loading ---
-  if (!tournament) return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+  if (!tournament && isLoadingTournament) {
+    return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+  }
+  if (!tournament && tournamentError) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-full max-w-sm space-y-5 text-center">
+            <Shield className="w-10 h-10 text-primary mx-auto" />
+            <div>
+              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Zaloguj się jako organizator, aby uzyskać dostęp do prywatnego
+                turnieju.
+              </p>
+            </div>
+            <Button className="w-full" onClick={() => setShowOrgModal(true)}>
+              <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
+            </Button>
+            <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
+              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+            </Button>
+          </div>
+        </div>
+        <OrganizerLoginModal
+          open={showOrgModal}
+          onClose={() => setShowOrgModal(false)}
+          tournamentId={id}
+          tournamentName={`Turniej #${id}`}
+          onSuccess={() => {
+            setShowOrgModal(false);
+            void queryClient.invalidateQueries({
+              queryKey: getGetTournamentQueryKey(id),
+            });
+          }}
+        />
+      </Layout>
+    );
+  }
+  if (!tournament) {
+    return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
+  }
 
   // --- New-style auth gate (organizer password system) ---
   if (tournament && hasNewAuth && !isNewAuthAuthenticated) {
@@ -478,8 +515,27 @@ export default function TournamentHost() {
     );
   }
 
-  // --- Legacy auth gate (host code system) ---
-  if (isReady && !isAuthenticated) {
+  if (!hasNewAuth && !tournament.hasHostCode) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center space-y-3">
+            <Shield className="mx-auto h-8 w-8 text-muted-foreground" />
+            <h1 className="text-xl font-bold">Panel prowadzącego jest zablokowany</h1>
+            <p className="text-sm text-muted-foreground">
+              Ten historyczny turniej nie ma skonfigurowanego hasła organizatora ani kodu prowadzącego. Brak poświadczeń nie daje dostępu do mutacji.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Historical host codes are accepted only once to establish a real organizer password.
+  if (!hasNewAuth && tournament.hasHostCode) {
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center">
@@ -490,7 +546,9 @@ export default function TournamentHost() {
               </div>
               <h1 className="text-xl font-bold">Panel prowadzącego</h1>
               <p className="text-sm text-muted-foreground">{tournament.name}</p>
-              <p className="text-xs text-muted-foreground">Wpisz kod prowadzącego, aby uzyskać dostęp.</p>
+              <p className="text-xs text-muted-foreground">
+                Ten historyczny turniej używa starego kodu. Ustaw hasło organizatora, aby bezpiecznie przejść na aktualny model logowania.
+              </p>
             </div>
             <div className="space-y-3">
               <div className="space-y-1.5">
@@ -502,7 +560,6 @@ export default function TournamentHost() {
                     placeholder="Wpisz kod..."
                     value={codeInput}
                     onChange={(e) => { setCodeInput(e.target.value); setCodeError(null); }}
-                    onKeyDown={(e) => e.key === "Enter" && codeInput && handleVerifyGate()}
                     className={codeError ? "border-destructive pr-10" : "pr-10"}
                   />
                   <button
@@ -515,8 +572,23 @@ export default function TournamentHost() {
                 </div>
                 {codeError && <p className="text-xs text-destructive">{codeError}</p>}
               </div>
-              <Button className="w-full" disabled={!codeInput || verifyCode.isPending} onClick={handleVerifyGate}>
-                {verifyCode.isPending ? "Weryfikowanie…" : "Wejdź do panelu"}
+              <div className="space-y-1.5">
+                <Label htmlFor="legacy-organizer-password">Nowe hasło organizatora</Label>
+                <Input
+                  id="legacy-organizer-password"
+                  type="password"
+                  minLength={8}
+                  placeholder="Minimum 8 znaków"
+                  value={legacyOrganizerPassword}
+                  onChange={(event) => setLegacyOrganizerPassword(event.target.value)}
+                />
+              </div>
+              <Button
+                className="w-full"
+                disabled={!codeInput || legacyOrganizerPassword.length < 8 || legacyUpgradePending}
+                onClick={handleLegacyUpgrade}
+              >
+                {legacyUpgradePending ? "Aktualizowanie…" : "Ustaw hasło i przejdź do panelu"}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
                 <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
@@ -1071,15 +1143,6 @@ export default function TournamentHost() {
           )}
           <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
             <Share2 className="w-4 h-4 mr-1" /> Udostępnij
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={() => { setNewCodeInput(""); setShowCodeDialog(true); }}
-            title={tournament.hasHostCode ? "Zarządzaj kodem prowadzącego" : "Ustaw kod prowadzącego"}
-          >
-            <Key className="w-4 h-4 mr-1" /> Kod
           </Button>
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={`/tournaments/${id}/audience`}>
@@ -1749,10 +1812,9 @@ export default function TournamentHost() {
                   {copiedKey === "host" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
-              {tournament.hasHostCode
-                ? <p className="text-xs text-muted-foreground">Chroniony kodem prowadzącego. Wymagana weryfikacja przy wejściu.</p>
-                : <p className="text-xs text-yellow-400">Brak kodu — każdy z linkiem ma dostęp do panelu. Ustaw kod, aby go zabezpieczyć.</p>
-              }
+              <p className="text-xs text-muted-foreground">
+                Dostęp do mutacji wymaga tokenu organizatora albo aktywnej sesji wsparcia. Sam link nie nadaje uprawnień.
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -1761,66 +1823,6 @@ export default function TournamentHost() {
         </DialogContent>
       </Dialog>
 
-      {/* Host Code Manager Dialog */}
-      <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-primary" /> Kod prowadzącego
-            </DialogTitle>
-            <DialogDescription>
-              {tournament.hasHostCode
-                ? "Panel jest chroniony kodem. Możesz go zmienić lub usunąć."
-                : "Ustaw kod, aby chronić panel przed nieautoryzowanym dostępem."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {tournament.hasHostCode && (
-              <div className="flex items-center gap-2 text-sm p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                <Shield className="w-4 h-4 text-green-400 shrink-0" />
-                <span className="text-green-400">Panel jest aktualnie chroniony kodem.</span>
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label htmlFor="new-code">{tournament.hasHostCode ? "Nowy kod (zostaw puste, aby usunąć)" : "Ustaw kod"}</Label>
-              <div className="relative">
-                <Input
-                  id="new-code"
-                  type={showCodeInput ? "text" : "password"}
-                  placeholder={tournament.hasHostCode ? "Wpisz nowy kod lub zostaw puste..." : "Wpisz kod prowadzącego..."}
-                  value={newCodeInput}
-                  onChange={(e) => setNewCodeInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveCode()}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowCodeInput((v) => !v)}
-                >
-                  {showCodeInput ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">Kod jest przechowywany bez szyfrowania — nie używaj haseł do ważnych kont.</p>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowCodeDialog(false)}>Anuluj</Button>
-            {tournament.hasHostCode && (
-              <Button
-                variant="destructive"
-                onClick={() => { setNewCodeInput(""); handleSaveCode(); }}
-                disabled={updateTournament.isPending}
-              >
-                Usuń kod
-              </Button>
-            )}
-            <Button onClick={handleSaveCode} disabled={updateTournament.isPending}>
-              {tournament.hasHostCode ? "Zmień kod" : "Ustaw kod"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 }

@@ -474,11 +474,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tournament"
 
-  /tournaments/{id}/verify-host-code:
+  /tournaments/{id}/auth/credential-state:
+    get:
+      operationId: getOrganizerCredentialState
+      tags: [authentication]
+      summary: Read the neutral organizer-credential bootstrap state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Neutral bootstrap state; no credential value is disclosed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerCredentialState"
+        "400":
+          description: Invalid tournament id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/auth/upgrade-legacy-organizer:
     post:
-      operationId: verifyHostCode
-      tags: [tournaments]
-      summary: Verify the host access code for a tournament
+      operationId: upgradeLegacyOrganizer
+      tags: [authentication]
+      summary: Replace a historical hostCode with a new organizer password
       parameters:
         - name: id
           in: path
@@ -490,16 +515,44 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VerifyHostCodeInput"
+              $ref: "#/components/schemas/LegacyOrganizerUpgradeInput"
       responses:
         "200":
-          description: Code is valid
+          description: Legacy credential replaced and organizer token issued
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VerifyHostCodeResult"
+                $ref: "#/components/schemas/OrganizerTokenResponse"
+        "400":
+          description: Malformed id or missing host code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
         "403":
-          description: Invalid code
+          description: Credential could not be verified; response does not disclose the failing state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: New organizer password does not satisfy the current policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "429":
+          description: Too many credential verification attempts
+          headers:
+            Retry-After:
+              description: Remaining block duration in seconds
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /tournaments/{id}/generate-round:
     post:
@@ -684,13 +737,13 @@ paths:
     post:
       operationId: importTournament
       tags: [tournaments]
-      summary: Import Backup v2 or v3 as a new tournament copy
+      summary: Import Backup v2 or v3 as an independent tournament with new credentials
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TournamentBackup"
+              $ref: "#/components/schemas/BackupRestoreInput"
       responses:
         "201":
           description: Imported tournament
@@ -700,6 +753,12 @@ paths:
                 $ref: "#/components/schemas/ImportResult"
         "400":
           description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupImportError"
+        "422":
+          description: Missing or invalid new credentials
           content:
             application/json:
               schema:
@@ -1250,10 +1309,15 @@ components:
         error: { type: string }
         code:
           type: string
-          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK]
+          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK, ORGANIZER_PASSWORD_REQUIRED, VIEWER_PASSWORD_REQUIRED]
         details:
           type: array
           items: { type: string }
+        missingFields:
+          type: array
+          items:
+            type: string
+            enum: [organizerPassword, viewerPassword]
     HealthStatus:
       type: object
       properties:
@@ -1325,7 +1389,7 @@ components:
 
     TournamentInput:
       type: object
-      required: [name, format]
+      required: [name, format, organizerPassword]
       properties:
         name:
           type: string
@@ -1344,13 +1408,16 @@ components:
           minimum: 1
         organizerPassword:
           type: string
-          description: Optional password to protect organizer access
+          minLength: 8
+          description: Required password protecting organizer access to every newly created tournament.
         supportPassword:
           type: string
+          minLength: 8
           description: Optional password for support staff access
         viewerPassword:
           type: string
-          description: Optional password for viewer access (required when visibility=private_online)
+          minLength: 8
+          description: Password for viewer access; required when visibility=private_online.
         visibility:
           type: string
           enum: [public_online, private_online, private_offline]
@@ -1627,9 +1694,6 @@ components:
           minimum: 1
         featuredMatchId:
           type: integer
-        hostCode:
-          type: string
-          description: Host access code (plain text, stored hashed)
         visibility:
           type: string
           enum: [public_online, private_online, private_offline]
@@ -1637,20 +1701,40 @@ components:
           type: string
           description: New viewer password (clears old viewer sessions)
 
-    VerifyHostCodeInput:
+    OrganizerCredentialState:
       type: object
-      required: [code]
+      additionalProperties: false
+      required: [exists, accessMode, private]
       properties:
-        code:
+        exists:
+          type: boolean
+        accessMode:
+          type: [string, "null"]
+          enum: [organizer_login, legacy_upgrade, admin_recovery, null]
+        private:
+          type: boolean
+
+    LegacyOrganizerUpgradeInput:
+      type: object
+      additionalProperties: false
+      required: [hostCode, organizerPassword]
+      properties:
+        hostCode:
           type: string
           minLength: 1
+          description: Historical host code; consumed and cleared by a successful upgrade.
+        organizerPassword:
+          type: string
+          minLength: 8
+          description: New organizer password. This policy applies only to newly set passwords.
 
-    VerifyHostCodeResult:
+    OrganizerTokenResponse:
       type: object
-      required: [valid]
+      additionalProperties: false
+      required: [token]
       properties:
-        valid:
-          type: boolean
+        token:
+          type: string
 
     Player:
       type: object
@@ -2367,9 +2451,29 @@ components:
         - $ref: "#/components/schemas/TournamentBackupV2"
         - $ref: "#/components/schemas/TournamentBackupV3"
 
+    BackupRestoreInput:
+      type: object
+      additionalProperties: false
+      required: [backup, organizerPassword]
+      properties:
+        backup:
+          $ref: "#/components/schemas/TournamentBackup"
+        organizerPassword:
+          type: string
+          minLength: 8
+          description: New organizer password. Credentials are never read from the backup.
+        viewerPassword:
+          type: string
+          minLength: 8
+          description: New viewer password, required when the restored tournament is private_online.
+        supportPassword:
+          type: string
+          minLength: 8
+          description: Optional new support password. When omitted, support access remains disabled.
+
     ImportResult:
       type: object
-      required: [tournament, playersImported, matchesImported]
+      required: [tournament, playersImported, matchesImported, organizerToken]
       properties:
         tournament:
           $ref: "#/components/schemas/Tournament"
@@ -2377,6 +2481,9 @@ components:
           type: integer
         matchesImported:
           type: integer
+        organizerToken:
+          type: string
+          description: Organizer token scoped to the newly restored tournament.
 
     TournamentStats:
       type: object

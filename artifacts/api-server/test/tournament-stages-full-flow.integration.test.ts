@@ -27,10 +27,19 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 
 async function rows<T>(sql: string, values: unknown[] = []): Promise<T[]> {
   return (await database.pool.query(sql, values)).rows as T[];
+}
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const [tournament] = await rows<{ organizer_password_hash: string }>(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  assert.ok(tournament?.organizer_password_hash);
+  return signOrganizerToken(tournamentId, tournament.organizer_password_hash);
 }
 
 async function addSeededPlayers(
@@ -90,7 +99,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signOrganizerToken } = await import("../src/auth"));
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   app = (await import("../src/app")).default;
 });
 
@@ -105,6 +114,7 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "integration-organizer-password",
       name: `Full stages flow ${randomUUID()}`,
       format: "swiss",
       defaultBestOf: 1,
@@ -146,7 +156,9 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     })
     .expect(201);
   const tournamentId = created.body.id as number;
-  const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+  const headers = {
+    "x-organizer-token": await organizerTokenFor(tournamentId),
+  };
   await addSeededPlayers(tournamentId, headers);
 
   const stages = await rows<{ id: number; position: number }>(

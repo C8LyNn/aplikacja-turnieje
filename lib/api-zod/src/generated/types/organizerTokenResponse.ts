@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface VerifyHostCodeResult {
-  valid: boolean;
+export interface OrganizerTokenResponse {
+  token: string;
 }

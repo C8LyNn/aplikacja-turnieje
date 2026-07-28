@@ -41,6 +41,10 @@ import {
 } from "../../domain/tournament/stage-ranking";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
 import { generateSwissPairings } from "../../domain/tournament/swiss";
+import {
+  revalidateTournamentMutationActor,
+  type TournamentMutationActor,
+} from "../../access-policy";
 
 export type StageLifecycleErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -829,13 +833,18 @@ function generateStageMatches(params: {
 }
 
 export async function startStage(
-  input: { tournamentId: number; stageId: number },
+  input: {
+    tournamentId: number;
+    stageId: number;
+    actor?: TournamentMutationActor;
+  },
   testHooks: StageLifecycleTestHooks = {},
 ): Promise<typeof tournamentStagesTable.$inferSelect> {
   return db.transaction(async (tx) => {
     const [tournament] = await tx.select().from(tournamentsTable)
       .where(eq(tournamentsTable.id, input.tournamentId)).for("update");
     if (!tournament) throw new StageLifecycleError("TOURNAMENT_NOT_FOUND");
+    await revalidateTournamentMutationActor(tx, tournament, input.actor);
     const stages = await tx.select().from(tournamentStagesTable)
       .where(eq(tournamentStagesTable.tournamentId, tournament.id))
       .orderBy(asc(tournamentStagesTable.position)).for("update");

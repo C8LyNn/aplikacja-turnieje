@@ -292,7 +292,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     onChange={(e) => setNewViewerPw(e.target.value)}
                     placeholder="Nowe hasło widza..."
                     className="pr-10"
-                    minLength={4}
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -315,7 +315,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                   Hasło widza zostało zmienione.
                 </div>
               )}
-              <Button type="submit" disabled={changingVPw || newViewerPw.length < 4} variant="outline" className="w-full">
+              <Button type="submit" disabled={changingVPw || newViewerPw.length < 8} variant="outline" className="w-full">
                 {changingVPw ? "Zmienianie…" : "Zmień hasło widza"}
               </Button>
             </form>

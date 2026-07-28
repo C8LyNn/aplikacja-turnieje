@@ -11,6 +11,7 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
+import type { BackupRestoreCredentials } from "./backup-credentials";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 import {
   calculateBalancedGroupSizes,
@@ -348,44 +349,60 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   ) {
     errors.push("Stages must contain 1-3 contiguous positions.");
   }
-  const planValidation = validateTournamentStagePlan({
-    initialParticipantCount: orderedStages[0]?.participantCount,
-    stages: orderedStages.map((stage) => ({
-      key: stage.stageKey,
-      position: stage.position,
-      name: stage.name,
-      format: stage.format,
-      participantCount: stage.participantCount,
-      bestOf: stage.bestOf,
-      ...(stage.format === "swiss" ? { rounds: stage.plannedRounds } : {}),
-      ...((stage.format === "swiss" || stage.format === "round_robin") &&
-      stage.advancingCount != null
-        ? { advancingCount: stage.advancingCount }
-        : {}),
-      ...(stage.format === "group_stage"
-        ? {
-            groupCount: stage.groupCount,
-            participantsPerGroup: stage.participantsPerGroup,
-            qualifiersPerGroup: stage.qualifiersPerGroup,
-            seedingMethod: stage.seedingPolicy === "random_groups" ? "random" : "snake",
-            placementMethod: stage.seedingPolicy === "random_groups" ? "random" : "snake",
-            resultSeedingMethod: (stage.resultSeedingPolicy ?? "rank_bands") === "global_ranking" ? "global_ranking" : "rank_bands",
-          }
-        : {}),
-      ...(stage.format === "single_elimination"
-        ? { placementMethod: stage.seedingPolicy === "random_bracket" ? "random" : "standard" }
-        : {}),
-      entrySeedingMethod: stage.entrySeedingPolicy ?? "preserve",
-      randomSeed: stage.randomSeed ?? undefined,
-      randomRevealOrder: stage.randomRevealOrder ?? "instant",
-    })),
-  });
-  if (!planValidation.valid)
-    errors.push(
-      ...planValidation.problems.map(
-        (problem) => `Stage plan: ${problem.code}.`,
-      ),
-    );
+  const isEmptyLegacyCompatibleDraft =
+    backup.tournament.status === "draft" &&
+    orderedStages.length === 1 &&
+    (orderedStages[0]?.participantCount ?? 0) < 2;
+  if (!isEmptyLegacyCompatibleDraft) {
+    const planValidation = validateTournamentStagePlan({
+      initialParticipantCount: orderedStages[0]?.participantCount,
+      stages: orderedStages.map((stage) => ({
+        key: stage.stageKey,
+        position: stage.position,
+        name: stage.name,
+        format: stage.format,
+        participantCount: stage.participantCount,
+        bestOf: stage.bestOf,
+        ...(stage.format === "swiss" ? { rounds: stage.plannedRounds } : {}),
+        ...((stage.format === "swiss" || stage.format === "round_robin") &&
+        stage.advancingCount != null
+          ? { advancingCount: stage.advancingCount }
+          : {}),
+        ...(stage.format === "group_stage"
+          ? {
+              groupCount: stage.groupCount,
+              participantsPerGroup: stage.participantsPerGroup,
+              qualifiersPerGroup: stage.qualifiersPerGroup,
+              seedingMethod:
+                stage.seedingPolicy === "random_groups" ? "random" : "snake",
+              placementMethod:
+                stage.seedingPolicy === "random_groups" ? "random" : "snake",
+              resultSeedingMethod:
+                (stage.resultSeedingPolicy ?? "rank_bands") === "global_ranking"
+                  ? "global_ranking"
+                  : "rank_bands",
+            }
+          : {}),
+        ...(stage.format === "single_elimination"
+          ? {
+              placementMethod:
+                stage.seedingPolicy === "random_bracket"
+                  ? "random"
+                  : "standard",
+            }
+          : {}),
+        entrySeedingMethod: stage.entrySeedingPolicy ?? "preserve",
+        randomSeed: stage.randomSeed ?? undefined,
+        randomRevealOrder: stage.randomRevealOrder ?? "instant",
+      })),
+    });
+    if (!planValidation.valid)
+      errors.push(
+        ...planValidation.problems.map(
+          (problem) => `Stage plan: ${problem.code}.`,
+        ),
+      );
+  }
   for (const stage of backup.stages) {
     if (
       !positive(stage.version) ||
@@ -916,7 +933,10 @@ function compatibleSeedingPolicy(
   return "standings_order";
 }
 
-export async function importBackupV3(backup: TournamentBackupV3) {
+export async function importBackupV3(
+  backup: TournamentBackupV3,
+  credentials: BackupRestoreCredentials,
+) {
   validateBackupV3(backup);
   return db.transaction(async (tx) => {
     const orderedStages = [...backup.stages].sort(
@@ -936,6 +956,7 @@ export async function importBackupV3(backup: TournamentBackupV3) {
         swissRounds: first.format === "swiss" ? first.plannedRounds : null,
         defaultBestOf: first.bestOf,
         visibility: backup.tournament.visibility,
+        ...credentials,
       })
       .returning();
     const [generated] = await tx
