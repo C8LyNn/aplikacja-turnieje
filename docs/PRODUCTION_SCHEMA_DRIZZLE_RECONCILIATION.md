@@ -20,8 +20,58 @@ action string, although the current public Drizzle ORM TypeScript union exposes
 only the unqualified `set null` value. Integration tests verify both advanced
 attributes directly from `pg_constraint`.
 
-No new migration is required for these objects. Migrations 0008, 0009 and 0010
-must remain unchanged.
+Migrations 0008, 0009 and 0010 must remain unchanged. Forward-only migration
+`0011_reconcile_replit_schema_catalog.sql` reconciles later Development and
+Production catalog drift without redefining those historical migrations.
+
+## Canonical Replit catalog after 0011
+
+Migration `0011` requires the following exact catalog definitions:
+
+- `tournament_stages_tournament_id_id_unique` as
+  `UNIQUE (tournament_id, id)`;
+- `stage_groups_stage_id_id_unique` as `UNIQUE (stage_id, id)`;
+- `stage_participants_tournament_id_id_unique` as
+  `UNIQUE (tournament_id, id)`;
+- `matches_tournament_stage_id_id_unique` as
+  `UNIQUE (tournament_id, stage_id, id)`;
+- `stage_participants_stage_seed_unique` as
+  `UNIQUE (stage_id, stage_seed) DEFERRABLE INITIALLY DEFERRED`;
+- `matches_stage_round_number_unique` as
+  `UNIQUE (stage_id, round, match_number)`;
+- `matches_id_stage_id_unique` as `UNIQUE (id, stage_id)`;
+- the complete `auth_credential_rate_limits` table, primary key and both
+  supporting indexes from migration `0010`.
+
+The migration reuses valid standalone indexes with `UNIQUE USING INDEX`,
+rebuilds only the two constraints whose order or deferrability is wrong, and
+removes only the proven redundant `matches_stage_id_id_unique`. It preserves
+all rows, uses no `CASCADE`, validates exact postconditions before commit and
+is safe to rerun.
+
+## Read-only Development/Production comparison
+
+Before Republish, supply the URLs only to the current process:
+
+```text
+SCHEMA_COMPARE_DEVELOPMENT_DATABASE_URL=<development URL>
+SCHEMA_COMPARE_PRODUCTION_DATABASE_URL=<production URL>
+SCHEMA_COMPARE_EXPECTED_DEVELOPMENT_DATABASE_NAME=<development database>
+SCHEMA_COMPARE_EXPECTED_PRODUCTION_DATABASE_NAME=<production database>
+SCHEMA_COMPARE_EXPECTED_SCHEMA=public
+pnpm --filter @workspace/db run schema:compare:pre-republish
+```
+
+The command has no fallback to `DATABASE_URL` or
+`DEVELOPMENT_DATABASE_URL`. Both inspections use
+`REPEATABLE READ READ ONLY` transactions. A successful report contains
+`safe: true`, `equivalent: true`, no catalog problems and
+`transactionReadOnly: "on"` for both targets. It never reports a connection
+string or credential.
+
+An unsafe report is a hard stop. Apply reviewed migration `0011` through the
+controlled forward-only SQL path, then rerun this comparison. Do not use
+`drizzle-kit push` to repair either catalog.
 
 ## Expected schema diff
 
@@ -68,6 +118,11 @@ schema-diff integration test must be rerun before changing Drizzle Kit or this
 filter configuration.
 
 ## Production preflight and one-index cleanup
+
+This block is retained for auditing the pre-0011 one-index repair. Once
+migration `0011` is available, do not run this as a separate schema change:
+`0011` performs the same guarded redundant-index removal together with the
+complete catalog reconciliation.
 
 Run this only in the Production Database SQL console after independently
 confirming that the selected database and schema are correct. The transaction

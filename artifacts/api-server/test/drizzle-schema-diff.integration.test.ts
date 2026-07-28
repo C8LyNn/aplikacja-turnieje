@@ -32,6 +32,7 @@ const MIGRATIONS = [
   "0008_restore_stage_procedural_objects.sql",
   "0009_reconcile_composite_foreign_keys.sql",
   "0010_auth_credential_rate_limits.sql",
+  "0011_reconcile_replit_schema_catalog.sql",
 ] as const;
 const REQUIRED_OBJECT_NAMES = [
   "tournament_stages_winner_same_stage_fk",
@@ -225,7 +226,7 @@ before(async () => {
   });
 
   // Recreate the complete forward-only history in a disposable database. The
-  // Drizzle declaration is compared with the resulting 0001-0010 catalog; it
+  // Drizzle declaration is compared with the resulting 0001-0011 catalog; it
   // never initializes this fixture itself.
   await testPool.query("BEGIN");
   try {
@@ -259,7 +260,7 @@ after(async () => {
   }
 });
 
-describe("targeted schema authority diff for the Production state through migration 0010", () => {
+describe("targeted schema authority diff for the Production state through migration 0011", () => {
   test("recognizes required Production objects and isolates the redundant index", async () => {
     const exportedSchema = await exportCurrentDrizzleSchema();
     for (const name of REQUIRED_OBJECT_NAMES) {

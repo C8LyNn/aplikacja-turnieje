@@ -7,6 +7,8 @@ import {
   actionLogTable,
   appSchemaMigrationsTable,
   matchesTable,
+  stageGroupsTable,
+  stageParticipantsTable,
   tournamentStagesTable,
 } from "@workspace/db/schema";
 import { getTableConfig } from "drizzle-orm/pg-core";
@@ -31,6 +33,28 @@ function foreignKeyConfig(
     foreignColumns: reference.foreignColumns.map((column) => column.name),
     onDelete: foreignKey.onDelete,
   };
+}
+
+function expectUniqueConstraint(
+  table: Parameters<typeof getTableConfig>[0],
+  name: string,
+  columns: string[],
+): void {
+  const config = getTableConfig(table);
+  assert.ok(
+    config.uniqueConstraints.some(
+      (constraint) =>
+        constraint.getName() === name &&
+        constraint.columns.map((column) => column.name).join(",") ===
+          columns.join(","),
+    ),
+    `missing Drizzle UNIQUE constraint ${name}`,
+  );
+  assert.equal(
+    config.indexes.some((index) => index.config.name === name),
+    false,
+    `${name} must not be declared as a standalone index`,
+  );
 }
 
 describe("authoritative Drizzle schema", () => {
@@ -124,6 +148,39 @@ describe("authoritative Drizzle schema", () => {
           (index) => index.config.name === "matches_stage_id_id_unique",
         ),
       false,
+    );
+  });
+
+  test("declares reconciled catalog invariants as UNIQUE constraints", () => {
+    expectUniqueConstraint(
+      tournamentStagesTable,
+      "tournament_stages_tournament_id_id_unique",
+      ["tournament_id", "id"],
+    );
+    expectUniqueConstraint(
+      stageGroupsTable,
+      "stage_groups_stage_id_id_unique",
+      ["stage_id", "id"],
+    );
+    expectUniqueConstraint(
+      stageParticipantsTable,
+      "stage_participants_tournament_id_id_unique",
+      ["tournament_id", "id"],
+    );
+    expectUniqueConstraint(
+      stageParticipantsTable,
+      "stage_participants_stage_seed_unique",
+      ["stage_id", "stage_seed"],
+    );
+    expectUniqueConstraint(
+      matchesTable,
+      "matches_tournament_stage_id_id_unique",
+      ["tournament_id", "stage_id", "id"],
+    );
+    expectUniqueConstraint(
+      matchesTable,
+      "matches_stage_round_number_unique",
+      ["stage_id", "round", "match_number"],
     );
   });
 });

@@ -305,6 +305,14 @@ const REQUIRED_UNIQUES = [
   },
 ] as const;
 
+const REQUIRED_UNIQUE_CONSTRAINTS = new Set([
+  "tournament_stages_tournament_id_id_unique",
+  "stage_groups_stage_id_id_unique",
+  "stage_participants_tournament_id_id_unique",
+  "matches_id_stage_id_unique",
+  "matches_tournament_stage_id_id_unique",
+]);
+
 let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
@@ -594,7 +602,7 @@ describe("0009 composite foreign key reconciliation", () => {
       assert.equal(actual.is_ready, true, spec.name);
       assert.equal(
         actual.owner_constraint,
-        spec.name === "matches_id_stage_id_unique" ? spec.name : null,
+        REQUIRED_UNIQUE_CONSTRAINTS.has(spec.name) ? spec.name : null,
         spec.name,
       );
     }

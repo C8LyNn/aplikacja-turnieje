@@ -236,7 +236,7 @@ export const tournamentStagesTable = pgTable(
   (table): PgTableExtraConfigValue[] => [
     uniqueIndex("tournament_stages_tournament_position_unique").on(table.tournamentId, table.position),
     uniqueIndex("tournament_stages_tournament_key_unique").on(table.tournamentId, table.stageKey),
-    uniqueIndex("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
+    unique("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
     uniqueIndex("tournament_stages_one_active_per_tournament")
       .on(table.tournamentId)
       .where(sql`${table.status} = 'active'`),
@@ -328,7 +328,7 @@ export const stageGroupsTable = pgTable(
   (table) => [
     uniqueIndex("stage_groups_stage_key_unique").on(table.stageId, table.groupKey),
     uniqueIndex("stage_groups_stage_position_unique").on(table.stageId, table.position),
-    uniqueIndex("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
+    unique("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
     check("stage_groups_key_nonempty", sql`length(${table.groupKey}) > 0`),
     check("stage_groups_position_positive", sql`${table.position} > 0`),
     check("stage_groups_participant_count_minimum", sql`${table.participantCount} >= 2`),
@@ -359,8 +359,8 @@ export const stageParticipantsTable = pgTable(
     uniqueIndex("stage_participants_stage_player_unique").on(table.stageId, table.playerId),
     // Migration 0002 deploys this invariant as a DEFERRABLE unique constraint,
     // allowing one transaction to normalize every seed atomically to 1..N.
-    uniqueIndex("stage_participants_stage_seed_unique").on(table.stageId, table.stageSeed),
-    uniqueIndex("stage_participants_tournament_id_id_unique").on(table.tournamentId, table.id),
+    unique("stage_participants_stage_seed_unique").on(table.stageId, table.stageSeed),
+    unique("stage_participants_tournament_id_id_unique").on(table.tournamentId, table.id),
     foreignKey({
       columns: [table.tournamentId, table.stageId],
       foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
@@ -418,13 +418,13 @@ export const matchesTable = pgTable(
     completedAt: timestamp("completed_at"),
   },
   (table) => [
-    uniqueIndex("matches_stage_round_number_unique").on(
+    unique("matches_stage_round_number_unique").on(
       table.stageId,
       table.round,
       table.matchNumber,
     ),
     unique("matches_id_stage_id_unique").on(table.id, table.stageId),
-    uniqueIndex("matches_tournament_stage_id_id_unique").on(
+    unique("matches_tournament_stage_id_id_unique").on(
       table.tournamentId,
       table.stageId,
       table.id,

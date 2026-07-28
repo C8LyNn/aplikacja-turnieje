@@ -42,6 +42,10 @@ const AUTH_CREDENTIAL_RATE_LIMITS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0010_auth_credential_rate_limits.sql",
   import.meta.url,
 );
+const REPLIT_SCHEMA_CATALOG_RECONCILIATION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0011_reconcile_replit_schema_catalog.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -159,6 +163,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
         await readFile(AUTH_CREDENTIAL_RATE_LIMITS_MIGRATION_URL, "utf8"),
         schema,
       ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const replitSchemaCatalogReconciliationMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(
+          REPLIT_SCHEMA_CATALOG_RECONCILIATION_MIGRATION_URL,
+          "utf8",
+        ),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -179,6 +191,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       // Every isolated schema proves that the forward-only limiter migration
       // remains safe to replay after an existing 0008/0009 state.
       await pool.query(authCredentialRateLimitsMigrationSql);
+      await pool.query(replitSchemaCatalogReconciliationMigrationSql);
+      // Every isolated schema also proves that catalog reconciliation is
+      // idempotent after the complete 0001-0010 history.
+      await pool.query(replitSchemaCatalogReconciliationMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
