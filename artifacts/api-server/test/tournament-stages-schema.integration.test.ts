@@ -915,6 +915,139 @@ describe("Tournament Stages database integrity", () => {
     );
   });
 
+  test("keeps action log tournament/stage/match references aligned and nulls only optional columns", async () => {
+    const first = await createDraftTournament("round_robin", 1);
+    const second = await createDraftTournament("round_robin", 1);
+    const [firstMatch] = await rows<{ id: number }>(
+      `INSERT INTO matches (
+         tournament_id, stage_id, round, match_number, best_of, status
+       ) VALUES ($1, $2, 1, 700, 1, 'pending') RETURNING id`,
+      [first.tournamentId, first.stageId],
+    );
+    const [secondMatch] = await rows<{ id: number }>(
+      `INSERT INTO matches (
+         tournament_id, stage_id, round, match_number, best_of, status
+       ) VALUES ($1, $2, 1, 701, 1, 'pending') RETURNING id`,
+      [second.tournamentId, second.stageId],
+    );
+
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        `INSERT INTO action_log (
+           tournament_id, stage_id, action_type, description
+         ) VALUES ($1, $2, 'invalid_cross_tournament_stage', 'invalid')`,
+        [first.tournamentId, second.stageId],
+      ),
+      "action_log_stage_same_tournament_fk",
+    );
+    await expectDatabaseRejection(
+      () => database.pool.query(
+        `INSERT INTO action_log (
+           tournament_id, stage_id, match_id, action_type, description
+         ) VALUES ($1, $2, $3, 'invalid_cross_tournament_match', 'invalid')`,
+        [first.tournamentId, first.stageId, secondMatch.id],
+      ),
+      "action_log_match_same_tournament_stage_fk",
+    );
+
+    const [matchLog] = await rows<{ id: number }>(
+      `INSERT INTO action_log (
+         tournament_id, stage_id, match_id, action_type, description
+       ) VALUES ($1, $2, $3, 'delete_match_reference', 'delete match')
+       RETURNING id`,
+      [first.tournamentId, first.stageId, firstMatch.id],
+    );
+    await database.pool.query("DELETE FROM matches WHERE id = $1", [
+      firstMatch.id,
+    ]);
+    const [afterMatchDelete] = await rows<{
+      tournament_id: number;
+      stage_id: number | null;
+      match_id: number | null;
+    }>(
+      `SELECT tournament_id, stage_id, match_id
+       FROM action_log WHERE id = $1`,
+      [matchLog.id],
+    );
+    assert.deepEqual(afterMatchDelete, {
+      tournament_id: first.tournamentId,
+      // The legacy scalar match FK clears match_id first. Keeping the still-valid
+      // stage reference preserves useful audit context; the catalog assertions
+      // separately verify the composite FK's column-specific SET NULL clause.
+      stage_id: first.stageId,
+      match_id: null,
+    });
+
+    const stageOnly = await createDraftTournament("round_robin", 2);
+    const stageSetup = await database.pool.connect();
+    let removableStageId: number;
+    try {
+      await stageSetup.query("BEGIN");
+      await stageSetup.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'top_n', advancing_count = 2
+         WHERE id = $1`,
+        [stageOnly.stageId],
+      );
+      const insertedStage = await stageSetup.query<{ id: number }>(
+        `INSERT INTO tournament_stages (
+           tournament_id, stage_key, position, name, format, participant_count,
+           best_of, ranking_policy, qualification_mode, seeding_policy
+         ) VALUES ($1, 'stage-2', 2, 'Removable stage', 'single_elimination', 2, 1,
+                   'elimination_bracket_v1', 'none', 'standard_bracket')
+         RETURNING id`,
+        [stageOnly.tournamentId],
+      );
+      removableStageId = insertedStage.rows[0].id;
+      await stageSetup.query("COMMIT");
+    } catch (error) {
+      await stageSetup.query("ROLLBACK");
+      throw error;
+    } finally {
+      stageSetup.release();
+    }
+    const [stageLog] = await rows<{ id: number }>(
+      `INSERT INTO action_log (
+         tournament_id, stage_id, action_type, description
+       ) VALUES ($1, $2, 'delete_stage_reference', 'delete stage')
+       RETURNING id`,
+      [stageOnly.tournamentId, removableStageId],
+    );
+    const stageDelete = await database.pool.connect();
+    try {
+      await stageDelete.query("BEGIN");
+      await stageDelete.query("DELETE FROM tournament_stages WHERE id = $1", [
+        removableStageId,
+      ]);
+      await stageDelete.query(
+        `UPDATE tournament_stages
+         SET qualification_mode = 'none', advancing_count = NULL
+         WHERE id = $1`,
+        [stageOnly.stageId],
+      );
+      await stageDelete.query("COMMIT");
+    } catch (error) {
+      await stageDelete.query("ROLLBACK");
+      throw error;
+    } finally {
+      stageDelete.release();
+    }
+    const [afterStageDelete] = await rows<{
+      tournament_id: number;
+      stage_id: number | null;
+      match_id: number | null;
+    }>(
+      `SELECT tournament_id, stage_id, match_id
+       FROM action_log WHERE id = $1`,
+      [stageLog.id],
+    );
+    assert.deepEqual(afterStageDelete, {
+      tournament_id: stageOnly.tournamentId,
+      stage_id: null,
+      match_id: null,
+    });
+  });
+
   test("rejects a missing stage in multi-stage data and a group from another stage", async () => {
     const fixture = await createDraftTournament("round_robin", 6);
     await expectDatabaseRejection(

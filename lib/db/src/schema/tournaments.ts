@@ -15,6 +15,7 @@ import {
   unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { PgTableExtraConfigValue } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -111,6 +112,19 @@ export const matchResultTypeEnum = pgEnum("match_result_type", [
   "bye",
   "no_contest",
 ]);
+
+// Infrastructure table shared by forward-only migration runners and deployment
+// preflights. It is part of the authoritative schema even though application
+// requests do not write to it directly.
+export const appSchemaMigrationsTable = pgTable("app_schema_migrations", {
+  migrationKey: text("migration_key").primaryKey(),
+  appliedAt: timestamp("applied_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  appCommit: text("app_commit").notNull(),
+  targetSchema: text("target_schema").notNull(),
+  deploymentEnvironment: text("deployment_environment").notNull(),
+});
 
 export const tournamentsTable = pgTable(
   "tournaments",
@@ -219,7 +233,7 @@ export const tournamentStagesTable = pgTable(
     startedAt: timestamp("started_at"),
     completedAt: timestamp("completed_at"),
   },
-  (table) => [
+  (table): PgTableExtraConfigValue[] => [
     uniqueIndex("tournament_stages_tournament_position_unique").on(table.tournamentId, table.position),
     uniqueIndex("tournament_stages_tournament_key_unique").on(table.tournamentId, table.stageKey),
     uniqueIndex("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
@@ -230,6 +244,15 @@ export const tournamentStagesTable = pgTable(
       columns: [table.tournamentId, table.winnerId],
       foreignColumns: [playersTable.tournamentId, playersTable.id],
       name: "tournament_stages_winner_same_tournament_fk",
+    }),
+    // PostgreSQL owns the DEFERRABLE INITIALLY DEFERRED attributes installed by
+    // migrations 0002/0009. Drizzle Kit 0.31 does not serialize deferrability,
+    // but declaring the FK here prevents it from treating the constraint as
+    // extraneous while the integration suite verifies the exact attributes.
+    foreignKey({
+      columns: [table.id, table.winnerId],
+      foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
+      name: "tournament_stages_winner_same_stage_fk",
     }),
     check("tournament_stages_position_range", sql`${table.position} BETWEEN 1 AND 3`),
     check("tournament_stages_participant_count_nonnegative", sql`${table.participantCount} >= 0`),
@@ -332,7 +355,7 @@ export const stageParticipantsTable = pgTable(
     qualifiedAt: timestamp("qualified_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (table) => [
+  (table): PgTableExtraConfigValue[] => [
     uniqueIndex("stage_participants_stage_player_unique").on(table.stageId, table.playerId),
     // Migration 0002 deploys this invariant as a DEFERRABLE unique constraint,
     // allowing one transaction to normalize every seed atomically to 1..N.
@@ -566,6 +589,21 @@ export const actionLogTable = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
+    // PostgreSQL supports a column list for SET NULL. Drizzle's public action
+    // union does not type that PostgreSQL extension yet, while Drizzle Kit
+    // serializes the complete action string. Keep the narrow cast here so the
+    // authoritative export matches migration 0009 exactly; integration tests
+    // assert that tournament_id is never nulled.
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "action_log_stage_same_tournament_fk",
+    }).onDelete("set null (stage_id)" as "set null"),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.matchId],
+      foreignColumns: [matchesTable.tournamentId, matchesTable.stageId, matchesTable.id],
+      name: "action_log_match_same_tournament_stage_fk",
+    }).onDelete("set null (stage_id, match_id)" as "set null"),
     check(
       "action_log_match_requires_stage",
       sql`${table.matchId} IS NULL OR ${table.stageId} IS NOT NULL`,
@@ -678,3 +716,5 @@ export type SupportSession = typeof supportSessionsTable.$inferSelect;
 export type AuthAuditLog = typeof authAuditLogTable.$inferSelect;
 export type AuthCredentialRateLimit =
   typeof authCredentialRateLimitsTable.$inferSelect;
+export type AppSchemaMigration =
+  typeof appSchemaMigrationsTable.$inferSelect;
