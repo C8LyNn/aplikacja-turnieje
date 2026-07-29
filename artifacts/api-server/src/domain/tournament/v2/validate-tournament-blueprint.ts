@@ -15,16 +15,21 @@ export type TournamentBlueprintProblemCodeV2 =
   | "EMPTY_BUCKET_NAME"
   | "EMPTY_STAGE_NAME"
   | "DUPLICATE_BUCKET_KEY"
+  | "REGISTRATION_BUCKET_CAPACITY_MISMATCH"
   | "DUPLICATE_STAGE_KEY"
   | "DUPLICATE_TRANSITION_KEY"
   | "INVALID_PRIORITY"
   | "INVALID_DISPLAY_ORDER"
   | "INVALID_CAPACITY"
+  | "INVALID_SELECTION_CAPABILITY"
   | "INVALID_FORMAT"
   | "INVALID_RULES_VERSION"
   | "INVALID_BEST_OF"
   | "INVALID_CLASSIFICATION"
   | "INVALID_ENTRY_POINT"
+  | "DUPLICATE_ENTRY_POINT_KEY"
+  | "INVALID_ENTRY_POINT_CAPACITY"
+  | "ENTRY_POINT_CAPACITY_MISMATCH"
   | "UNKNOWN_SOURCE_BUCKET"
   | "UNKNOWN_SOURCE_STAGE"
   | "UNKNOWN_TARGET_STAGE"
@@ -122,6 +127,8 @@ function validateSelection(selection: ParticipantSelectionRuleV2): boolean {
         isPositiveInteger(selection.to) &&
         selection.from <= selection.to
       );
+    case "named_output":
+      return isNonEmptyKey(selection.outputKey);
     case "round_outcome":
       return isPositiveInteger(selection.round);
     case "policy_ref":
@@ -215,6 +222,7 @@ export function validateTournamentBlueprintV2(
   if (input.stages.length === 0) add("NO_STAGES", "stages", "At least one stage is required.");
 
   const bucketKeys = new Set<string>();
+  let bucketCapacity = 0;
   input.buckets.forEach((bucket, index) => {
     if (!isNonEmptyKey(bucket.key)) add("INVALID_KEY", `buckets[${index}].key`, "Bucket key cannot be empty.");
     else if (bucketKeys.has(bucket.key)) {
@@ -224,10 +232,29 @@ export function validateTournamentBlueprintV2(
     if (typeof bucket.name !== "string" || bucket.name.trim().length === 0) {
       add("EMPTY_BUCKET_NAME", `buckets[${index}].name`, "Bucket name cannot be empty.");
     }
+    if (!isPositiveInteger(bucket.exactCapacity)) {
+      add(
+        "INVALID_CAPACITY",
+        `buckets[${index}].exactCapacity`,
+        "Bucket exactCapacity must be a positive integer.",
+      );
+    } else {
+      bucketCapacity += bucket.exactCapacity;
+    }
     if (!isNonNegativeInteger(bucket.priority)) {
       add("INVALID_PRIORITY", `buckets[${index}].priority`, "Bucket priority must be a non-negative integer.");
     }
   });
+  if (
+    isPositiveInteger(input.initialParticipantCount) &&
+    bucketCapacity !== input.initialParticipantCount
+  ) {
+    add(
+      "REGISTRATION_BUCKET_CAPACITY_MISMATCH",
+      "buckets",
+      `Registration buckets provide ${bucketCapacity} participants, but initialParticipantCount is ${input.initialParticipantCount}.`,
+    );
+  }
 
   const stageKeys = new Set<string>();
   input.stages.forEach((stage, index) => {
@@ -245,6 +272,93 @@ export function validateTournamentBlueprintV2(
     }
     if (!validateCapacity(stage.capacity)) {
       add("INVALID_CAPACITY", `${path}.capacity`, "Stage capacity is invalid.");
+    }
+    const capability = stage.selectionCapabilities ?? { type: "none" as const };
+    if (capability.type === "groups") {
+      const groupSizes = capability.exactGroupSizes;
+      const validSizes =
+        Array.isArray(groupSizes) &&
+        groupSizes.length > 0 &&
+        groupSizes.every(isPositiveInteger);
+      const exactParticipantCapacity =
+        stage.capacity.type === "exact" ? stage.capacity.count : undefined;
+      const total = validSizes
+        ? groupSizes.reduce((sum, size) => sum + size, 0)
+        : 0;
+      const maximum = validSizes ? Math.max(...groupSizes) : 0;
+      if (
+        !validSizes ||
+        !isPositiveInteger(capability.maximumQualifiersPerGroup) ||
+        capability.maximumQualifiersPerGroup !== maximum ||
+        exactParticipantCapacity == null ||
+        total !== exactParticipantCapacity
+      ) {
+        add(
+          "INVALID_SELECTION_CAPABILITY",
+          `${path}.selectionCapabilities`,
+          "Group selection capability requires exact positive group sizes summing to the exact stage capacity and maximumQualifiersPerGroup equal to the largest group.",
+        );
+      }
+    } else if (capability.type !== "none") {
+      add(
+        "INVALID_SELECTION_CAPABILITY",
+        `${path}.selectionCapabilities`,
+        "Unknown stage selection capability.",
+      );
+    }
+    if (stage.entryPoints != null) {
+      const entryKeys = new Set<string>();
+      let entryCapacity = 0;
+      stage.entryPoints.forEach((entryPoint, entryIndex) => {
+        const entryPath = `${path}.entryPoints[${entryIndex}]`;
+        if (!isNonEmptyKey(entryPoint.key)) {
+          add("INVALID_ENTRY_POINT", `${entryPath}.key`, "Entry point key cannot be empty.");
+        } else if (entryKeys.has(entryPoint.key)) {
+          add(
+            "DUPLICATE_ENTRY_POINT_KEY",
+            `${entryPath}.key`,
+            `Duplicate entry point key in stage ${stage.key}: ${entryPoint.key}.`,
+          );
+        } else {
+          entryKeys.add(entryPoint.key);
+        }
+        if (
+          entryPoint.capacity.type !== "exact" ||
+          !isPositiveInteger(entryPoint.capacity.count)
+        ) {
+          add(
+            "INVALID_ENTRY_POINT_CAPACITY",
+            `${entryPath}.capacity`,
+            "Entry point capacity must be a positive exact capacity.",
+          );
+        } else {
+          entryCapacity += entryPoint.capacity.count;
+        }
+        if (!isNonNegativeInteger(entryPoint.priority)) {
+          add(
+            "INVALID_PRIORITY",
+            `${entryPath}.priority`,
+            "Entry point priority must be a non-negative integer.",
+          );
+        }
+        if (entryPoint.completeness.type !== "exact") {
+          add(
+            "INVALID_ENTRY_POINT_CAPACITY",
+            `${entryPath}.completeness`,
+            "Only exact entry point completeness is supported.",
+          );
+        }
+      });
+      if (
+        stage.capacity.type === "exact" &&
+        entryCapacity !== stage.capacity.count
+      ) {
+        add(
+          "ENTRY_POINT_CAPACITY_MISMATCH",
+          `${path}.entryPoints`,
+          `Entry points provide ${entryCapacity} slots, but stage capacity is ${stage.capacity.count}.`,
+        );
+      }
     }
     if (
       !isNonEmptyKey(stage.format.id) ||

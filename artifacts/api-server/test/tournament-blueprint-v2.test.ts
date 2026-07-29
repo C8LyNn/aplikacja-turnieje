@@ -12,7 +12,14 @@ function minimalBlueprint(): TournamentBlueprintV2 {
   return {
     modelVersion: TOURNAMENT_ENGINE_MODEL_VERSION,
     initialParticipantCount: 8,
-    buckets: [{ key: "default", name: "Wszyscy uczestnicy", priority: 0 }],
+    buckets: [
+      {
+        key: "default",
+        name: "Wszyscy uczestnicy",
+        exactCapacity: 8,
+        priority: 0,
+      },
+    ],
     stages: [
       {
         key: "playoff",
@@ -63,10 +70,20 @@ describe("validateTournamentBlueprintV2", () => {
 
   test("supports multiple incoming routes with reserved target slots", () => {
     const blueprint = minimalBlueprint();
-    blueprint.initialParticipantCount = 16;
+    blueprint.initialParticipantCount = 12;
     blueprint.buckets = [
-      { key: "invited", name: "Zaproszeni", priority: 0 },
-      { key: "open", name: "Otwarte kwalifikacje", priority: 1 },
+      {
+        key: "invited",
+        name: "Zaproszeni",
+        exactCapacity: 4,
+        priority: 0,
+      },
+      {
+        key: "open",
+        name: "Otwarte kwalifikacje",
+        exactCapacity: 8,
+        priority: 1,
+      },
     ];
     blueprint.stages = [
       {

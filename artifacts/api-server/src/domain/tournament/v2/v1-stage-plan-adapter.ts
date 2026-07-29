@@ -4,6 +4,7 @@ import {
   type TournamentStagePlanProblem,
   type TournamentStagesPlan,
 } from "../tournament-stage-plan";
+import { calculateBalancedGroupSizes } from "../group-stage";
 import {
   TOURNAMENT_ENGINE_MODEL_VERSION,
   type ParticipantSelectionRuleV2,
@@ -51,6 +52,17 @@ function stageDefinition(stage: TournamentStagePlan): TournamentStageDefinitionV
     name: stage.name,
     displayOrder: stage.position,
     capacity: { type: "exact", count: stage.participantCount },
+    selectionCapabilities:
+      stage.format === "group_stage"
+        ? {
+            type: "groups",
+            exactGroupSizes: calculateBalancedGroupSizes(
+              stage.participantCount,
+              stage.groupCount,
+            ),
+            maximumQualifiersPerGroup: stage.participantsPerGroup,
+          }
+        : { type: "none" },
     format: { id: stage.format, rulesVersion: 1, settings },
     matchRules: { bestOf: stage.bestOf },
     classification: { type: "format_default", policyId },
@@ -164,7 +176,14 @@ function blueprintFromValidatedV1(plan: TournamentStagesPlan): TournamentBluepri
   return {
     modelVersion: TOURNAMENT_ENGINE_MODEL_VERSION,
     initialParticipantCount: plan.initialParticipantCount,
-    buckets: [{ key: "default", name: "Wszyscy uczestnicy", priority: 0 }],
+    buckets: [
+      {
+        key: "default",
+        name: "Wszyscy uczestnicy",
+        exactCapacity: plan.initialParticipantCount,
+        priority: 0,
+      },
+    ],
     stages: plan.stages.map(stageDefinition),
     transitions,
   };

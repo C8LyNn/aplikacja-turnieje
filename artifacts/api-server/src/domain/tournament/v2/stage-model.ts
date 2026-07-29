@@ -25,6 +25,8 @@ export type StageFormatIdV2 = BuiltinStageFormatIdV2 | `custom:${string}`;
 export interface ParticipantBucketV2 {
   key: string;
   name: string;
+  /** Authoritative number of participants supplied by this bucket. */
+  exactCapacity: number;
   /** Lower values are considered first when a policy needs a stable bucket order. */
   priority: number;
 }
@@ -42,6 +44,18 @@ export interface StageFormatRefV2 {
 export interface StageMatchRulesV2 {
   bestOf: number;
 }
+
+export type StageSelectionCapabilitiesV2 =
+  | { type: "none" }
+  | {
+      type: "groups";
+      /**
+       * Exact sizes are required because the existing v1 group stage supports
+       * balanced groups whose sizes may differ by one.
+       */
+      exactGroupSizes: readonly number[];
+      maximumQualifiersPerGroup: number;
+    };
 
 export type RankingDirectionV2 = "ascending" | "descending";
 export type RankingScopeV2 = "global" | "within_group" | "within_rank_band";
@@ -73,9 +87,27 @@ export interface TournamentStageDefinitionV2 {
   /** Presentation hint only. Graph edges remain the source of participant flow. */
   displayOrder: number;
   capacity: ParticipantCapacityV2;
+  /**
+   * Optional named input partitions. Omitting them produces one `default`
+   * exact-capacity entry point during compilation.
+   */
+  entryPoints?: readonly StageEntryPointDefinitionV2[];
+  /**
+   * Closed, validated metadata used to compile stage-result selections.
+   * Raw format settings are never authoritative for routing cardinality.
+   */
+  selectionCapabilities?: StageSelectionCapabilitiesV2;
   format: StageFormatRefV2;
   matchRules: StageMatchRulesV2;
   classification: StageClassificationPolicyV2;
+}
+
+export interface StageEntryPointDefinitionV2 {
+  key: string;
+  name?: string;
+  capacity: { type: "exact"; count: number };
+  priority: number;
+  completeness: { type: "exact" };
 }
 
 export type TransitionSourceV2 =
@@ -93,6 +125,7 @@ export type ParticipantSelectionRuleV2 =
   | { type: "top_n"; count: number }
   | { type: "rank_range"; from: number; to: number }
   | { type: "top_n_per_group"; count: number }
+  | { type: "named_output"; outputKey: string }
   | { type: "best_not_selected"; count: number }
   | { type: "round_outcome"; round: number; outcome: "winner" | "loser" }
   | { type: "policy_ref"; policyId: string; settings: Readonly<Record<string, unknown>> };
