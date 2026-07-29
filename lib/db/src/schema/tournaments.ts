@@ -557,8 +557,8 @@ export const resultHistoryTable = pgTable(
     uniqueIndex("result_history_match_revision_unique").on(table.matchId, table.revision),
     index("result_history_tournament_recorded_idx").on(table.tournamentId, table.recordedAt),
     foreignKey({
-      columns: [table.stageId, table.matchId],
-      foreignColumns: [matchesTable.stageId, matchesTable.id],
+      columns: [table.matchId, table.stageId],
+      foreignColumns: [matchesTable.id, matchesTable.stageId],
       name: "result_history_match_same_stage_fk",
     }),
     foreignKey({

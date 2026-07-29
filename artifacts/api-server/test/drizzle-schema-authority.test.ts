@@ -7,6 +7,7 @@ import {
   actionLogTable,
   appSchemaMigrationsTable,
   matchesTable,
+  resultHistoryTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
@@ -125,6 +126,30 @@ describe("authoritative Drizzle schema", () => {
         foreignTable: "matches",
         foreignColumns: ["tournament_id", "stage_id", "id"],
         onDelete: "set null (stage_id, match_id)",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        resultHistoryTable,
+        "result_history_match_same_stage_fk",
+      ),
+      {
+        columns: ["match_id", "stage_id"],
+        foreignTable: "matches",
+        foreignColumns: ["id", "stage_id"],
+        onDelete: "no action",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        resultHistoryTable,
+        "result_history_match_same_tournament_stage_fk",
+      ),
+      {
+        columns: ["tournament_id", "stage_id", "match_id"],
+        foreignTable: "matches",
+        foreignColumns: ["tournament_id", "stage_id", "id"],
+        onDelete: "cascade",
       },
     );
   });

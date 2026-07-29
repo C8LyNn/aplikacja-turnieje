@@ -34,7 +34,8 @@ BEGIN
     'tournament_stages',
     'stage_groups',
     'stage_participants',
-    'matches'
+    'matches',
+    'result_history'
   ] LOOP
     IF to_regclass(format('public.%I', required_table)) IS NULL THEN
       RAISE EXCEPTION
@@ -59,7 +60,10 @@ BEGIN
       ('matches', 'stage_id'),
       ('matches', 'round'),
       ('matches', 'match_number'),
-      ('matches', 'next_match_id')
+      ('matches', 'next_match_id'),
+      ('result_history', 'tournament_id'),
+      ('result_history', 'stage_id'),
+      ('result_history', 'match_id')
     ) AS required(table_name, column_name)
   LOOP
     IF NOT EXISTS (
@@ -654,6 +658,15 @@ DECLARE
   redundant_owner_table TEXT;
   dependent_foreign_key RECORD;
   recreate_next_match_foreign_key BOOLEAN := FALSE;
+  recreate_result_history_foreign_key BOOLEAN := FALSE;
+  result_history_columns TEXT[];
+  result_history_foreign_columns TEXT[];
+  result_history_index_oid OID;
+  result_history_delete_action "char";
+  result_history_update_action "char";
+  result_history_deferrable BOOLEAN;
+  result_history_deferred BOOLEAN;
+  result_history_validated BOOLEAN;
 BEGIN
   SELECT
     constraint_row.conindid,
@@ -751,90 +764,273 @@ BEGIN
     WHERE namespace_row.nspname = current_schema()
       AND index_class.relname = 'matches_stage_id_id_unique';
 
-    IF NOT FOUND THEN
-      RETURN;
-    END IF;
-
-    IF redundant_owner_table IS DISTINCT FROM 'matches'
-      OR NOT COALESCE(redundant_is_unique, FALSE)
-      OR NOT COALESCE(redundant_is_valid, FALSE)
-      OR NOT COALESCE(redundant_is_ready, FALSE)
-      OR COALESCE(redundant_is_partial, TRUE)
-      OR COALESCE(redundant_has_expressions, TRUE)
-    THEN
-      RAISE EXCEPTION
-        'public.matches_stage_id_id_unique exists with an incompatible index definition';
+    IF FOUND THEN
+      IF redundant_owner_table IS DISTINCT FROM 'matches'
+        OR NOT COALESCE(redundant_is_unique, FALSE)
+        OR NOT COALESCE(redundant_is_valid, FALSE)
+        OR NOT COALESCE(redundant_is_ready, FALSE)
+        OR COALESCE(redundant_is_partial, TRUE)
+        OR COALESCE(redundant_has_expressions, TRUE)
+      THEN
+        RAISE EXCEPTION
+          'public.matches_stage_id_id_unique exists with an incompatible index definition';
+      END IF;
     END IF;
   END IF;
 
-  SELECT array_agg(column_name ORDER BY column_name)
-  INTO sorted_redundant_columns
-  FROM unnest(redundant_columns) AS column_name;
+  IF redundant_index_oid IS NOT NULL THEN
+    SELECT array_agg(column_name ORDER BY column_name)
+    INTO sorted_redundant_columns
+    FROM unnest(redundant_columns) AS column_name;
 
-  IF sorted_redundant_columns IS DISTINCT FROM
-    ARRAY['id', 'stage_id']::TEXT[]
-  THEN
-    RAISE EXCEPTION
-      'public.matches_stage_id_id_unique protects %, not the redundant id/stage pair',
-      redundant_columns;
-  END IF;
-
-  IF redundant_index_oid = canonical_index_oid THEN
-    RAISE EXCEPTION
-      'redundant and canonical matches constraints unexpectedly share one index';
-  END IF;
-
-  FOR dependent_foreign_key IN
-    SELECT
-      namespace_row.nspname AS schema_name,
-      table_row.relname AS table_name,
-      constraint_row.conname AS constraint_name
-    FROM pg_constraint constraint_row
-    JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
-    JOIN pg_namespace namespace_row
-      ON namespace_row.oid = table_row.relnamespace
-    WHERE constraint_row.contype = 'f'
-      AND constraint_row.conindid = redundant_index_oid
-  LOOP
-    IF dependent_foreign_key.schema_name <> current_schema()
-      OR dependent_foreign_key.table_name <> 'matches'
-      OR dependent_foreign_key.constraint_name <>
-        'matches_next_match_same_stage_fk'
+    IF sorted_redundant_columns IS DISTINCT FROM
+      ARRAY['id', 'stage_id']::TEXT[]
     THEN
       RAISE EXCEPTION
-        'refusing to remove redundant index; unexpected FK %.%.% depends on it',
+        'public.matches_stage_id_id_unique protects %, not the redundant id/stage pair',
+        redundant_columns;
+    END IF;
+
+    IF redundant_index_oid = canonical_index_oid THEN
+      RAISE EXCEPTION
+        'redundant and canonical matches constraints unexpectedly share one index';
+    END IF;
+
+    FOR dependent_foreign_key IN
+      SELECT
+        namespace_row.nspname AS schema_name,
+        table_row.relname AS table_name,
+        foreign_namespace.nspname AS foreign_schema_name,
+        foreign_table.relname AS foreign_table_name,
+        constraint_row.conname AS constraint_name,
+        ARRAY(
+          SELECT attribute_row.attname::TEXT
+          FROM unnest(constraint_row.conkey) WITH ORDINALITY
+            AS key_column(attribute_number, position)
+          JOIN pg_attribute attribute_row
+            ON attribute_row.attrelid = constraint_row.conrelid
+           AND attribute_row.attnum = key_column.attribute_number
+          ORDER BY key_column.position
+        ) AS columns,
+        ARRAY(
+          SELECT attribute_row.attname::TEXT
+          FROM unnest(constraint_row.confkey) WITH ORDINALITY
+            AS key_column(attribute_number, position)
+          JOIN pg_attribute attribute_row
+            ON attribute_row.attrelid = constraint_row.confrelid
+           AND attribute_row.attnum = key_column.attribute_number
+          ORDER BY key_column.position
+        ) AS foreign_columns,
+        constraint_row.confupdtype AS update_action,
+        constraint_row.confdeltype AS delete_action,
+        constraint_row.condeferrable AS is_deferrable,
+        constraint_row.condeferred AS is_deferred
+      FROM pg_constraint constraint_row
+      JOIN pg_class table_row ON table_row.oid = constraint_row.conrelid
+      JOIN pg_namespace namespace_row
+        ON namespace_row.oid = table_row.relnamespace
+      JOIN pg_class foreign_table
+        ON foreign_table.oid = constraint_row.confrelid
+      JOIN pg_namespace foreign_namespace
+        ON foreign_namespace.oid = foreign_table.relnamespace
+      WHERE constraint_row.contype = 'f'
+        AND constraint_row.conindid = redundant_index_oid
+    LOOP
+      IF dependent_foreign_key.schema_name = current_schema()
+        AND dependent_foreign_key.table_name = 'matches'
+        AND dependent_foreign_key.foreign_schema_name = current_schema()
+        AND dependent_foreign_key.foreign_table_name = 'matches'
+        AND dependent_foreign_key.constraint_name =
+          'matches_next_match_same_stage_fk'
+      THEN
+        IF dependent_foreign_key.columns IS DISTINCT FROM
+            ARRAY['next_match_id', 'stage_id']::TEXT[]
+          OR dependent_foreign_key.foreign_columns IS DISTINCT FROM
+            ARRAY['id', 'stage_id']::TEXT[]
+          OR dependent_foreign_key.update_action <> 'a'
+          OR dependent_foreign_key.delete_action <> 'a'
+          OR dependent_foreign_key.is_deferrable
+          OR dependent_foreign_key.is_deferred
+        THEN
+          RAISE EXCEPTION
+            'refusing to rebuild incompatible FK public.matches.matches_next_match_same_stage_fk';
+        END IF;
+        recreate_next_match_foreign_key := TRUE;
+      ELSIF dependent_foreign_key.schema_name = current_schema()
+        AND dependent_foreign_key.table_name = 'result_history'
+        AND dependent_foreign_key.foreign_schema_name = current_schema()
+        AND dependent_foreign_key.foreign_table_name = 'matches'
+        AND dependent_foreign_key.constraint_name =
+          'result_history_match_same_stage_fk'
+      THEN
+        IF NOT (
+            (
+              dependent_foreign_key.columns =
+                ARRAY['stage_id', 'match_id']::TEXT[]
+              AND dependent_foreign_key.foreign_columns =
+                ARRAY['stage_id', 'id']::TEXT[]
+            )
+            OR (
+              dependent_foreign_key.columns =
+                ARRAY['match_id', 'stage_id']::TEXT[]
+              AND dependent_foreign_key.foreign_columns =
+                ARRAY['id', 'stage_id']::TEXT[]
+            )
+          )
+          OR dependent_foreign_key.update_action <> 'a'
+          OR dependent_foreign_key.delete_action <> 'a'
+          OR dependent_foreign_key.is_deferrable
+          OR dependent_foreign_key.is_deferred
+        THEN
+          RAISE EXCEPTION
+            'refusing to rebuild incompatible FK public.result_history.result_history_match_same_stage_fk';
+        END IF;
+        recreate_result_history_foreign_key := TRUE;
+      ELSE
+        RAISE EXCEPTION
+          'refusing to remove redundant index; unexpected FK %.%.% depends on it',
+          dependent_foreign_key.schema_name,
+          dependent_foreign_key.table_name,
+          dependent_foreign_key.constraint_name;
+      END IF;
+
+      EXECUTE format(
+        'ALTER TABLE %I.%I DROP CONSTRAINT %I',
         dependent_foreign_key.schema_name,
         dependent_foreign_key.table_name,
-        dependent_foreign_key.constraint_name;
+        dependent_foreign_key.constraint_name
+      );
+    END LOOP;
+
+    IF EXISTS (
+      SELECT 1
+      FROM pg_constraint constraint_row
+      WHERE constraint_row.contype = 'f'
+        AND constraint_row.conindid = redundant_index_oid
+    ) THEN
+      RAISE EXCEPTION
+        'refusing to remove redundant index; dependent foreign keys remain';
     END IF;
 
-    EXECUTE format(
-      'ALTER TABLE %I.%I DROP CONSTRAINT %I',
-      dependent_foreign_key.schema_name,
-      dependent_foreign_key.table_name,
-      dependent_foreign_key.constraint_name
-    );
-    recreate_next_match_foreign_key := TRUE;
-  END LOOP;
+    IF redundant_constraint_oid IS NOT NULL THEN
+      ALTER TABLE public.matches
+        DROP CONSTRAINT matches_stage_id_id_unique;
+    ELSE
+      DROP INDEX public.matches_stage_id_id_unique;
+    END IF;
 
-  IF redundant_constraint_oid IS NOT NULL THEN
-    ALTER TABLE public.matches
-      DROP CONSTRAINT matches_stage_id_id_unique;
-  ELSE
-    DROP INDEX public.matches_stage_id_id_unique;
+    IF recreate_next_match_foreign_key THEN
+      ALTER TABLE public.matches
+        ADD CONSTRAINT matches_next_match_same_stage_fk
+        FOREIGN KEY (next_match_id, stage_id)
+        REFERENCES public.matches(id, stage_id)
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT DEFERRABLE
+        NOT VALID;
+      ALTER TABLE public.matches
+        VALIDATE CONSTRAINT matches_next_match_same_stage_fk;
+    END IF;
+
+    IF recreate_result_history_foreign_key THEN
+      ALTER TABLE public.result_history
+        ADD CONSTRAINT result_history_match_same_stage_fk
+        FOREIGN KEY (match_id, stage_id)
+        REFERENCES public.matches(id, stage_id)
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT DEFERRABLE
+        NOT VALID;
+      ALTER TABLE public.result_history
+        VALIDATE CONSTRAINT result_history_match_same_stage_fk;
+    END IF;
   END IF;
 
-  IF recreate_next_match_foreign_key THEN
-    ALTER TABLE public.matches
-      ADD CONSTRAINT matches_next_match_same_stage_fk
-      FOREIGN KEY (next_match_id, stage_id)
+  SELECT
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.conkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.conrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.confkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.confrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    constraint_row.conindid,
+    constraint_row.confdeltype,
+    constraint_row.confupdtype,
+    constraint_row.condeferrable,
+    constraint_row.condeferred,
+    constraint_row.convalidated
+  INTO
+    result_history_columns,
+    result_history_foreign_columns,
+    result_history_index_oid,
+    result_history_delete_action,
+    result_history_update_action,
+    result_history_deferrable,
+    result_history_deferred,
+    result_history_validated
+  FROM pg_constraint constraint_row
+  WHERE constraint_row.conrelid = 'public.result_history'::regclass
+    AND constraint_row.confrelid = 'public.matches'::regclass
+    AND constraint_row.conname = 'result_history_match_same_stage_fk'
+    AND constraint_row.contype = 'f';
+
+  IF NOT FOUND
+    OR result_history_update_action <> 'a'
+    OR result_history_delete_action <> 'a'
+    OR result_history_deferrable
+    OR result_history_deferred
+    OR NOT (
+      (
+        result_history_columns =
+          ARRAY['stage_id', 'match_id']::TEXT[]
+        AND result_history_foreign_columns =
+          ARRAY['stage_id', 'id']::TEXT[]
+      )
+      OR (
+        result_history_columns =
+          ARRAY['match_id', 'stage_id']::TEXT[]
+        AND result_history_foreign_columns =
+          ARRAY['id', 'stage_id']::TEXT[]
+      )
+    )
+  THEN
+    RAISE EXCEPTION
+      'public.result_history.result_history_match_same_stage_fk is missing or incompatible';
+  END IF;
+
+  IF result_history_columns IS DISTINCT FROM
+      ARRAY['match_id', 'stage_id']::TEXT[]
+    OR result_history_foreign_columns IS DISTINCT FROM
+      ARRAY['id', 'stage_id']::TEXT[]
+    OR result_history_index_oid <> canonical_index_oid
+  THEN
+    ALTER TABLE public.result_history
+      DROP CONSTRAINT result_history_match_same_stage_fk;
+    ALTER TABLE public.result_history
+      ADD CONSTRAINT result_history_match_same_stage_fk
+      FOREIGN KEY (match_id, stage_id)
       REFERENCES public.matches(id, stage_id)
       ON UPDATE NO ACTION
       ON DELETE NO ACTION
       NOT DEFERRABLE
       NOT VALID;
-    ALTER TABLE public.matches
-      VALIDATE CONSTRAINT matches_next_match_same_stage_fk;
+    ALTER TABLE public.result_history
+      VALIDATE CONSTRAINT result_history_match_same_stage_fk;
+  ELSIF NOT result_history_validated THEN
+    ALTER TABLE public.result_history
+      VALIDATE CONSTRAINT result_history_match_same_stage_fk;
   END IF;
 END;
 $redundant_matches_unique$;
@@ -872,10 +1068,25 @@ DECLARE
   index_columns TEXT[];
   next_match_columns TEXT[];
   next_match_foreign_columns TEXT[];
+  next_match_update_action "char";
   next_match_delete_action "char";
   next_match_deferrable BOOLEAN;
   next_match_deferred BOOLEAN;
   next_match_validated BOOLEAN;
+  result_history_columns TEXT[];
+  result_history_foreign_columns TEXT[];
+  result_history_update_action "char";
+  result_history_delete_action "char";
+  result_history_deferrable BOOLEAN;
+  result_history_deferred BOOLEAN;
+  result_history_validated BOOLEAN;
+  result_history_tournament_columns TEXT[];
+  result_history_tournament_foreign_columns TEXT[];
+  result_history_tournament_update_action "char";
+  result_history_tournament_delete_action "char";
+  result_history_tournament_deferrable BOOLEAN;
+  result_history_tournament_deferred BOOLEAN;
+  result_history_tournament_validated BOOLEAN;
 BEGIN
   FOR requirement IN
     SELECT value
@@ -1013,6 +1224,7 @@ BEGIN
        AND attribute_row.attnum = key_column.attribute_number
       ORDER BY key_column.position
     ),
+    constraint_row.confupdtype,
     constraint_row.confdeltype,
     constraint_row.condeferrable,
     constraint_row.condeferred,
@@ -1020,6 +1232,7 @@ BEGIN
   INTO
     next_match_columns,
     next_match_foreign_columns,
+    next_match_update_action,
     next_match_delete_action,
     next_match_deferrable,
     next_match_deferred,
@@ -1034,6 +1247,7 @@ BEGIN
       ARRAY['next_match_id', 'stage_id']::TEXT[]
     OR next_match_foreign_columns IS DISTINCT FROM
       ARRAY['id', 'stage_id']::TEXT[]
+    OR next_match_update_action <> 'a'
     OR next_match_delete_action <> 'a'
     OR next_match_deferrable
     OR next_match_deferred
@@ -1041,6 +1255,113 @@ BEGIN
   THEN
     RAISE EXCEPTION
       'postcondition failed for public.matches_next_match_same_stage_fk';
+  END IF;
+
+  SELECT
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.conkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.conrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.confkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.confrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    constraint_row.confupdtype,
+    constraint_row.confdeltype,
+    constraint_row.condeferrable,
+    constraint_row.condeferred,
+    constraint_row.convalidated
+  INTO
+    result_history_columns,
+    result_history_foreign_columns,
+    result_history_update_action,
+    result_history_delete_action,
+    result_history_deferrable,
+    result_history_deferred,
+    result_history_validated
+  FROM pg_constraint constraint_row
+  WHERE constraint_row.conrelid = 'public.result_history'::regclass
+    AND constraint_row.confrelid = 'public.matches'::regclass
+    AND constraint_row.conname = 'result_history_match_same_stage_fk'
+    AND constraint_row.contype = 'f';
+
+  IF NOT FOUND
+    OR result_history_columns IS DISTINCT FROM
+      ARRAY['match_id', 'stage_id']::TEXT[]
+    OR result_history_foreign_columns IS DISTINCT FROM
+      ARRAY['id', 'stage_id']::TEXT[]
+    OR result_history_update_action <> 'a'
+    OR result_history_delete_action <> 'a'
+    OR result_history_deferrable
+    OR result_history_deferred
+    OR NOT result_history_validated
+  THEN
+    RAISE EXCEPTION
+      'postcondition failed for public.result_history.result_history_match_same_stage_fk';
+  END IF;
+
+  SELECT
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.conkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.conrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    ARRAY(
+      SELECT attribute_row.attname::TEXT
+      FROM unnest(constraint_row.confkey) WITH ORDINALITY
+        AS key_column(attribute_number, position)
+      JOIN pg_attribute attribute_row
+        ON attribute_row.attrelid = constraint_row.confrelid
+       AND attribute_row.attnum = key_column.attribute_number
+      ORDER BY key_column.position
+    ),
+    constraint_row.confupdtype,
+    constraint_row.confdeltype,
+    constraint_row.condeferrable,
+    constraint_row.condeferred,
+    constraint_row.convalidated
+  INTO
+    result_history_tournament_columns,
+    result_history_tournament_foreign_columns,
+    result_history_tournament_update_action,
+    result_history_tournament_delete_action,
+    result_history_tournament_deferrable,
+    result_history_tournament_deferred,
+    result_history_tournament_validated
+  FROM pg_constraint constraint_row
+  WHERE constraint_row.conrelid = 'public.result_history'::regclass
+    AND constraint_row.confrelid = 'public.matches'::regclass
+    AND constraint_row.conname =
+      'result_history_match_same_tournament_stage_fk'
+    AND constraint_row.contype = 'f';
+
+  IF NOT FOUND
+    OR result_history_tournament_columns IS DISTINCT FROM
+      ARRAY['tournament_id', 'stage_id', 'match_id']::TEXT[]
+    OR result_history_tournament_foreign_columns IS DISTINCT FROM
+      ARRAY['tournament_id', 'stage_id', 'id']::TEXT[]
+    OR result_history_tournament_update_action <> 'a'
+    OR result_history_tournament_delete_action <> 'c'
+    OR result_history_tournament_deferrable
+    OR result_history_tournament_deferred
+    OR NOT result_history_tournament_validated
+  THEN
+    RAISE EXCEPTION
+      'postcondition failed for public.result_history.result_history_match_same_tournament_stage_fk';
   END IF;
 
   SELECT array_agg(

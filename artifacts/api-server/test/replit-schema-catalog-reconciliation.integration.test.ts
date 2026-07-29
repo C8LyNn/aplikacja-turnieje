@@ -211,10 +211,51 @@ async function createDevelopmentDrift(pool: QueryPool): Promise<void> {
   try {
     await pool.query("DROP TABLE public.auth_credential_rate_limits");
     await pool.query(
-      `ALTER TABLE public.matches
-       ADD CONSTRAINT matches_stage_id_id_unique
-       UNIQUE (stage_id, id)`,
+      `ALTER TABLE public.result_history
+         DROP CONSTRAINT result_history_match_same_stage_fk;
+       ALTER TABLE public.matches
+         DROP CONSTRAINT matches_next_match_same_stage_fk;
+       ALTER TABLE public.matches
+         DROP CONSTRAINT matches_id_stage_id_unique;
+       ALTER TABLE public.matches
+         ADD CONSTRAINT matches_stage_id_id_unique
+         UNIQUE (stage_id, id);
+       ALTER TABLE public.result_history
+         ADD CONSTRAINT result_history_match_same_stage_fk
+         FOREIGN KEY (stage_id, match_id)
+         REFERENCES public.matches(stage_id, id)
+         ON UPDATE NO ACTION
+         ON DELETE NO ACTION
+         NOT DEFERRABLE;
+       ALTER TABLE public.matches
+         ADD CONSTRAINT matches_id_stage_id_unique
+         UNIQUE (id, stage_id);
+       ALTER TABLE public.matches
+         ADD CONSTRAINT matches_next_match_same_stage_fk
+         FOREIGN KEY (next_match_id, stage_id)
+         REFERENCES public.matches(id, stage_id)
+         ON UPDATE NO ACTION
+         ON DELETE NO ACTION
+         NOT DEFERRABLE;`,
     );
+    const dependency = await pool.query(
+      `SELECT
+         dependent_constraint.conindid =
+           owner_constraint.conindid AS uses_redundant_unique
+       FROM pg_constraint dependent_constraint
+       JOIN pg_constraint owner_constraint
+         ON owner_constraint.conrelid = 'public.matches'::regclass
+        AND owner_constraint.conname = 'matches_stage_id_id_unique'
+        AND owner_constraint.contype = 'u'
+       WHERE dependent_constraint.conrelid =
+           'public.result_history'::regclass
+         AND dependent_constraint.conname =
+           'result_history_match_same_stage_fk'
+         AND dependent_constraint.contype = 'f'`,
+    );
+    assert.deepEqual(dependency.rows[0], {
+      uses_redundant_unique: true,
+    });
     await pool.query("COMMIT");
   } catch (error) {
     await pool.query("ROLLBACK");
@@ -304,11 +345,45 @@ async function canonicalCatalog(pool: QueryPool) {
          AS redundant_matches_unique`,
   );
   const compositeForeignKeys = await pool.query(
-    `SELECT count(*)::int AS count,
-            bool_and(convalidated) AS all_valid
+    `SELECT
+       constraint_row.conname AS name,
+       table_row.relname AS table_name,
+       ARRAY(
+         SELECT attribute_row.attname::text
+         FROM unnest(constraint_row.conkey) WITH ORDINALITY
+           AS key_column(attribute_number, position)
+         JOIN pg_attribute attribute_row
+           ON attribute_row.attrelid = constraint_row.conrelid
+          AND attribute_row.attnum = key_column.attribute_number
+         ORDER BY key_column.position
+       ) AS columns,
+       foreign_table.relname AS foreign_table_name,
+       ARRAY(
+         SELECT attribute_row.attname::text
+         FROM unnest(constraint_row.confkey) WITH ORDINALITY
+           AS key_column(attribute_number, position)
+         JOIN pg_attribute attribute_row
+           ON attribute_row.attrelid = constraint_row.confrelid
+          AND attribute_row.attnum = key_column.attribute_number
+         ORDER BY key_column.position
+       ) AS foreign_columns,
+       constraint_row.confupdtype::text AS update_action,
+       constraint_row.confdeltype::text AS delete_action,
+       constraint_row.condeferrable AS deferrable,
+       constraint_row.condeferred AS initially_deferred,
+       constraint_row.convalidated AS validated,
+       supporting_index.relname AS supporting_index
      FROM pg_constraint
-     WHERE contype = 'f'
-       AND conname = ANY($1::text[])`,
+       AS constraint_row
+     JOIN pg_class table_row
+       ON table_row.oid = constraint_row.conrelid
+     JOIN pg_class foreign_table
+       ON foreign_table.oid = constraint_row.confrelid
+     JOIN pg_class supporting_index
+       ON supporting_index.oid = constraint_row.conindid
+     WHERE constraint_row.contype = 'f'
+       AND constraint_row.conname = ANY($1::text[])
+     ORDER BY constraint_row.conname`,
     [[
       "stage_participants_stage_same_tournament_fk",
       "stage_participants_player_same_tournament_fk",
@@ -335,8 +410,59 @@ async function canonicalCatalog(pool: QueryPool) {
   return {
     constraints: constraints.rows,
     relations: relations.rows[0],
-    compositeForeignKeys: compositeForeignKeys.rows[0],
+    compositeForeignKeys: compositeForeignKeys.rows,
   };
+}
+
+async function assertResultHistoryBehavior(pool: QueryPool): Promise<void> {
+  await pool.query("BEGIN");
+  try {
+    const match = await pool.query(
+      `SELECT
+         match_row.id,
+         match_row.tournament_id,
+         match_row.stage_id,
+         match_row.round,
+         match_row.match_number,
+         match_row.player1_id,
+         match_row.player2_id
+       FROM public.matches match_row
+       ORDER BY match_row.id
+       LIMIT 1`,
+    );
+    const row = match.rows[0];
+    assert.ok(row);
+    await pool.query(
+      `INSERT INTO public.result_history (
+         match_id, tournament_id, stage_id, revision, round, match_number,
+         player1_id, player2_id, score1, score2, winner_id, best_of,
+         result_type, result_reason, completed_at
+       ) VALUES (
+         $1, $2, $3, 1, $4, $5, $6, $7, 2, 0, $6, 3,
+         'played', NULL, now()
+       )`,
+      [
+        row.id,
+        row.tournament_id,
+        row.stage_id,
+        row.round,
+        row.match_number,
+        row.player1_id,
+        row.player2_id,
+      ],
+    );
+    await pool.query(
+      "DELETE FROM public.matches WHERE id = $1",
+      [row.id],
+    );
+    const history = await pool.query(
+      "SELECT count(*)::int AS count FROM public.result_history WHERE match_id = $1",
+      [row.id],
+    );
+    assert.deepEqual(history.rows[0], { count: 0 });
+  } finally {
+    await pool.query("ROLLBACK");
+  }
 }
 
 before(async () => {
@@ -398,6 +524,81 @@ after(async () => {
   }
 });
 
+test("unknown dependency aborts the whole Development reconciliation", async () => {
+  const beforeCounts = await rowCounts(pools.dev);
+  await pools.dev.query(
+    `CREATE TABLE public.unexpected_match_reference (
+       id integer PRIMARY KEY,
+       stage_id integer NOT NULL,
+       match_id integer NOT NULL,
+       CONSTRAINT unexpected_match_reference_fk
+         FOREIGN KEY (stage_id, match_id)
+         REFERENCES public.matches(stage_id, id)
+         ON UPDATE NO ACTION
+         ON DELETE NO ACTION
+         NOT DEFERRABLE
+     )`,
+  );
+  const dependency = await pools.dev.query(
+    `SELECT
+       dependent_constraint.conindid =
+         owner_constraint.conindid AS uses_redundant_unique
+     FROM pg_constraint dependent_constraint
+     JOIN pg_constraint owner_constraint
+       ON owner_constraint.conrelid = 'public.matches'::regclass
+      AND owner_constraint.conname = 'matches_stage_id_id_unique'
+      AND owner_constraint.contype = 'u'
+     WHERE dependent_constraint.conrelid =
+         'public.unexpected_match_reference'::regclass
+       AND dependent_constraint.conname =
+         'unexpected_match_reference_fk'
+       AND dependent_constraint.contype = 'f'`,
+  );
+  assert.deepEqual(dependency.rows[0], {
+    uses_redundant_unique: true,
+  });
+
+  const reconciliationSql = await readFile(
+    new URL(RECONCILIATION_MIGRATION, MIGRATIONS_URL),
+    "utf8",
+  );
+  await assert.rejects(
+    pools.dev.query(reconciliationSql),
+    /unexpected FK public\.unexpected_match_reference\.unexpected_match_reference_fk depends on it/,
+  );
+  assert.deepEqual(await rowCounts(pools.dev), beforeCounts);
+  const rolledBack = await pools.dev.query(
+    `SELECT
+       to_regclass('public.auth_credential_rate_limits')::text AS rate_table,
+       to_regclass('public.matches_stage_id_id_unique')::text
+         AS redundant_unique,
+       EXISTS (
+         SELECT 1
+         FROM pg_constraint
+         WHERE conrelid = 'public.result_history'::regclass
+           AND conname = 'result_history_match_same_stage_fk'
+           AND conkey = ARRAY[
+             (
+               SELECT attnum FROM pg_attribute
+               WHERE attrelid = 'public.result_history'::regclass
+                 AND attname = 'stage_id'
+             ),
+             (
+               SELECT attnum FROM pg_attribute
+               WHERE attrelid = 'public.result_history'::regclass
+                 AND attname = 'match_id'
+             )
+           ]::smallint[]
+       ) AS legacy_history_fk_remains`,
+  );
+  assert.deepEqual(rolledBack.rows[0], {
+    rate_table: null,
+    redundant_unique: "matches_stage_id_id_unique",
+    legacy_history_fk_remains: true,
+  });
+  await pools.dev.query("DROP TABLE public.unexpected_match_reference");
+});
+
 test("reconciles Development, Production and fresh catalogs without data loss", async () => {
   const beforeCounts = {
     dev: await rowCounts(pools.dev),
@@ -423,10 +624,53 @@ test("reconciles Development, Production and fresh catalogs without data loss", 
       blocked_index: "auth_credential_rate_limits_blocked_idx",
       redundant_matches_unique: null,
     });
-    assert.deepEqual(firstCatalog.compositeForeignKeys, {
-      count: 20,
-      all_valid: true,
-    });
+    assert.equal(firstCatalog.compositeForeignKeys.length, 20);
+    assert.equal(
+      firstCatalog.compositeForeignKeys.every(
+        (foreignKey) => foreignKey.validated === true,
+      ),
+      true,
+    );
+    assert.deepEqual(
+      firstCatalog.compositeForeignKeys.find(
+        (foreignKey) =>
+          foreignKey.name === "result_history_match_same_stage_fk",
+      ),
+      {
+        name: "result_history_match_same_stage_fk",
+        table_name: "result_history",
+        columns: ["match_id", "stage_id"],
+        foreign_table_name: "matches",
+        foreign_columns: ["id", "stage_id"],
+        update_action: "a",
+        delete_action: "a",
+        deferrable: false,
+        initially_deferred: false,
+        validated: true,
+        supporting_index: "matches_id_stage_id_unique",
+      },
+    );
+    assert.deepEqual(
+      firstCatalog.compositeForeignKeys.find(
+        (foreignKey) =>
+          foreignKey.name ===
+          "result_history_match_same_tournament_stage_fk",
+      ),
+      {
+        name: "result_history_match_same_tournament_stage_fk",
+        table_name: "result_history",
+        columns: ["tournament_id", "stage_id", "match_id"],
+        foreign_table_name: "matches",
+        foreign_columns: ["tournament_id", "stage_id", "id"],
+        update_action: "a",
+        delete_action: "c",
+        deferrable: false,
+        initially_deferred: false,
+        validated: true,
+        supporting_index: "matches_tournament_stage_id_id_unique",
+      },
+    );
+    await assertResultHistoryBehavior(pools[label]);
   }
 
   const { stdout, stderr } = await execFileAsync(

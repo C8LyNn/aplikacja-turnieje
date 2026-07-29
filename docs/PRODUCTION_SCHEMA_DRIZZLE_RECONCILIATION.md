@@ -40,14 +40,22 @@ Migration `0011` requires the following exact catalog definitions:
 - `matches_stage_round_number_unique` as
   `UNIQUE (stage_id, round, match_number)`;
 - `matches_id_stage_id_unique` as `UNIQUE (id, stage_id)`;
+- `result_history_match_same_stage_fk` as
+  `FOREIGN KEY (match_id, stage_id) REFERENCES matches(id, stage_id)`
+  with `ON UPDATE NO ACTION`, `ON DELETE NO ACTION` and `NOT DEFERRABLE`;
+- `result_history_match_same_tournament_stage_fk` remains
+  `FOREIGN KEY (tournament_id, stage_id, match_id) REFERENCES
+  matches(tournament_id, stage_id, id) ON DELETE CASCADE`;
 - the complete `auth_credential_rate_limits` table, primary key and both
   supporting indexes from migration `0010`.
 
 The migration reuses valid standalone indexes with `UNIQUE USING INDEX`,
 rebuilds only the two constraints whose order or deferrability is wrong, and
-removes only the proven redundant `matches_stage_id_id_unique`. It preserves
-all rows, uses no `CASCADE`, validates exact postconditions before commit and
-is safe to rerun.
+rebuilds the legacy same-stage history FK before removing the proven redundant
+`matches_stage_id_id_unique`. It enumerates every `pg_constraint.conindid`
+dependency of that object and aborts on an unknown FK. It preserves all rows,
+uses no `CASCADE`, validates exact postconditions before commit and is safe to
+rerun.
 
 ## Read-only Development/Production comparison
 
@@ -119,10 +127,12 @@ filter configuration.
 
 ## Production preflight and one-index cleanup
 
-This block is retained for auditing the pre-0011 one-index repair. Once
-migration `0011` is available, do not run this as a separate schema change:
-`0011` performs the same guarded redundant-index removal together with the
-complete catalog reconciliation.
+This block is retained only for auditing the pre-0011 case where the duplicate
+is a standalone index with no dependent FK. Once migration `0011` is
+available, do not run this as a separate schema change: `0011` also
+canonicalizes known dependent FKs before the guarded removal. The block below
+intentionally refuses the real Development state where a constraint owns the
+index or a foreign key depends on it.
 
 Run this only in the Production Database SQL console after independently
 confirming that the selected database and schema are correct. The transaction
