@@ -1,0 +1,2150 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Tournament Manager API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: tournaments
+  - name: players
+  - name: matches
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /tournaments:
+    get:
+      operationId: listTournaments
+      tags: [tournaments]
+      summary: List all tournaments
+      responses:
+        "200":
+          description: List of tournaments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tournament"
+    post:
+      operationId: createTournament
+      tags: [tournaments]
+      summary: Create a new tournament
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+        "422":
+          description: Stage plan rejected by the domain validator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagePlanError"
+
+  /tournaments/{id}:
+    get:
+      operationId: getTournament
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateTournament
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+    delete:
+      operationId: deleteTournament
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tournaments/{id}/stages:
+    get:
+      operationId: listTournamentStages
+      tags: [tournaments]
+      summary: List the configured stages of a tournament
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Tournament stages in execution order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament not found
+
+  /tournaments/{id}/stages/{stageId}:
+    get:
+      operationId: getTournamentStage
+      tags: [tournaments]
+      summary: Get a stage with groups, participants, frozen ranking and qualifiers
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Tournament stage details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStageDetails"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/qualification-preview:
+    get:
+      operationId: previewStageQualification
+      tags: [tournaments]
+      summary: Preview the deterministic ranking and qualification result of an active stage
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Qualification preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageQualificationPreview"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage is not active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage is incomplete or its qualification configuration is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/stages/{stageId}/readiness:
+    get:
+      operationId: getTournamentStageReadiness
+      tags: [tournaments]
+      summary: Check whether a planned stage can be started without modifying it
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Read-only stage start readiness
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageStartReadiness"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/stages/{stageId}/complete:
+    post:
+      operationId: completeTournamentStage
+      tags: [tournaments]
+      summary: Atomically complete the active stage and create next-stage participants
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Frozen ranking and qualification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageQualificationPreview"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage lifecycle conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage is incomplete or inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/stages/{stageId}/start:
+    post:
+      operationId: startTournamentStage
+      tags: [tournaments]
+      summary: Atomically start the next planned stage and generate its first matches
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Started stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage lifecycle conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+        "422":
+          description: Stage configuration or participants are inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
+  /tournaments/{id}/start:
+    post:
+      operationId: startTournament
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/verify-host-code:
+    post:
+      operationId: verifyHostCode
+      tags: [tournaments]
+      summary: Verify the host access code for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyHostCodeInput"
+      responses:
+        "200":
+          description: Code is valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyHostCodeResult"
+        "403":
+          description: Invalid code
+
+  /tournaments/{id}/generate-round:
+    post:
+      operationId: generateNextRound
+      tags: [tournaments]
+      summary: Generate next Swiss round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tournament"
+
+  /tournaments/{id}/bracket:
+    get:
+      operationId: getTournamentBracket
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bracket data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bracket"
+
+  /tournaments/{id}/stats:
+    get:
+      operationId: getTournamentStats
+      tags: [tournaments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStats"
+
+  /tournaments/{id}/standings:
+    get:
+      operationId: getTournamentStandings
+      tags: [tournaments]
+      summary: Get standings table with Buchholz
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Standings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Standing"
+
+  /tournaments/{id}/action-log:
+    get:
+      operationId: getActionLog
+      tags: [tournaments]
+      summary: Get action log for a tournament
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action log
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActionLogEntry"
+
+  /tournaments/{id}/undo-last:
+    post:
+      operationId: undoLastAction
+      tags: [tournaments]
+      summary: Undo the last undoable action
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Action undone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoResult"
+        "404":
+          description: Nothing to undo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "409":
+          description: The result was already reverted or changed concurrently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Stored match data is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/results-history:
+    get:
+      operationId: getResultsHistory
+      tags: [tournaments]
+      summary: Get results history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Results history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ResultRecord"
+
+  /tournaments/{id}/export:
+    get:
+      operationId: exportTournament
+      tags: [tournaments]
+      summary: Export a complete Tournament Stages Backup v3
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tournament backup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentBackupV3"
+        "404":
+          description: Tournament not found
+
+  /tournaments/import:
+    post:
+      operationId: importTournament
+      tags: [tournaments]
+      summary: Import Backup v2 or v3 as a new tournament copy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentBackup"
+      responses:
+        "201":
+          description: Imported tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupImportError"
+
+  /tournaments/{id}/assistant:
+    get:
+      operationId: getTournamentAssistant
+      tags: [tournaments]
+      summary: Get tournament assistant snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Assistant snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantSnapshot"
+
+  /tournaments/{id}/players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+    post:
+      operationId: addPlayer
+      tags: [players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /tournaments/{id}/players/import:
+    post:
+      operationId: importPlayers
+      tags: [players]
+      summary: Import players from CSV text
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CsvImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsvImportResult"
+
+  /players/{id}:
+    patch:
+      operationId: updatePlayer
+      tags: [players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+    delete:
+      operationId: deletePlayer
+      tags: [players]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tournaments/{id}/matches:
+    get:
+      operationId: listMatches
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /matches/{id}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+    patch:
+      operationId: updateMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /matches/{id}/complete:
+    post:
+      operationId: completeMatch
+      tags: [matches]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchResult"
+      responses:
+        "200":
+          description: Match completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "409":
+          description: Match was already finalized or changed concurrently
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Result payload or current tournament state violates series_v1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /matches/{id}/cancel:
+    post:
+      operationId: cancelMatch
+      tags: [matches]
+      summary: Cancel a match (saves state for undo)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchCancelInput"
+      responses:
+        "200":
+          description: Match cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Cannot cancel match in current state
+
+  /matches/{id}/restore-cancelled:
+    post:
+      operationId: restoreCancelledMatch
+      tags: [matches]
+      summary: Restore a cancelled match back to pending
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match restored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Match is not cancelled
+
+  /matches/{id}/swap-players:
+    post:
+      operationId: swapMatchPlayers
+      tags: [matches]
+      summary: Swap player1 and player2 in a match
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Players swapped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Not found
+        "400":
+          description: Cannot swap players in current state
+
+  /tournaments/{id}/reorder-matches:
+    post:
+      operationId: reorderMatches
+      tags: [matches]
+      summary: Reorder upcoming matches in the queue
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderMatchesInput"
+      responses:
+        "200":
+          description: Matches reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+
+  /matches/{id}/revert:
+    post:
+      operationId: revertMatch
+      tags: [matches]
+      summary: Revert a completed match result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Match reverted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Match, tournament, or participant not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Match is not completed, was already reverted, or downstream blocks the revert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Stored result, participants, history, or finalization is inconsistent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+components:
+  parameters:
+    TournamentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    StageId:
+      name: stageId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    DomainError:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+    StageLifecycleError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_ACTIVE
+            - STAGE_NOT_NEXT_PLANNED
+            - ACTIVE_STAGE_EXISTS
+            - PREVIOUS_STAGE_NOT_COMPLETED
+            - STAGE_INCOMPLETE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - QUALIFICATION_CONFIGURATION_INVALID
+            - STAGE_FORMAT_NOT_SUPPORTED
+            - STAGE_ALREADY_COMPLETED
+            - STAGE_ALREADY_STARTED
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+            - RANKING_INCONSISTENT
+    StageStartReadiness:
+      type: object
+      required: [ready, reasonCode, message, participantCount, requiredParticipantCount, missingSeeds, blockingMatches, blockingGroups, format]
+      properties:
+        ready: { type: boolean }
+        reasonCode:
+          type: string
+          enum:
+            - READY
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_ACTIVE
+            - STAGE_NOT_NEXT_PLANNED
+            - ACTIVE_STAGE_EXISTS
+            - PREVIOUS_STAGE_NOT_COMPLETED
+            - STAGE_INCOMPLETE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - QUALIFICATION_CONFIGURATION_INVALID
+            - STAGE_FORMAT_NOT_SUPPORTED
+            - STAGE_ALREADY_COMPLETED
+            - STAGE_ALREADY_STARTED
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+            - RANKING_INCONSISTENT
+        message: { type: string }
+        participantCount: { type: integer, minimum: 0 }
+        requiredParticipantCount: { type: integer, minimum: 0 }
+        missingSeeds:
+          type: array
+          items: { type: integer, minimum: 1 }
+        blockingMatches: { type: integer, minimum: 0 }
+        blockingGroups: { type: integer, minimum: 0 }
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
+    StagePlanError:
+      type: object
+      required: [error, code, details]
+      properties:
+        error: { type: string }
+        code: { type: string, const: INVALID_STAGE_PLAN }
+        details:
+          type: array
+          items:
+            type: object
+            required: [code, path, message]
+            properties:
+              code: { type: string }
+              path: { type: string }
+              message: { type: string }
+    BackupImportError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK]
+        details:
+          type: array
+          items: { type: string }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, error]
+        database:
+          type: string
+          enum: [ok, unavailable]
+      required: [status, database]
+
+    Tournament:
+      type: object
+      required: [id, name, format, status, resultModelVersion, rankingPolicy, defaultBestOf, createdAt, hasHostCode]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        format:
+          type: string
+          enum: [single_elimination, round_robin, swiss]
+        status:
+          type: string
+          enum: [draft, active, completed]
+        maxPlayers:
+          type: ["integer", "null"]
+        swissRounds:
+          type: ["integer", "null"]
+        resultModelVersion:
+          type: string
+          enum: [series_v1]
+        rankingPolicy:
+          type: string
+          enum: [match_record_v1]
+        defaultBestOf:
+          type: integer
+          minimum: 1
+        currentRound:
+          type: ["integer", "null"]
+        totalRounds:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        featuredMatchId:
+          type: ["integer", "null"]
+        activeStageId:
+          type: ["integer", "null"]
+        hasHostCode:
+          type: boolean
+          description: Whether a host access code has been set for this tournament
+        hasOrganizerPassword:
+          type: boolean
+          description: Whether an organizer password has been set
+        hasSupportPassword:
+          type: boolean
+          description: Whether a support password has been set
+        hasViewerPassword:
+          type: boolean
+          description: Whether a viewer password has been set (private_online mode)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+          description: "public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only"
+        createdAt:
+          type: string
+
+    TournamentInput:
+      type: object
+      required: [name, format]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        format:
+          type: string
+          enum: [single_elimination, round_robin, swiss]
+        maxPlayers:
+          type: integer
+        swissRounds:
+          type: integer
+        defaultBestOf:
+          type: integer
+          minimum: 1
+        organizerPassword:
+          description: Optional password. Empty means no password; a non-empty value must contain at least 8 characters.
+          oneOf:
+            - type: string
+              maxLength: 0
+            - type: string
+              minLength: 8
+        supportPassword:
+          type: string
+          description: Optional password for support staff access
+        viewerPassword:
+          type: string
+          description: Optional password for viewer access (required when visibility=private_online)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+          description: Tournament visibility mode
+        stagePlan:
+          $ref: "#/components/schemas/TournamentStagePlanInput"
+          description: Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.
+
+    TournamentStagePlanInput:
+      type: object
+      additionalProperties: false
+      required: [initialParticipantCount, stages]
+      properties:
+        initialParticipantCount:
+          type: integer
+          minimum: 2
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/TournamentStagePlanItemInput"
+
+    TournamentStagePlanItemInput:
+      type: object
+      additionalProperties: false
+      required: [key, position, name, format, participantCount, bestOf]
+      properties:
+        key:
+          type: string
+          minLength: 1
+        position:
+          type: integer
+          minimum: 1
+          maximum: 3
+        name:
+          type: string
+          minLength: 1
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
+        participantCount:
+          type: integer
+          minimum: 2
+        bestOf:
+          type: integer
+          enum: [1, 3, 5, 7]
+        rounds:
+          type: integer
+          minimum: 1
+        advancingCount:
+          type: integer
+          minimum: 2
+        groupCount:
+          type: integer
+          enum: [2, 4]
+        participantsPerGroup:
+          type: integer
+          minimum: 3
+          maximum: 8
+        qualifiersPerGroup:
+          type: integer
+          enum: [1, 2]
+        seedingMethod:
+          type: string
+          const: snake
+
+    TournamentStage:
+      type: object
+      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        stageKey: { type: string }
+        position: { type: integer }
+        name: { type: string }
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
+        status:
+          type: string
+          enum: [planned, active, completed]
+        participantCount: { type: integer }
+        bestOf: { type: integer }
+        plannedRounds: { type: ["integer", "null"] }
+        currentRound: { type: ["integer", "null"] }
+        totalRounds: { type: ["integer", "null"] }
+        rankingPolicy:
+          type: string
+          enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1]
+        qualificationMode:
+          type: string
+          enum: [none, top_n, top_n_per_group]
+        advancingCount: { type: ["integer", "null"] }
+        groupCount: { type: ["integer", "null"] }
+        participantsPerGroup: { type: ["integer", "null"] }
+        qualifiersPerGroup: { type: ["integer", "null"] }
+        seedingPolicy:
+          type: string
+          enum: [standings_order, snake_groups, cross_group]
+        winnerId: { type: ["integer", "null"] }
+        version: { type: integer }
+        createdAt: { type: string }
+        startedAt: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
+
+    StageGroup:
+      type: object
+      required: [id, stageId, groupKey, position, participantCount, qualifiersCount, createdAt]
+      properties:
+        id: { type: integer }
+        stageId: { type: integer }
+        groupKey: { type: string, enum: [A, B, C, D] }
+        position: { type: integer }
+        participantCount: { type: integer }
+        qualifiersCount: { type: integer }
+        createdAt: { type: string }
+
+    StageParticipant:
+      type: object
+      required: [id, tournamentId, stageId, playerId, playerName, stageSeed, status, qualificationSource, createdAt]
+      properties:
+        id: { type: integer }
+        tournamentId: { type: integer }
+        stageId: { type: integer }
+        playerId: { type: integer }
+        playerName: { type: string }
+        stageSeed: { type: integer }
+        groupId: { type: ["integer", "null"] }
+        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        status:
+          type: string
+          enum: [active, eliminated, qualified, winner]
+        qualificationSource:
+          type: string
+          enum: [registration, standings, group_position]
+        finalRank: { type: ["integer", "null"] }
+        groupRank: { type: ["integer", "null"] }
+        qualificationRank: { type: ["integer", "null"] }
+        nextStageSeed: { type: ["integer", "null"] }
+        sourceStageParticipantId: { type: ["integer", "null"] }
+        qualifiedAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    TournamentStageDetails:
+      type: object
+      required: [stage, groups, participants, ranking, qualifiers]
+      properties:
+        stage:
+          $ref: "#/components/schemas/TournamentStage"
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/StageGroup" }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/StageParticipant" }
+        ranking:
+          type: array
+          description: Frozen ranking rows. Empty until a stage has been completed.
+          items: { $ref: "#/components/schemas/StageParticipant" }
+        qualifiers:
+          type: array
+          items: { $ref: "#/components/schemas/StageParticipant" }
+
+    StageRankingEntry:
+      type: object
+      required: [stageParticipantId, playerId, playerName, stageSeed, rank, matchWins, matchLosses, gameWins, gameLosses, gameDiff]
+      properties:
+        stageParticipantId: { type: integer }
+        playerId: { type: integer }
+        playerName: { type: string }
+        stageSeed: { type: integer }
+        rank: { type: integer }
+        matchWins: { type: integer }
+        matchLosses: { type: integer }
+        gameWins: { type: integer }
+        gameLosses: { type: integer }
+        gameDiff: { type: integer }
+        buchholz: { type: ["integer", "null"] }
+        groupId: { type: ["integer", "null"] }
+        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupRank: { type: ["integer", "null"] }
+
+    StageQualifier:
+      allOf:
+        - $ref: "#/components/schemas/StageRankingEntry"
+        - type: object
+          required: [qualificationSource, nextStageSeed]
+          properties:
+            qualificationSource:
+              type: string
+              enum: [standings, group_position]
+            nextStageSeed: { type: integer }
+
+    StageQualificationPreview:
+      type: object
+      required: [tournamentId, stageId, stageVersion, fingerprint, ranking, qualifiers]
+      properties:
+        tournamentId: { type: integer }
+        stageId: { type: integer }
+        stageVersion: { type: integer }
+        fingerprint: { type: string }
+        ranking:
+          type: array
+          items: { $ref: "#/components/schemas/StageRankingEntry" }
+        qualifiers:
+          type: array
+          items: { $ref: "#/components/schemas/StageQualifier" }
+
+    TournamentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        format:
+          type: string
+          enum: [single_elimination, round_robin, swiss]
+        status:
+          type: string
+          enum: [draft, active, completed]
+        maxPlayers:
+          type: integer
+        swissRounds:
+          type: integer
+        defaultBestOf:
+          type: integer
+          minimum: 1
+        featuredMatchId:
+          type: integer
+        hostCode:
+          type: string
+          description: Host access code (plain text, stored hashed)
+        visibility:
+          type: string
+          enum: [public_online, private_online, private_offline]
+        viewerPassword:
+          type: string
+          description: New viewer password (clears old viewer sessions)
+
+    VerifyHostCodeInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+
+    VerifyHostCodeResult:
+      type: object
+      required: [valid]
+      properties:
+        valid:
+          type: boolean
+
+    Player:
+      type: object
+      required: [id, tournamentId, name, createdAt]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        name:
+          type: string
+        rank:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        teamName:
+          type: ["string", "null"]
+        seed:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+        createdAt:
+          type: string
+
+    PlayerInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        rank:
+          type: string
+        country:
+          type: string
+        teamName:
+          type: string
+        seed:
+          type: integer
+
+    PlayerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        rank:
+          type: string
+        country:
+          type: string
+        teamName:
+          type: string
+        seed:
+          type: integer
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+
+    CsvImportInput:
+      type: object
+      required: [csv]
+      properties:
+        csv:
+          type: string
+        mode:
+          type: string
+          enum: [append, replace]
+          default: append
+
+    CsvRowError:
+      type: object
+      required: [line, content, reason]
+      properties:
+        line:
+          type: integer
+        content:
+          type: string
+        reason:
+          type: string
+
+    CsvImportResult:
+      type: object
+      required: [imported, skipped, players, errors]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        replacedCount:
+          type: integer
+        limitExceeded:
+          type: boolean
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/CsvRowError"
+
+    Match:
+      type: object
+      required: [id, tournamentId, stageId, round, matchNumber, bestOf, status]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        stageId:
+          type: integer
+        stageGroupId:
+          type: ["integer", "null"]
+        round:
+          type: integer
+        matchNumber:
+          type: integer
+        player1Id:
+          type: ["integer", "null"]
+        player2Id:
+          type: ["integer", "null"]
+        player1Name:
+          type: ["string", "null"]
+        player2Name:
+          type: ["string", "null"]
+        score1:
+          type: ["integer", "null"]
+        score2:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        resultType:
+          type: ["string", "null"]
+          enum: [played, walkover, bye, no_contest, null]
+        resultReason:
+          type: ["string", "null"]
+        bestOf:
+          type: integer
+          minimum: 1
+        note:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, in_progress, postponed, completed, cancelled]
+        nextMatchId:
+          type: ["integer", "null"]
+        sortOrder:
+          type: ["integer", "null"]
+        scheduledAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+
+    MatchCancelInput:
+      type: object
+      properties:
+        note:
+          type: string
+
+    ReorderMatchesInput:
+      type: object
+      required: [matchIds]
+      properties:
+        matchIds:
+          type: array
+          items:
+            type: integer
+
+    MatchUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, postponed, cancelled]
+        note:
+          type: string
+        bestOf:
+          type: integer
+          minimum: 1
+
+    MatchResult:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [resultType, score1, score2]
+          properties:
+            resultType:
+              type: string
+              const: played
+            score1:
+              type: integer
+            score2:
+              type: integer
+        - type: object
+          additionalProperties: false
+          required: [resultType, winnerId]
+          properties:
+            resultType:
+              type: string
+              const: walkover
+            winnerId:
+              type: integer
+            reason:
+              type: ["string", "null"]
+        - type: object
+          additionalProperties: false
+          required: [resultType]
+          properties:
+            resultType:
+              type: string
+              const: no_contest
+            reason:
+              type: ["string", "null"]
+
+    Standing:
+      type: object
+      required: [rank, playerId, playerName, rankName, teamName, country, seed, status, matchesPlayed, matchWins, matchLosses, gameWins, gameLosses, gameDiff, buchholz]
+      properties:
+        rank:
+          type: integer
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        rankName:
+          type: ["string", "null"]
+        teamName:
+          type: ["string", "null"]
+        country:
+          type: ["string", "null"]
+        seed:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [active, eliminated, winner]
+        matchesPlayed:
+          type: integer
+        matchWins:
+          type: integer
+        matchLosses:
+          type: integer
+        gameWins:
+          type: integer
+        gameLosses:
+          type: integer
+        gameDiff:
+          type: integer
+        buchholz:
+          type: ["integer", "null"]
+
+    ResultRecord:
+      type: object
+      required: [id, matchId, round, matchNumber, player1Name, player2Name, score1, score2, winnerId, winnerName, bestOf, resultType, resultReason, revision, completedAt, recordedAt]
+      properties:
+        id:
+          type: integer
+        matchId:
+          type: integer
+        round:
+          type: integer
+        matchNumber:
+          type: integer
+        player1Name:
+          type: ["string", "null"]
+        player2Name:
+          type: ["string", "null"]
+        score1:
+          type: ["integer", "null"]
+        score2:
+          type: ["integer", "null"]
+        winnerId:
+          type: ["integer", "null"]
+        winnerName:
+          type: ["string", "null"]
+        bestOf:
+          type: integer
+        resultType:
+          type: string
+          enum: [played, walkover, bye, no_contest]
+        resultReason:
+          type: ["string", "null"]
+        revision:
+          type: integer
+        completedAt:
+          type: string
+        recordedAt:
+          type: string
+
+    ActionLogEntry:
+      type: object
+      required: [id, tournamentId, actionType, description, canUndo, isUndone, createdAt]
+      properties:
+        id:
+          type: integer
+        tournamentId:
+          type: integer
+        actionType:
+          type: string
+        description:
+          type: string
+        matchId:
+          type: ["integer", "null"]
+        canUndo:
+          type: boolean
+        isUndone:
+          type: boolean
+        createdAt:
+          type: string
+
+    UndoResult:
+      type: object
+      required: [action, message]
+      properties:
+        action:
+          $ref: "#/components/schemas/ActionLogEntry"
+        message:
+          type: string
+
+    AssistantSnapshot:
+      type: object
+      required: [stepTitle, nextAction]
+      properties:
+        stepTitle:
+          type: string
+        nextAction:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    Bracket:
+      type: object
+      required: [tournament, rounds]
+      properties:
+        tournament:
+          $ref: "#/components/schemas/Tournament"
+        rounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/BracketRound"
+        winner:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+
+    BracketRound:
+      type: object
+      required: [round, matches]
+      properties:
+        round:
+          type: integer
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+
+    TournamentBackupV2:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, resultModelVersion, rankingPolicy, exportedAt, tournament, players, matches, resultHistory, actionLog]
+      properties:
+        schemaVersion:
+          type: integer
+          const: 2
+        resultModelVersion:
+          type: string
+          const: series_v1
+        rankingPolicy:
+          type: string
+          const: match_record_v1
+        exportedAt:
+          type: string
+        tournament:
+          type: object
+          additionalProperties: false
+          required: [name, format, status, defaultBestOf, visibility]
+          properties:
+            name:
+              type: string
+            description:
+              type: ["string", "null"]
+            format:
+              type: string
+              enum: [single_elimination, round_robin, swiss]
+            status:
+              type: string
+              enum: [draft, active, completed]
+            maxPlayers:
+              type: ["integer", "null"]
+            currentRound:
+              type: ["integer", "null"]
+            totalRounds:
+              type: ["integer", "null"]
+            swissRounds:
+              type: ["integer", "null"]
+            defaultBestOf:
+              type: integer
+              minimum: 1
+            visibility:
+              type: string
+              enum: [public_online, private_online, private_offline]
+            winnerBackupId:
+              type: ["integer", "null"]
+            featuredMatchBackupId:
+              type: ["integer", "null"]
+        players:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, name, status]
+            properties:
+              backupId:
+                type: integer
+              name:
+                type: string
+              rank:
+                type: ["string", "null"]
+              country:
+                type: ["string", "null"]
+              teamName:
+                type: ["string", "null"]
+              seed:
+                type: ["integer", "null"]
+              status:
+                type: string
+                enum: [active, eliminated, winner]
+        matches:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, round, matchNumber, bestOf, status, resultType, resultReason]
+            properties:
+              backupId:
+                type: integer
+              round:
+                type: integer
+              matchNumber:
+                type: integer
+              player1BackupId:
+                type: ["integer", "null"]
+              player2BackupId:
+                type: ["integer", "null"]
+              winnerBackupId:
+                type: ["integer", "null"]
+              score1:
+                type: ["integer", "null"]
+              score2:
+                type: ["integer", "null"]
+              resultType:
+                type: ["string", "null"]
+                enum: [played, walkover, bye, no_contest, null]
+              resultReason:
+                type: ["string", "null"]
+              bestOf:
+                type: integer
+                minimum: 1
+              status:
+                type: string
+                enum: [pending, in_progress, postponed, completed, cancelled]
+              note:
+                type: ["string", "null"]
+              nextMatchBackupId:
+                type: ["integer", "null"]
+              sortOrder:
+                type: ["integer", "null"]
+              scheduledAt:
+                type: ["string", "null"]
+              completedAt:
+                type: ["string", "null"]
+        resultHistory:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, revision, round, matchNumber, bestOf, resultType, resultReason, completedAt, recordedAt]
+            properties:
+              matchBackupId:
+                type: integer
+              revision:
+                type: integer
+              round:
+                type: integer
+              matchNumber:
+                type: integer
+              player1BackupId:
+                type: ["integer", "null"]
+              player2BackupId:
+                type: ["integer", "null"]
+              winnerBackupId:
+                type: ["integer", "null"]
+              score1:
+                type: ["integer", "null"]
+              score2:
+                type: ["integer", "null"]
+              bestOf:
+                type: integer
+              resultType:
+                type: string
+                enum: [played, walkover, bye, no_contest]
+              resultReason:
+                type: ["string", "null"]
+              completedAt:
+                type: string
+              recordedAt:
+                type: string
+        actionLog:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [actionType, description, matchBackupId, canUndo, undoPayload, isUndone, createdAt]
+            properties:
+              actionType:
+                type: string
+              description:
+                type: string
+              matchBackupId:
+                type: ["integer", "null"]
+              canUndo:
+                type: boolean
+              undoPayload:
+                type: ["object", "null"]
+                additionalProperties: true
+              isUndone:
+                type: boolean
+              createdAt:
+                type: string
+
+    TournamentBackupV3:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, resultModelVersion, rankingPolicy, exportedAt, tournament, players, stages, groups, stageParticipants, matches, resultHistory, actionLog]
+      properties:
+        schemaVersion: { type: integer, const: 3 }
+        resultModelVersion: { type: string, const: series_v1 }
+        rankingPolicy: { type: string, const: match_record_v1 }
+        exportedAt: { type: string }
+        tournament:
+          type: object
+          additionalProperties: false
+          required: [name, status, visibility]
+          properties:
+            name: { type: string }
+            description: { type: ["string", "null"] }
+            status: { type: string, enum: [draft, active, completed] }
+            maxPlayers: { type: ["integer", "null"] }
+            activeStageBackupId: { type: ["integer", "null"] }
+            winnerBackupId: { type: ["integer", "null"] }
+            featuredMatchBackupId: { type: ["integer", "null"] }
+            visibility: { type: string, enum: [public_online, private_online, private_offline] }
+        players:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, name, status]
+            properties:
+              backupId: { type: integer }
+              name: { type: string }
+              rank: { type: ["string", "null"] }
+              country: { type: ["string", "null"] }
+              teamName: { type: ["string", "null"] }
+              seed: { type: ["integer", "null"] }
+              status: { type: string, enum: [active, eliminated, winner] }
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageKey: { type: string }
+              position: { type: integer }
+              name: { type: string }
+              format: { type: string, enum: [swiss, round_robin, group_stage, single_elimination] }
+              status: { type: string, enum: [planned, active, completed] }
+              participantCount: { type: integer }
+              bestOf: { type: integer }
+              plannedRounds: { type: ["integer", "null"] }
+              currentRound: { type: ["integer", "null"] }
+              totalRounds: { type: ["integer", "null"] }
+              rankingPolicy: { type: string, enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1] }
+              qualificationMode: { type: string, enum: [none, top_n, top_n_per_group] }
+              advancingCount: { type: ["integer", "null"] }
+              groupCount: { type: ["integer", "null"] }
+              participantsPerGroup: { type: ["integer", "null"] }
+              qualifiersPerGroup: { type: ["integer", "null"] }
+              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group] }
+              winnerBackupId: { type: ["integer", "null"] }
+              version: { type: integer }
+              createdAt: { type: string }
+              startedAt: { type: ["string", "null"] }
+              completedAt: { type: ["string", "null"] }
+        groups:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, groupKey, position, participantCount, qualifiersCount, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              groupKey: { type: string, enum: [A, B, C, D] }
+              position: { type: integer }
+              participantCount: { type: integer }
+              qualifiersCount: { type: integer }
+              createdAt: { type: string }
+        stageParticipants:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, playerBackupId, stageSeed, status, qualificationSource, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              playerBackupId: { type: integer }
+              stageSeed: { type: integer }
+              groupBackupId: { type: ["integer", "null"] }
+              status: { type: string, enum: [active, eliminated, qualified, winner] }
+              qualificationSource: { type: string, enum: [registration, standings, group_position] }
+              finalRank: { type: ["integer", "null"] }
+              groupRank: { type: ["integer", "null"] }
+              qualificationRank: { type: ["integer", "null"] }
+              nextStageSeed: { type: ["integer", "null"] }
+              sourceStageParticipantBackupId: { type: ["integer", "null"] }
+              qualifiedAt: { type: ["string", "null"] }
+              createdAt: { type: string }
+        matches:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, round, matchNumber, bestOf, status, resultType, resultReason]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              stageGroupBackupId: { type: ["integer", "null"] }
+              round: { type: integer }
+              matchNumber: { type: integer }
+              player1BackupId: { type: ["integer", "null"] }
+              player2BackupId: { type: ["integer", "null"] }
+              winnerBackupId: { type: ["integer", "null"] }
+              score1: { type: ["integer", "null"] }
+              score2: { type: ["integer", "null"] }
+              resultType: { type: ["string", "null"], enum: [played, walkover, bye, no_contest, null] }
+              resultReason: { type: ["string", "null"] }
+              bestOf: { type: integer }
+              status: { type: string, enum: [pending, in_progress, postponed, completed, cancelled] }
+              note: { type: ["string", "null"] }
+              nextMatchBackupId: { type: ["integer", "null"] }
+              sortOrder: { type: ["integer", "null"] }
+              scheduledAt: { type: ["string", "null"] }
+              completedAt: { type: ["string", "null"] }
+        resultHistory:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, stageBackupId, revision, round, matchNumber, bestOf, resultType, resultReason, completedAt, recordedAt]
+            properties:
+              matchBackupId: { type: integer }
+              stageBackupId: { type: integer }
+              revision: { type: integer }
+              round: { type: integer }
+              matchNumber: { type: integer }
+              player1BackupId: { type: ["integer", "null"] }
+              player2BackupId: { type: ["integer", "null"] }
+              winnerBackupId: { type: ["integer", "null"] }
+              score1: { type: ["integer", "null"] }
+              score2: { type: ["integer", "null"] }
+              bestOf: { type: integer }
+              resultType: { type: string, enum: [played, walkover, bye, no_contest] }
+              resultReason: { type: ["string", "null"] }
+              completedAt: { type: string }
+              recordedAt: { type: string }
+        actionLog:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [actionType, description, stageBackupId, matchBackupId, canUndo, undoPayload, isUndone, createdAt]
+            properties:
+              actionType: { type: string }
+              description: { type: string }
+              stageBackupId: { type: ["integer", "null"] }
+              matchBackupId: { type: ["integer", "null"] }
+              canUndo: { type: boolean }
+              undoPayload:
+                type: ["object", "null"]
+                additionalProperties: true
+              isUndone: { type: boolean }
+              createdAt: { type: string }
+
+    TournamentBackup:
+      oneOf:
+        - $ref: "#/components/schemas/TournamentBackupV2"
+        - $ref: "#/components/schemas/TournamentBackupV3"
+
+    ImportResult:
+      type: object
+      required: [tournament, playersImported, matchesImported]
+      properties:
+        tournament:
+          $ref: "#/components/schemas/Tournament"
+        playersImported:
+          type: integer
+        matchesImported:
+          type: integer
+
+    TournamentStats:
+      type: object
+      required: [totalPlayers, totalMatches, completedMatches, pendingMatches, currentRound]
+      properties:
+        totalPlayers:
+          type: integer
+        totalMatches:
+          type: integer
+        completedMatches:
+          type: integer
+        pendingMatches:
+          type: integer
+        inProgressMatches:
+          type: integer
+        currentRound:
+          type: ["integer", "null"]
+        totalRounds:
+          type: ["integer", "null"]
+        topPlayers:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              matchWins:
+                type: integer
+              matchLosses:
+                type: integer
+              gameDiff:
+                type: integer

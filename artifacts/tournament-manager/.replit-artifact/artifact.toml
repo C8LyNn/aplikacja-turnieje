@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Tournament Manager"
+version = "1.0.0"
+id = "artifacts/tournament-manager"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18283
+
+[services.development]
+run = "pnpm --filter @workspace/tournament-manager run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tournament-manager", "run", "build" ]
+publicDir = "artifacts/tournament-manager/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18283"
+BASE_PATH = "/"

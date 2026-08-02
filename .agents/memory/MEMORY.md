@@ -1,0 +1,5 @@
+- [Swiss pairing logic](swiss-pairing.md) — Swiss rounds: greedy points-based pairing, Buchholz calculated as sum of opponent points; bye auto-advances winner stats.
+- [Result history tracking](result-history.md) — completed matches are logged to result_history table; revert endpoint removes history entry + undoes player stats + undoes bracket advancement.
+- [API mutation signatures](api-mutation-signatures.md) — Orval-generated mutations take `{ data: Body }` not flat fields; e.g. `useCreateTournament({ data: {...} })`.
+- [Host Access Control](host-access-control.md) — upgraded to role-based system; see topic file for full auth architecture (HMAC organizer token, DB support sessions, backward-compat host code).
+- [Bracket seeding](bracket-seeding.md) — standard single-elim seeding uses recursive interleave so #1 vs #2 can only meet in the final.
