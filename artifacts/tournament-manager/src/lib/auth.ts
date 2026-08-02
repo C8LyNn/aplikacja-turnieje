@@ -92,7 +92,7 @@ export function clearViewerToken(tournamentId: number): void {
   } catch {}
 }
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const BASE = (import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "");
 
 export async function apiOrganizerLogin(tournamentId: number, password: string): Promise<string> {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/organizer-login`, {
@@ -119,6 +119,17 @@ export async function apiSupportLogin(tournamentId: number, password: string, ni
     throw new Error((err as any).error || "Błąd logowania");
   }
   return res.json();
+}
+
+export async function apiVerifySupportSession(tournamentId: number, token: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-session`, {
+    headers: { "X-Support-Token": token },
+  });
+  if (!res.ok) {
+    const error = new Error("Sesja wsparcia jest nieważna") as Error & { status?: number };
+    error.status = res.status;
+    throw error;
+  }
 }
 
 export async function apiGetSupportSessions(tournamentId: number, token: string) {

@@ -140,6 +140,62 @@ after(async () => {
 });
 
 describe("Tournament stages lifecycle", () => {
+  test("readiness is read-only and the same ready state lets StartStage succeed", async () => {
+    const fixture = await createPlan("swiss");
+    const before = await database.pool.query(
+      "SELECT s.status, count(m.id)::int AS matches FROM tournament_stages s LEFT JOIN matches m ON m.stage_id = s.id WHERE s.id = $1 GROUP BY s.status",
+      [fixture.sourceStageId],
+    );
+    const response = await request(app)
+      .get(`/api/tournaments/${fixture.tournamentId}/stages/${fixture.sourceStageId}/readiness`)
+      .expect(200);
+    assert.equal(response.body.ready, true);
+    assert.equal(response.body.reasonCode, "READY");
+    assert.deepEqual(response.body.missingSeeds, []);
+    const after = await database.pool.query(
+      "SELECT s.status, count(m.id)::int AS matches FROM tournament_stages s LEFT JOIN matches m ON m.stage_id = s.id WHERE s.id = $1 GROUP BY s.status",
+      [fixture.sourceStageId],
+    );
+    assert.deepEqual(after.rows, before.rows);
+    await request(app)
+      .post(`/api/tournaments/${fixture.tournamentId}/stages/${fixture.sourceStageId}/start`)
+      .set(fixture.organizerHeaders)
+      .expect(200);
+  });
+
+  test("readiness and StartStage report the same participant inconsistency", async () => {
+    const fixture = await createPlan("swiss");
+    await database.pool.query(
+      "DELETE FROM stage_participants WHERE stage_id = $1 AND player_id = $2",
+      [fixture.sourceStageId, fixture.playerIds[3]],
+    );
+    const readiness = await request(app)
+      .get(`/api/tournaments/${fixture.tournamentId}/stages/${fixture.sourceStageId}/readiness`)
+      .expect(200);
+    assert.equal(readiness.body.ready, false);
+    assert.equal(readiness.body.reasonCode, "STAGE_PARTICIPANTS_INCONSISTENT");
+    assert.deepEqual(readiness.body.missingSeeds, [4]);
+    const start = await request(app)
+      .post(`/api/tournaments/${fixture.tournamentId}/stages/${fixture.sourceStageId}/start`)
+      .set(fixture.organizerHeaders)
+      .expect(422);
+    assert.equal(start.body.code, readiness.body.reasonCode);
+    const state = await database.pool.query(
+      "SELECT status, started_at FROM tournament_stages WHERE id = $1",
+      [fixture.sourceStageId],
+    );
+    assert.deepEqual(state.rows[0], { status: "planned", started_at: null });
+  });
+
+  test("readiness rejects a stage belonging to another tournament", async () => {
+    const first = await createPlan("swiss");
+    const second = await createPlan("round_robin");
+    await request(app)
+      .get(`/api/tournaments/${first.tournamentId}/stages/${second.sourceStageId}/readiness`)
+      .expect(404)
+      .expect(({ body }) => assert.equal(body.code, "STAGE_NOT_FOUND"));
+  });
+
   test("advances Swiss qualifiers to Single Elimination with frozen continuous seeds", async () => {
     const fixture = await createPlan("swiss");
     await request(app)

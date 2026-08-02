@@ -18,7 +18,7 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password to protect organizer access */
+  /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
   organizerPassword?: string;
   /** Optional password for support staff access */
   supportPassword?: string;

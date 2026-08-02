@@ -54,6 +54,10 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
  */
 
 
+export const createTournamentBodyOrganizerPasswordOneMax = 0;
+
+export const createTournamentBodyOrganizerPasswordTwoMin = 8;
+
 export const createTournamentBodyStagePlanInitialParticipantCountMin = 2;
 
 
@@ -79,7 +83,7 @@ export const CreateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
-  "organizerPassword": zod.string().optional().describe('Optional password to protect organizer access'),
+  "organizerPassword": zod.union([zod.string().max(createTournamentBodyOrganizerPasswordOneMax),zod.string().min(createTournamentBodyOrganizerPasswordTwoMin)]).optional().describe('Optional password. Empty means no password; a non-empty value must contain at least 8 characters.'),
   "supportPassword": zod.string().optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().optional().describe('Optional password for viewer access (required when visibility=private_online)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),
@@ -388,6 +392,42 @@ export const PreviewStageQualificationResponse = zod.object({
   "qualificationSource": zod.enum(['standings', 'group_position']),
   "nextStageSeed": zod.number()
 })))
+})
+
+
+/**
+ * @summary Check whether a planned stage can be started without modifying it
+ */
+
+
+
+
+export const GetTournamentStageReadinessParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const getTournamentStageReadinessResponseParticipantCountMin = 0;
+
+export const getTournamentStageReadinessResponseRequiredParticipantCountMin = 0;
+
+
+export const getTournamentStageReadinessResponseBlockingMatchesMin = 0;
+
+export const getTournamentStageReadinessResponseBlockingGroupsMin = 0;
+
+
+
+export const GetTournamentStageReadinessResponse = zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.enum(['READY', 'TOURNAMENT_NOT_FOUND', 'STAGE_NOT_FOUND', 'STAGE_NOT_ACTIVE', 'STAGE_NOT_NEXT_PLANNED', 'ACTIVE_STAGE_EXISTS', 'PREVIOUS_STAGE_NOT_COMPLETED', 'STAGE_INCOMPLETE', 'STAGE_PARTICIPANTS_INCONSISTENT', 'QUALIFICATION_CONFIGURATION_INVALID', 'STAGE_FORMAT_NOT_SUPPORTED', 'STAGE_ALREADY_COMPLETED', 'STAGE_ALREADY_STARTED', 'MATCHES_ALREADY_EXIST', 'GROUPS_ALREADY_EXIST', 'RANKING_INCONSISTENT']),
+  "message": zod.string(),
+  "participantCount": zod.number().min(getTournamentStageReadinessResponseParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(getTournamentStageReadinessResponseRequiredParticipantCountMin),
+  "missingSeeds": zod.array(zod.number().min(1)),
+  "blockingMatches": zod.number().min(getTournamentStageReadinessResponseBlockingMatchesMin),
+  "blockingGroups": zod.number().min(getTournamentStageReadinessResponseBlockingGroupsMin),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination'])
 })
 
 
