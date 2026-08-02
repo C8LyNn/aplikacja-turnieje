@@ -46,6 +46,10 @@ const REPLIT_SCHEMA_CATALOG_RECONCILIATION_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0011_reconcile_replit_schema_catalog.sql",
   import.meta.url,
 );
+const TOURNAMENT_ROUTING_PERSISTENCE_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0012_tournament_routing_persistence_v2.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -171,6 +175,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
         ),
         schema,
       ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const tournamentRoutingPersistenceMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(
+          TOURNAMENT_ROUTING_PERSISTENCE_MIGRATION_URL,
+          "utf8",
+        ),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -195,6 +207,10 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       // Every isolated schema also proves that catalog reconciliation is
       // idempotent after the complete 0001-0010 history.
       await pool.query(replitSchemaCatalogReconciliationMigrationSql);
+      await pool.query(tournamentRoutingPersistenceMigrationSql);
+      // Persistence DDL is replayed in every isolated integration schema to
+      // prove that a deployment retry does not duplicate or weaken objects.
+      await pool.query(tournamentRoutingPersistenceMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

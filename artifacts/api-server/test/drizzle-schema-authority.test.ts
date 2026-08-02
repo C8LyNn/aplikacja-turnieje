@@ -10,6 +10,16 @@ import {
   resultHistoryTable,
   stageGroupsTable,
   stageParticipantsTable,
+  tournamentRoutingEntryPointsTable,
+  tournamentRoutingLogicalMatchSlotsTable,
+  tournamentRoutingLogicalMatchesTable,
+  tournamentRoutingOutputsTable,
+  tournamentRoutingPlansTable,
+  tournamentRoutingRouteSourcesTable,
+  tournamentRoutingRouteTargetsTable,
+  tournamentRoutingRoutesTable,
+  tournamentRoutingSelectionsTable,
+  tournamentRoutingStagesTable,
   tournamentStagesTable,
 } from "@workspace/db/schema";
 import { getTableConfig } from "drizzle-orm/pg-core";
@@ -206,6 +216,141 @@ describe("authoritative Drizzle schema", () => {
       matchesTable,
       "matches_stage_round_number_unique",
       ["stage_id", "round", "match_number"],
+    );
+  });
+
+  test("declares the compiled routing catalog with plan-scoped relational integrity", () => {
+    assert.equal(getTableConfig(tournamentRoutingPlansTable).name, "tournament_routing_plans");
+    expectUniqueConstraint(
+      tournamentRoutingPlansTable,
+      "tournament_routing_plans_tournament_revision_unique",
+      ["tournament_id", "revision"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingStagesTable,
+      "tournament_routing_stages_plan_stage_unique",
+      ["plan_id", "stage_id"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingEntryPointsTable,
+      "tournament_routing_entry_points_plan_stage_id_unique",
+      ["plan_id", "routing_stage_id", "id"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingLogicalMatchesTable,
+      "tournament_routing_logical_matches_plan_stage_id_unique",
+      ["plan_id", "routing_stage_id", "id"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingOutputsTable,
+      "tournament_routing_outputs_plan_stage_id_unique",
+      ["plan_id", "routing_stage_id", "id"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingLogicalMatchSlotsTable,
+      "tournament_routing_match_slots_plan_stage_match_slot_uq",
+      ["plan_id", "routing_stage_id", "logical_match_id", "slot"],
+    );
+    expectUniqueConstraint(
+      tournamentRoutingRoutesTable,
+      "tournament_routing_routes_plan_id_cardinality_unique",
+      ["plan_id", "id", "reserved_slots"],
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingSelectionsTable,
+        "tournament_routing_selections_route_cardinality_fk",
+      ),
+      {
+        columns: ["plan_id", "route_id", "exact_cardinality"],
+        foreignTable: "tournament_routing_routes",
+        foreignColumns: ["plan_id", "id", "reserved_slots"],
+        onDelete: "cascade",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingSelectionsTable,
+        "tournament_routing_selections_output_fk",
+      ),
+      {
+        columns: ["plan_id", "routing_stage_id", "named_output_id"],
+        foreignTable: "tournament_routing_outputs",
+        foreignColumns: ["plan_id", "routing_stage_id", "id"],
+        onDelete: "no action",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingSelectionsTable,
+        "tournament_routing_selections_source_stage_fk",
+      ),
+      {
+        columns: ["plan_id", "route_id", "routing_stage_id"],
+        foreignTable: "tournament_routing_route_sources",
+        foreignColumns: ["plan_id", "route_id", "routing_stage_id"],
+        onDelete: "cascade",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingRouteSourcesTable,
+        "tournament_routing_route_sources_stage_match_fk",
+      ),
+      {
+        columns: ["plan_id", "routing_stage_id", "logical_match_id"],
+        foreignTable: "tournament_routing_logical_matches",
+        foreignColumns: ["plan_id", "routing_stage_id", "id"],
+        onDelete: "no action",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingRouteTargetsTable,
+        "tournament_routing_route_targets_match_slot_fk",
+      ),
+      {
+        columns: [
+          "plan_id",
+          "routing_stage_id",
+          "logical_match_id",
+          "match_slot",
+        ],
+        foreignTable: "tournament_routing_logical_match_slots",
+        foreignColumns: [
+          "plan_id",
+          "routing_stage_id",
+          "logical_match_id",
+          "slot",
+        ],
+        onDelete: "no action",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingRouteTargetsTable,
+        "tournament_routing_route_targets_stage_output_fk",
+      ),
+      {
+        columns: ["plan_id", "routing_stage_id", "output_id"],
+        foreignTable: "tournament_routing_outputs",
+        foreignColumns: ["plan_id", "routing_stage_id", "id"],
+        onDelete: "no action",
+      },
+    );
+    assert.equal(
+      getTableConfig(tournamentRoutingEntryPointsTable).indexes.some(
+        (index) =>
+          index.config.name === "tournament_routing_entry_points_stage_idx",
+      ),
+      false,
+    );
+    assert.equal(
+      getTableConfig(tournamentRoutingOutputsTable).indexes.some(
+        (index) =>
+          index.config.name === "tournament_routing_outputs_stage_idx",
+      ),
+      false,
     );
   });
 });

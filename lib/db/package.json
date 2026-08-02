@@ -30,7 +30,9 @@
     "migrate:configurable-seeding:development": "node ./scripts/migrate-development-configurable-seeding-v2.mjs",
     "test:configurable-seeding-deployment": "node --test ./test/configurable-seeding-v2-deployment.test.mjs",
     "schema:compare:pre-republish": "node ./scripts/compare-replit-schema-catalogs.mjs",
-    "test:schema-catalog-comparison": "node --test ./test/schema-catalog-comparison.test.mjs"
+    "test:schema-catalog-comparison": "node --test ./test/schema-catalog-comparison.test.mjs",
+    "migrate:tournament-routing-persistence:preflight": "node ./scripts/preflight-tournament-routing-persistence-v2.mjs",
+    "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
