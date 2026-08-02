@@ -41,6 +41,7 @@ import type {
   StageLifecycleError,
   StagePlanError,
   StageQualificationPreview,
+  StageStartReadiness,
   Standing,
   Tournament,
   TournamentBackup,
@@ -723,6 +724,88 @@ export function usePreviewStageQualification<TData = Awaited<ReturnType<typeof p
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getPreviewStageQualificationQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetTournamentStageReadinessUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/readiness`
+}
+
+/**
+ * @summary Check whether a planned stage can be started without modifying it
+ */
+export const getTournamentStageReadiness = async (id: number,
+    stageId: number, options?: RequestInit): Promise<StageStartReadiness> => {
+
+  return customFetch<StageStartReadiness>(getGetTournamentStageReadinessUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentStageReadinessQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/readiness`
+    ] as const;
+    }
+
+
+export const getGetTournamentStageReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentStageReadiness>>, TError = ErrorType<DomainError | StageLifecycleError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentStageReadinessQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentStageReadiness>>> = ({ signal }) => getTournamentStageReadiness(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageReadiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentStageReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentStageReadiness>>>
+export type GetTournamentStageReadinessQueryError = ErrorType<DomainError | StageLifecycleError>
+
+
+/**
+ * @summary Check whether a planned stage can be started without modifying it
+ */
+
+export function useGetTournamentStageReadiness<TData = Awaited<ReturnType<typeof getTournamentStageReadiness>>, TError = ErrorType<DomainError | StageLifecycleError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageReadiness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentStageReadinessQueryOptions(id,stageId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

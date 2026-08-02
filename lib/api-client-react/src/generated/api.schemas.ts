@@ -36,6 +36,54 @@ export interface StageLifecycleError {
   code: StageLifecycleErrorCode;
 }
 
+export type StageStartReadinessReasonCode = typeof StageStartReadinessReasonCode[keyof typeof StageStartReadinessReasonCode];
+
+
+export const StageStartReadinessReasonCode = {
+  READY: 'READY',
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_NOT_FOUND: 'STAGE_NOT_FOUND',
+  STAGE_NOT_ACTIVE: 'STAGE_NOT_ACTIVE',
+  STAGE_NOT_NEXT_PLANNED: 'STAGE_NOT_NEXT_PLANNED',
+  ACTIVE_STAGE_EXISTS: 'ACTIVE_STAGE_EXISTS',
+  PREVIOUS_STAGE_NOT_COMPLETED: 'PREVIOUS_STAGE_NOT_COMPLETED',
+  STAGE_INCOMPLETE: 'STAGE_INCOMPLETE',
+  STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  QUALIFICATION_CONFIGURATION_INVALID: 'QUALIFICATION_CONFIGURATION_INVALID',
+  STAGE_FORMAT_NOT_SUPPORTED: 'STAGE_FORMAT_NOT_SUPPORTED',
+  STAGE_ALREADY_COMPLETED: 'STAGE_ALREADY_COMPLETED',
+  STAGE_ALREADY_STARTED: 'STAGE_ALREADY_STARTED',
+  MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
+  GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
+  RANKING_INCONSISTENT: 'RANKING_INCONSISTENT',
+} as const;
+
+export type StageStartReadinessFormat = typeof StageStartReadinessFormat[keyof typeof StageStartReadinessFormat];
+
+
+export const StageStartReadinessFormat = {
+  swiss: 'swiss',
+  round_robin: 'round_robin',
+  group_stage: 'group_stage',
+  single_elimination: 'single_elimination',
+} as const;
+
+export interface StageStartReadiness {
+  ready: boolean;
+  reasonCode: StageStartReadinessReasonCode;
+  message: string;
+  /** @minimum 0 */
+  participantCount: number;
+  /** @minimum 0 */
+  requiredParticipantCount: number;
+  missingSeeds: number[];
+  /** @minimum 0 */
+  blockingMatches: number;
+  /** @minimum 0 */
+  blockingGroups: number;
+  format: StageStartReadinessFormat;
+}
+
 export type StagePlanErrorDetailsItem = {
   code: string;
   path: string;
@@ -273,7 +321,7 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password to protect organizer access */
+  /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
   organizerPassword?: string;
   /** Optional password for support staff access */
   supportPassword?: string;

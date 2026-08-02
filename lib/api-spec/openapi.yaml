@@ -216,6 +216,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/StageLifecycleError"
 
+  /tournaments/{id}/stages/{stageId}/readiness:
+    get:
+      operationId: getTournamentStageReadiness
+      tags: [tournaments]
+      summary: Check whether a planned stage can be started without modifying it
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Read-only stage start readiness
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageStartReadiness"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageLifecycleError"
+
   /tournaments/{id}/stages/{stageId}/complete:
     post:
       operationId: completeTournamentStage
@@ -950,6 +978,41 @@ components:
             - MATCHES_ALREADY_EXIST
             - GROUPS_ALREADY_EXIST
             - RANKING_INCONSISTENT
+    StageStartReadiness:
+      type: object
+      required: [ready, reasonCode, message, participantCount, requiredParticipantCount, missingSeeds, blockingMatches, blockingGroups, format]
+      properties:
+        ready: { type: boolean }
+        reasonCode:
+          type: string
+          enum:
+            - READY
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_ACTIVE
+            - STAGE_NOT_NEXT_PLANNED
+            - ACTIVE_STAGE_EXISTS
+            - PREVIOUS_STAGE_NOT_COMPLETED
+            - STAGE_INCOMPLETE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - QUALIFICATION_CONFIGURATION_INVALID
+            - STAGE_FORMAT_NOT_SUPPORTED
+            - STAGE_ALREADY_COMPLETED
+            - STAGE_ALREADY_STARTED
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+            - RANKING_INCONSISTENT
+        message: { type: string }
+        participantCount: { type: integer, minimum: 0 }
+        requiredParticipantCount: { type: integer, minimum: 0 }
+        missingSeeds:
+          type: array
+          items: { type: integer, minimum: 1 }
+        blockingMatches: { type: integer, minimum: 0 }
+        blockingGroups: { type: integer, minimum: 0 }
+        format:
+          type: string
+          enum: [swiss, round_robin, group_stage, single_elimination]
     StagePlanError:
       type: object
       required: [error, code, details]
@@ -1065,8 +1128,12 @@ components:
           type: integer
           minimum: 1
         organizerPassword:
-          type: string
-          description: Optional password to protect organizer access
+          description: Optional password. Empty means no password; a non-empty value must contain at least 8 characters.
+          oneOf:
+            - type: string
+              maxLength: 0
+            - type: string
+              minLength: 8
         supportPassword:
           type: string
           description: Optional password for support staff access

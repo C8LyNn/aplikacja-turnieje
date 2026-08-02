@@ -1,17 +1,18 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGetTournament, useListMatches, useUpdateMatch, useCompleteMatch, useRevertMatch,
   useUpdateTournament,
   useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
+  useListTournamentStages, useGetTournamentStageReadiness,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
-  useVerifyHostCode,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
+  getListTournamentStagesQueryKey, getGetTournamentStageReadinessQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
   Share2, Lock, Key, Copy, Check, Eye, EyeOff,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
@@ -34,12 +35,17 @@ import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-c
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
+import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
+import { OrganizerNextStep } from "@/components/organizer-next-step";
+import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
 
 export default function TournamentHost() {
   const [, params] = useRoute("/tournaments/:id/host");
+  const search = useSearch();
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -66,6 +72,21 @@ export default function TournamentHost() {
   const { data: actionLog } = useGetActionLog(id, {
     query: { enabled: !!id && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
   });
+  const { data: stages } = useListTournamentStages(id, {
+    query: { enabled: !!id, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
+  });
+  const plannedStage = stages?.find((stage) => stage.status === "planned");
+  const { data: plannedStageReadiness } = useGetTournamentStageReadiness(
+    id,
+    plannedStage?.id ?? 0,
+    {
+      query: {
+        enabled: !!id && !!plannedStage,
+        retry: false,
+        queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
+      },
+    },
+  );
 
   const updateMatch = useUpdateMatch();
   const completeMatch = useCompleteMatch();
@@ -78,12 +99,9 @@ export default function TournamentHost() {
   const swapMatchPlayers = useSwapMatchPlayers();
   const reorderMatches = useReorderMatches();
 
-  const lastUndoableAction = actionLog?.find((a) => a.canUndo);
-
   const { isAuthenticated, isReady, authenticate, clearAuth, updateStoredCode } = useHostAuth(id, tournament?.hasHostCode);
-  const verifyCode = useVerifyHostCode();
 
-  const { getOrgToken, getSupSession, storeOrgToken, storeSupSession } = useAuth();
+  const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
 
@@ -91,6 +109,38 @@ export default function TournamentHost() {
   const hasNewAuth = !!(tournament?.hasOrganizerPassword);
   const { orgToken, supSession, isAuthenticated: isNewAuthTokenPresent } = useSyncTournamentAuth(id);
   const isNewAuthAuthenticated = !hasNewAuth || isNewAuthTokenPresent;
+  const capabilities = useMemo(
+    () => tournament
+      ? deriveOrganizerCapabilities({
+          role,
+          tournament,
+          hasOrganizerToken: !!orgToken,
+          hasSupportSession: !!supSession,
+          hasVerifiedLegacyHost: isAuthenticated,
+        })
+      : deriveOrganizerCapabilities({
+          role,
+          tournament: { hasHostCode: false, hasOrganizerPassword: true },
+          hasOrganizerToken: false,
+          hasSupportSession: false,
+        }),
+    [isAuthenticated, orgToken, role, supSession, tournament],
+  );
+  const lastUndoableAction = capabilities.canUndo
+    ? actionLog?.find((action) => action.canUndo)
+    : undefined;
+  const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
+  const activeHostTab = organizerHostTab(search, capabilities);
+  const nextStep = tournament && managementRole && stages !== undefined
+    ? deriveOrganizerNextStep({
+        tournament,
+        stages,
+        matches: tournament.status === "draft" ? [] : matches,
+        surface: "conducting",
+        capabilities,
+        plannedStageReadiness,
+      })
+    : null;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
@@ -119,22 +169,17 @@ export default function TournamentHost() {
     });
   };
 
-  const handleVerifyGate = () => {
+  const handleVerifyGate = async () => {
     setCodeError(null);
-    verifyCode.mutate({ id, data: { code: codeInput } }, {
-      onSuccess: (data) => {
-        if (data.valid) {
-          authenticate(codeInput);
-          setCodeInput("");
-        } else {
-          setCodeError("Nieprawidłowy kod. Spróbuj ponownie.");
-        }
-      },
-      onError: () => setCodeError("Nieprawidłowy kod. Spróbuj ponownie."),
-    });
+    if (await authenticate(codeInput)) {
+      setCodeInput("");
+    } else {
+      setCodeError("Nieprawidłowy kod. Spróbuj ponownie.");
+    }
   };
 
   const handleSaveCode = () => {
+    if (!capabilities.canManageOrganizerSettings) return;
     const trimmed = newCodeInput.trim();
     updateTournament.mutate({ id, data: { hostCode: trimmed || "" } }, {
       onSuccess: () => {
@@ -172,6 +217,7 @@ export default function TournamentHost() {
   };
 
   const adjustScore = (matchId: number, player: 1 | 2, delta: number, bo: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     const max = Math.ceil(bo / 2);
     const cur = getS(matchId, player, 0);
     const next = Math.max(0, Math.min(max, cur + delta));
@@ -186,10 +232,12 @@ export default function TournamentHost() {
 
   // --- Match actions ---
   const handleSetInProgress = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     updateMatch.mutate({ id: matchId, data: { status: "in_progress" } }, { onSuccess: invalidateAll });
   };
 
   const handlePostpone = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     updateMatch.mutate(
       { id: matchId, data: { status: "postponed" } },
       {
@@ -205,6 +253,7 @@ export default function TournamentHost() {
   };
 
   const handleRestore = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     updateMatch.mutate(
       { id: matchId, data: { status: "pending" } },
       {
@@ -218,6 +267,7 @@ export default function TournamentHost() {
   };
 
   const handleChangeBestOf = (matchId: number, bo: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     const match = matches?.find((m) => m.id === matchId);
     const hasScores = (match?.score1 ?? 0) > 0 || (match?.score2 ?? 0) > 0;
     if (hasScores && match?.status === "in_progress") {
@@ -228,6 +278,7 @@ export default function TournamentHost() {
   };
 
   const applyChangeBestOf = (matchId: number, bo: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     updateMatch.mutate({ id: matchId, data: { bestOf: bo } }, {
       onSuccess: () => {
         invalidateAll();
@@ -242,7 +293,7 @@ export default function TournamentHost() {
   };
 
   const handleUndo = () => {
-    if (!lastUndoableAction) return;
+    if (!capabilities.canUndo || !lastUndoableAction) return;
     undoLastAction.mutate({ id }, {
       onSuccess: (result) => {
         invalidateAll();
@@ -256,8 +307,11 @@ export default function TournamentHost() {
     });
   };
 
-  const handleCancel = (matchId: number) => setCancelConfirm(matchId);
+  const handleCancel = (matchId: number) => {
+    if (capabilities.canUseLegacyMatchTools) setCancelConfirm(matchId);
+  };
   const doCancel = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     cancelMatch.mutate({ id: matchId }, {
       onSuccess: () => {
         setCancelConfirm(null);
@@ -270,6 +324,7 @@ export default function TournamentHost() {
   };
 
   const handleRestoreCancelled = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     restoreCancelledMatch.mutate({ id: matchId }, {
       onSuccess: () => {
         invalidateAll();
@@ -281,6 +336,7 @@ export default function TournamentHost() {
   };
 
   const handleWalkover = (matchId: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     setWalkoverConfirm(matchId);
     setConfirmComplete(null);
     setRevertConfirm(null);
@@ -291,6 +347,7 @@ export default function TournamentHost() {
   };
 
   const doWalkover = (matchId: number, winner: 1 | 2) => {
+    if (!capabilities.canWriteTournamentResults) return;
     const match = matches?.find((candidate) => candidate.id === matchId);
     const winnerId = winner === 1 ? match?.player1Id : match?.player2Id;
     if (!winnerId) return;
@@ -312,6 +369,7 @@ export default function TournamentHost() {
   };
 
   const handleNoContest = (matchId: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     setNoContestConfirm(matchId);
     setWalkoverConfirm(null);
     setConfirmComplete(null);
@@ -319,6 +377,7 @@ export default function TournamentHost() {
   };
 
   const doNoContest = (matchId: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", reason: resultReason.trim() || null } }, {
       onSuccess: () => {
         setNoContestConfirm(null);
@@ -330,8 +389,11 @@ export default function TournamentHost() {
     });
   };
 
-  const handleSwapPlayers = (matchId: number) => setSwapConfirm(matchId);
+  const handleSwapPlayers = (matchId: number) => {
+    if (capabilities.canUseLegacyMatchTools) setSwapConfirm(matchId);
+  };
   const doSwapPlayers = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     swapMatchPlayers.mutate({ id: matchId }, {
       onSuccess: () => {
         setSwapConfirm(null);
@@ -343,7 +405,7 @@ export default function TournamentHost() {
   };
 
   const handleMoveInQueue = (matchId: number, direction: "up" | "down") => {
-    if (!matches) return;
+    if (!capabilities.canUseLegacyMatchTools || !matches) return;
     const queue = [...pendingReady].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
     const idx = queue.findIndex((m) => m.id === matchId);
     if (idx < 0) return;
@@ -358,6 +420,7 @@ export default function TournamentHost() {
   };
 
   const handleSetFeatured = (matchId: number) => {
+    if (!capabilities.canUseLegacyMatchTools) return;
     const isCurrent = tournament?.featuredMatchId === matchId;
     updateTournament.mutate(
       { id, data: { featuredMatchId: isCurrent ? null : matchId } as any },
@@ -371,6 +434,7 @@ export default function TournamentHost() {
   };
 
   const handleTryComplete = (matchId: number, match: any) => {
+    if (!capabilities.canWriteTournamentResults) return;
     const s1 = getS(matchId, 1, match.score1);
     const s2 = getS(matchId, 2, match.score2);
     const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
@@ -389,6 +453,7 @@ export default function TournamentHost() {
   };
 
   const doComplete = (matchId: number, score1: number, score2: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     completeMatch.mutate({ id: matchId, data: { resultType: "played", score1, score2 } }, {
       onSuccess: () => {
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
@@ -403,6 +468,7 @@ export default function TournamentHost() {
   };
 
   const handleRevert = (matchId: number) => {
+    if (!capabilities.canWriteTournamentResults) return;
     revertMatch.mutate({ id: matchId }, {
       onSuccess: () => {
         setRevertConfirm(null);
@@ -414,6 +480,7 @@ export default function TournamentHost() {
   };
 
   const handleGenerateRound = () => {
+    if (!capabilities.canGenerateRound) return;
     generateNextRound.mutate({ id }, {
       onSuccess: () => { invalidateAll(); toast({ title: "Nowa runda wygenerowana!" }); },
       onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
@@ -515,13 +582,34 @@ export default function TournamentHost() {
                 </div>
                 {codeError && <p className="text-xs text-destructive">{codeError}</p>}
               </div>
-              <Button className="w-full" disabled={!codeInput || verifyCode.isPending} onClick={handleVerifyGate}>
-                {verifyCode.isPending ? "Weryfikowanie…" : "Wejdź do panelu"}
+              <Button className="w-full" disabled={!codeInput || !isReady} onClick={handleVerifyGate}>
+                {!isReady ? "Weryfikowanie…" : "Wejdź do panelu"}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
                 <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
               </Button>
             </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!capabilities.canViewOrganizerNavigation) {
+    return (
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center space-y-3">
+            <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
+            <h1 className="text-xl font-bold">Brak uprawnień do prowadzenia</h1>
+            <p className="text-sm text-muted-foreground">
+              Zaloguj się jako organizator albo użyj aktywnej sesji wsparcia.
+            </p>
+            <Button variant="outline" asChild>
+              <Link href={`/tournaments/${id}`}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju
+              </Link>
+            </Button>
           </div>
         </div>
       </Layout>
@@ -640,6 +728,7 @@ export default function TournamentHost() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {capabilities.canUseLegacyMatchTools && <>
             {/* BO selector */}
             <div className="flex items-center gap-0.5 bg-background border rounded p-0.5">
               {([1, 3, 5, 7] as const).map((n) => (
@@ -667,6 +756,7 @@ export default function TournamentHost() {
             >
               <Star className={`w-4 h-4 ${isFeatured ? "fill-yellow-400" : ""}`} />
             </Button>
+            </>}
           </div>
         </div>
 
@@ -691,7 +781,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, -1, bo)}
-                  disabled={s1 <= 0 || isDone}
+                  disabled={!capabilities.canWriteTournamentResults || s1 <= 0 || isDone}
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
@@ -707,7 +797,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, 1, bo)}
-                  disabled={s1 >= maxScore || isDone}
+                  disabled={!capabilities.canWriteTournamentResults || s1 >= maxScore || isDone}
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -741,7 +831,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, -1, bo)}
-                  disabled={s2 <= 0 || isDone}
+                  disabled={!capabilities.canWriteTournamentResults || s2 <= 0 || isDone}
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
@@ -757,7 +847,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, 1, bo)}
-                  disabled={s2 >= maxScore || isDone}
+                  disabled={!capabilities.canWriteTournamentResults || s2 >= maxScore || isDone}
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -766,7 +856,7 @@ export default function TournamentHost() {
           </div>
 
           {/* Confirmation overlay */}
-          {isShowingConfirm && confirmComplete && (
+          {capabilities.canWriteTournamentResults && isShowingConfirm && confirmComplete && (
             <div className="mt-5 p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg">
               <p className="font-semibold text-yellow-400 text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Potwierdzenie zapisu
@@ -795,7 +885,7 @@ export default function TournamentHost() {
           )}
 
           {/* Revert confirm */}
-          {isShowingRevert && (
+          {capabilities.canWriteTournamentResults && isShowingRevert && (
             <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="font-semibold text-destructive text-sm mb-2">Cofnąć wynik?</p>
               <p className="text-sm text-muted-foreground mb-3">
@@ -813,7 +903,7 @@ export default function TournamentHost() {
           )}
 
           {/* Cancel confirm */}
-          {isShowingCancel && (
+          {capabilities.canUseLegacyMatchTools && isShowingCancel && (
             <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="font-semibold text-destructive text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Anulować mecz?
@@ -835,7 +925,7 @@ export default function TournamentHost() {
           )}
 
           {/* Swap players confirm */}
-          {isShowingSwap && (
+          {capabilities.canUseLegacyMatchTools && isShowingSwap && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="font-semibold text-orange-400 text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Zamienić zawodników stronami?
@@ -857,7 +947,7 @@ export default function TournamentHost() {
           )}
 
           {/* Walkover confirm */}
-          {isShowingWalkover && (
+          {capabilities.canWriteTournamentResults && isShowingWalkover && (
             <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="font-semibold text-blue-400 text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Walkover — kto wygrał?
@@ -894,7 +984,7 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {isShowingNoContest && (
+          {capabilities.canWriteTournamentResults && isShowingNoContest && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="font-semibold text-orange-400 text-sm mb-1">No contest — bez zwycięzcy</p>
               <p className="text-sm text-muted-foreground mb-3">
@@ -916,7 +1006,7 @@ export default function TournamentHost() {
           )}
 
           {/* Restore cancelled action */}
-          {isCancelled && (
+          {capabilities.canUseLegacyMatchTools && isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
               <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
               <Button
@@ -935,7 +1025,7 @@ export default function TournamentHost() {
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
                 {/* Start — for pending/postponed */}
-                {!isLive && !isDone && (
+                {capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
                   <Button
                     variant="outline"
                     onClick={() => handleSetInProgress(focusedMatch.id)}
@@ -945,7 +1035,7 @@ export default function TournamentHost() {
                   </Button>
                 )}
                 {/* Swap players — for non-completed, both players assigned */}
-                {!isDone && focusedMatch.player1Id && focusedMatch.player2Id && (
+                {capabilities.canUseLegacyMatchTools && !isDone && focusedMatch.player1Id && focusedMatch.player2Id && (
                   <Button
                     variant="outline"
                     className="text-muted-foreground hover:text-foreground"
@@ -957,7 +1047,7 @@ export default function TournamentHost() {
                   </Button>
                 )}
                 {/* Postpone — for pending/in_progress (not done, not already postponed) */}
-                {!isDone && !isPostponed && (
+                {capabilities.canUseLegacyMatchTools && !isDone && !isPostponed && (
                   <Button
                     variant="outline"
                     className="text-muted-foreground hover:text-foreground"
@@ -968,7 +1058,7 @@ export default function TournamentHost() {
                   </Button>
                 )}
                 {/* Restore — for postponed matches */}
-                {isPostponed && (
+                {capabilities.canUseLegacyMatchTools && isPostponed && (
                   <Button
                     variant="outline"
                     className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
@@ -979,7 +1069,7 @@ export default function TournamentHost() {
                   </Button>
                 )}
                 {/* Walkover — for non-completed, non-cancelled, both players present */}
-                {!isDone && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && (
+                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && (
                   <Button
                     variant="outline"
                     className="text-blue-400/70 hover:text-blue-400 hover:border-blue-400/50"
@@ -990,7 +1080,7 @@ export default function TournamentHost() {
                     W.O.
                   </Button>
                 )}
-                {!isDone && !isPostponed && tournament.format !== "single_elimination" && focusedMatch.player1Id && focusedMatch.player2Id && (
+                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && tournament.format !== "single_elimination" && focusedMatch.player1Id && focusedMatch.player2Id && (
                   <Button
                     variant="outline"
                     className="text-orange-400/70 hover:text-orange-400 hover:border-orange-400/50"
@@ -1001,7 +1091,7 @@ export default function TournamentHost() {
                   </Button>
                 )}
                 {/* Cancel — for non-completed, non-cancelled */}
-                {!isDone && (
+                {capabilities.canUseLegacyMatchTools && !isDone && (
                   <Button
                     variant="outline"
                     className="text-destructive/60 hover:text-destructive hover:border-destructive/50"
@@ -1015,7 +1105,7 @@ export default function TournamentHost() {
               </div>
 
               <div className="flex gap-2">
-                {isDone && (
+                {capabilities.canWriteTournamentResults && isDone && (
                   <Button
                     variant="outline"
                     className="border-destructive text-destructive hover:bg-destructive/10"
@@ -1024,7 +1114,7 @@ export default function TournamentHost() {
                     <RotateCcw className="w-4 h-4 mr-2" /> Cofnij wynik
                   </Button>
                 )}
-                {!isDone && !isPostponed && (
+                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && (
                   <Button
                     size="default"
                     className="bg-primary hover:bg-primary/90 font-semibold px-6"
@@ -1059,20 +1149,10 @@ export default function TournamentHost() {
               {tournament.format} · Runda {tournament.currentRound ?? "—"}/{tournament.totalRounds ?? "—"}
             </p>
           </div>
-          {lastUndoableAction && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
-              onClick={() => setUndoConfirm(true)}
-            >
-              <Undo2 className="w-4 h-4 mr-1" /> Cofnij
-            </Button>
-          )}
-          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
+          {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
             <Share2 className="w-4 h-4 mr-1" /> Udostępnij
-          </Button>
-          <Button
+          </Button>}
+          {capabilities.canManageOrganizerSettings && <Button
             variant="outline"
             size="sm"
             className="shrink-0"
@@ -1080,7 +1160,7 @@ export default function TournamentHost() {
             title={tournament.hasHostCode ? "Zarządzaj kodem prowadzącego" : "Ustaw kod prowadzącego"}
           >
             <Key className="w-4 h-4 mr-1" /> Kod
-          </Button>
+          </Button>}
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={`/tournaments/${id}/audience`}>
               <Monitor className="w-4 h-4 mr-1" /> Widok widzów
@@ -1088,8 +1168,31 @@ export default function TournamentHost() {
           </Button>
         </div>
 
+        {managementRole && (
+          <TournamentOrganizerNavigation
+            tournamentId={id}
+            active={organizerAreaForHostTab(activeHostTab)}
+            capabilities={capabilities}
+          />
+        )}
+        {nextStep && (
+          <OrganizerNextStep
+            step={nextStep}
+            onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
+            pending={generateNextRound.isPending}
+          />
+        )}
+        {capabilities.canUndo && lastUndoableAction && !undoConfirm && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Ostatnia akcja: {lastUndoableAction.description}</span>
+            <Button variant="ghost" size="sm" className="h-7 text-yellow-500" onClick={() => setUndoConfirm(true)}>
+              <Undo2 className="mr-1 h-3.5 w-3.5" /> Cofnij
+            </Button>
+          </div>
+        )}
+
         {/* Undo confirmation banner */}
-        {undoConfirm && lastUndoableAction && (
+        {capabilities.canUndo && undoConfirm && lastUndoableAction && (
           <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-3 flex items-center gap-3">
             <Undo2 className="w-5 h-5 text-yellow-400 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -1108,7 +1211,7 @@ export default function TournamentHost() {
         )}
 
         {/* BO change confirmation */}
-        {boConfirm && (() => {
+        {capabilities.canUseLegacyMatchTools && boConfirm && (() => {
           const bm = matches?.find((m) => m.id === boConfirm.matchId);
           return (
             <div className="bg-orange-500/10 border border-orange-500/40 rounded-lg p-3 flex items-center gap-3">
@@ -1142,43 +1245,7 @@ export default function TournamentHost() {
           </div>
         )}
 
-        {/* Generate round banner */}
-        {canGenerateRound && (
-          <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-4 flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-secondary">Runda {tournament.currentRound} zakończona!</p>
-              <p className="text-sm text-muted-foreground">
-                Wygeneruj rundę {(tournament.currentRound ?? 0) + 1} Swiss
-              </p>
-            </div>
-            <Button
-              className="bg-secondary text-secondary-foreground"
-              onClick={handleGenerateRound}
-              disabled={generateNextRound.isPending}
-            >
-              Generuj rundę {(tournament.currentRound ?? 0) + 1}
-            </Button>
-          </div>
-        )}
-
-        <Tabs defaultValue="prowadzenie" className="w-full">
-          <TabsList className="bg-card border-b rounded-none px-0 h-auto w-full justify-start flex-wrap">
-            {[
-              { value: "prowadzenie", label: "Prowadzenie" },
-              { value: "wyniki", label: "Wyniki" },
-              { value: "tabela", label: tournament.format === "single_elimination" ? "Bilans" : "Tabela" },
-              { value: "drabinka", label: "Drabinka" },
-              { value: "korekta", label: "Korekta błędów" },
-            ].map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 text-sm"
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <Tabs value={activeHostTab} className="w-full">
 
           {/* ═══ PROWADZENIE ═══ */}
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
@@ -1214,7 +1281,7 @@ export default function TournamentHost() {
                           }`}
                         >
                           {/* Reorder arrows */}
-                          <div className="flex flex-col py-1 pl-1 shrink-0">
+                          {capabilities.canUseLegacyMatchTools && <div className="flex flex-col py-1 pl-1 shrink-0">
                             <button
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "up")}
@@ -1231,7 +1298,7 @@ export default function TournamentHost() {
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
-                          </div>
+                          </div>}
                           <button
                             className="flex-1 text-left px-2 py-2.5 flex items-center gap-3 hover:bg-muted/20 transition-colors min-w-0"
                             onClick={() => setSelectedMatchId(m.id)}
@@ -1262,7 +1329,7 @@ export default function TournamentHost() {
                             )}
                           </button>
                           {/* Set as current button for non-focused matches */}
-                          {m.id !== focusedMatchId && m.status !== "in_progress" && (
+                          {capabilities.canUseLegacyMatchTools && m.id !== focusedMatchId && m.status !== "in_progress" && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1355,9 +1422,9 @@ export default function TournamentHost() {
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-400 hover:text-orange-300" onClick={() => setSelectedMatchId(m.id)}>
                           Pokaż
                         </Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
+                        {capabilities.canUseLegacyMatchTools && <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
                           <SkipForward className="w-3 h-3 mr-1" /> Przywróć
-                        </Button>
+                        </Button>}
                       </div>
                     </div>
                   ))}
@@ -1388,7 +1455,7 @@ export default function TournamentHost() {
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedMatchId(m.id)}>
                           Pokaż
                         </Button>
-                        <Button
+                        {capabilities.canUseLegacyMatchTools && <Button
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs border-destructive/40 text-destructive/70 hover:bg-destructive/10"
@@ -1396,7 +1463,7 @@ export default function TournamentHost() {
                           disabled={restoreCancelledMatch.isPending}
                         >
                           <SkipForward className="w-3 h-3 mr-1" /> Przywróć
-                        </Button>
+                        </Button>}
                       </div>
                     </div>
                   ))}
@@ -1599,7 +1666,7 @@ export default function TournamentHost() {
                 </div>
               </div>
 
-              {revertConfirm && (
+              {capabilities.canWriteTournamentResults && revertConfirm && (
                 <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
                   <p className="font-semibold text-destructive mb-2">Potwierdzenie cofnięcia wyniku</p>
                   {(() => {
@@ -1634,8 +1701,7 @@ export default function TournamentHost() {
                   </div>
                 ) : (
                   <div className="space-y-1.5">
-                    {actionLog.map((entry, idx) => {
-                      const isFirst = idx === 0;
+                    {actionLog.map((entry) => {
                       const typeColors: Record<string, string> = {
                         match_result_submitted: "text-green-400",
                         match_result_reverted: "text-orange-400",
@@ -1669,17 +1735,7 @@ export default function TournamentHost() {
                             <span className="text-xs text-muted-foreground">
                               {new Date(entry.createdAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                             </span>
-                            {isFirst && entry.canUndo && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-xs border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
-                                onClick={() => setUndoConfirm(true)}
-                              >
-                                <Undo2 className="w-3 h-3 mr-1" /> Cofnij
-                              </Button>
-                            )}
-                            {entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId) && (
+                            {capabilities.canWriteTournamentResults && entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId) && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1762,7 +1818,10 @@ export default function TournamentHost() {
       </Dialog>
 
       {/* Host Code Manager Dialog */}
-      <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
+      <Dialog
+        open={capabilities.canManageOrganizerSettings && showCodeDialog}
+        onOpenChange={setShowCodeDialog}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

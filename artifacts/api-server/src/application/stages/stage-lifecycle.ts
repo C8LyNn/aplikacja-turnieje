@@ -23,48 +23,22 @@ import {
 } from "../../domain/tournament/stage-ranking";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
 import { generateSwissPairings } from "../../domain/tournament/swiss";
+import {
+  assertStageStartReady,
+  evaluateStageStartReadiness,
+  StageLifecycleError,
+  type StageLifecycleErrorCode,
+  type StageStartReadiness,
+} from "./stage-start-readiness";
 
-export type StageLifecycleErrorCode =
-  | "TOURNAMENT_NOT_FOUND"
-  | "STAGE_NOT_FOUND"
-  | "STAGE_NOT_ACTIVE"
-  | "STAGE_NOT_NEXT_PLANNED"
-  | "ACTIVE_STAGE_EXISTS"
-  | "PREVIOUS_STAGE_NOT_COMPLETED"
-  | "STAGE_INCOMPLETE"
-  | "STAGE_PARTICIPANTS_INCONSISTENT"
-  | "QUALIFICATION_CONFIGURATION_INVALID"
-  | "STAGE_FORMAT_NOT_SUPPORTED"
-  | "STAGE_ALREADY_COMPLETED"
-  | "STAGE_ALREADY_STARTED"
-  | "MATCHES_ALREADY_EXIST"
-  | "GROUPS_ALREADY_EXIST"
-  | "RANKING_INCONSISTENT";
-
-const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
-  TOURNAMENT_NOT_FOUND: "Turniej nie istnieje.",
-  STAGE_NOT_FOUND: "Etap nie istnieje.",
-  STAGE_NOT_ACTIVE: "Zakończyć można wyłącznie aktywny etap.",
-  STAGE_NOT_NEXT_PLANNED: "Uruchomić można wyłącznie najbliższy zaplanowany etap.",
-  ACTIVE_STAGE_EXISTS: "Inny etap turnieju jest już aktywny.",
-  PREVIOUS_STAGE_NOT_COMPLETED: "Poprzedni etap nie został zakończony.",
-  STAGE_INCOMPLETE: "Nie wszystkie wymagane mecze i rundy etapu są zakończone.",
-  STAGE_PARTICIPANTS_INCONSISTENT: "Uczestnicy etapu są niespójni.",
-  QUALIFICATION_CONFIGURATION_INVALID: "Konfiguracja kwalifikacji między etapami jest niespójna.",
-  STAGE_FORMAT_NOT_SUPPORTED: "Ten format etapu nie jest jeszcze obsługiwany przez lifecycle.",
-  STAGE_ALREADY_COMPLETED: "Etap został już zakończony.",
-  STAGE_ALREADY_STARTED: "Etap został już uruchomiony.",
-  MATCHES_ALREADY_EXIST: "Planowany etap zawiera już mecze.",
-  GROUPS_ALREADY_EXIST: "Planowany etap zawiera już grupy.",
-  RANKING_INCONSISTENT: "Nie można wyliczyć jednoznacznego rankingu etapu.",
-};
-
-export class StageLifecycleError extends Error {
-  constructor(public readonly code: StageLifecycleErrorCode) {
-    super(ERROR_MESSAGES[code]);
-    this.name = "StageLifecycleError";
-  }
-}
+export {
+  assertStageStartReady,
+  evaluateStageStartReadiness,
+  StageLifecycleError,
+  type StageLifecycleErrorCode,
+  type StageStartReadiness,
+  type StageStartValidationSnapshot,
+} from "./stage-start-readiness";
 
 export interface StageLifecycleTestHooks {
   /** Test-only fault seam. It is never wired to an HTTP field, header, or environment variable. */
@@ -102,6 +76,50 @@ export interface QualificationPreview {
     qualificationSource: "standings" | "group_position";
     nextStageSeed: number;
   }>;
+}
+
+export async function getStageStartReadiness(input: {
+  tournamentId: number;
+  stageId: number;
+}): Promise<StageStartReadiness> {
+  const [tournament] = await db.select().from(tournamentsTable)
+    .where(eq(tournamentsTable.id, input.tournamentId));
+  if (!tournament) throw new StageLifecycleError("TOURNAMENT_NOT_FOUND");
+  const stages = await db.select().from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+    .orderBy(asc(tournamentStagesTable.position));
+  const stage = stages.find((candidate) => candidate.id === input.stageId);
+  if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
+  const previous = stages.find((candidate) => candidate.position === stage.position - 1);
+  const existingMatches = await db.select({ id: matchesTable.id }).from(matchesTable)
+    .where(eq(matchesTable.stageId, stage.id));
+  const existingGroups = await db.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
+    .where(eq(stageGroupsTable.stageId, stage.id));
+  const memberships = await db.select().from(stageParticipantsTable)
+    .where(eq(stageParticipantsTable.stageId, stage.id))
+    .orderBy(asc(stageParticipantsTable.stageSeed));
+  const sourceMemberships = previous
+    ? await db.select().from(stageParticipantsTable)
+      .where(eq(stageParticipantsTable.stageId, previous.id))
+    : [];
+  const sourceGroups = previous?.format === "group_stage"
+    ? await db.select().from(stageGroupsTable).where(eq(stageGroupsTable.stageId, previous.id))
+    : [];
+  const players = memberships.length === 0
+    ? []
+    : await db.select().from(playersTable)
+      .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId)));
+  return evaluateStageStartReadiness({
+    tournament,
+    stages,
+    stage,
+    existingMatchCount: existingMatches.length,
+    existingGroupCount: existingGroups.length,
+    memberships,
+    sourceMemberships,
+    sourceGroups,
+    players,
+  });
 }
 
 function nextPowerOfTwo(value: number): number {
@@ -729,88 +747,39 @@ export async function startStage(
       .orderBy(asc(tournamentStagesTable.position)).for("update");
     const stage = stages.find((candidate) => candidate.id === input.stageId);
     if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
-    if (stage.status === "active") throw new StageLifecycleError("STAGE_ALREADY_STARTED");
-    if (stage.status === "completed") throw new StageLifecycleError("STAGE_ALREADY_COMPLETED");
-    if (tournament.activeStageId != null || stages.some((candidate) => candidate.status === "active")) {
-      throw new StageLifecycleError("ACTIVE_STAGE_EXISTS");
-    }
-    const nextPlanned = stages.find((candidate) => candidate.status === "planned");
-    if (!nextPlanned || nextPlanned.id !== stage.id) throw new StageLifecycleError("STAGE_NOT_NEXT_PLANNED");
     const previous = stages.find((candidate) => candidate.position === stage.position - 1);
-    if (previous && previous.status !== "completed") throw new StageLifecycleError("PREVIOUS_STAGE_NOT_COMPLETED");
 
     const existingMatches = await tx.select({ id: matchesTable.id }).from(matchesTable)
       .where(eq(matchesTable.stageId, stage.id)).for("update");
-    if (existingMatches.length > 0) throw new StageLifecycleError("MATCHES_ALREADY_EXIST");
     const existingGroups = await tx.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
       .where(eq(stageGroupsTable.stageId, stage.id)).for("update");
-    if (existingGroups.length > 0) throw new StageLifecycleError("GROUPS_ALREADY_EXIST");
     const memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
-    if (memberships.length !== stage.participantCount || memberships.length < 2) {
-      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-    }
-    if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
-      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-    }
-    if (previous) {
-      const sourceMemberships = await tx.select().from(stageParticipantsTable)
-        .where(eq(stageParticipantsTable.stageId, previous.id)).for("update");
-      const sourceById = new Map(sourceMemberships.map((membership) => [membership.id, membership]));
-      if (memberships.some((membership) => {
-        const source = membership.sourceStageParticipantId == null
-          ? null
-          : sourceById.get(membership.sourceStageParticipantId);
-        return !source ||
-          source.playerId !== membership.playerId ||
-          source.status !== "qualified" ||
-          source.nextStageSeed !== membership.stageSeed ||
-          membership.qualificationSource === "registration";
-      })) {
-        throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-      }
-      if (previous.format === "group_stage") {
-        if (stage.format !== "single_elimination") {
-          throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-        }
-        const sourceGroups = await tx.select().from(stageGroupsTable)
-          .where(eq(stageGroupsTable.stageId, previous.id)).for("update");
-        const groupById = new Map(sourceGroups.map((group) => [group.id, group]));
-        const playoff = buildGroupPlayoffSlots({
-          groupCount: previous.groupCount ?? 0,
-          qualifiersPerGroup: previous.qualifiersPerGroup ?? 0,
-        });
-        if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-        const bracketSeeds = bracketPositions(playoff.slots.length);
-        const expectedSeedBySource = new Map(playoff.slots.map((slot, index) => [
-          `${slot.source.groupKey}:${slot.source.groupRank}`,
-          bracketSeeds[index],
-        ]));
-        if (memberships.some((membership) => {
-          const source = membership.sourceStageParticipantId == null
-            ? null
-            : sourceById.get(membership.sourceStageParticipantId);
-          const group = source?.groupId == null ? null : groupById.get(source.groupId);
-          const expectedSeed = group && source?.groupRank != null
-            ? expectedSeedBySource.get(`${group.groupKey}:${source.groupRank}`)
-            : null;
-          return membership.qualificationSource !== "group_position" || expectedSeed !== membership.stageSeed;
-        })) {
-          throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-        }
-      }
-    } else if (memberships.some(
-      (membership) => membership.sourceStageParticipantId != null || membership.qualificationSource !== "registration",
-    )) {
-      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-    }
-    const players = await tx.select().from(playersTable)
-      .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId))).for("update");
+    const sourceMemberships = previous
+      ? await tx.select().from(stageParticipantsTable)
+        .where(eq(stageParticipantsTable.stageId, previous.id)).for("update")
+      : [];
+    const sourceGroups = previous?.format === "group_stage"
+      ? await tx.select().from(stageGroupsTable)
+        .where(eq(stageGroupsTable.stageId, previous.id)).for("update")
+      : [];
+    const players = memberships.length === 0
+      ? []
+      : await tx.select().from(playersTable)
+        .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId))).for("update");
+    assertStageStartReady({
+      tournament,
+      stages,
+      stage,
+      existingMatchCount: existingMatches.length,
+      existingGroupCount: existingGroups.length,
+      memberships,
+      sourceMemberships,
+      sourceGroups,
+      players,
+    });
     const playerById = new Map(players.map((player) => [player.id, player]));
-    if (players.length !== memberships.length || players.some((player) => player.tournamentId !== tournament.id)) {
-      throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
-    }
     const stagePlayers = memberships.map((membership) => ({
       ...playerById.get(membership.playerId)!,
       seed: membership.stageSeed,
@@ -819,22 +788,9 @@ export async function startStage(
     let inserted: Array<typeof matchesTable.$inferSelect>;
     let totalRounds: number;
     if (stage.format === "group_stage") {
-      const groupCount = stage.groupCount;
-      const groupSize = stage.participantsPerGroup;
-      const qualifiersPerGroup = stage.qualifiersPerGroup;
-      if (
-        (groupCount !== 2 && groupCount !== 4) ||
-        groupSize == null ||
-        groupSize < 3 ||
-        groupSize > 8 ||
-        (qualifiersPerGroup !== 1 && qualifiersPerGroup !== 2) ||
-        qualifiersPerGroup >= groupSize ||
-        memberships.length !== groupCount * groupSize ||
-        stage.qualificationMode !== "top_n_per_group" ||
-        stage.seedingPolicy !== "snake_groups"
-      ) {
-        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-      }
+      const groupCount = stage.groupCount!;
+      const groupSize = stage.participantsPerGroup!;
+      const qualifiersPerGroup = stage.qualifiersPerGroup!;
       const groups = (await tx.insert(stageGroupsTable).values(
         GROUP_KEYS.slice(0, groupCount).map((groupKey, index) => ({
           stageId: stage.id,

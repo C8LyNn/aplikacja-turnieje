@@ -1,16 +1,18 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGetTournament, useGetTournamentStats, useListPlayers, useGetTournamentBracket,
   useListMatches, useAddPlayer, useDeletePlayer, useStartTournament, useImportPlayers,
   useUpdatePlayer,
-  useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant,
+  useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useListTournamentStages,
+  useGetTournamentStageReadiness,
   useImportTournament,
   exportTournament,
   getGetTournamentQueryKey, getGetTournamentStatsQueryKey, getListPlayersQueryKey,
   getGetTournamentBracketQueryKey, getListMatchesQueryKey, getGetTournamentStandingsQueryKey,
-  getGetResultsHistoryQueryKey, getGetTournamentAssistantQueryKey,
+  getGetResultsHistoryQueryKey, getGetTournamentAssistantQueryKey, getListTournamentStagesQueryKey,
+  getGetTournamentStageReadinessQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,10 +20,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, Play, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
+import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
@@ -35,6 +37,13 @@ import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
+import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
+import { OrganizerNextStep } from "@/components/organizer-next-step";
+import { availableStageStartReadiness, deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
+import { useHostAuth } from "@/hooks/use-host-auth";
+import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
+import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -44,6 +53,7 @@ const FORMAT_LABELS: Record<string, string> = {
 
 export default function TournamentDetail() {
   const [, params] = useRoute("/tournaments/:id");
+  const search = useSearch();
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -57,7 +67,9 @@ export default function TournamentDetail() {
   // Deps: only [id] — login modals call setActive* directly (synchronous).
   // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
-  const supSession = getSupSession(id);
+  const storedSupportSession = getSupSession(id);
+  const { supportSession: supSession, isChecking: isSupportChecking } =
+    useVerifiedSupportSession(id, orgToken ? null : storedSupportSession);
   const viewerToken = getViewerTok(id);
   const isAuthenticated = !!(orgToken || supSession);
   const hasReadAccess = (tournament: { visibility?: string } | null | undefined) =>
@@ -65,18 +77,17 @@ export default function TournamentDetail() {
 
   useEffect(() => {
     const tok = getOrgToken(id);
-    const sess = getSupSession(id);
     const vtok = getViewerTok(id);
     if (tok) { setActiveOrganizerToken(tok); setActiveSupportToken(null); setActiveViewerToken(null); }
-    else if (sess) { setActiveSupportToken(sess.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
+    else if (supSession) { setActiveSupportToken(supSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
     else if (vtok) { setActiveViewerToken(vtok); setActiveOrganizerToken(null); setActiveSupportToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    setPreparedAuthId(id);
+    setPreparedAuthId(isSupportChecking ? null : id);
     return () => {
       setPreparedAuthId(null);
       setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
     };
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isSupportChecking, supSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle direct role links: ?login=organizer|support|viewer
   useEffect(() => {
@@ -123,6 +134,22 @@ export default function TournamentDetail() {
   const { data: assistant } = useGetTournamentAssistant(id, {
     query: { enabled: !!id && readOk, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 15000 },
   });
+  const legacyHostAuth = useHostAuth(id, tournament?.hasHostCode);
+  const { data: stages } = useListTournamentStages(id, {
+    query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id) },
+  });
+  const plannedStage = stages?.find((stage) => stage.status === "planned");
+  const { data: plannedStageReadiness, isFetching: isFetchingPlannedStageReadiness } = useGetTournamentStageReadiness(
+    id,
+    plannedStage?.id ?? 0,
+    {
+      query: {
+        enabled: !!id && readOk && !!plannedStage,
+        retry: false,
+        queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
+      },
+    },
+  );
 
   const startTournament = useStartTournament();
   const addPlayer = useAddPlayer();
@@ -170,6 +197,45 @@ export default function TournamentDetail() {
   const [editTeam, setEditTeam] = useState("");
   const [editSeed, setEditSeed] = useState("");
 
+  const capabilities = useMemo(
+    () => tournament
+      ? deriveOrganizerCapabilities({
+          role,
+          tournament,
+          hasOrganizerToken: !!orgToken,
+          hasSupportSession: !!supSession,
+          hasVerifiedLegacyHost: legacyHostAuth.isAuthenticated,
+        })
+      : deriveOrganizerCapabilities({
+          role,
+          tournament: { hasHostCode: false, hasOrganizerPassword: true },
+          hasOrganizerToken: false,
+          hasSupportSession: false,
+        }),
+    [legacyHostAuth.isAuthenticated, orgToken, role, supSession, tournament],
+  );
+  const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
+  const activeDetailTab = organizerDetailTab(search, capabilities);
+  const activeArea = organizerAreaForDetailTab(activeDetailTab);
+  const nextStep = useMemo(
+    () => tournament && managementRole && stages !== undefined
+      ? deriveOrganizerNextStep({
+          tournament,
+          stages,
+          matches: tournament.status === "draft" ? [] : matches,
+          surface: "details",
+          capabilities,
+          plannedStageReadiness: availableStageStartReadiness(
+            plannedStageReadiness,
+            isFetchingPlannedStageReadiness,
+          ),
+        })
+      : null,
+    [capabilities, isFetchingPlannedStageReadiness, managementRole, matches, plannedStageReadiness, stages, tournament],
+  );
+
+  useLegacyMatchesRedirect(id, search, capabilities);
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
     queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
@@ -179,7 +245,11 @@ export default function TournamentDetail() {
     queryClient.invalidateQueries({ queryKey: getGetTournamentStandingsQueryKey(id) });
     queryClient.invalidateQueries({ queryKey: getGetResultsHistoryQueryKey(id) });
     queryClient.invalidateQueries({ queryKey: getGetTournamentAssistantQueryKey(id) });
+    void invalidateTournamentRosterQueries(queryClient, id, stages?.map((stage) => stage.id) ?? []);
   };
+
+  const invalidateRoster = () =>
+    invalidateTournamentRosterQueries(queryClient, id, stages?.map((stage) => stage.id) ?? []);
 
   const handleMutationError = (e: any, fallback?: string) => {
     if (e?.status === 403) {
@@ -291,8 +361,7 @@ export default function TournamentDetail() {
       onSuccess: () => {
         setNewPlayerName(""); setNewPlayerSeed(""); setNewPlayerRank(""); setNewPlayerCountry(""); setNewPlayerTeam("");
         setAddPlayerError(null);
-        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
-        queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
+        void invalidateRoster();
       },
       onError: (err: any) => {
         const msg: string = err?.data?.error ?? err?.message ?? "Błąd podczas dodawania gracza";
@@ -316,8 +385,7 @@ export default function TournamentDetail() {
     deletePlayer.mutate({ id: confirmDeletePlayerId }, {
       onSuccess: () => {
         setConfirmDeletePlayerId(null);
-        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
-        queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
+        void invalidateRoster();
       },
       onError: (e: any) => { setConfirmDeletePlayerId(null); handleMutationError(e); },
     });
@@ -346,7 +414,7 @@ export default function TournamentDetail() {
     }, {
       onSuccess: () => {
         setEditingPlayerId(null);
-        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
+        void invalidateRoster();
         toast({ title: "Gracz zaktualizowany" });
       },
       onError: (e: any) => handleMutationError(e),
@@ -366,8 +434,7 @@ export default function TournamentDetail() {
     importPlayers.mutate({ id, data: { csv: csvText, mode: csvMode } }, {
       onSuccess: (result) => {
         setCsvResult(result);
-        queryClient.invalidateQueries({ queryKey: getListPlayersQueryKey(id) });
-        queryClient.invalidateQueries({ queryKey: getGetTournamentStatsQueryKey(id) });
+        void invalidateRoster();
       },
       onError: (e: any) => handleMutationError(e, "Błąd importu CSV"),
     });
@@ -503,12 +570,6 @@ export default function TournamentDetail() {
             >
               <CheckSquare className="w-4 h-4 mr-2" /> Checklista
             </Button>
-            {tournament.status === "draft" && (
-              <Button onClick={handleStart} disabled={startTournament.isPending || !players || players.length < 2}
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                <Play className="w-4 h-4 mr-2" /> Rozpocznij
-              </Button>
-            )}
             {tournament.status !== "draft" && (
               <>
                 <Button variant="outline" asChild>
@@ -545,6 +606,17 @@ export default function TournamentDetail() {
               )}
             </div>
           </div>
+        )}
+
+        {managementRole && (
+          <TournamentOrganizerNavigation tournamentId={id} active={activeArea} capabilities={capabilities} />
+        )}
+        {nextStep && (
+          <OrganizerNextStep
+            step={nextStep}
+            onAction={nextStep.kind === "planned_stage" ? handleStart : undefined}
+            pending={startTournament.isPending}
+          />
         )}
 
         {/* Fan read-only banner */}
@@ -667,35 +739,7 @@ export default function TournamentDetail() {
           </div>
         )}
 
-        {readOk && <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="bg-card w-full justify-start border-b rounded-none px-0 h-auto flex-wrap">
-            <TabsTrigger value="overview" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Przegląd</TabsTrigger>
-            <TabsTrigger value="stages" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Etapy</TabsTrigger>
-            <TabsTrigger value="players" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Gracze</TabsTrigger>
-            {tournament.status !== "draft" && (
-              <>
-                <TabsTrigger value="matches" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Mecze</TabsTrigger>
-                <TabsTrigger value="standings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">{tournament.format === "single_elimination" ? "Bilans" : "Tabela"}</TabsTrigger>
-                <TabsTrigger value="bracket" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Drabinka</TabsTrigger>
-                <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3">Historia</TabsTrigger>
-              </>
-            )}
-            {!!orgToken && (
-              <TabsTrigger value="backup" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
-                <HardDriveDownload className="w-3.5 h-3.5" /> Backup
-              </TabsTrigger>
-            )}
-            {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
-              <TabsTrigger value="security" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" /> Bezpieczeństwo
-              </TabsTrigger>
-            )}
-            {isAuthenticated && !!orgToken && (
-              <TabsTrigger value="sharing" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 flex items-center gap-1.5">
-                <Share2 className="w-3.5 h-3.5" /> Udostępnianie
-              </TabsTrigger>
-            )}
-          </TabsList>
+        {readOk && <Tabs value={activeDetailTab} className="w-full">
 
           <TabsContent value="overview" className="pt-6">
             {stats && (
@@ -770,7 +814,7 @@ export default function TournamentDetail() {
               tournamentStatus={tournament.status}
               activeStageId={tournament.activeStageId}
               matches={matches ?? []}
-              canManage={!!orgToken}
+              canManage={capabilities.canManageLifecycle}
               onChanged={invalidateAll}
             />
           </TabsContent>
@@ -781,14 +825,14 @@ export default function TournamentDetail() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Zawodnicy ({players?.length ?? 0})</CardTitle>
-                    {tournament.status === "draft" && (
+                    {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
                         <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
                       </Button>
                     )}
                   </CardHeader>
 
-                  {showCsvImport && (
+                  {showCsvImport && capabilities.canManageParticipants && (
                     <div className="border-b">
                       {/* Result panel */}
                       {csvResult ? (
@@ -955,7 +999,7 @@ export default function TournamentDetail() {
                     {players?.length ? (
                       <div className="space-y-2">
                         {players.map((p) => (
-                          editingPlayerId === p.id ? (
+                          capabilities.canManageParticipants && editingPlayerId === p.id ? (
                             // Inline edit form
                             <div key={p.id} className="border border-primary/40 rounded bg-background p-3 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
@@ -1015,10 +1059,12 @@ export default function TournamentDetail() {
                                 <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
                                   {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
                                 </Badge>
-                                <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </Button>
-                                {tournament.status === "draft" && (
+                                {capabilities.canManageParticipants && (
+                                  <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                                {capabilities.canManageParticipants && tournament.status === "draft" && (
                                   confirmDeletePlayerId === p.id ? (
                                     <div className="flex items-center gap-1">
                                       <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={handleConfirmDeletePlayer} disabled={deletePlayer.isPending}>
@@ -1040,13 +1086,17 @@ export default function TournamentDetail() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">Brak graczy. Dodaj ręcznie lub importuj CSV.</div>
+                      <div className="text-center py-8 text-muted-foreground">
+                        {capabilities.canManageParticipants
+                          ? "Brak graczy. Dodaj ręcznie lub importuj CSV."
+                          : "Brak graczy w tym turnieju."}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
               <div>
-                {tournament.status === "draft" && (
+                {tournament.status === "draft" && capabilities.canManageParticipants && (
                   <Card>
                     <CardHeader><CardTitle>Dodaj gracza</CardTitle></CardHeader>
                     <CardContent>
@@ -1316,7 +1366,7 @@ export default function TournamentDetail() {
             </Card>
           </TabsContent>
           {/* ═══ BACKUP — organizer token required ═══ */}
-          {!!orgToken && <TabsContent value="backup" className="pt-6">
+          {capabilities.canManageBackup && <TabsContent value="backup" className="pt-6">
             <div className="space-y-6 max-w-2xl">
 
               {/* Tip banner */}
@@ -1430,13 +1480,13 @@ export default function TournamentDetail() {
             </div>
           </TabsContent>}
 
-          {(tournament.hasOrganizerPassword || tournament.hasSupportPassword) && (
+          {capabilities.canManageOrganizerSettings && (
             <TabsContent value="security" className="pt-6">
               <SecurityPanel tournamentId={id} />
             </TabsContent>
           )}
 
-          {isAuthenticated && !!orgToken && (
+          {capabilities.canManageSharing && !!orgToken && (
             <TabsContent value="sharing" className="pt-6">
               <SharingPanel tournament={tournament as any} orgToken={orgToken} />
             </TabsContent>

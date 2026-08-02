@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Globe, Eye, EyeOff, Layers3, Lock, Trophy } from "lucide-react";
+import { Globe, Layers3, Lock, Trophy } from "lucide-react";
 import {
   useCreateTournament,
   type TournamentInput,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordField } from "@/components/password-field";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,13 @@ import {
   validateStageDrafts,
   withOptionalStagePlan,
 } from "@/lib/tournament-stages-ui";
+import {
+  focusInvalidCreateTournamentField,
+  ORGANIZER_PASSWORD_MIN_LENGTH,
+  organizerPasswordError,
+  organizerPasswordRemaining,
+  tournamentNameError,
+} from "@/lib/create-tournament-validation";
 
 const FORMAT_INFO: Record<
   TournamentInput["format"],
@@ -83,6 +91,11 @@ export default function CreateTournament() {
   ]);
   const [showValidation, setShowValidation] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
+  const [nameTouched, setNameTouched] = useState(false);
+  const [organizerPasswordTouched, setOrganizerPasswordTouched] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const organizerPasswordInputRef = useRef<HTMLInputElement>(null);
+  const submitInFlightRef = useRef(false);
 
   const validationErrors = useMemo(
     () => (stageMode ? validateStageDrafts(stages) : []),
@@ -94,7 +107,20 @@ export default function CreateTournament() {
     event.preventDefault();
     setSubmitError(undefined);
     setShowValidation(true);
+    const invalidField = focusInvalidCreateTournamentField({
+      name,
+      organizerPassword,
+      nameElement: nameInputRef.current,
+      organizerPasswordElement: organizerPasswordInputRef.current,
+    });
+    if (invalidField) {
+      if (invalidField === "name") setNameTouched(true);
+      if (invalidField === "organizerPassword") setOrganizerPasswordTouched(true);
+      return;
+    }
     if (stageMode && validationErrors.length > 0) return;
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
 
     const legacyPayload: TournamentInput = {
       name: name.trim(),
@@ -118,8 +144,14 @@ export default function CreateTournament() {
     createTournament.mutate(
       { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
       {
-        onSuccess: (tournament) => navigate(`/tournaments/${tournament.id}`),
-        onError: (error) => setSubmitError(getApiErrorMessage(error)),
+        onSuccess: (tournament) => {
+          submitInFlightRef.current = false;
+          navigate(`/tournaments/${tournament.id}`);
+        },
+        onError: (error) => {
+          submitInFlightRef.current = false;
+          setSubmitError(getApiErrorMessage(error));
+        },
       },
     );
   };
@@ -145,16 +177,25 @@ export default function CreateTournament() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="tournament-name">Nazwa turnieju *</Label>
                 <Input
                   id="tournament-name"
+                  ref={nameInputRef}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
+                  onBlur={() => setNameTouched(true)}
                   placeholder="np. Spring Championship 2026"
+                  aria-describedby={(nameTouched || showValidation) && tournamentNameError(name) ? "tournament-name-error" : undefined}
+                  aria-invalid={(nameTouched || showValidation) && !!tournamentNameError(name) ? true : undefined}
                   required
                 />
+                {(nameTouched || showValidation) && tournamentNameError(name) && (
+                  <p id="tournament-name-error" role="alert" className="text-sm font-medium text-destructive">
+                    <span aria-hidden="true">⚠ </span>{tournamentNameError(name)}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tournament-description">
@@ -344,6 +385,16 @@ export default function CreateTournament() {
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
                   onToggle={() => setShowOrgPass((value) => !value)}
+                  inputRef={organizerPasswordInputRef}
+                  minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
+                  description="Minimum 8 znaków"
+                  detail={organizerPasswordRemaining(organizerPassword) > 0
+                    ? `Brakuje jeszcze ${organizerPasswordRemaining(organizerPassword)} znaków`
+                    : undefined}
+                  error={(organizerPasswordTouched || showValidation)
+                    ? organizerPasswordError(organizerPassword) ?? undefined
+                    : undefined}
+                  onBlur={() => setOrganizerPasswordTouched(true)}
                 />
                 <PasswordField
                   id="support-password"
@@ -373,7 +424,7 @@ export default function CreateTournament() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={createTournament.isPending || !name.trim()}
+                disabled={createTournament.isPending}
               >
                 {createTournament.isPending ? "Tworzenie…" : "Utwórz turniej"}
               </Button>
@@ -382,48 +433,5 @@ export default function CreateTournament() {
         </Card>
       </div>
     </Layout>
-  );
-}
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  visible,
-  onToggle,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  visible: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="relative">
-        <Input
-          id={id}
-          type={visible ? "text" : "password"}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="pr-10"
-        />
-        <button
-          type="button"
-          aria-label={visible ? "Ukryj hasło" : "Pokaż hasło"}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          onClick={onToggle}
-        >
-          {visible ? (
-            <EyeOff className="h-4 w-4" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-        </button>
-      </div>
-    </div>
   );
 }

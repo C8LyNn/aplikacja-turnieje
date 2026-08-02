@@ -5,6 +5,11 @@ import { hashPassword, verifyOrganizerToken } from "../auth";
 import { logAuditAction } from "./auth";
 import { requireOrganizer, requireTournamentRead, requireTournamentWrite } from "../access-policy";
 import {
+  normalizeOrganizerPassword,
+  organizerPasswordInputError,
+  ORGANIZER_PASSWORD_TOO_SHORT_CODE,
+} from "../validation/organizer-password";
+import {
   completeMatch,
   CompleteMatchError,
   type CompleteMatchErrorCode,
@@ -17,6 +22,7 @@ import {
 import {
   completeStage,
   getQualificationPreview,
+  getStageStartReadiness,
   startStage,
   StageLifecycleError,
   type StageLifecycleErrorCode,
@@ -499,7 +505,18 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const parsed = CreateTournamentBody.safeParse(req.body);
+  const organizerPasswordError = organizerPasswordInputError(req.body?.organizerPassword);
+  if (organizerPasswordError) {
+    res.status(400).json({
+      error: organizerPasswordError,
+      code: ORGANIZER_PASSWORD_TOO_SHORT_CODE,
+    });
+    return;
+  }
+  const requestBody = req.body?.organizerPassword === ""
+    ? { ...req.body, organizerPassword: undefined }
+    : req.body;
+  const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
@@ -508,7 +525,8 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  const { organizerPassword, supportPassword, viewerPassword, stagePlan, ...rest } = parsed.data;
+  const { organizerPassword: rawOrganizerPassword, supportPassword, viewerPassword, stagePlan, ...rest } = parsed.data;
+  const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
@@ -549,6 +567,21 @@ router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> =
   if (!await requireTournamentRead(req, res, params.data.id)) return;
   try {
     res.json(await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/readiness", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json(await getStageStartReadiness({
+      tournamentId: params.data.id,
+      stageId: params.data.stageId,
+    }));
   } catch (error) {
     if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
     throw error;

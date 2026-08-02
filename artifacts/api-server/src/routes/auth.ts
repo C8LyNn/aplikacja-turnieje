@@ -130,6 +130,17 @@ router.post("/tournaments/:id/auth/support-login", async (req, res) => {
   res.json({ sessionToken, nick: nick.trim() });
 });
 
+router.get("/tournaments/:id/auth/support-session", async (req, res) => {
+  const id = parseId(req.params.id);
+  const actor = await requireSupportOrOrganizer(req, res, id);
+  if (!actor) return;
+  if (actor.actorType !== "support") {
+    res.status(403).json({ error: "Wymagana aktywna sesja wsparcia" });
+    return;
+  }
+  res.json({ valid: true, nick: actor.actorNick });
+});
+
 router.get("/tournaments/:id/auth/support-sessions", async (req, res) => {
   const id = parseId(req.params.id);
   const actor = await requireOrganizer(req, res, id);

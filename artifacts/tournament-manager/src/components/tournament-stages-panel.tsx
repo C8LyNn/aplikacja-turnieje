@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetTournamentStageQueryKey,
+  getGetTournamentStageReadinessQueryKey,
   getListTournamentStagesQueryKey,
   getPreviewStageQualificationQueryKey,
   type Match,
@@ -12,10 +13,12 @@ import {
   type TournamentStageDetails,
   useCompleteTournamentStage,
   useGetTournamentStage,
+  useGetTournamentStageReadiness,
   useListTournamentStages,
   usePreviewStageQualification,
   useStartTournamentStage,
 } from "@workspace/api-client-react";
+import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import {
   CheckCircle2,
   Circle,
@@ -503,6 +506,20 @@ export function TournamentStagesPanel({
     },
   );
   const selected = stages.find((stage) => stage.id === selectedStageId);
+  const readinessQuery = useGetTournamentStageReadiness(
+    tournamentId,
+    selectedStageId ?? 0,
+    {
+      query: {
+        enabled: !!selectedStageId && selected?.status === "planned",
+        retry: false,
+        queryKey: getGetTournamentStageReadinessQueryKey(
+          tournamentId,
+          selectedStageId ?? 0,
+        ),
+      },
+    },
+  );
   const previewQuery = usePreviewStageQualification(
     tournamentId,
     selectedStageId ?? 0,
@@ -532,12 +549,17 @@ export function TournamentStagesPanel({
     ? stages.find((stage) => stage.position === selected.position - 1)
     : undefined;
   const mayStart =
+    canManage &&
     !!selected &&
     selected.status === "planned" &&
     selected.position > 1 &&
     previous?.status === "completed" &&
     !activeStageId &&
-    tournamentStatus === "active";
+    tournamentStatus === "active" &&
+    availableStageStartReadiness(
+      readinessQuery.data,
+      readinessQuery.isFetching,
+    )?.ready === true;
   const pending = completeMutation.isPending || startMutation.isPending;
 
   const refresh = async () => {
@@ -561,12 +583,20 @@ export function TournamentStagesPanel({
             ),
           })
         : Promise.resolve(),
+      selectedStageId
+        ? queryClient.invalidateQueries({
+            queryKey: getGetTournamentStageReadinessQueryKey(
+              tournamentId,
+              selectedStageId,
+            ),
+          })
+        : Promise.resolve(),
     ]);
     onChanged?.();
   };
 
   const complete = () => {
-    if (!selected) return;
+    if (!canManage || !selected) return;
     setActionError(undefined);
     completeMutation.mutate(
       { id: tournamentId, stageId: selected.id },
@@ -580,7 +610,7 @@ export function TournamentStagesPanel({
     );
   };
   const start = () => {
-    if (!selected) return;
+    if (!canManage || !selected || !mayStart) return;
     setActionError(undefined);
     startMutation.mutate(
       { id: tournamentId, stageId: selected.id },
@@ -729,7 +759,7 @@ export function TournamentStagesPanel({
       )}
 
       <Dialog
-        open={confirmOpen}
+        open={canManage && confirmOpen}
         onOpenChange={(open) => {
           setConfirmOpen(open);
           setActionError(undefined);
