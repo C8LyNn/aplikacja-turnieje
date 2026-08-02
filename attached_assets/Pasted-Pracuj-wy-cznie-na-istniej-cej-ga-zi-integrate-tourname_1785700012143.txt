@@ -1,0 +1,77 @@
+Pracuj wyłącznie na istniejącej gałęzi:
+
+integrate/tournament-engine-v2
+
+Najpierw potwierdź, że:
+- gałąź to integrate/tournament-engine-v2;
+- working tree jest czysty;
+- HEAD bazuje na aktualnym origin/main;
+- origin/feat/tournament-engine-v2 wskazuje na 3713ccf0c6e1580d8098d11a5c66c5c455faa78d.
+
+Celem jest bezpieczne zintegrowanie:
+- aktualnego main zawierającego patch UX organizatora;
+- origin/feat/tournament-engine-v2.
+
+Rozpocznij merge:
+
+git merge --no-commit --no-ff origin/feat/tournament-engine-v2
+
+Rozwiąż wszystkie konflikty świadomie, zachowując jednocześnie:
+
+Z aktualnego main:
+- wspólną nawigację organizatora;
+- blok „Następny krok”;
+- walidację opcjonalnego hasła organizatora: pusty string albo minimum 8 znaków;
+- capability flags organizatora, supportu i legacy hosta;
+- backendowy endpoint readiness etapu;
+- ochronę przed stale readiness i podwójnym submit;
+- reaktywne zakładki query;
+- aktualne testy UX.
+
+Z gałęzi V2:
+- automatyczny przepływ uczestników między etapami;
+- flexible group stages;
+- configurable/universal seeding;
+- seeding ceremony;
+- rozszerzony Backup V3;
+- auth hardening i rate limiting;
+- Tournament Engine V2 Patch 01;
+- routing persistence Patch 02;
+- migracje 0003–0012;
+- wszystkie testy i dokumentację V2.
+
+Zasady rozwiązywania:
+- nie wybieraj automatycznie całego ours ani całego theirs dla plików domenowych, tras, autoryzacji i stron;
+- pliki OpenAPI uzgodnij ręcznie, zachowując kontrakty obu gałęzi;
+- plików generowanych API nie rozwiązuj ręcznie jako źródła prawdy — po uzgodnieniu OpenAPI uruchom oficjalny codegen;
+- use-host-auth może pozostać tylko wtedy, gdy nadal jest potrzebny przez aktualny UX; nie usuwaj jego funkcji bez przeniesienia zachowania do use-tournament-auth;
+- readiness StartStage musi nadal używać wspólnej backendowej walidacji;
+- automatyczny participant flow V2 nie może zostać zastąpiony starszym ręcznym modelem z main.
+
+Po rozwiązaniu konfliktów:
+
+1. Potwierdź brak markerów konfliktu.
+2. Uruchom oficjalny codegen dwa razy; drugi przebieg ma nie pozostawić dodatkowego diffu.
+3. Uruchom:
+   - testy frontendowe;
+   - testy jednostkowe API;
+   - odpowiednie testy integracyjne etapów, auth, backupu i routingu;
+   - frontend typecheck;
+   - API typecheck;
+   - workspace typecheck;
+   - workspace build;
+   - git diff --check.
+4. Nie uruchamiaj żadnych migracji.
+5. Nie łącz się z Production.
+6. Nie wykonuj Republish.
+7. Nie wykonuj commita ani pushu.
+
+Na końcu podaj:
+- werdykt;
+- listę rozwiązanych konfliktów;
+- decyzję dla każdego konfliktowego pliku;
+- wyniki testów;
+- typecheck i build;
+- pełny git status;
+- pozostałe ryzyka;
+- potwierdzenie braku migracji, commita, pushu i wdrożenia.
