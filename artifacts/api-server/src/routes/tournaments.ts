@@ -599,9 +599,10 @@ router.get("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, res)
 router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/prepare", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json({ ceremony: await prepareSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+    res.json({ ceremony: await prepareSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }) });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
@@ -611,9 +612,10 @@ router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/prepare", async (
 router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-next", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json({ ceremony: await revealNextSeedingDraw({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+    res.json({ ceremony: await revealNextSeedingDraw({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }) });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
@@ -623,9 +625,10 @@ router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-next", asy
 router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-all", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json({ ceremony: await revealAllSeedingDraws({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+    res.json({ ceremony: await revealAllSeedingDraws({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }) });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
@@ -635,9 +638,10 @@ router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-all", asyn
 router.delete("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    await resetSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId });
+    await resetSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) });
     res.status(204).send();
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
@@ -648,9 +652,10 @@ router.delete("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, r
 router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promise<void> => {
   const params = CompleteTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json(await completeStage({ tournamentId: params.data.id, stageId: params.data.stageId }));
+    res.json(await completeStage({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }));
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       sendStageLifecycleError(error, res);
@@ -663,9 +668,10 @@ router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promi
 router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json(serializeTournamentStage(await startStage({ tournamentId: params.data.id, stageId: params.data.stageId })));
+    res.json(serializeTournamentStage(await startStage({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) })));
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       sendStageLifecycleError(error, res);
