@@ -54,7 +54,7 @@ export default function TournamentHost() {
     orgToken,
     supSession,
     isAuthenticated: isNewAuthTokenPresent,
-    isHydrated: isAuthHydrated,
+    isReady: isAuthReady,
   } = useSyncTournamentAuth(id);
 
   const {
@@ -63,30 +63,30 @@ export default function TournamentHost() {
     isLoading: isLoadingTournament,
   } = useGetTournament(id, {
     query: {
-      enabled: !!id && isAuthHydrated,
+      enabled: !!id && isAuthReady,
       queryKey: getGetTournamentQueryKey(id),
       refetchInterval: 5000,
       retry: false,
     },
   });
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
+    query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
   const { data: bracket } = useGetTournamentBracket(id, {
-    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
+    query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
   });
   const { data: standings } = useGetTournamentStandings(id, {
-    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetTournamentStandingsQueryKey(id) },
+    query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetTournamentStandingsQueryKey(id) },
   });
   const { data: history } = useGetResultsHistory(id, {
-    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
+    query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
   });
   const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id && isAuthHydrated, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
+    query: { enabled: !!id && isAuthReady, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
   });
 
   const { data: actionLog } = useGetActionLog(id, {
-    query: { enabled: !!id && isAuthHydrated && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
+    query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
   });
   const { data: stages } = useListTournamentStages(id, {
     query: { enabled: !!id, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
@@ -121,7 +121,7 @@ export default function TournamentHost() {
 
   // For new-style auth (hasOrganizerPassword), check existing session tokens
   const hasNewAuth = !!(tournament?.hasOrganizerPassword);
-  const isNewAuthAuthenticated = !hasNewAuth || isNewAuthTokenPresent;
+  const isNewAuthAuthenticated = isNewAuthTokenPresent;
   const capabilities = useMemo(
     () => tournament
       ? deriveOrganizerCapabilities({
@@ -589,7 +589,7 @@ export default function TournamentHost() {
     );
   }
 
-  if (!hasNewAuth && !tournament.hasHostCode) {
+  if (!hasNewAuth && !tournament.hasHostCode && !isNewAuthTokenPresent) {
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center px-4">
@@ -609,7 +609,7 @@ export default function TournamentHost() {
   }
 
   // Historical host codes are accepted only once to establish a real organizer password.
-  if (!hasNewAuth && tournament.hasHostCode) {
+  if (!hasNewAuth && tournament.hasHostCode && !isNewAuthTokenPresent) {
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center">

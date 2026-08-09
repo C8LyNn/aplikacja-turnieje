@@ -25,6 +25,8 @@ import type {
   BackupImportError,
   BackupRestoreInput,
   Bracket,
+  CreateTournamentBadRequestError,
+  CreateTournamentUnprocessableError,
   CsvImportInput,
   CsvImportResult,
   DomainError,
@@ -36,6 +38,7 @@ import type {
   MatchResult,
   MatchUpdate,
   OrganizerCredentialState,
+  OrganizerPasswordAlreadySetError,
   OrganizerTokenResponse,
   Player,
   PlayerInput,
@@ -44,13 +47,16 @@ import type {
   ResultRecord,
   SeedingCeremonyError,
   SeedingCeremonyResponse,
+  SetInitialOrganizerPasswordBadRequestError,
+  SetInitialOrganizerPasswordInput,
+  SimpleError,
   StageLifecycleError,
-  StagePlanError,
   StageQualificationPreview,
   StageStartReadiness,
   Standing,
   Tournament,
   TournamentBackupV3,
+  TournamentCreationResponse,
   TournamentInput,
   TournamentStage,
   TournamentStageDetails,
@@ -237,9 +243,9 @@ export const getCreateTournamentUrl = () => {
 /**
  * @summary Create a new tournament
  */
-export const createTournament = async (tournamentInput: TournamentInput, options?: RequestInit): Promise<Tournament> => {
+export const createTournament = async (tournamentInput: TournamentInput, options?: RequestInit): Promise<TournamentCreationResponse> => {
 
-  return customFetch<Tournament>(getCreateTournamentUrl(),
+  return customFetch<TournamentCreationResponse>(getCreateTournamentUrl(),
   {
     ...options,
     method: 'POST',
@@ -252,7 +258,7 @@ export const createTournament = async (tournamentInput: TournamentInput, options
 
 
 
-export const getCreateTournamentMutationOptions = <TError = ErrorType<StagePlanError>,
+export const getCreateTournamentMutationOptions = <TError = ErrorType<CreateTournamentBadRequestError | CreateTournamentUnprocessableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext> => {
 
@@ -281,12 +287,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof createTournament>>>
     export type CreateTournamentMutationBody = BodyType<TournamentInput>
-    export type CreateTournamentMutationError = ErrorType<StagePlanError>
+    export type CreateTournamentMutationError = ErrorType<CreateTournamentBadRequestError | CreateTournamentUnprocessableError>
 
     /**
  * @summary Create a new tournament
  */
-export const useCreateTournament = <TError = ErrorType<StagePlanError>,
+export const useCreateTournament = <TError = ErrorType<CreateTournamentBadRequestError | CreateTournamentUnprocessableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTournament>>, TError,{data: BodyType<TournamentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createTournament>>,
@@ -1546,6 +1552,78 @@ export const useUpgradeLegacyOrganizer = <TError = ErrorType<DomainError>,
         TContext
       > => {
       return useMutation(getUpgradeLegacyOrganizerMutationOptions(options));
+    }
+
+export const getSetInitialOrganizerPasswordUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/auth/set-organizer-password`
+}
+
+/**
+ * @summary Set the first organizer password using an authenticated passwordless-owner session
+ */
+export const setInitialOrganizerPassword = async (id: number,
+    setInitialOrganizerPasswordInput: SetInitialOrganizerPasswordInput, options?: RequestInit): Promise<OrganizerTokenResponse> => {
+
+  return customFetch<OrganizerTokenResponse>(getSetInitialOrganizerPasswordUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setInitialOrganizerPasswordInput,)
+  }
+);}
+
+
+
+
+export const getSetInitialOrganizerPasswordMutationOptions = <TError = ErrorType<SetInitialOrganizerPasswordBadRequestError | SimpleError | OrganizerPasswordAlreadySetError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInitialOrganizerPassword>>, TError,{id: number;data: BodyType<SetInitialOrganizerPasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setInitialOrganizerPassword>>, TError,{id: number;data: BodyType<SetInitialOrganizerPasswordInput>}, TContext> => {
+
+const mutationKey = ['setInitialOrganizerPassword'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setInitialOrganizerPassword>>, {id: number;data: BodyType<SetInitialOrganizerPasswordInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setInitialOrganizerPassword(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetInitialOrganizerPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof setInitialOrganizerPassword>>>
+    export type SetInitialOrganizerPasswordMutationBody = BodyType<SetInitialOrganizerPasswordInput>
+    export type SetInitialOrganizerPasswordMutationError = ErrorType<SetInitialOrganizerPasswordBadRequestError | SimpleError | OrganizerPasswordAlreadySetError>
+
+    /**
+ * @summary Set the first organizer password using an authenticated passwordless-owner session
+ */
+export const useSetInitialOrganizerPassword = <TError = ErrorType<SetInitialOrganizerPasswordBadRequestError | SimpleError | OrganizerPasswordAlreadySetError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setInitialOrganizerPassword>>, TError,{id: number;data: BodyType<SetInitialOrganizerPasswordInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setInitialOrganizerPassword>>,
+        TError,
+        {id: number;data: BodyType<SetInitialOrganizerPasswordInput>},
+        TContext
+      > => {
+      return useMutation(getSetInitialOrganizerPasswordMutationOptions(options));
     }
 
 export const getGenerateNextRoundUrl = (id: number,) => {

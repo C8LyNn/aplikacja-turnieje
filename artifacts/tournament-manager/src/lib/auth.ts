@@ -132,6 +132,33 @@ export async function apiUpgradeLegacyOrganizer(
   return result.token;
 }
 
+export async function apiSetInitialOrganizerPassword(
+  tournamentId: number,
+  organizerToken: string,
+  newPassword: string,
+): Promise<string> {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/set-organizer-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Organizer-Token": organizerToken,
+    },
+    body: JSON.stringify({ newPassword }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string; code?: string };
+    const error = new Error(body.error || "Błąd ustawiania hasła organizatora") as Error & {
+      code?: string;
+      status?: number;
+    };
+    error.code = body.code;
+    error.status = res.status;
+    throw error;
+  }
+  const body = await res.json() as { token: string };
+  return body.token;
+}
+
 export async function apiSupportLogin(tournamentId: number, password: string, nick: string): Promise<{ sessionToken: string; nick: string }> {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-login`, {
     method: "POST",

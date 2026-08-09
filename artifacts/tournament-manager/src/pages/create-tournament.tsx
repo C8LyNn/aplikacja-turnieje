@@ -29,7 +29,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/auth-context";
-import { apiOrganizerLogin } from "@/lib/auth";
 import {
   createStageDraft,
   getApiErrorMessage,
@@ -136,7 +135,7 @@ export default function CreateTournament() {
           ? Number.parseInt(swissRounds, 10)
           : undefined,
       defaultBestOf: Number.parseInt(defaultBestOf, 10) || 1,
-      organizerPassword,
+      organizerPassword: organizerPassword || undefined,
       supportPassword: supportPassword || undefined,
       viewerPassword:
         visibility === "private_online"
@@ -148,18 +147,11 @@ export default function CreateTournament() {
     createTournament.mutate(
       { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
       {
-        onSuccess: async (tournament) => {
+        onSuccess: (tournament) => {
           submitInFlightRef.current = false;
-          try {
-            const token = await apiOrganizerLogin(tournament.id, organizerPassword);
-            storeOrgToken(tournament.id, token);
-            setActiveOrganizerToken(token);
-            navigate(`/tournaments/${tournament.id}`);
-          } catch {
-            setSubmitError(
-              `Turniej został utworzony (ID ${tournament.id}), ale automatyczne logowanie nie powiodło się. Otwórz turniej i zaloguj się ustawionym hasłem organizatora.`,
-            );
-          }
+          storeOrgToken(tournament.id, tournament.organizerToken);
+          setActiveOrganizerToken(tournament.organizerToken);
+          navigate(`/tournaments/${tournament.id}`);
         },
         onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
       },
@@ -390,14 +382,14 @@ export default function CreateTournament() {
                 </div>
                 <PasswordField
                   id="organizer-password"
-                  label="Hasło organizatora *"
+                  label="Hasło organizatora (opcjonalne)"
                   value={organizerPassword}
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
                   onToggle={() => setShowOrgPass((value) => !value)}
                   inputRef={organizerPasswordInputRef}
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                  description="Minimum 8 znaków"
+                  description="Opcjonalne. Jeśli ustawisz hasło, musi mieć co najmniej 8 znaków."
                   detail={organizerPasswordRemaining(organizerPassword) > 0
                     ? `Brakuje jeszcze ${organizerPasswordRemaining(organizerPassword)} znaków`
                     : undefined}

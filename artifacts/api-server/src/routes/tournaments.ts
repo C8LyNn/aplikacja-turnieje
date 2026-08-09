@@ -502,6 +502,13 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.visibility === "private_online" && !parsed.data.viewerPassword) {
+    res.status(422).json({
+      error: "Turniej prywatny online wymaga hasła widza.",
+      code: "VIEWER_PASSWORD_REQUIRED",
+    });
+    return;
+  }
   if (parsed.data.defaultBestOf != null && (!Number.isInteger(parsed.data.defaultBestOf) || parsed.data.defaultBestOf % 2 === 0)) {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
@@ -514,7 +521,13 @@ router.post("/tournaments", async (req, res): Promise<void> => {
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {
     const tournament = await createTournamentWithStagePlan({ tournament: insertValues, stagePlan });
-    res.status(201).json(mapTournament(tournament));
+    res.status(201).json({
+      ...mapTournament(tournament),
+      organizerToken: signVersionedOrganizerToken(
+        tournament.id,
+        tournament.organizerPasswordHash,
+      ),
+    });
   } catch (error) {
     if (error instanceof TournamentStagePlanError) {
       res.status(422).json({ error: error.message, code: "INVALID_STAGE_PLAN", details: error.problems });

@@ -922,6 +922,29 @@ export const UpgradeLegacyOrganizerResponse = zod.object({
 
 
 /**
+ * @summary Set the first organizer password using an authenticated passwordless-owner session
+ */
+
+
+
+export const SetInitialOrganizerPasswordParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const setInitialOrganizerPasswordBodyNewPasswordMin = 8;
+
+
+
+export const SetInitialOrganizerPasswordBody = zod.object({
+  "newPassword": zod.string().min(setInitialOrganizerPasswordBodyNewPasswordMin).describe('First organizer password for a passwordless-owner tournament.')
+})
+
+export const SetInitialOrganizerPasswordResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
  * @summary Generate next Swiss round
  */
 export const GenerateNextRoundParams = zod.object({

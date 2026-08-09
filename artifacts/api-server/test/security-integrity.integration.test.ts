@@ -431,34 +431,64 @@ describe("security and tournament integrity regressions", () => {
     assert.equal(response.status, 404);
   });
 
-  test("validates organizer and private viewer credentials before creating a tournament", async () => {
+  test("creates immediately manageable tournaments with optional organizer credentials and validates private viewer access", async () => {
     const base = { name: `Credentials ${randomUUID()}`, format: "single_elimination" };
     const noOrganizer = await request(app).post("/api/tournaments").send(base);
-    assert.equal(noOrganizer.status, 422);
-    assert.equal(noOrganizer.body.code, "ORGANIZER_PASSWORD_REQUIRED");
+    assert.equal(noOrganizer.status, 201, noOrganizer.text);
+    assert.equal(typeof noOrganizer.body.organizerToken, "string");
+    await request(app)
+      .post(`/api/tournaments/${noOrganizer.body.id}/players`)
+      .set("x-organizer-token", noOrganizer.body.organizerToken)
+      .send({ name: "Immediate owner mutation", seed: 1 })
+      .expect(201);
 
+    const emptyOrganizer = await request(app).post("/api/tournaments").send({
+      ...base,
+      name: `Empty organizer ${randomUUID()}`,
+      organizerPassword: "",
+    });
+    assert.equal(emptyOrganizer.status, 201, emptyOrganizer.text);
+    assert.equal(typeof emptyOrganizer.body.organizerToken, "string");
+    await request(app)
+      .post(`/api/tournaments/${emptyOrganizer.body.id}/players`)
+      .set("x-organizer-token", emptyOrganizer.body.organizerToken)
+      .send({ name: "Empty password owner mutation", seed: 1 })
+      .expect(201);
+    await request(app)
+      .post(`/api/tournaments/${emptyOrganizer.body.id}/auth/organizer-login`)
+      .send({ password: "" })
+      .expect(400);
+
+    const privateName = `Private without viewer ${randomUUID()}`;
     const privateWithoutViewer = await request(app).post("/api/tournaments").send({
       ...base,
+      name: privateName,
       visibility: "private_online",
       organizerPassword: ORGANIZER_PASSWORD,
     });
     assert.equal(privateWithoutViewer.status, 422);
     assert.equal(privateWithoutViewer.body.code, "VIEWER_PASSWORD_REQUIRED");
+    const privateRows = await database.pool.query(
+      "SELECT id FROM tournaments WHERE name = $1",
+      [privateName],
+    );
+    assert.equal(privateRows.rowCount, 0);
 
-    const privateWithoutOrganizer = await request(app).post("/api/tournaments").send({
-      ...base,
-      visibility: "private_online",
-      viewerPassword: VIEWER_PASSWORD,
-    });
-    assert.equal(privateWithoutOrganizer.status, 422);
-    assert.equal(privateWithoutOrganizer.body.code, "ORGANIZER_PASSWORD_REQUIRED");
+    for (const organizerPassword of ["x", "1234567"]) {
+      const short = await request(app).post("/api/tournaments").send({
+        ...base,
+        name: `Short organizer ${randomUUID()}`,
+        organizerPassword,
+      });
+      assert.equal(short.status, 400);
+      assert.equal(short.body.code, "ORGANIZER_PASSWORD_TOO_SHORT");
+    }
 
     for (const body of [
       { ...base, organizerPassword: ORGANIZER_PASSWORD },
       {
         ...base,
         visibility: "private_online",
-        organizerPassword: ORGANIZER_PASSWORD,
         viewerPassword: VIEWER_PASSWORD,
       },
       { ...base, visibility: "private_offline", organizerPassword: ORGANIZER_PASSWORD },
@@ -466,6 +496,76 @@ describe("security and tournament integrity regressions", () => {
       const response = await request(app).post("/api/tournaments").send(body);
       assert.equal(response.status, 201, response.text);
     }
+  });
+
+  test("lets only a passwordless organizer set the first password and rotates its token", async () => {
+    const created = await request(app).post("/api/tournaments").send({
+      name: `Passwordless owner ${randomUUID()}`,
+      format: "single_elimination",
+      supportPassword: SUPPORT_PASSWORD,
+    });
+    assert.equal(created.status, 201, created.text);
+    const tournamentId = created.body.id as number;
+    const passwordlessToken = created.body.organizerToken as string;
+    assert.equal(typeof passwordlessToken, "string");
+
+    const support = await supportHeaders(tournamentId);
+    const viewer = { "x-viewer-token": signViewerToken(tournamentId, 1) };
+    for (const headers of [{}, support, viewer, { "x-host-code": "legacy-is-not-auth" }]) {
+      const denied = await request(app)
+        .post(`/api/tournaments/${tournamentId}/auth/set-organizer-password`)
+        .set(headers)
+        .send({ newPassword: "new-organizer-password" });
+      assert.equal(denied.status, 403, denied.text);
+    }
+
+    for (const body of [
+      {},
+      { newPassword: "" },
+      { newPassword: "x" },
+      { newPassword: "1234567" },
+    ]) {
+      const rejected = await request(app)
+        .post(`/api/tournaments/${tournamentId}/auth/set-organizer-password`)
+        .set({ "x-organizer-token": passwordlessToken })
+        .send(body);
+      assert.equal(rejected.status, 400, rejected.text);
+      assert.equal(rejected.body.code, "ORGANIZER_PASSWORD_TOO_SHORT");
+    }
+
+    const newPassword = "new-organizer-password";
+    const established = await request(app)
+      .post(`/api/tournaments/${tournamentId}/auth/set-organizer-password`)
+      .set({ "x-organizer-token": passwordlessToken })
+      .send({ newPassword });
+    assert.equal(established.status, 200, established.text);
+    const rotatedToken = established.body.token as string;
+    assert.equal(typeof rotatedToken, "string");
+    assert.notEqual(rotatedToken, passwordlessToken);
+
+    await request(app)
+      .post(`/api/tournaments/${tournamentId}/players`)
+      .set({ "x-organizer-token": passwordlessToken })
+      .send({ name: "Old token must fail", seed: 1 })
+      .expect(403);
+    await request(app)
+      .post(`/api/tournaments/${tournamentId}/players`)
+      .set({ "x-organizer-token": rotatedToken })
+      .send({ name: "New token works", seed: 1 })
+      .expect(201);
+
+    const login = await request(app)
+      .post(`/api/tournaments/${tournamentId}/auth/organizer-login`)
+      .send({ password: newPassword });
+    assert.equal(login.status, 200, login.text);
+    assert.equal(typeof login.body.token, "string");
+
+    const repeated = await request(app)
+      .post(`/api/tournaments/${tournamentId}/auth/set-organizer-password`)
+      .set({ "x-organizer-token": rotatedToken })
+      .send({ newPassword: "another-organizer-password" });
+    assert.equal(repeated.status, 409, repeated.text);
+    assert.equal(repeated.body.code, "ORGANIZER_PASSWORD_ALREADY_SET");
   });
 
   test("never treats hostCode as organizer when an organizer password exists", async () => {
@@ -1691,8 +1791,7 @@ describe("security and tournament integrity regressions", () => {
       .post("/api/tournaments")
       .set("Content-Type", "application/json")
       .send("");
-    assert.equal(empty.status, 422);
-    assert.equal(empty.body.code, "ORGANIZER_PASSWORD_REQUIRED");
+    assert.equal(empty.status, 400);
     assert.match(empty.headers["content-type"] ?? "", /application\/json/);
 
     const invalid = await request(app)

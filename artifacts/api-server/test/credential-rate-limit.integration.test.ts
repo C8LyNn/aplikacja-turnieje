@@ -413,7 +413,8 @@ describe("durable credential rate limiter", () => {
       format: "single_elimination",
       organizerPassword: "seven77",
     });
-    assert.equal(rejected.status, 422);
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.body.code, "ORGANIZER_PASSWORD_TOO_SHORT");
   });
 
   test("strictly rejects malformed ids on every authentication route", async () => {

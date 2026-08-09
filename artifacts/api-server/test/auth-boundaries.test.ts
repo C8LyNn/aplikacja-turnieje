@@ -33,7 +33,7 @@ describe("strict authentication route parameters", () => {
 });
 
 describe("host-view authorization hydration", () => {
-  test("gates the first private query until sessionStorage tokens are synchronized", () => {
+  test("gates the first private query until stored support credentials are verified", () => {
     const hookSource = readFileSync(
       new URL(
         "../../tournament-manager/src/hooks/use-tournament-auth.ts",
@@ -48,14 +48,12 @@ describe("host-view authorization hydration", () => {
       ),
       "utf8",
     );
-    assert.match(hookSource, /setHydratedTournamentId\(tournamentId\)/);
-    assert.match(
-      hookSource,
-      /hydratedTournamentId === tournamentId/,
-    );
+    assert.match(hookSource, /apiVerifySupportSession\(tournamentId, token\)/);
+    assert.match(hookSource, /isReady: !isSupportChecking/);
+    assert.match(hookSource, /generation\.current !== currentGeneration/);
     assert.match(
       hostSource,
-      /enabled:\s*!!id && isAuthHydrated/,
+      /enabled:\s*!!id && isAuthReady/,
     );
     assert.ok(
       hostSource.indexOf("useSyncTournamentAuth(id)") <

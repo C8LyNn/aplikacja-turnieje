@@ -21,6 +21,7 @@ import { Lock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
+import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
 import { BracketView } from "@/components/bracket-view";
@@ -87,20 +88,23 @@ export default function TournamentAudience() {
     ? requestedSection as AudienceSection
     : "live";
 
+  const organizerToken = getOrgToken(id);
+  const storedSupportSession = getSupSession(id);
+  const { supportSession, isChecking: isSupportChecking } =
+    useVerifiedSupportSession(id, organizerToken ? null : storedSupportSession);
+
   useEffect(() => {
-    const organizerToken = getOrgToken(id);
-    const supportSession = getSupSession(id);
     const viewerToken = getViewerTok(id);
     if (organizerToken) { setActiveOrganizerToken(organizerToken); setActiveSupportToken(null); setActiveViewerToken(null); }
     else if (supportSession) { setActiveSupportToken(supportSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
     else if (viewerToken) { setActiveViewerToken(viewerToken); setActiveOrganizerToken(null); setActiveSupportToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    setPreparedAuthId(id);
+    setPreparedAuthId(isSupportChecking ? null : id);
     return () => {
       setPreparedAuthId(null);
       setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
     };
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isSupportChecking, organizerToken, supportSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tournament, error: tournamentError, refetch: refetchTournament } = useGetTournament(id, {
     query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 4000, retry: false },

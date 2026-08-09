@@ -50,10 +50,14 @@ export function verifyPassword(password: string, stored: string): Promise<boolea
   });
 }
 
-function organizerCredentialFingerprint(passwordHash: string): string {
+function organizerCredentialFingerprint(
+  tournamentId: number,
+  passwordHash: string | null,
+): string {
+  const credential = passwordHash ?? `passwordless-owner-v1:${tournamentId}`;
   return crypto
     .createHmac("sha256", SECRET)
-    .update(`organizer-credential:${passwordHash}`)
+    .update(`organizer-credential:${credential}`)
     .digest("base64url");
 }
 
@@ -66,12 +70,12 @@ export function fingerprintRequestSource(source: string): string {
 
 export function signVersionedOrganizerToken(
   tournamentId: number,
-  organizerPasswordHash: string,
+  organizerPasswordHash: string | null,
 ): string {
   const payload = JSON.stringify({
     tid: tournamentId,
     role: "organizer",
-    ver: organizerCredentialFingerprint(organizerPasswordHash),
+    ver: organizerCredentialFingerprint(tournamentId, organizerPasswordHash),
     iat: Date.now(),
   });
   const b64 = Buffer.from(payload).toString("base64url");
@@ -111,11 +115,10 @@ export function verifyOrganizerToken(
 ): boolean {
   const payload = verifySignedToken(token);
   if (payload?.tid !== tournamentId || payload.role !== "organizer") return false;
-  // Access to a persisted tournament is always tied to its current organizer
-  // credential. Historical records without a password must first use the
-  // dedicated host-code upgrade or the offline administrative recovery tool.
-  if (organizerPasswordHash == null) return false;
-  return payload.ver === organizerCredentialFingerprint(organizerPasswordHash);
+  // New passwordless tournaments receive this signed, tournament-scoped token
+  // only in the create response. The login endpoint never issues one for an
+  // empty password, so losing it still requires setting/recovering credentials.
+  return payload.ver === organizerCredentialFingerprint(tournamentId, organizerPasswordHash ?? null);
 }
 
 export function generateSessionToken(): string {

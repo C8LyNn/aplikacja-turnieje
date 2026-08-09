@@ -10,6 +10,58 @@ export interface DomainError {
   code: string;
 }
 
+export interface SimpleError {
+  error: string;
+}
+
+export interface OrganizerPasswordTooShortError {
+  error: string;
+  code: 'ORGANIZER_PASSWORD_TOO_SHORT';
+}
+
+export interface OrganizerPasswordAlreadySetError {
+  error: string;
+  code: 'ORGANIZER_PASSWORD_ALREADY_SET';
+}
+
+export interface InvalidTournamentIdError {
+  error: string;
+  code: 'INVALID_TOURNAMENT_ID';
+}
+
+export type CreateTournamentRuleErrorCode = typeof CreateTournamentRuleErrorCode[keyof typeof CreateTournamentRuleErrorCode];
+
+
+export const CreateTournamentRuleErrorCode = {
+  HOST_CODE_LEGACY_ONLY: 'HOST_CODE_LEGACY_ONLY',
+  DOUBLE_ELIMINATION_UNAVAILABLE: 'DOUBLE_ELIMINATION_UNAVAILABLE',
+  VIEWER_PASSWORD_REQUIRED: 'VIEWER_PASSWORD_REQUIRED',
+  INVALID_DEFAULT_BEST_OF: 'INVALID_DEFAULT_BEST_OF',
+} as const;
+
+export interface CreateTournamentRuleError {
+  error: string;
+  code: CreateTournamentRuleErrorCode;
+}
+
+export type CreateTournamentBadRequestError = SimpleError | OrganizerPasswordTooShortError;
+
+export type StagePlanErrorDetailsItem = {
+  code: string;
+  path: string;
+  message: string;
+};
+
+export interface StagePlanError {
+  error: string;
+  code: 'INVALID_STAGE_PLAN';
+  details: StagePlanErrorDetailsItem[];
+}
+
+export type CreateTournamentUnprocessableError = CreateTournamentRuleError | StagePlanError;
+
+export type SetInitialOrganizerPasswordBadRequestError = InvalidTournamentIdError | OrganizerPasswordTooShortError;
+
 export type StageLifecycleErrorCode = typeof StageLifecycleErrorCode[keyof typeof StageLifecycleErrorCode];
 
 
@@ -208,18 +260,6 @@ export interface SeedingCeremony {
 
 export interface SeedingCeremonyResponse {
   ceremony: SeedingCeremony | null;
-}
-
-export type StagePlanErrorDetailsItem = {
-  code: string;
-  path: string;
-  message: string;
-};
-
-export interface StagePlanError {
-  error: string;
-  code: 'INVALID_STAGE_PLAN';
-  details: StagePlanErrorDetailsItem[];
 }
 
 export type BackupImportErrorCode = typeof BackupImportErrorCode[keyof typeof BackupImportErrorCode];
@@ -546,6 +586,11 @@ export interface TournamentInput {
   stagePlan?: TournamentStagePlanInput;
 }
 
+export type TournamentCreationResponse = Tournament & {
+  /** Tournament-scoped organizer session issued only to the creator. */
+  organizerToken: string;
+};
+
 export type TournamentStageFormat = typeof TournamentStageFormat[keyof typeof TournamentStageFormat];
 
 
@@ -861,6 +906,14 @@ export interface LegacyOrganizerUpgradeInput {
      * @minLength 8
      */
   organizerPassword: string;
+}
+
+export interface SetInitialOrganizerPasswordInput {
+  /**
+     * First organizer password for a passwordless-owner tournament.
+     * @minLength 8
+     */
+  newPassword: string;
 }
 
 export interface OrganizerTokenResponse {

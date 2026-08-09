@@ -97,6 +97,13 @@ describe("signed tournament tokens", () => {
     assert.equal(verifyViewerToken(signViewerToken(11, 3), 12, 3), false);
   });
 
+  test("passwordless owner tokens are scoped and invalidated when a password is set", () => {
+    const token = signVersionedOrganizerToken(31, null);
+    assert.equal(verifyOrganizerToken(token, 31, null), true);
+    assert.equal(verifyOrganizerToken(token, 32, null), false);
+    assert.equal(verifyOrganizerToken(token, 31, "new-password-hash"), false);
+  });
+
   test("unversioned organizer tokens never authorize persisted tournaments", () => {
     const legacyPayload = Buffer.from(JSON.stringify({ t: 11, r: "organizer" })).toString("base64url");
     const token = `${legacyPayload}.intentionally-invalid-legacy-signature`;

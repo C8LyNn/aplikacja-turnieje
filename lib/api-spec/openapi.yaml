@@ -61,13 +61,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Tournament"
-        "422":
-          description: Stage plan rejected by the domain validator
+                $ref: "#/components/schemas/TournamentCreationResponse"
+        "400":
+          description: Tournament input or organizer password is invalid
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StagePlanError"
+                $ref: "#/components/schemas/CreateTournamentBadRequestError"
+        "422":
+          description: Tournament rule or stage plan rejected the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateTournamentUnprocessableError"
 
   /tournaments/{id}:
     get:
@@ -581,6 +587,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/auth/set-organizer-password:
+    post:
+      operationId: setInitialOrganizerPassword
+      tags: [authentication]
+      summary: Set the first organizer password using an authenticated passwordless-owner session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetInitialOrganizerPasswordInput"
+      responses:
+        "200":
+          description: Password established and replacement organizer token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerTokenResponse"
+        "400":
+          description: Invalid tournament id or password shorter than eight characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetInitialOrganizerPasswordBadRequestError"
+        "403":
+          description: A valid organizer token for this tournament is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleError"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleError"
+        "409":
+          description: Organizer password already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerPasswordAlreadySetError"
 
   /tournaments/{id}/generate-round:
     post:
@@ -1174,6 +1230,69 @@ components:
           type: string
         code:
           type: string
+    SimpleError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+    OrganizerPasswordTooShortError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: ORGANIZER_PASSWORD_TOO_SHORT
+    OrganizerPasswordAlreadySetError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: ORGANIZER_PASSWORD_ALREADY_SET
+    InvalidTournamentIdError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: INVALID_TOURNAMENT_ID
+    CreateTournamentRuleError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum:
+            - HOST_CODE_LEGACY_ONLY
+            - DOUBLE_ELIMINATION_UNAVAILABLE
+            - VIEWER_PASSWORD_REQUIRED
+            - INVALID_DEFAULT_BEST_OF
+    CreateTournamentBadRequestError:
+      oneOf:
+        - $ref: "#/components/schemas/SimpleError"
+        - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
+    CreateTournamentUnprocessableError:
+      oneOf:
+        - $ref: "#/components/schemas/CreateTournamentRuleError"
+        - $ref: "#/components/schemas/StagePlanError"
+    SetInitialOrganizerPasswordBadRequestError:
+      oneOf:
+        - $ref: "#/components/schemas/InvalidTournamentIdError"
+        - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
     StageLifecycleError:
       type: object
       required: [error, code]
@@ -1492,6 +1611,16 @@ components:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.
 
+    TournamentCreationResponse:
+      allOf:
+        - $ref: "#/components/schemas/Tournament"
+        - type: object
+          required: [organizerToken]
+          properties:
+            organizerToken:
+              type: string
+              description: Tournament-scoped organizer session issued only to the creator.
+
     TournamentStagePlanInput:
       type: object
       additionalProperties: false
@@ -1793,6 +1922,16 @@ components:
           type: string
           minLength: 8
           description: New organizer password. This policy applies only to newly set passwords.
+
+    SetInitialOrganizerPasswordInput:
+      type: object
+      additionalProperties: false
+      required: [newPassword]
+      properties:
+        newPassword:
+          type: string
+          minLength: 8
+          description: First organizer password for a passwordless-owner tournament.
 
     OrganizerTokenResponse:
       type: object

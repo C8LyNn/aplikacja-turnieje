@@ -44,6 +44,7 @@ import { availableStageStartReadiness, deriveOrganizerNextStep } from "@/lib/org
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
+import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -67,7 +68,9 @@ export default function TournamentDetail() {
   // Deps: only [id] — login modals call setActive* directly (synchronous).
   // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
-  const supSession = getSupSession(id);
+  const storedSupportSession = getSupSession(id);
+  const { supportSession: supSession, isChecking: isSupportChecking } =
+    useVerifiedSupportSession(id, orgToken ? null : storedSupportSession);
   const viewerToken = getViewerTok(id);
   const isAuthenticated = !!(orgToken || supSession);
   const hasReadAccess = (tournament: { visibility?: string } | null | undefined) =>
@@ -80,12 +83,12 @@ export default function TournamentDetail() {
     else if (supSession) { setActiveSupportToken(supSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
     else if (vtok) { setActiveViewerToken(vtok); setActiveOrganizerToken(null); setActiveSupportToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    setPreparedAuthId(id);
+    setPreparedAuthId(isSupportChecking ? null : id);
     return () => {
       setPreparedAuthId(null);
       setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
     };
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, isSupportChecking, supSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle direct role links: ?login=organizer|support|viewer
   useEffect(() => {
@@ -1493,7 +1496,11 @@ export default function TournamentDetail() {
 
           {capabilities.canManageOrganizerSettings && (
             <TabsContent value="security" className="pt-6">
-              <SecurityPanel tournamentId={id} />
+              <SecurityPanel
+                tournamentId={id}
+                hasOrganizerPassword={!!tournament.hasOrganizerPassword}
+                onOrganizerPasswordSet={() => refetchTournament()}
+              />
             </TabsContent>
           )}
 

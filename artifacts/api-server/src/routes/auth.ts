@@ -152,6 +152,66 @@ router.post("/tournaments/:id/auth/organizer-login", async (req, res) => {
   }
 });
 
+router.post("/tournaments/:id/auth/set-organizer-password", async (req, res) => {
+  const id = parseId(req, res);
+  if (id === null) return;
+  const access = await requireOrganizerAccess(req, res, id);
+  if (!access) return;
+
+  const { newPassword } = req.body as { newPassword?: string };
+  if (
+    typeof newPassword !== "string" ||
+    newPassword.length < NEW_CREDENTIAL_MIN_LENGTH
+  ) {
+    res.status(400).json({
+      error: `Nowe hasło organizatora musi mieć co najmniej ${NEW_CREDENTIAL_MIN_LENGTH} znaków`,
+      code: "ORGANIZER_PASSWORD_TOO_SHORT",
+    });
+    return;
+  }
+
+  const newHash = await hashPassword(newPassword);
+  const result = await db.transaction(async (tx) => {
+    const [tournament] = await tx
+      .select({ organizerPasswordHash: tournamentsTable.organizerPasswordHash })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, id))
+      .for("update");
+
+    if (!tournament) return { status: "not_found" } as const;
+    if (tournament.organizerPasswordHash) {
+      return { status: "already_set" } as const;
+    }
+
+    await tx
+      .update(tournamentsTable)
+      .set({ organizerPasswordHash: newHash })
+      .where(eq(tournamentsTable.id, id));
+    return { status: "updated", organizerPasswordHash: newHash } as const;
+  });
+
+  if (result.status === "not_found") {
+    res.status(404).json({ error: "Turniej nie istnieje" });
+    return;
+  }
+  if (result.status === "already_set") {
+    res.status(409).json({
+      error: "Hasło organizatora zostało już ustawione.",
+      code: "ORGANIZER_PASSWORD_ALREADY_SET",
+    });
+    return;
+  }
+
+  const token = signVersionedOrganizerToken(id, result.organizerPasswordHash);
+  await logAuditAction(
+    id,
+    "organizer",
+    "Organizator",
+    "Ustawił pierwsze hasło organizatora",
+  );
+  res.json({ token });
+});
+
 router.post("/tournaments/:id/auth/upgrade-legacy-organizer", async (req, res) => {
   const id = parseId(req, res);
   if (id === null) return;
