@@ -20,9 +20,15 @@ export interface TournamentInput {
   defaultBestOf?: number;
   /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
   organizerPassword?: string;
-  /** Optional password for support staff access */
+  /**
+     * Optional password for support staff access
+     * @minLength 8
+     */
   supportPassword?: string;
-  /** Optional password for viewer access (required when visibility=private_online) */
+  /**
+     * Password for viewer access; required when visibility=private_online.
+     * @minLength 8
+     */
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;

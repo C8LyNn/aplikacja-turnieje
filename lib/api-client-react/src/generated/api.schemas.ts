@@ -56,6 +56,10 @@ export const StageStartReadinessReasonCode = {
   MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
   GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
   RANKING_INCONSISTENT: 'RANKING_INCONSISTENT',
+  STAGE_SEEDING_CONFIGURATION_INVALID: 'STAGE_SEEDING_CONFIGURATION_INVALID',
+  SEEDING_CEREMONY_REQUIRED: 'SEEDING_CEREMONY_REQUIRED',
+  SEEDING_CEREMONY_INCOMPLETE: 'SEEDING_CEREMONY_INCOMPLETE',
+  SEEDING_CEREMONY_STALE: 'SEEDING_CEREMONY_STALE',
 } as const;
 
 export type StageStartReadinessFormat = typeof StageStartReadinessFormat[keyof typeof StageStartReadinessFormat];
@@ -84,6 +88,128 @@ export interface StageStartReadiness {
   format: StageStartReadinessFormat;
 }
 
+export type SeedingCeremonyErrorCode = typeof SeedingCeremonyErrorCode[keyof typeof SeedingCeremonyErrorCode];
+
+
+export const SeedingCeremonyErrorCode = {
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_NOT_FOUND: 'STAGE_NOT_FOUND',
+  STAGE_NOT_PLANNED: 'STAGE_NOT_PLANNED',
+  SEEDING_CEREMONY_NOT_AVAILABLE: 'SEEDING_CEREMONY_NOT_AVAILABLE',
+  SEEDING_CEREMONY_NOT_PREPARED: 'SEEDING_CEREMONY_NOT_PREPARED',
+  SEEDING_CEREMONY_ALREADY_COMPLETE: 'SEEDING_CEREMONY_ALREADY_COMPLETE',
+  SEEDING_CEREMONY_STALE: 'SEEDING_CEREMONY_STALE',
+  STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  MATCHES_ALREADY_EXIST: 'MATCHES_ALREADY_EXIST',
+  GROUPS_ALREADY_EXIST: 'GROUPS_ALREADY_EXIST',
+} as const;
+
+export interface SeedingCeremonyError {
+  error: string;
+  code: SeedingCeremonyErrorCode;
+}
+
+export interface SeedingCeremonyGroupPlacement {
+  kind: 'group';
+  label: string;
+  groupIndex: number;
+  groupKey: string;
+  groupPosition: number;
+}
+
+export type SeedingCeremonyBracketPlacementSide = typeof SeedingCeremonyBracketPlacementSide[keyof typeof SeedingCeremonyBracketPlacementSide];
+
+
+export const SeedingCeremonyBracketPlacementSide = {
+  player1: 'player1',
+  player2: 'player2',
+} as const;
+
+export interface SeedingCeremonyBracketPlacement {
+  kind: 'bracket';
+  label: string;
+  bracketSlot: number;
+  matchNumber: number;
+  side: SeedingCeremonyBracketPlacementSide;
+  bye: boolean;
+}
+
+export interface SeedingCeremonyStandingsPlacement {
+  kind: 'standings';
+  label: string;
+  position: number;
+}
+
+export type SeedingCeremonyPlacement = SeedingCeremonyGroupPlacement | SeedingCeremonyBracketPlacement | SeedingCeremonyStandingsPlacement;
+
+export interface SeedingCeremonyDraw {
+  /** @minimum 1 */
+  drawNumber: number;
+  participantKey: string;
+  playerId: number;
+  playerName: string;
+  /** @minimum 1 */
+  seed: number;
+  placement: SeedingCeremonyPlacement;
+}
+
+export type SeedingCeremonyStatus = typeof SeedingCeremonyStatus[keyof typeof SeedingCeremonyStatus];
+
+
+export const SeedingCeremonyStatus = {
+  prepared: 'prepared',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  applied: 'applied',
+} as const;
+
+export type SeedingCeremonyDrawMode = typeof SeedingCeremonyDrawMode[keyof typeof SeedingCeremonyDrawMode];
+
+
+export const SeedingCeremonyDrawMode = {
+  seed: 'seed',
+  placement: 'placement',
+} as const;
+
+export type SeedingCeremonyRevealOrder = typeof SeedingCeremonyRevealOrder[keyof typeof SeedingCeremonyRevealOrder];
+
+
+export const SeedingCeremonyRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+export interface SeedingCeremony {
+  kind: 'seeding_ceremony_v1';
+  version: 1;
+  stageId: number;
+  status: SeedingCeremonyStatus;
+  drawMode: SeedingCeremonyDrawMode;
+  entrySeedingPolicy: string;
+  placementPolicy: string;
+  resultSeedingPolicy: string;
+  revealOrder: SeedingCeremonyRevealOrder;
+  randomSeed: string;
+  /** @nullable */
+  placementRandomSeed?: string | null;
+  participantSignature: string;
+  configurationSignature: string;
+  participantOrder: string[];
+  draws: SeedingCeremonyDraw[];
+  /** @minimum 0 */
+  revealedCount: number;
+  preparedAt: string;
+  updatedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  appliedAt?: string | null;
+}
+
+export interface SeedingCeremonyResponse {
+  ceremony: SeedingCeremony | null;
+}
+
 export type StagePlanErrorDetailsItem = {
   code: string;
   path: string;
@@ -106,12 +232,23 @@ export const BackupImportErrorCode = {
   INVALID_BACKUP_V3: 'INVALID_BACKUP_V3',
   BACKUP_VERSION_UNSUPPORTED: 'BACKUP_VERSION_UNSUPPORTED',
   BACKUP_IMPORT_ROLLED_BACK: 'BACKUP_IMPORT_ROLLED_BACK',
+  ORGANIZER_PASSWORD_REQUIRED: 'ORGANIZER_PASSWORD_REQUIRED',
+  VIEWER_PASSWORD_REQUIRED: 'VIEWER_PASSWORD_REQUIRED',
+} as const;
+
+export type BackupImportErrorMissingFieldsItem = typeof BackupImportErrorMissingFieldsItem[keyof typeof BackupImportErrorMissingFieldsItem];
+
+
+export const BackupImportErrorMissingFieldsItem = {
+  organizerPassword: 'organizerPassword',
+  viewerPassword: 'viewerPassword',
 } as const;
 
 export interface BackupImportError {
   error: string;
   code: BackupImportErrorCode;
   details?: string[];
+  missingFields?: BackupImportErrorMissingFieldsItem[];
 }
 
 export type HealthStatusStatus = typeof HealthStatusStatus[keyof typeof HealthStatusStatus];
@@ -258,20 +395,62 @@ export const TournamentStagePlanItemInputBestOf = {
   NUMBER_7: 7,
 } as const;
 
-export type TournamentStagePlanItemInputGroupCount = typeof TournamentStagePlanItemInputGroupCount[keyof typeof TournamentStagePlanItemInputGroupCount];
+/**
+ * How incoming participants are converted into stage seeds.
+ */
+export type TournamentStagePlanItemInputEntrySeedingMethod = typeof TournamentStagePlanItemInputEntrySeedingMethod[keyof typeof TournamentStagePlanItemInputEntrySeedingMethod];
 
 
-export const TournamentStagePlanItemInputGroupCount = {
-  NUMBER_2: 2,
-  NUMBER_4: 4,
+export const TournamentStagePlanItemInputEntrySeedingMethod = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
 } as const;
 
-export type TournamentStagePlanItemInputQualifiersPerGroup = typeof TournamentStagePlanItemInputQualifiersPerGroup[keyof typeof TournamentStagePlanItemInputQualifiersPerGroup];
+/**
+ * Format-specific placement. Groups use snake/random; brackets use standard/random.
+ */
+export type TournamentStagePlanItemInputPlacementMethod = typeof TournamentStagePlanItemInputPlacementMethod[keyof typeof TournamentStagePlanItemInputPlacementMethod];
 
 
-export const TournamentStagePlanItemInputQualifiersPerGroup = {
-  NUMBER_1: 1,
-  NUMBER_2: 2,
+export const TournamentStagePlanItemInputPlacementMethod = {
+  standings_order: 'standings_order',
+  snake: 'snake',
+  random: 'random',
+  standard: 'standard',
+} as const;
+
+/**
+ * How group qualifiers receive new seeds.
+ */
+export type TournamentStagePlanItemInputResultSeedingMethod = typeof TournamentStagePlanItemInputResultSeedingMethod[keyof typeof TournamentStagePlanItemInputResultSeedingMethod];
+
+
+export const TournamentStagePlanItemInputResultSeedingMethod = {
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentStagePlanItemInputRandomRevealOrder = typeof TournamentStagePlanItemInputRandomRevealOrder[keyof typeof TournamentStagePlanItemInputRandomRevealOrder];
+
+
+export const TournamentStagePlanItemInputRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * Compatibility alias for group placementMethod.
+ * @deprecated
+ */
+export type TournamentStagePlanItemInputSeedingMethod = typeof TournamentStagePlanItemInputSeedingMethod[keyof typeof TournamentStagePlanItemInputSeedingMethod];
+
+
+export const TournamentStagePlanItemInputSeedingMethod = {
+  snake: 'snake',
+  random: 'random',
 } as const;
 
 export interface TournamentStagePlanItemInput {
@@ -290,16 +469,44 @@ export interface TournamentStagePlanItemInput {
   bestOf: TournamentStagePlanItemInputBestOf;
   /** @minimum 1 */
   rounds?: number;
-  /** @minimum 2 */
-  advancingCount?: number;
-  groupCount?: TournamentStagePlanItemInputGroupCount;
   /**
-     * @minimum 3
-     * @maximum 8
+     * Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.
+     * @minimum 2
+     */
+  advancingCount?: number;
+  /**
+     * Number of balanced groups. Must not exceed floor(participantCount / 2).
+     * @minimum 1
+     */
+  groupCount?: number;
+  /**
+     * Derived largest group size, equal to ceil(participantCount / groupCount).
+     * @minimum 2
      */
   participantsPerGroup?: number;
-  qualifiersPerGroup?: TournamentStagePlanItemInputQualifiersPerGroup;
-  seedingMethod?: 'snake';
+  /**
+     * Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+     * @minimum 1
+     */
+  qualifiersPerGroup?: number;
+  /** How incoming participants are converted into stage seeds. */
+  entrySeedingMethod?: TournamentStagePlanItemInputEntrySeedingMethod;
+  /** Format-specific placement. Groups use snake/random; brackets use standard/random. */
+  placementMethod?: TournamentStagePlanItemInputPlacementMethod;
+  /** How group qualifiers receive new seeds. */
+  resultSeedingMethod?: TournamentStagePlanItemInputResultSeedingMethod;
+  /**
+     * Deterministic key required by random seeding or placement.
+     * @minLength 1
+     * @maxLength 200
+     */
+  randomSeed?: string;
+  randomRevealOrder?: TournamentStagePlanItemInputRandomRevealOrder;
+  /**
+     * Compatibility alias for group placementMethod.
+     * @deprecated
+     */
+  seedingMethod?: TournamentStagePlanItemInputSeedingMethod;
 }
 
 export interface TournamentStagePlanInput {
@@ -323,9 +530,15 @@ export interface TournamentInput {
   defaultBestOf?: number;
   /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
   organizerPassword?: string;
-  /** Optional password for support staff access */
+  /**
+     * Optional password for support staff access
+     * @minLength 8
+     */
   supportPassword?: string;
-  /** Optional password for viewer access (required when visibility=private_online) */
+  /**
+     * Password for viewer access; required when visibility=private_online.
+     * @minLength 8
+     */
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
@@ -378,7 +591,43 @@ export const TournamentStageSeedingPolicy = {
   standings_order: 'standings_order',
   snake_groups: 'snake_groups',
   cross_group: 'cross_group',
+  random_groups: 'random_groups',
+  standard_bracket: 'standard_bracket',
+  random_bracket: 'random_bracket',
 } as const;
+
+export type TournamentStageEntrySeedingPolicy = typeof TournamentStageEntrySeedingPolicy[keyof typeof TournamentStageEntrySeedingPolicy];
+
+
+export const TournamentStageEntrySeedingPolicy = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export type TournamentStageResultSeedingPolicy = typeof TournamentStageResultSeedingPolicy[keyof typeof TournamentStageResultSeedingPolicy];
+
+
+export const TournamentStageResultSeedingPolicy = {
+  standings_order: 'standings_order',
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentStageRandomRevealOrder = typeof TournamentStageRandomRevealOrder[keyof typeof TournamentStageRandomRevealOrder];
+
+
+export const TournamentStageRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentStageSeedingAudit = { [key: string]: unknown } | null;
 
 export interface TournamentStage {
   id: number;
@@ -407,6 +656,13 @@ export interface TournamentStage {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentStageSeedingPolicy;
+  entrySeedingPolicy: TournamentStageEntrySeedingPolicy;
+  resultSeedingPolicy: TournamentStageResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder: TournamentStageRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentStageSeedingAudit;
   /** @nullable */
   winnerId?: number | null;
   version: number;
@@ -417,38 +673,16 @@ export interface TournamentStage {
   completedAt?: string | null;
 }
 
-export type StageGroupGroupKey = typeof StageGroupGroupKey[keyof typeof StageGroupGroupKey];
-
-
-export const StageGroupGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export interface StageGroup {
   id: number;
   stageId: number;
-  groupKey: StageGroupGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;
   createdAt: string;
 }
-
-/**
- * @nullable
- */
-export type StageParticipantGroupKey = typeof StageParticipantGroupKey[keyof typeof StageParticipantGroupKey] | null;
-
-
-export const StageParticipantGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
 
 export type StageParticipantStatus = typeof StageParticipantStatus[keyof typeof StageParticipantStatus];
 
@@ -478,8 +712,11 @@ export interface StageParticipant {
   stageSeed: number;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageParticipantGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   status: StageParticipantStatus;
   qualificationSource: StageParticipantQualificationSource;
   /** @nullable */
@@ -506,19 +743,6 @@ export interface TournamentStageDetails {
   qualifiers: StageParticipant[];
 }
 
-/**
- * @nullable
- */
-export type StageRankingEntryGroupKey = typeof StageRankingEntryGroupKey[keyof typeof StageRankingEntryGroupKey] | null;
-
-
-export const StageRankingEntryGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export interface StageRankingEntry {
   stageParticipantId: number;
   playerId: number;
@@ -534,8 +758,11 @@ export interface StageRankingEntry {
   buchholz?: number | null;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageRankingEntryGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   /** @nullable */
   groupRank?: number | null;
 }
@@ -599,20 +826,45 @@ export interface TournamentUpdate {
   /** @minimum 1 */
   defaultBestOf?: number;
   featuredMatchId?: number;
-  /** Host access code (plain text, stored hashed) */
-  hostCode?: string;
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
 }
 
-export interface VerifyHostCodeInput {
-  /** @minLength 1 */
-  code: string;
+/**
+ * @nullable
+ */
+export type OrganizerCredentialStateAccessMode = typeof OrganizerCredentialStateAccessMode[keyof typeof OrganizerCredentialStateAccessMode] | null;
+
+
+export const OrganizerCredentialStateAccessMode = {
+  organizer_login: 'organizer_login',
+  legacy_upgrade: 'legacy_upgrade',
+  admin_recovery: 'admin_recovery',
+} as const;
+
+export interface OrganizerCredentialState {
+  exists: boolean;
+  /** @nullable */
+  accessMode: OrganizerCredentialStateAccessMode;
+  private: boolean;
 }
 
-export interface VerifyHostCodeResult {
-  valid: boolean;
+export interface LegacyOrganizerUpgradeInput {
+  /**
+     * Historical host code; consumed and cleared by a successful upgrade.
+     * @minLength 1
+     */
+  hostCode: string;
+  /**
+     * New organizer password. This policy applies only to newly set passwords.
+     * @minLength 8
+     */
+  organizerPassword: string;
+}
+
+export interface OrganizerTokenResponse {
+  token: string;
 }
 
 export type PlayerStatus = typeof PlayerStatus[keyof typeof PlayerStatus];
@@ -1201,7 +1453,43 @@ export const TournamentBackupV3StagesItemSeedingPolicy = {
   standings_order: 'standings_order',
   snake_groups: 'snake_groups',
   cross_group: 'cross_group',
+  random_groups: 'random_groups',
+  standard_bracket: 'standard_bracket',
+  random_bracket: 'random_bracket',
 } as const;
+
+export type TournamentBackupV3StagesItemEntrySeedingPolicy = typeof TournamentBackupV3StagesItemEntrySeedingPolicy[keyof typeof TournamentBackupV3StagesItemEntrySeedingPolicy];
+
+
+export const TournamentBackupV3StagesItemEntrySeedingPolicy = {
+  preserve: 'preserve',
+  registration_order: 'registration_order',
+  alphabetical: 'alphabetical',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export type TournamentBackupV3StagesItemResultSeedingPolicy = typeof TournamentBackupV3StagesItemResultSeedingPolicy[keyof typeof TournamentBackupV3StagesItemResultSeedingPolicy];
+
+
+export const TournamentBackupV3StagesItemResultSeedingPolicy = {
+  standings_order: 'standings_order',
+  rank_bands: 'rank_bands',
+  global_ranking: 'global_ranking',
+} as const;
+
+export type TournamentBackupV3StagesItemRandomRevealOrder = typeof TournamentBackupV3StagesItemRandomRevealOrder[keyof typeof TournamentBackupV3StagesItemRandomRevealOrder];
+
+
+export const TournamentBackupV3StagesItemRandomRevealOrder = {
+  instant: 'instant',
+  sequential: 'sequential',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3StagesItemSeedingAudit = { [key: string]: unknown } | null;
 
 export type TournamentBackupV3StagesItem = {
   backupId: number;
@@ -1229,6 +1517,13 @@ export type TournamentBackupV3StagesItem = {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentBackupV3StagesItemSeedingPolicy;
+  entrySeedingPolicy?: TournamentBackupV3StagesItemEntrySeedingPolicy;
+  resultSeedingPolicy?: TournamentBackupV3StagesItemResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder?: TournamentBackupV3StagesItemRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentBackupV3StagesItemSeedingAudit;
   /** @nullable */
   winnerBackupId?: number | null;
   version: number;
@@ -1239,20 +1534,11 @@ export type TournamentBackupV3StagesItem = {
   completedAt?: string | null;
 };
 
-export type TournamentBackupV3GroupsItemGroupKey = typeof TournamentBackupV3GroupsItemGroupKey[keyof typeof TournamentBackupV3GroupsItemGroupKey];
-
-
-export const TournamentBackupV3GroupsItemGroupKey = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
 export type TournamentBackupV3GroupsItem = {
   backupId: number;
   stageBackupId: number;
-  groupKey: TournamentBackupV3GroupsItemGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;
@@ -1435,10 +1721,31 @@ export interface TournamentBackupV3 {
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;
 
+export interface BackupRestoreInput {
+  backup: TournamentBackup;
+  /**
+     * New organizer password. Credentials are never read from the backup.
+     * @minLength 8
+     */
+  organizerPassword: string;
+  /**
+     * New viewer password, required when the restored tournament is private_online.
+     * @minLength 8
+     */
+  viewerPassword?: string;
+  /**
+     * Optional new support password. When omitted, support access remains disabled.
+     * @minLength 8
+     */
+  supportPassword?: string;
+}
+
 export interface ImportResult {
   tournament: Tournament;
   playersImported: number;
   matchesImported: number;
+  /** Organizer token scoped to the newly restored tournament. */
+  organizerToken: string;
 }
 
 export type TournamentStatsTopPlayersItem = {

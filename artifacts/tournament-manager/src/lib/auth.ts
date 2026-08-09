@@ -1,3 +1,9 @@
+import {
+  getOrganizerCredentialState,
+  upgradeLegacyOrganizer,
+  type OrganizerCredentialState,
+} from "@workspace/api-client-react";
+
 export type Role = "developer" | "organizer" | "support" | "fan";
 
 const ROLE_KEY = "tm_role";
@@ -94,6 +100,12 @@ export function clearViewerToken(tournamentId: number): void {
 
 const BASE = (import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "");
 
+export async function apiOrganizerCredentialState(
+  tournamentId: number,
+): Promise<OrganizerCredentialState> {
+  return getOrganizerCredentialState(tournamentId);
+}
+
 export async function apiOrganizerLogin(tournamentId: number, password: string): Promise<string> {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/organizer-login`, {
     method: "POST",
@@ -106,6 +118,18 @@ export async function apiOrganizerLogin(tournamentId: number, password: string):
   }
   const data = await res.json();
   return data.token as string;
+}
+
+export async function apiUpgradeLegacyOrganizer(
+  tournamentId: number,
+  hostCode: string,
+  organizerPassword: string,
+): Promise<string> {
+  const result = await upgradeLegacyOrganizer(tournamentId, {
+    hostCode,
+    organizerPassword,
+  });
+  return result.token;
 }
 
 export async function apiSupportLogin(tournamentId: number, password: string, nick: string): Promise<{ sessionToken: string; nick: string }> {

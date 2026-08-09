@@ -10,6 +10,10 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
+import {
+  revalidateTournamentMutationActor,
+  type TournamentMutationActor,
+} from "../../access-policy";
 
 export type RevertMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -61,6 +65,7 @@ export interface RevertMatchInput {
   matchId: number;
   expectedTournamentId?: number;
   expectedCompletionActionId?: number;
+  actor?: TournamentMutationActor;
 }
 
 export interface RevertMatchTestHooks {
@@ -194,6 +199,7 @@ export async function revertMatch(
       .where(eq(tournamentsTable.id, matchReference.tournamentId))
       .for("update");
     if (!tournament) throw new RevertMatchError("TOURNAMENT_NOT_FOUND");
+    await revalidateTournamentMutationActor(tx, tournament, input.actor);
 
     const [stage] = await tx
       .select()

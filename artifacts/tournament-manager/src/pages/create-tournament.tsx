@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Globe, Layers3, Lock, Trophy } from "lucide-react";
 import {
+  setActiveOrganizerToken,
   useCreateTournament,
   type TournamentInput,
 } from "@workspace/api-client-react";
@@ -27,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/auth-context";
+import { apiOrganizerLogin } from "@/lib/auth";
 import {
   createStageDraft,
   getApiErrorMessage,
@@ -65,6 +68,7 @@ type Visibility = NonNullable<TournamentInput["visibility"]>;
 
 export default function CreateTournament() {
   const [, navigate] = useLocation();
+  const { storeOrgToken } = useAuth();
   const createTournament = useCreateTournament();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -132,7 +136,7 @@ export default function CreateTournament() {
           ? Number.parseInt(swissRounds, 10)
           : undefined,
       defaultBestOf: Number.parseInt(defaultBestOf, 10) || 1,
-      organizerPassword: organizerPassword || undefined,
+      organizerPassword,
       supportPassword: supportPassword || undefined,
       viewerPassword:
         visibility === "private_online"
@@ -144,14 +148,20 @@ export default function CreateTournament() {
     createTournament.mutate(
       { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
       {
-        onSuccess: (tournament) => {
+        onSuccess: async (tournament) => {
           submitInFlightRef.current = false;
-          navigate(`/tournaments/${tournament.id}`);
+          try {
+            const token = await apiOrganizerLogin(tournament.id, organizerPassword);
+            storeOrgToken(tournament.id, token);
+            setActiveOrganizerToken(token);
+            navigate(`/tournaments/${tournament.id}`);
+          } catch {
+            setSubmitError(
+              `Turniej został utworzony (ID ${tournament.id}), ale automatyczne logowanie nie powiodło się. Otwórz turniej i zaloguj się ustawionym hasłem organizatora.`,
+            );
+          }
         },
-        onError: (error) => {
-          submitInFlightRef.current = false;
-          setSubmitError(getApiErrorMessage(error));
-        },
+        onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
       },
     );
   };
@@ -376,11 +386,11 @@ export default function CreateTournament() {
               <div className="space-y-4 border-t pt-5">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Lock className="h-4 w-4" />
-                  Hasła dostępu (opcjonalne)
+                  Hasła dostępu
                 </div>
                 <PasswordField
                   id="organizer-password"
-                  label="Hasło organizatora"
+                  label="Hasło organizatora *"
                   value={organizerPassword}
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
@@ -407,7 +417,7 @@ export default function CreateTournament() {
                 {visibility === "private_online" && (
                   <PasswordField
                     id="viewer-password"
-                    label="Hasło widza"
+                    label="Hasło widza *"
                     value={viewerPassword}
                     onChange={setViewerPassword}
                     visible={showViewerPass}

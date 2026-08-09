@@ -19,8 +19,6 @@ export interface TournamentUpdate {
   /** @minimum 1 */
   defaultBestOf?: number;
   featuredMatchId?: number;
-  /** Host access code (plain text, stored hashed) */
-  hostCode?: string;
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;

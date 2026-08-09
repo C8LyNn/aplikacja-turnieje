@@ -17,14 +17,69 @@ import {
   StageNavigation,
 } from "../components/tournament-stages-panel";
 import {
+  balancedGroupSizes,
   buildStagePlan,
   canShowStageActions,
   createStageDraft,
   filterMatchesForStage,
+  groupAdvancingCount,
+  groupLabelFromIndex,
+  previewBracketPairs,
+  previewGroupSeedPlacement,
+  stageOutputParticipantCount,
+  singleEliminationAdvancingOptions,
+  singleEliminationStageMetrics,
+  synchronizeStageParticipantFlow,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
 } from "./tournament-stages-ui";
+import { StagePlanEditor } from "../components/stage-plan-editor";
+import { organizerCredentialScreen } from "./organizer-credential-screen";
+import { getTournament } from "@workspace/api-client-react";
+import {
+  clearTournamentAuthHeaders,
+  synchronizeTournamentAuthHeaders,
+} from "./tournament-auth-hydration";
+
+test("wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu", () => {
+  assert.equal(organizerCredentialScreen(null, true), "loading");
+  assert.equal(organizerCredentialScreen(null, false), "not_found");
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "legacy_upgrade", private: true },
+      false,
+    ),
+    "legacy_upgrade",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "organizer_login", private: true },
+      false,
+    ),
+    "organizer_login",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: true, accessMode: "admin_recovery", private: true },
+      false,
+    ),
+    "admin_recovery",
+  );
+  assert.equal(
+    organizerCredentialScreen(
+      { exists: false, accessMode: null, private: false },
+      false,
+    ),
+    "not_found",
+  );
+});
+
+test("etykietuje grupy także powyżej Z", () => {
+  assert.equal(groupLabelFromIndex(0), "A");
+  assert.equal(groupLabelFromIndex(25), "Z");
+  assert.equal(groupLabelFromIndex(26), "AA");
+});
 
 type MatchStageIdIsRequired = {} extends Pick<Match, "stageId">
   ? false
@@ -65,7 +120,16 @@ function stage(
     participantsPerGroup: format === "group_stage" ? 4 : null,
     qualifiersPerGroup: format === "group_stage" ? 2 : null,
     seedingPolicy:
-      format === "group_stage" ? "snake_groups" : "standings_order",
+      format === "group_stage"
+        ? "snake_groups"
+        : format === "single_elimination"
+          ? "standard_bracket"
+          : "standings_order",
+    entrySeedingPolicy: "preserve",
+    resultSeedingPolicy: format === "group_stage" ? "rank_bands" : "standings_order",
+    randomSeed: null,
+    randomRevealOrder: "instant",
+    seedingAudit: null,
     winnerId: null,
     version: 1,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -169,16 +233,117 @@ test("buduje payload planu trzech etapów", () => {
   assert.equal(plan.stages[2].participantCount, 4);
 });
 
-test("odrzuca Single Elimination przed ostatnim etapem", () => {
-  const invalid = [
-    { ...createStageDraft(1, "single_elimination"), participantCount: 8 },
-    { ...createStageDraft(2, "round_robin"), participantCount: 4 },
+test("buduje elastyczną fazę grupową, w której wszyscy przechodzą dalej", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 17,
+      groupCount: 4,
+      participantsPerGroup: 5,
+      qualifiersPerGroup: 5,
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 17,
+    },
+  ];
+
+  assert.deepEqual(balancedGroupSizes(17, 4), [5, 4, 4, 4]);
+  assert.equal(groupAdvancingCount(stages[0]), 17);
+  const plan = buildStagePlan(stages);
+  assert.equal(plan.stages[0].groupCount, 4);
+  assert.equal(plan.stages[0].participantsPerGroup, 5);
+  assert.equal(plan.stages[0].qualifiersPerGroup, 5);
+  assert.equal(plan.stages[1].participantCount, 17);
+});
+
+test("wylicza liczbę uczestników następnego etapu z bieżących zasad awansu", () => {
+  const groupStage: StageDraft = {
+    ...createStageDraft(1, "group_stage"),
+    participantCount: 17,
+    groupCount: 4,
+    qualifiersPerGroup: 5,
+  };
+  const swissStage: StageDraft = {
+    ...createStageDraft(1, "swiss"),
+    participantCount: 17,
+    advancingCount: 12,
+  };
+
+  assert.equal(stageOutputParticipantCount(groupStage), 17);
+  assert.equal(stageOutputParticipantCount(swissStage), 12);
+  assert.equal(
+    stageOutputParticipantCount(createStageDraft(1, "single_elimination")),
+    1,
+  );
+});
+
+test("odrzuca liczbę grup, która utworzyłaby grupę jednoosobową", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 17,
+      groupCount: 9,
+      participantsPerGroup: 2,
+      qualifiersPerGroup: 1,
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 9,
+    },
   ];
   assert.ok(
-    validateStageDrafts(invalid).some((error) =>
-      error.message.includes("wyłącznie ostatnim"),
+    validateStageDrafts(stages).some((error) =>
+      error.message.includes("każda grupa miała co najmniej 2 osoby"),
     ),
   );
+});
+
+test("obsługuje pośrednią drabinkę wyłącznie na granicy pełnej rundy", () => {
+  const valid = [
+    { ...createStageDraft(1, "single_elimination"), participantCount: 16, advancingCount: 8 },
+    { ...createStageDraft(2, "single_elimination"), participantCount: 8 },
+  ];
+  assert.equal(validateStageDrafts(valid).length, 0);
+  for (const advancingCount of [7, 10]) {
+    assert.ok(validateStageDrafts([
+      { ...valid[0], advancingCount },
+      { ...valid[1], participantCount: advancingCount },
+    ]).some((error) => error.field === "advancingCount"));
+  }
+  assert.deepEqual(singleEliminationAdvancingOptions(17), [16, 8, 4, 2, 1]);
+  assert.deepEqual(singleEliminationStageMetrics({ participantCount: 17, advancingCount: 16 }), {
+    advancingCount: 16,
+    rounds: 1,
+    matchCount: 1,
+    bracketSize: 32,
+  });
+});
+
+test("przelicza wszystkie dalsze etapy i blokuje ich ręczną liczbę uczestników", () => {
+  const stages = synchronizeStageParticipantFlow([
+    {
+      ...createStageDraft(1, "group_stage"), participantCount: 32,
+      groupCount: 8, participantsPerGroup: 4, qualifiersPerGroup: 2,
+    },
+    { ...createStageDraft(2, "single_elimination"), participantCount: 99, advancingCount: 8 },
+    { ...createStageDraft(3, "single_elimination"), participantCount: 99 },
+  ]);
+  assert.deepEqual(stages.map((stage) => stage.participantCount), [32, 16, 8]);
+
+  const updated = synchronizeStageParticipantFlow([
+    { ...stages[0], qualifiersPerGroup: 1 },
+    ...stages.slice(1),
+  ]);
+  assert.deepEqual(updated.map((stage) => stage.participantCount), [32, 8, 4]);
+
+  const html = renderToStaticMarkup(
+    <StagePlanEditor stages={stages} errors={[]} onChange={() => undefined} />,
+  );
+  assert.match(html, /16 uczestników — awansujący z Etapu 1/);
+  assert.match(html, /8 uczestników — awansujący z Etapu 2/);
+  assert.match(html, /stage-1-participants[^>]*disabled/);
+  assert.match(html, /stage-2-participants[^>]*disabled/);
 });
 
 test("renderuje listę etapów i statusy planned, active, completed", () => {
@@ -244,12 +409,13 @@ test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   assert.equal(grouped.stageGroupId, 30);
 });
 
-for (const count of [2, 4] as const) {
+for (const count of [2, 5] as const) {
   test(`renderuje widok ${count} grup`, () => {
     const stageId = 10;
-    const keys = ["A", "B", "C", "D"] as const;
+    const keys = Array.from({ length: count }, (_, index) =>
+      String.fromCharCode(65 + index),
+    );
     const groups = keys
-      .slice(0, count)
       .map((key, index) => group(index + 1, stageId, key, index + 1));
     const participants = groups.flatMap((entry) =>
       [1, 2, 3, 4].map((rank) =>
@@ -326,10 +492,139 @@ test("zachowuje payload historycznego kreatora jednoetapowego", () => {
     format: "swiss",
     swissRounds: 3,
     defaultBestOf: 1,
+    organizerPassword: "organizer-pass",
   };
   const payload = withOptionalStagePlan(legacy, false, [
     createStageDraft(1, "swiss"),
   ]);
   assert.strictEqual(payload, legacy);
   assert.equal(payload.stagePlan, undefined);
+});
+
+test("rejects a group stage that would pass only one participant to another stage", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      clientId: "groups", name: "Groups",
+      participantCount: 4, bestOf: 1, groupCount: 1,
+      participantsPerGroup: 4, qualifiersPerGroup: 1,
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      clientId: "playoff", name: "Playoff",
+      participantCount: 2, bestOf: 1,
+    },
+  ];
+  assert.ok(validateStageDrafts(stages).some(
+    (error) => error.field === "qualifiersPerGroup" && /co najmniej 2/.test(error.message),
+  ));
+});
+
+
+test("zapisuje konfigurowalne seedowanie i rozmieszczenie w payloadzie", () => {
+  const stages: StageDraft[] = [
+    {
+      ...createStageDraft(1, "group_stage"),
+      participantCount: 8,
+      groupCount: 2,
+      participantsPerGroup: 4,
+      qualifiersPerGroup: 4,
+      entrySeedingMethod: "alphabetical",
+      placementMethod: "random",
+      resultSeedingMethod: "global_ranking",
+      randomSeed: "public-draw-2026",
+      randomRevealOrder: "sequential",
+    },
+    {
+      ...createStageDraft(2, "single_elimination"),
+      participantCount: 8,
+      placementMethod: "standard",
+    },
+  ];
+
+  const plan = buildStagePlan(stages);
+  assert.equal(plan.stages[0].entrySeedingMethod, "alphabetical");
+  assert.equal(plan.stages[0].placementMethod, "random");
+  assert.equal(plan.stages[0].resultSeedingMethod, "global_ranking");
+  assert.equal(plan.stages[0].randomSeed, "public-draw-2026");
+  assert.equal(plan.stages[0].randomRevealOrder, "sequential");
+});
+
+test("podgląd losowego rozmieszczenia jest deterministyczny", () => {
+  const groups: StageDraft = {
+    ...createStageDraft(1, "group_stage"),
+    participantCount: 17,
+    groupCount: 4,
+    qualifiersPerGroup: 5,
+    placementMethod: "random",
+    randomSeed: "same-seed",
+  };
+  assert.deepEqual(previewGroupSeedPlacement(groups), previewGroupSeedPlacement(groups));
+
+  const bracket: StageDraft = {
+    ...createStageDraft(1, "single_elimination"),
+    participantCount: 17,
+    placementMethod: "random",
+    randomSeed: "same-seed",
+  };
+  assert.deepEqual(previewBracketPairs(bracket), previewBracketPairs(bracket));
+});
+
+test("wymaga klucza dla losowego seedowania lub rozmieszczenia", () => {
+  const stage = {
+    ...createStageDraft(1, "single_elimination"),
+    entrySeedingMethod: "random" as const,
+    randomSeed: "",
+  };
+  assert.ok(validateStageDrafts([stage]).some((error) => error.field === "randomSeed"));
+});
+
+test("domyślnie zachowuje dotychczasowe seedy uczestników", () => {
+  const firstStage = createStageDraft(1, "swiss");
+  const laterStage = createStageDraft(2, "single_elimination");
+
+  assert.equal(firstStage.entrySeedingMethod, "preserve");
+  assert.equal(laterStage.entrySeedingMethod, "preserve");
+
+  const plan = buildStagePlan([createStageDraft(1, "single_elimination")]);
+  assert.equal(plan.stages[0]?.entrySeedingMethod, "preserve");
+});
+
+test("odĹ›wieĹĽenie hydratyzuje token organizatora przed pierwszym requestem i czyĹ›ci go po wylogowaniu", async () => {
+  const storage = new Map<string, string>();
+  const tournamentId = 42;
+  const storageKey = `tm_org_${tournamentId}`;
+  const token = "persisted-organizer-token";
+  storage.set(storageKey, token);
+  const capturedHeaders: Headers[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    capturedHeaders.push(new Headers(init?.headers));
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  try {
+    synchronizeTournamentAuthHeaders(
+      tournamentId,
+      (id) => storage.get(`tm_org_${id}`) ?? null,
+      () => null,
+    );
+    await getTournament(tournamentId);
+    assert.equal(capturedHeaders.at(-1)?.get("x-organizer-token"), token);
+
+    storage.delete(storageKey);
+    synchronizeTournamentAuthHeaders(
+      tournamentId,
+      (id) => storage.get(`tm_org_${id}`) ?? null,
+      () => null,
+    );
+    await getTournament(tournamentId);
+    assert.equal(capturedHeaders.at(-1)?.has("x-organizer-token"), false);
+  } finally {
+    clearTournamentAuthHeaders();
+    globalThis.fetch = originalFetch;
+  }
 });

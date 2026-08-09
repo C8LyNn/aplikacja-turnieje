@@ -140,9 +140,9 @@ export function SecurityPanel({ tournamentId }: Props) {
                     type={showNewPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="min. 4 znaki"
+                    placeholder="min. 8 znaków"
                     required
-                    minLength={4}
+                    minLength={8}
                     className="pr-9"
                   />
                   <button
@@ -156,7 +156,7 @@ export function SecurityPanel({ tournamentId }: Props) {
               </div>
               {pwError && <p className="text-xs text-destructive">{pwError}</p>}
               {pwSuccess && <p className="text-xs text-green-400">Hasło zmienione. Poprzednie sesje zostały unieważnione.</p>}
-              <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 4}>
+              <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 8}>
                 <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
                 {changingPw ? "Zmienianie…" : "Zmień hasło i unieważnij sesje"}
               </Button>

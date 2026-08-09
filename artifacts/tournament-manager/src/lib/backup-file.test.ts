@@ -20,6 +20,18 @@ test("frontend accepts a series_v1 Backup v2 file", () => {
   if (result.ok) assert.equal(result.backup.schemaVersion, 2);
 });
 
+test("frontend accepts a series_v1 Backup v3 file", () => {
+  const result = parseTournamentBackupFile(JSON.stringify({
+    ...validBackupHeader,
+    schemaVersion: 3,
+    stages: [],
+    groups: [],
+    stageParticipants: [],
+  }));
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.backup.schemaVersion, 3);
+});
+
 test("frontend rejects legacy Backup v1 with a clear message", () => {
   for (const legacyVersion of [{ version: "1" }, { schemaVersion: 1 }]) {
     const result = parseTournamentBackupFile(JSON.stringify({

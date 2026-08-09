@@ -5,6 +5,7 @@ import {
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
+import { calculateGroupAdvancingCount } from "../../domain/tournament/group-stage";
 import {
   validateTournamentStagePlan,
   type TournamentStagePlan,
@@ -43,7 +44,6 @@ function persistedStage(
   stage: TournamentStagePlan,
   plan: TournamentStagesPlan,
 ): typeof tournamentStagesTable.$inferInsert {
-  const previous = plan.stages[stage.position - 2];
   const final = stage.position === plan.stages.length;
   return {
     tournamentId,
@@ -64,7 +64,7 @@ function persistedStage(
         ? "top_n_per_group"
         : "top_n",
     advancingCount:
-      !final && (stage.format === "swiss" || stage.format === "round_robin")
+      !final && (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination")
         ? (stage.advancingCount ?? null)
         : null,
     groupCount: stage.format === "group_stage" ? stage.groupCount : null,
@@ -74,11 +74,18 @@ function persistedStage(
       stage.format === "group_stage" ? stage.qualifiersPerGroup : null,
     seedingPolicy:
       stage.format === "group_stage"
-        ? "snake_groups"
-        : stage.format === "single_elimination" &&
-            previous?.format === "group_stage"
-          ? "cross_group"
+        ? stage.placementMethod === "random" ? "random_groups" : "snake_groups"
+        : stage.format === "single_elimination"
+          ? stage.placementMethod === "random" ? "random_bracket" : "standard_bracket"
           : "standings_order",
+    entrySeedingPolicy: stage.entrySeedingMethod,
+    resultSeedingPolicy:
+      stage.format === "group_stage"
+        ? stage.resultSeedingMethod === "global_ranking" ? "global_ranking" : "rank_bands"
+        : "standings_order",
+    randomSeed: stage.randomSeed ?? null,
+    randomRevealOrder: stage.randomRevealOrder,
+    seedingAudit: null,
   };
 }
 
@@ -136,6 +143,11 @@ export async function createTournamentWithStagePlan(input: {
         participantsPerGroup: firstValues.participantsPerGroup,
         qualifiersPerGroup: firstValues.qualifiersPerGroup,
         seedingPolicy: firstValues.seedingPolicy,
+        entrySeedingPolicy: firstValues.entrySeedingPolicy,
+        resultSeedingPolicy: firstValues.resultSeedingPolicy,
+        randomSeed: firstValues.randomSeed,
+        randomRevealOrder: firstValues.randomRevealOrder,
+        seedingAudit: firstValues.seedingAudit,
       })
       .where(eq(tournamentStagesTable.id, generated.id));
 
@@ -183,11 +195,18 @@ export async function addPlayerWithStagePlanCompatibility(
         rankingPolicy: "round_robin_v1",
         qualificationMode: "top_n",
         advancingCount:
-          (firstStage.groupCount ?? 0) * (firstStage.qualifiersPerGroup ?? 0),
+          firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
+            ? calculateGroupAdvancingCount(
+                firstStage.participantCount,
+                firstStage.groupCount,
+                firstStage.qualifiersPerGroup,
+              )
+            : 0,
         groupCount: null,
         participantsPerGroup: null,
         qualifiersPerGroup: null,
         seedingPolicy: "standings_order",
+        resultSeedingPolicy: "standings_order",
       })
       .where(eq(tournamentStagesTable.id, firstStage.id));
     const [created] = await tx.insert(playersTable).values(values).returning();
@@ -203,6 +222,7 @@ export async function addPlayerWithStagePlanCompatibility(
         participantsPerGroup: firstStage.participantsPerGroup,
         qualifiersPerGroup: firstStage.qualifiersPerGroup,
         seedingPolicy: firstStage.seedingPolicy,
+        resultSeedingPolicy: firstStage.resultSeedingPolicy,
       })
       .where(eq(tournamentStagesTable.id, firstStage.id));
     return created;

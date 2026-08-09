@@ -23,28 +23,33 @@ import type {
   ActionLogEntry,
   AssistantSnapshot,
   BackupImportError,
+  BackupRestoreInput,
   Bracket,
   CsvImportInput,
   CsvImportResult,
   DomainError,
   HealthStatus,
   ImportResult,
+  LegacyOrganizerUpgradeInput,
   Match,
   MatchCancelInput,
   MatchResult,
   MatchUpdate,
+  OrganizerCredentialState,
+  OrganizerTokenResponse,
   Player,
   PlayerInput,
   PlayerUpdate,
   ReorderMatchesInput,
   ResultRecord,
+  SeedingCeremonyError,
+  SeedingCeremonyResponse,
   StageLifecycleError,
   StagePlanError,
   StageQualificationPreview,
   StageStartReadiness,
   Standing,
   Tournament,
-  TournamentBackup,
   TournamentBackupV3,
   TournamentInput,
   TournamentStage,
@@ -52,9 +57,7 @@ import type {
   TournamentStats,
   TournamentUpdate,
   UndoLastAction404,
-  UndoResult,
-  VerifyHostCodeInput,
-  VerifyHostCodeResult
+  UndoResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -654,6 +657,376 @@ export function useGetTournamentStage<TData = Awaited<ReturnType<typeof getTourn
 
 
 
+export const getGetStageSeedingCeremonyUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony`
+}
+
+/**
+ * @summary Read the persisted pre-stage seeding ceremony
+ */
+export const getStageSeedingCeremony = async (id: number,
+    stageId: number, options?: RequestInit): Promise<SeedingCeremonyResponse> => {
+
+  return customFetch<SeedingCeremonyResponse>(getGetStageSeedingCeremonyUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStageSeedingCeremonyQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony`
+    ] as const;
+    }
+
+
+export const getGetStageSeedingCeremonyQueryOptions = <TData = Awaited<ReturnType<typeof getStageSeedingCeremony>>, TError = ErrorType<DomainError | SeedingCeremonyError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageSeedingCeremony>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStageSeedingCeremonyQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStageSeedingCeremony>>> = ({ signal }) => getStageSeedingCeremony(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStageSeedingCeremony>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStageSeedingCeremonyQueryResult = NonNullable<Awaited<ReturnType<typeof getStageSeedingCeremony>>>
+export type GetStageSeedingCeremonyQueryError = ErrorType<DomainError | SeedingCeremonyError>
+
+
+/**
+ * @summary Read the persisted pre-stage seeding ceremony
+ */
+
+export function useGetStageSeedingCeremony<TData = Awaited<ReturnType<typeof getStageSeedingCeremony>>, TError = ErrorType<DomainError | SeedingCeremonyError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageSeedingCeremony>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStageSeedingCeremonyQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getResetStageSeedingCeremonyUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony`
+}
+
+/**
+ * @summary Reset a prepared ceremony before the stage starts
+ */
+export const resetStageSeedingCeremony = async (id: number,
+    stageId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getResetStageSeedingCeremonyUrl(id,stageId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getResetStageSeedingCeremonyMutationOptions = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['resetStageSeedingCeremony'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetStageSeedingCeremony>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  resetStageSeedingCeremony(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetStageSeedingCeremonyMutationResult = NonNullable<Awaited<ReturnType<typeof resetStageSeedingCeremony>>>
+
+    export type ResetStageSeedingCeremonyMutationError = ErrorType<DomainError | SeedingCeremonyError>
+
+    /**
+ * @summary Reset a prepared ceremony before the stage starts
+ */
+export const useResetStageSeedingCeremony = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetStageSeedingCeremony>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getResetStageSeedingCeremonyMutationOptions(options));
+    }
+
+export const getPrepareStageSeedingCeremonyUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony/prepare`
+}
+
+/**
+ * @summary Persist every deterministic draw before revealing it
+ */
+export const prepareStageSeedingCeremony = async (id: number,
+    stageId: number, options?: RequestInit): Promise<SeedingCeremonyResponse> => {
+
+  return customFetch<SeedingCeremonyResponse>(getPrepareStageSeedingCeremonyUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPrepareStageSeedingCeremonyMutationOptions = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prepareStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['prepareStageSeedingCeremony'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prepareStageSeedingCeremony>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  prepareStageSeedingCeremony(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PrepareStageSeedingCeremonyMutationResult = NonNullable<Awaited<ReturnType<typeof prepareStageSeedingCeremony>>>
+
+    export type PrepareStageSeedingCeremonyMutationError = ErrorType<DomainError | SeedingCeremonyError>
+
+    /**
+ * @summary Persist every deterministic draw before revealing it
+ */
+export const usePrepareStageSeedingCeremony = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareStageSeedingCeremony>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof prepareStageSeedingCeremony>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getPrepareStageSeedingCeremonyMutationOptions(options));
+    }
+
+export const getRevealNextStageSeedingDrawUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony/reveal-next`
+}
+
+/**
+ * @summary Reveal exactly one previously persisted draw
+ */
+export const revealNextStageSeedingDraw = async (id: number,
+    stageId: number, options?: RequestInit): Promise<SeedingCeremonyResponse> => {
+
+  return customFetch<SeedingCeremonyResponse>(getRevealNextStageSeedingDrawUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRevealNextStageSeedingDrawMutationOptions = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revealNextStageSeedingDraw>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revealNextStageSeedingDraw>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['revealNextStageSeedingDraw'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revealNextStageSeedingDraw>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  revealNextStageSeedingDraw(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevealNextStageSeedingDrawMutationResult = NonNullable<Awaited<ReturnType<typeof revealNextStageSeedingDraw>>>
+
+    export type RevealNextStageSeedingDrawMutationError = ErrorType<DomainError | SeedingCeremonyError>
+
+    /**
+ * @summary Reveal exactly one previously persisted draw
+ */
+export const useRevealNextStageSeedingDraw = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revealNextStageSeedingDraw>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revealNextStageSeedingDraw>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getRevealNextStageSeedingDrawMutationOptions(options));
+    }
+
+export const getRevealAllStageSeedingDrawsUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/seeding-ceremony/reveal-all`
+}
+
+/**
+ * @summary Reveal every remaining persisted draw without animation
+ */
+export const revealAllStageSeedingDraws = async (id: number,
+    stageId: number, options?: RequestInit): Promise<SeedingCeremonyResponse> => {
+
+  return customFetch<SeedingCeremonyResponse>(getRevealAllStageSeedingDrawsUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRevealAllStageSeedingDrawsMutationOptions = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revealAllStageSeedingDraws>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revealAllStageSeedingDraws>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['revealAllStageSeedingDraws'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revealAllStageSeedingDraws>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  revealAllStageSeedingDraws(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevealAllStageSeedingDrawsMutationResult = NonNullable<Awaited<ReturnType<typeof revealAllStageSeedingDraws>>>
+
+    export type RevealAllStageSeedingDrawsMutationError = ErrorType<DomainError | SeedingCeremonyError>
+
+    /**
+ * @summary Reveal every remaining persisted draw without animation
+ */
+export const useRevealAllStageSeedingDraws = <TError = ErrorType<DomainError | SeedingCeremonyError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revealAllStageSeedingDraws>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revealAllStageSeedingDraws>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getRevealAllStageSeedingDrawsMutationOptions(options));
+    }
+
 export const getPreviewStageQualificationUrl = (id: number,
     stageId: number,) => {
 
@@ -1026,38 +1399,115 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getStartTournamentMutationOptions(options));
     }
 
-export const getVerifyHostCodeUrl = (id: number,) => {
+export const getGetOrganizerCredentialStateUrl = (id: number,) => {
 
 
 
 
-  return `/api/tournaments/${id}/verify-host-code`
+  return `/api/tournaments/${id}/auth/credential-state`
 }
 
 /**
- * @summary Verify the host access code for a tournament
+ * @summary Read the neutral organizer-credential bootstrap state
  */
-export const verifyHostCode = async (id: number,
-    verifyHostCodeInput: VerifyHostCodeInput, options?: RequestInit): Promise<VerifyHostCodeResult> => {
+export const getOrganizerCredentialState = async (id: number, options?: RequestInit): Promise<OrganizerCredentialState> => {
 
-  return customFetch<VerifyHostCodeResult>(getVerifyHostCodeUrl(id),
+  return customFetch<OrganizerCredentialState>(getGetOrganizerCredentialStateUrl(id),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      verifyHostCodeInput,)
+    method: 'GET'
+
+
   }
 );}
 
 
 
 
-export const getVerifyHostCodeMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext> => {
 
-const mutationKey = ['verifyHostCode'];
+export const getGetOrganizerCredentialStateQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/auth/credential-state`
+    ] as const;
+    }
+
+
+export const getGetOrganizerCredentialStateQueryOptions = <TData = Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError = ErrorType<DomainError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrganizerCredentialStateQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrganizerCredentialState>>> = ({ signal }) => getOrganizerCredentialState(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOrganizerCredentialStateQueryResult = NonNullable<Awaited<ReturnType<typeof getOrganizerCredentialState>>>
+export type GetOrganizerCredentialStateQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read the neutral organizer-credential bootstrap state
+ */
+
+export function useGetOrganizerCredentialState<TData = Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError = ErrorType<DomainError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOrganizerCredentialState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOrganizerCredentialStateQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpgradeLegacyOrganizerUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/auth/upgrade-legacy-organizer`
+}
+
+/**
+ * @summary Replace a historical hostCode with a new organizer password
+ */
+export const upgradeLegacyOrganizer = async (id: number,
+    legacyOrganizerUpgradeInput: LegacyOrganizerUpgradeInput, options?: RequestInit): Promise<OrganizerTokenResponse> => {
+
+  return customFetch<OrganizerTokenResponse>(getUpgradeLegacyOrganizerUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      legacyOrganizerUpgradeInput,)
+  }
+);}
+
+
+
+
+export const getUpgradeLegacyOrganizerMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext> => {
+
+const mutationKey = ['upgradeLegacyOrganizer'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1067,10 +1517,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyHostCode>>, {id: number;data: BodyType<VerifyHostCodeInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, {id: number;data: BodyType<LegacyOrganizerUpgradeInput>}> = (props) => {
           const {id,data} = props ?? {};
 
-          return  verifyHostCode(id,data,requestOptions)
+          return  upgradeLegacyOrganizer(id,data,requestOptions)
         }
 
 
@@ -1080,22 +1530,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type VerifyHostCodeMutationResult = NonNullable<Awaited<ReturnType<typeof verifyHostCode>>>
-    export type VerifyHostCodeMutationBody = BodyType<VerifyHostCodeInput>
-    export type VerifyHostCodeMutationError = ErrorType<void>
+    export type UpgradeLegacyOrganizerMutationResult = NonNullable<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>>
+    export type UpgradeLegacyOrganizerMutationBody = BodyType<LegacyOrganizerUpgradeInput>
+    export type UpgradeLegacyOrganizerMutationError = ErrorType<DomainError>
 
     /**
- * @summary Verify the host access code for a tournament
+ * @summary Replace a historical hostCode with a new organizer password
  */
-export const useVerifyHostCode = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyHostCode>>, TError,{id: number;data: BodyType<VerifyHostCodeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useUpgradeLegacyOrganizer = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upgradeLegacyOrganizer>>, TError,{id: number;data: BodyType<LegacyOrganizerUpgradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof verifyHostCode>>,
+        Awaited<ReturnType<typeof upgradeLegacyOrganizer>>,
         TError,
-        {id: number;data: BodyType<VerifyHostCodeInput>},
+        {id: number;data: BodyType<LegacyOrganizerUpgradeInput>},
         TContext
       > => {
-      return useMutation(getVerifyHostCodeMutationOptions(options));
+      return useMutation(getUpgradeLegacyOrganizerMutationOptions(options));
     }
 
 export const getGenerateNextRoundUrl = (id: number,) => {
@@ -1697,9 +2147,9 @@ export const getImportTournamentUrl = () => {
 }
 
 /**
- * @summary Import Backup v2 or v3 as a new tournament copy
+ * @summary Import Backup v2 or v3 as an independent tournament with new credentials
  */
-export const importTournament = async (tournamentBackup: TournamentBackup, options?: RequestInit): Promise<ImportResult> => {
+export const importTournament = async (backupRestoreInput: BackupRestoreInput, options?: RequestInit): Promise<ImportResult> => {
 
   return customFetch<ImportResult>(getImportTournamentUrl(),
   {
@@ -1707,7 +2157,7 @@ export const importTournament = async (tournamentBackup: TournamentBackup, optio
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      tournamentBackup,)
+      backupRestoreInput,)
   }
 );}
 
@@ -1715,8 +2165,8 @@ export const importTournament = async (tournamentBackup: TournamentBackup, optio
 
 
 export const getImportTournamentMutationOptions = <TError = ErrorType<BackupImportError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext> => {
 
 const mutationKey = ['importTournament'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1728,7 +2178,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTournament>>, {data: BodyType<TournamentBackup>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importTournament>>, {data: BodyType<BackupRestoreInput>}> = (props) => {
           const {data} = props ?? {};
 
           return  importTournament(data,requestOptions)
@@ -1742,18 +2192,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ImportTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof importTournament>>>
-    export type ImportTournamentMutationBody = BodyType<TournamentBackup>
+    export type ImportTournamentMutationBody = BodyType<BackupRestoreInput>
     export type ImportTournamentMutationError = ErrorType<BackupImportError>
 
     /**
- * @summary Import Backup v2 or v3 as a new tournament copy
+ * @summary Import Backup v2 or v3 as an independent tournament with new credentials
  */
 export const useImportTournament = <TError = ErrorType<BackupImportError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<TournamentBackup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof importTournament>>,
         TError,
-        {data: BodyType<TournamentBackup>},
+        {data: BodyType<BackupRestoreInput>},
         TContext
       > => {
       return useMutation(getImportTournamentMutationOptions(options));

@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BackupImportErrorCode } from './backupImportErrorCode';
+import type { BackupImportErrorMissingFieldsItem } from './backupImportErrorMissingFieldsItem';
 
 export interface BackupImportError {
   error: string;
   code: BackupImportErrorCode;
   details?: string[];
+  missingFields?: BackupImportErrorMissingFieldsItem[];
 }

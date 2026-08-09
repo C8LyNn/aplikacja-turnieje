@@ -248,3 +248,58 @@ export function evaluateStageStartReadiness(
     return { ready: false, reasonCode: error.code, message: error.message, ...base };
   }
 }
+
+import { asc, eq, inArray } from "drizzle-orm";
+import {
+  db,
+  matchesTable,
+  playersTable,
+  stageGroupsTable,
+  stageParticipantsTable,
+  tournamentStagesTable,
+  tournamentsTable,
+} from "@workspace/db";
+
+export async function getStageStartReadiness(input: {
+  tournamentId: number;
+  stageId: number;
+}): Promise<StageStartReadiness> {
+  const [tournament] = await db.select().from(tournamentsTable)
+    .where(eq(tournamentsTable.id, input.tournamentId));
+  if (!tournament) throw new StageLifecycleError("TOURNAMENT_NOT_FOUND");
+  const stages = await db.select().from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+    .orderBy(asc(tournamentStagesTable.position));
+  const stage = stages.find((candidate) => candidate.id === input.stageId);
+  if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
+  const previous = stages.find((candidate) => candidate.position === stage.position - 1);
+  const existingMatches = await db.select({ id: matchesTable.id }).from(matchesTable)
+    .where(eq(matchesTable.stageId, stage.id));
+  const existingGroups = await db.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
+    .where(eq(stageGroupsTable.stageId, stage.id));
+  const memberships = await db.select().from(stageParticipantsTable)
+    .where(eq(stageParticipantsTable.stageId, stage.id))
+    .orderBy(asc(stageParticipantsTable.stageSeed));
+  const sourceMemberships = previous
+    ? await db.select().from(stageParticipantsTable)
+      .where(eq(stageParticipantsTable.stageId, previous.id))
+    : [];
+  const sourceGroups = previous?.format === "group_stage"
+    ? await db.select().from(stageGroupsTable).where(eq(stageGroupsTable.stageId, previous.id))
+    : [];
+  const players = memberships.length === 0
+    ? []
+    : await db.select().from(playersTable)
+      .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId)));
+  return evaluateStageStartReadiness({
+    tournament,
+    stages,
+    stage,
+    existingMatchCount: existingMatches.length,
+    existingGroupCount: existingGroups.length,
+    memberships,
+    sourceMemberships,
+    sourceGroups,
+    players,
+  });
+}

@@ -5,12 +5,12 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { StageGroupGroupKey } from './stageGroupGroupKey';
 
 export interface StageGroup {
   id: number;
   stageId: number;
-  groupKey: StageGroupGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;

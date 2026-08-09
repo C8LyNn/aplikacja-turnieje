@@ -44,6 +44,12 @@ import {
   STAGE_FORMAT_LABELS,
   STAGE_STATUS_LABELS,
 } from "@/lib/tournament-stages-ui";
+import { SeedingCeremony } from "@/components/seeding-ceremony";
+import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
+import {
+  isSequentialCeremonyReady,
+  stageHasRandomCeremony,
+} from "@/lib/seeding-ceremony-view";
 
 interface TournamentStagesPanelProps {
   tournamentId: number;
@@ -165,7 +171,7 @@ function RecordCells({ record }: { record: PlayerRecord }) {
   );
 }
 
-function ParticipantTable({
+export function ParticipantTable({
   participants,
   matches,
   title,
@@ -363,6 +369,7 @@ export function StageActionBar({
   onComplete,
   onStart,
   pending,
+  startBlockedReason,
 }: {
   canManage: boolean;
   stage: TournamentStage;
@@ -370,6 +377,7 @@ export function StageActionBar({
   onComplete: () => void;
   onStart: () => void;
   pending: boolean;
+  startBlockedReason?: string;
 }) {
   if (!canManage) return null;
   if (stage.status === "active") {
@@ -382,10 +390,15 @@ export function StageActionBar({
   }
   if (stage.status === "planned" && mayStart) {
     return (
-      <Button onClick={onStart} disabled={pending}>
-        <Play className="mr-2 h-4 w-4" />
-        Uruchom ten etap
-      </Button>
+      <div className="text-right">
+        <Button onClick={onStart} disabled={pending || !!startBlockedReason} title={startBlockedReason}>
+          <Play className="mr-2 h-4 w-4" />
+          Uruchom ten etap
+        </Button>
+        {startBlockedReason && (
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">{startBlockedReason}</p>
+        )}
+      </div>
     );
   }
   return null;
@@ -471,14 +484,20 @@ export function TournamentStagesPanel({
   const [selectedStageId, setSelectedStageId] = useState<number>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [actionError, setActionError] = useState<string>();
+  const [ceremonyState, setCeremonyState] = useState<SeedingCeremonyState | null>(null);
   const stagesQuery = useListTournamentStages(tournamentId, {
     query: {
       enabled: tournamentId > 0,
       retry: false,
       queryKey: getListTournamentStagesQueryKey(tournamentId),
+      refetchInterval: audience ? 8000 : false,
     },
   });
   const stages = stagesQuery.data ?? [];
+
+  useEffect(() => {
+    setCeremonyState(null);
+  }, [selectedStageId]);
 
   useEffect(() => {
     if (stages.length === 0) return;
@@ -502,6 +521,7 @@ export function TournamentStagesPanel({
           tournamentId,
           selectedStageId ?? 0,
         ),
+        refetchInterval: audience ? 8000 : false,
       },
     },
   );
@@ -561,6 +581,10 @@ export function TournamentStagesPanel({
       readinessQuery.isFetching,
     )?.ready === true;
   const pending = completeMutation.isPending || startMutation.isPending;
+  const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
+  const startBlockedReason = ceremonyReady
+    ? undefined
+    : "Dokończ ceremonię losowania przed uruchomieniem etapu.";
 
   const refresh = async () => {
     await Promise.all([
@@ -658,6 +682,7 @@ export function TournamentStagesPanel({
         onSelect={(stageId) => {
           setSelectedStageId(stageId);
           setActionError(undefined);
+          setCeremonyState(null);
         }}
       />
       {actionError && (
@@ -706,9 +731,20 @@ export function TournamentStagesPanel({
                 onComplete={() => setConfirmOpen(true)}
                 onStart={start}
                 pending={pending}
+                startBlockedReason={startBlockedReason}
               />
             </CardContent>
           </Card>
+
+          {stageHasRandomCeremony(selected) && (
+            <SeedingCeremony
+              tournamentId={tournamentId}
+              stage={selected}
+              canManage={canManage}
+              audience={audience}
+              onStateChange={setCeremonyState}
+            />
+          )}
 
           {selected.status === "planned" ? (
             <Card>

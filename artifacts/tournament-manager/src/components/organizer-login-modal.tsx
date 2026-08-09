@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
-import { apiOrganizerLogin } from "@/lib/auth";
-import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import {
+  apiOrganizerCredentialState,
+  apiOrganizerLogin,
+  apiUpgradeLegacyOrganizer,
+} from "@/lib/auth";
+import {
+  setActiveOrganizerToken,
+  setActiveSupportToken,
+  type OrganizerCredentialState,
+} from "@workspace/api-client-react";
+import { organizerCredentialScreen } from "@/lib/organizer-credential-screen";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +28,43 @@ interface Props {
 export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentName, onSuccess, onCancel }: Props) {
   const { storeOrgToken } = useAuth();
   const [password, setPassword] = useState("");
+  const [hostCode, setHostCode] = useState("");
+  const [credentialState, setCredentialState] =
+    useState<OrganizerCredentialState | null>(null);
+  const [stateLoading, setStateLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   const handleClose = onCancel ?? onClose;
+  const credentialScreen = organizerCredentialScreen(credentialState, stateLoading);
+
+  useEffect(() => {
+    if (open === false) return;
+    let cancelled = false;
+    setStateLoading(true);
+    setCredentialState(null);
+    setError(null);
+    void apiOrganizerCredentialState(tournamentId)
+      .then((state) => {
+        if (!cancelled) setCredentialState(state);
+      })
+      .catch((stateError: unknown) => {
+        if (!cancelled) {
+          setError(
+            stateError instanceof Error
+              ? stateError.message
+              : "Nie udało się sprawdzić sposobu logowania.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setStateLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tournamentId]);
 
   useEffect(() => {
     if (open === false || !handleClose) return;
@@ -39,7 +80,9 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
     setLoading(true);
     setError(null);
     try {
-      const token = await apiOrganizerLogin(tournamentId, password);
+      const token = credentialScreen === "legacy_upgrade"
+        ? await apiUpgradeLegacyOrganizer(tournamentId, hostCode, password)
+        : await apiOrganizerLogin(tournamentId, password);
       storeOrgToken(tournamentId, token);
       setActiveOrganizerToken(token);
       setActiveSupportToken(null);
@@ -79,37 +122,95 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" />
-              Hasło organizatora
-            </Label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Hasło ustawione przy tworzeniu turnieju"
-              required
-              autoFocus
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <div className="flex gap-2">
-            {handleClose && (
-              <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>
-                Anuluj
-              </Button>
+        {credentialScreen === "loading" ? (
+          <p className="text-sm text-muted-foreground">Sprawdzanie sposobu logowania…</p>
+        ) : credentialScreen === "admin_recovery" ? (
+          <p className="text-sm text-muted-foreground rounded-lg border p-3">
+            Ten historyczny turniej nie ma poświadczeń do samodzielnego
+            odzyskania. Skontaktuj się z administratorem. Brak poświadczeń nie
+            umożliwia publicznego przejęcia turnieju.
+          </p>
+        ) : credentialScreen === "not_found" ? (
+          <p className="text-sm text-muted-foreground rounded-lg border p-3">
+            Nie można rozpocząć logowania dla tego identyfikatora turnieju.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {credentialScreen === "legacy_upgrade" && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  Ten historyczny turniej używa kodu prowadzącego. Podaj
+                  dokładny dotychczasowy kod i ustaw nowe hasło organizatora.
+                </p>
+                <div className="space-y-1.5">
+                  <Label>Kod prowadzącego</Label>
+                  <Input
+                    type="password"
+                    value={hostCode}
+                    onChange={(event) => setHostCode(event.target.value)}
+                    autoComplete="off"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </>
             )}
-            <Button type="submit" className="flex-1" disabled={loading || !password}>
-              {loading ? "Sprawdzanie…" : "Zaloguj"}
-            </Button>
-          </div>
-        </form>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5" />
+                {credentialScreen === "legacy_upgrade"
+                  ? "Nowe hasło organizatora"
+                  : "Hasło organizatora"}
+              </Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={
+                  credentialScreen === "legacy_upgrade"
+                    ? "Minimum 8 znaków"
+                    : "Hasło ustawione przy tworzeniu turnieju"
+                }
+                minLength={
+                  credentialScreen === "legacy_upgrade" ? 8 : undefined
+                }
+                required
+                autoFocus={credentialScreen !== "legacy_upgrade"}
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+            )}
+
+            <div className="flex gap-2">
+              {handleClose && (
+                <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>
+                  Anuluj
+                </Button>
+              )}
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={
+                  loading ||
+                  !password ||
+                  (credentialScreen === "legacy_upgrade" &&
+                    (!hostCode || password.length < 8))
+                }
+              >
+                {loading
+                  ? "Sprawdzanie…"
+                  : credentialScreen === "legacy_upgrade"
+                    ? "Ustaw hasło"
+                    : "Zaloguj"}
+              </Button>
+            </div>
+          </form>
+        )}
+        {error && credentialState == null && !stateLoading && (
+          <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+        )}
       </div>
     </div>
   );

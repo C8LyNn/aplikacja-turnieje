@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye } from "lucide-react";
+import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -28,6 +28,7 @@ import { BracketView } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
+import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
@@ -41,9 +42,8 @@ import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavig
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { availableStageStartReadiness, deriveOrganizerNextStep } from "@/lib/organizer-next-step";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
-import { useHostAuth } from "@/hooks/use-host-auth";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
-import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
+import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -67,9 +67,7 @@ export default function TournamentDetail() {
   // Deps: only [id] — login modals call setActive* directly (synchronous).
   // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
-  const storedSupportSession = getSupSession(id);
-  const { supportSession: supSession, isChecking: isSupportChecking } =
-    useVerifiedSupportSession(id, orgToken ? null : storedSupportSession);
+  const supSession = getSupSession(id);
   const viewerToken = getViewerTok(id);
   const isAuthenticated = !!(orgToken || supSession);
   const hasReadAccess = (tournament: { visibility?: string } | null | undefined) =>
@@ -82,12 +80,12 @@ export default function TournamentDetail() {
     else if (supSession) { setActiveSupportToken(supSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
     else if (vtok) { setActiveViewerToken(vtok); setActiveOrganizerToken(null); setActiveSupportToken(null); }
     else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    setPreparedAuthId(isSupportChecking ? null : id);
+    setPreparedAuthId(id);
     return () => {
       setPreparedAuthId(null);
       setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
     };
-  }, [id, isSupportChecking, supSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle direct role links: ?login=organizer|support|viewer
   useEffect(() => {
@@ -134,7 +132,6 @@ export default function TournamentDetail() {
   const { data: assistant } = useGetTournamentAssistant(id, {
     query: { enabled: !!id && readOk, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 15000 },
   });
-  const legacyHostAuth = useHostAuth(id, tournament?.hasHostCode);
   const { data: stages } = useListTournamentStages(id, {
     query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id) },
   });
@@ -170,6 +167,9 @@ export default function TournamentDetail() {
   const [importPreview, setImportPreview] = useState<any>(null);
   const [importPending, setImportPending] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [restoreOrganizerPassword, setRestoreOrganizerPassword] = useState("");
+  const [restoreViewerPassword, setRestoreViewerPassword] = useState("");
+  const [restoreSupportPassword, setRestoreSupportPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newPlayerName, setNewPlayerName] = useState("");
@@ -181,8 +181,6 @@ export default function TournamentDetail() {
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
-  const [bracketZoom, setBracketZoom] = useState(0.85);
-  const clampBracketZoom = (z: number) => Math.round(Math.min(2, Math.max(0.2, z)) * 100) / 100;
   const [csvText, setCsvText] = useState("");
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
   const [csvConfirmReplace, setCsvConfirmReplace] = useState(false);
@@ -204,7 +202,7 @@ export default function TournamentDetail() {
           tournament,
           hasOrganizerToken: !!orgToken,
           hasSupportSession: !!supSession,
-          hasVerifiedLegacyHost: legacyHostAuth.isAuthenticated,
+          hasVerifiedLegacyHost: false,
         })
       : deriveOrganizerCapabilities({
           role,
@@ -212,7 +210,7 @@ export default function TournamentDetail() {
           hasOrganizerToken: false,
           hasSupportSession: false,
         }),
-    [legacyHostAuth.isAuthenticated, orgToken, role, supSession, tournament],
+    [false, orgToken, role, supSession, tournament],
   );
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeDetailTab = organizerDetailTab(search, capabilities);
@@ -315,12 +313,35 @@ export default function TournamentDetail() {
 
   const handleImportConfirm = () => {
     if (!importPreview) return;
+    const privateOnline = importPreview.tournament?.visibility === "private_online";
+    if (restoreOrganizerPassword.length < 8) {
+      setImportError("Nowe hasło organizatora musi mieć co najmniej 8 znaków.");
+      return;
+    }
+    if (privateOnline && restoreViewerPassword.length < 8) {
+      setImportError("Dla private_online nowe hasło widza musi mieć co najmniej 8 znaków.");
+      return;
+    }
+    if (restoreSupportPassword.length > 0 && restoreSupportPassword.length < 8) {
+      setImportError("Nowe hasło wsparcia musi mieć co najmniej 8 znaków.");
+      return;
+    }
     setImportPending(true);
-    importTournament.mutate({ data: importPreview }, {
+    importTournament.mutate({ data: {
+      backup: importPreview,
+      organizerPassword: restoreOrganizerPassword,
+      viewerPassword: privateOnline ? restoreViewerPassword : undefined,
+      supportPassword: restoreSupportPassword || undefined,
+    } }, {
       onSuccess: (result) => {
         setImportPending(false);
         setImportPreview(null);
+        setRestoreOrganizerPassword("");
+        setRestoreViewerPassword("");
+        setRestoreSupportPassword("");
         if (fileInputRef.current) fileInputRef.current.value = "";
+        storeOrgToken(result.tournament.id, result.organizerToken);
+        setActiveOrganizerToken(result.organizerToken);
         toast({
           title: "Backup przywrócony",
           description: `Turniej „${result.tournament.name}" — ${result.playersImported} graczy, ${result.matchesImported} meczów.`,
@@ -1271,63 +1292,11 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="bracket" className="pt-4">
-            {bracket ? (
-              tournament.format === "swiss" ? (
-                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
-                  <SwissRoundsView
-                    bracket={bracket}
-                    currentRound={tournament.currentRound}
-                    totalRounds={tournament.totalRounds}
-                  />
-                </div>
-              ) : tournament.format === "round_robin" ? (
-                <div className="overflow-auto border border-border rounded-lg bg-background/50 p-4" style={{ maxHeight: "70vh" }}>
-                  <RoundRobinView bracket={bracket} standings={standings} />
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-muted-foreground">
-                      Przewijaj poziomo/pionowo. Otwórz widok projektora dla pełnoekranowego trybu.
-                    </p>
-                    <div className="flex items-center gap-1 border border-border rounded-lg px-2 py-1">
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        onClick={() => setBracketZoom((z) => clampBracketZoom(z - 0.1))}
-                        disabled={bracketZoom <= 0.2}
-                      >
-                        <ZoomOut className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        className="min-w-[38px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors"
-                        onClick={() => setBracketZoom(0.85)}
-                        title="Reset do 85%"
-                      >
-                        {Math.round(bracketZoom * 100)}%
-                      </button>
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        onClick={() => setBracketZoom((z) => clampBracketZoom(z + 0.1))}
-                        disabled={bracketZoom >= 2}
-                      >
-                        <ZoomIn className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="overflow-auto border border-border rounded-lg bg-background/50" style={{ maxHeight: "70vh" }}>
-                    <div style={{ display: "inline-block", minWidth: "100%" }}>
-                      <div style={{ transform: `scale(${bracketZoom})`, transformOrigin: "top left", display: "inline-block" }}>
-                        <BracketView bracket={bracket} format={tournament.format} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            ) : (
-              <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
-                Brak drabinki. Wystartuj turniej.
-              </div>
-            )}
+            <StageProgressView
+              tournamentId={id}
+              activeStageId={tournament.activeStageId}
+              matches={matches ?? []}
+            />
           </TabsContent>
 
           <TabsContent value="history" className="pt-6">
@@ -1458,8 +1427,43 @@ export default function TournamentDetail() {
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Turniej zostanie przywrócony jako <strong>„{importPreview.tournament.name} (kopia)"</strong> i otwarty automatycznie.
+                        Turniej zostanie przywrócony jako <strong>„{importPreview.tournament.name} (kopia)”</strong> i otwarty automatycznie.
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        Hasła i tokeny nie są przechowywane w backupie. Ustaw nowe poświadczenia dla odtwarzanej kopii.
+                      </p>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="restore-organizer-password-detail">Nowe hasło organizatora *</Label>
+                        <Input
+                          id="restore-organizer-password-detail"
+                          type="password"
+                          minLength={8}
+                          value={restoreOrganizerPassword}
+                          onChange={(event) => setRestoreOrganizerPassword(event.target.value)}
+                        />
+                      </div>
+                      {importPreview.tournament.visibility === "private_online" && (
+                        <div className="space-y-1.5">
+                          <Label htmlFor="restore-viewer-password-detail">Nowe hasło widza *</Label>
+                          <Input
+                            id="restore-viewer-password-detail"
+                            type="password"
+                            minLength={8}
+                            value={restoreViewerPassword}
+                            onChange={(event) => setRestoreViewerPassword(event.target.value)}
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="restore-support-password-detail">Nowe hasło wsparcia (opcjonalne)</Label>
+                        <Input
+                          id="restore-support-password-detail"
+                          type="password"
+                          minLength={8}
+                          value={restoreSupportPassword}
+                          onChange={(event) => setRestoreSupportPassword(event.target.value)}
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30"
@@ -1469,7 +1473,14 @@ export default function TournamentDetail() {
                           <FileUp className="w-4 h-4 mr-2" />
                           {importPending ? "Przywracanie…" : "Przywróć turniej"}
                         </Button>
-                        <Button variant="outline" onClick={() => { setImportPreview(null); setImportError(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                        <Button variant="outline" onClick={() => {
+                          setImportPreview(null);
+                          setImportError(null);
+                          setRestoreOrganizerPassword("");
+                          setRestoreViewerPassword("");
+                          setRestoreSupportPassword("");
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}>
                           Anuluj
                         </Button>
                       </div>
