@@ -31,6 +31,9 @@
     "test:configurable-seeding-deployment": "node --test ./test/configurable-seeding-v2-deployment.test.mjs",
     "schema:compare:pre-republish": "node ./scripts/compare-replit-schema-catalogs.mjs",
     "test:schema-catalog-comparison": "node --test ./test/schema-catalog-comparison.test.mjs",
+    "test:schema-catalog-comparison:integration": "node --test --test-concurrency=1 ./test/schema-catalog-comparison.integration.test.mjs",
+    "preflight:tournament-engine-v2": "node ./scripts/preflight-tournament-engine-v2.mjs",
+    "test:tournament-engine-v2-preflight": "node --test --test-concurrency=1 ./test/tournament-engine-v2-preflight.integration.test.mjs",
     "migrate:tournament-routing-persistence:preflight": "node ./scripts/preflight-tournament-routing-persistence-v2.mjs",
     "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs"
   },

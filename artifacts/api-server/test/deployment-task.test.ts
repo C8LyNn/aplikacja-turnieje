@@ -30,6 +30,8 @@ import {
   TOURNAMENT_STAGES_V1_MIGRATE_TASK,
   TOURNAMENT_STAGES_V1_PREFLIGHT_SCRIPT,
   TOURNAMENT_STAGES_V1_PREFLIGHT_TASK,
+  TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT,
+  TOURNAMENT_ENGINE_V2_PREFLIGHT_TASK,
   runDeploymentStartup,
 } from "../src/deployment-task";
 
@@ -440,6 +442,52 @@ describe("Replit production deployment task runner", () => {
     );
     assert.deepEqual(migrationEvents, [CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT, "api"]);
     assert.equal(migration.mode, "configurable_seeding_development_migrate");
+  });
+
+  test("runs the orchestrated Tournament Engine V2 preflight read-only and keeps the API stopped", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: TOURNAMENT_ENGINE_V2_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => {
+          events.push(script);
+          return 0;
+        },
+        startApi: () => {
+          events.push("api");
+        },
+      },
+    );
+
+    assert.deepEqual(events, [TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "tournament_engine_v2_preflight",
+      apiStarted: false,
+      exitCode: 0,
+    });
+  });
+
+  test("preserves a Tournament Engine V2 STOP result and keeps the API stopped", async () => {
+    const events: string[] = [];
+    const result = await runDeploymentStartup(
+      { DEPLOYMENT_TASK: TOURNAMENT_ENGINE_V2_PREFLIGHT_TASK },
+      {
+        runDatabaseScript: async (script) => {
+          events.push(script);
+          return 43;
+        },
+        startApi: () => {
+          events.push("api");
+        },
+      },
+    );
+
+    assert.deepEqual(events, [TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT]);
+    assert.deepEqual(result, {
+      mode: "tournament_engine_v2_preflight",
+      apiStarted: false,
+      exitCode: 43,
+    });
   });
 
 });

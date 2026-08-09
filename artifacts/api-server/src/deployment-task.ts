@@ -25,6 +25,8 @@ export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_TASK =
   "configurable_seeding_v2_development_preflight";
 export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_TASK =
   "configurable_seeding_v2_development_migrate";
+export const TOURNAMENT_ENGINE_V2_PREFLIGHT_TASK =
+  "tournament_engine_v2_preflight";
 
 export const SERIES_V1_PREFLIGHT_SCRIPT = "reset:series-v1:preflight";
 export const SERIES_V1_RESET_SCRIPT = "reset:series-v1:destructive";
@@ -51,6 +53,8 @@ export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT =
   "migrate:configurable-seeding:development:preflight";
 export const CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT =
   "migrate:configurable-seeding:development";
+export const TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT =
+  "preflight:tournament-engine-v2";
 
 type DeploymentEnvironment = Readonly<Record<string, string | undefined>>;
 type DatabaseScript =
@@ -67,7 +71,8 @@ type DatabaseScript =
   | typeof CONFIGURABLE_SEEDING_V2_PREFLIGHT_SCRIPT
   | typeof CONFIGURABLE_SEEDING_V2_MIGRATE_SCRIPT
   | typeof CONFIGURABLE_SEEDING_V2_DEVELOPMENT_PREFLIGHT_SCRIPT
-  | typeof CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT;
+  | typeof CONFIGURABLE_SEEDING_V2_DEVELOPMENT_MIGRATE_SCRIPT
+  | typeof TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT;
 
 export interface DeploymentTaskDependencies {
   runDatabaseScript: (script: DatabaseScript) => Promise<number>;
@@ -90,7 +95,8 @@ export interface DeploymentTaskResult {
     | "configurable_seeding_preflight"
     | "configurable_seeding_migrate"
     | "configurable_seeding_development_preflight"
-    | "configurable_seeding_development_migrate";
+    | "configurable_seeding_development_migrate"
+    | "tournament_engine_v2_preflight";
   apiStarted: boolean;
   exitCode: number;
 }
@@ -335,6 +341,17 @@ export async function runDeploymentStartup(
       mode: "configurable_seeding_development_migrate",
       apiStarted: true,
       exitCode: 0,
+    };
+  }
+
+  if (task === TOURNAMENT_ENGINE_V2_PREFLIGHT_TASK) {
+    const exitCode = await dependencies.runDatabaseScript(
+      TOURNAMENT_ENGINE_V2_PREFLIGHT_SCRIPT,
+    );
+    return {
+      mode: "tournament_engine_v2_preflight",
+      apiStarted: false,
+      exitCode,
     };
   }
 
