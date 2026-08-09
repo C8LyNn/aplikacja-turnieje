@@ -61,13 +61,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Tournament"
-        "422":
-          description: Stage plan rejected by the domain validator
+                $ref: "#/components/schemas/TournamentCreationResponse"
+        "400":
+          description: Tournament input or organizer password is invalid
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/StagePlanError"
+                $ref: "#/components/schemas/CreateTournamentBadRequestError"
+        "422":
+          description: Tournament rule or stage plan rejected the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateTournamentUnprocessableError"
 
   /tournaments/{id}:
     get:
@@ -175,6 +181,166 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony:
+    get:
+      operationId: getStageSeedingCeremony
+      tags: [tournaments]
+      summary: Read the persisted pre-stage seeding ceremony
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Current ceremony or null when it has not been prepared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeedingCeremonyResponse"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+    delete:
+      operationId: resetStageSeedingCeremony
+      tags: [tournaments]
+      summary: Reset a prepared ceremony before the stage starts
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "204": { description: Ceremony reset }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Stage is no longer planned or the ceremony is stale
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/prepare:
+    post:
+      operationId: prepareStageSeedingCeremony
+      tags: [tournaments]
+      summary: Persist every deterministic draw before revealing it
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Prepared ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Stage cannot be prepared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/reveal-next:
+    post:
+      operationId: revealNextStageSeedingDraw
+      tags: [tournaments]
+      summary: Reveal exactly one previously persisted draw
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Updated ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Ceremony is unavailable, stale or already complete
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+
+  /tournaments/{id}/stages/{stageId}/seeding-ceremony/reveal-all:
+    post:
+      operationId: revealAllStageSeedingDraws
+      tags: [tournaments]
+      summary: Reveal every remaining persisted draw without animation
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Completed ceremony
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyResponse" }
+        "403":
+          description: Organizer access required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "409":
+          description: Ceremony is unavailable, stale or already complete
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
+        "422":
+          description: Random ceremony is unavailable or invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeedingCeremonyError" }
 
   /tournaments/{id}/stages/{stageId}/qualification-preview:
     get:
@@ -342,11 +508,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tournament"
 
-  /tournaments/{id}/verify-host-code:
+  /tournaments/{id}/auth/credential-state:
+    get:
+      operationId: getOrganizerCredentialState
+      tags: [authentication]
+      summary: Read the neutral organizer-credential bootstrap state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Neutral bootstrap state; no credential value is disclosed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerCredentialState"
+        "400":
+          description: Invalid tournament id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/auth/upgrade-legacy-organizer:
     post:
-      operationId: verifyHostCode
-      tags: [tournaments]
-      summary: Verify the host access code for a tournament
+      operationId: upgradeLegacyOrganizer
+      tags: [authentication]
+      summary: Replace a historical hostCode with a new organizer password
       parameters:
         - name: id
           in: path
@@ -358,16 +549,94 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VerifyHostCodeInput"
+              $ref: "#/components/schemas/LegacyOrganizerUpgradeInput"
       responses:
         "200":
-          description: Code is valid
+          description: Legacy credential replaced and organizer token issued
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/VerifyHostCodeResult"
+                $ref: "#/components/schemas/OrganizerTokenResponse"
+        "400":
+          description: Malformed id or missing host code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
         "403":
-          description: Invalid code
+          description: Credential could not be verified; response does not disclose the failing state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: New organizer password does not satisfy the current policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "429":
+          description: Too many credential verification attempts
+          headers:
+            Retry-After:
+              description: Remaining block duration in seconds
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/auth/set-organizer-password:
+    post:
+      operationId: setInitialOrganizerPassword
+      tags: [authentication]
+      summary: Set the first organizer password using an authenticated passwordless-owner session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetInitialOrganizerPasswordInput"
+      responses:
+        "200":
+          description: Password established and replacement organizer token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerTokenResponse"
+        "400":
+          description: Invalid tournament id or password shorter than eight characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetInitialOrganizerPasswordBadRequestError"
+        "403":
+          description: A valid organizer token for this tournament is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleError"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleError"
+        "409":
+          description: Organizer password already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizerPasswordAlreadySetError"
 
   /tournaments/{id}/generate-round:
     post:
@@ -552,13 +821,13 @@ paths:
     post:
       operationId: importTournament
       tags: [tournaments]
-      summary: Import Backup v2 or v3 as a new tournament copy
+      summary: Import Backup v2 or v3 as an independent tournament with new credentials
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TournamentBackup"
+              $ref: "#/components/schemas/BackupRestoreInput"
       responses:
         "201":
           description: Imported tournament
@@ -568,6 +837,12 @@ paths:
                 $ref: "#/components/schemas/ImportResult"
         "400":
           description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupImportError"
+        "422":
+          description: Missing or invalid new credentials
           content:
             application/json:
               schema:
@@ -955,6 +1230,69 @@ components:
           type: string
         code:
           type: string
+    SimpleError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+    OrganizerPasswordTooShortError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: ORGANIZER_PASSWORD_TOO_SHORT
+    OrganizerPasswordAlreadySetError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: ORGANIZER_PASSWORD_ALREADY_SET
+    InvalidTournamentIdError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          const: INVALID_TOURNAMENT_ID
+    CreateTournamentRuleError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum:
+            - HOST_CODE_LEGACY_ONLY
+            - DOUBLE_ELIMINATION_UNAVAILABLE
+            - VIEWER_PASSWORD_REQUIRED
+            - INVALID_DEFAULT_BEST_OF
+    CreateTournamentBadRequestError:
+      oneOf:
+        - $ref: "#/components/schemas/SimpleError"
+        - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
+    CreateTournamentUnprocessableError:
+      oneOf:
+        - $ref: "#/components/schemas/CreateTournamentRuleError"
+        - $ref: "#/components/schemas/StagePlanError"
+    SetInitialOrganizerPasswordBadRequestError:
+      oneOf:
+        - $ref: "#/components/schemas/InvalidTournamentIdError"
+        - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
     StageLifecycleError:
       type: object
       required: [error, code]
@@ -1002,6 +1340,10 @@ components:
             - MATCHES_ALREADY_EXIST
             - GROUPS_ALREADY_EXIST
             - RANKING_INCONSISTENT
+            - STAGE_SEEDING_CONFIGURATION_INVALID
+            - SEEDING_CEREMONY_REQUIRED
+            - SEEDING_CEREMONY_INCOMPLETE
+            - SEEDING_CEREMONY_STALE
         message: { type: string }
         participantCount: { type: integer, minimum: 0 }
         requiredParticipantCount: { type: integer, minimum: 0 }
@@ -1013,6 +1355,120 @@ components:
         format:
           type: string
           enum: [swiss, round_robin, group_stage, single_elimination]
+    SeedingCeremonyError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_NOT_FOUND
+            - STAGE_NOT_PLANNED
+            - SEEDING_CEREMONY_NOT_AVAILABLE
+            - SEEDING_CEREMONY_NOT_PREPARED
+            - SEEDING_CEREMONY_ALREADY_COMPLETE
+            - SEEDING_CEREMONY_STALE
+            - STAGE_PARTICIPANTS_INCONSISTENT
+            - MATCHES_ALREADY_EXIST
+            - GROUPS_ALREADY_EXIST
+
+    SeedingCeremonyGroupPlacement:
+      type: object
+      required: [kind, label, groupIndex, groupKey, groupPosition]
+      properties:
+        kind: { type: string, const: group }
+        label: { type: string }
+        groupIndex: { type: integer }
+        groupKey: { type: string }
+        groupPosition: { type: integer }
+
+    SeedingCeremonyBracketPlacement:
+      type: object
+      required: [kind, label, bracketSlot, matchNumber, side, bye]
+      properties:
+        kind: { type: string, const: bracket }
+        label: { type: string }
+        bracketSlot: { type: integer }
+        matchNumber: { type: integer }
+        side:
+          type: string
+          enum: [player1, player2]
+        bye: { type: boolean }
+
+    SeedingCeremonyStandingsPlacement:
+      type: object
+      required: [kind, label, position]
+      properties:
+        kind: { type: string, const: standings }
+        label: { type: string }
+        position: { type: integer }
+
+    SeedingCeremonyPlacement:
+      oneOf:
+        - $ref: "#/components/schemas/SeedingCeremonyGroupPlacement"
+        - $ref: "#/components/schemas/SeedingCeremonyBracketPlacement"
+        - $ref: "#/components/schemas/SeedingCeremonyStandingsPlacement"
+      discriminator:
+        propertyName: kind
+
+    SeedingCeremonyDraw:
+      type: object
+      required: [drawNumber, participantKey, playerId, playerName, seed, placement]
+      properties:
+        drawNumber: { type: integer, minimum: 1 }
+        participantKey: { type: string }
+        playerId: { type: integer }
+        playerName: { type: string }
+        seed: { type: integer, minimum: 1 }
+        placement:
+          $ref: "#/components/schemas/SeedingCeremonyPlacement"
+
+    SeedingCeremony:
+      type: object
+      required: [kind, version, stageId, status, drawMode, entrySeedingPolicy, placementPolicy, resultSeedingPolicy, revealOrder, randomSeed, participantSignature, configurationSignature, participantOrder, draws, revealedCount, preparedAt, updatedAt]
+      properties:
+        kind: { type: string, const: seeding_ceremony_v1 }
+        version: { type: integer, const: 1 }
+        stageId: { type: integer }
+        status:
+          type: string
+          enum: [prepared, in_progress, completed, applied]
+        drawMode:
+          type: string
+          enum: [seed, placement]
+        entrySeedingPolicy: { type: string }
+        placementPolicy: { type: string }
+        resultSeedingPolicy: { type: string }
+        revealOrder:
+          type: string
+          enum: [instant, sequential]
+        randomSeed: { type: string }
+        placementRandomSeed: { type: [string, "null"] }
+        participantSignature: { type: string }
+        configurationSignature: { type: string }
+        participantOrder:
+          type: array
+          items: { type: string }
+        draws:
+          type: array
+          items: { $ref: "#/components/schemas/SeedingCeremonyDraw" }
+        revealedCount: { type: integer, minimum: 0 }
+        preparedAt: { type: string }
+        updatedAt: { type: string }
+        completedAt: { type: [string, "null"] }
+        appliedAt: { type: [string, "null"] }
+
+    SeedingCeremonyResponse:
+      type: object
+      required: [ceremony]
+      properties:
+        ceremony:
+          oneOf:
+            - $ref: "#/components/schemas/SeedingCeremony"
+            - type: "null"
+
     StagePlanError:
       type: object
       required: [error, code, details]
@@ -1035,10 +1491,15 @@ components:
         error: { type: string }
         code:
           type: string
-          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK]
+          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK, ORGANIZER_PASSWORD_REQUIRED, VIEWER_PASSWORD_REQUIRED]
         details:
           type: array
           items: { type: string }
+        missingFields:
+          type: array
+          items:
+            type: string
+            enum: [organizerPassword, viewerPassword]
     HealthStatus:
       type: object
       properties:
@@ -1136,10 +1597,12 @@ components:
               minLength: 8
         supportPassword:
           type: string
+          minLength: 8
           description: Optional password for support staff access
         viewerPassword:
           type: string
-          description: Optional password for viewer access (required when visibility=private_online)
+          minLength: 8
+          description: Password for viewer access; required when visibility=private_online.
         visibility:
           type: string
           enum: [public_online, private_online, private_offline]
@@ -1147,6 +1610,16 @@ components:
         stagePlan:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.
+
+    TournamentCreationResponse:
+      allOf:
+        - $ref: "#/components/schemas/Tournament"
+        - type: object
+          required: [organizerToken]
+          properties:
+            organizerToken:
+              type: string
+              description: Tournament-scoped organizer session issued only to the creator.
 
     TournamentStagePlanInput:
       type: object
@@ -1193,23 +1666,55 @@ components:
         advancingCount:
           type: integer
           minimum: 2
+          description: >-
+            Required for every non-terminal Swiss, Round Robin, or Single Elimination stage.
+            Must equal the next stage participantCount. For Single Elimination it must be a
+            complete-round boundary of at least 2 (for example 16 participants may advance
+            8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly
+            finishes with one champion.
         groupCount:
           type: integer
-          enum: [2, 4]
+          minimum: 1
+          description: Number of balanced groups. Must not exceed floor(participantCount / 2).
         participantsPerGroup:
           type: integer
-          minimum: 3
-          maximum: 8
+          minimum: 2
+          description: Derived largest group size, equal to ceil(participantCount / groupCount).
         qualifiersPerGroup:
           type: integer
-          enum: [1, 2]
+          minimum: 1
+          description: Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+        entrySeedingMethod:
+          type: string
+          enum: [preserve, registration_order, alphabetical, random, manual]
+          default: preserve
+          description: How incoming participants are converted into stage seeds.
+        placementMethod:
+          type: string
+          enum: [standings_order, snake, random, standard]
+          description: Format-specific placement. Groups use snake/random; brackets use standard/random.
+        resultSeedingMethod:
+          type: string
+          enum: [rank_bands, global_ranking]
+          description: How group qualifiers receive new seeds.
+        randomSeed:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Deterministic key required by random seeding or placement.
+        randomRevealOrder:
+          type: string
+          enum: [instant, sequential]
+          default: instant
         seedingMethod:
           type: string
-          const: snake
+          enum: [snake, random]
+          deprecated: true
+          description: Compatibility alias for group placementMethod.
 
     TournamentStage:
       type: object
-      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, version, createdAt]
+      required: [id, tournamentId, stageKey, position, name, format, status, participantCount, bestOf, rankingPolicy, qualificationMode, seedingPolicy, entrySeedingPolicy, resultSeedingPolicy, randomRevealOrder, version, createdAt]
       properties:
         id: { type: integer }
         tournamentId: { type: integer }
@@ -1239,7 +1744,20 @@ components:
         qualifiersPerGroup: { type: ["integer", "null"] }
         seedingPolicy:
           type: string
-          enum: [standings_order, snake_groups, cross_group]
+          enum: [standings_order, snake_groups, cross_group, random_groups, standard_bracket, random_bracket]
+        entrySeedingPolicy:
+          type: string
+          enum: [preserve, registration_order, alphabetical, random, manual]
+        resultSeedingPolicy:
+          type: string
+          enum: [standings_order, rank_bands, global_ranking]
+        randomSeed: { type: ["string", "null"] }
+        randomRevealOrder:
+          type: string
+          enum: [instant, sequential]
+        seedingAudit:
+          type: ["object", "null"]
+          additionalProperties: true
         winnerId: { type: ["integer", "null"] }
         version: { type: integer }
         createdAt: { type: string }
@@ -1252,7 +1770,7 @@ components:
       properties:
         id: { type: integer }
         stageId: { type: integer }
-        groupKey: { type: string, enum: [A, B, C, D] }
+        groupKey: { type: string, minLength: 1 }
         position: { type: integer }
         participantCount: { type: integer }
         qualifiersCount: { type: integer }
@@ -1269,7 +1787,7 @@ components:
         playerName: { type: string }
         stageSeed: { type: integer }
         groupId: { type: ["integer", "null"] }
-        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupKey: { type: ["string", "null"], minLength: 1 }
         status:
           type: string
           enum: [active, eliminated, qualified, winner]
@@ -1320,7 +1838,7 @@ components:
         gameDiff: { type: integer }
         buchholz: { type: ["integer", "null"] }
         groupId: { type: ["integer", "null"] }
-        groupKey: { type: ["string", "null"], enum: [A, B, C, D, null] }
+        groupKey: { type: ["string", "null"], minLength: 1 }
         groupRank: { type: ["integer", "null"] }
 
     StageQualifier:
@@ -1371,9 +1889,6 @@ components:
           minimum: 1
         featuredMatchId:
           type: integer
-        hostCode:
-          type: string
-          description: Host access code (plain text, stored hashed)
         visibility:
           type: string
           enum: [public_online, private_online, private_offline]
@@ -1381,20 +1896,50 @@ components:
           type: string
           description: New viewer password (clears old viewer sessions)
 
-    VerifyHostCodeInput:
+    OrganizerCredentialState:
       type: object
-      required: [code]
+      additionalProperties: false
+      required: [exists, accessMode, private]
       properties:
-        code:
+        exists:
+          type: boolean
+        accessMode:
+          type: [string, "null"]
+          enum: [organizer_login, legacy_upgrade, admin_recovery, null]
+        private:
+          type: boolean
+
+    LegacyOrganizerUpgradeInput:
+      type: object
+      additionalProperties: false
+      required: [hostCode, organizerPassword]
+      properties:
+        hostCode:
           type: string
           minLength: 1
+          description: Historical host code; consumed and cleared by a successful upgrade.
+        organizerPassword:
+          type: string
+          minLength: 8
+          description: New organizer password. This policy applies only to newly set passwords.
 
-    VerifyHostCodeResult:
+    SetInitialOrganizerPasswordInput:
       type: object
-      required: [valid]
+      additionalProperties: false
+      required: [newPassword]
       properties:
-        valid:
-          type: boolean
+        newPassword:
+          type: string
+          minLength: 8
+          description: First organizer password for a passwordless-owner tournament.
+
+    OrganizerTokenResponse:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
 
     Player:
       type: object
@@ -1992,7 +2537,14 @@ components:
               groupCount: { type: ["integer", "null"] }
               participantsPerGroup: { type: ["integer", "null"] }
               qualifiersPerGroup: { type: ["integer", "null"] }
-              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group] }
+              seedingPolicy: { type: string, enum: [standings_order, snake_groups, cross_group, random_groups, standard_bracket, random_bracket] }
+              entrySeedingPolicy: { type: string, enum: [preserve, registration_order, alphabetical, random, manual] }
+              resultSeedingPolicy: { type: string, enum: [standings_order, rank_bands, global_ranking] }
+              randomSeed: { type: ["string", "null"] }
+              randomRevealOrder: { type: string, enum: [instant, sequential] }
+              seedingAudit:
+                type: ["object", "null"]
+                additionalProperties: true
               winnerBackupId: { type: ["integer", "null"] }
               version: { type: integer }
               createdAt: { type: string }
@@ -2007,7 +2559,7 @@ components:
             properties:
               backupId: { type: integer }
               stageBackupId: { type: integer }
-              groupKey: { type: string, enum: [A, B, C, D] }
+              groupKey: { type: string, minLength: 1 }
               position: { type: integer }
               participantCount: { type: integer }
               qualifiersCount: { type: integer }
@@ -2104,9 +2656,29 @@ components:
         - $ref: "#/components/schemas/TournamentBackupV2"
         - $ref: "#/components/schemas/TournamentBackupV3"
 
+    BackupRestoreInput:
+      type: object
+      additionalProperties: false
+      required: [backup, organizerPassword]
+      properties:
+        backup:
+          $ref: "#/components/schemas/TournamentBackup"
+        organizerPassword:
+          type: string
+          minLength: 8
+          description: New organizer password. Credentials are never read from the backup.
+        viewerPassword:
+          type: string
+          minLength: 8
+          description: New viewer password, required when the restored tournament is private_online.
+        supportPassword:
+          type: string
+          minLength: 8
+          description: Optional new support password. When omitted, support access remains disabled.
+
     ImportResult:
       type: object
-      required: [tournament, playersImported, matchesImported]
+      required: [tournament, playersImported, matchesImported, organizerToken]
       properties:
         tournament:
           $ref: "#/components/schemas/Tournament"
@@ -2114,6 +2686,9 @@ components:
           type: integer
         matchesImported:
           type: integer
+        organizerToken:
+          type: string
+          description: Organizer token scoped to the newly restored tournament.
 
     TournamentStats:
       type: object

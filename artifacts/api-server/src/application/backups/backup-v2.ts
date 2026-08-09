@@ -8,6 +8,7 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import type { TournamentBackupV2 } from "@workspace/api-zod";
+import type { BackupRestoreCredentials } from "./backup-credentials";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 
 export class BackupV2ValidationError extends Error {
@@ -244,7 +245,10 @@ function remapUndoPayload(
   return remap(payload) as Record<string, unknown>;
 }
 
-export async function importBackupV2(backup: TournamentBackupV2) {
+export async function importBackupV2(
+  backup: TournamentBackupV2,
+  credentials: BackupRestoreCredentials,
+) {
   validateBackupV2(backup);
   return db.transaction(async (tx) => {
     const [tournament] = await tx.insert(tournamentsTable).values({
@@ -260,6 +264,7 @@ export async function importBackupV2(backup: TournamentBackupV2) {
       swissRounds: backup.tournament.swissRounds ?? null,
       defaultBestOf: backup.tournament.defaultBestOf,
       visibility: backup.tournament.visibility,
+      ...credentials,
     }).returning();
 
     const playerIdMap = new Map<number, number>();

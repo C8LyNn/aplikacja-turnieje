@@ -5,7 +5,6 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { StageParticipantGroupKey } from './stageParticipantGroupKey';
 import type { StageParticipantQualificationSource } from './stageParticipantQualificationSource';
 import type { StageParticipantStatus } from './stageParticipantStatus';
 
@@ -18,8 +17,11 @@ export interface StageParticipant {
   stageSeed: number;
   /** @nullable */
   groupId?: number | null;
-  /** @nullable */
-  groupKey?: StageParticipantGroupKey;
+  /**
+     * @minLength 1
+     * @nullable
+     */
+  groupKey?: string | null;
   status: StageParticipantStatus;
   qualificationSource: StageParticipantQualificationSource;
   /** @nullable */

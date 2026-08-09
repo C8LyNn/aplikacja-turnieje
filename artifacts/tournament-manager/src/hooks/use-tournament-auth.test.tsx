@@ -54,3 +54,38 @@ test("a stored but invalid support session never grants mutating capabilities", 
     NO_ORGANIZER_CAPABILITIES,
   );
 });
+
+test("a late support verification cannot authenticate a different tournament", async () => {
+  setSupportSession(41, "support-a", "Support A");
+  setSupportSession(42, "support-b", "Support B");
+  let resolveA!: (response: Response) => void;
+  let resolveB!: (response: Response) => void;
+  globalThis.fetch = ((input) => {
+    const url = String(input);
+    if (url.includes("/41/")) {
+      return new Promise<Response>((resolve) => { resolveA = resolve; });
+    }
+    return new Promise<Response>((resolve) => { resolveB = resolve; });
+  }) as typeof fetch;
+
+  const result = renderHook(
+    ({ tournamentId }) => useSyncTournamentAuth(tournamentId),
+    { initialProps: { tournamentId: 41 }, wrapper },
+  );
+  await waitFor(() => assert.equal(typeof resolveA, "function"));
+  result.rerender({ tournamentId: 42 });
+  await waitFor(() => assert.equal(typeof resolveB, "function"));
+
+  resolveA(new Response(null, { status: 200 }));
+  await Promise.resolve();
+  assert.equal(result.result.current.isReady, false);
+  assert.equal(result.result.current.supSession, null);
+
+  resolveB(new Response(JSON.stringify({ error: "Sesja wygasła" }), {
+    status: 403,
+    headers: { "content-type": "application/json" },
+  }));
+  await waitFor(() => assert.equal(result.result.current.isReady, true));
+  assert.equal(result.result.current.isAuthenticated, false);
+  assert.equal(getSupportSession(42), null);
+});

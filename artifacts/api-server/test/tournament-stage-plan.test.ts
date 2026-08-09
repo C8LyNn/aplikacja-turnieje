@@ -168,6 +168,52 @@ describe("validateTournamentStagePlan valid plans", () => {
 
     assert.equal(validateTournamentStagePlan(input).valid, true);
   });
+
+  test("accepts uneven balanced groups and lets everyone advance", () => {
+    const input = {
+      initialParticipantCount: 17,
+      stages: [
+        {
+          key: "groups",
+          position: 1,
+          name: "Groups",
+          format: "group_stage",
+          participantCount: 17,
+          bestOf: 1,
+          groupCount: 4,
+          participantsPerGroup: 5,
+          qualifiersPerGroup: 5,
+          seedingMethod: "snake",
+        },
+        {
+          key: "playoff",
+          position: 2,
+          name: "Play-off",
+          format: "single_elimination",
+          participantCount: 17,
+          bestOf: 3,
+        },
+      ],
+    };
+
+    const result = validateTournamentStagePlan(input);
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groupStage = result.value.stages[0];
+    assert.equal(groupStage.format, "group_stage");
+    if (groupStage.format !== "group_stage") return;
+    assert.equal(groupStage.participantsPerGroup, 5);
+    assert.equal(result.value.stages[1].participantCount, 17);
+  });
+
+  test("accepts an arbitrary valid group count", () => {
+    const input = groupToEliminationPlan();
+    input.stages[0].groupCount = 3;
+    input.stages[0].participantsPerGroup = 3;
+    input.stages[0].qualifiersPerGroup = 3;
+    input.stages[1].participantCount = 8;
+    assert.equal(validateTournamentStagePlan(input).valid, true);
+  });
 });
 
 describe("validateTournamentStagePlan invalid plans", () => {
@@ -223,22 +269,22 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "PARTICIPANT_FLOW_MISMATCH",
     },
     {
-      name: "single elimination before the final stage",
+      name: "single elimination with a non-round boundary qualifier count",
       mutate: () => ({
-        initialParticipantCount: 8,
+        initialParticipantCount: 16,
         stages: [
-          { ...singleStagePlan().stages[0], participantCount: 8 },
+          { ...singleStagePlan().stages[0], participantCount: 16, advancingCount: 7 },
           {
             key: "rr",
             position: 2,
             name: "RR",
             format: "round_robin",
-            participantCount: 4,
+            participantCount: 7,
             bestOf: 3,
           },
         ],
       }),
-      code: "SINGLE_ELIMINATION_NOT_FINAL",
+      code: "INVALID_ELIMINATION_ADVANCING_COUNT",
     },
     {
       name: "group stage as the final stage",
@@ -276,7 +322,7 @@ describe("validateTournamentStagePlan invalid plans", () => {
       name: "invalid group count",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].groupCount = 3;
+        plan.stages[0].groupCount = 5;
         return plan;
       },
       code: "INVALID_GROUP_COUNT",
@@ -291,34 +337,14 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "INVALID_GROUP_SIZE",
     },
     {
-      name: "unequal group configuration",
-      mutate: () => {
-        const plan = groupToEliminationPlan();
-        plan.initialParticipantCount = 7;
-        plan.stages[0].participantCount = 7;
-        return plan;
-      },
-      code: "INVALID_GROUP_PARTICIPANT_COUNT",
-    },
-    {
       name: "too many group qualifiers",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].qualifiersPerGroup = 3;
-        plan.stages[1].participantCount = 6;
+        plan.stages[0].qualifiersPerGroup = 5;
+        plan.stages[1].participantCount = 8;
         return plan;
       },
       code: "INVALID_GROUP_QUALIFIER_COUNT",
-    },
-    {
-      name: "inconsistent group participant count",
-      mutate: () => {
-        const plan = groupToEliminationPlan();
-        plan.initialParticipantCount = 10;
-        plan.stages[0].participantCount = 10;
-        return plan;
-      },
-      code: "INVALID_GROUP_PARTICIPANT_COUNT",
     },
     {
       name: "invalid Swiss rounds",
@@ -362,13 +388,13 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "INVALID_SWISS_ROUNDS",
     },
     {
-      name: "unsupported group seeding method",
+      name: "unsupported group placement method",
       mutate: () => {
         const plan = groupToEliminationPlan();
-        plan.stages[0].seedingMethod = "random";
+        plan.stages[0].seedingMethod = "unsupported";
         return plan;
       },
-      code: "INVALID_GROUP_SEEDING_METHOD",
+      code: "INVALID_GROUP_PLACEMENT_METHOD",
     },
   ];
 
@@ -380,12 +406,6 @@ describe("validateTournamentStagePlan invalid plans", () => {
     });
   }
 
-  test("reports unsupported group playoff transition with a stable code", () => {
-    const plan = groupToEliminationPlan();
-    plan.stages[0].qualifiersPerGroup = 3;
-    plan.stages[1].participantCount = 6;
-    assert.ok(problemCodes(plan).includes("UNSUPPORTED_GROUP_PLAYOFF_TRANSITION"));
-  });
 
   test("returns an ordered problem list with code, path and message", () => {
     const input = { initialParticipantCount: 1, stages: [] };
@@ -402,5 +422,135 @@ describe("validateTournamentStagePlan invalid plans", () => {
       assert.ok(problem.path.length > 0);
       assert.ok(problem.message.length > 0);
     }
+  });
+
+
+  test("rejects a non-final group stage that advances only one participant in total", () => {
+    const result = validateTournamentStagePlan({
+      initialParticipantCount: 4,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 4, bestOf: 1, groupCount: 1,
+          participantsPerGroup: 4, qualifiersPerGroup: 1, seedingMethod: "snake",
+        },
+        {
+          key: "playoff", position: 2, name: "Playoff", format: "single_elimination",
+          participantCount: 1, bestOf: 1,
+        },
+      ],
+    });
+    assert.equal(result.valid, false);
+    if (!result.valid) {
+      assert.ok(result.problems.some((problem) => problem.code === "INVALID_ADVANCING_COUNT"));
+    }
+  });
+
+  test("accepts groups 32 to 16 and rejects every mismatched downstream capacity", () => {
+    const create = (nextCount: number) => ({
+      initialParticipantCount: 32,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 32, bestOf: 1, groupCount: 8,
+          participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+        },
+        {
+          key: "playoff", position: 2, name: "Playoff", format: "single_elimination",
+          participantCount: nextCount, bestOf: 3,
+        },
+      ],
+    });
+    assert.equal(validateTournamentStagePlan(create(16)).valid, true);
+    for (const count of [15, 17, 19, 21]) {
+      assert.ok(problemCodes(create(count)).includes("PARTICIPANT_FLOW_MISMATCH"));
+    }
+  });
+
+  test("supports qualifying elimination rounds and rejects arbitrary cut lines", () => {
+    const create = (participantCount: number, advancingCount: number) => ({
+      initialParticipantCount: participantCount,
+      stages: [
+        {
+          key: "qualifier", position: 1, name: "Qualifier", format: "single_elimination",
+          participantCount, bestOf: 1, advancingCount,
+        },
+        {
+          key: "final", position: 2, name: "Final", format: "single_elimination",
+          participantCount: advancingCount, bestOf: 3,
+        },
+      ],
+    });
+    for (const count of [8, 4, 2, 1]) assert.equal(validateTournamentStagePlan(create(16, count)).valid, true);
+    for (const count of [16, 8, 4, 2, 1]) assert.equal(validateTournamentStagePlan(create(17, count)).valid, true);
+    for (const count of [7, 10]) assert.ok(problemCodes(create(16, count)).includes("INVALID_ELIMINATION_ADVANCING_COUNT"));
+  });
+
+  test("accepts three consecutive stages with an intermediate elimination qualifier", () => {
+    const result = validateTournamentStagePlan({
+      initialParticipantCount: 32,
+      stages: [
+        {
+          key: "groups", position: 1, name: "Groups", format: "group_stage",
+          participantCount: 32, bestOf: 1, groupCount: 8,
+          participantsPerGroup: 4, qualifiersPerGroup: 2, seedingMethod: "snake",
+        },
+        {
+          key: "qualifier", position: 2, name: "Qualifier", format: "single_elimination",
+          participantCount: 16, bestOf: 3, advancingCount: 8,
+        },
+        {
+          key: "final", position: 3, name: "Final", format: "single_elimination",
+          participantCount: 8, bestOf: 5,
+        },
+      ],
+    });
+    assert.equal(result.valid, true);
+  });
+});
+
+
+describe("configurable seeding and placement", () => {
+  test("accepts deterministic random entry seeding and group placement", () => {
+    const plan = groupToEliminationPlan();
+    Object.assign(plan.stages[0], {
+      entrySeedingMethod: "random",
+      placementMethod: "random",
+      resultSeedingMethod: "global_ranking",
+      randomSeed: "draw-2026",
+      randomRevealOrder: "sequential",
+      seedingMethod: "random",
+    });
+    Object.assign(plan.stages[1], { placementMethod: "standard" });
+    const result = validateTournamentStagePlan(plan);
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groups = result.value.stages[0];
+    assert.equal(groups.entrySeedingMethod, "random");
+    assert.equal(groups.randomRevealOrder, "sequential");
+    if (groups.format !== "group_stage") return;
+    assert.equal(groups.placementMethod, "random");
+    assert.equal(groups.resultSeedingMethod, "global_ranking");
+  });
+
+  test("rejects random configuration without a deterministic key", () => {
+    const plan = singleStagePlan();
+    Object.assign(plan.stages[0], {
+      entrySeedingMethod: "random",
+      placementMethod: "standard",
+    });
+    assert.ok(problemCodes(plan).includes("RANDOM_SEED_REQUIRED"));
+  });
+
+  test("keeps Patch 02 defaults for old plans", () => {
+    const result = validateTournamentStagePlan(groupToEliminationPlan());
+    assert.equal(result.valid, true);
+    if (!result.valid) return;
+    const groups = result.value.stages[0];
+    assert.equal(groups.entrySeedingMethod, "preserve");
+    assert.equal(groups.randomRevealOrder, "instant");
+    if (groups.format !== "group_stage") return;
+    assert.equal(groups.placementMethod, "snake");
+    assert.equal(groups.resultSeedingMethod, "rank_bands");
   });
 });

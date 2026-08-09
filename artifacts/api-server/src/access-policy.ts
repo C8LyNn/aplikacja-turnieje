@@ -1,12 +1,13 @@
 import type { Request, Response } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db, supportSessionsTable, tournamentsTable } from "@workspace/db";
 import { verifyOrganizerToken, verifyViewerToken } from "./auth";
+import { logger } from "./lib/logger";
 
 export type TournamentActor =
   | { type: "anonymous" }
   | { type: "viewer" }
-  | { type: "support"; nick: string }
+  | { type: "support"; nick: string; sessionId: number }
   | { type: "organizer" };
 
 export interface TournamentAccess {
@@ -14,26 +15,125 @@ export interface TournamentAccess {
   tournament: typeof tournamentsTable.$inferSelect;
 }
 
+type ResolvedTournamentActor = TournamentActor;
+
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export type TournamentMutationActor =
+  | Extract<TournamentActor, { type: "organizer" }>
+  | Extract<TournamentActor, { type: "support" }>;
+
+export class TournamentMutationAuthorizationError extends Error {
+  readonly code = "SUPPORT_SESSION_EXPIRED";
+
+  constructor() {
+    super("Sesja wsparcia wygasła. Zaloguj się ponownie.");
+    this.name = "TournamentMutationAuthorizationError";
+  }
+}
+
+export function getTournamentMutationActor(
+  access: TournamentAccess,
+): TournamentMutationActor {
+  if (access.actor.type !== "organizer" && access.actor.type !== "support") {
+    throw new TournamentMutationAuthorizationError();
+  }
+  return access.actor;
+}
+
+export async function revalidateTournamentMutationActor(
+  tx: DbTransaction,
+  tournament: typeof tournamentsTable.$inferSelect,
+  actor?: TournamentMutationActor,
+): Promise<void> {
+  if (!actor || actor.type === "organizer") return;
+  const [session] = await tx
+    .select({
+      passwordVersion: supportSessionsTable.passwordVersion,
+    })
+    .from(supportSessionsTable)
+    .where(
+      and(
+        eq(supportSessionsTable.id, actor.sessionId),
+        eq(supportSessionsTable.tournamentId, tournament.id),
+      ),
+    )
+    .for("update");
+  if (
+    !session ||
+    session.passwordVersion !== tournament.supportPasswordVersion
+  ) {
+    throw new TournamentMutationAuthorizationError();
+  }
+}
+
+export async function withTournamentMutationLock<T>(
+  tournamentId: number,
+  actor: TournamentMutationActor,
+  operation: (
+    tx: DbTransaction,
+    tournament: typeof tournamentsTable.$inferSelect,
+  ) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    const [tournament] = await tx
+      .select()
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, tournamentId))
+      .for("update");
+    if (!tournament) {
+      throw new TournamentMutationAuthorizationError();
+    }
+    await revalidateTournamentMutationActor(tx, tournament, actor);
+    return operation(tx, tournament);
+  });
+}
+
 function header(req: Request, name: string): string {
   const value = req.headers[name];
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-function hasValidOrganizerToken(token: string, tournamentId: number): boolean {
+function hasValidOrganizerToken(
+  token: string,
+  tournament: typeof tournamentsTable.$inferSelect,
+): boolean {
   if (!token) return false;
   try {
-    return verifyOrganizerToken(token, tournamentId);
+    return verifyOrganizerToken(
+      token,
+      tournament.id,
+      tournament.organizerPasswordHash,
+    );
   } catch {
     return false;
+  }
+}
+
+async function touchSupportSession(
+  sessionId: number,
+): Promise<void> {
+  try {
+    await db
+      .update(supportSessionsTable)
+      .set({ lastActiveAt: new Date() })
+      .where(
+        and(
+          eq(supportSessionsTable.id, sessionId),
+          sql`${supportSessionsTable.lastActiveAt} < CURRENT_TIMESTAMP - INTERVAL '60 seconds'`,
+        ),
+      );
+  } catch (error) {
+    logger.warn({ err: error, supportSessionId: sessionId }, "Could not update support session activity");
   }
 }
 
 async function resolveActor(
   req: Request,
   tournament: typeof tournamentsTable.$inferSelect,
-): Promise<TournamentActor> {
+): Promise<ResolvedTournamentActor> {
   const organizerToken = header(req, "x-organizer-token");
-  if (hasValidOrganizerToken(organizerToken, tournament.id)) {
+  if (hasValidOrganizerToken(organizerToken, tournament)) {
     return { type: "organizer" };
   }
 
@@ -41,6 +141,7 @@ async function resolveActor(
   if (supportToken) {
     const [session] = await db
       .select({
+        id: supportSessionsTable.id,
         nick: supportSessionsTable.nick,
         passwordVersion: supportSessionsTable.passwordVersion,
       })
@@ -53,16 +154,35 @@ async function resolveActor(
       );
 
     if (session && session.passwordVersion === tournament.supportPasswordVersion) {
-      return { type: "support", nick: session.nick };
+      return {
+        type: "support",
+        nick: session.nick,
+        sessionId: session.id,
+      };
     }
   }
 
   const viewerToken = header(req, "x-viewer-token");
-  if (viewerToken && verifyViewerToken(viewerToken, tournament.id)) {
+  if (
+    viewerToken &&
+    verifyViewerToken(
+      viewerToken,
+      tournament.id,
+      tournament.viewerPasswordVersion,
+    )
+  ) {
     return { type: "viewer" };
   }
 
   return { type: "anonymous" };
+}
+
+async function authorizeResolvedActor(
+  actor: ResolvedTournamentActor,
+): Promise<TournamentActor> {
+  if (actor.type !== "support") return actor;
+  await touchSupportSession(actor.sessionId);
+  return actor;
 }
 
 async function loadTournament(
@@ -94,15 +214,15 @@ export async function requireTournamentRead(
   const visibility = tournament.visibility ?? "public_online";
 
   if (visibility === "public_online") {
-    return { actor, tournament };
+    return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
   if (actor.type === "organizer" || actor.type === "support") {
-    return { actor, tournament };
+    return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
   if (visibility === "private_online" && actor.type === "viewer") {
-    return { actor, tournament };
+    return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
   if (visibility === "private_offline") {
@@ -130,7 +250,7 @@ export async function requireTournamentWrite(
 
   const actor = await resolveActor(req, tournament);
   if (actor.type === "organizer" || actor.type === "support") {
-    return { actor, tournament };
+    return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
   res.status(403).json({ error: "Wymagany token organizatora lub wsparcia" });
@@ -147,7 +267,7 @@ export async function requireOrganizer(
 
   const actor = await resolveActor(req, tournament);
   if (actor.type === "organizer") {
-    return { actor, tournament };
+    return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
   res.status(403).json({ error: "Wymagane uwierzytelnienie organizatora" });

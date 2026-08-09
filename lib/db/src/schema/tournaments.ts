@@ -5,14 +5,17 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
   unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { PgTableExtraConfigValue } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -57,6 +60,25 @@ export const stageSeedingPolicyEnum = pgEnum("stage_seeding_policy", [
   "standings_order",
   "snake_groups",
   "cross_group",
+  "random_groups",
+  "standard_bracket",
+  "random_bracket",
+]);
+export const stageEntrySeedingPolicyEnum = pgEnum("stage_entry_seeding_policy", [
+  "preserve",
+  "registration_order",
+  "alphabetical",
+  "random",
+  "manual",
+]);
+export const stageResultSeedingPolicyEnum = pgEnum("stage_result_seeding_policy", [
+  "standings_order",
+  "rank_bands",
+  "global_ranking",
+]);
+export const stageRandomRevealOrderEnum = pgEnum("stage_random_reveal_order", [
+  "instant",
+  "sequential",
 ]);
 export const stageParticipantStatusEnum = pgEnum("stage_participant_status", [
   "active",
@@ -90,6 +112,19 @@ export const matchResultTypeEnum = pgEnum("match_result_type", [
   "bye",
   "no_contest",
 ]);
+
+// Infrastructure table shared by forward-only migration runners and deployment
+// preflights. It is part of the authoritative schema even though application
+// requests do not write to it directly.
+export const appSchemaMigrationsTable = pgTable("app_schema_migrations", {
+  migrationKey: text("migration_key").primaryKey(),
+  appliedAt: timestamp("applied_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  appCommit: text("app_commit").notNull(),
+  targetSchema: text("target_schema").notNull(),
+  deploymentEnvironment: text("deployment_environment").notNull(),
+});
 
 export const tournamentsTable = pgTable(
   "tournaments",
@@ -187,16 +222,21 @@ export const tournamentStagesTable = pgTable(
     participantsPerGroup: integer("participants_per_group"),
     qualifiersPerGroup: integer("qualifiers_per_group"),
     seedingPolicy: stageSeedingPolicyEnum("seeding_policy").notNull().default("standings_order"),
+    entrySeedingPolicy: stageEntrySeedingPolicyEnum("entry_seeding_policy").notNull().default("preserve"),
+    resultSeedingPolicy: stageResultSeedingPolicyEnum("result_seeding_policy").notNull().default("standings_order"),
+    randomSeed: text("random_seed"),
+    randomRevealOrder: stageRandomRevealOrderEnum("random_reveal_order").notNull().default("instant"),
+    seedingAudit: jsonb("seeding_audit"),
     winnerId: integer("winner_id"),
     version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     completedAt: timestamp("completed_at"),
   },
-  (table) => [
+  (table): PgTableExtraConfigValue[] => [
     uniqueIndex("tournament_stages_tournament_position_unique").on(table.tournamentId, table.position),
     uniqueIndex("tournament_stages_tournament_key_unique").on(table.tournamentId, table.stageKey),
-    uniqueIndex("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
+    unique("tournament_stages_tournament_id_id_unique").on(table.tournamentId, table.id),
     uniqueIndex("tournament_stages_one_active_per_tournament")
       .on(table.tournamentId)
       .where(sql`${table.status} = 'active'`),
@@ -204,6 +244,15 @@ export const tournamentStagesTable = pgTable(
       columns: [table.tournamentId, table.winnerId],
       foreignColumns: [playersTable.tournamentId, playersTable.id],
       name: "tournament_stages_winner_same_tournament_fk",
+    }),
+    // PostgreSQL owns the DEFERRABLE INITIALLY DEFERRED attributes installed by
+    // migrations 0002/0009. Drizzle Kit 0.31 does not serialize deferrability,
+    // but declaring the FK here prevents it from treating the constraint as
+    // extraneous while the integration suite verifies the exact attributes.
+    foreignKey({
+      columns: [table.id, table.winnerId],
+      foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
+      name: "tournament_stages_winner_same_stage_fk",
     }),
     check("tournament_stages_position_range", sql`${table.position} BETWEEN 1 AND 3`),
     check("tournament_stages_participant_count_nonnegative", sql`${table.participantCount} >= 0`),
@@ -216,9 +265,32 @@ export const tournamentStagesTable = pgTable(
     check("tournament_stages_qualification_configuration", sql`
       (${table.qualificationMode} = 'none' AND ${table.advancingCount} IS NULL)
       OR (${table.qualificationMode} = 'top_n' AND ${table.format} IN ('swiss', 'round_robin')
+        AND ${table.advancingCount} IS NOT NULL
+        AND ${table.advancingCount} <= ${table.participantCount})
+      OR (${table.qualificationMode} = 'top_n' AND ${table.format} = 'single_elimination'
         AND ${table.advancingCount} IS NOT NULL)
       OR (${table.qualificationMode} = 'top_n_per_group' AND ${table.format} = 'group_stage'
         AND ${table.advancingCount} IS NULL)`),
+    check("tournament_stages_elimination_advancing_boundary", sql`
+      ${table.format} <> 'single_elimination'
+      OR ${table.qualificationMode} = 'none'
+      OR (${table.qualificationMode} = 'top_n'
+        AND ${table.advancingCount} < ${table.participantCount}
+        AND (${table.advancingCount} & (${table.advancingCount} - 1)) = 0)`),
+    check("tournament_stages_seeding_configuration", sql`
+      (${table.format} IN ('swiss', 'round_robin') AND ${table.seedingPolicy} = 'standings_order')
+      OR (${table.format} = 'group_stage' AND ${table.seedingPolicy} IN ('snake_groups', 'random_groups'))
+      OR (${table.format} = 'single_elimination' AND ${table.seedingPolicy} IN ('standard_bracket', 'random_bracket'))`),
+    check("tournament_stages_result_seeding_configuration", sql`
+      (${table.format} = 'group_stage' AND ${table.resultSeedingPolicy} IN ('rank_bands', 'global_ranking'))
+      OR (${table.format} <> 'group_stage' AND ${table.resultSeedingPolicy} = 'standings_order')`),
+    check("tournament_stages_random_seed_configuration", sql`
+      (${table.randomSeed} IS NULL OR length(trim(${table.randomSeed})) BETWEEN 1 AND 200)
+      AND ((${table.entrySeedingPolicy} <> 'random'
+        AND ${table.seedingPolicy} NOT IN ('random_groups', 'random_bracket'))
+        OR ${table.randomSeed} IS NOT NULL)`),
+    check("tournament_stages_seeding_audit_shape", sql`
+      ${table.seedingAudit} IS NULL OR jsonb_typeof(${table.seedingAudit}) = 'object'`),
     check("tournament_stages_version_positive", sql`${table.version} > 0`),
     check("tournament_stages_lifecycle_timestamps", sql`
       (${table.status} = 'planned' AND ${table.startedAt} IS NULL AND ${table.completedAt} IS NULL)
@@ -232,9 +304,11 @@ export const tournamentStagesTable = pgTable(
       OR (${table.format} = 'single_elimination' AND ${table.rankingPolicy} = 'elimination_bracket_v1' AND ${table.plannedRounds} IS NULL
         AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
       OR (${table.format} = 'group_stage' AND ${table.rankingPolicy} = 'group_v1' AND ${table.plannedRounds} IS NULL
-        AND ${table.groupCount} IN (2, 4) AND ${table.participantsPerGroup} BETWEEN 3 AND 8
-        AND ${table.qualifiersPerGroup} IN (1, 2) AND ${table.qualifiersPerGroup} < ${table.participantsPerGroup}
-        AND ${table.participantCount} = ${table.groupCount} * ${table.participantsPerGroup})`),
+        AND ${table.groupCount} >= 1 AND ${table.groupCount} * 2 <= ${table.participantCount}
+        AND ${table.participantsPerGroup} >= 2
+        AND ${table.participantCount} <= ${table.groupCount} * ${table.participantsPerGroup}
+        AND ${table.participantCount} > ${table.groupCount} * (${table.participantsPerGroup} - 1)
+        AND ${table.qualifiersPerGroup} BETWEEN 1 AND ${table.participantsPerGroup})`),
   ],
 );
 
@@ -254,11 +328,11 @@ export const stageGroupsTable = pgTable(
   (table) => [
     uniqueIndex("stage_groups_stage_key_unique").on(table.stageId, table.groupKey),
     uniqueIndex("stage_groups_stage_position_unique").on(table.stageId, table.position),
-    uniqueIndex("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
-    check("stage_groups_key_supported", sql`${table.groupKey} IN ('A', 'B', 'C', 'D')`),
-    check("stage_groups_position_range", sql`${table.position} BETWEEN 1 AND 4`),
-    check("stage_groups_participant_count_range", sql`${table.participantCount} BETWEEN 3 AND 8`),
-    check("stage_groups_qualifiers_count_supported", sql`${table.qualifiersCount} IN (1, 2) AND ${table.qualifiersCount} < ${table.participantCount}`),
+    unique("stage_groups_stage_id_id_unique").on(table.stageId, table.id),
+    check("stage_groups_key_nonempty", sql`length(${table.groupKey}) > 0`),
+    check("stage_groups_position_positive", sql`${table.position} > 0`),
+    check("stage_groups_participant_count_minimum", sql`${table.participantCount} >= 2`),
+    check("stage_groups_qualifiers_count_range", sql`${table.qualifiersCount} BETWEEN 1 AND ${table.participantCount}`),
   ],
 );
 
@@ -281,12 +355,12 @@ export const stageParticipantsTable = pgTable(
     qualifiedAt: timestamp("qualified_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
-  (table) => [
+  (table): PgTableExtraConfigValue[] => [
     uniqueIndex("stage_participants_stage_player_unique").on(table.stageId, table.playerId),
     // Migration 0002 deploys this invariant as a DEFERRABLE unique constraint,
     // allowing one transaction to normalize every seed atomically to 1..N.
-    uniqueIndex("stage_participants_stage_seed_unique").on(table.stageId, table.stageSeed),
-    uniqueIndex("stage_participants_tournament_id_id_unique").on(table.tournamentId, table.id),
+    unique("stage_participants_stage_seed_unique").on(table.stageId, table.stageSeed),
+    unique("stage_participants_tournament_id_id_unique").on(table.tournamentId, table.id),
     foreignKey({
       columns: [table.tournamentId, table.stageId],
       foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
@@ -344,13 +418,13 @@ export const matchesTable = pgTable(
     completedAt: timestamp("completed_at"),
   },
   (table) => [
-    uniqueIndex("matches_stage_round_number_unique").on(
+    unique("matches_stage_round_number_unique").on(
       table.stageId,
       table.round,
       table.matchNumber,
     ),
     unique("matches_id_stage_id_unique").on(table.id, table.stageId),
-    uniqueIndex("matches_tournament_stage_id_id_unique").on(
+    unique("matches_tournament_stage_id_id_unique").on(
       table.tournamentId,
       table.stageId,
       table.id,
@@ -483,8 +557,8 @@ export const resultHistoryTable = pgTable(
     uniqueIndex("result_history_match_revision_unique").on(table.matchId, table.revision),
     index("result_history_tournament_recorded_idx").on(table.tournamentId, table.recordedAt),
     foreignKey({
-      columns: [table.stageId, table.matchId],
-      foreignColumns: [matchesTable.stageId, matchesTable.id],
+      columns: [table.matchId, table.stageId],
+      foreignColumns: [matchesTable.id, matchesTable.stageId],
       name: "result_history_match_same_stage_fk",
     }),
     foreignKey({
@@ -515,6 +589,21 @@ export const actionLogTable = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
+    // PostgreSQL supports a column list for SET NULL. Drizzle's public action
+    // union does not type that PostgreSQL extension yet, while Drizzle Kit
+    // serializes the complete action string. Keep the narrow cast here so the
+    // authoritative export matches migration 0009 exactly; integration tests
+    // assert that tournament_id is never nulled.
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "action_log_stage_same_tournament_fk",
+    }).onDelete("set null (stage_id)" as "set null"),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.matchId],
+      foreignColumns: [matchesTable.tournamentId, matchesTable.stageId, matchesTable.id],
+      name: "action_log_match_same_tournament_stage_fk",
+    }).onDelete("set null (stage_id, match_id)" as "set null"),
     check(
       "action_log_match_requires_stage",
       sql`${table.matchId} IS NULL OR ${table.stageId} IS NOT NULL`,
@@ -544,6 +633,55 @@ export const authAuditLogTable = pgTable("auth_audit_log", {
   action: text("action").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const authCredentialRateLimitsTable = pgTable(
+  "auth_credential_rate_limits",
+  {
+    scopeType: text("scope_type").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    credentialType: text("credential_type").notNull(),
+    sourceFingerprint: text("source_fingerprint").notNull(),
+    windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+    failureCount: integer("failure_count").notNull().default(0),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+    lastUpdatedAt: timestamp("last_updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "auth_credential_rate_limits_scope_pk",
+      columns: [
+        table.scopeType,
+        table.tournamentId,
+        table.credentialType,
+        table.sourceFingerprint,
+      ],
+    }),
+    check(
+      "auth_credential_rate_limits_scope_type_check",
+      sql`${table.scopeType} IN ('tournament', 'source')`,
+    ),
+    check(
+      "auth_credential_rate_limits_credential_type_check",
+      sql`${table.credentialType} IN ('organizer', 'viewer', 'support', 'legacy_upgrade')`,
+    ),
+    check(
+      "auth_credential_rate_limits_tournament_id_check",
+      sql`${table.tournamentId} > 0`,
+    ),
+    check(
+      "auth_credential_rate_limits_failure_count_check",
+      sql`${table.failureCount} >= 0`,
+    ),
+    check(
+      "auth_credential_rate_limits_source_fingerprint_check",
+      sql`length(${table.sourceFingerprint}) BETWEEN 1 AND 128`,
+    ),
+    index("auth_credential_rate_limits_cleanup_idx").on(table.lastUpdatedAt),
+    index("auth_credential_rate_limits_blocked_idx").on(table.blockedUntil),
+  ],
+);
 
 export const insertTournamentSchema = createInsertSchema(tournamentsTable).omit({ id: true, createdAt: true });
 export type InsertTournament = z.infer<typeof insertTournamentSchema>;
@@ -576,3 +714,7 @@ export type ResultHistory = typeof resultHistoryTable.$inferSelect;
 export type ActionLog = typeof actionLogTable.$inferSelect;
 export type SupportSession = typeof supportSessionsTable.$inferSelect;
 export type AuthAuditLog = typeof authAuditLogTable.$inferSelect;
+export type AuthCredentialRateLimit =
+  typeof authCredentialRateLimitsTable.$inferSelect;
+export type AppSchemaMigration =
+  typeof appSchemaMigrationsTable.$inferSelect;

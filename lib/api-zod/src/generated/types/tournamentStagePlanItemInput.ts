@@ -6,9 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TournamentStagePlanItemInputBestOf } from './tournamentStagePlanItemInputBestOf';
+import type { TournamentStagePlanItemInputEntrySeedingMethod } from './tournamentStagePlanItemInputEntrySeedingMethod';
 import type { TournamentStagePlanItemInputFormat } from './tournamentStagePlanItemInputFormat';
-import type { TournamentStagePlanItemInputGroupCount } from './tournamentStagePlanItemInputGroupCount';
-import type { TournamentStagePlanItemInputQualifiersPerGroup } from './tournamentStagePlanItemInputQualifiersPerGroup';
+import type { TournamentStagePlanItemInputPlacementMethod } from './tournamentStagePlanItemInputPlacementMethod';
+import type { TournamentStagePlanItemInputRandomRevealOrder } from './tournamentStagePlanItemInputRandomRevealOrder';
+import type { TournamentStagePlanItemInputResultSeedingMethod } from './tournamentStagePlanItemInputResultSeedingMethod';
+import type { TournamentStagePlanItemInputSeedingMethod } from './tournamentStagePlanItemInputSeedingMethod';
 
 export interface TournamentStagePlanItemInput {
   /** @minLength 1 */
@@ -26,14 +29,42 @@ export interface TournamentStagePlanItemInput {
   bestOf: TournamentStagePlanItemInputBestOf;
   /** @minimum 1 */
   rounds?: number;
-  /** @minimum 2 */
-  advancingCount?: number;
-  groupCount?: TournamentStagePlanItemInputGroupCount;
   /**
-     * @minimum 3
-     * @maximum 8
+     * Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.
+     * @minimum 2
+     */
+  advancingCount?: number;
+  /**
+     * Number of balanced groups. Must not exceed floor(participantCount / 2).
+     * @minimum 1
+     */
+  groupCount?: number;
+  /**
+     * Derived largest group size, equal to ceil(participantCount / groupCount).
+     * @minimum 2
      */
   participantsPerGroup?: number;
-  qualifiersPerGroup?: TournamentStagePlanItemInputQualifiersPerGroup;
-  seedingMethod?: 'snake';
+  /**
+     * Maximum qualifiers taken from each group. Smaller groups may qualify everyone.
+     * @minimum 1
+     */
+  qualifiersPerGroup?: number;
+  /** How incoming participants are converted into stage seeds. */
+  entrySeedingMethod?: TournamentStagePlanItemInputEntrySeedingMethod;
+  /** Format-specific placement. Groups use snake/random; brackets use standard/random. */
+  placementMethod?: TournamentStagePlanItemInputPlacementMethod;
+  /** How group qualifiers receive new seeds. */
+  resultSeedingMethod?: TournamentStagePlanItemInputResultSeedingMethod;
+  /**
+     * Deterministic key required by random seeding or placement.
+     * @minLength 1
+     * @maxLength 200
+     */
+  randomSeed?: string;
+  randomRevealOrder?: TournamentStagePlanItemInputRandomRevealOrder;
+  /**
+     * Compatibility alias for group placementMethod.
+     * @deprecated
+     */
+  seedingMethod?: TournamentStagePlanItemInputSeedingMethod;
 }

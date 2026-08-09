@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
 import { eq } from "drizzle-orm";
 import {
+  calculateBalancedGroupSizes,
+  calculateGroupAdvancingCount,
+} from "../src/domain/tournament/group-stage";
+import {
   dropTestSchema,
   getSafeTestDatabaseConfig,
   resetTestSchema,
@@ -23,9 +27,19 @@ interface DatabaseModule {
 interface GroupPlanFixture {
   tournamentId: number;
   groupStageId: number;
-  playoffStageId: number;
-  groupCount: 2 | 4;
-  qualifiersPerGroup: 1 | 2;
+  targetStageId: number;
+  participantCount: number;
+  groupCount: number;
+  qualifiersPerGroup: number;
+  targetParticipantCount: number;
+  targetFormat: "single_elimination" | "round_robin";
+}
+
+interface GroupPlanOptions {
+  groupCount: number;
+  qualifiersPerGroup: number;
+  participantCount?: number;
+  targetFormat?: GroupPlanFixture["targetFormat"];
 }
 
 const SESSION_SECRET = `group-stage-${randomUUID()}`;
@@ -36,16 +50,24 @@ let completeMatch: typeof import("../src/application/matches/complete-match").co
 let completeStage: typeof import("../src/application/stages/stage-lifecycle").completeStage;
 let getQualificationPreview: typeof import("../src/application/stages/stage-lifecycle").getQualificationPreview;
 let startStage: typeof import("../src/application/stages/stage-lifecycle").startStage;
+let prepareSeedingCeremony: typeof import("../src/application/stages/seeding-ceremony").prepareSeedingCeremony;
+let revealAllSeedingDraws: typeof import("../src/application/stages/seeding-ceremony").revealAllSeedingDraws;
 
-async function createGroupPlan(
-  groupCount: 2 | 4,
-  qualifiersPerGroup: 1 | 2,
-): Promise<GroupPlanFixture> {
+async function createGroupPlan({
+  groupCount,
+  qualifiersPerGroup,
+  participantCount = groupCount * 3,
+  targetFormat = "single_elimination",
+}: GroupPlanOptions): Promise<GroupPlanFixture> {
   const suffix = randomUUID();
-  const groupSize = 3;
-  const participantCount = groupCount * groupSize;
+  const groupSizes = calculateBalancedGroupSizes(participantCount, groupCount);
+  const targetParticipantCount = calculateGroupAdvancingCount(
+    participantCount,
+    groupCount,
+    qualifiersPerGroup,
+  );
   const [tournament] = await database.db.insert(database.tournamentsTable).values({
-    name: `Group stage ${groupCount}x${qualifiersPerGroup} ${suffix}`,
+    name: `Group stage ${participantCount}/${groupCount}/${qualifiersPerGroup} ${suffix}`,
     format: "round_robin",
     status: "draft",
     visibility: "public_online",
@@ -72,35 +94,42 @@ async function createGroupPlan(
     qualificationMode: "top_n_per_group",
     advancingCount: null,
     groupCount,
-    participantsPerGroup: groupSize,
+    participantsPerGroup: Math.max(...groupSizes),
     qualifiersPerGroup,
     seedingPolicy: "snake_groups",
+    resultSeedingPolicy: "rank_bands",
   }).where(eq(database.tournamentStagesTable.id, generatedStage.id)).returning();
-  const [playoffStage] = await database.db.insert(database.tournamentStagesTable).values({
+  const [targetStage] = await database.db.insert(database.tournamentStagesTable).values({
     tournamentId: tournament.id,
     stageKey: "stage-2",
     position: 2,
-    name: "Play-off",
-    format: "single_elimination",
+    name: targetFormat === "single_elimination" ? "Play-off" : "Liga finałowa",
+    format: targetFormat,
     status: "planned",
-    participantCount: groupCount * qualifiersPerGroup,
-    bestOf: 3,
-    rankingPolicy: "elimination_bracket_v1",
+    participantCount: targetParticipantCount,
+    bestOf: targetFormat === "single_elimination" ? 3 : 1,
+    rankingPolicy:
+      targetFormat === "single_elimination"
+        ? "elimination_bracket_v1"
+        : "round_robin_v1",
     qualificationMode: "none",
-    seedingPolicy: "cross_group",
+    seedingPolicy: targetFormat === "single_elimination" ? "standard_bracket" : "standings_order",
   }).returning();
   return {
     tournamentId: tournament.id,
     groupStageId: groupStage.id,
-    playoffStageId: playoffStage.id,
+    targetStageId: targetStage.id,
+    participantCount,
     groupCount,
     qualifiersPerGroup,
+    targetParticipantCount,
+    targetFormat,
   };
 }
 
 async function completeAllGroupMatches(fixture: GroupPlanFixture): Promise<void> {
   const result = await database.pool.query(
-    `SELECT m.id, m.player1_id, m.player2_id, p1.stage_seed AS seed1, p2.stage_seed AS seed2
+    `SELECT m.id, p1.stage_seed AS seed1, p2.stage_seed AS seed2
      FROM matches m
      JOIN stage_participants p1 ON p1.stage_id = m.stage_id AND p1.player_id = m.player1_id
      JOIN stage_participants p2 ON p2.stage_id = m.stage_id AND p2.player_id = m.player2_id
@@ -144,6 +173,7 @@ before(async () => {
   schemaInitialized = true;
   ({ completeMatch } = await import("../src/application/matches/complete-match"));
   ({ completeStage, getQualificationPreview, startStage } = await import("../src/application/stages/stage-lifecycle"));
+  ({ prepareSeedingCeremony, revealAllSeedingDraws } = await import("../src/application/stages/seeding-ceremony"));
 });
 
 after(async () => {
@@ -154,39 +184,132 @@ after(async () => {
 
 describe("group_stage runtime", () => {
   test("assigns two groups with snake seeding", async () => {
-    const fixture = await createGroupPlan(2, 1);
+    const fixture = await createGroupPlan({ groupCount: 2, qualifiersPerGroup: 1 });
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
     assert.deepEqual(await groupAssignments(fixture), ["A", "B", "B", "A", "A", "B"]);
   });
 
-  test("assigns four groups with snake seeding", async () => {
-    const fixture = await createGroupPlan(4, 1);
+  test("keeps random entry seeding and random placement deterministic without cancelling each other", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 8,
+      groupCount: 2,
+      qualifiersPerGroup: 2,
+    });
+    await database.db.update(database.tournamentStagesTable).set({
+      entrySeedingPolicy: "random",
+      seedingPolicy: "random_groups",
+      randomSeed: "live-draw",
+      randomRevealOrder: "sequential",
+    }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
+    await prepareSeedingCeremony({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    const completedCeremony = await revealAllSeedingDraws({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.groupStageId,
+    });
+
+    const started = await startStage({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.groupStageId,
+    });
+    const assignment = await database.pool.query(
+      `SELECT player.id AS player_id, player.seed AS original_seed, participant.stage_seed, group_row.group_key
+       FROM stage_participants participant
+       JOIN players player ON player.id = participant.player_id
+       JOIN stage_groups group_row ON group_row.id = participant.group_id
+       WHERE participant.stage_id = $1
+       ORDER BY player.seed`,
+      [fixture.groupStageId],
+    );
+
+    assert.deepEqual(
+      assignment.rows.map((row: any) => row.stage_seed),
+      [7, 3, 2, 5, 8, 6, 4, 1],
+    );
+    assert.deepEqual(
+      assignment.rows.map((row: any) => row.group_key),
+      ["A", "B", "A", "A", "B", "B", "B", "A"],
+    );
+    const audit = started.seedingAudit as {
+      randomSeed?: string | null;
+      placementRandomSeed?: string | null;
+      revealOrder?: string;
+      draws?: unknown[];
+    };
+    assert.equal(audit.randomSeed, "live-draw");
+    assert.equal(audit.placementRandomSeed, "live-draw:placement");
+    assert.equal(audit.revealOrder, "sequential");
+    assert.equal(audit.draws?.length, 8);
+    const groupByPlayerId = new Map(
+      assignment.rows.map((row: any) => [Number(row.player_id), row.group_key]),
+    );
+    assert.ok(completedCeremony.draws.every((draw) =>
+      draw.placement.kind === "group" &&
+      groupByPlayerId.get(draw.playerId) === draw.placement.groupKey));
+  });
+
+  test("creates arbitrary uneven groups and fills the larger groups first", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 17,
+      groupCount: 4,
+      qualifiersPerGroup: 5,
+    });
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+
     assert.deepEqual(
       await groupAssignments(fixture),
-      ["A", "B", "C", "D", "D", "C", "B", "A", "A", "B", "C", "D"],
+      ["A", "B", "C", "D", "D", "C", "B", "A", "A", "B", "C", "D", "D", "C", "B", "A", "A"],
+    );
+    const groups = await database.pool.query(
+      `SELECT group_key, participant_count, qualifiers_count
+       FROM stage_groups WHERE stage_id = $1 ORDER BY position`,
+      [fixture.groupStageId],
+    );
+    assert.deepEqual(groups.rows, [
+      { group_key: "A", participant_count: 5, qualifiers_count: 5 },
+      { group_key: "B", participant_count: 4, qualifiers_count: 4 },
+      { group_key: "C", participant_count: 4, qualifiers_count: 4 },
+      { group_key: "D", participant_count: 4, qualifiers_count: 4 },
+    ]);
+  });
+
+  test("generates the exact Round Robin schedule for every uneven group", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 17,
+      groupCount: 4,
+      qualifiersPerGroup: 4,
+    });
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    const integrity = await database.pool.query(
+      `SELECT g.group_key, g.participant_count, count(m.id)::int AS match_count,
+              bool_and(m.stage_group_id = p1.group_id AND m.stage_group_id = p2.group_id) AS same_group
+       FROM stage_groups g
+       LEFT JOIN matches m ON m.stage_group_id = g.id
+       LEFT JOIN stage_participants p1 ON p1.stage_id = m.stage_id AND p1.player_id = m.player1_id
+       LEFT JOIN stage_participants p2 ON p2.stage_id = m.stage_id AND p2.player_id = m.player2_id
+       WHERE g.stage_id = $1
+       GROUP BY g.id, g.group_key, g.participant_count
+       ORDER BY g.position`,
+      [fixture.groupStageId],
+    );
+    assert.deepEqual(
+      integrity.rows.map((row: any) => ({
+        key: row.group_key,
+        players: row.participant_count,
+        matches: row.match_count,
+        sameGroup: row.same_group,
+      })),
+      [
+        { key: "A", players: 5, matches: 10, sameGroup: true },
+        { key: "B", players: 4, matches: 6, sameGroup: true },
+        { key: "C", players: 4, matches: 6, sameGroup: true },
+        { key: "D", players: 4, matches: 6, sameGroup: true },
+      ],
     );
   });
 
-  test("keeps Round Robin matches and rankings inside their group and stage", async () => {
-    const fixture = await createGroupPlan(2, 2);
+  test("keeps rankings inside their own group", async () => {
+    const fixture = await createGroupPlan({ groupCount: 2, qualifiersPerGroup: 2 });
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
-    const integrity = await database.pool.query(
-      `SELECT m.stage_id, m.stage_group_id, g.stage_id AS group_stage_id,
-              p1.group_id AS player1_group_id, p2.group_id AS player2_group_id
-       FROM matches m
-       JOIN stage_groups g ON g.id = m.stage_group_id
-       JOIN stage_participants p1 ON p1.stage_id = m.stage_id AND p1.player_id = m.player1_id
-       JOIN stage_participants p2 ON p2.stage_id = m.stage_id AND p2.player_id = m.player2_id
-       WHERE m.stage_id = $1`,
-      [fixture.groupStageId],
-    );
-    assert.equal(integrity.rows.length, 6);
-    assert.ok(integrity.rows.every((row: any) =>
-      row.stage_id === fixture.groupStageId &&
-      row.group_stage_id === fixture.groupStageId &&
-      row.stage_group_id === row.player1_group_id &&
-      row.stage_group_id === row.player2_group_id));
     await completeAllGroupMatches(fixture);
     const preview = await getQualificationPreview({
       tournamentId: fixture.tournamentId,
@@ -201,18 +324,19 @@ describe("group_stage runtime", () => {
   });
 
   for (const variant of [
-    { groupCount: 2 as const, qualifiersPerGroup: 1 as const },
-    { groupCount: 2 as const, qualifiersPerGroup: 2 as const },
-    { groupCount: 4 as const, qualifiersPerGroup: 1 as const },
-    { groupCount: 4 as const, qualifiersPerGroup: 2 as const },
+    { groupCount: 2, qualifiersPerGroup: 1 },
+    { groupCount: 2, qualifiersPerGroup: 2 },
+    { groupCount: 4, qualifiersPerGroup: 1 },
+    { groupCount: 4, qualifiersPerGroup: 2 },
   ]) {
-    test(`progresses ${variant.groupCount}x${variant.qualifiersPerGroup} to exact cross-seeded play-off slots`, async () => {
-      const fixture = await createGroupPlan(variant.groupCount, variant.qualifiersPerGroup);
+    test(`reseeds ${variant.groupCount}x${variant.qualifiersPerGroup} in rank bands and places strongest against weakest`, async () => {
+      const fixture = await createGroupPlan(variant);
       await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
       await completeAllGroupMatches(fixture);
       const preview = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
-      assert.equal(preview.qualifiers.length, variant.groupCount * variant.qualifiersPerGroup);
+      assert.equal(preview.qualifiers.length, fixture.targetParticipantCount);
       assert.ok(preview.qualifiers.every((entry) => entry.qualificationSource === "group_position"));
+
       const targetParticipants = await database.pool.query(
         `SELECT target.stage_seed, target.qualification_source, source.group_rank, source_group.group_key
          FROM stage_participants target
@@ -220,48 +344,112 @@ describe("group_stage runtime", () => {
          JOIN stage_groups source_group ON source_group.id = source.group_id
          WHERE target.stage_id = $1
          ORDER BY target.stage_seed`,
-        [fixture.playoffStageId],
+        [fixture.targetStageId],
       );
       assert.deepEqual(
         targetParticipants.rows.map((row: any) => row.stage_seed),
-        Array.from({ length: variant.groupCount * variant.qualifiersPerGroup }, (_, index) => index + 1),
+        Array.from({ length: fixture.targetParticipantCount }, (_, index) => index + 1),
+      );
+      assert.deepEqual(
+        [...targetParticipants.rows.map((row: any) => row.group_rank)],
+        [...targetParticipants.rows.map((row: any) => row.group_rank)].sort((a, b) => a - b),
       );
       assert.ok(targetParticipants.rows.every((row: any) =>
-        row.qualification_source === "group_position" && row.group_rank >= 1 && row.group_rank <= 2));
+        row.qualification_source === "group_position" &&
+        row.group_rank >= 1 &&
+        row.group_rank <= variant.qualifiersPerGroup));
 
-      await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.playoffStageId });
+      await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
       const firstRound = await database.pool.query(
-        `SELECT m.match_number,
-                g1.group_key AS player1_group, s1.group_rank AS player1_rank,
-                g2.group_key AS player2_group, s2.group_rank AS player2_rank
+        `SELECT p1.stage_seed AS seed1, p2.stage_seed AS seed2
          FROM matches m
-         JOIN stage_participants t1 ON t1.stage_id = m.stage_id AND t1.player_id = m.player1_id
-         JOIN stage_participants s1 ON s1.id = t1.source_stage_participant_id
-         JOIN stage_groups g1 ON g1.id = s1.group_id
-         JOIN stage_participants t2 ON t2.stage_id = m.stage_id AND t2.player_id = m.player2_id
-         JOIN stage_participants s2 ON s2.id = t2.source_stage_participant_id
-         JOIN stage_groups g2 ON g2.id = s2.group_id
-         WHERE m.stage_id = $1 AND m.round = 1
+         JOIN stage_participants p1 ON p1.stage_id = m.stage_id AND p1.player_id = m.player1_id
+         JOIN stage_participants p2 ON p2.stage_id = m.stage_id AND p2.player_id = m.player2_id
+         WHERE m.stage_id = $1 AND m.round = 1 AND m.player2_id IS NOT NULL
          ORDER BY m.match_number`,
-        [fixture.playoffStageId],
+        [fixture.targetStageId],
       );
-      const actual = firstRound.rows.map((row: any) => [
-        `${row.player1_group}${row.player1_rank}`,
-        `${row.player2_group}${row.player2_rank}`,
-      ]);
-      const expected: Record<string, string[][]> = {
-        "2:1": [["A1", "B1"]],
-        "2:2": [["A1", "B2"], ["B1", "A2"]],
-        "4:1": [["A1", "B1"], ["C1", "D1"]],
-        "4:2": [["A1", "B2"], ["C1", "D2"], ["B1", "A2"], ["D1", "C2"]],
-      };
-      assert.deepEqual(actual, expected[`${variant.groupCount}:${variant.qualifiersPerGroup}`]);
-      assert.ok(firstRound.rows.every((row: any) => row.player1_group !== row.player2_group));
+      assert.ok(firstRound.rows.every((row: any) =>
+        row.seed1 + row.seed2 === fixture.targetParticipantCount + 1));
     });
   }
 
+  test("allows all players to advance and uses the group stage only for reseeding", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 17,
+      groupCount: 4,
+      qualifiersPerGroup: 5,
+    });
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    await completeAllGroupMatches(fixture);
+    const preview = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    assert.equal(preview.qualifiers.length, 17);
+    const groupRanks = preview.qualifiers.map((entry) => entry.groupRank);
+    assert.ok(groupRanks.every((rank) => typeof rank === "number"));
+    const numericGroupRanks = groupRanks.filter(
+      (rank): rank is number => typeof rank === "number",
+    );
+    assert.deepEqual(
+      numericGroupRanks,
+      [...numericGroupRanks].sort((a, b) => a - b),
+    );
+
+    const source = await database.pool.query(
+      `SELECT status, next_stage_seed FROM stage_participants
+       WHERE stage_id = $1 ORDER BY next_stage_seed`,
+      [fixture.groupStageId],
+    );
+    assert.equal(source.rows.length, 17);
+    assert.ok(source.rows.every((row: any) => row.status === "qualified"));
+    assert.deepEqual(
+      source.rows.map((row: any) => row.next_stage_seed),
+      Array.from({ length: 17 }, (_, index) => index + 1),
+    );
+
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
+    const bracket = await database.pool.query(
+      `SELECT status, result_type FROM matches
+       WHERE stage_id = $1 AND round = 1`,
+      [fixture.targetStageId],
+    );
+    assert.equal(bracket.rows.length, 16);
+    assert.equal(bracket.rows.filter((row: any) => row.result_type === "bye").length, 15);
+    assert.equal(bracket.rows.filter((row: any) => row.status === "pending").length, 1);
+  });
+
+  test("can pass rank-band seeds into a non-elimination next stage", async () => {
+    const fixture = await createGroupPlan({
+      participantCount: 8,
+      groupCount: 3,
+      qualifiersPerGroup: 2,
+      targetFormat: "round_robin",
+    });
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    await completeAllGroupMatches(fixture);
+    await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
+
+    const matches = await database.pool.query(
+      `SELECT count(*)::int AS count FROM matches WHERE stage_id = $1`,
+      [fixture.targetStageId],
+    );
+    assert.equal(matches.rows[0].count, 15);
+  });
+
   test("rolls back groups, assignments and matches when group generation fails", async () => {
-    const fixture = await createGroupPlan(2, 1);
+    const fixture = await createGroupPlan({
+      participantCount: 8,
+      groupCount: 2,
+      qualifiersPerGroup: 1,
+    });
+    await database.db.update(database.tournamentStagesTable).set({
+      entrySeedingPolicy: "random",
+      seedingPolicy: "random_groups",
+      randomSeed: "rollback-draw",
+      randomRevealOrder: "sequential",
+    }).where(eq(database.tournamentStagesTable.id, fixture.groupStageId));
+    await prepareSeedingCeremony({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
+    await revealAllSeedingDraws({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
     await assert.rejects(
       () => startStage(
         { tournamentId: fixture.tournamentId, stageId: fixture.groupStageId },
@@ -270,24 +458,30 @@ describe("group_stage runtime", () => {
       /group-generation-fault/,
     );
     const state = await database.pool.query(
-      `SELECT t.active_stage_id, s.status,
+      `SELECT t.active_stage_id, s.status, s.seeding_audit->>'status' AS ceremony_status,
               (SELECT count(*) FROM stage_groups WHERE stage_id = $1) AS groups,
               (SELECT count(*) FROM matches WHERE stage_id = $1) AS matches,
-              (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_id IS NOT NULL) AS assigned
+              (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_id IS NOT NULL) AS assigned,
+              (SELECT bool_and(participant.stage_seed = player.seed)
+                 FROM stage_participants participant
+                 JOIN players player ON player.id = participant.player_id
+                WHERE participant.stage_id = $1) AS seeds_restored
        FROM tournaments t JOIN tournament_stages s ON s.id = $1 WHERE t.id = $2`,
       [fixture.groupStageId, fixture.tournamentId],
     );
     assert.deepEqual(state.rows[0], {
       active_stage_id: null,
       status: "planned",
+      ceremony_status: "completed",
       groups: "0",
       matches: "0",
       assigned: "0",
+      seeds_restored: true,
     });
   });
 
-  test("rolls back group rankings and play-off participants when progression fails", async () => {
-    const fixture = await createGroupPlan(4, 2);
+  test("rolls back group rankings and target participants when progression fails", async () => {
+    const fixture = await createGroupPlan({ groupCount: 4, qualifiersPerGroup: 2 });
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.groupStageId });
     await completeAllGroupMatches(fixture);
     await assert.rejects(
@@ -302,7 +496,7 @@ describe("group_stage runtime", () => {
               (SELECT count(*) FROM stage_participants WHERE stage_id = $2) AS target_participants,
               (SELECT count(*) FROM stage_participants WHERE stage_id = $1 AND group_rank IS NOT NULL) AS ranked
        FROM tournaments t JOIN tournament_stages s ON s.id = $1 WHERE t.id = $3`,
-      [fixture.groupStageId, fixture.playoffStageId, fixture.tournamentId],
+      [fixture.groupStageId, fixture.targetStageId, fixture.tournamentId],
     );
     assert.deepEqual(state.rows[0], {
       active_stage_id: fixture.groupStageId,

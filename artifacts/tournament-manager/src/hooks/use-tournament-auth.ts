@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
+import {
+  setActiveOrganizerToken,
+  setActiveSupportToken,
+} from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
 import { apiVerifySupportSession } from "@/lib/auth";
 

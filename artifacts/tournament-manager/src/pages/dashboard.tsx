@@ -1,7 +1,7 @@
 import {
   useListTournaments, useDeleteTournament, useCreateTournament, useImportPlayers,
   getListTournamentsQueryKey, exportTournament,
-  setActiveOrganizerToken, setActiveHostCode,
+    setActiveOrganizerToken,
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download, FlaskConical, Lock } from "lucide-react";
+import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download, FlaskConical, Lock, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
+import { apiOrganizerLogin } from "@/lib/auth";
+import { BackupRestoreDialog } from "@/components/backup-restore-dialog";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -48,7 +50,7 @@ export default function Dashboard() {
   const importPlayers = useImportPlayers();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { getOrgToken } = useAuth();
+  const { getOrgToken, storeOrgToken } = useAuth();
   const [, navigate] = useLocation();
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -58,7 +60,9 @@ export default function Dashboard() {
   const [exportingId, setExportingId] = useState<number | null>(null);
   const [showTestDataModal, setShowTestDataModal] = useState(false);
   const [testDataSize, setTestDataSize] = useState<TestSize>(8);
+  const [testDataOrganizerPassword, setTestDataOrganizerPassword] = useState("");
   const [testDataLoading, setTestDataLoading] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const confirmTarget = tournaments?.find((t) => t.id === confirmDeleteId);
 
   const closeDeleteModal = () => {
@@ -80,11 +84,16 @@ export default function Dashboard() {
               format: "single_elimination",
               maxPlayers: testDataSize,
               defaultBestOf: 1,
+              organizerPassword: testDataOrganizerPassword,
             },
           },
           { onSuccess: (data) => resolve(data), onError: reject },
         );
       });
+
+      const organizerToken = await apiOrganizerLogin(tournament.id, testDataOrganizerPassword);
+      storeOrgToken(tournament.id, organizerToken);
+      setActiveOrganizerToken(organizerToken);
 
       await new Promise<void>((resolve, reject) => {
         importPlayers.mutate(
@@ -99,6 +108,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
       toast({ title: `Turniej testowy (${testDataSize} graczy) gotowy!`, description: "Możesz teraz go uruchomić i przetestować wszystkie funkcje." });
       setShowTestDataModal(false);
+      setTestDataOrganizerPassword("");
       navigate(`/tournaments/${tournament.id}`);
     } catch {
       toast({ title: "Błąd tworzenia danych testowych", variant: "destructive" });
@@ -134,7 +144,16 @@ export default function Dashboard() {
     if (!confirmDeleteId || !confirmTarget) return;
     setDeletePasswordError(null);
 
-    const needsAuth = confirmTarget.hasOrganizerPassword || confirmTarget.hasHostCode;
+    if (!confirmTarget.hasOrganizerPassword) {
+      setDeletePasswordError(
+        confirmTarget.hasHostCode
+          ? "Najpierw otwórz panel prowadzącego i zamień historyczny kod na hasło organizatora."
+          : "Ten turniej wymaga administracyjnego odzyskania poświadczeń. Nie można go przejąć ani usunąć anonimowo.",
+      );
+      return;
+    }
+
+    const needsAuth = true;
     if (needsAuth && !deletePassword.trim()) {
       setDeletePasswordError("Podaj hasło organizatora, aby potwierdzić usunięcie.");
       return;
@@ -162,8 +181,6 @@ export default function Dashboard() {
         setDeleteLoading(false);
         return;
       }
-    } else if (confirmTarget.hasHostCode) {
-      setActiveHostCode(deletePassword);
     }
 
     // Step 2: delete with credentials now active in customFetch headers
@@ -172,14 +189,12 @@ export default function Dashboard() {
       {
         onSuccess: () => {
           if (confirmTarget.hasOrganizerPassword) setActiveOrganizerToken(null);
-          if (confirmTarget.hasHostCode) setActiveHostCode(null);
           queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
           toast({ title: "Turniej usunięty", description: `„${confirmTarget.name}" został trwale usunięty.` });
           closeDeleteModal();
         },
         onError: (e: any) => {
           if (confirmTarget.hasOrganizerPassword) setActiveOrganizerToken(null);
-          if (confirmTarget.hasHostCode) setActiveHostCode(null);
           setDeleteLoading(false);
           const msg: string = e?.data?.error ?? e?.message ?? "";
           if (e?.status === 403) {
@@ -204,6 +219,13 @@ export default function Dashboard() {
           <div className="flex gap-2">
             <Button
               variant="outline"
+              onClick={() => setShowRestoreDialog(true)}
+            >
+              <FileUp className="w-4 h-4 mr-2" />
+              Przywróć backup
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => setShowTestDataModal(true)}
               title="Utwórz turniej z przykładowymi graczami do testowania"
             >
@@ -219,6 +241,11 @@ export default function Dashboard() {
             </Link>
           </div>
         </div>
+
+        <BackupRestoreDialog
+          open={showRestoreDialog}
+          onClose={() => setShowRestoreDialog(false)}
+        />
 
         {/* Test data modal */}
         {showTestDataModal && (
@@ -256,11 +283,22 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground bg-muted/30 rounded px-3 py-2">
                 Zostanie utworzony turniej <strong>single elimination</strong>, BO1, bez seedów. Możesz go usunąć po teście.
               </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="test-organizer-password">Hasło organizatora *</Label>
+                <Input
+                  id="test-organizer-password"
+                  type="password"
+                  value={testDataOrganizerPassword}
+                  onChange={(event) => setTestDataOrganizerPassword(event.target.value)}
+                  minLength={8}
+                  placeholder="Minimum 8 znaków"
+                />
+              </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setShowTestDataModal(false)} disabled={testDataLoading}>
                   <X className="w-4 h-4 mr-1.5" /> Anuluj
                 </Button>
-                <Button onClick={handleCreateTestData} disabled={testDataLoading}>
+                <Button onClick={handleCreateTestData} disabled={testDataLoading || testDataOrganizerPassword.length < 8}>
                   <FlaskConical className="w-4 h-4 mr-1.5" />
                   {testDataLoading ? "Tworzenie…" : `Utwórz z ${testDataSize} graczami`}
                 </Button>
@@ -291,8 +329,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Password field — required for protected tournaments */}
-              {(confirmTarget.hasOrganizerPassword || confirmTarget.hasHostCode) && (
+              {/* Password field — only a real organizer password authorizes deletion. */}
+              {confirmTarget.hasOrganizerPassword && (
                 <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
                   <Label htmlFor="delete-password" className="flex items-center gap-2 text-sm font-semibold">
                     <Lock className="w-3.5 h-3.5 text-muted-foreground" />
@@ -321,11 +359,18 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* No-auth warning for unprotected tournaments */}
+              {/* Credentialless/legacy records require recovery, never anonymous deletion. */}
               {!confirmTarget.hasOrganizerPassword && !confirmTarget.hasHostCode && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
                   <p className="text-xs text-yellow-400/90 font-medium">
-                    Ten turniej nie ma ustawionego hasła organizatora — usunięcie nie wymaga weryfikacji.
+                    Ten historyczny turniej nie ma żadnych poświadczeń. Mutacje są zablokowane do czasu administracyjnego odzyskania.
+                  </p>
+                </div>
+              )}
+              {!confirmTarget.hasOrganizerPassword && confirmTarget.hasHostCode && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
+                  <p className="text-xs text-yellow-400/90 font-medium">
+                    Ten turniej używa starego kodu. Przejdź do panelu prowadzącego i ustaw hasło organizatora przed operacjami administracyjnymi.
                   </p>
                 </div>
               )}

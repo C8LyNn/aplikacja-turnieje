@@ -5,12 +5,12 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { TournamentBackupV3GroupsItemGroupKey } from './tournamentBackupV3GroupsItemGroupKey';
 
 export type TournamentBackupV3GroupsItem = {
   backupId: number;
   stageBackupId: number;
-  groupKey: TournamentBackupV3GroupsItemGroupKey;
+  /** @minLength 1 */
+  groupKey: string;
   position: number;
   participantCount: number;
   qualifiersCount: number;

@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
+import { setActiveOrganizerToken } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
-import { apiGetSupportSessions, apiChangeSupportPassword, apiGetAuditLog } from "@/lib/auth";
+import {
+  apiGetSupportSessions,
+  apiChangeSupportPassword,
+  apiGetAuditLog,
+  apiSetInitialOrganizerPassword,
+} from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,10 +31,16 @@ interface AuditEntry {
 
 interface Props {
   tournamentId: number;
+  hasOrganizerPassword: boolean;
+  onOrganizerPasswordSet?: () => void | Promise<unknown>;
 }
 
-export function SecurityPanel({ tournamentId }: Props) {
-  const { getOrgToken } = useAuth();
+export function SecurityPanel({
+  tournamentId,
+  hasOrganizerPassword,
+  onOrganizerPasswordSet,
+}: Props) {
+  const { getOrgToken, storeOrgToken } = useAuth();
   const token = getOrgToken(tournamentId) ?? "";
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -40,6 +52,15 @@ export function SecurityPanel({ tournamentId }: Props) {
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwSuccess, setPwSuccess] = useState(false);
   const [tab, setTab] = useState<"sessions" | "log">("sessions");
+  const [organizerPasswordSet, setOrganizerPasswordSet] = useState(hasOrganizerPassword);
+  const [organizerPassword, setOrganizerPassword] = useState("");
+  const [showOrganizerPassword, setShowOrganizerPassword] = useState(false);
+  const [settingOrganizerPassword, setSettingOrganizerPassword] = useState(false);
+  const [organizerPasswordError, setOrganizerPasswordError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrganizerPasswordSet(hasOrganizerPassword);
+  }, [hasOrganizerPassword]);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -74,6 +95,33 @@ export function SecurityPanel({ tournamentId }: Props) {
     }
   }
 
+  async function handleSetOrganizerPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || organizerPassword.length < 8) return;
+    setSettingOrganizerPassword(true);
+    setOrganizerPasswordError(null);
+    try {
+      const replacementToken = await apiSetInitialOrganizerPassword(
+        tournamentId,
+        token,
+        organizerPassword,
+      );
+      storeOrgToken(tournamentId, replacementToken);
+      setActiveOrganizerToken(replacementToken);
+      setOrganizerPassword("");
+      setOrganizerPasswordSet(true);
+      if (onOrganizerPasswordSet) {
+        void Promise.resolve(onOrganizerPasswordSet()).catch(() => undefined);
+      }
+    } catch (error) {
+      setOrganizerPasswordError(
+        error instanceof Error ? error.message : "Błąd ustawiania hasła organizatora",
+      );
+    } finally {
+      setSettingOrganizerPassword(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -83,6 +131,59 @@ export function SecurityPanel({ tournamentId }: Props) {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
+
+      {!organizerPasswordSet && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Ustaw hasło organizatora</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Hasło jest opcjonalne i nie blokuje zarządzania turniejem. Jeśli je ustawisz,
+            pozwoli Ci ponownie zalogować się po utracie bieżącej sesji.
+          </p>
+          <form onSubmit={handleSetOrganizerPassword} className="space-y-2">
+            <div className="space-y-1">
+              <Label htmlFor="initial-organizer-password" className="text-xs">
+                Pierwsze hasło organizatora
+              </Label>
+              <div className="relative">
+                <Input
+                  id="initial-organizer-password"
+                  type={showOrganizerPassword ? "text" : "password"}
+                  value={organizerPassword}
+                  onChange={(event) => setOrganizerPassword(event.target.value)}
+                  placeholder="min. 8 znaków"
+                  required
+                  minLength={8}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOrganizerPassword((value) => !value)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showOrganizerPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                >
+                  {showOrganizerPassword
+                    ? <EyeOff className="w-4 h-4" />
+                    : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            {organizerPasswordError && (
+              <p className="text-xs text-destructive">{organizerPasswordError}</p>
+            )}
+            <Button
+              type="submit"
+              size="sm"
+              disabled={settingOrganizerPassword || organizerPassword.length < 8}
+            >
+              <Lock className="w-3.5 h-3.5 mr-1.5" />
+              {settingOrganizerPassword ? "Ustawianie…" : "Ustaw hasło organizatora"}
+            </Button>
+          </form>
+        </div>
+      )}
 
       <div className="flex border-b border-border">
         <button
@@ -140,9 +241,9 @@ export function SecurityPanel({ tournamentId }: Props) {
                     type={showNewPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="min. 4 znaki"
+                    placeholder="min. 8 znaków"
                     required
-                    minLength={4}
+                    minLength={8}
                     className="pr-9"
                   />
                   <button
@@ -156,7 +257,7 @@ export function SecurityPanel({ tournamentId }: Props) {
               </div>
               {pwError && <p className="text-xs text-destructive">{pwError}</p>}
               {pwSuccess && <p className="text-xs text-green-400">Hasło zmienione. Poprzednie sesje zostały unieważnione.</p>}
-              <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 4}>
+              <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 8}>
                 <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
                 {changingPw ? "Zmienianie…" : "Zmień hasło i unieważnij sesje"}
               </Button>

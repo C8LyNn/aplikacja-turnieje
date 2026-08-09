@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
+import { getOrganizerToken } from "@/lib/auth";
 import CreateTournament from "./create-tournament";
 
 const originalFetch = globalThis.fetch;
@@ -53,6 +54,7 @@ function successfulResponse() {
     rankingPolicy: "match_record_v1",
     defaultBestOf: 1,
     hasHostCode: false,
+    organizerToken: "creator-organizer-token",
     createdAt: "2026-01-01T00:00:00.000Z",
   }), {
     status: 201,
@@ -75,7 +77,7 @@ for (const length of [1, 7]) {
     let requests = 0;
     renderForm(async () => { requests += 1; return successfulResponse(); });
     await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
-    const password = screen.getByLabelText("Hasło organizatora");
+    const password = screen.getByLabelText("Hasło organizatora (opcjonalne)");
     await userEvent.type(password, "x".repeat(length));
     await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
     assert.equal(document.activeElement, password);
@@ -94,6 +96,7 @@ test("an empty optional password submits by clicking the actual button", async (
   fireEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
   await waitFor(() => assert.equal(bodies.length, 1));
   assert.equal("organizerPassword" in (bodies[0] as Record<string, unknown>), false);
+  await waitFor(() => assert.equal(getOrganizerToken(77), "creator-organizer-token"));
 });
 
 test("an eight-character password submits with Enter", async () => {
@@ -103,7 +106,7 @@ test("an eight-character password submits with Enter", async () => {
     return successfulResponse();
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
-  const password = screen.getByLabelText("Hasło organizatora");
+  const password = screen.getByLabelText("Hasło organizatora (opcjonalne)");
   await userEvent.type(password, "12345678{Enter}");
   await waitFor(() => assert.equal(bodies.length, 1));
   assert.equal(bodies[0].organizerPassword, "12345678");

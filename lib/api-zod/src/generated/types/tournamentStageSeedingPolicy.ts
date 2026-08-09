@@ -13,4 +13,7 @@ export const TournamentStageSeedingPolicy = {
   standings_order: 'standings_order',
   snake_groups: 'snake_groups',
   cross_group: 'cross_group',
+  random_groups: 'random_groups',
+  standard_bracket: 'standard_bracket',
+  random_bracket: 'random_bracket',
 } as const;

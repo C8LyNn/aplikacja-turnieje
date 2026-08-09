@@ -5,9 +5,13 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentStageEntrySeedingPolicy } from './tournamentStageEntrySeedingPolicy';
 import type { TournamentStageFormat } from './tournamentStageFormat';
 import type { TournamentStageQualificationMode } from './tournamentStageQualificationMode';
+import type { TournamentStageRandomRevealOrder } from './tournamentStageRandomRevealOrder';
 import type { TournamentStageRankingPolicy } from './tournamentStageRankingPolicy';
+import type { TournamentStageResultSeedingPolicy } from './tournamentStageResultSeedingPolicy';
+import type { TournamentStageSeedingAudit } from './tournamentStageSeedingAudit';
 import type { TournamentStageSeedingPolicy } from './tournamentStageSeedingPolicy';
 import type { TournamentStageStatus } from './tournamentStageStatus';
 
@@ -38,6 +42,13 @@ export interface TournamentStage {
   /** @nullable */
   qualifiersPerGroup?: number | null;
   seedingPolicy: TournamentStageSeedingPolicy;
+  entrySeedingPolicy: TournamentStageEntrySeedingPolicy;
+  resultSeedingPolicy: TournamentStageResultSeedingPolicy;
+  /** @nullable */
+  randomSeed?: string | null;
+  randomRevealOrder: TournamentStageRandomRevealOrder;
+  /** @nullable */
+  seedingAudit?: TournamentStageSeedingAudit;
   /** @nullable */
   winnerId?: number | null;
   version: number;

@@ -14,6 +14,10 @@ import {
   type SeriesResultErrorCode,
 } from "../../domain/match/series-result";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
+import {
+  revalidateTournamentMutationActor,
+  type TournamentMutationActor,
+} from "../../access-policy";
 
 export type CompleteMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -61,6 +65,7 @@ export class CompleteMatchError extends Error {
 
 interface CompleteMatchBaseInput {
   matchId: number;
+  actor?: TournamentMutationActor;
 }
 
 export interface CompletePlayedMatchInput extends CompleteMatchBaseInput {
@@ -180,6 +185,7 @@ export async function completeMatch(
       .where(eq(tournamentsTable.id, matchReference.tournamentId))
       .for("update");
     if (!tournament) throw new CompleteMatchError("TOURNAMENT_NOT_FOUND");
+    await revalidateTournamentMutationActor(tx, tournament, input.actor);
 
     const [stage] = await tx
       .select()

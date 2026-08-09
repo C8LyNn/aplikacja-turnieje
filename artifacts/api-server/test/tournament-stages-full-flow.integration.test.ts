@@ -27,10 +27,19 @@ let app: Express;
 let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
-let signOrganizerToken: typeof import("../src/auth").signOrganizerToken;
+let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 
 async function rows<T>(sql: string, values: unknown[] = []): Promise<T[]> {
   return (await database.pool.query(sql, values)).rows as T[];
+}
+
+async function organizerTokenFor(tournamentId: number): Promise<string> {
+  const [tournament] = await rows<{ organizer_password_hash: string }>(
+    "SELECT organizer_password_hash FROM tournaments WHERE id = $1",
+    [tournamentId],
+  );
+  assert.ok(tournament?.organizer_password_hash);
+  return signOrganizerToken(tournamentId, tournament.organizer_password_hash);
 }
 
 async function addSeededPlayers(
@@ -90,7 +99,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signOrganizerToken } = await import("../src/auth"));
+  signOrganizerToken = (await import("../src/auth")).signVersionedOrganizerToken;
   app = (await import("../src/app")).default;
 });
 
@@ -105,6 +114,7 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "integration-organizer-password",
       name: `Full stages flow ${randomUUID()}`,
       format: "swiss",
       defaultBestOf: 1,
@@ -146,7 +156,9 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     })
     .expect(201);
   const tournamentId = created.body.id as number;
-  const headers = { "x-organizer-token": signOrganizerToken(tournamentId) };
+  const headers = {
+    "x-organizer-token": await organizerTokenFor(tournamentId),
+  };
   await addSeededPlayers(tournamentId, headers);
 
   const stages = await rows<{ id: number; position: number }>(
@@ -325,10 +337,13 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     player1_rank: number;
     player2_group: string;
     player2_rank: number;
+    player1_seed: number;
+    player2_seed: number;
   }>(
     `SELECT match_row.match_number,
             group1.group_key AS player1_group, source1.group_rank AS player1_rank,
-            group2.group_key AS player2_group, source2.group_rank AS player2_rank
+            group2.group_key AS player2_group, source2.group_rank AS player2_rank,
+            target1.stage_seed AS player1_seed, target2.stage_seed AS player2_seed
      FROM matches match_row
      JOIN stage_participants target1
        ON target1.stage_id = match_row.stage_id AND target1.player_id = match_row.player1_id
@@ -343,13 +358,12 @@ test("completes Swiss 16 -> Group Stage 8 -> Single Elimination 4 without mixing
     [playoffStage.id],
   );
   assert.deepEqual(
-    semifinalSources.map((match) => [
-      `${match.player1_group}${match.player1_rank}`,
-      `${match.player2_group}${match.player2_rank}`,
-    ]),
-    [["A1", "B2"], ["B1", "A2"]],
+    semifinalSources.map((match) => [match.player1_seed, match.player2_seed]),
+    [[1, 4], [2, 3]],
   );
-  assert.ok(semifinalSources.every((match) => match.player1_group !== match.player2_group));
+  assert.ok(semifinalSources.every(
+    (match) => match.player1_rank + match.player2_rank === 3,
+  ));
 
   assert.equal(await playPendingMatches(tournamentId, playoffStage.id, headers, 1), 2);
   assert.equal(await playPendingMatches(tournamentId, playoffStage.id, headers, 2), 1);

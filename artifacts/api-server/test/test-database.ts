@@ -10,6 +10,46 @@ const TOURNAMENT_STAGES_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0002_tournament_stages_v1.sql",
   import.meta.url,
 );
+const FLEXIBLE_GROUP_STAGES_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0003_flexible_group_stages_v2.sql",
+  import.meta.url,
+);
+const CONFIGURABLE_SEEDING_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0004_configurable_seeding_v2.sql",
+  import.meta.url,
+);
+const STAGE_PARTICIPANT_FLOW_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0005_stage_participant_flow.sql",
+  import.meta.url,
+);
+const MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0006_fix_multistage_participant_compat.sql",
+  import.meta.url,
+);
+const STAGE_SCHEMA_RECONCILIATION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0007_reconcile_stage_schema.sql",
+  import.meta.url,
+);
+const STAGE_PROCEDURAL_OBJECTS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0008_restore_stage_procedural_objects.sql",
+  import.meta.url,
+);
+const COMPOSITE_FOREIGN_KEYS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0009_reconcile_composite_foreign_keys.sql",
+  import.meta.url,
+);
+const AUTH_CREDENTIAL_RATE_LIMITS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0010_auth_credential_rate_limits.sql",
+  import.meta.url,
+);
+const REPLIT_SCHEMA_CATALOG_RECONCILIATION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0011_reconcile_replit_schema_catalog.sql",
+  import.meta.url,
+);
+const TOURNAMENT_ROUTING_PERSISTENCE_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0012_tournament_routing_persistence_v2.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -94,10 +134,83 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await readFile(TOURNAMENT_STAGES_MIGRATION_URL, "utf8"),
       schema,
     ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const flexibleGroupsMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(FLEXIBLE_GROUP_STAGES_MIGRATION_URL, "utf8"),
+      schema,
+    );
+    const configurableSeedingMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(CONFIGURABLE_SEEDING_MIGRATION_URL, "utf8"),
+      schema,
+    );
+    const stageParticipantFlowMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(STAGE_PARTICIPANT_FLOW_MIGRATION_URL, "utf8"),
+      schema,
+    );
+    const multistageParticipantCompatMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(MULTISTAGE_PARTICIPANT_COMPAT_MIGRATION_URL, "utf8"),
+      schema,
+    );
+    const stageSchemaReconciliationMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(STAGE_SCHEMA_RECONCILIATION_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const stageProceduralObjectsMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(STAGE_PROCEDURAL_OBJECTS_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const compositeForeignKeysMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(COMPOSITE_FOREIGN_KEYS_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const authCredentialRateLimitsMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(AUTH_CREDENTIAL_RATE_LIMITS_MIGRATION_URL, "utf8"),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const replitSchemaCatalogReconciliationMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(
+          REPLIT_SCHEMA_CATALOG_RECONCILIATION_MIGRATION_URL,
+          "utf8",
+        ),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const tournamentRoutingPersistenceMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(
+          TOURNAMENT_ROUTING_PERSISTENCE_MIGRATION_URL,
+          "utf8",
+        ),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
       await pool.query(stagesMigrationSql);
+      await pool.query(flexibleGroupsMigrationSql);
+      await pool.query(configurableSeedingMigrationSql);
+      await pool.query(stageParticipantFlowMigrationSql);
+      await pool.query(multistageParticipantCompatMigrationSql);
+      // Every isolated integration schema proves that the forward-only compatibility
+      // fix is safe to replay after the participant-flow migration.
+      await pool.query(multistageParticipantCompatMigrationSql);
+      await pool.query(stageSchemaReconciliationMigrationSql);
+      // Replaying the reconciliation is part of every integration database setup.
+      await pool.query(stageSchemaReconciliationMigrationSql);
+      await pool.query(stageProceduralObjectsMigrationSql);
+      await pool.query(compositeForeignKeysMigrationSql);
+      await pool.query(authCredentialRateLimitsMigrationSql);
+      // Every isolated schema proves that the forward-only limiter migration
+      // remains safe to replay after an existing 0008/0009 state.
+      await pool.query(authCredentialRateLimitsMigrationSql);
+      await pool.query(replitSchemaCatalogReconciliationMigrationSql);
+      // Every isolated schema also proves that catalog reconciliation is
+      // idempotent after the complete 0001-0010 history.
+      await pool.query(replitSchemaCatalogReconciliationMigrationSql);
+      await pool.query(tournamentRoutingPersistenceMigrationSql);
+      // Persistence DDL is replayed in every isolated integration schema to
+      // prove that a deployment retry does not duplicate or weaken objects.
+      await pool.query(tournamentRoutingPersistenceMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

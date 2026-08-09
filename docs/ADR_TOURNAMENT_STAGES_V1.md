@@ -35,7 +35,7 @@ Szczegółową mapę obecnego kodu i ryzyk zawiera
 8. Przechodzą wyłącznie uczestnik, źródło kwalifikacji i nowy seed.
 9. Organizator osobno kończy etap przez `CompleteStage` i osobno uruchamia
    następny przez `StartStage`.
-10. Single Elimination może być tylko ostatnim etapem.
+10. Pierwotne ograniczenie Single Elimination do ostatniego etapu zostało zastąpione regułą pełnej granicy rundy: pośrednia drabinka może kwalifikować wyłącznie 8, 4, 2 lub 1 osobę z drabinki 16, analogicznie dla innych rozmiarów.
 11. `group_stage` nie może być ostatnim etapem, ponieważ ranking jest lokalny dla
     grup i nie wyłania jednego zwycięzcy całego turnieju.
 12. Nie ma cascade revert między etapami.

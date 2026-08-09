@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Globe, Layers3, Lock, Trophy } from "lucide-react";
 import {
+  setActiveOrganizerToken,
   useCreateTournament,
   type TournamentInput,
 } from "@workspace/api-client-react";
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/auth-context";
 import {
   createStageDraft,
   getApiErrorMessage,
@@ -65,6 +67,7 @@ type Visibility = NonNullable<TournamentInput["visibility"]>;
 
 export default function CreateTournament() {
   const [, navigate] = useLocation();
+  const { storeOrgToken } = useAuth();
   const createTournament = useCreateTournament();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -146,12 +149,11 @@ export default function CreateTournament() {
       {
         onSuccess: (tournament) => {
           submitInFlightRef.current = false;
+          storeOrgToken(tournament.id, tournament.organizerToken);
+          setActiveOrganizerToken(tournament.organizerToken);
           navigate(`/tournaments/${tournament.id}`);
         },
-        onError: (error) => {
-          submitInFlightRef.current = false;
-          setSubmitError(getApiErrorMessage(error));
-        },
+        onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
       },
     );
   };
@@ -376,18 +378,18 @@ export default function CreateTournament() {
               <div className="space-y-4 border-t pt-5">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Lock className="h-4 w-4" />
-                  Hasła dostępu (opcjonalne)
+                  Hasła dostępu
                 </div>
                 <PasswordField
                   id="organizer-password"
-                  label="Hasło organizatora"
+                  label="Hasło organizatora (opcjonalne)"
                   value={organizerPassword}
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
                   onToggle={() => setShowOrgPass((value) => !value)}
                   inputRef={organizerPasswordInputRef}
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                  description="Minimum 8 znaków"
+                  description="Opcjonalne. Jeśli ustawisz hasło, musi mieć co najmniej 8 znaków."
                   detail={organizerPasswordRemaining(organizerPassword) > 0
                     ? `Brakuje jeszcze ${organizerPasswordRemaining(organizerPassword)} znaków`
                     : undefined}
@@ -407,7 +409,7 @@ export default function CreateTournament() {
                 {visibility === "private_online" && (
                   <PasswordField
                     id="viewer-password"
-                    label="Hasło widza"
+                    label="Hasło widza *"
                     value={viewerPassword}
                     onChange={setViewerPassword}
                     visible={showViewerPass}

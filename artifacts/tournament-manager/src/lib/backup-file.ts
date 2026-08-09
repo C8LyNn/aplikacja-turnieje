@@ -1,11 +1,6 @@
-export type TournamentBackupFile = Record<string, unknown> & {
-  schemaVersion: 2;
-  tournament: Record<string, unknown>;
-  players: unknown[];
-  matches: unknown[];
-  resultHistory: unknown[];
-  actionLog: unknown[];
-};
+import type { TournamentBackup } from "@workspace/api-client-react";
+
+export type TournamentBackupFile = TournamentBackup;
 
 export type ParsedBackupFile =
   | { ok: true; backup: TournamentBackupFile }
@@ -33,14 +28,14 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
   if (value["version"] === "1" || value["version"] === 1 || value["schemaVersion"] === 1) {
     return {
       ok: false,
-      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1/v2.",
+      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1 v2 albo v3.",
     };
   }
 
-  if (value["schemaVersion"] !== 2) {
+  if (value["schemaVersion"] !== 2 && value["schemaVersion"] !== 3) {
     return {
       ok: false,
-      error: `Nieobsługiwana wersja backupu (${String(value["schemaVersion"] ?? "brak")}). Wymagany jest format v2.`,
+      error: `Nieobsługiwana wersja backupu (${String(value["schemaVersion"] ?? "brak")}). Wymagany jest format v2 albo v3.`,
     };
   }
 
@@ -59,10 +54,14 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
     !Array.isArray(value["players"]) ||
     !Array.isArray(value["matches"]) ||
     !Array.isArray(value["resultHistory"]) ||
-    !Array.isArray(value["actionLog"])
+    !Array.isArray(value["actionLog"]) ||
+    (value["schemaVersion"] === 3 &&
+      (!Array.isArray(value["stages"]) ||
+        !Array.isArray(value["groups"]) ||
+        !Array.isArray(value["stageParticipants"])))
   ) {
-    return { ok: false, error: "Plik nie wygląda jak kompletny backup Tournament Manager v2." };
+    return { ok: false, error: `Plik nie wygląda jak kompletny backup Tournament Manager v${value["schemaVersion"]}.` };
   }
 
-  return { ok: true, backup: value as TournamentBackupFile };
+  return { ok: true, backup: value as unknown as TournamentBackupFile };
 }
