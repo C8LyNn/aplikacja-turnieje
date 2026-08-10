@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
-import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable } from "@workspace/db";
+import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable } from "@workspace/db";
 import {
   TournamentGameConfigError,
   type SupportedTournamentGameConfig,
@@ -1419,6 +1419,23 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       : [];
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
+  // Enrich with per-game picks (Deadlock tournaments)
+  const historyMatchIds = [...new Set(history.map((h) => h.matchId).filter(Boolean))] as number[];
+  const gamePicks =
+    historyMatchIds.length > 0
+      ? await db
+          .select()
+          .from(matchGamePicksTable)
+          .where(inArray(matchGamePicksTable.matchId, historyMatchIds))
+      : [];
+  // Group picks by matchId
+  const picksByMatchId = new Map<number, Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }>>();
+  for (const p of gamePicks) {
+    const arr = picksByMatchId.get(p.matchId) ?? [];
+    arr.push({ gameNumber: p.gameNumber, player1HeroId: p.player1HeroId ?? null, player2HeroId: p.player2HeroId ?? null });
+    picksByMatchId.set(p.matchId, arr);
+  }
+
   res.json(
     history.map((h) => ({
       id: h.id,
@@ -1437,6 +1454,7 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       revision: h.revision,
       completedAt: formatDate(h.completedAt) ?? new Date().toISOString(),
       recordedAt: formatDate(h.recordedAt) ?? new Date().toISOString(),
+      gamePicks: (h.matchId ? (picksByMatchId.get(h.matchId) ?? []) : []).sort((a, b) => a.gameNumber - b.gameNumber),
     })),
   );
 });
@@ -2575,6 +2593,153 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     });
   }
 
+});
+
+// ---------------------------------------------------------------------------
+// Deadlock hero bans per player
+// ---------------------------------------------------------------------------
+
+function parsePositiveInt(val: unknown): number | null {
+  const n = Number(val);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+function isValidHeroId(v: unknown): v is string {
+  return typeof v === "string" && v.length >= 1 && v.length <= 64;
+}
+
+/** Return all player bans for a tournament (readable by anyone with read access). */
+router.get("/tournaments/:id/player-bans", async (req, res): Promise<void> => {
+  const tid = parsePositiveInt(req.params.id);
+  if (!tid) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, tid)) return;
+
+  const bans = await db
+    .select()
+    .from(playerDeadlockBansTable)
+    .where(eq(playerDeadlockBansTable.tournamentId, tid));
+
+  res.json(
+    bans.map((b) => ({
+      playerId: b.playerId,
+      tournamentId: b.tournamentId,
+      bannedHeroIds: b.bannedHeroIds ?? [],
+    })),
+  );
+});
+
+/** Set or replace bans for a player (organizer / support only). */
+router.put("/players/:id/bans", async (req, res): Promise<void> => {
+  const pid = parsePositiveInt(req.params.id);
+  if (!pid) { res.status(400).json({ error: "Invalid id" }); return; }
+  const body = req.body as { bannedHeroIds?: unknown };
+  if (!Array.isArray(body.bannedHeroIds) || body.bannedHeroIds.length > 5 || !body.bannedHeroIds.every(isValidHeroId)) {
+    res.status(422).json({ error: "bannedHeroIds must be an array of up to 5 non-empty strings" }); return;
+  }
+  const bannedHeroIds = body.bannedHeroIds as string[];
+
+  const [player] = await db
+    .select({ tournamentId: playersTable.tournamentId })
+    .from(playersTable)
+    .where(eq(playersTable.id, pid));
+  if (!player) { res.status(404).json({ error: "Player not found" }); return; }
+
+  const access = await requireTournamentWrite(req, res, player.tournamentId);
+  if (!access) return;
+
+  const [upserted] = await db
+    .insert(playerDeadlockBansTable)
+    .values({ playerId: pid, tournamentId: player.tournamentId, bannedHeroIds })
+    .onConflictDoUpdate({
+      target: playerDeadlockBansTable.playerId,
+      set: { bannedHeroIds, updatedAt: new Date() },
+    })
+    .returning();
+
+  res.json({
+    playerId: upserted.playerId,
+    tournamentId: upserted.tournamentId,
+    bannedHeroIds: upserted.bannedHeroIds ?? [],
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-game hero picks inside a BO match series
+// ---------------------------------------------------------------------------
+
+/** Return all game picks for a match. */
+router.get("/matches/:id/game-picks", async (req, res): Promise<void> => {
+  const mid = parsePositiveInt(req.params.id);
+  if (!mid) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [matchRef] = await db
+    .select({ tournamentId: matchesTable.tournamentId })
+    .from(matchesTable)
+    .where(eq(matchesTable.id, mid));
+  if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkViewerReadAuth(req, res, matchRef.tournamentId)) return;
+
+  const picks = await db
+    .select()
+    .from(matchGamePicksTable)
+    .where(eq(matchGamePicksTable.matchId, mid));
+
+  res.json(
+    picks.map((p) => ({
+      matchId: p.matchId,
+      gameNumber: p.gameNumber,
+      player1HeroId: p.player1HeroId ?? null,
+      player2HeroId: p.player2HeroId ?? null,
+    })),
+  );
+});
+
+/** Upsert hero picks for one game in a match series. */
+router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void> => {
+  const mid = parsePositiveInt(req.params.id);
+  const gn = parsePositiveInt(req.params.gameNumber);
+  if (!mid || !gn || gn > 5) { res.status(400).json({ error: "Invalid params" }); return; }
+  const body = req.body as { player1HeroId?: unknown; player2HeroId?: unknown };
+  const p1Raw = body.player1HeroId;
+  const p2Raw = body.player2HeroId;
+  if (p1Raw !== undefined && p1Raw !== null && !isValidHeroId(p1Raw)) { res.status(422).json({ error: "Invalid player1HeroId" }); return; }
+  if (p2Raw !== undefined && p2Raw !== null && !isValidHeroId(p2Raw)) { res.status(422).json({ error: "Invalid player2HeroId" }); return; }
+
+  const [matchRef] = await db
+    .select({ tournamentId: matchesTable.tournamentId, bestOf: matchesTable.bestOf })
+    .from(matchesTable)
+    .where(eq(matchesTable.id, mid));
+  if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
+
+  const access = await requireTournamentWrite(req, res, matchRef.tournamentId);
+  if (!access) return;
+
+  const p1 = (p1Raw as string | null | undefined) ?? null;
+  const p2 = (p2Raw as string | null | undefined) ?? null;
+
+  const [upserted] = await db
+    .insert(matchGamePicksTable)
+    .values({
+      matchId: mid,
+      gameNumber: gn,
+      player1HeroId: p1,
+      player2HeroId: p2,
+    })
+    .onConflictDoUpdate({
+      target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
+      set: {
+        player1HeroId: p1,
+        player2HeroId: p2,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  res.json({
+    matchId: upserted.matchId,
+    gameNumber: upserted.gameNumber,
+    player1HeroId: upserted.player1HeroId ?? null,
+    player2HeroId: upserted.player2HeroId ?? null,
+  });
 });
 
 export default router;

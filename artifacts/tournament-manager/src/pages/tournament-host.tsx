@@ -30,6 +30,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
+import { PlayerBansRow, HeroSelectorButton } from "@/components/deadlock-bans-display";
+import { usePlayerBans, useMatchGamePicks, useSetMatchGamePick } from "@/lib/deadlock-bans-picks";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
@@ -104,6 +106,10 @@ export default function TournamentHost() {
       },
     },
   );
+
+  const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id });
+  const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
 
   const updateMatch = useUpdateMatch();
   const updateTournament = useUpdateTournament();
@@ -731,6 +737,10 @@ export default function TournamentHost() {
   const focusedMatchId = selectedMatchId ?? autoFocus?.id ?? null;
   const focusedMatch = focusedMatchId ? matches?.find((m) => m.id === focusedMatchId) : null;
 
+  // Deadlock per-game picks for the focused match
+  const { data: focusedMatchPicks } = useMatchGamePicks(focusedMatchId, { enabled: isDeadlock && !!focusedMatchId });
+  const setMatchGamePick = useSetMatchGamePick(focusedMatchId);
+
   const handleNextMatch = () => {
     const idx = actionableMatches.findIndex((m) => m.id === focusedMatchId);
     const next = actionableMatches[(idx + 1) % actionableMatches.length];
@@ -934,6 +944,39 @@ export default function TournamentHost() {
               </div>
             </div>
           </div>
+
+          {/* Deadlock per-game picks editor */}
+          {isDeadlock && capabilities.canWriteTournamentResults && !isDone && !isCancelled && (
+            <div className="px-5 pb-4 border-t border-border/40 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                <span className="text-cyan-500/80">◈</span> Postacie graczy (gry)
+              </p>
+              <div className="space-y-2">
+                {Array.from({ length: bo }, (_, i) => {
+                  const gn = i + 1;
+                  const pick = (focusedMatchPicks ?? []).find((p) => p.gameNumber === gn);
+                  return (
+                    <div key={gn} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-muted-foreground/60 w-7 shrink-0">G{gn}</span>
+                      <HeroSelectorButton
+                        heroId={pick?.player1HeroId}
+                        onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
+                        placeholder={focusedMatch.player1Name ?? "Zaw. A"}
+                        size={20}
+                      />
+                      <span className="text-[10px] text-muted-foreground/40 shrink-0">vs</span>
+                      <HeroSelectorButton
+                        heroId={pick?.player2HeroId}
+                        onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
+                        placeholder={focusedMatch.player2Name ?? "Zaw. B"}
+                        size={20}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Confirmation overlay */}
           {capabilities.canWriteTournamentResults && isShowingConfirm && confirmComplete && (
@@ -1722,6 +1765,7 @@ export default function TournamentHost() {
               <BracketView
                 bracket={bracket}
                 forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+                playerBansMap={isDeadlock ? playerBansMap : undefined}
               />
             ) : (
               <div className="text-center py-12 text-muted-foreground border border-dashed rounded bg-card">
