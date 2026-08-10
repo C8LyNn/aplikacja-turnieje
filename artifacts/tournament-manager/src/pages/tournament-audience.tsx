@@ -592,6 +592,7 @@ export default function TournamentAudience() {
             currentRound={tournament?.currentRound}
             totalRounds={tournament?.totalRounds}
             forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
+            playerBansMap={isDeadlock ? audienceBansMap : undefined}
           />
         )}
       </main>
@@ -782,12 +783,14 @@ function PublicBracketSection({
   currentRound,
   totalRounds,
   forcedHeroId,
+  playerBansMap,
 }: {
   bracket?: Bracket;
   format: string;
   currentRound?: number | null;
   totalRounds?: number | null;
   forcedHeroId?: DeadlockHeroId;
+  playerBansMap?: Map<number, string[]>;
 }) {
   return (
     <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
@@ -804,6 +807,7 @@ function PublicBracketSection({
               bracket={bracket}
               format={format}
               forcedHeroId={forcedHeroId}
+              playerBansMap={playerBansMap}
             />
           )}
         </div>

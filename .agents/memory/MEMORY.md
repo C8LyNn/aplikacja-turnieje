@@ -1,4 +1,5 @@
 - [Swiss pairing logic](swiss-pairing.md) — Swiss rounds: greedy points-based pairing, Buchholz calculated as sum of opponent points; bye auto-advances winner stats.
+- [Workspace package dist rebuilds](dist-rebuild-pattern.md) — after schema changes to lib/db or lib/api-client-react, must rebuild dist or TS consumers see stale declarations.
 - [Result history tracking](result-history.md) — completed matches are logged to result_history table; revert endpoint removes history entry + undoes player stats + undoes bracket advancement.
 - [API mutation signatures](api-mutation-signatures.md) — Orval-generated mutations take `{ data: Body }` not flat fields; e.g. `useCreateTournament({ data: {...} })`.
 - [Host Access Control](host-access-control.md) — upgraded to role-based system; see topic file for full auth architecture (HMAC organizer token, DB support sessions, backward-compat host code).

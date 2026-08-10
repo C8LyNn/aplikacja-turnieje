@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
+import { usePlayerBans } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
@@ -47,6 +48,9 @@ export default function TournamentBracket() {
 
   const isSwiss = tournament?.format === "swiss";
   const isRoundRobin = tournament?.format === "round_robin";
+  const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id && !!tournament });
+  const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
 
   const fitZoom = useCallback(() => {
     if (!canvasRef.current || !bracket?.rounds?.length || isSwiss || isRoundRobin) return;
@@ -216,6 +220,7 @@ export default function TournamentBracket() {
                   bracket={bracket}
                   format={tournament.format}
                   forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+                  playerBansMap={isDeadlock ? playerBansMap : undefined}
                 />
               </div>
             </div>

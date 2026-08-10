@@ -1378,6 +1378,7 @@ export default function TournamentDetail() {
               tournamentId={id}
               activeStageId={tournament.activeStageId}
               matches={matches ?? []}
+              playerBansMap={isDeadlock ? playerBansMap : undefined}
             />
           </TabsContent>
 
