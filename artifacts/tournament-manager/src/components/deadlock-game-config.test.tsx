@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { DeadlockTournamentGameConfig } from "@workspace/api-client-react";
-import { DEADLOCK_HEROES } from "@workspace/game-catalog";
 import {
   ForcedHeroBadge,
   GameConfigPicker,
@@ -23,38 +22,56 @@ function PickerHarness() {
   );
 }
 
-test("picker exposes the complete Deadlock catalog and optional forced hero", async () => {
+test("picker initialises with shared_pool ban mode and 5 bans per player", async () => {
   render(<PickerHarness />);
   await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
   await userEvent.click(screen.getByRole("option", { name: "Deadlock" }));
 
-  assert.equal(screen.getAllByRole("button", { pressed: false }).length >= 38, true);
-  await userEvent.click(screen.getByRole("button", { name: "Rem" }));
-  assert.deepEqual(JSON.parse(screen.getByTestId("value").textContent ?? "null"), {
-    gameId: "deadlock",
-    configVersion: 1,
-    config: { forcedHeroId: "rem" },
-  });
+  // default values — nothing persisted yet; config object is empty {}
+  const parsed = JSON.parse(screen.getByTestId("value").textContent ?? "null");
+  assert.equal(parsed.gameId, "deadlock");
+  assert.equal(parsed.configVersion, 1);
 
-  await userEvent.click(screen.getByRole("button", { name: "Rem" }));
-  assert.deepEqual(JSON.parse(screen.getByTestId("value").textContent ?? "null"), {
-    gameId: "deadlock",
-    configVersion: 1,
-    config: {},
-  });
+  // shared_pool card should be highlighted
+  const sharedPoolBtn = screen.getByText("Wspólna pula banów").closest("button")!;
+  assert.ok(sharedPoolBtn.className.includes("border-primary"));
+
+  // stepper shows 5
+  assert.ok(screen.getByText("5"));
 });
 
-test("each of the 38 heroes can be selected", async () => {
+test("switching ban mode updates persisted config", async () => {
   render(<PickerHarness />);
   await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
   await userEvent.click(screen.getByRole("option", { name: "Deadlock" }));
-  for (const hero of DEADLOCK_HEROES) {
-    await userEvent.click(screen.getByRole("button", { name: hero.displayName }));
-    const value = JSON.parse(screen.getByTestId("value").textContent ?? "null") as {
-      config: { forcedHeroId?: string };
-    };
-    assert.equal(value.config.forcedHeroId, hero.id);
-  }
+
+  await userEvent.click(screen.getByText("Bany przeciwnika").closest("button")!);
+  const parsed = JSON.parse(screen.getByTestId("value").textContent ?? "null") as {
+    config: { banMode?: string };
+  };
+  assert.equal(parsed.config.banMode, "opponent_only");
+});
+
+test("bans-per-player stepper increments and decrements", async () => {
+  render(<PickerHarness />);
+  await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
+  await userEvent.click(screen.getByRole("option", { name: "Deadlock" }));
+
+  const plus = screen.getByRole("button", { name: "Zwiększ liczbę banów" });
+  const minus = screen.getByRole("button", { name: "Zmniejsz liczbę banów" });
+
+  await userEvent.click(plus);
+  const after = JSON.parse(screen.getByTestId("value").textContent ?? "null") as {
+    config: { bansPerPlayer?: number };
+  };
+  assert.equal(after.config.bansPerPlayer, 6);
+
+  await userEvent.click(minus);
+  await userEvent.click(minus);
+  const after2 = JSON.parse(screen.getByTestId("value").textContent ?? "null") as {
+    config: { bansPerPlayer?: number };
+  };
+  assert.equal(after2.config.bansPerPlayer, 5);
 });
 
 test("read-only label renders hero name and has a graceful missing-icon fallback", () => {
@@ -88,7 +105,13 @@ test("game picker is read-only after tournament start", () => {
     />,
   );
   assert.equal((screen.getByLabelText("Gra (opcjonalnie)") as HTMLButtonElement).disabled, true);
-  assert.equal((screen.getByRole("button", { name: "Rem" }) as HTMLButtonElement).disabled, true);
+  // Ban mode buttons must be disabled
+  const banModeButtons = screen.getAllByRole("button").filter(
+    (b) => b.className.includes("rounded-lg border p-3"),
+  );
+  for (const btn of banModeButtons) {
+    assert.equal((btn as HTMLButtonElement).disabled, true);
+  }
 });
 
 test("bracket match shows a compact forced-hero icon", () => {

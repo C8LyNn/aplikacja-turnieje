@@ -54,6 +54,10 @@ const TOURNAMENT_GAME_CONFIG_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0013_tournament_game_config.sql",
   import.meta.url,
 );
+const DEADLOCK_BANS_AND_PICKS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0014_deadlock_bans_and_picks.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -223,6 +227,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(tournamentGameConfigMigrationSql);
       // Optional game configuration remains safe to apply more than once.
       await pool.query(tournamentGameConfigMigrationSql);
+      const deadlockBansAndPicksMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(DEADLOCK_BANS_AND_PICKS_MIGRATION_URL, "utf8"),
+          schema,
+        ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+      await pool.query(deadlockBansAndPicksMigrationSql);
+      // Deadlock ban/picks schema is idempotent (IF NOT EXISTS).
+      await pool.query(deadlockBansAndPicksMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

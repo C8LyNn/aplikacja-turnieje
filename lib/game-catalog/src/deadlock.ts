@@ -113,8 +113,20 @@ const DEADLOCK_HERO_BY_ID = new Map(
   DEADLOCK_HEROES.map((definition) => [definition.id, definition] as const),
 );
 
+export type DeadlockBanMode = 'shared_pool' | 'opponent_only';
+
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockHeroId;
+  banMode?: DeadlockBanMode;
+  bansPerPlayer?: number;
+}
+
+export function getDeadlockBanMode(config: DeadlockTournamentConfigV1): DeadlockBanMode {
+  return config.banMode ?? 'shared_pool';
+}
+
+export function getDeadlockBansPerPlayer(config: DeadlockTournamentConfigV1): number {
+  return config.bansPerPlayer ?? 5;
 }
 
 export function isDeadlockHeroId(value: unknown): value is DeadlockHeroId {
@@ -143,21 +155,55 @@ function parseDeadlockTournamentConfig(
       "Deadlock tournament config must be an object.",
     );
   }
-  const unknownKeys = Object.keys(config).filter((key) => key !== "forcedHeroId");
+  const allowedKeys = new Set(["forcedHeroId", "banMode", "bansPerPlayer"]);
+  const unknownKeys = Object.keys(config).filter((key) => !allowedKeys.has(key));
   if (unknownKeys.length > 0) {
     throw new TournamentGameConfigError(
       "INVALID_GAME_CONFIG",
       `Unknown Deadlock tournament config field: ${unknownKeys[0]}.`,
     );
   }
-  if (config.forcedHeroId == null) return {};
-  if (!isDeadlockHeroId(config.forcedHeroId)) {
-    throw new TournamentGameConfigError(
-      "INVALID_GAME_CONFIG",
-      `Unknown Deadlock hero: ${String(config.forcedHeroId)}.`,
-    );
+
+  const result: DeadlockTournamentConfigV1 = {};
+
+  if (config.forcedHeroId != null) {
+    if (!isDeadlockHeroId(config.forcedHeroId)) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        `Unknown Deadlock hero: ${String(config.forcedHeroId)}.`,
+      );
+    }
+    result.forcedHeroId = config.forcedHeroId;
   }
-  return { forcedHeroId: config.forcedHeroId };
+
+  if (config.banMode != null) {
+    if (config.banMode !== 'shared_pool' && config.banMode !== 'opponent_only') {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        `Invalid Deadlock banMode: ${String(config.banMode)}. Must be 'shared_pool' or 'opponent_only'.`,
+      );
+    }
+    result.banMode = config.banMode as DeadlockBanMode;
+  }
+
+  if (config.bansPerPlayer != null) {
+    const n = Number(config.bansPerPlayer);
+    if (!Number.isInteger(n) || n < 0 || n > 20) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        `Invalid Deadlock bansPerPlayer: must be an integer between 0 and 20.`,
+      );
+    }
+    result.bansPerPlayer = n;
+  }
+
+  return result;
+}
+
+export function sortHeroesByName<T extends { displayName: string }>(heroes: readonly T[]): T[] {
+  return [...heroes].sort((a, b) =>
+    a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }),
+  );
 }
 
 export const DEADLOCK_GAME_DEFINITION: GameDefinition<DeadlockTournamentConfigV1> = {

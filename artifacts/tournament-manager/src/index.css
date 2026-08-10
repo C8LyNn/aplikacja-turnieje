@@ -59,6 +59,9 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
+  --surface-1: var(--elevate-1);
+  --surface-2: var(--elevate-2);
+
   /* Deep navy/slate background */
   --background: 222 47% 11%;
   --foreground: 210 40% 98%;

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DEADLOCK_CONFIG_VERSION,
   DEADLOCK_GAME_ID,
-  DEADLOCK_HEROES,
   getDeadlockHero,
   type DeadlockHeroDefinition,
 } from "@workspace/game-catalog";
+
 import {
   getGetTournamentQueryKey,
   useUpdateTournament,
@@ -13,11 +13,10 @@ import {
   type Tournament,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Gamepad2, Search } from "lucide-react";
+import { Gamepad2, Lock, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -100,16 +99,8 @@ export function GameConfigPicker({
   onChange: (value: GameConfig) => void;
   disabled?: boolean;
 }) {
-  const [search, setSearch] = useState("");
-  const visibleHeroes = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("pl");
-    return query
-      ? DEADLOCK_HEROES.filter((hero) =>
-          hero.displayName.toLocaleLowerCase("pl").includes(query),
-        )
-      : DEADLOCK_HEROES;
-  }, [search]);
-  const selectedHeroId = value?.config.forcedHeroId;
+  const banMode = value?.config?.banMode ?? "shared_pool";
+  const bansPerPlayer = value?.config?.bansPerPlayer ?? 5;
 
   return (
     <div className="space-y-4">
@@ -144,53 +135,65 @@ export function GameConfigPicker({
       </div>
 
       {value?.gameId === DEADLOCK_GAME_ID && (
-        <div className="space-y-3">
-          <div>
-            <Label>Wymuszona postać (opcjonalnie)</Label>
-            <p className="text-xs text-muted-foreground">
-              Jeżeli wybierzesz postać, obowiązuje ona wszystkich uczestników turnieju.
-            </p>
+        <div className="space-y-4">
+
+          {/* Ban mode */}
+          <div className="space-y-2">
+            <Label>Tryb banowania</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["shared_pool", "opponent_only"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onChange({ ...value!, config: { ...value!.config, banMode: mode } })}
+                  className={cn(
+                    "rounded-lg border p-3 text-left text-xs transition-colors",
+                    banMode === mode
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card hover:border-muted-foreground/40",
+                    disabled && "opacity-60 cursor-not-allowed",
+                  )}
+                >
+                  <p className="font-semibold text-sm mb-0.5">
+                    {mode === "shared_pool" ? "Wspólna pula banów" : "Bany przeciwnika"}
+                  </p>
+                  <p className="text-muted-foreground text-[11px] leading-snug">
+                    {mode === "shared_pool"
+                      ? "Gracz nie może wybrać hero zbanowanego przez siebie ani przeciwnika."
+                      : "Gracz nie może wybrać hero zbanowanego przez przeciwnika (własne bany go nie blokują)."}
+                  </p>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              aria-label="Szukaj postaci Deadlocka"
-              className="pl-9"
-              value={search}
-              disabled={disabled}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Szukaj postaci…"
-            />
-          </div>
-          <div className="max-h-72 overflow-y-auto rounded-md border p-2">
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-              {visibleHeroes.map((hero) => {
-                const selected = selectedHeroId === hero.id;
-                return (
-                  <button
-                    key={hero.id}
-                    type="button"
-                    disabled={disabled}
-                    aria-pressed={selected}
-                    aria-label={hero.displayName}
-                    className={cn(
-                      "flex min-w-0 flex-col items-center gap-1 rounded-md border p-2 text-center text-xs transition-colors",
-                      selected
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-transparent hover:border-border hover:bg-muted/50",
-                    )}
-                    onClick={() =>
-                      onChange({
-                        ...value,
-                        config: selected ? {} : { forcedHeroId: hero.id },
-                      })
-                    }
-                  >
-                    <DeadlockHeroIcon hero={hero} className="h-12 w-12" />
-                    <span className="w-full truncate">{hero.displayName}</span>
-                  </button>
-                );
-              })}
+
+          {/* Bans per player */}
+          <div className="space-y-2">
+            <Label>Bany na gracza (0–20)</Label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="Zmniejsz liczbę banów"
+                disabled={disabled || bansPerPlayer <= 0}
+                onClick={() => onChange({ ...value!, config: { ...value!.config, bansPerPlayer: Math.max(0, bansPerPlayer - 1) } })}
+                className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <span className="w-8 text-center font-mono font-bold text-lg" aria-live="polite">{bansPerPlayer}</span>
+              <button
+                type="button"
+                aria-label="Zwiększ liczbę banów"
+                disabled={disabled || bansPerPlayer >= 20}
+                onClick={() => onChange({ ...value!, config: { ...value!.config, bansPerPlayer: Math.min(20, bansPerPlayer + 1) } })}
+                className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {bansPerPlayer === 0 ? "Bany wyłączone" : `${bansPerPlayer} ban${bansPerPlayer === 1 ? "" : "y/ów"} na gracza`}
+              </span>
             </div>
           </div>
         </div>
@@ -215,7 +218,7 @@ export function TournamentGameConfigPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gra i postać</CardTitle>
+        <CardTitle>Gra i reguły</CardTitle>
         <CardDescription>
           Opcjonalna konfiguracja gry. Po rozpoczęciu turnieju pozostaje tylko do odczytu.
         </CardDescription>
@@ -223,7 +226,13 @@ export function TournamentGameConfigPanel({
       <CardContent className="space-y-4">
         <GameConfigPicker value={value} onChange={setValue} disabled={locked} />
         {locked ? (
-          <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+          <div className="space-y-2">
+            <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Lock className="w-3 h-3 shrink-0" />
+              Turniej aktywny — reguły zablokowane.
+            </p>
+          </div>
         ) : (
           <Button
             disabled={updateTournament.isPending}

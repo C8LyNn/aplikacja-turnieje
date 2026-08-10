@@ -150,11 +150,11 @@ export default function TournamentAudience() {
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
     return (
-      <div className="min-h-screen bg-[#080d1a] text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className="min-h-screen bg-background text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
         <RoleHomeLink
           fallbackHref="/fan"
           fallbackLabel="Wróć do turniejów"
-          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400"
         />
         <Lock className="w-10 h-10 text-white/50" />
         <h1 className="text-xl font-semibold">Turniej prywatny</h1>
@@ -263,7 +263,7 @@ export default function TournamentAudience() {
 
   return (
     <div
-      className="min-h-screen bg-[#080d1a] text-white flex flex-col select-none overflow-x-hidden"
+      className="min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden"
       style={{
         backgroundImage:
           "radial-gradient(circle at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)",
@@ -271,7 +271,7 @@ export default function TournamentAudience() {
       }}
     >
       {/* ── TOP BAR ── */}
-      <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8 bg-[#080d1a]/80 backdrop-blur-sm z-10">
+      <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8 bg-background/80 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
@@ -307,7 +307,7 @@ export default function TournamentAudience() {
 
       <nav
         aria-label="Sekcje publicznego widoku turnieju"
-        className="flex-none border-b border-white/8 bg-[#0b1220] px-4 sm:px-6"
+        className="flex-none border-b border-white/8 bg-card/80 px-4 sm:px-6"
       >
         <div className="mx-auto flex w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
           {AUDIENCE_SECTIONS.map((section) => {
@@ -320,7 +320,7 @@ export default function TournamentAudience() {
                 key={section.id}
                 href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1220] ${
+                className={`shrink-0 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                   isActive
                     ? "bg-cyan-500/15 text-cyan-300"
                     : "text-white/55 hover:bg-white/5 hover:text-white"
@@ -361,7 +361,7 @@ export default function TournamentAudience() {
             </div>
 
             {/* Hero card */}
-            <div className={`bg-gradient-to-b from-[#0d1629] to-[#080f1f] border rounded-2xl overflow-hidden transition-all duration-500 ${heroCardBorder}`}>
+            <div className={`bg-card/80 border rounded-2xl overflow-hidden transition-all duration-500 ${heroCardBorder}`}>
               {/* Match meta */}
               <div className="flex items-center justify-center gap-3 py-3 border-b border-white/6">
                 <span className="text-[11px] text-white/35 uppercase tracking-widest font-mono">
@@ -381,12 +381,12 @@ export default function TournamentAudience() {
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p1Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player1Name || "TBD"}
                   </div>
-                  {isDeadlock && heroMatch.player1Id && (
-                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={20} />
+                  {isDeadlock && heroMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={20} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
                   )}
                   {isDeadlock && latestPick?.player1HeroId && (
                     <div className="flex items-center gap-1">
-                      <PickIcon heroId={latestPick.player1HeroId} size={28} />
+                      <PickIcon heroId={latestPick.player1HeroId} size={56} />
                     </div>
                   )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
@@ -418,12 +418,12 @@ export default function TournamentAudience() {
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p2Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player2Name || "TBD"}
                   </div>
-                  {isDeadlock && heroMatch.player2Id && (
-                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={20} />
+                  {isDeadlock && heroMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={20} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
                   )}
                   {isDeadlock && latestPick?.player2HeroId && (
                     <div className="flex items-center gap-1">
-                      <PickIcon heroId={latestPick.player2HeroId} size={28} />
+                      <PickIcon heroId={latestPick.player2HeroId} size={56} />
                     </div>
                   )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
@@ -611,6 +611,7 @@ export default function TournamentAudience() {
             standings={standings ?? []}
             playerBansMap={isDeadlock ? audienceBansMap : undefined}
             isDeadlock={isDeadlock}
+            bansPerPlayer={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5}
           />
         )}
         {activeSection === "bracket" && (
@@ -769,11 +770,13 @@ function PublicPlayersSection({
   standings,
   playerBansMap,
   isDeadlock,
+  bansPerPlayer = 5,
 }: {
   players: Player[];
   standings: Standing[];
   playerBansMap?: Map<number, string[]>;
   isDeadlock?: boolean;
+  bansPerPlayer?: number;
 }) {
   return (
     <AudienceSectionShell title="Gracze" description="Publiczna lista uczestników i ich aktualne statystyki.">
@@ -799,10 +802,10 @@ function PublicPlayersSection({
                   <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
                   <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
                 </dl>
-                {isDeadlock && (
+                {isDeadlock && bansPerPlayer > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/6">
                     {bans.length > 0 ? (
-                      <PlayerBansRow bannedHeroIds={bans} size={20} />
+                      <PlayerBansRow bannedHeroIds={bans} size={20} maxBans={bansPerPlayer} />
                     ) : (
                       <p className="text-xs text-white/30 italic">Brak banów</p>
                     )}

@@ -1,14 +1,19 @@
 ---
 name: Workspace package dist rebuilds
-description: When to run tsc rebuild in lib/* packages so downstream consumers see updated declarations.
+description: When and how to rebuild dist for workspace libraries that use TypeScript project references.
 ---
 
-## Rule
-After adding exports to `lib/db` or `lib/api-client-react`, run `npx tsc` inside that package to regenerate `dist/`. Without this, TypeScript consumers that use project references (api-server, tournament-manager) will see stale `dist/index.d.ts` and report "property does not exist" errors for the new symbols.
+# Workspace package dist rebuilds
 
-**Why:** The api-server tsconfig uses `"references"` pointing to `lib/db` and `lib/api-zod`. TypeScript resolves declarations from the compiled `dist/`, not from `src/`. The runtime (esbuild) doesn't care — it bundles src directly — so the server runs fine; only tsc type-checking breaks.
+## Rule
+After schema/type changes to `lib/api-client-react`, `lib/api-zod`, or other workspace libraries that have `"composite": true` in their tsconfig, you must rebuild the dist or TS consumers (tournament-manager, api-server) will see stale declarations.
+
+**Why:** The tournament-manager's `tsconfig.json` has `"references": [{ "path": "../../lib/api-client-react" }]`. With project references, TypeScript resolves imports from `dist/*.d.ts`, not `src/`. The `exports` field in `package.json` pointing to `src/index.ts` only matters for bundlers (Vite), not for `tsc --noEmit`.
 
 **How to apply:**
-- `lib/db` — add table → `cd lib/db && npx tsc`
-- `lib/api-client-react` — add export → `cd lib/api-client-react && npx tsc --project tsconfig.json`
-- Verify: re-run `npx tsc --noEmit -p artifacts/api-server/tsconfig.json` and confirm the symbols are now found.
+- After changing `lib/api-client-react/src/generated/` (e.g. after running orval): `cd lib/api-client-react && npx tsc -p tsconfig.json`
+- After changing `lib/api-zod/src/`: same pattern (check for tsconfig with `composite: true`)
+- After changing `lib/db/src/`: `cd lib/db && npx tsc -p tsconfig.json`
+
+## Symptom of stale dist
+`npx tsc --noEmit` in `artifacts/tournament-manager` reports "Property 'X' does not exist on type 'Y'" even though `lib/api-client-react/src/generated/api.schemas.ts` clearly contains `X`.

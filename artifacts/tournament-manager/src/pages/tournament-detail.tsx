@@ -1106,9 +1106,9 @@ export default function TournamentDetail() {
                                     {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
                                     {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
                                   </div>
-                                  {isDeadlock && (
+                                  {isDeadlock && ((tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                                     <div className="mt-1">
-                                      <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={20} />
+                                      <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={22} maxBans={(tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
                                     </div>
                                   )}
                                 </div>
@@ -1164,11 +1164,14 @@ export default function TournamentDetail() {
                               {isDeadlock && editingBansPlayerId === p.id && (
                                 <div className="border-t bg-muted/10 p-3">
                                   <p className="text-xs font-semibold text-destructive/80 mb-2">
-                                    Bany gracza (max 5) — {pendingBans.length}/5
+                                    {(() => {
+                                      const max = (tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5;
+                                      return `Bany gracza (max ${max}) — ${pendingBans.length}/${max}`;
+                                    })()}
                                   </p>
                                   <HeroPickerGrid
                                     selectedIds={pendingBans}
-                                    maxSelect={5}
+                                    maxSelect={(tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5}
                                     onToggle={(heroId) => {
                                       setPendingBans((prev) =>
                                         prev.includes(heroId)
@@ -1451,8 +1454,8 @@ export default function TournamentDetail() {
                                       player2HeroId={gp?.player2HeroId ?? null}
                                       player1Name={r.player1Name}
                                       player2Name={r.player2Name}
-                                      size={20}
-                                      showEmpty
+                                      size={24}
+                                      showEmpty={false}
                                     />
                                   );
                                 })}

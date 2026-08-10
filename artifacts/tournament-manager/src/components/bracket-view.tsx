@@ -6,8 +6,8 @@ import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
 import { PickIcon } from "@/components/deadlock-bans-display";
 
 // Layout constants — card heights must match actual rendered sizes
-const CARD_W = 180;
-const CARD_H = 64; // header(16) + player×2(24×2)
+const CARD_W = 200;
+const CARD_H = 72; // header(18) + player×2(27×2)
 const R1_GAP = 8;
 const UNIT = CARD_H + R1_GAP; // 72 — base vertical rhythm
 const COL_GAP = 48; // matches gap-12 between round columns
@@ -284,7 +284,7 @@ function PlayerRow({
       {pickHero && (
         <PickIcon
           heroId={pickHeroId}
-          size={16}
+          size={18}
           title={`Grana postać: ${pickHero.displayName}`}
         />
       )}

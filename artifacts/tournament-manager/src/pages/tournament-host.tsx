@@ -30,7 +30,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
-import { PlayerBansRow, HeroSelectorButton } from "@/components/deadlock-bans-display";
+import { PlayerBansRow, HeroSelectorButton, PickIcon } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useMatchGamePicks, useSetMatchGamePick } from "@/lib/deadlock-bans-picks";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
@@ -866,6 +866,12 @@ export default function TournamentHost() {
           <div className="flex items-center justify-center gap-4 md:gap-10">
             {/* Player 1 */}
             <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
+              {isDeadlock && (() => {
+                const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
+                  ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
+                  : null;
+                return <PickIcon heroId={latestPick?.player1HeroId ?? null} size={64} />;
+              })()}
               <div className="text-center w-full px-2">
                 <div
                   className="text-xl md:text-3xl font-extrabold truncate leading-tight"
@@ -875,8 +881,8 @@ export default function TournamentHost() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik A</div>
               </div>
-              {isDeadlock && focusedMatch.player1Id && (
-                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={18} />
+              {isDeadlock && focusedMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={18} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
               <div className="flex items-center gap-3">
                 <Button
@@ -919,6 +925,12 @@ export default function TournamentHost() {
 
             {/* Player 2 */}
             <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
+              {isDeadlock && (() => {
+                const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
+                  ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
+                  : null;
+                return <PickIcon heroId={latestPick?.player2HeroId ?? null} size={64} />;
+              })()}
               <div className="text-center w-full px-2">
                 <div
                   className="text-xl md:text-3xl font-extrabold truncate leading-tight"
@@ -928,8 +940,8 @@ export default function TournamentHost() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik B</div>
               </div>
-              {isDeadlock && focusedMatch.player2Id && (
-                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={18} />
+              {isDeadlock && focusedMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={18} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
               <div className="flex items-center gap-3">
                 <Button
@@ -979,7 +991,14 @@ export default function TournamentHost() {
                         onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
                         placeholder={focusedMatch.player1Name ?? "Zaw. A"}
                         size={20}
-                        bannedByOpponent={focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : []}
+                        bannedByOpponent={(() => {
+                          const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
+                          const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
+                          const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
+                          return banMode === "shared_pool"
+                            ? Array.from(new Set([...p1Bans, ...p2Bans]))
+                            : p2Bans;
+                        })()}
                         opponentName={focusedMatch.player2Name}
                       />
                       <span className="text-[10px] text-muted-foreground/40 shrink-0">vs</span>
@@ -988,7 +1007,14 @@ export default function TournamentHost() {
                         onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
                         placeholder={focusedMatch.player2Name ?? "Zaw. B"}
                         size={20}
-                        bannedByOpponent={focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : []}
+                        bannedByOpponent={(() => {
+                          const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
+                          const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
+                          const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
+                          return banMode === "shared_pool"
+                            ? Array.from(new Set([...p1Bans, ...p2Bans]))
+                            : p1Bans;
+                        })()}
                         opponentName={focusedMatch.player1Name}
                       />
                     </div>

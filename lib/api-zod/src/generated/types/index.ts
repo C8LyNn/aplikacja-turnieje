@@ -24,6 +24,7 @@ export * from './csvImportInputMode';
 export * from './csvImportResult';
 export * from './csvRowError';
 export * from './deadlockTournamentConfigV1';
+export * from './deadlockTournamentConfigV1BanMode';
 export * from './deadlockTournamentConfigV1ForcedHeroId';
 export * from './deadlockTournamentGameConfig';
 export * from './domainError';

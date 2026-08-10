@@ -375,8 +375,22 @@ export const DeadlockTournamentConfigV1ForcedHeroId = {
   celeste: 'celeste',
 } as const;
 
+export type DeadlockTournamentConfigV1BanMode = typeof DeadlockTournamentConfigV1BanMode[keyof typeof DeadlockTournamentConfigV1BanMode];
+
+
+export const DeadlockTournamentConfigV1BanMode = {
+  shared_pool: 'shared_pool',
+  opponent_only: 'opponent_only',
+} as const;
+
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockTournamentConfigV1ForcedHeroId;
+  banMode?: DeadlockTournamentConfigV1BanMode;
+  /**
+     * @minimum 0
+     * @maximum 20
+     */
+  bansPerPlayer?: number;
 }
 
 export interface DeadlockTournamentGameConfig {

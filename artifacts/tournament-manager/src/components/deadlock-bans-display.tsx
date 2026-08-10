@@ -6,8 +6,10 @@
  *   Picks → circular frame with CYAN ring
  */
 import { useState } from "react";
-import { getDeadlockHero, DEADLOCK_HEROES, type DeadlockHeroDefinition } from "@workspace/game-catalog";
+import { getDeadlockHero, DEADLOCK_HEROES, sortHeroesByName, type DeadlockHeroDefinition } from "@workspace/game-catalog";
 import { cn } from "@/lib/utils";
+
+const SORTED_HEROES = sortHeroesByName(DEADLOCK_HEROES);
 
 // ---------------------------------------------------------------------------
 // Internal hero image — shape controlled by parent wrapper
@@ -94,20 +96,21 @@ export function PickIcon({
   /** true = this pick violates opponent bans — show red ring + warning badge */
   invalid?: boolean;
 }) {
-  if (!heroId) {
+  if (!heroId) return null;  // null, undefined, "" → render nothing
+  const hero = getDeadlockHero(heroId as never);
+  if (!hero) {
+    // Non-empty string but not a known hero — show ? placeholder
     return (
       <span
         className="inline-flex items-center justify-center rounded-full bg-muted/40 border border-dashed border-muted-foreground/30 text-muted-foreground/40 shrink-0"
         style={{ width: size, height: size }}
-        title={title ?? "Brak picka"}
-        aria-label="Brak picka"
+        title={title ?? "Nieznana postać"}
+        aria-label="Nieznana postać"
       >
         <span style={{ fontSize: Math.max(6, size * 0.4) }}>?</span>
       </span>
     );
   }
-  const hero = getDeadlockHero(heroId as never);
-  if (!hero) return null;
 
   return (
     <span
@@ -143,10 +146,13 @@ export function PickIcon({
 export function PlayerBansRow({
   bannedHeroIds,
   size = 20,
+  maxBans = 5,
   className,
 }: {
   bannedHeroIds: string[];
   size?: number;
+  /** Maximum bans to display (defaults to 5; matches configured bansPerPlayer). */
+  maxBans?: number;
   className?: string;
 }) {
   if (!bannedHeroIds || bannedHeroIds.length === 0) return null;
@@ -160,7 +166,7 @@ export function PlayerBansRow({
         Bany:
       </span>
       <div className="flex items-center gap-0.5">
-        {bannedHeroIds.slice(0, 5).map((id) => (
+        {bannedHeroIds.slice(0, maxBans).map((id) => (
           <BanIcon key={id} heroId={id} size={size} />
         ))}
       </div>
@@ -274,7 +280,7 @@ export function HeroPickerGrid({
         className,
       )}
     >
-      {DEADLOCK_HEROES.map((hero) => {
+      {SORTED_HEROES.map((hero) => {
         const isSelected = selectedIds.includes(hero.id);
         const isDisabled = !isSelected && selectedIds.length >= maxSelect;
         return (
@@ -393,7 +399,7 @@ export function HeroSelectorButton({
           )}
           {/* Hero grid */}
           <div className="flex flex-wrap gap-1 max-h-52 overflow-y-auto">
-            {DEADLOCK_HEROES.map((h) => {
+            {SORTED_HEROES.map((h) => {
               const isBanned = bannedByOpponent.includes(h.id);
               const isSelected = h.id === heroId;
               return (

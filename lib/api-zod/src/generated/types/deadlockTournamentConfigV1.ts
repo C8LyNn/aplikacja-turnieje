@@ -5,8 +5,15 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { DeadlockTournamentConfigV1BanMode } from './deadlockTournamentConfigV1BanMode';
 import type { DeadlockTournamentConfigV1ForcedHeroId } from './deadlockTournamentConfigV1ForcedHeroId';
 
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockTournamentConfigV1ForcedHeroId;
+  banMode?: DeadlockTournamentConfigV1BanMode;
+  /**
+     * @minimum 0
+     * @maximum 20
+     */
+  bansPerPlayer?: number;
 }

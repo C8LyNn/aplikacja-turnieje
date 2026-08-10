@@ -3,6 +3,8 @@ import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable } from "@workspace/db";
 import {
   TournamentGameConfigError,
+  getDeadlockBanMode,
+  getDeadlockBansPerPlayer,
   type SupportedTournamentGameConfig,
 } from "@workspace/game-catalog";
 import {
@@ -2632,8 +2634,8 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
   const pid = parsePositiveInt(req.params.id);
   if (!pid) { res.status(400).json({ error: "Invalid id" }); return; }
   const body = req.body as { bannedHeroIds?: unknown };
-  if (!Array.isArray(body.bannedHeroIds) || body.bannedHeroIds.length > 5 || !body.bannedHeroIds.every(isValidHeroId)) {
-    res.status(422).json({ error: "bannedHeroIds must be an array of up to 5 non-empty strings" }); return;
+  if (!Array.isArray(body.bannedHeroIds) || !body.bannedHeroIds.every(isValidHeroId)) {
+    res.status(422).json({ error: "bannedHeroIds must be an array of non-empty strings" }); return;
   }
   const bannedHeroIds = body.bannedHeroIds as string[];
 
@@ -2645,6 +2647,20 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
 
   const access = await requireTournamentWrite(req, res, player.tournamentId);
   if (!access) return;
+
+  // Enforce configured bansPerPlayer limit from game config
+  const gameConfig = await loadTournamentGameConfig(player.tournamentId);
+  if (gameConfig?.gameId === "deadlock") {
+    const configuredLimit = getDeadlockBansPerPlayer(gameConfig.config);
+    if (bannedHeroIds.length > configuredLimit) {
+      res.status(422).json({ error: `bannedHeroIds exceeds the configured limit of ${configuredLimit} bans per player` }); return;
+    }
+  } else {
+    // Default limit of 5 when no game config
+    if (bannedHeroIds.length > 5) {
+      res.status(422).json({ error: "bannedHeroIds must be an array of up to 5 non-empty strings" }); return;
+    }
+  }
 
   const [upserted] = await db
     .insert(playerDeadlockBansTable)
@@ -2721,22 +2737,39 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
   const p1 = (p1Raw as string | null | undefined) ?? null;
   const p2 = (p2Raw as string | null | undefined) ?? null;
 
-  // Server-side ban validation: a player cannot pick a hero banned by their opponent.
+  // Server-side ban validation: mode-aware pick validation.
   const playerIds = [matchRef.player1Id, matchRef.player2Id].filter((id): id is number => id !== null && id !== undefined);
   if (playerIds.length === 2) {
-    const banRows = await db
-      .select()
-      .from(playerDeadlockBansTable)
-      .where(inArray(playerDeadlockBansTable.playerId, playerIds));
+    const [matchGameConfig, banRows] = await Promise.all([
+      loadTournamentGameConfig(matchRef.tournamentId),
+      db.select().from(playerDeadlockBansTable).where(inArray(playerDeadlockBansTable.playerId, playerIds)),
+    ]);
     const p1Bans = banRows.find((b) => b.playerId === matchRef.player1Id)?.bannedHeroIds ?? [];
     const p2Bans = banRows.find((b) => b.playerId === matchRef.player2Id)?.bannedHeroIds ?? [];
-    if (p1 !== null && p2Bans.includes(p1)) {
-      res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-      return;
-    }
-    if (p2 !== null && p1Bans.includes(p2)) {
-      res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-      return;
+    const banMode = matchGameConfig?.gameId === "deadlock"
+      ? getDeadlockBanMode(matchGameConfig.config)
+      : "shared_pool";
+
+    if (banMode === "shared_pool") {
+      const forbidden = new Set([...p1Bans, ...p2Bans]);
+      if (p1 !== null && forbidden.has(p1)) {
+        res.status(422).json({ error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` });
+        return;
+      }
+      if (p2 !== null && forbidden.has(p2)) {
+        res.status(422).json({ error: `Postać "${p2}" jest zbanowana i nie może być wybrana w tym meczu.` });
+        return;
+      }
+    } else {
+      // opponent_only: each player is blocked only by their opponent's bans
+      if (p1 !== null && p2Bans.includes(p1)) {
+        res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+        return;
+      }
+      if (p2 !== null && p1Bans.includes(p2)) {
+        res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+        return;
+      }
     }
   }
 

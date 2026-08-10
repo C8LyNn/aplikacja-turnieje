@@ -21,6 +21,9 @@ export const HealthCheckResponse = zod.object({
  * @summary List all tournaments
  */
 
+export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMin = 0;
+export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
 
 
 export const ListTournamentsResponseItem = zod.object({
@@ -49,7 +52,9 @@ export const ListTournamentsResponseItem = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(listTournamentsResponseGameConfigOneConfigBansPerPlayerMin).max(listTournamentsResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 })
@@ -90,6 +95,9 @@ export const createTournamentBodyStagePlanStagesItemRandomSeedMax = 200;
 export const createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault = `instant`;
 export const createTournamentBodyStagePlanStagesMax = 3;
 
+export const createTournamentBodyGameConfigConfigBansPerPlayerMin = 0;
+export const createTournamentBodyGameConfigConfigBansPerPlayerMax = 20;
+
 
 
 export const CreateTournamentBody = zod.object({
@@ -129,7 +137,9 @@ export const CreateTournamentBody = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(createTournamentBodyGameConfigConfigBansPerPlayerMin).max(createTournamentBodyGameConfigConfigBansPerPlayerMax).optional()
 })
 }).optional()
 })
@@ -139,6 +149,9 @@ export const GetTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+export const getTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
+export const getTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 
 
@@ -168,7 +181,9 @@ export const GetTournamentResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(getTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(getTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 })
@@ -178,6 +193,9 @@ export const UpdateTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+export const updateTournamentBodyGameConfigOneConfigBansPerPlayerMin = 0;
+export const updateTournamentBodyGameConfigOneConfigBansPerPlayerMax = 20;
 
 
 
@@ -196,11 +214,16 @@ export const UpdateTournamentBody = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(updateTournamentBodyGameConfigOneConfigBansPerPlayerMin).max(updateTournamentBodyGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.')
 })
 
+
+export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
+export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 
 
@@ -230,7 +253,9 @@ export const UpdateTournamentResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(updateTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(updateTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 })
@@ -893,6 +918,9 @@ export const StartTournamentParams = zod.object({
 })
 
 
+export const startTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
+export const startTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
 
 
 export const StartTournamentResponse = zod.object({
@@ -921,7 +949,9 @@ export const StartTournamentResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(startTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(startTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 })
@@ -994,6 +1024,9 @@ export const GenerateNextRoundParams = zod.object({
 })
 
 
+export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin = 0;
+export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
 
 
 export const GenerateNextRoundResponse = zod.object({
@@ -1022,7 +1055,9 @@ export const GenerateNextRoundResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin).max(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 })
@@ -1032,6 +1067,9 @@ export const GetTournamentBracketParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin = 0;
+export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax = 20;
 
 
 
@@ -1063,7 +1101,9 @@ export const GetTournamentBracketResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin).max(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax).optional()
 })
 }),zod.null()]).optional()
 }),
@@ -1227,6 +1267,9 @@ export const ExportTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin = 0;
+export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax = 20;
+
 export const exportTournamentResponseStagesMax = 3;
 
 
@@ -1250,7 +1293,9 @@ export const ExportTournamentResponse = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin).max(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax).optional()
 })
 }).optional()
 }),
@@ -1374,6 +1419,9 @@ export const ExportTournamentResponse = zod.object({
  */
 
 
+export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin = 0;
+export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax = 20;
+
 export const importTournamentBodyBackupTwoStagesMax = 3;
 
 
@@ -1476,7 +1524,9 @@ export const ImportTournamentBody = zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
-  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
+  "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
+  "bansPerPlayer": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin).max(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax).optional()
 })
 }).optional()
 }),

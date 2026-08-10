@@ -15,7 +15,7 @@ const ROLES: {
     id: "developer",
     label: "Developer",
     desc: "Zarządzanie aplikacją i konfiguracja systemu.",
-    icon: <Code2 className="w-8 h-8" />,
+    icon: <Code2 className="w-11 h-11" />,
     cardHover: "hover:border-purple-500/60 hover:bg-purple-500/10",
     iconHover: "group-hover:text-purple-400",
   },
@@ -23,7 +23,7 @@ const ROLES: {
     id: "organizer",
     label: "Organizator turnieju",
     desc: "Pełne zarządzanie turniejem, graczami i drabinką. Wymaga hasła organizatora.",
-    icon: <UserCog className="w-8 h-8" />,
+    icon: <UserCog className="w-11 h-11" />,
     cardHover: "hover:border-primary/60 hover:bg-primary/10",
     iconHover: "group-hover:text-primary",
   },
@@ -31,7 +31,7 @@ const ROLES: {
     id: "support",
     label: "Wsparcie organizatora",
     desc: "Wprowadzanie wyników i obsługa meczów. Wymaga hasła wsparcia i nicka.",
-    icon: <Users className="w-8 h-8" />,
+    icon: <Users className="w-11 h-11" />,
     cardHover: "hover:border-green-500/60 hover:bg-green-500/10",
     iconHover: "group-hover:text-green-400",
   },
@@ -39,7 +39,7 @@ const ROLES: {
     id: "fan",
     label: "Kibic turnieju",
     desc: "Widok publiczny — drabinka i wyniki na żywo. Bez edycji.",
-    icon: <Eye className="w-8 h-8" />,
+    icon: <Eye className="w-11 h-11" />,
     cardHover: "hover:border-orange-500/60 hover:bg-orange-500/10",
     iconHover: "group-hover:text-orange-400",
   },
@@ -78,12 +78,12 @@ export default function Landing() {
             className={`group relative cursor-pointer text-left border border-border rounded-xl p-6 bg-card transition-all duration-200 ${r.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
           >
             <div
-              className={`pointer-events-none mb-4 text-muted-foreground transition-colors ${r.iconHover}`}
+              className={`pointer-events-none mb-5 text-muted-foreground transition-colors ${r.iconHover}`}
             >
               {r.icon}
             </div>
-            <h3 className="text-lg font-bold mb-1">{r.label}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <h3 className="text-[20px] font-semibold mb-1 leading-snug">{r.label}</h3>
+            <p className="text-[14px] text-muted-foreground leading-relaxed">
               {r.desc}
             </p>
             {role === r.id && (

@@ -1555,6 +1555,13 @@ components:
         forcedHeroId:
           type: string
           enum: [abrams, wraith, shiv, silver, drifter, the_doorman, sinclair, grey_talon, mo_and_krill, yamato, holliday, warden, mina, paradox, mcginnis, dynamo, infernus, haze, mirage, rem, paige, ivy, venator, vindicta, viscous, lash, vyper, kelvin, calico, victor, graves, bebop, pocket, seven, billy, lady_geist, apollo, celeste]
+        banMode:
+          type: string
+          enum: [shared_pool, opponent_only]
+        bansPerPlayer:
+          type: integer
+          minimum: 0
+          maximum: 20
     DeadlockTournamentGameConfig:
       type: object
       additionalProperties: false
