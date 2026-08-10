@@ -1,6 +1,8 @@
 import { Bracket, Match } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
+import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
+import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
 
 // Layout constants — card heights must match actual rendered sizes
 const CARD_W = 180;
@@ -52,9 +54,10 @@ function roundLabel(round: number, total: number, format?: string): string {
 interface BracketViewProps {
   bracket: Bracket;
   format?: string;
+  forcedHeroId?: DeadlockHeroId;
 }
 
-export function BracketView({ bracket, format }: BracketViewProps) {
+export function BracketView({ bracket, format, forcedHeroId }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -96,7 +99,7 @@ export function BracketView({ bracket, format }: BracketViewProps) {
                   className="relative shrink-0"
                   style={{ height: CARD_H }}
                 >
-                  <MatchBox match={match} />
+                  <MatchBox match={match} forcedHeroId={forcedHeroId} />
 
                   {/* Connector to next round — only from even-indexed matches */}
                   {ri < totalRounds - 1 && mi % 2 === 0 && (
@@ -158,10 +161,17 @@ export function BracketView({ bracket, format }: BracketViewProps) {
   );
 }
 
-function MatchBox({ match }: { match: Match }) {
+function MatchBox({
+  match,
+  forcedHeroId,
+}: {
+  match: Match;
+  forcedHeroId?: DeadlockHeroId;
+}) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
   const isBye = match.resultType === "bye";
+  const forcedHero = getDeadlockHero(forcedHeroId);
 
   const borderClass = isLive
     ? "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_8px_rgba(234,179,8,0.08)]"
@@ -180,7 +190,8 @@ function MatchBox({ match }: { match: Match }) {
         className="flex justify-between items-center bg-muted/30 px-1.5 border-b border-border/40 shrink-0"
         style={{ height: 16 }}
       >
-        <span className="text-[9px] text-muted-foreground font-mono leading-none">
+        <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-mono leading-none">
+          {forcedHero && <DeadlockHeroIcon hero={forcedHero} className="h-3 w-3" />}
           M{match.matchNumber}
         </span>
         {isLive && (

@@ -44,7 +44,21 @@ export interface CreateTournamentRuleError {
   code: CreateTournamentRuleErrorCode;
 }
 
-export type CreateTournamentBadRequestError = SimpleError | OrganizerPasswordTooShortError;
+export type TournamentGameConfigErrorCode = typeof TournamentGameConfigErrorCode[keyof typeof TournamentGameConfigErrorCode];
+
+
+export const TournamentGameConfigErrorCode = {
+  UNKNOWN_GAME_ID: 'UNKNOWN_GAME_ID',
+  UNSUPPORTED_GAME_CONFIG_VERSION: 'UNSUPPORTED_GAME_CONFIG_VERSION',
+  INVALID_GAME_CONFIG: 'INVALID_GAME_CONFIG',
+} as const;
+
+export interface TournamentGameConfigError {
+  error: string;
+  code: TournamentGameConfigErrorCode;
+}
+
+export type CreateTournamentBadRequestError = SimpleError | OrganizerPasswordTooShortError | TournamentGameConfigError;
 
 export type StagePlanErrorDetailsItem = {
   code: string;
@@ -59,6 +73,11 @@ export interface StagePlanError {
 }
 
 export type CreateTournamentUnprocessableError = CreateTournamentRuleError | StagePlanError;
+
+export interface GameConfigImmutableError {
+  error: string;
+  code: 'GAME_CONFIG_IMMUTABLE';
+}
 
 export type SetInitialOrganizerPasswordBadRequestError = InvalidTournamentIdError | OrganizerPasswordTooShortError;
 
@@ -312,6 +331,60 @@ export interface HealthStatus {
   database: HealthStatusDatabase;
 }
 
+export type DeadlockTournamentConfigV1ForcedHeroId = typeof DeadlockTournamentConfigV1ForcedHeroId[keyof typeof DeadlockTournamentConfigV1ForcedHeroId];
+
+
+export const DeadlockTournamentConfigV1ForcedHeroId = {
+  abrams: 'abrams',
+  wraith: 'wraith',
+  shiv: 'shiv',
+  silver: 'silver',
+  drifter: 'drifter',
+  the_doorman: 'the_doorman',
+  sinclair: 'sinclair',
+  grey_talon: 'grey_talon',
+  mo_and_krill: 'mo_and_krill',
+  yamato: 'yamato',
+  holliday: 'holliday',
+  warden: 'warden',
+  mina: 'mina',
+  paradox: 'paradox',
+  mcginnis: 'mcginnis',
+  dynamo: 'dynamo',
+  infernus: 'infernus',
+  haze: 'haze',
+  mirage: 'mirage',
+  rem: 'rem',
+  paige: 'paige',
+  ivy: 'ivy',
+  venator: 'venator',
+  vindicta: 'vindicta',
+  viscous: 'viscous',
+  lash: 'lash',
+  vyper: 'vyper',
+  kelvin: 'kelvin',
+  calico: 'calico',
+  victor: 'victor',
+  graves: 'graves',
+  bebop: 'bebop',
+  pocket: 'pocket',
+  seven: 'seven',
+  billy: 'billy',
+  lady_geist: 'lady_geist',
+  apollo: 'apollo',
+  celeste: 'celeste',
+} as const;
+
+export interface DeadlockTournamentConfigV1 {
+  forcedHeroId?: DeadlockTournamentConfigV1ForcedHeroId;
+}
+
+export interface DeadlockTournamentGameConfig {
+  gameId: 'deadlock';
+  configVersion: 1;
+  config: DeadlockTournamentConfigV1;
+}
+
 export type TournamentFormat = typeof TournamentFormat[keyof typeof TournamentFormat];
 
 
@@ -392,6 +465,7 @@ export interface Tournament {
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
   createdAt: string;
+  gameConfig?: DeadlockTournamentGameConfig | null;
 }
 
 export type TournamentInputFormat = typeof TournamentInputFormat[keyof typeof TournamentInputFormat];
@@ -584,6 +658,7 @@ export interface TournamentInput {
   visibility?: TournamentInputVisibility;
   /** Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
+  gameConfig?: DeadlockTournamentGameConfig;
 }
 
 export type TournamentCreationResponse = Tournament & {
@@ -874,6 +949,8 @@ export interface TournamentUpdate {
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
+  /** Optional game configuration. Null removes it. Editable only while the tournament is a draft. */
+  gameConfig?: DeadlockTournamentGameConfig | null;
 }
 
 /**
@@ -1436,6 +1513,7 @@ export type TournamentBackupV3Tournament = {
   /** @nullable */
   featuredMatchBackupId?: number | null;
   visibility: TournamentBackupV3TournamentVisibility;
+  gameConfig?: DeadlockTournamentGameConfig;
 };
 
 export type TournamentBackupV3PlayersItemStatus = typeof TournamentBackupV3PlayersItemStatus[keyof typeof TournamentBackupV3PlayersItemStatus];

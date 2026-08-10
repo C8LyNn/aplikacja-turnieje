@@ -29,6 +29,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
+import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
@@ -1227,6 +1228,9 @@ export default function TournamentHost() {
             <p className="text-xs text-muted-foreground">
               {tournament.format} · Runda {tournament.currentRound ?? "—"}/{tournament.totalRounds ?? "—"}
             </p>
+            <div className="mt-1">
+              <ForcedHeroBadge gameConfig={tournament.gameConfig} compact />
+            </div>
           </div>
           {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
             <Share2 className="w-4 h-4 mr-1" /> Udostępnij
@@ -1715,7 +1719,10 @@ export default function TournamentHost() {
           {/* ═══ DRABINKA ═══ */}
           <TabsContent value="drabinka" className="pt-4">
             {bracket ? (
-              <BracketView bracket={bracket} />
+              <BracketView
+                bracket={bracket}
+                forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+              />
             ) : (
               <div className="text-center py-12 text-muted-foreground border border-dashed rounded bg-card">
                 Brak drabinki.

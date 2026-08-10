@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { StagePlanEditor } from "@/components/stage-plan-editor";
+import { GameConfigPicker } from "@/components/deadlock-game-config";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -128,6 +129,9 @@ function CreateTournamentForm() {
   const [supportPassword, setSupportPassword] = useState("");
   const [viewerPassword, setViewerPassword] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("public_online");
+  const [gameConfig, setGameConfig] = useState<
+    NonNullable<TournamentInput["gameConfig"]> | null
+  >(null);
   const [showOrgPass, setShowOrgPass] = useState(false);
   const [showSupPass, setShowSupPass] = useState(false);
   const [showViewerPass, setShowViewerPass] = useState(false);
@@ -190,6 +194,7 @@ function CreateTournamentForm() {
           ? viewerPassword || undefined
           : undefined,
       visibility,
+      gameConfig: gameConfig ?? undefined,
     };
 
     createTournament.mutate(
@@ -261,6 +266,11 @@ function CreateTournamentForm() {
                   rows={2}
                 />
               </div>
+
+              <GameConfigPicker
+                value={gameConfig}
+                onChange={setGameConfig}
+              />
 
               <div className="rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-4">

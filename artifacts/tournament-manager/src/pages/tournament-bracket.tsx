@@ -6,6 +6,7 @@ import {
   getGetTournamentBracketQueryKey,
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
+import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
@@ -151,6 +152,9 @@ export default function TournamentBracket() {
             ? ` · Runda ${tournament.currentRound}/${tournament.totalRounds}`
             : ""}
         </p>
+        <div className="relative z-10 mt-2">
+          <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+        </div>
       </div>
 
       {/* Bracket / Swiss canvas */}
@@ -208,7 +212,11 @@ export default function TournamentBracket() {
                   display: "inline-block",
                 }}
               >
-                <BracketView bracket={bracket} format={tournament.format} />
+                <BracketView
+                  bracket={bracket}
+                  format={tournament.format}
+                  forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+                />
               </div>
             </div>
           )

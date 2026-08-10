@@ -2,6 +2,10 @@ import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable } from "@workspace/db";
 import {
+  TournamentGameConfigError,
+  type SupportedTournamentGameConfig,
+} from "@workspace/game-catalog";
+import {
   hashPassword,
   signVersionedOrganizerToken,
 } from "../auth";
@@ -71,6 +75,12 @@ import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
+import {
+  loadTournamentGameConfig,
+  loadTournamentGameConfigMap,
+  replaceTournamentGameConfig,
+  TournamentGameConfigImmutableError,
+} from "../application/games/tournament-game-config";
 import {
   addTournamentPlayer,
   deleteTournamentPlayer,
@@ -198,7 +208,10 @@ function formatDate(d: Date | null | undefined): string | null {
   return d.toISOString();
 }
 
-function mapTournament(t: typeof tournamentsTable.$inferSelect) {
+function mapTournament(
+  t: typeof tournamentsTable.$inferSelect,
+  gameConfig: SupportedTournamentGameConfig | null = null,
+) {
   const {
     hostCode: _hostCode,
     organizerPasswordHash: _oph,
@@ -225,7 +238,24 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     hasSupportPassword: !!t.supportPasswordHash,
     hasViewerPassword: !!t.viewerPasswordHash,
     visibility: t.visibility ?? "public_online",
+    gameConfig,
   };
+}
+
+function ownValue(value: unknown, key: string): unknown {
+  return value != null && typeof value === "object" && !Array.isArray(value) &&
+      Object.prototype.hasOwnProperty.call(value, key)
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
+}
+
+async function mapTournamentWithGameConfig(
+  tournament: typeof tournamentsTable.$inferSelect,
+) {
+  return mapTournament(
+    tournament,
+    await loadTournamentGameConfig(tournament.id),
+  );
 }
 
 async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
@@ -468,7 +498,14 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
     .from(tournamentsTable)
     .where(ne(tournamentsTable.visibility, "private_offline"))
     .orderBy(tournamentsTable.createdAt);
-  res.json(tournaments.map(mapTournament));
+  const gameConfigs = await loadTournamentGameConfigMap(
+    tournaments.map((tournament) => tournament.id),
+  );
+  res.json(
+    tournaments.map((tournament) =>
+      mapTournament(tournament, gameConfigs.get(tournament.id) ?? null),
+    ),
+  );
 });
 
 router.post("/tournaments", async (req, res): Promise<void> => {
@@ -497,6 +534,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
   const requestBody = req.body?.organizerPassword === ""
     ? { ...req.body, organizerPassword: undefined }
     : req.body;
+  const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -513,24 +551,39 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  const { organizerPassword: rawOrganizerPassword, supportPassword, viewerPassword, stagePlan, ...rest } = parsed.data;
+  const {
+    organizerPassword: rawOrganizerPassword,
+    supportPassword,
+    viewerPassword,
+    stagePlan,
+    gameConfig,
+    ...rest
+  } = parsed.data;
   const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {
-    const tournament = await createTournamentWithStagePlan({ tournament: insertValues, stagePlan });
+    const created = await createTournamentWithStagePlan({
+      tournament: insertValues,
+      stagePlan,
+      gameConfig: rawGameConfig === undefined ? gameConfig : rawGameConfig,
+    });
     res.status(201).json({
-      ...mapTournament(tournament),
+      ...mapTournament(created.tournament, created.gameConfig),
       organizerToken: signVersionedOrganizerToken(
-        tournament.id,
-        tournament.organizerPasswordHash,
+        created.tournament.id,
+        created.tournament.organizerPasswordHash,
       ),
     });
   } catch (error) {
     if (error instanceof TournamentStagePlanError) {
       res.status(422).json({ error: error.message, code: "INVALID_STAGE_PLAN", details: error.problems });
+      return;
+    }
+    if (error instanceof TournamentGameConfigError) {
+      res.status(400).json({ error: error.message, code: error.code });
       return;
     }
     throw error;
@@ -545,7 +598,7 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
   }
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
-  res.json(mapTournament(access.tournament));
+  res.json(await mapTournamentWithGameConfig(access.tournament));
 });
 
 router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
@@ -704,6 +757,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(422).json({ error: "Double elimination jest obecnie niedostępne.", code: "DOUBLE_ELIMINATION_UNAVAILABLE" });
     return;
   }
+  const rawGameConfig = ownValue(req.body, "gameConfig");
   const parsed = UpdateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -742,19 +796,40 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     });
     return;
   }
-  const t = await withTournamentMutationLock(
-    params.data.id,
-    getTournamentMutationActor(access),
-    async (tx, prevT) => {
-      const [updated] = await tx
-        .update(tournamentsTable)
-        .set(parsed.data)
-        .where(eq(tournamentsTable.id, params.data.id))
-        .returning();
+  const { gameConfig, ...tournamentUpdate } = parsed.data;
+  const hasGameConfig = Object.prototype.hasOwnProperty.call(
+    parsed.data,
+    "gameConfig",
+  );
+  try {
+    const result = await withTournamentMutationLock(
+      params.data.id,
+      getTournamentMutationActor(access),
+      async (tx, prevT) => {
+        if (hasGameConfig && prevT.status !== "draft") {
+          throw new TournamentGameConfigImmutableError();
+        }
+      const updated = Object.keys(tournamentUpdate).length === 0
+        ? prevT
+        : (
+            await tx
+              .update(tournamentsTable)
+              .set(tournamentUpdate)
+              .where(eq(tournamentsTable.id, params.data.id))
+              .returning()
+          )[0];
       if (!updated) throw new Error("Tournament disappeared during update");
 
-      if ("featuredMatchId" in (parsed.data as object)) {
-        const newFeatured = (parsed.data as any).featuredMatchId ?? null;
+      const updatedGameConfig = hasGameConfig
+        ? await replaceTournamentGameConfig(
+            tx,
+            updated.id,
+            rawGameConfig === undefined ? gameConfig : rawGameConfig,
+          )
+        : undefined;
+
+      if ("featuredMatchId" in tournamentUpdate) {
+        const newFeatured = tournamentUpdate.featuredMatchId ?? null;
         if (newFeatured !== prevT.featuredMatchId) {
           const [featuredMatch] = newFeatured
             ? await tx
@@ -782,10 +857,28 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
           });
         }
       }
-      return updated;
-    },
-  );
-  res.json(mapTournament(t));
+        return { tournament: updated, gameConfig: updatedGameConfig };
+      },
+    );
+    res.json(
+      mapTournament(
+        result.tournament,
+        result.gameConfig === undefined
+          ? await loadTournamentGameConfig(result.tournament.id)
+          : result.gameConfig,
+      ),
+    );
+  } catch (error) {
+    if (error instanceof TournamentGameConfigImmutableError) {
+      res.status(409).json({ error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof TournamentGameConfigError) {
+      res.status(400).json({ error: error.message, code: error.code });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.delete("/tournaments/:id", async (req, res): Promise<void> => {
@@ -834,7 +927,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
         .select()
         .from(tournamentsTable)
         .where(eq(tournamentsTable.id, tournament.id));
-      res.json(mapTournament(updated));
+      res.json(await mapTournamentWithGameConfig(updated));
     } catch (error) {
       if (error instanceof StageLifecycleError) {
         sendStageLifecycleError(error, res);
@@ -1000,7 +1093,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       });
       return savedTournament;
     });
-    res.json(mapTournament(updated));
+    res.json(await mapTournamentWithGameConfig(updated));
   } catch (error) {
     if (error instanceof TournamentMutationAuthorizationError) {
       throw error;
@@ -1158,7 +1251,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .where(eq(tournamentStagesTable.id, stage.id));
       return saved;
     });
-    res.json(mapTournament(updated));
+    res.json(await mapTournamentWithGameConfig(updated));
   } catch (error) {
     const code = error instanceof Error ? error.message : "UNKNOWN";
     const status = code === "TOURNAMENT_NOT_FOUND" ? 404 : 409;
@@ -1215,7 +1308,11 @@ router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
     if (wp) winner = { id: wp.id, name: wp.name };
   }
 
-  res.json({ tournament: mapTournament(tournament), rounds, winner });
+  res.json({
+    tournament: await mapTournamentWithGameConfig(tournament),
+    rounds,
+    winner,
+  });
 });
 
 router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
@@ -2399,7 +2496,7 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Nieprawidłowe żądanie odtworzenia backupu v2/v3.", code: "INVALID_BACKUP" });
     return;
   }
-  const {
+  let {
     backup: parsedBackup,
     organizerPassword,
     viewerPassword,
@@ -2410,6 +2507,19 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     viewerPassword?: string;
     supportPassword?: string;
   };
+  if (parsedBackup.schemaVersion === 3) {
+    const rawTournament = ownValue(rawBackup, "tournament");
+    const rawGameConfig = ownValue(rawTournament, "gameConfig");
+    if (rawGameConfig !== undefined) {
+      parsedBackup = {
+        ...parsedBackup,
+        tournament: {
+          ...parsedBackup.tournament,
+          gameConfig: rawGameConfig,
+        },
+      } as TournamentBackupV3;
+    }
+  }
 
   const parsedSchemaVersion = Number(parsedBackup.schemaVersion);
   if (parsedSchemaVersion !== 2 && parsedSchemaVersion !== 3) {
@@ -2428,10 +2538,13 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
       viewerPasswordVersion: 1,
     };
     const imported = parsedBackup.schemaVersion === 2
-      ? await importBackupV2(parsedBackup as TournamentBackupV2, credentials)
+      ? {
+          ...await importBackupV2(parsedBackup as TournamentBackupV2, credentials),
+          gameConfig: null,
+        }
       : await importBackupV3(parsedBackup as TournamentBackupV3, credentials);
     res.status(201).json({
-      tournament: mapTournament(imported.tournament),
+      tournament: mapTournament(imported.tournament, imported.gameConfig),
       playersImported: imported.playersImported,
       matchesImported: imported.matchesImported,
       organizerToken: signVersionedOrganizerToken(

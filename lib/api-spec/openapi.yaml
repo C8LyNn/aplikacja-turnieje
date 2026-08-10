@@ -116,6 +116,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Tournament"
+        "400":
+          description: Invalid tournament or game configuration
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SimpleError"
+                  - $ref: "#/components/schemas/TournamentGameConfigError"
+        "403":
+          description: Organizer authorization required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Game configuration is immutable after tournament start
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameConfigImmutableError"
     delete:
       operationId: deleteTournament
       tags: [tournaments]
@@ -1285,10 +1305,27 @@ components:
       oneOf:
         - $ref: "#/components/schemas/SimpleError"
         - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
+        - $ref: "#/components/schemas/TournamentGameConfigError"
     CreateTournamentUnprocessableError:
       oneOf:
         - $ref: "#/components/schemas/CreateTournamentRuleError"
         - $ref: "#/components/schemas/StagePlanError"
+    TournamentGameConfigError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum: [UNKNOWN_GAME_ID, UNSUPPORTED_GAME_CONFIG_VERSION, INVALID_GAME_CONFIG]
+    GameConfigImmutableError:
+      type: object
+      additionalProperties: false
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code: { type: string, const: GAME_CONFIG_IMMUTABLE }
     SetInitialOrganizerPasswordBadRequestError:
       oneOf:
         - $ref: "#/components/schemas/InvalidTournamentIdError"
@@ -1511,6 +1548,23 @@ components:
           enum: [ok, unavailable]
       required: [status, database]
 
+    DeadlockTournamentConfigV1:
+      type: object
+      additionalProperties: false
+      properties:
+        forcedHeroId:
+          type: string
+          enum: [abrams, wraith, shiv, silver, drifter, the_doorman, sinclair, grey_talon, mo_and_krill, yamato, holliday, warden, mina, paradox, mcginnis, dynamo, infernus, haze, mirage, rem, paige, ivy, venator, vindicta, viscous, lash, vyper, kelvin, calico, victor, graves, bebop, pocket, seven, billy, lady_geist, apollo, celeste]
+    DeadlockTournamentGameConfig:
+      type: object
+      additionalProperties: false
+      required: [gameId, configVersion, config]
+      properties:
+        gameId: { type: string, const: deadlock }
+        configVersion: { type: integer, const: 1 }
+        config:
+          $ref: "#/components/schemas/DeadlockTournamentConfigV1"
+
     Tournament:
       type: object
       required: [id, name, format, status, resultModelVersion, rankingPolicy, defaultBestOf, createdAt, hasHostCode]
@@ -1568,6 +1622,10 @@ components:
           description: "public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only"
         createdAt:
           type: string
+        gameConfig:
+          oneOf:
+            - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+            - type: "null"
 
     TournamentInput:
       type: object
@@ -1610,6 +1668,8 @@ components:
         stagePlan:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.
+        gameConfig:
+          $ref: "#/components/schemas/DeadlockTournamentGameConfig"
 
     TournamentCreationResponse:
       allOf:
@@ -1895,6 +1955,11 @@ components:
         viewerPassword:
           type: string
           description: New viewer password (clears old viewer sessions)
+        gameConfig:
+          description: Optional game configuration. Null removes it. Editable only while the tournament is a draft.
+          oneOf:
+            - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+            - type: "null"
 
     OrganizerCredentialState:
       type: object
@@ -2497,6 +2562,8 @@ components:
             winnerBackupId: { type: ["integer", "null"] }
             featuredMatchBackupId: { type: ["integer", "null"] }
             visibility: { type: string, enum: [public_online, private_online, private_offline] }
+            gameConfig:
+              $ref: "#/components/schemas/DeadlockTournamentGameConfig"
         players:
           type: array
           items:

@@ -50,6 +50,10 @@ const TOURNAMENT_ROUTING_PERSISTENCE_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0012_tournament_routing_persistence_v2.sql",
   import.meta.url,
 );
+const TOURNAMENT_GAME_CONFIG_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0013_tournament_game_config.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -183,6 +187,11 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
         ),
         schema,
       ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const tournamentGameConfigMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(TOURNAMENT_GAME_CONFIG_MIGRATION_URL, "utf8"),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -211,6 +220,9 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       // Persistence DDL is replayed in every isolated integration schema to
       // prove that a deployment retry does not duplicate or weaken objects.
       await pool.query(tournamentRoutingPersistenceMigrationSql);
+      await pool.query(tournamentGameConfigMigrationSql);
+      // Optional game configuration remains safe to apply more than once.
+      await pool.query(tournamentGameConfigMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

@@ -25,6 +25,8 @@ import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
 import { BracketView } from "@/components/bracket-view";
+import { ForcedHeroBadge } from "@/components/deadlock-game-config";
+import type { DeadlockHeroId } from "@workspace/game-catalog";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
@@ -243,6 +245,7 @@ export default function TournamentAudience() {
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
           <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
+          <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {tournament?.status && (
@@ -562,6 +565,7 @@ export default function TournamentAudience() {
             format={tournament?.format ?? ""}
             currentRound={tournament?.currentRound}
             totalRounds={tournament?.totalRounds}
+            forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
           />
         )}
       </main>
@@ -751,11 +755,13 @@ function PublicBracketSection({
   format,
   currentRound,
   totalRounds,
+  forcedHeroId,
 }: {
   bracket?: Bracket;
   format: string;
   currentRound?: number | null;
   totalRounds?: number | null;
+  forcedHeroId?: DeadlockHeroId;
 }) {
   return (
     <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
@@ -768,7 +774,11 @@ function PublicBracketSection({
           ) : format === "round_robin" ? (
             <RoundRobinView bracket={bracket} hideStandings />
           ) : (
-            <BracketView bracket={bracket} format={format} />
+            <BracketView
+              bracket={bracket}
+              format={format}
+              forcedHeroId={forcedHeroId}
+            />
           )}
         </div>
       )}

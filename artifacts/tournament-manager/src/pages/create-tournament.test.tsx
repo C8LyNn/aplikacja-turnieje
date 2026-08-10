@@ -146,3 +146,22 @@ test("the synchronous submit lock is released after an error", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
   await waitFor(() => assert.equal(requests, 2));
 });
+
+test("Deadlock and its forced hero are included in the create payload", async () => {
+  const bodies: Array<Record<string, unknown>> = [];
+  renderForm(async (_input, init) => {
+    bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return successfulResponse();
+  });
+  await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Deadlock Cup");
+  await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
+  await userEvent.click(screen.getByRole("option", { name: "Deadlock" }));
+  await userEvent.click(screen.getByRole("button", { name: "Rem" }));
+  await userEvent.click(screen.getByRole("button", { name: /Utwórz turniej/i }));
+  await waitFor(() => assert.equal(bodies.length, 1));
+  assert.deepEqual(bodies[0].gameConfig, {
+    gameId: "deadlock",
+    configVersion: 1,
+    config: { forcedHeroId: "rem" },
+  });
+});

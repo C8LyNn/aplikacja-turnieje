@@ -30,6 +30,10 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
+import {
+  ForcedHeroBadge,
+  TournamentGameConfigPanel,
+} from "@/components/deadlock-game-config";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
@@ -585,6 +589,9 @@ export default function TournamentDetail() {
               {tournament.currentRound && ` · Runda ${tournament.currentRound}${tournament.totalRounds ? `/${tournament.totalRounds}` : ""}`}
               {` · BO${tournament.defaultBestOf} · series_v1`}
             </p>
+            <div className="mt-2">
+              <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -1496,11 +1503,14 @@ export default function TournamentDetail() {
 
           {capabilities.canManageOrganizerSettings && (
             <TabsContent value="security" className="pt-6">
-              <SecurityPanel
-                tournamentId={id}
-                hasOrganizerPassword={!!tournament.hasOrganizerPassword}
-                onOrganizerPasswordSet={() => refetchTournament()}
-              />
+              <div className="space-y-6">
+                <TournamentGameConfigPanel tournament={tournament} />
+                <SecurityPanel
+                  tournamentId={id}
+                  hasOrganizerPassword={!!tournament.hasOrganizerPassword}
+                  onOrganizerPasswordSet={() => refetchTournament()}
+                />
+              </div>
             </TabsContent>
           )}
 

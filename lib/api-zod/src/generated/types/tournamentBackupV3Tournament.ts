@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { TournamentBackupV3TournamentStatus } from './tournamentBackupV3TournamentStatus';
 import type { TournamentBackupV3TournamentVisibility } from './tournamentBackupV3TournamentVisibility';
 
@@ -22,4 +23,5 @@ export type TournamentBackupV3Tournament = {
   /** @nullable */
   featuredMatchBackupId?: number | null;
   visibility: TournamentBackupV3TournamentVisibility;
+  gameConfig?: DeadlockTournamentGameConfig;
 };

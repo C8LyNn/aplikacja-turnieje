@@ -176,6 +176,51 @@ export const tournamentsTable = pgTable(
   ],
 );
 
+// Optional, versioned game-specific configuration. The tournament core and
+// stage engine only persist the generic envelope; each game validates its own
+// configuration in the game catalog before this row is written.
+export const tournamentGameConfigsTable = pgTable(
+  "tournament_game_configs",
+  {
+    tournamentId: integer("tournament_id").notNull(),
+    gameId: text("game_id").notNull(),
+    configVersion: integer("config_version").notNull(),
+    config: jsonb("config")
+      .$type<object>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tournamentId],
+      name: "tournament_game_configs_pkey",
+    }),
+    foreignKey({
+      columns: [table.tournamentId],
+      foreignColumns: [tournamentsTable.id],
+      name: "tournament_game_configs_tournament_fk",
+    }).onDelete("cascade"),
+    check(
+      "tournament_game_configs_game_id_present",
+      sql`length(btrim(${table.gameId})) > 0`,
+    ),
+    check(
+      "tournament_game_configs_version_positive",
+      sql`${table.configVersion} > 0`,
+    ),
+    check(
+      "tournament_game_configs_config_object",
+      sql`jsonb_typeof(${table.config}) = 'object'`,
+    ),
+  ],
+);
+
 export const playersTable = pgTable(
   "players",
   {
