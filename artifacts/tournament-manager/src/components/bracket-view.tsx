@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
 import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
 import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
-import { BanIcon } from "@/components/deadlock-bans-display";
+import { PickIcon } from "@/components/deadlock-bans-display";
 
 // Layout constants — card heights must match actual rendered sizes
 const CARD_W = 180;
@@ -52,15 +52,27 @@ function roundLabel(round: number, total: number, format?: string): string {
   return `Runda ${round}`;
 }
 
+/** Summary pick for a match: hero played in the last (decisive) game. */
+export type MatchPickSummary = { p1HeroId?: string | null; p2HeroId?: string | null };
+
 interface BracketViewProps {
   bracket: Bracket;
   format?: string;
   forcedHeroId?: DeadlockHeroId;
-  /** playerId → bannedHeroIds — pass only for Deadlock tournaments */
+  /**
+   * matchId → representative pick for each match (last game's hero).
+   * When provided, the bracket shows a small pick icon per player instead of
+   * displaying ban rows (which were removed to reduce visual clutter).
+   */
+  matchPicksMap?: Map<number, MatchPickSummary>;
+  /**
+   * @deprecated Bans are no longer rendered in the bracket tree (too cluttered).
+   * Pass matchPicksMap instead to show the hero played per match.
+   */
   playerBansMap?: Map<number, string[]>;
 }
 
-export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: BracketViewProps) {
+export function BracketView({ bracket, format, forcedHeroId, matchPicksMap }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -83,7 +95,7 @@ export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: Br
 
         return (
           <div key={round.round} className="flex flex-col shrink-0" style={{ width: CARD_W }}>
-            {/* Round header — sits outside the match gap so it doesn't shift alignment */}
+            {/* Round header */}
             <div
               className="text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wider shrink-0"
               style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
@@ -91,7 +103,7 @@ export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: Br
               {roundLabel(round.round, totalRounds, format)}
             </div>
 
-            {/* Matches sub-column with correct paddingTop and gap */}
+            {/* Matches sub-column */}
             <div
               className="flex flex-col"
               style={{ paddingTop: pt, gap }}
@@ -102,7 +114,11 @@ export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: Br
                   className="relative shrink-0"
                   style={{ height: CARD_H }}
                 >
-                  <MatchBox match={match} forcedHeroId={forcedHeroId} playerBansMap={playerBansMap} />
+                  <MatchBox
+                    match={match}
+                    forcedHeroId={forcedHeroId}
+                    matchPicksMap={matchPicksMap}
+                  />
 
                   {/* Connector to next round — only from even-indexed matches */}
                   {ri < totalRounds - 1 && mi % 2 === 0 && (
@@ -116,16 +132,12 @@ export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: Br
                         overflow: "visible",
                       }}
                     >
-                      {/* Horizontal from current match center to midpoint */}
                       <line x1={0} y1={0} x2={COL_GAP / 2} y2={0}
                         stroke="hsl(var(--border))" strokeWidth={1} />
-                      {/* Vertical bracket spanning both matches */}
                       <line x1={COL_GAP / 2} y1={0} x2={COL_GAP / 2} y2={ps}
                         stroke="hsl(var(--border))" strokeWidth={1} />
-                      {/* Horizontal from next match center to midpoint */}
                       <line x1={0} y1={ps} x2={COL_GAP / 2} y2={ps}
                         stroke="hsl(var(--border))" strokeWidth={1} />
-                      {/* Horizontal from bracket midpoint to next column */}
                       <line x1={COL_GAP / 2} y1={ps / 2} x2={COL_GAP} y2={ps / 2}
                         stroke="hsl(var(--border))" strokeWidth={1} />
                     </svg>
@@ -167,16 +179,17 @@ export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: Br
 function MatchBox({
   match,
   forcedHeroId,
-  playerBansMap,
+  matchPicksMap,
 }: {
   match: Match;
   forcedHeroId?: DeadlockHeroId;
-  playerBansMap?: Map<number, string[]>;
+  matchPicksMap?: Map<number, MatchPickSummary>;
 }) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
   const isBye = match.resultType === "bye";
   const forcedHero = getDeadlockHero(forcedHeroId);
+  const picks = matchPicksMap?.get(match.id);
 
   const borderClass = isLive
     ? "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_8px_rgba(234,179,8,0.08)]"
@@ -222,7 +235,7 @@ function MatchBox({
         score={match.score1}
         isWinner={isDone && match.winnerId === match.player1Id}
         isPending={!match.player1Id && !isBye}
-        bans={match.player1Id ? playerBansMap?.get(match.player1Id) : undefined}
+        pickHeroId={match.player1Id ? picks?.p1HeroId : undefined}
       />
       <div className="h-px bg-border/40 shrink-0" />
       <PlayerRow
@@ -230,7 +243,7 @@ function MatchBox({
         score={match.score2}
         isWinner={isDone && match.winnerId === match.player2Id}
         isPending={!match.player2Id && !isBye}
-        bans={match.player2Id ? playerBansMap?.get(match.player2Id) : undefined}
+        pickHeroId={match.player2Id ? picks?.p2HeroId : undefined}
       />
     </div>
   );
@@ -241,22 +254,24 @@ function PlayerRow({
   score,
   isWinner,
   isPending,
-  bans,
+  pickHeroId,
 }: {
   name?: string | null;
   score?: number | null;
   isWinner: boolean;
   isPending: boolean;
-  bans?: string[];
+  /** Hero this player used in the match (shown as small pick icon). */
+  pickHeroId?: string | null;
 }) {
+  const pickHero = pickHeroId ? getDeadlockHero(pickHeroId as never) : null;
   return (
     <div
-      className={`flex justify-between items-center px-1.5 flex-1 min-h-0 ${
+      className={`flex justify-between items-center px-1.5 flex-1 min-h-0 gap-1 ${
         isWinner ? "bg-primary/10" : ""
       }`}
     >
       <span
-        className={`text-[11px] leading-tight truncate flex-1 pr-0.5 ${
+        className={`text-[11px] leading-tight truncate flex-1 min-w-0 ${
           isPending
             ? "text-muted-foreground italic"
             : isWinner
@@ -266,12 +281,12 @@ function PlayerRow({
       >
         {isPending ? "TBD" : name || "?"}
       </span>
-      {bans && bans.length > 0 && (
-        <span className="flex gap-[1px] shrink-0 mr-0.5" title={`Bany: ${bans.length}`}>
-          {bans.slice(0, 4).map((id) => (
-            <BanIcon key={id} heroId={id} size={9} />
-          ))}
-        </span>
+      {pickHero && (
+        <PickIcon
+          heroId={pickHeroId}
+          size={16}
+          title={`Grana postać: ${pickHero.displayName}`}
+        />
       )}
       <span
         className={`text-[11px] font-mono font-bold w-5 text-right shrink-0 ${

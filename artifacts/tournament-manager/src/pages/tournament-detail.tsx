@@ -165,6 +165,20 @@ export default function TournamentDetail() {
   );
   const setPlayerBans = useSetPlayerBans(id);
   const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
+
+  // matchId → last game's pick (used for bracket pick-icon display)
+  const matchPicksMap = useMemo(() => {
+    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
+    for (const r of history ?? []) {
+      if (!r.matchId) continue;
+      const picks = (r as any).gamePicks as Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }> | undefined;
+      if (!picks || picks.length === 0) continue;
+      const last = [...picks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
+      map.set(r.matchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
+    }
+    return map;
+  }, [history]);
+
   const [editingBansPlayerId, setEditingBansPlayerId] = useState<number | null>(null);
   const [pendingBans, setPendingBans] = useState<string[]>([]);
 
@@ -1094,7 +1108,7 @@ export default function TournamentDetail() {
                                   </div>
                                   {isDeadlock && (
                                     <div className="mt-1">
-                                      <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={16} />
+                                      <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={20} />
                                     </div>
                                   )}
                                 </div>
@@ -1380,6 +1394,7 @@ export default function TournamentDetail() {
               activeStageId={tournament.activeStageId}
               matches={matches ?? []}
               playerBansMap={isDeadlock ? playerBansMap : undefined}
+              matchPicksMap={isDeadlock ? matchPicksMap : undefined}
             />
           </TabsContent>
 
@@ -1436,7 +1451,7 @@ export default function TournamentDetail() {
                                       player2HeroId={gp?.player2HeroId ?? null}
                                       player1Name={r.player1Name}
                                       player2Name={r.player2Name}
-                                      size={14}
+                                      size={20}
                                       showEmpty
                                     />
                                   );

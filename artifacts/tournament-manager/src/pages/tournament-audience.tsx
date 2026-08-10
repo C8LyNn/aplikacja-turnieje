@@ -584,7 +584,14 @@ export default function TournamentAudience() {
         )}
         {activeSection === "matches" && <PublicMatchesSection matches={matches ?? []} />}
         {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} />}
-        {activeSection === "players" && <PublicPlayersSection players={players ?? []} standings={standings ?? []} />}
+        {activeSection === "players" && (
+          <PublicPlayersSection
+            players={players ?? []}
+            standings={standings ?? []}
+            playerBansMap={isDeadlock ? audienceBansMap : undefined}
+            isDeadlock={isDeadlock}
+          />
+        )}
         {activeSection === "bracket" && (
           <PublicBracketSection
             bracket={bracket}
@@ -735,7 +742,17 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
   );
 }
 
-function PublicPlayersSection({ players, standings }: { players: Player[]; standings: Standing[] }) {
+function PublicPlayersSection({
+  players,
+  standings,
+  playerBansMap,
+  isDeadlock,
+}: {
+  players: Player[];
+  standings: Standing[];
+  playerBansMap?: Map<number, string[]>;
+  isDeadlock?: boolean;
+}) {
   return (
     <AudienceSectionShell title="Gracze" description="Publiczna lista uczestników i ich aktualne statystyki.">
       {players.length === 0 ? (
@@ -744,6 +761,7 @@ function PublicPlayersSection({ players, standings }: { players: Player[]; stand
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {players.map((player) => {
             const standing = standings.find((entry) => entry.playerId === player.id);
+            const bans = playerBansMap?.get(player.id) ?? [];
             return (
               <article key={player.id} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -759,6 +777,15 @@ function PublicPlayersSection({ players, standings }: { players: Player[]; stand
                   <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
                   <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
                 </dl>
+                {isDeadlock && (
+                  <div className="mt-3 pt-3 border-t border-white/6">
+                    {bans.length > 0 ? (
+                      <PlayerBansRow bannedHeroIds={bans} size={20} />
+                    ) : (
+                      <p className="text-xs text-white/30 italic">Brak banów</p>
+                    )}
+                  </div>
+                )}
               </article>
             );
           })}

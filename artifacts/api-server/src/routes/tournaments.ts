@@ -2705,7 +2705,12 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
   if (p2Raw !== undefined && p2Raw !== null && !isValidHeroId(p2Raw)) { res.status(422).json({ error: "Invalid player2HeroId" }); return; }
 
   const [matchRef] = await db
-    .select({ tournamentId: matchesTable.tournamentId, bestOf: matchesTable.bestOf })
+    .select({
+      tournamentId: matchesTable.tournamentId,
+      bestOf: matchesTable.bestOf,
+      player1Id: matchesTable.player1Id,
+      player2Id: matchesTable.player2Id,
+    })
     .from(matchesTable)
     .where(eq(matchesTable.id, mid));
   if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
@@ -2715,6 +2720,25 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
 
   const p1 = (p1Raw as string | null | undefined) ?? null;
   const p2 = (p2Raw as string | null | undefined) ?? null;
+
+  // Server-side ban validation: a player cannot pick a hero banned by their opponent.
+  const playerIds = [matchRef.player1Id, matchRef.player2Id].filter((id): id is number => id !== null && id !== undefined);
+  if (playerIds.length === 2) {
+    const banRows = await db
+      .select()
+      .from(playerDeadlockBansTable)
+      .where(inArray(playerDeadlockBansTable.playerId, playerIds));
+    const p1Bans = banRows.find((b) => b.playerId === matchRef.player1Id)?.bannedHeroIds ?? [];
+    const p2Bans = banRows.find((b) => b.playerId === matchRef.player2Id)?.bannedHeroIds ?? [];
+    if (p1 !== null && p2Bans.includes(p1)) {
+      res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+      return;
+    }
+    if (p2 !== null && p1Bans.includes(p2)) {
+      res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+      return;
+    }
+  }
 
   const [upserted] = await db
     .insert(matchGamePicksTable)

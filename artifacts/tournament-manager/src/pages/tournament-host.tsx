@@ -741,6 +741,16 @@ export default function TournamentHost() {
   const { data: focusedMatchPicks } = useMatchGamePicks(focusedMatchId, { enabled: isDeadlock && !!focusedMatchId });
   const setMatchGamePick = useSetMatchGamePick(focusedMatchId);
 
+  // Build matchPicksMap for bracket display (shows last game's hero per match)
+  const matchPicksMap = useMemo(() => {
+    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
+    if (isDeadlock && focusedMatchId && focusedMatchPicks && focusedMatchPicks.length > 0) {
+      const last = [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
+      map.set(focusedMatchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
+    }
+    return map;
+  }, [isDeadlock, focusedMatchId, focusedMatchPicks]);
+
   const handleNextMatch = () => {
     const idx = actionableMatches.findIndex((m) => m.id === focusedMatchId);
     const next = actionableMatches[(idx + 1) % actionableMatches.length];
@@ -865,6 +875,9 @@ export default function TournamentHost() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik A</div>
               </div>
+              {isDeadlock && focusedMatch.player1Id && (
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={18} />
+              )}
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -915,6 +928,9 @@ export default function TournamentHost() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik B</div>
               </div>
+              {isDeadlock && focusedMatch.player2Id && (
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={18} />
+              )}
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -963,6 +979,8 @@ export default function TournamentHost() {
                         onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
                         placeholder={focusedMatch.player1Name ?? "Zaw. A"}
                         size={20}
+                        bannedByOpponent={focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : []}
+                        opponentName={focusedMatch.player2Name}
                       />
                       <span className="text-[10px] text-muted-foreground/40 shrink-0">vs</span>
                       <HeroSelectorButton
@@ -970,6 +988,8 @@ export default function TournamentHost() {
                         onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
                         placeholder={focusedMatch.player2Name ?? "Zaw. B"}
                         size={20}
+                        bannedByOpponent={focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : []}
+                        opponentName={focusedMatch.player1Name}
                       />
                     </div>
                   );
@@ -1765,7 +1785,7 @@ export default function TournamentHost() {
               <BracketView
                 bracket={bracket}
                 forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
-                playerBansMap={isDeadlock ? playerBansMap : undefined}
+                matchPicksMap={isDeadlock ? matchPicksMap : undefined}
               />
             ) : (
               <div className="text-center py-12 text-muted-foreground border border-dashed rounded bg-card">

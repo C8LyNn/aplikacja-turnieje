@@ -2,17 +2,18 @@ import { useRoute } from "wouter";
 import {
   useGetTournament,
   useGetTournamentBracket,
+  useGetResultsHistory,
   getGetTournamentQueryKey,
   getGetTournamentBracketQueryKey,
+  getGetResultsHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
-import { usePlayerBans } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { RoleHomeLink } from "@/components/app-navigation";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -49,8 +50,27 @@ export default function TournamentBracket() {
   const isSwiss = tournament?.format === "swiss";
   const isRoundRobin = tournament?.format === "round_robin";
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
-  const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id && !!tournament });
-  const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
+
+  const { data: history } = useGetResultsHistory(id, {
+    query: {
+      enabled: isDeadlock && !!id && tournament?.status !== "draft",
+      queryKey: getGetResultsHistoryQueryKey(id),
+      refetchInterval: 15000,
+    },
+  });
+
+  // Build matchPicksMap: last game's hero per match — shown as small pick icons in bracket
+  const matchPicksMap = useMemo(() => {
+    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
+    for (const r of history ?? []) {
+      if (!r.matchId) continue;
+      const picks = (r as any).gamePicks as Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }> | undefined;
+      if (!picks || picks.length === 0) continue;
+      const last = [...picks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
+      map.set(r.matchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
+    }
+    return map;
+  }, [history]);
 
   const fitZoom = useCallback(() => {
     if (!canvasRef.current || !bracket?.rounds?.length || isSwiss || isRoundRobin) return;
@@ -220,7 +240,7 @@ export default function TournamentBracket() {
                   bracket={bracket}
                   format={tournament.format}
                   forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
-                  playerBansMap={isDeadlock ? playerBansMap : undefined}
+                  matchPicksMap={isDeadlock ? matchPicksMap : undefined}
                 />
               </div>
             </div>
