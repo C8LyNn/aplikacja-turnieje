@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Globe, Layers3, Lock, Trophy } from "lucide-react";
 import {
@@ -65,7 +65,55 @@ const FORMAT_INFO: Record<
 
 type Visibility = NonNullable<TournamentInput["visibility"]>;
 
+/**
+ * Maps a role value to its redirect target.
+ * Returns null when the role is "organizer" (no redirect needed).
+ */
+function redirectTargetForRole(role: string | null | undefined): string | null {
+  if (role === "organizer") return null;
+  if (role === "fan") return "/fan";
+  if (role === "support") return "/support";
+  if (role === "developer") return "/developer";
+  return "/"; // null / unknown → landing
+}
+
+/**
+ * Route guard wrapper.
+ *
+ * All hooks here are called unconditionally on every render — there is no
+ * early return before any hook call. The navigate side-effect is deferred to
+ * a useEffect so it never runs during the render phase.
+ *
+ * When the role is not "organizer" the guard renders null and the effect fires
+ * a replace-navigation. When the role IS "organizer" the inner form component
+ * is rendered; if the role later changes (e.g. session expiry), the guard
+ * unmounts the form and fires the redirect — React never observes a change in
+ * the number of hooks called by any single component.
+ */
 export default function CreateTournament() {
+  const { role } = useAuth();
+  const [, navigate] = useLocation();
+
+  const redirectTo = redirectTargetForRole(role);
+
+  useEffect(() => {
+    if (redirectTo !== null) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [redirectTo, navigate]);
+
+  if (redirectTo !== null) return null;
+  return <CreateTournamentForm />;
+}
+
+/**
+ * Inner form component.
+ *
+ * Only mounted after the guard confirms organizer role. All form hooks live
+ * here and are therefore always called in the same order — they are never
+ * skipped or called conditionally.
+ */
+function CreateTournamentForm() {
   const [, navigate] = useLocation();
   const { storeOrgToken } = useAuth();
   const createTournament = useCreateTournament();
@@ -147,11 +195,13 @@ export default function CreateTournament() {
     createTournament.mutate(
       { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
       {
-        onSuccess: (tournament) => {
+        onSuccess: (response) => {
           submitInFlightRef.current = false;
-          storeOrgToken(tournament.id, tournament.organizerToken);
-          setActiveOrganizerToken(tournament.organizerToken);
-          navigate(`/tournaments/${tournament.id}`);
+          // useCreateTournament returns TournamentCreationResponse (Tournament + organizerToken)
+          const { id, organizerToken } = response;
+          storeOrgToken(id, organizerToken);
+          setActiveOrganizerToken(organizerToken);
+          navigate(`/tournaments/${id}`);
         },
         onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
       },
