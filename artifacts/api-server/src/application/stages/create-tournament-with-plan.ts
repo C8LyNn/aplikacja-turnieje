@@ -12,6 +12,8 @@ import {
   type TournamentStagePlanProblem,
   type TournamentStagesPlan,
 } from "../../domain/tournament/tournament-stage-plan";
+import { replaceTournamentGameConfig } from "../games/tournament-game-config";
+import type { SupportedTournamentGameConfig } from "@workspace/game-catalog";
 
 export class TournamentStagePlanError extends Error {
   constructor(public readonly problems: TournamentStagePlanProblem[]) {
@@ -92,13 +94,22 @@ function persistedStage(
 export async function createTournamentWithStagePlan(input: {
   tournament: typeof tournamentsTable.$inferInsert;
   stagePlan?: unknown;
-}): Promise<typeof tournamentsTable.$inferSelect> {
+  gameConfig?: unknown;
+}): Promise<{
+  tournament: typeof tournamentsTable.$inferSelect;
+  gameConfig: SupportedTournamentGameConfig | null;
+}> {
   if (input.stagePlan == null) {
-    const [created] = await db
-      .insert(tournamentsTable)
-      .values(input.tournament)
-      .returning();
-    return created;
+    return db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(tournamentsTable)
+        .values(input.tournament)
+        .returning();
+      const gameConfig = input.gameConfig == null
+        ? null
+        : await replaceTournamentGameConfig(tx, created.id, input.gameConfig);
+      return { tournament: created, gameConfig };
+    });
   }
 
   const validation = validateTournamentStagePlan(input.stagePlan);
@@ -118,6 +129,10 @@ export async function createTournamentWithStagePlan(input: {
         maxPlayers: plan.initialParticipantCount,
       })
       .returning();
+
+    const gameConfig = input.gameConfig == null
+      ? null
+      : await replaceTournamentGameConfig(tx, tournament.id, input.gameConfig);
 
     const [generated] = await tx
       .select()
@@ -160,7 +175,7 @@ export async function createTournamentWithStagePlan(input: {
             .map((stage) => persistedStage(tournament.id, stage, plan)),
         );
     }
-    return tournament;
+    return { tournament, gameConfig };
   });
 }
 

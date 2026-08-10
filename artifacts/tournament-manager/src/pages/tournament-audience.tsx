@@ -25,6 +25,10 @@ import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
 import { BracketView } from "@/components/bracket-view";
+import { ForcedHeroBadge } from "@/components/deadlock-game-config";
+import type { DeadlockHeroId } from "@workspace/game-catalog";
+import { PlayerBansRow, PickIcon } from "@/components/deadlock-bans-display";
+import { usePlayerBans, useMatchGamePicks } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
@@ -197,6 +201,14 @@ export default function TournamentAudience() {
         ? "NO CONTEST"
         : null;
 
+  const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id && !!tournament });
+  const audienceBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
+  const { data: heroMatchPicks } = useMatchGamePicks(heroMatch?.id, { enabled: isDeadlock && !!heroMatch?.id });
+  const latestPick = isDeadlock && heroMatchPicks && heroMatchPicks.length > 0
+    ? [...heroMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
+    : null;
+
   const nextMatches = matches
     ?.filter(
       (m) =>
@@ -243,6 +255,7 @@ export default function TournamentAudience() {
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
           <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
+          <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {tournament?.status && (
@@ -347,6 +360,14 @@ export default function TournamentAudience() {
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p1Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player1Name || "TBD"}
                   </div>
+                  {isDeadlock && heroMatch.player1Id && (
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={20} />
+                  )}
+                  {isDeadlock && latestPick?.player1HeroId && (
+                    <div className="flex items-center gap-1">
+                      <PickIcon heroId={latestPick.player1HeroId} size={28} />
+                    </div>
+                  )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
                     p1Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
@@ -376,6 +397,14 @@ export default function TournamentAudience() {
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p2Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player2Name || "TBD"}
                   </div>
+                  {isDeadlock && heroMatch.player2Id && (
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={20} />
+                  )}
+                  {isDeadlock && latestPick?.player2HeroId && (
+                    <div className="flex items-center gap-1">
+                      <PickIcon heroId={latestPick.player2HeroId} size={28} />
+                    </div>
+                  )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
                     p2Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
@@ -562,6 +591,8 @@ export default function TournamentAudience() {
             format={tournament?.format ?? ""}
             currentRound={tournament?.currentRound}
             totalRounds={tournament?.totalRounds}
+            forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
+            playerBansMap={isDeadlock ? audienceBansMap : undefined}
           />
         )}
       </main>
@@ -751,11 +782,15 @@ function PublicBracketSection({
   format,
   currentRound,
   totalRounds,
+  forcedHeroId,
+  playerBansMap,
 }: {
   bracket?: Bracket;
   format: string;
   currentRound?: number | null;
   totalRounds?: number | null;
+  forcedHeroId?: DeadlockHeroId;
+  playerBansMap?: Map<number, string[]>;
 }) {
   return (
     <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
@@ -768,7 +803,12 @@ function PublicBracketSection({
           ) : format === "round_robin" ? (
             <RoundRobinView bracket={bracket} hideStandings />
           ) : (
-            <BracketView bracket={bracket} format={format} />
+            <BracketView
+              bracket={bracket}
+              format={format}
+              forcedHeroId={forcedHeroId}
+              playerBansMap={playerBansMap}
+            />
           )}
         </div>
       )}

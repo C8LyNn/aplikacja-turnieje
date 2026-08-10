@@ -30,6 +30,7 @@ import type {
   CsvImportInput,
   CsvImportResult,
   DomainError,
+  GameConfigImmutableError,
   HealthStatus,
   ImportResult,
   LegacyOrganizerUpgradeInput,
@@ -57,6 +58,7 @@ import type {
   Tournament,
   TournamentBackupV3,
   TournamentCreationResponse,
+  TournamentGameConfigError,
   TournamentInput,
   TournamentStage,
   TournamentStageDetails,
@@ -398,7 +400,7 @@ export const updateTournament = async (id: number,
 
 
 
-export const getUpdateTournamentMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateTournamentMutationOptions = <TError = ErrorType<SimpleError | TournamentGameConfigError | DomainError | GameConfigImmutableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournament>>, TError,{id: number;data: BodyType<TournamentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateTournament>>, TError,{id: number;data: BodyType<TournamentUpdate>}, TContext> => {
 
@@ -427,9 +429,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateTournamentMutationResult = NonNullable<Awaited<ReturnType<typeof updateTournament>>>
     export type UpdateTournamentMutationBody = BodyType<TournamentUpdate>
-    export type UpdateTournamentMutationError = ErrorType<unknown>
+    export type UpdateTournamentMutationError = ErrorType<SimpleError | TournamentGameConfigError | DomainError | GameConfigImmutableError>
 
-    export const useUpdateTournament = <TError = ErrorType<unknown>,
+    export const useUpdateTournament = <TError = ErrorType<SimpleError | TournamentGameConfigError | DomainError | GameConfigImmutableError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournament>>, TError,{id: number;data: BodyType<TournamentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateTournament>>,

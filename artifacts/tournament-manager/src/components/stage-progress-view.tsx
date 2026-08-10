@@ -28,12 +28,15 @@ interface StageProgressViewProps {
   tournamentId: number;
   activeStageId?: number | null;
   matches: Match[];
+  /** playerId → bannedHeroIds — pass only for Deadlock tournaments */
+  playerBansMap?: Map<number, string[]>;
 }
 
 export function StageProgressView({
   tournamentId,
   activeStageId,
   matches,
+  playerBansMap,
 }: StageProgressViewProps) {
   const [selectedStageId, setSelectedStageId] = useState<number | undefined>();
 
@@ -184,6 +187,7 @@ export function StageProgressView({
                     <BracketView
                       bracket={stageBracket}
                       format="single_elimination"
+                      playerBansMap={playerBansMap}
                     />
                   </div>
                 </div>

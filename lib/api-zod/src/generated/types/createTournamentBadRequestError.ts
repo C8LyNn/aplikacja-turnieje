@@ -7,5 +7,6 @@
  */
 import type { OrganizerPasswordTooShortError } from './organizerPasswordTooShortError';
 import type { SimpleError } from './simpleError';
+import type { TournamentGameConfigError } from './tournamentGameConfigError';
 
-export type CreateTournamentBadRequestError = SimpleError | OrganizerPasswordTooShortError;
+export type CreateTournamentBadRequestError = SimpleError | OrganizerPasswordTooShortError | TournamentGameConfigError;

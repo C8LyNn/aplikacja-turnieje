@@ -176,6 +176,51 @@ export const tournamentsTable = pgTable(
   ],
 );
 
+// Optional, versioned game-specific configuration. The tournament core and
+// stage engine only persist the generic envelope; each game validates its own
+// configuration in the game catalog before this row is written.
+export const tournamentGameConfigsTable = pgTable(
+  "tournament_game_configs",
+  {
+    tournamentId: integer("tournament_id").notNull(),
+    gameId: text("game_id").notNull(),
+    configVersion: integer("config_version").notNull(),
+    config: jsonb("config")
+      .$type<object>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.tournamentId],
+      name: "tournament_game_configs_pkey",
+    }),
+    foreignKey({
+      columns: [table.tournamentId],
+      foreignColumns: [tournamentsTable.id],
+      name: "tournament_game_configs_tournament_fk",
+    }).onDelete("cascade"),
+    check(
+      "tournament_game_configs_game_id_present",
+      sql`length(btrim(${table.gameId})) > 0`,
+    ),
+    check(
+      "tournament_game_configs_version_positive",
+      sql`${table.configVersion} > 0`,
+    ),
+    check(
+      "tournament_game_configs_config_object",
+      sql`jsonb_typeof(${table.config}) = 'object'`,
+    ),
+  ],
+);
+
 export const playersTable = pgTable(
   "players",
   {
@@ -718,3 +763,53 @@ export type AuthCredentialRateLimit =
   typeof authCredentialRateLimitsTable.$inferSelect;
 export type AppSchemaMigration =
   typeof appSchemaMigrationsTable.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Deadlock: player bans & per-game picks
+// ---------------------------------------------------------------------------
+
+/** Up to 5 banned Deadlock heroes per player for the duration of the tournament. */
+export const playerDeadlockBansTable = pgTable(
+  "player_deadlock_bans",
+  {
+    playerId: integer("player_id")
+      .primaryKey()
+      .references(() => playersTable.id, { onDelete: "cascade" }),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    bannedHeroIds: text("banned_hero_ids").array().notNull().default([]),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("player_deadlock_bans_tournament_idx").on(table.tournamentId),
+  ],
+);
+
+/** Hero picks per game inside a BO match series (game 1, 2 … 5). */
+export const matchGamePicksTable = pgTable(
+  "match_game_picks",
+  {
+    matchId: integer("match_id")
+      .notNull()
+      .references(() => matchesTable.id, { onDelete: "cascade" }),
+    gameNumber: integer("game_number").notNull(),
+    player1HeroId: text("player1_hero_id"),
+    player2HeroId: text("player2_hero_id"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.matchId, table.gameNumber] }),
+    check(
+      "match_game_picks_game_number_check",
+      sql`${table.gameNumber} >= 1 AND ${table.gameNumber} <= 5`,
+    ),
+  ],
+);
+
+export type PlayerDeadlockBans = typeof playerDeadlockBansTable.$inferSelect;
+export type MatchGamePicks = typeof matchGamePicksTable.$inferSelect;

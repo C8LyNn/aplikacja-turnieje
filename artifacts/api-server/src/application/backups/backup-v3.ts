@@ -8,10 +8,16 @@ import {
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
+  tournamentGameConfigsTable,
   tournamentsTable,
 } from "@workspace/db";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
+import {
+  parseTournamentGameConfig,
+  TournamentGameConfigError,
+} from "@workspace/game-catalog";
 import type { BackupRestoreCredentials } from "./backup-credentials";
+import { replaceTournamentGameConfig } from "../games/tournament-game-config";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 import {
   calculateBalancedGroupSizes,
@@ -99,7 +105,7 @@ export async function exportBackupV3(
     .from(tournamentsTable)
     .where(eq(tournamentsTable.id, tournamentId));
   if (!tournament) return null;
-  const [players, stages, groups, memberships, matches, history, actions] =
+  const [players, stages, groups, memberships, matches, history, actions, gameConfigs] =
     await Promise.all([
       db
         .select()
@@ -154,7 +160,19 @@ export async function exportBackupV3(
         .from(actionLogTable)
         .where(eq(actionLogTable.tournamentId, tournamentId))
         .orderBy(desc(actionLogTable.createdAt)),
+      db
+        .select()
+        .from(tournamentGameConfigsTable)
+        .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId)),
     ]);
+  const gameConfig = gameConfigs[0];
+  const parsedGameConfig = gameConfig
+    ? parseTournamentGameConfig({
+        gameId: gameConfig.gameId,
+        configVersion: gameConfig.configVersion,
+        config: gameConfig.config,
+      })
+    : null;
   return {
     schemaVersion: 3,
     resultModelVersion: "series_v1",
@@ -170,6 +188,9 @@ export async function exportBackupV3(
       featuredMatchBackupId: tournament.featuredMatchId ?? null,
       visibility:
         tournament.visibility as TournamentBackupV3["tournament"]["visibility"],
+      ...(parsedGameConfig
+        ? { gameConfig: parsedGameConfig }
+        : {}),
     },
     players: players.map((player) => ({
       backupId: player.id,
@@ -301,6 +322,19 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   }
   if (!date(backup.exportedAt) || !backup.tournament.name.trim())
     errors.push("Backup metadata is invalid.");
+  if (backup.tournament.gameConfig != null) {
+    try {
+      // Validation is centralized in the game catalog. Keeping this optional
+      // preserves imports of older v3 documents created before game support.
+      parseTournamentGameConfig(backup.tournament.gameConfig);
+    } catch (error) {
+      errors.push(
+        error instanceof TournamentGameConfigError
+          ? `Tournament game config is invalid: ${error.message}`
+          : "Tournament game config is invalid.",
+      );
+    }
+  }
   const unique = <T extends { backupId: number }>(
     items: T[],
     label: string,
@@ -959,6 +993,13 @@ export async function importBackupV3(
         ...credentials,
       })
       .returning();
+    const gameConfig = backup.tournament.gameConfig == null
+      ? null
+      : await replaceTournamentGameConfig(
+        tx,
+        tournament.id,
+        backup.tournament.gameConfig,
+      );
     const [generated] = await tx
       .select()
       .from(tournamentStagesTable)
@@ -1286,6 +1327,7 @@ export async function importBackupV3(
       .where(eq(tournamentsTable.id, tournament.id));
     return {
       tournament: restored,
+      gameConfig,
       playersImported: playerIds.size,
       matchesImported: matchIds.size,
     };

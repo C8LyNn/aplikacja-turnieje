@@ -48,7 +48,7 @@ function viewerPasswordRequired(): Response {
 }
 
 /** Minimal successful tournament payload */
-function tournamentPayload() {
+function tournamentPayload(gameConfig?: unknown) {
   return {
     id: 1,
     name: "Test Tournament",
@@ -66,6 +66,7 @@ function tournamentPayload() {
     totalRounds: null,
     featuredMatchId: null,
     createdAt: "2026-01-01T00:00:00.000Z",
+    ...(gameConfig === undefined ? {} : { gameConfig }),
   };
 }
 
@@ -216,6 +217,27 @@ describe("TournamentAudience — password gate regression", () => {
         "tournament name not visible after authentication",
       );
     });
+  });
+
+  test("viewer header shows the forced Deadlock hero", async () => {
+    renderAudience(async (input) => {
+      const url = typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url;
+      if (url.endsWith("/api/tournaments/1")) {
+        return jsonResponse(tournamentPayload({
+          gameId: "deadlock",
+          configVersion: 1,
+          config: { forcedHeroId: "rem" },
+        }));
+      }
+      if (url.includes("/stages")) return jsonResponse([]);
+      if (url.includes("/bracket")) return jsonResponse({ rounds: [], winner: null });
+      return jsonResponse([]);
+    });
+    await waitFor(() => assert.ok(screen.getByText(/Rem/)));
   });
 
 });

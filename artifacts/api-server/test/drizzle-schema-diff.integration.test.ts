@@ -34,6 +34,7 @@ const MIGRATIONS = [
   "0010_auth_credential_rate_limits.sql",
   "0011_reconcile_replit_schema_catalog.sql",
   "0012_tournament_routing_persistence_v2.sql",
+  "0013_tournament_game_config.sql",
 ] as const;
 const REQUIRED_OBJECT_NAMES = [
   "tournament_stages_winner_same_stage_fk",

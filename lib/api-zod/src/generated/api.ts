@@ -44,7 +44,14 @@ export const ListTournamentsResponseItem = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 })
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
 
@@ -117,7 +124,14 @@ export const CreateTournamentBody = zod.object({
   "randomRevealOrder": zod.enum(['instant', 'sequential']).default(createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault),
   "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
-}).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.')
+}).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.'),
+  "gameConfig": zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}).optional()
 })
 
 
@@ -149,7 +163,14 @@ export const GetTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 })
 
 
@@ -170,7 +191,14 @@ export const UpdateTournamentBody = zod.object({
   "defaultBestOf": zod.number().min(1).optional(),
   "featuredMatchId": zod.number().optional(),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional(),
-  "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)')
+  "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)'),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.')
 })
 
 
@@ -197,7 +225,14 @@ export const UpdateTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 })
 
 
@@ -881,7 +916,14 @@ export const StartTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 })
 
 
@@ -975,7 +1017,14 @@ export const GenerateNextRoundResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 })
 
 
@@ -1009,7 +1058,14 @@ export const GetTournamentBracketResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "gameConfig": zod.union([zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}),zod.null()]).optional()
 }),
   "rounds": zod.array(zod.object({
   "round": zod.number(),
@@ -1189,7 +1245,14 @@ export const ExportTournamentResponse = zod.object({
   "activeStageBackupId": zod.number().nullish(),
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
-  "visibility": zod.enum(['public_online', 'private_online', 'private_offline'])
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "gameConfig": zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}).optional()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -1408,7 +1471,14 @@ export const ImportTournamentBody = zod.object({
   "activeStageBackupId": zod.number().nullish(),
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
-  "visibility": zod.enum(['public_online', 'private_online', 'private_offline'])
+  "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "gameConfig": zod.object({
+  "gameId": zod.literal("deadlock"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional()
+})
+}).optional()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),

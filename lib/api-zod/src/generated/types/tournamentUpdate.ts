@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { TournamentUpdateFormat } from './tournamentUpdateFormat';
 import type { TournamentUpdateStatus } from './tournamentUpdateStatus';
 import type { TournamentUpdateVisibility } from './tournamentUpdateVisibility';
@@ -22,4 +23,6 @@ export interface TournamentUpdate {
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
+  /** Optional game configuration. Null removes it. Editable only while the tournament is a draft. */
+  gameConfig?: DeadlockTournamentGameConfig | null;
 }

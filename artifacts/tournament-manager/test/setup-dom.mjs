@@ -24,7 +24,10 @@ Object.defineProperties(globalThis, {
   HTMLInputElement: { value: dom.window.HTMLInputElement, configurable: true },
   HTMLButtonElement: { value: dom.window.HTMLButtonElement, configurable: true },
   Event: { value: dom.window.Event, configurable: true },
+  CustomEvent: { value: dom.window.CustomEvent, configurable: true },
   MouseEvent: { value: dom.window.MouseEvent, configurable: true },
+  PointerEvent: { value: dom.window.PointerEvent ?? dom.window.MouseEvent, configurable: true },
+  FocusEvent: { value: dom.window.FocusEvent, configurable: true },
   KeyboardEvent: { value: dom.window.KeyboardEvent, configurable: true },
   MutationObserver: { value: dom.window.MutationObserver, configurable: true },
   getComputedStyle: { value: dom.window.getComputedStyle.bind(dom.window), configurable: true },
@@ -39,6 +42,11 @@ globalThis.ResizeObserver ??= class ResizeObserver {
   disconnect() {}
 };
 globalThis.HTMLElement.prototype.scrollIntoView ??= function scrollIntoView() {};
+globalThis.HTMLElement.prototype.hasPointerCapture ??= function hasPointerCapture() {
+  return false;
+};
+globalThis.HTMLElement.prototype.setPointerCapture ??= function setPointerCapture() {};
+globalThis.HTMLElement.prototype.releasePointerCapture ??= function releasePointerCapture() {};
 
 after(() => {
   dom.window.close();

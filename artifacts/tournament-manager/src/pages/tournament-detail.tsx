@@ -30,6 +30,12 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
+import {
+  ForcedHeroBadge,
+  TournamentGameConfigPanel,
+} from "@/components/deadlock-game-config";
+import { PlayerBansRow, GamePicksRow, HeroPickerGrid } from "@/components/deadlock-bans-display";
+import { usePlayerBans, useSetPlayerBans } from "@/lib/deadlock-bans-picks";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
@@ -150,6 +156,17 @@ export default function TournamentDetail() {
       },
     },
   );
+
+  const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  const { data: playerBansData } = usePlayerBans(
+    id,
+    // Bans must load even in draft status — organizers set bans before starting.
+    { enabled: isDeadlock && !!id && readOk },
+  );
+  const setPlayerBans = useSetPlayerBans(id);
+  const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
+  const [editingBansPlayerId, setEditingBansPlayerId] = useState<number | null>(null);
+  const [pendingBans, setPendingBans] = useState<string[]>([]);
 
   const startTournament = useStartTournament();
   const addPlayer = useAddPlayer();
@@ -585,6 +602,9 @@ export default function TournamentDetail() {
               {tournament.currentRound && ` · Runda ${tournament.currentRound}${tournament.totalRounds ? `/${tournament.totalRounds}` : ""}`}
               {` · BO${tournament.defaultBestOf} · series_v1`}
             </p>
+            <div className="mt-2">
+              <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -1059,52 +1079,112 @@ export default function TournamentDetail() {
                             </div>
                           ) : (
                             // Normal player row
-                            <div key={p.id} className="flex justify-between items-center p-3 border rounded bg-background">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold">{p.name}</span>
-                                  {p.seed != null && <Badge variant="outline" className="text-xs">#{p.seed}</Badge>}
-                                </div>
-                                <div className="flex gap-3 mt-0.5">
-                                  {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
-                                  {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
-                                  {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {tournament.status !== "draft" && (
-                                  <span className="text-xs text-muted-foreground font-mono">
-                                    {(() => {
-                                      const standing = standings?.find((entry) => entry.playerId === p.id);
-                                      return `${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L · gry ${standing?.gameWins ?? 0}:${standing?.gameLosses ?? 0}`;
-                                    })()}
-                                  </span>
-                                )}
-                                <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
-                                  {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
-                                </Badge>
-                                {capabilities.canManageParticipants && (
-                                  <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
-                                {capabilities.canManageParticipants && tournament.status === "draft" && (
-                                  confirmDeletePlayerId === p.id ? (
-                                    <div className="flex items-center gap-1">
-                                      <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={handleConfirmDeletePlayer} disabled={deletePlayer.isPending}>
-                                        Usuń
-                                      </Button>
-                                      <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setConfirmDeletePlayerId(null)}>
-                                        Anuluj
-                                      </Button>
+                            <div key={p.id} className="flex flex-col border rounded bg-background">
+                              {/* Main info + actions row */}
+                              <div className="flex justify-between items-center p-3">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{p.name}</span>
+                                    {p.seed != null && <Badge variant="outline" className="text-xs">#{p.seed}</Badge>}
+                                  </div>
+                                  <div className="flex gap-3 mt-0.5">
+                                    {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
+                                    {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
+                                    {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
+                                  </div>
+                                  {isDeadlock && (
+                                    <div className="mt-1">
+                                      <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={16} />
                                     </div>
-                                  ) : (
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {tournament.status !== "draft" && (
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                      {(() => {
+                                        const standing = standings?.find((entry) => entry.playerId === p.id);
+                                        return `${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L · gry ${standing?.gameWins ?? 0}:${standing?.gameLosses ?? 0}`;
+                                      })()}
+                                    </span>
+                                  )}
+                                  <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
+                                    {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
+                                  </Badge>
+                                  {isDeadlock && capabilities.canWriteTournamentResults && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 text-xs text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => {
+                                        setEditingBansPlayerId(p.id === editingBansPlayerId ? null : p.id);
+                                        setPendingBans(playerBansMap.get(p.id) ?? []);
+                                      }}
+                                    >
+                                      {p.id === editingBansPlayerId ? "Zamknij" : "Bany"}
                                     </Button>
-                                  )
-                                )}
+                                  )}
+                                  {capabilities.canManageParticipants && (
+                                    <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )}
+                                  {capabilities.canManageParticipants && tournament.status === "draft" && (
+                                    confirmDeletePlayerId === p.id ? (
+                                      <div className="flex items-center gap-1">
+                                        <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={handleConfirmDeletePlayer} disabled={deletePlayer.isPending}>
+                                          Usuń
+                                        </Button>
+                                        <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setConfirmDeletePlayerId(null)}>
+                                          Anuluj
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    )
+                                  )}
+                                </div>
                               </div>
+                              {/* Deadlock ban editor */}
+                              {isDeadlock && editingBansPlayerId === p.id && (
+                                <div className="border-t bg-muted/10 p-3">
+                                  <p className="text-xs font-semibold text-destructive/80 mb-2">
+                                    Bany gracza (max 5) — {pendingBans.length}/5
+                                  </p>
+                                  <HeroPickerGrid
+                                    selectedIds={pendingBans}
+                                    maxSelect={5}
+                                    onToggle={(heroId) => {
+                                      setPendingBans((prev) =>
+                                        prev.includes(heroId)
+                                          ? prev.filter((id) => id !== heroId)
+                                          : [...prev, heroId],
+                                      );
+                                    }}
+                                  />
+                                  <div className="flex gap-2 mt-2 justify-end">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingBansPlayerId(null)}
+                                    >
+                                      Anuluj
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      disabled={setPlayerBans.isPending}
+                                      onClick={async () => {
+                                        await setPlayerBans.mutateAsync({ playerId: p.id, bannedHeroIds: pendingBans });
+                                        setEditingBansPlayerId(null);
+                                      }}
+                                    >
+                                      Zapisz bany
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )
                         ))}
@@ -1299,6 +1379,7 @@ export default function TournamentDetail() {
               tournamentId={id}
               activeStageId={tournament.activeStageId}
               matches={matches ?? []}
+              playerBansMap={isDeadlock ? playerBansMap : undefined}
             />
           </TabsContent>
 
@@ -1310,28 +1391,62 @@ export default function TournamentDetail() {
                   <div className="text-center py-8 text-muted-foreground">Brak ukończonych meczów.</div>
                 ) : (
                   <div className="space-y-2">
-                    {history.map((r) => (
-                      <div key={r.id} className="flex items-center justify-between p-3 border rounded bg-background">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="text-xs">R{r.round} M{r.matchNumber}</Badge>
-                          <div className="text-sm">
-                            <span className={r.winnerName === r.player1Name ? "font-bold text-primary" : ""}>{r.player1Name}</span>
-                            <span className="text-muted-foreground mx-2">{r.resultType === "played" ? `${r.score1}:${r.score2}` : r.resultType === "walkover" ? "W.O." : r.resultType === "bye" ? "BYE" : "N/C"}</span>
-                            <span className={r.winnerName === r.player2Name ? "font-bold text-primary" : ""}>{r.player2Name}</span>
+                    {history.map((r) => {
+                      const picks = (r as any).gamePicks as Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }> | undefined;
+                      return (
+                        <div key={r.id} className="flex flex-col p-3 border rounded bg-background gap-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge variant="outline" className="text-xs">R{r.round} M{r.matchNumber}</Badge>
+                              <div className="text-sm">
+                                <span className={r.winnerName === r.player1Name ? "font-bold text-primary" : ""}>{r.player1Name}</span>
+                                <span className="text-muted-foreground mx-2">{r.resultType === "played" ? `${r.score1}:${r.score2}` : r.resultType === "walkover" ? "W.O." : r.resultType === "bye" ? "BYE" : "N/C"}</span>
+                                <span className={r.winnerName === r.player2Name ? "font-bold text-primary" : ""}>{r.player2Name}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {r.winnerName ? (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <ChevronRight className="w-3 h-3 text-primary" /> {r.winnerName}
+                                </span>
+                              ) : <Badge variant="secondary">no contest</Badge>}
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(r.completedAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
                           </div>
+                          {isDeadlock && (() => {
+                            // For "played" results, show a slot for every game that was
+                            // actually played (score1 + score2 = total games). This ensures
+                            // G3 appears even when its pick wasn't recorded.
+                            const totalGames =
+                              r.resultType === "played"
+                                ? (r.score1 ?? 0) + (r.score2 ?? 0)
+                                : (picks?.length ?? 0);
+                            if (totalGames === 0) return null;
+                            return (
+                              <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                                {Array.from({ length: totalGames }, (_, i) => i + 1).map((gn) => {
+                                  const gp = picks?.find((p) => p.gameNumber === gn);
+                                  return (
+                                    <GamePicksRow
+                                      key={gn}
+                                      gameNumber={gn}
+                                      player1HeroId={gp?.player1HeroId ?? null}
+                                      player2HeroId={gp?.player2HeroId ?? null}
+                                      player1Name={r.player1Name}
+                                      player2Name={r.player2Name}
+                                      size={14}
+                                      showEmpty
+                                    />
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {r.winnerName ? (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <ChevronRight className="w-3 h-3 text-primary" /> {r.winnerName}
-                            </span>
-                          ) : <Badge variant="secondary">no contest</Badge>}
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(r.completedAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -1496,11 +1611,14 @@ export default function TournamentDetail() {
 
           {capabilities.canManageOrganizerSettings && (
             <TabsContent value="security" className="pt-6">
-              <SecurityPanel
-                tournamentId={id}
-                hasOrganizerPassword={!!tournament.hasOrganizerPassword}
-                onOrganizerPasswordSet={() => refetchTournament()}
-              />
+              <div className="space-y-6">
+                <TournamentGameConfigPanel tournament={tournament} />
+                <SecurityPanel
+                  tournamentId={id}
+                  hasOrganizerPassword={!!tournament.hasOrganizerPassword}
+                  onOrganizerPasswordSet={() => refetchTournament()}
+                />
+              </div>
             </TabsContent>
           )}
 

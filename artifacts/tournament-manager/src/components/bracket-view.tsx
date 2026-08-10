@@ -1,6 +1,9 @@
 import { Bracket, Match } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
+import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
+import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
+import { BanIcon } from "@/components/deadlock-bans-display";
 
 // Layout constants — card heights must match actual rendered sizes
 const CARD_W = 180;
@@ -52,9 +55,12 @@ function roundLabel(round: number, total: number, format?: string): string {
 interface BracketViewProps {
   bracket: Bracket;
   format?: string;
+  forcedHeroId?: DeadlockHeroId;
+  /** playerId → bannedHeroIds — pass only for Deadlock tournaments */
+  playerBansMap?: Map<number, string[]>;
 }
 
-export function BracketView({ bracket, format }: BracketViewProps) {
+export function BracketView({ bracket, format, forcedHeroId, playerBansMap }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -96,7 +102,7 @@ export function BracketView({ bracket, format }: BracketViewProps) {
                   className="relative shrink-0"
                   style={{ height: CARD_H }}
                 >
-                  <MatchBox match={match} />
+                  <MatchBox match={match} forcedHeroId={forcedHeroId} playerBansMap={playerBansMap} />
 
                   {/* Connector to next round — only from even-indexed matches */}
                   {ri < totalRounds - 1 && mi % 2 === 0 && (
@@ -158,10 +164,19 @@ export function BracketView({ bracket, format }: BracketViewProps) {
   );
 }
 
-function MatchBox({ match }: { match: Match }) {
+function MatchBox({
+  match,
+  forcedHeroId,
+  playerBansMap,
+}: {
+  match: Match;
+  forcedHeroId?: DeadlockHeroId;
+  playerBansMap?: Map<number, string[]>;
+}) {
   const isDone = match.status === "completed";
   const isLive = match.status === "in_progress";
   const isBye = match.resultType === "bye";
+  const forcedHero = getDeadlockHero(forcedHeroId);
 
   const borderClass = isLive
     ? "border-yellow-500/60 bg-yellow-500/5 shadow-[0_0_8px_rgba(234,179,8,0.08)]"
@@ -180,7 +195,8 @@ function MatchBox({ match }: { match: Match }) {
         className="flex justify-between items-center bg-muted/30 px-1.5 border-b border-border/40 shrink-0"
         style={{ height: 16 }}
       >
-        <span className="text-[9px] text-muted-foreground font-mono leading-none">
+        <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-mono leading-none">
+          {forcedHero && <DeadlockHeroIcon hero={forcedHero} className="h-3 w-3" />}
           M{match.matchNumber}
         </span>
         {isLive && (
@@ -206,6 +222,7 @@ function MatchBox({ match }: { match: Match }) {
         score={match.score1}
         isWinner={isDone && match.winnerId === match.player1Id}
         isPending={!match.player1Id && !isBye}
+        bans={match.player1Id ? playerBansMap?.get(match.player1Id) : undefined}
       />
       <div className="h-px bg-border/40 shrink-0" />
       <PlayerRow
@@ -213,6 +230,7 @@ function MatchBox({ match }: { match: Match }) {
         score={match.score2}
         isWinner={isDone && match.winnerId === match.player2Id}
         isPending={!match.player2Id && !isBye}
+        bans={match.player2Id ? playerBansMap?.get(match.player2Id) : undefined}
       />
     </div>
   );
@@ -223,11 +241,13 @@ function PlayerRow({
   score,
   isWinner,
   isPending,
+  bans,
 }: {
   name?: string | null;
   score?: number | null;
   isWinner: boolean;
   isPending: boolean;
+  bans?: string[];
 }) {
   return (
     <div
@@ -236,7 +256,7 @@ function PlayerRow({
       }`}
     >
       <span
-        className={`text-[11px] leading-tight truncate flex-1 pr-1 ${
+        className={`text-[11px] leading-tight truncate flex-1 pr-0.5 ${
           isPending
             ? "text-muted-foreground italic"
             : isWinner
@@ -246,6 +266,13 @@ function PlayerRow({
       >
         {isPending ? "TBD" : name || "?"}
       </span>
+      {bans && bans.length > 0 && (
+        <span className="flex gap-[1px] shrink-0 mr-0.5" title={`Bany: ${bans.length}`}>
+          {bans.slice(0, 4).map((id) => (
+            <BanIcon key={id} heroId={id} size={9} />
+          ))}
+        </span>
+      )}
       <span
         className={`text-[11px] font-mono font-bold w-5 text-right shrink-0 ${
           isWinner ? "text-primary" : "text-muted-foreground"

@@ -1,6 +1,10 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
-import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable } from "@workspace/db";
+import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable } from "@workspace/db";
+import {
+  TournamentGameConfigError,
+  type SupportedTournamentGameConfig,
+} from "@workspace/game-catalog";
 import {
   hashPassword,
   signVersionedOrganizerToken,
@@ -71,6 +75,12 @@ import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
+import {
+  loadTournamentGameConfig,
+  loadTournamentGameConfigMap,
+  replaceTournamentGameConfig,
+  TournamentGameConfigImmutableError,
+} from "../application/games/tournament-game-config";
 import {
   addTournamentPlayer,
   deleteTournamentPlayer,
@@ -198,7 +208,10 @@ function formatDate(d: Date | null | undefined): string | null {
   return d.toISOString();
 }
 
-function mapTournament(t: typeof tournamentsTable.$inferSelect) {
+function mapTournament(
+  t: typeof tournamentsTable.$inferSelect,
+  gameConfig: SupportedTournamentGameConfig | null = null,
+) {
   const {
     hostCode: _hostCode,
     organizerPasswordHash: _oph,
@@ -225,7 +238,24 @@ function mapTournament(t: typeof tournamentsTable.$inferSelect) {
     hasSupportPassword: !!t.supportPasswordHash,
     hasViewerPassword: !!t.viewerPasswordHash,
     visibility: t.visibility ?? "public_online",
+    gameConfig,
   };
+}
+
+function ownValue(value: unknown, key: string): unknown {
+  return value != null && typeof value === "object" && !Array.isArray(value) &&
+      Object.prototype.hasOwnProperty.call(value, key)
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
+}
+
+async function mapTournamentWithGameConfig(
+  tournament: typeof tournamentsTable.$inferSelect,
+) {
+  return mapTournament(
+    tournament,
+    await loadTournamentGameConfig(tournament.id),
+  );
 }
 
 async function checkViewerReadAuth(req: import("express").Request, res: import("express").Response, tournamentId: number): Promise<boolean> {
@@ -468,7 +498,14 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
     .from(tournamentsTable)
     .where(ne(tournamentsTable.visibility, "private_offline"))
     .orderBy(tournamentsTable.createdAt);
-  res.json(tournaments.map(mapTournament));
+  const gameConfigs = await loadTournamentGameConfigMap(
+    tournaments.map((tournament) => tournament.id),
+  );
+  res.json(
+    tournaments.map((tournament) =>
+      mapTournament(tournament, gameConfigs.get(tournament.id) ?? null),
+    ),
+  );
 });
 
 router.post("/tournaments", async (req, res): Promise<void> => {
@@ -497,6 +534,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
   const requestBody = req.body?.organizerPassword === ""
     ? { ...req.body, organizerPassword: undefined }
     : req.body;
+  const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -513,24 +551,39 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  const { organizerPassword: rawOrganizerPassword, supportPassword, viewerPassword, stagePlan, ...rest } = parsed.data;
+  const {
+    organizerPassword: rawOrganizerPassword,
+    supportPassword,
+    viewerPassword,
+    stagePlan,
+    gameConfig,
+    ...rest
+  } = parsed.data;
   const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {
-    const tournament = await createTournamentWithStagePlan({ tournament: insertValues, stagePlan });
+    const created = await createTournamentWithStagePlan({
+      tournament: insertValues,
+      stagePlan,
+      gameConfig: rawGameConfig === undefined ? gameConfig : rawGameConfig,
+    });
     res.status(201).json({
-      ...mapTournament(tournament),
+      ...mapTournament(created.tournament, created.gameConfig),
       organizerToken: signVersionedOrganizerToken(
-        tournament.id,
-        tournament.organizerPasswordHash,
+        created.tournament.id,
+        created.tournament.organizerPasswordHash,
       ),
     });
   } catch (error) {
     if (error instanceof TournamentStagePlanError) {
       res.status(422).json({ error: error.message, code: "INVALID_STAGE_PLAN", details: error.problems });
+      return;
+    }
+    if (error instanceof TournamentGameConfigError) {
+      res.status(400).json({ error: error.message, code: error.code });
       return;
     }
     throw error;
@@ -545,7 +598,7 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
   }
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
-  res.json(mapTournament(access.tournament));
+  res.json(await mapTournamentWithGameConfig(access.tournament));
 });
 
 router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
@@ -704,6 +757,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(422).json({ error: "Double elimination jest obecnie niedostępne.", code: "DOUBLE_ELIMINATION_UNAVAILABLE" });
     return;
   }
+  const rawGameConfig = ownValue(req.body, "gameConfig");
   const parsed = UpdateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -742,19 +796,40 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     });
     return;
   }
-  const t = await withTournamentMutationLock(
-    params.data.id,
-    getTournamentMutationActor(access),
-    async (tx, prevT) => {
-      const [updated] = await tx
-        .update(tournamentsTable)
-        .set(parsed.data)
-        .where(eq(tournamentsTable.id, params.data.id))
-        .returning();
+  const { gameConfig, ...tournamentUpdate } = parsed.data;
+  const hasGameConfig = Object.prototype.hasOwnProperty.call(
+    parsed.data,
+    "gameConfig",
+  );
+  try {
+    const result = await withTournamentMutationLock(
+      params.data.id,
+      getTournamentMutationActor(access),
+      async (tx, prevT) => {
+        if (hasGameConfig && prevT.status !== "draft") {
+          throw new TournamentGameConfigImmutableError();
+        }
+      const updated = Object.keys(tournamentUpdate).length === 0
+        ? prevT
+        : (
+            await tx
+              .update(tournamentsTable)
+              .set(tournamentUpdate)
+              .where(eq(tournamentsTable.id, params.data.id))
+              .returning()
+          )[0];
       if (!updated) throw new Error("Tournament disappeared during update");
 
-      if ("featuredMatchId" in (parsed.data as object)) {
-        const newFeatured = (parsed.data as any).featuredMatchId ?? null;
+      const updatedGameConfig = hasGameConfig
+        ? await replaceTournamentGameConfig(
+            tx,
+            updated.id,
+            rawGameConfig === undefined ? gameConfig : rawGameConfig,
+          )
+        : undefined;
+
+      if ("featuredMatchId" in tournamentUpdate) {
+        const newFeatured = tournamentUpdate.featuredMatchId ?? null;
         if (newFeatured !== prevT.featuredMatchId) {
           const [featuredMatch] = newFeatured
             ? await tx
@@ -782,10 +857,28 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
           });
         }
       }
-      return updated;
-    },
-  );
-  res.json(mapTournament(t));
+        return { tournament: updated, gameConfig: updatedGameConfig };
+      },
+    );
+    res.json(
+      mapTournament(
+        result.tournament,
+        result.gameConfig === undefined
+          ? await loadTournamentGameConfig(result.tournament.id)
+          : result.gameConfig,
+      ),
+    );
+  } catch (error) {
+    if (error instanceof TournamentGameConfigImmutableError) {
+      res.status(409).json({ error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof TournamentGameConfigError) {
+      res.status(400).json({ error: error.message, code: error.code });
+      return;
+    }
+    throw error;
+  }
 });
 
 router.delete("/tournaments/:id", async (req, res): Promise<void> => {
@@ -834,7 +927,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
         .select()
         .from(tournamentsTable)
         .where(eq(tournamentsTable.id, tournament.id));
-      res.json(mapTournament(updated));
+      res.json(await mapTournamentWithGameConfig(updated));
     } catch (error) {
       if (error instanceof StageLifecycleError) {
         sendStageLifecycleError(error, res);
@@ -1000,7 +1093,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       });
       return savedTournament;
     });
-    res.json(mapTournament(updated));
+    res.json(await mapTournamentWithGameConfig(updated));
   } catch (error) {
     if (error instanceof TournamentMutationAuthorizationError) {
       throw error;
@@ -1158,7 +1251,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
         .where(eq(tournamentStagesTable.id, stage.id));
       return saved;
     });
-    res.json(mapTournament(updated));
+    res.json(await mapTournamentWithGameConfig(updated));
   } catch (error) {
     const code = error instanceof Error ? error.message : "UNKNOWN";
     const status = code === "TOURNAMENT_NOT_FOUND" ? 404 : 409;
@@ -1215,7 +1308,11 @@ router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
     if (wp) winner = { id: wp.id, name: wp.name };
   }
 
-  res.json({ tournament: mapTournament(tournament), rounds, winner });
+  res.json({
+    tournament: await mapTournamentWithGameConfig(tournament),
+    rounds,
+    winner,
+  });
 });
 
 router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
@@ -1322,6 +1419,23 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       : [];
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
+  // Enrich with per-game picks (Deadlock tournaments)
+  const historyMatchIds = [...new Set(history.map((h) => h.matchId).filter(Boolean))] as number[];
+  const gamePicks =
+    historyMatchIds.length > 0
+      ? await db
+          .select()
+          .from(matchGamePicksTable)
+          .where(inArray(matchGamePicksTable.matchId, historyMatchIds))
+      : [];
+  // Group picks by matchId
+  const picksByMatchId = new Map<number, Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }>>();
+  for (const p of gamePicks) {
+    const arr = picksByMatchId.get(p.matchId) ?? [];
+    arr.push({ gameNumber: p.gameNumber, player1HeroId: p.player1HeroId ?? null, player2HeroId: p.player2HeroId ?? null });
+    picksByMatchId.set(p.matchId, arr);
+  }
+
   res.json(
     history.map((h) => ({
       id: h.id,
@@ -1340,6 +1454,7 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       revision: h.revision,
       completedAt: formatDate(h.completedAt) ?? new Date().toISOString(),
       recordedAt: formatDate(h.recordedAt) ?? new Date().toISOString(),
+      gamePicks: (h.matchId ? (picksByMatchId.get(h.matchId) ?? []) : []).sort((a, b) => a.gameNumber - b.gameNumber),
     })),
   );
 });
@@ -2399,7 +2514,7 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Nieprawidłowe żądanie odtworzenia backupu v2/v3.", code: "INVALID_BACKUP" });
     return;
   }
-  const {
+  let {
     backup: parsedBackup,
     organizerPassword,
     viewerPassword,
@@ -2410,6 +2525,19 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     viewerPassword?: string;
     supportPassword?: string;
   };
+  if (parsedBackup.schemaVersion === 3) {
+    const rawTournament = ownValue(rawBackup, "tournament");
+    const rawGameConfig = ownValue(rawTournament, "gameConfig");
+    if (rawGameConfig !== undefined) {
+      parsedBackup = {
+        ...parsedBackup,
+        tournament: {
+          ...parsedBackup.tournament,
+          gameConfig: rawGameConfig,
+        },
+      } as TournamentBackupV3;
+    }
+  }
 
   const parsedSchemaVersion = Number(parsedBackup.schemaVersion);
   if (parsedSchemaVersion !== 2 && parsedSchemaVersion !== 3) {
@@ -2428,10 +2556,13 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
       viewerPasswordVersion: 1,
     };
     const imported = parsedBackup.schemaVersion === 2
-      ? await importBackupV2(parsedBackup as TournamentBackupV2, credentials)
+      ? {
+          ...await importBackupV2(parsedBackup as TournamentBackupV2, credentials),
+          gameConfig: null,
+        }
       : await importBackupV3(parsedBackup as TournamentBackupV3, credentials);
     res.status(201).json({
-      tournament: mapTournament(imported.tournament),
+      tournament: mapTournament(imported.tournament, imported.gameConfig),
       playersImported: imported.playersImported,
       matchesImported: imported.matchesImported,
       organizerToken: signVersionedOrganizerToken(
@@ -2462,6 +2593,153 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     });
   }
 
+});
+
+// ---------------------------------------------------------------------------
+// Deadlock hero bans per player
+// ---------------------------------------------------------------------------
+
+function parsePositiveInt(val: unknown): number | null {
+  const n = Number(val);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+function isValidHeroId(v: unknown): v is string {
+  return typeof v === "string" && v.length >= 1 && v.length <= 64;
+}
+
+/** Return all player bans for a tournament (readable by anyone with read access). */
+router.get("/tournaments/:id/player-bans", async (req, res): Promise<void> => {
+  const tid = parsePositiveInt(req.params.id);
+  if (!tid) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await checkViewerReadAuth(req, res, tid)) return;
+
+  const bans = await db
+    .select()
+    .from(playerDeadlockBansTable)
+    .where(eq(playerDeadlockBansTable.tournamentId, tid));
+
+  res.json(
+    bans.map((b) => ({
+      playerId: b.playerId,
+      tournamentId: b.tournamentId,
+      bannedHeroIds: b.bannedHeroIds ?? [],
+    })),
+  );
+});
+
+/** Set or replace bans for a player (organizer / support only). */
+router.put("/players/:id/bans", async (req, res): Promise<void> => {
+  const pid = parsePositiveInt(req.params.id);
+  if (!pid) { res.status(400).json({ error: "Invalid id" }); return; }
+  const body = req.body as { bannedHeroIds?: unknown };
+  if (!Array.isArray(body.bannedHeroIds) || body.bannedHeroIds.length > 5 || !body.bannedHeroIds.every(isValidHeroId)) {
+    res.status(422).json({ error: "bannedHeroIds must be an array of up to 5 non-empty strings" }); return;
+  }
+  const bannedHeroIds = body.bannedHeroIds as string[];
+
+  const [player] = await db
+    .select({ tournamentId: playersTable.tournamentId })
+    .from(playersTable)
+    .where(eq(playersTable.id, pid));
+  if (!player) { res.status(404).json({ error: "Player not found" }); return; }
+
+  const access = await requireTournamentWrite(req, res, player.tournamentId);
+  if (!access) return;
+
+  const [upserted] = await db
+    .insert(playerDeadlockBansTable)
+    .values({ playerId: pid, tournamentId: player.tournamentId, bannedHeroIds })
+    .onConflictDoUpdate({
+      target: playerDeadlockBansTable.playerId,
+      set: { bannedHeroIds, updatedAt: new Date() },
+    })
+    .returning();
+
+  res.json({
+    playerId: upserted.playerId,
+    tournamentId: upserted.tournamentId,
+    bannedHeroIds: upserted.bannedHeroIds ?? [],
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-game hero picks inside a BO match series
+// ---------------------------------------------------------------------------
+
+/** Return all game picks for a match. */
+router.get("/matches/:id/game-picks", async (req, res): Promise<void> => {
+  const mid = parsePositiveInt(req.params.id);
+  if (!mid) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [matchRef] = await db
+    .select({ tournamentId: matchesTable.tournamentId })
+    .from(matchesTable)
+    .where(eq(matchesTable.id, mid));
+  if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
+  if (!await checkViewerReadAuth(req, res, matchRef.tournamentId)) return;
+
+  const picks = await db
+    .select()
+    .from(matchGamePicksTable)
+    .where(eq(matchGamePicksTable.matchId, mid));
+
+  res.json(
+    picks.map((p) => ({
+      matchId: p.matchId,
+      gameNumber: p.gameNumber,
+      player1HeroId: p.player1HeroId ?? null,
+      player2HeroId: p.player2HeroId ?? null,
+    })),
+  );
+});
+
+/** Upsert hero picks for one game in a match series. */
+router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void> => {
+  const mid = parsePositiveInt(req.params.id);
+  const gn = parsePositiveInt(req.params.gameNumber);
+  if (!mid || !gn || gn > 5) { res.status(400).json({ error: "Invalid params" }); return; }
+  const body = req.body as { player1HeroId?: unknown; player2HeroId?: unknown };
+  const p1Raw = body.player1HeroId;
+  const p2Raw = body.player2HeroId;
+  if (p1Raw !== undefined && p1Raw !== null && !isValidHeroId(p1Raw)) { res.status(422).json({ error: "Invalid player1HeroId" }); return; }
+  if (p2Raw !== undefined && p2Raw !== null && !isValidHeroId(p2Raw)) { res.status(422).json({ error: "Invalid player2HeroId" }); return; }
+
+  const [matchRef] = await db
+    .select({ tournamentId: matchesTable.tournamentId, bestOf: matchesTable.bestOf })
+    .from(matchesTable)
+    .where(eq(matchesTable.id, mid));
+  if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
+
+  const access = await requireTournamentWrite(req, res, matchRef.tournamentId);
+  if (!access) return;
+
+  const p1 = (p1Raw as string | null | undefined) ?? null;
+  const p2 = (p2Raw as string | null | undefined) ?? null;
+
+  const [upserted] = await db
+    .insert(matchGamePicksTable)
+    .values({
+      matchId: mid,
+      gameNumber: gn,
+      player1HeroId: p1,
+      player2HeroId: p2,
+    })
+    .onConflictDoUpdate({
+      target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
+      set: {
+        player1HeroId: p1,
+        player2HeroId: p2,
+        updatedAt: new Date(),
+      },
+    })
+    .returning();
+
+  res.json({
+    matchId: upserted.matchId,
+    gameNumber: upserted.gameNumber,
+    player1HeroId: upserted.player1HeroId ?? null,
+    player2HeroId: upserted.player2HeroId ?? null,
+  });
 });
 
 export default router;
