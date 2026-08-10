@@ -1,0 +1,46 @@
+Add Deadlock-specific tournament presentation options based on the team feedback.
+
+1. Optional Deadlock visual theme
+
+Add a Deadlock-themed skin/theme that the organizer can choose for a tournament. Do not force this palette globally on all tournaments.
+
+Suggested Deadlock palette:
+
+beige: #efddbe
+dark brown: #242021
+
+Use these as a coherent Deadlock presentation theme while preserving strong contrast, accessibility and readability. The general frontend redesign must still work independently of this optional tournament skin.
+
+2. Deadlock side identity
+
+In Deadlock matches, make the two assigned sides immediately recognizable:
+
+Archmother: #3874ae
+Hidden King: #ffac11
+
+The side assignment should be visible wherever it helps players and viewers understand who is on which side, especially:
+
+active match / host panel,
+public live scoreboard,
+bracket match cards where there is enough room,
+spectator/audience view.
+
+Do not rely only on color. Include a textual label and/or side icon where appropriate so the information remains understandable without color perception.
+
+The purpose is operational as well as visual: a player looking at the bracket or match screen should immediately know which Deadlock side they are supposed to play.
+
+3. Side artwork / icons on the scoreboard
+
+Support a compact visual identifier for Archmother and Hidden King on the live/public scoreboard. The team specifically wants recognizable side artwork or smaller side icons so viewers can immediately understand which competitor represents which side.
+
+Use these identifiers as secondary visual information, not as large decorative artwork that overwhelms player names, hero picks or the score.
+
+If the actual Archmother / Hidden King image assets are not already present in the project, do not invent substitutes. Prepare the UI so the assets can be plugged in cleanly later and continue to show the side name + configured color in the meantime.
+
+Side assignment must remain distinct from hero picks and bans.
+
+side = Archmother / Hidden King,
+pick = hero currently being played,
+bans = unavailable heroes.
+
+These three concepts must never share the same visual treatment.
