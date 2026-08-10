@@ -174,6 +174,7 @@ export function GamePicksRow({
   player1Name,
   player2Name,
   size = 16,
+  showEmpty = false,
 }: {
   gameNumber: number;
   player1HeroId: string | null | undefined;
@@ -181,11 +182,21 @@ export function GamePicksRow({
   player1Name?: string | null;
   player2Name?: string | null;
   size?: number;
+  /** When true, renders a placeholder row even if no heroes were recorded. */
+  showEmpty?: boolean;
 }) {
   const hero1 = player1HeroId ? getDeadlockHero(player1HeroId as never) : null;
   const hero2 = player2HeroId ? getDeadlockHero(player2HeroId as never) : null;
 
-  if (!hero1 && !hero2) return null;
+  if (!hero1 && !hero2) {
+    if (!showEmpty) return null;
+    return (
+      <span className="flex items-center gap-1">
+        <span className="text-[9px] text-muted-foreground/60 font-mono shrink-0">G{gameNumber}</span>
+        <span className="text-[9px] text-muted-foreground/30 italic">brak picka</span>
+      </span>
+    );
+  }
 
   return (
     <span className="flex items-center gap-1">

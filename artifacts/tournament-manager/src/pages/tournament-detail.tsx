@@ -160,7 +160,8 @@ export default function TournamentDetail() {
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   const { data: playerBansData } = usePlayerBans(
     id,
-    { enabled: isDeadlock && !!id && tournament?.status !== "draft" && readOk },
+    // Bans must load even in draft status — organizers set bans before starting.
+    { enabled: isDeadlock && !!id && readOk },
   );
   const setPlayerBans = useSetPlayerBans(id);
   const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
@@ -1414,21 +1415,35 @@ export default function TournamentDetail() {
                               </span>
                             </div>
                           </div>
-                          {isDeadlock && picks && picks.length > 0 && (
-                            <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                              {picks.map((gp) => (
-                                <GamePicksRow
-                                  key={gp.gameNumber}
-                                  gameNumber={gp.gameNumber}
-                                  player1HeroId={gp.player1HeroId}
-                                  player2HeroId={gp.player2HeroId}
-                                  player1Name={r.player1Name}
-                                  player2Name={r.player2Name}
-                                  size={14}
-                                />
-                              ))}
-                            </div>
-                          )}
+                          {isDeadlock && (() => {
+                            // For "played" results, show a slot for every game that was
+                            // actually played (score1 + score2 = total games). This ensures
+                            // G3 appears even when its pick wasn't recorded.
+                            const totalGames =
+                              r.resultType === "played"
+                                ? (r.score1 ?? 0) + (r.score2 ?? 0)
+                                : (picks?.length ?? 0);
+                            if (totalGames === 0) return null;
+                            return (
+                              <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                                {Array.from({ length: totalGames }, (_, i) => i + 1).map((gn) => {
+                                  const gp = picks?.find((p) => p.gameNumber === gn);
+                                  return (
+                                    <GamePicksRow
+                                      key={gn}
+                                      gameNumber={gn}
+                                      player1HeroId={gp?.player1HeroId ?? null}
+                                      player2HeroId={gp?.player2HeroId ?? null}
+                                      player1Name={r.player1Name}
+                                      player2Name={r.player2Name}
+                                      size={14}
+                                      showEmpty
+                                    />
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
