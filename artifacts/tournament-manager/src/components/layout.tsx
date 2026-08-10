@@ -29,7 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}
-            {(!role || role === "organizer") && (
+            {role === "organizer" && (
               <>
                 <Link href="/dashboard" className={`hover:text-foreground transition-colors ${location === "/dashboard" ? "text-foreground" : ""}`}>
                   Dashboard

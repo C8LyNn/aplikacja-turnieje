@@ -18,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
@@ -126,7 +126,21 @@ export default function TournamentAudience() {
     },
   });
 
-  const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
+  const rawAccessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
+
+  // Latch the access-denied code so that background refetches (which temporarily
+  // clear tournamentError while the HTTP request is in-flight) do not cause the
+  // password gate to unmount and remount every 4 s.
+  // The latch is set whenever the error is present and cleared only when the
+  // query actually succeeds (tournament data is available).
+  const lockedOutCodeRef = useRef<string | undefined>(undefined);
+  if (rawAccessDeniedCode) {
+    lockedOutCodeRef.current = rawAccessDeniedCode;
+  } else if (tournament) {
+    lockedOutCodeRef.current = undefined;
+  }
+  const accessDeniedCode = lockedOutCodeRef.current;
+
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
     return (

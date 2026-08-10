@@ -23,6 +23,8 @@ afterEach(() => {
 });
 
 function renderForm(fetchImplementation: typeof fetch) {
+  // Route guard requires organizer role; set it before rendering.
+  window.localStorage.setItem("tm_role", "organizer");
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
