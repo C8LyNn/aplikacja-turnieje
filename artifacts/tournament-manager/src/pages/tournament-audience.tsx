@@ -5,11 +5,13 @@ import {
   useListPlayers,
   useGetTournamentStandings,
   useGetTournamentBracket,
+  useGetResultsHistory,
   getGetTournamentQueryKey,
   getListMatchesQueryKey,
   getListPlayersQueryKey,
   getGetTournamentStandingsQueryKey,
   getGetTournamentBracketQueryKey,
+  getGetResultsHistoryQueryKey,
   type Bracket,
   type Match,
   type Player,
@@ -18,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, Trophy } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
@@ -208,6 +210,25 @@ export default function TournamentAudience() {
   const latestPick = isDeadlock && heroMatchPicks && heroMatchPicks.length > 0
     ? [...heroMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
     : null;
+
+  const { data: audienceHistory } = useGetResultsHistory(id, {
+    query: {
+      enabled: isDeadlock && !!id && tournament?.status !== "draft",
+      queryKey: getGetResultsHistoryQueryKey(id),
+      refetchInterval: 15000,
+    },
+  });
+  const audienceMatchPicksMap = useMemo(() => {
+    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
+    for (const r of audienceHistory ?? []) {
+      if (!r.matchId) continue;
+      const picks = (r as any).gamePicks as Array<{ gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }> | undefined;
+      if (!picks || picks.length === 0) continue;
+      const last = [...picks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
+      map.set(r.matchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
+    }
+    return map;
+  }, [audienceHistory]);
 
   const nextMatches = matches
     ?.filter(
@@ -600,6 +621,7 @@ export default function TournamentAudience() {
             totalRounds={tournament?.totalRounds}
             forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
             playerBansMap={isDeadlock ? audienceBansMap : undefined}
+            matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
           />
         )}
       </main>
@@ -811,6 +833,7 @@ function PublicBracketSection({
   totalRounds,
   forcedHeroId,
   playerBansMap,
+  matchPicksMap,
 }: {
   bracket?: Bracket;
   format: string;
@@ -818,6 +841,7 @@ function PublicBracketSection({
   totalRounds?: number | null;
   forcedHeroId?: DeadlockHeroId;
   playerBansMap?: Map<number, string[]>;
+  matchPicksMap?: Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>;
 }) {
   return (
     <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
@@ -835,6 +859,7 @@ function PublicBracketSection({
               format={format}
               forcedHeroId={forcedHeroId}
               playerBansMap={playerBansMap}
+              matchPicksMap={matchPicksMap}
             />
           )}
         </div>

@@ -1,3 +1,4 @@
+- [Deadlock bans/picks UX](deadlock-bans-picks-ux.md) — BanIcon=red rounded-rect ring, PickIcon=cyan circle; matchPicksMap threading; server 422 ban validation; no auto-pick default.
 - [Swiss pairing logic](swiss-pairing.md) — Swiss rounds: greedy points-based pairing, Buchholz calculated as sum of opponent points; bye auto-advances winner stats.
 - [Workspace package dist rebuilds](dist-rebuild-pattern.md) — after schema changes to lib/db or lib/api-client-react, must rebuild dist or TS consumers see stale declarations.
 - [Result history tracking](result-history.md) — completed matches are logged to result_history table; revert endpoint removes history entry + undoes player stats + undoes bracket advancement.
