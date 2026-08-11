@@ -43,6 +43,7 @@ import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
+import { useDeadlockTheme } from "@/hooks/use-deadlock-theme";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -51,6 +52,7 @@ export default function TournamentHost() {
   const [, params] = useRoute("/tournaments/:id/host");
   const search = useSearch();
   const id = params?.id ? parseInt(params.id, 10) : 0;
+  const [deadlockTheme] = useDeadlockTheme(id);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const {
@@ -1302,7 +1304,7 @@ export default function TournamentHost() {
   };
 
   return (
-    <Layout>
+    <Layout deadlockTheme={isDeadlock && deadlockTheme}>
       <div className="flex flex-col gap-4 max-w-6xl mx-auto">
         {/* Top bar */}
         <div className="flex items-center gap-3 border-b pb-4">
@@ -1310,7 +1312,7 @@ export default function TournamentHost() {
             <Link href={`/tournaments/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold flex items-center gap-2 truncate">
+            <h1 className="text-xl font-bold flex items-center gap-2 truncate font-deadlock">
               <Swords className="text-primary w-5 h-5 shrink-0" />
               <span className="truncate">Panel prowadzącego: {tournament.name}</span>
             </h1>

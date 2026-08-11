@@ -52,6 +52,7 @@ import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/li
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
+import { useDeadlockTheme } from "@/hooks/use-deadlock-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -159,6 +160,7 @@ export default function TournamentDetail() {
   );
 
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  const [deadlockTheme] = useDeadlockTheme(id);
   const { data: playerBansData } = usePlayerBans(
     id,
     // Bans must load even in draft status — organizers set bans before starting.
@@ -598,12 +600,12 @@ export default function TournamentDetail() {
   const statusLabel: Record<string, string> = { draft: "SZKIC", active: "AKTYWNY", completed: "ZAKOŃCZONY" };
 
   return (
-    <Layout>
+    <Layout deadlockTheme={isDeadlock && deadlockTheme}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-primary font-deadlock">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
                 className={tournament.status === "active" ? "bg-secondary text-secondary-foreground hover:bg-secondary" :
                   tournament.status === "completed" ? "bg-accent text-accent-foreground hover:bg-accent" : ""}>
@@ -1636,7 +1638,7 @@ export default function TournamentDetail() {
 
           {capabilities.canManageOrganizerSettings && (
             <TabsContent value="visuals" className="pt-6">
-              <TournamentPresentationPanel />
+              <TournamentPresentationPanel tournamentId={id} isDeadlock={isDeadlock} />
             </TabsContent>
           )}
 
