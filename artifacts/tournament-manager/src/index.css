@@ -147,68 +147,159 @@
 }
 
 /*
- * ── Deadlock visual theme ──────────────────────────────────────────────────
+ * ── Deadlock visual theme: Emerald Occult ───────────────────────────────────
  * Applied via data-theme="deadlock" on the page root.
  * Must follow .dark so it wins on same-specificity cascade.
  * All token-based Tailwind classes (bg-background, text-foreground, bg-card,
  * text-primary, border-border, etc.) switch automatically.
+ *
+ * Palette story:
+ *   Background  — very dark green / near-black
+ *   Surfaces    — dark forest green
+ *   Text        — warm cream / beige
+ *   Primary     — muted emerald green (UI action; NOT cyan, NOT Archmother blue)
+ *   Muted       — dark auxiliary surfaces
+ *   Border      — subtle teal-green separators
+ *   Archmother blue (#3874ae) and Hidden King gold (#ffac11) are
+ *   reserved for side/match identity only — not used as global UI accent.
  */
 [data-theme="deadlock"] {
-  /* Backgrounds */
-  --background: 22 18% 8%;
-  --foreground: 40 55% 87%;
+  /* ── Backgrounds ── */
+  --background: 135 38% 5%;       /* near-black dark green  ≈ #060d08 */
+  --foreground: 42 42% 87%;       /* warm cream             ≈ #eadcca */
 
-  /* Card / surface */
-  --card: 25 16% 12%;
-  --card-foreground: 40 55% 87%;
-  --card-border: 28 20% 20%;
+  /* ── Card / surface: dark forest green ── */
+  --card: 135 30% 9%;             /* dark forest            ≈ #0e1a10 */
+  --card-foreground: 42 42% 87%;
+  --card-border: 140 24% 18%;     /* teal-green border      ≈ #1e2e21 */
 
-  /* Popover */
-  --popover: 25 16% 12%;
-  --popover-foreground: 40 55% 87%;
-  --popover-border: 28 20% 20%;
+  /* ── Popover ── */
+  --popover: 135 30% 9%;
+  --popover-foreground: 42 42% 87%;
+  --popover-border: 140 24% 18%;
 
-  /* Primary — Archmother blue */
-  --primary: 211 51% 45%;
-  --primary-foreground: 40 55% 87%;
+  /* ── Primary: muted emerald green ── */
+  --primary: 148 35% 40%;         /* forest green           ≈ #3d8055 */
+  --primary-foreground: 42 42% 93%; /* light cream */
 
-  /* Secondary — Hidden King gold */
-  --secondary: 38 100% 53%;
-  --secondary-foreground: 22 18% 8%;
+  /* ── Secondary: dark auxiliary surface ── */
+  --secondary: 135 22% 14%;       /* dark forest surface    ≈ #17221a */
+  --secondary-foreground: 42 28% 72%;
 
-  /* Muted */
-  --muted: 25 15% 16%;
-  --muted-foreground: 35 20% 55%;
+  /* ── Muted ── */
+  --muted: 135 20% 12%;           /* very dark green        ≈ #161e17 */
+  --muted-foreground: 38 16% 55%; /* warm tan               ≈ #8a7d6a */
 
-  /* Accent — gold */
-  --accent: 38 100% 53%;
-  --accent-foreground: 22 18% 8%;
+  /* ── Accent: subtle active-state highlight ── */
+  --accent: 145 28% 20%;          /* dark teal              ≈ #222f24 */
+  --accent-foreground: 42 42% 87%;
 
-  /* Destructive */
+  /* ── Destructive: red (unchanged) ── */
   --destructive: 5 72% 45%;
-  --destructive-foreground: 40 55% 87%;
+  --destructive-foreground: 42 42% 87%;
 
-  /* Border / input / ring */
-  --border: 28 20% 20%;
-  --input: 25 15% 15%;
-  --ring: 211 51% 45%;
+  /* ── Border / input / ring ── */
+  --border: 140 24% 18%;          /* subtle teal-green      ≈ #1e2e21 */
+  --input: 137 22% 12%;           /* dark input             ≈ #151f16 */
+  --ring: 148 35% 40%;            /* same as primary */
 
-  /* Derived border tokens — same formula as :root */
+  /* ── Derived border tokens ── */
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Switches display font to Valve Pulp Bold (falls back to serif if file missing) */
+  /* ── Deadlock side colors (side identity only; not global UI accent) ── */
+  --deadlock-archmother: #3874ae;
+  --deadlock-hidden-king: #ffac11;
+  --deadlock-beige: #eadcca;
+
+  /* ── Decorative gold/bronze for separators ── */
+  --deadlock-gold-text: #a88c4a;
+  --deadlock-gold-subtle: rgba(154, 122, 48, 0.30);
+
+  /* ── Display font (Valve Pulp Bold; Georgia/serif fallback if TTF missing) ── */
   --app-font-deadlock-display: 'Valve Pulp Bold', 'Georgia', 'Times New Roman', serif;
 }
 
 /*
- * Deadlock display font helper.
- * In base (navy) theme → renders as Inter (transparent switch).
- * In [data-theme="deadlock"] → renders as Valve Pulp Bold (or serif fallback).
- * Apply to: tournament name headings, active-match player names, large scores, round labels.
+ * ── Emerald Occult: display font on UI chrome ───────────────────────────────
+ * Applied to nav, tabs, buttons, headings, table headers, labels, and .font-deadlock.
+ * Lives outside @layer → higher specificity than Tailwind layered utilities.
+ * Falls back to Georgia/serif when valvepulp-bold.ttf is not present in /public/fonts/.
+ */
+[data-theme="deadlock"] h1,
+[data-theme="deadlock"] h2,
+[data-theme="deadlock"] h3,
+[data-theme="deadlock"] h4,
+[data-theme="deadlock"] h5,
+[data-theme="deadlock"] h6,
+[data-theme="deadlock"] button,
+[data-theme="deadlock"] [role="tab"],
+[data-theme="deadlock"] [role="menuitem"],
+[data-theme="deadlock"] th,
+[data-theme="deadlock"] nav a,
+[data-theme="deadlock"] label,
+[data-theme="deadlock"] .font-deadlock {
+  font-family: var(--app-font-deadlock-display);
+}
+
+/*
+ * ── Emerald Occult: override hardcoded Tailwind color utilities ──────────────
+ * Converts audience / bracket pages (hardcoded cyan/white palette) to
+ * Emerald Occult without requiring JSX edits on every element.
+ * Lives outside @layer → higher specificity than Tailwind layered utilities.
+ */
+
+/* white text → warm cream */
+[data-theme="deadlock"] .text-white              { color: hsl(var(--foreground)); }
+[data-theme="deadlock"] .text-white\/80          { color: hsl(var(--foreground) / 0.90); }
+[data-theme="deadlock"] .text-white\/60          { color: hsl(var(--foreground) / 0.72); }
+[data-theme="deadlock"] .text-white\/55          { color: hsl(var(--foreground) / 0.68); }
+[data-theme="deadlock"] .text-white\/50          { color: hsl(var(--foreground) / 0.62); }
+[data-theme="deadlock"] .text-white\/40          { color: hsl(var(--foreground) / 0.52); }
+[data-theme="deadlock"] .text-white\/35          { color: hsl(var(--foreground) / 0.46); }
+[data-theme="deadlock"] .text-white\/30          { color: hsl(var(--foreground) / 0.40); }
+[data-theme="deadlock"] .text-white\/25          { color: hsl(var(--foreground) / 0.35); }
+[data-theme="deadlock"] .text-white\/20          { color: hsl(var(--foreground) / 0.30); }
+[data-theme="deadlock"] .text-white\/15          { color: hsl(var(--foreground) / 0.25); }
+[data-theme="deadlock"] .hover\:text-white:hover { color: hsl(var(--foreground)); }
+
+/* cyan accent → muted emerald green */
+[data-theme="deadlock"] .text-cyan-400           { color: hsl(var(--primary)); }
+[data-theme="deadlock"] .text-cyan-300           { color: hsl(var(--primary)); }
+[data-theme="deadlock"] .text-cyan-400\/60       { color: hsl(var(--primary) / 0.70); }
+[data-theme="deadlock"] .text-cyan-500\/50       { color: hsl(var(--primary) / 0.65); }
+[data-theme="deadlock"] .bg-cyan-400             { background-color: hsl(var(--primary)); }
+[data-theme="deadlock"] .bg-cyan-500\/15         { background-color: hsl(var(--primary) / 0.15); }
+[data-theme="deadlock"] .bg-cyan-500\/20         { background-color: hsl(var(--primary) / 0.20); }
+[data-theme="deadlock"] .border-cyan-500\/30     { border-color: hsl(var(--primary) / 0.35); }
+[data-theme="deadlock"] .border-cyan-400\/40     { border-color: hsl(var(--primary) / 0.45); }
+
+/* white borders / surfaces → theme-aware */
+[data-theme="deadlock"] .border-white\/6         { border-color: hsl(var(--border) / 0.55); }
+[data-theme="deadlock"] .border-white\/8         { border-color: hsl(var(--border)); }
+[data-theme="deadlock"] .border-white\/10        { border-color: hsl(var(--border)); }
+[data-theme="deadlock"] .border-white\/15        { border-color: hsl(var(--border)); }
+[data-theme="deadlock"] .border-white\/20        { border-color: hsl(var(--border)); }
+[data-theme="deadlock"] .bg-white\/5             { background-color: hsl(var(--muted)); }
+[data-theme="deadlock"] .bg-white\/10            { background-color: hsl(var(--secondary)); }
+[data-theme="deadlock"] .bg-white\/15            { background-color: hsl(var(--secondary)); }
+[data-theme="deadlock"] .hover\:bg-white\/5:hover { background-color: hsl(var(--accent) / 0.70); }
+
+/* gradient endpoint on bracket title: from primary green to gold */
+[data-theme="deadlock"] .to-accent { --tw-gradient-to: var(--deadlock-gold-text); }
+
+/* focus ring */
+[data-theme="deadlock"] .focus-visible\:ring-cyan-400:focus-visible {
+  --tw-ring-color: hsl(var(--ring));
+}
+
+/*
+ * .font-deadlock helper class.
+ * In base theme → renders as Inter (no-op since variable is not set to Pulp Bold).
+ * In [data-theme="deadlock"] → Valve Pulp Bold (or Georgia fallback).
  */
 .font-deadlock {
   font-family: var(--app-font-deadlock-display);
