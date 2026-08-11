@@ -1,23 +1,16 @@
-import { useEffect } from "react";
+/**
+ * Backward-compatibility shim.
+ * New code should import usePresentationTheme / resolvePresentationSettings
+ * directly from "@/lib/presentation-theme".
+ */
+import { usePresentationTheme } from "./presentation-theme";
+export { usePresentationTheme, resolvePresentationSettings } from "./presentation-theme";
+export type { PresentationSettings } from "./presentation-theme";
 
 /**
- * Mirrors data-theme="deadlock" onto <html> so that Radix UI portals
- * (Dialog, Dropdown, Select, Tooltip, Popover, Sheet, Context Menu, etc.)
- * rendered outside the page root div also inherit the Emerald Occult theme.
- *
- * Cleanup removes the attribute when the component unmounts or deadlock
- * becomes inactive, so navigating away resets the global theme.
+ * @deprecated Use usePresentationTheme from presentation-theme instead.
+ * Kept so old call-sites (boolean signature) continue to compile without edits.
  */
 export function useDeadlockHtmlTheme(active: boolean): void {
-  useEffect(() => {
-    const html = document.documentElement;
-    if (active) {
-      html.setAttribute("data-theme", "deadlock");
-    } else {
-      html.removeAttribute("data-theme");
-    }
-    return () => {
-      html.removeAttribute("data-theme");
-    };
-  }, [active]);
+  usePresentationTheme(active ? { colorPreset: "deadlock" } : {});
 }

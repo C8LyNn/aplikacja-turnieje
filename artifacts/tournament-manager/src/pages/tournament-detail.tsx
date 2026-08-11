@@ -52,7 +52,7 @@ import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/li
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
-import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
+import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -161,8 +161,9 @@ export default function TournamentDetail() {
 
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
-  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
-  useDeadlockHtmlTheme(deadlockTheme);
+  const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
+  const presentationSettings = resolvePresentationSettings(rawPs as any);
+  usePresentationTheme(presentationSettings);
 
   const { data: playerBansData } = usePlayerBans(
     id,
@@ -603,12 +604,12 @@ export default function TournamentDetail() {
   const statusLabel: Record<string, string> = { draft: "SZKIC", active: "AKTYWNY", completed: "ZAKOŃCZONY" };
 
   return (
-    <Layout deadlockTheme={deadlockTheme}>
+    <Layout colorPreset={presentationSettings.colorPreset || undefined}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className={`text-3xl font-bold tracking-tight text-primary${deadlockTheme ? " font-[family-name:var(--font-deadlock-display)]" : ""}`}>{tournament.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
                 className={tournament.status === "active" ? "bg-secondary text-secondary-foreground hover:bg-secondary" :
                   tournament.status === "completed" ? "bg-accent text-accent-foreground hover:bg-accent" : ""}>

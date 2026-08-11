@@ -783,6 +783,12 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
       res.status(400).json({ error: "presentationSettings.deadlockTheme must be a boolean." });
       return;
     }
+    for (const field of ["colorPreset", "fontPreset", "frameStyle"] as const) {
+      if (field in ps && ps[field] !== undefined && ps[field] !== null && typeof ps[field] !== "string") {
+        res.status(400).json({ error: `presentationSettings.${field} must be a string or null.` });
+        return;
+      }
+    }
   }
   const changedFields = [
     ...Object.keys(parsed.data),

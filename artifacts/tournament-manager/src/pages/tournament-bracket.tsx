@@ -14,8 +14,7 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { RoleHomeLink } from "@/components/app-navigation";
-import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
+import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -52,8 +51,9 @@ export default function TournamentBracket() {
   const isRoundRobin = tournament?.format === "round_robin";
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
-  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
-  useDeadlockHtmlTheme(deadlockTheme);
+  const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
+  const presentationSettings = resolvePresentationSettings(rawPs as any);
+  usePresentationTheme(presentationSettings);
 
   const { data: history } = useGetResultsHistory(id, {
     query: {
@@ -110,14 +110,15 @@ export default function TournamentBracket() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={deadlockTheme ? "deadlock" : undefined}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
-        <RoleHomeLink
-          fallbackHref="/fan"
-          fallbackLabel="Wróć do turniejów"
-          className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto"
-        />
+        <a
+          href={`/tournaments/${id}`}
+          className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        >
+          ← Wróć do turnieju
+        </a>
 
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Zoom controls */}
@@ -171,7 +172,7 @@ export default function TournamentBracket() {
       {/* Header */}
       <div className="flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
         <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />
-        <h1 className={`text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight${deadlockTheme ? " font-[family-name:var(--font-deadlock-display)]" : ""}`}>
+        <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight font-deadlock">
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">

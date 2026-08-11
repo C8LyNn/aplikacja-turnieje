@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700&family=Saira:wght@400;500;600;700&family=Play:wght@400;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -146,85 +146,51 @@
   --ring: 199 89% 48%;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   COLOUR PRESETS  (12 themes)
+   Applied via data-theme="<name>" on <html>.
+   Must follow .dark so they win on same-specificity cascade.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /*
- * ── Deadlock visual theme: Emerald Occult ───────────────────────────────────
- * Applied via data-theme="deadlock" on the page root.
- * Must follow .dark so it wins on same-specificity cascade.
- * All token-based Tailwind classes (bg-background, text-foreground, bg-card,
- * text-primary, border-border, etc.) switch automatically.
- *
- * Palette story:
- *   Background  — very dark green / near-black
- *   Surfaces    — dark forest green
- *   Text        — warm cream / beige
- *   Primary     — muted emerald green (UI action; NOT cyan, NOT Archmother blue)
- *   Muted       — dark auxiliary surfaces
- *   Border      — subtle teal-green separators
- *   Archmother blue (#3874ae) and Hidden King gold (#ffac11) are
- *   reserved for side/match identity only — not used as global UI accent.
+ * 1. DEADLOCK — Emerald Occult
+ * Background: very dark forest green / near-black
+ * Accent: muted emerald green (primary)
+ * Text: warm cream / beige
  */
 [data-theme="deadlock"] {
-  /* ── Backgrounds ── */
-  --background: 135 38% 5%;       /* near-black dark green  ≈ #060d08 */
-  --foreground: 42 42% 87%;       /* warm cream             ≈ #eadcca */
-
-  /* ── Card / surface: dark forest green ── */
-  --card: 135 30% 9%;             /* dark forest            ≈ #0e1a10 */
+  --background: 135 38% 5%;
+  --foreground: 42 42% 87%;
+  --card: 135 30% 9%;
   --card-foreground: 42 42% 87%;
-  --card-border: 140 24% 18%;     /* teal-green border      ≈ #1e2e21 */
-
-  /* ── Popover ── */
+  --card-border: 140 24% 18%;
   --popover: 135 30% 9%;
   --popover-foreground: 42 42% 87%;
   --popover-border: 140 24% 18%;
-
-  /* ── Primary: muted emerald green ── */
-  --primary: 148 35% 40%;         /* forest green           ≈ #3d8055 */
-  --primary-foreground: 42 42% 93%; /* light cream */
-
-  /* ── Secondary: dark auxiliary surface ── */
-  --secondary: 135 22% 14%;       /* dark forest surface    ≈ #17221a */
+  --primary: 148 35% 40%;
+  --primary-foreground: 42 42% 93%;
+  --secondary: 135 22% 14%;
   --secondary-foreground: 42 28% 72%;
-
-  /* ── Muted ── */
-  --muted: 135 20% 12%;           /* very dark green        ≈ #161e17 */
-  --muted-foreground: 38 16% 55%; /* warm tan               ≈ #8a7d6a */
-
-  /* ── Accent: subtle active-state highlight ── */
-  --accent: 145 28% 20%;          /* dark teal              ≈ #222f24 */
+  --muted: 135 20% 12%;
+  --muted-foreground: 38 16% 55%;
+  --accent: 145 28% 20%;
   --accent-foreground: 42 42% 87%;
-
-  /* ── Destructive: red (unchanged) ── */
   --destructive: 5 72% 45%;
   --destructive-foreground: 42 42% 87%;
-
-  /* ── Border / input / ring ── */
-  --border: 140 24% 18%;          /* subtle teal-green      ≈ #1e2e21 */
-  --input: 137 22% 12%;           /* dark input             ≈ #151f16 */
-  --ring: 148 35% 40%;            /* same as primary */
-
-  /* ── Derived border tokens ── */
+  --border: 140 24% 18%;
+  --input: 137 22% 12%;
+  --ring: 148 35% 40%;
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* ── Deadlock side colors (side identity only; not global UI accent) ── */
   --deadlock-archmother: #3874ae;
   --deadlock-hidden-king: #ffac11;
   --deadlock-beige: #eadcca;
-
-  /* ── Decorative gold/bronze for separators ── */
   --deadlock-gold-text: #a88c4a;
   --deadlock-gold-subtle: rgba(154, 122, 48, 0.30);
-
-  /* ── Display font (Valve Pulp Bold; Georgia/serif fallback if TTF missing) ── */
   --app-font-deadlock-display: 'Valve Pulp Bold', 'Georgia', 'Times New Roman', serif;
-
-  /* ── Surface / elevation / outline tokens ── */
-  /* Replace white-tinted defaults with green-tinted ones so buttons/badges
-     match the dark forest palette instead of looking blue-grey. */
   --button-outline: rgba(80, 170, 110, 0.22);
   --badge-outline:  rgba(80, 170, 110, 0.14);
   --elevate-1:      rgba(80, 170, 110, 0.05);
@@ -234,11 +200,427 @@
 }
 
 /*
- * ── Emerald Occult: display font on UI chrome ───────────────────────────────
- * Applied to nav, tabs, buttons, headings, table headers, labels, and .font-deadlock.
- * Lives outside @layer → higher specificity than Tailwind layered utilities.
- * Falls back to Georgia/serif when valvepulp-bold.ttf is not present in /public/fonts/.
+ * 2. OBSIDIAN — Dark charcoal with silver accent
  */
+[data-theme="obsidian"] {
+  --background: 240 5% 6%;
+  --foreground: 220 15% 90%;
+  --card: 240 5% 10%;
+  --card-foreground: 220 15% 90%;
+  --card-border: 240 8% 18%;
+  --popover: 240 5% 10%;
+  --popover-foreground: 220 15% 90%;
+  --popover-border: 240 8% 18%;
+  --primary: 220 12% 60%;
+  --primary-foreground: 240 5% 6%;
+  --secondary: 240 5% 15%;
+  --secondary-foreground: 220 10% 70%;
+  --muted: 240 5% 13%;
+  --muted-foreground: 220 8% 50%;
+  --accent: 240 8% 20%;
+  --accent-foreground: 220 15% 90%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 220 15% 90%;
+  --border: 240 8% 18%;
+  --input: 240 5% 14%;
+  --ring: 220 12% 60%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(180, 185, 200, 0.14);
+  --badge-outline:  rgba(180, 185, 200, 0.08);
+  --elevate-1:      rgba(180, 185, 200, 0.04);
+  --elevate-2:      rgba(180, 185, 200, 0.09);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 3. CRIMSON VAULT — Dark burgundy with crimson red accent
+ */
+[data-theme="crimson-vault"] {
+  --background: 355 30% 6%;
+  --foreground: 10 30% 90%;
+  --card: 355 25% 10%;
+  --card-foreground: 10 30% 90%;
+  --card-border: 355 28% 17%;
+  --popover: 355 25% 10%;
+  --popover-foreground: 10 30% 90%;
+  --popover-border: 355 28% 17%;
+  --primary: 355 65% 48%;
+  --primary-foreground: 10 30% 96%;
+  --secondary: 355 20% 15%;
+  --secondary-foreground: 10 20% 72%;
+  --muted: 355 18% 12%;
+  --muted-foreground: 10 12% 52%;
+  --accent: 355 22% 20%;
+  --accent-foreground: 10 30% 90%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 10 30% 90%;
+  --border: 355 28% 17%;
+  --input: 355 20% 13%;
+  --ring: 355 65% 48%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(200, 60, 80, 0.22);
+  --badge-outline:  rgba(200, 60, 80, 0.12);
+  --elevate-1:      rgba(200, 60, 80, 0.05);
+  --elevate-2:      rgba(200, 60, 80, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 4. ABYSSAL — Very dark navy with soft blue accent
+ */
+[data-theme="abyssal"] {
+  --background: 222 55% 7%;
+  --foreground: 210 30% 92%;
+  --card: 222 50% 11%;
+  --card-foreground: 210 30% 92%;
+  --card-border: 220 40% 18%;
+  --popover: 222 50% 11%;
+  --popover-foreground: 210 30% 92%;
+  --popover-border: 220 40% 18%;
+  --primary: 210 80% 60%;
+  --primary-foreground: 222 55% 7%;
+  --secondary: 222 38% 16%;
+  --secondary-foreground: 210 20% 72%;
+  --muted: 222 35% 13%;
+  --muted-foreground: 215 18% 52%;
+  --accent: 220 40% 20%;
+  --accent-foreground: 210 30% 92%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 30% 92%;
+  --border: 220 40% 18%;
+  --input: 222 38% 14%;
+  --ring: 210 80% 60%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(60, 140, 230, 0.22);
+  --badge-outline:  rgba(60, 140, 230, 0.12);
+  --elevate-1:      rgba(60, 140, 230, 0.05);
+  --elevate-2:      rgba(60, 140, 230, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 5. IRON CITADEL — Dark gunmetal with steel accent
+ */
+[data-theme="iron-citadel"] {
+  --background: 210 15% 8%;
+  --foreground: 200 15% 85%;
+  --card: 210 12% 13%;
+  --card-foreground: 200 15% 85%;
+  --card-border: 210 14% 20%;
+  --popover: 210 12% 13%;
+  --popover-foreground: 200 15% 85%;
+  --popover-border: 210 14% 20%;
+  --primary: 200 22% 55%;
+  --primary-foreground: 210 15% 8%;
+  --secondary: 210 10% 18%;
+  --secondary-foreground: 200 10% 65%;
+  --muted: 210 10% 15%;
+  --muted-foreground: 205 8% 48%;
+  --accent: 210 14% 22%;
+  --accent-foreground: 200 15% 85%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 200 15% 85%;
+  --border: 210 14% 20%;
+  --input: 210 10% 16%;
+  --ring: 200 22% 55%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(140, 160, 175, 0.18);
+  --badge-outline:  rgba(140, 160, 175, 0.10);
+  --elevate-1:      rgba(140, 160, 175, 0.04);
+  --elevate-2:      rgba(140, 160, 175, 0.09);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 6. EMBER — Dark brownish-red with warm orange accent
+ */
+[data-theme="ember"] {
+  --background: 18 35% 7%;
+  --foreground: 35 42% 88%;
+  --card: 18 30% 12%;
+  --card-foreground: 35 42% 88%;
+  --card-border: 20 30% 20%;
+  --popover: 18 30% 12%;
+  --popover-foreground: 35 42% 88%;
+  --popover-border: 20 30% 20%;
+  --primary: 24 72% 52%;
+  --primary-foreground: 35 42% 95%;
+  --secondary: 18 24% 18%;
+  --secondary-foreground: 35 28% 70%;
+  --muted: 18 22% 15%;
+  --muted-foreground: 30 14% 52%;
+  --accent: 20 28% 22%;
+  --accent-foreground: 35 42% 88%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 35 42% 88%;
+  --border: 20 30% 20%;
+  --input: 18 22% 16%;
+  --ring: 24 72% 52%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(210, 100, 30, 0.22);
+  --badge-outline:  rgba(210, 100, 30, 0.13);
+  --elevate-1:      rgba(210, 100, 30, 0.05);
+  --elevate-2:      rgba(210, 100, 30, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 7. VOID — Near-black with purple accent
+ */
+[data-theme="void"] {
+  --background: 270 30% 5%;
+  --foreground: 280 20% 90%;
+  --card: 270 25% 9%;
+  --card-foreground: 280 20% 90%;
+  --card-border: 268 22% 17%;
+  --popover: 270 25% 9%;
+  --popover-foreground: 280 20% 90%;
+  --popover-border: 268 22% 17%;
+  --primary: 270 58% 62%;
+  --primary-foreground: 270 30% 5%;
+  --secondary: 270 20% 14%;
+  --secondary-foreground: 280 15% 70%;
+  --muted: 270 18% 12%;
+  --muted-foreground: 272 10% 50%;
+  --accent: 268 22% 19%;
+  --accent-foreground: 280 20% 90%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 280 20% 90%;
+  --border: 268 22% 17%;
+  --input: 270 18% 13%;
+  --ring: 270 58% 62%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(140, 80, 220, 0.22);
+  --badge-outline:  rgba(140, 80, 220, 0.13);
+  --elevate-1:      rgba(140, 80, 220, 0.05);
+  --elevate-2:      rgba(140, 80, 220, 0.12);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 8. COPPER AGE — Dark warm brown with amber/copper accent
+ */
+[data-theme="copper-age"] {
+  --background: 28 38% 7%;
+  --foreground: 40 38% 85%;
+  --card: 28 32% 12%;
+  --card-foreground: 40 38% 85%;
+  --card-border: 30 30% 20%;
+  --popover: 28 32% 12%;
+  --popover-foreground: 40 38% 85%;
+  --popover-border: 30 30% 20%;
+  --primary: 28 62% 50%;
+  --primary-foreground: 40 38% 92%;
+  --secondary: 28 25% 18%;
+  --secondary-foreground: 40 24% 68%;
+  --muted: 28 22% 15%;
+  --muted-foreground: 32 12% 50%;
+  --accent: 30 28% 22%;
+  --accent-foreground: 40 38% 85%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 40 38% 85%;
+  --border: 30 30% 20%;
+  --input: 28 22% 16%;
+  --ring: 28 62% 50%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(190, 100, 40, 0.22);
+  --badge-outline:  rgba(190, 100, 40, 0.12);
+  --elevate-1:      rgba(190, 100, 40, 0.05);
+  --elevate-2:      rgba(190, 100, 40, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 9. GLACIER — Dark icy blue-grey with bright cyan accent
+ */
+[data-theme="glacier"] {
+  --background: 200 38% 8%;
+  --foreground: 195 25% 90%;
+  --card: 200 32% 13%;
+  --card-foreground: 195 25% 90%;
+  --card-border: 198 30% 20%;
+  --popover: 200 32% 13%;
+  --popover-foreground: 195 25% 90%;
+  --popover-border: 198 30% 20%;
+  --primary: 192 78% 55%;
+  --primary-foreground: 200 38% 8%;
+  --secondary: 200 24% 18%;
+  --secondary-foreground: 195 18% 70%;
+  --muted: 200 22% 15%;
+  --muted-foreground: 198 14% 50%;
+  --accent: 198 28% 22%;
+  --accent-foreground: 195 25% 90%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 195 25% 90%;
+  --border: 198 30% 20%;
+  --input: 200 22% 16%;
+  --ring: 192 78% 55%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(30, 190, 210, 0.22);
+  --badge-outline:  rgba(30, 190, 210, 0.13);
+  --elevate-1:      rgba(30, 190, 210, 0.05);
+  --elevate-2:      rgba(30, 190, 210, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 10. MIDNIGHT ROSE — Dark purple-navy with rose/pink accent
+ */
+[data-theme="midnight-rose"] {
+  --background: 250 32% 7%;
+  --foreground: 320 20% 90%;
+  --card: 250 26% 12%;
+  --card-foreground: 320 20% 90%;
+  --card-border: 248 24% 19%;
+  --popover: 250 26% 12%;
+  --popover-foreground: 320 20% 90%;
+  --popover-border: 248 24% 19%;
+  --primary: 332 58% 58%;
+  --primary-foreground: 250 32% 7%;
+  --secondary: 250 20% 17%;
+  --secondary-foreground: 320 14% 70%;
+  --muted: 250 18% 14%;
+  --muted-foreground: 280 10% 50%;
+  --accent: 248 24% 22%;
+  --accent-foreground: 320 20% 90%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 320 20% 90%;
+  --border: 248 24% 19%;
+  --input: 250 18% 15%;
+  --ring: 332 58% 58%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(200, 70, 120, 0.22);
+  --badge-outline:  rgba(200, 70, 120, 0.13);
+  --elevate-1:      rgba(200, 70, 120, 0.05);
+  --elevate-2:      rgba(200, 70, 120, 0.12);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 11. TOXIC — Dark muted lime-green with neon green accent
+ */
+[data-theme="toxic"] {
+  --background: 98 40% 5%;
+  --foreground: 90 28% 87%;
+  --card: 98 35% 9%;
+  --card-foreground: 90 28% 87%;
+  --card-border: 100 28% 17%;
+  --popover: 98 35% 9%;
+  --popover-foreground: 90 28% 87%;
+  --popover-border: 100 28% 17%;
+  --primary: 100 68% 46%;
+  --primary-foreground: 98 40% 5%;
+  --secondary: 98 28% 14%;
+  --secondary-foreground: 90 18% 68%;
+  --muted: 98 26% 12%;
+  --muted-foreground: 94 14% 50%;
+  --accent: 100 28% 18%;
+  --accent-foreground: 90 28% 87%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 90 28% 87%;
+  --border: 100 28% 17%;
+  --input: 98 26% 13%;
+  --ring: 100 68% 46%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(90, 190, 50, 0.22);
+  --badge-outline:  rgba(90, 190, 50, 0.13);
+  --elevate-1:      rgba(90, 190, 50, 0.05);
+  --elevate-2:      rgba(90, 190, 50, 0.12);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/*
+ * 12. SANDSTORM — Dark sandy/tan with warm gold accent
+ */
+[data-theme="sandstorm"] {
+  --background: 43 32% 8%;
+  --foreground: 45 42% 90%;
+  --card: 43 26% 13%;
+  --card-foreground: 45 42% 90%;
+  --card-border: 42 28% 21%;
+  --popover: 43 26% 13%;
+  --popover-foreground: 45 42% 90%;
+  --popover-border: 42 28% 21%;
+  --primary: 43 68% 52%;
+  --primary-foreground: 43 32% 8%;
+  --secondary: 43 22% 18%;
+  --secondary-foreground: 45 28% 68%;
+  --muted: 43 20% 15%;
+  --muted-foreground: 40 14% 50%;
+  --accent: 42 26% 22%;
+  --accent-foreground: 45 42% 90%;
+  --destructive: 5 72% 45%;
+  --destructive-foreground: 45 42% 90%;
+  --border: 42 28% 21%;
+  --input: 43 20% 16%;
+  --ring: 43 68% 52%;
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --button-outline: rgba(200, 155, 40, 0.22);
+  --badge-outline:  rgba(200, 155, 40, 0.13);
+  --elevate-1:      rgba(200, 155, 40, 0.05);
+  --elevate-2:      rgba(200, 155, 40, 0.11);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DISPLAY FONT — Deadlock theme heading / button font
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 [data-theme="deadlock"] h1,
 [data-theme="deadlock"] h2,
 [data-theme="deadlock"] h3,
@@ -255,91 +637,93 @@
   font-family: var(--app-font-deadlock-display);
 }
 
-/*
- * ── Emerald Occult: override hardcoded Tailwind color utilities ──────────────
- * Converts audience / bracket pages (hardcoded cyan/white palette) to
- * Emerald Occult without requiring JSX edits on every element.
- * Lives outside @layer → higher specificity than Tailwind layered utilities.
- */
+/* ═══════════════════════════════════════════════════════════════════════════
+   STRUCTURAL OVERRIDES — apply to ALL themes
+   Converts audience / bracket pages (hardcoded cyan/white palette) to
+   theme-aware tokens without requiring JSX edits on every element.
+   Lives outside @layer → higher specificity than Tailwind layered utilities.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* white text → warm cream */
-[data-theme="deadlock"] .text-white              { color: hsl(var(--foreground)); }
-[data-theme="deadlock"] .text-white\/80          { color: hsl(var(--foreground) / 0.90); }
-[data-theme="deadlock"] .text-white\/60          { color: hsl(var(--foreground) / 0.72); }
-[data-theme="deadlock"] .text-white\/55          { color: hsl(var(--foreground) / 0.68); }
-[data-theme="deadlock"] .text-white\/50          { color: hsl(var(--foreground) / 0.62); }
-[data-theme="deadlock"] .text-white\/40          { color: hsl(var(--foreground) / 0.52); }
-[data-theme="deadlock"] .text-white\/35          { color: hsl(var(--foreground) / 0.46); }
-[data-theme="deadlock"] .text-white\/30          { color: hsl(var(--foreground) / 0.40); }
-[data-theme="deadlock"] .text-white\/25          { color: hsl(var(--foreground) / 0.35); }
-[data-theme="deadlock"] .text-white\/20          { color: hsl(var(--foreground) / 0.30); }
-[data-theme="deadlock"] .text-white\/15          { color: hsl(var(--foreground) / 0.25); }
-[data-theme="deadlock"] .hover\:text-white:hover { color: hsl(var(--foreground)); }
-
-/* cyan accent → muted emerald green */
-[data-theme="deadlock"] .text-cyan-400           { color: hsl(var(--primary)); }
-[data-theme="deadlock"] .text-cyan-300           { color: hsl(var(--primary)); }
-[data-theme="deadlock"] .text-cyan-400\/60       { color: hsl(var(--primary) / 0.70); }
-[data-theme="deadlock"] .text-cyan-500\/50       { color: hsl(var(--primary) / 0.65); }
-[data-theme="deadlock"] .bg-cyan-400             { background-color: hsl(var(--primary)); }
-[data-theme="deadlock"] .bg-cyan-500\/15         { background-color: hsl(var(--primary) / 0.15); }
-[data-theme="deadlock"] .bg-cyan-500\/20         { background-color: hsl(var(--primary) / 0.20); }
-[data-theme="deadlock"] .border-cyan-500\/30     { border-color: hsl(var(--primary) / 0.35); }
-[data-theme="deadlock"] .border-cyan-400\/40     { border-color: hsl(var(--primary) / 0.45); }
+/* white text → themed foreground */
+[data-theme] .text-white              { color: hsl(var(--foreground)); }
+[data-theme] .text-white\/80          { color: hsl(var(--foreground) / 0.90); }
+[data-theme] .text-white\/60          { color: hsl(var(--foreground) / 0.72); }
+[data-theme] .text-white\/55          { color: hsl(var(--foreground) / 0.68); }
+[data-theme] .text-white\/50          { color: hsl(var(--foreground) / 0.62); }
+[data-theme] .text-white\/40          { color: hsl(var(--foreground) / 0.52); }
+[data-theme] .text-white\/35          { color: hsl(var(--foreground) / 0.46); }
+[data-theme] .text-white\/30          { color: hsl(var(--foreground) / 0.40); }
+[data-theme] .text-white\/25          { color: hsl(var(--foreground) / 0.35); }
+[data-theme] .text-white\/20          { color: hsl(var(--foreground) / 0.30); }
+[data-theme] .text-white\/15          { color: hsl(var(--foreground) / 0.25); }
+[data-theme] .hover\:text-white:hover { color: hsl(var(--foreground)); }
 
 /* white borders / surfaces → theme-aware */
-[data-theme="deadlock"] .border-white\/6         { border-color: hsl(var(--border) / 0.55); }
-[data-theme="deadlock"] .border-white\/8         { border-color: hsl(var(--border)); }
-[data-theme="deadlock"] .border-white\/10        { border-color: hsl(var(--border)); }
-[data-theme="deadlock"] .border-white\/15        { border-color: hsl(var(--border)); }
-[data-theme="deadlock"] .border-white\/20        { border-color: hsl(var(--border)); }
-[data-theme="deadlock"] .bg-white\/5             { background-color: hsl(var(--muted)); }
-[data-theme="deadlock"] .bg-white\/10            { background-color: hsl(var(--secondary)); }
-[data-theme="deadlock"] .bg-white\/15            { background-color: hsl(var(--secondary)); }
-[data-theme="deadlock"] .hover\:bg-white\/5:hover { background-color: hsl(var(--accent) / 0.70); }
+[data-theme] .border-white\/6         { border-color: hsl(var(--border) / 0.55); }
+[data-theme] .border-white\/8         { border-color: hsl(var(--border)); }
+[data-theme] .border-white\/10        { border-color: hsl(var(--border)); }
+[data-theme] .border-white\/15        { border-color: hsl(var(--border)); }
+[data-theme] .border-white\/20        { border-color: hsl(var(--border)); }
+[data-theme] .bg-white\/3             { background-color: hsl(var(--muted) / 0.50); }
+[data-theme] .bg-white\/5             { background-color: hsl(var(--muted)); }
+[data-theme] .bg-white\/10            { background-color: hsl(var(--secondary)); }
+[data-theme] .bg-white\/15            { background-color: hsl(var(--secondary)); }
+[data-theme] .hover\:bg-white\/5:hover  { background-color: hsl(var(--accent) / 0.70); }
+[data-theme] .hover\:bg-white\/10:hover { background-color: hsl(var(--accent) / 0.80); }
 
-/* gradient endpoint on bracket title: from primary green to gold */
-[data-theme="deadlock"] .to-accent { --tw-gradient-to: var(--deadlock-gold-text); }
-
-/* focus ring */
-[data-theme="deadlock"] .focus-visible\:ring-cyan-400:focus-visible {
+/* cyan accent → primary */
+[data-theme] .text-cyan-300           { color: hsl(var(--primary) / 0.92); }
+[data-theme] .text-cyan-400           { color: hsl(var(--primary)); }
+[data-theme] .text-cyan-400\/60       { color: hsl(var(--primary) / 0.70); }
+[data-theme] .text-cyan-500\/50       { color: hsl(var(--primary) / 0.65); }
+[data-theme] .text-cyan-500\/80       { color: hsl(var(--primary) / 0.80); }
+[data-theme] .bg-cyan-400             { background-color: hsl(var(--primary)); }
+[data-theme] .bg-cyan-500\/5          { background-color: hsl(var(--primary) / 0.06); }
+[data-theme] .bg-cyan-500\/15         { background-color: hsl(var(--primary) / 0.15); }
+[data-theme] .bg-cyan-500\/20         { background-color: hsl(var(--primary) / 0.20); }
+[data-theme] .border-cyan-400\/40     { border-color: hsl(var(--primary) / 0.45); }
+[data-theme] .border-cyan-500\/30     { border-color: hsl(var(--primary) / 0.35); }
+[data-theme] .border-cyan-500\/50     { border-color: hsl(var(--primary) / 0.55); }
+[data-theme] .ring-cyan-400           { --tw-ring-color: hsl(var(--ring)); }
+[data-theme] .focus-visible\:ring-cyan-400:focus-visible {
   --tw-ring-color: hsl(var(--ring));
 }
 
-/* ── Dialog / Sheet overlay backdrop → dark green instead of solid black ── */
-[data-theme="deadlock"] .bg-black\/80 { background-color: hsl(135 40% 2% / 0.88); }
+/* gradient endpoint */
+[data-theme] .to-accent              { --tw-gradient-to: hsl(var(--primary)); }
 
-/* ── Pure white / black surfaces ── */
-[data-theme="deadlock"] .bg-white                    { background-color: hsl(var(--card)); }
-[data-theme="deadlock"] .border-white                { border-color: hsl(var(--border)); }
-[data-theme="deadlock"] .bg-black                    { background-color: hsl(var(--background)); }
-[data-theme="deadlock"] .hover\:bg-white\/10:hover   { background-color: hsl(var(--accent) / 0.80); }
+/* Dialog / Sheet overlay backdrop */
+[data-theme] .bg-black\/80           { background-color: hsl(var(--background) / 0.90); }
 
-/* ── Gray / Slate neutrals → warm muted-foreground ── */
-[data-theme="deadlock"] .text-gray-400               { color: hsl(var(--muted-foreground)); }
-[data-theme="deadlock"] .text-slate-400              { color: hsl(var(--muted-foreground)); }
+/* Pure white / black surfaces */
+[data-theme] .bg-white               { background-color: hsl(var(--card)); }
+[data-theme] .border-white           { border-color: hsl(var(--border)); }
+[data-theme] .bg-black               { background-color: hsl(var(--background)); }
 
-/* ── Blue → emerald primary ── */
-[data-theme="deadlock"] .text-blue-300               { color: hsl(var(--primary) / 0.92); }
-[data-theme="deadlock"] .text-blue-400               { color: hsl(var(--primary)); }
-[data-theme="deadlock"] .text-blue-400\/70           { color: hsl(var(--primary) / 0.70); }
-[data-theme="deadlock"] .bg-blue-500\/10             { background-color: hsl(var(--primary) / 0.12); }
-[data-theme="deadlock"] .bg-blue-600                 { background-color: hsl(var(--primary)); }
-[data-theme="deadlock"] .bg-blue-700                 { background-color: hsl(148 35% 34%); }
-[data-theme="deadlock"] .hover\:bg-blue-700:hover    { background-color: hsl(148 35% 30%); }
-[data-theme="deadlock"] .border-blue-400\/50         { border-color: hsl(var(--primary) / 0.50); }
-[data-theme="deadlock"] .border-blue-500\/30         { border-color: hsl(var(--primary) / 0.30); }
+/* Gray / Slate neutrals → muted-foreground */
+[data-theme] .text-gray-400          { color: hsl(var(--muted-foreground)); }
+[data-theme] .text-slate-400         { color: hsl(var(--muted-foreground)); }
 
-/* ── Cyan → emerald primary (extends existing coverage) ── */
-[data-theme="deadlock"] .text-cyan-300               { color: hsl(var(--primary) / 0.92); }
-[data-theme="deadlock"] .text-cyan-500\/80           { color: hsl(var(--primary) / 0.80); }
-[data-theme="deadlock"] .bg-cyan-500\/5              { background-color: hsl(var(--primary) / 0.06); }
-[data-theme="deadlock"] .border-cyan-500\/50         { border-color: hsl(var(--primary) / 0.55); }
-[data-theme="deadlock"] .ring-cyan-400               { --tw-ring-color: hsl(var(--ring)); }
+/* Blue → primary */
+[data-theme] .text-blue-300          { color: hsl(var(--primary) / 0.92); }
+[data-theme] .text-blue-400          { color: hsl(var(--primary)); }
+[data-theme] .text-blue-400\/70      { color: hsl(var(--primary) / 0.70); }
+[data-theme] .bg-blue-500\/10        { background-color: hsl(var(--primary) / 0.12); }
+[data-theme] .bg-blue-600            { background-color: hsl(var(--primary)); }
+[data-theme] .bg-blue-700            { background-color: hsl(var(--primary) / 0.85); }
+[data-theme] .hover\:bg-blue-700:hover { background-color: hsl(var(--primary) / 0.75); }
+[data-theme] .border-blue-400\/50    { border-color: hsl(var(--primary) / 0.50); }
+[data-theme] .border-blue-500\/30    { border-color: hsl(var(--primary) / 0.30); }
 
-/* ── Orange "warning-action" buttons → warm amber / Deadlock gold ──────────
- * "Swap players" and "No contest" use orange as a high-visibility warning.
- * Map to warm amber (hsl ~38) which echoes the Hidden King gold palette. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEADLOCK-SPECIFIC OVERRIDES — amber/gold/green palette remapping
+   Only applies under the Emerald Occult theme where the warm tones are desired.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* gradient endpoint → deadlock gold */
+[data-theme="deadlock"] .to-accent { --tw-gradient-to: var(--deadlock-gold-text); }
+
+/* Orange "warning-action" → warm amber / Hidden King gold */
 [data-theme="deadlock"] .text-orange-400             { color: hsl(38 65% 60%); }
 [data-theme="deadlock"] .text-orange-400\/70         { color: hsl(38 65% 60% / 0.70); }
 [data-theme="deadlock"] .bg-orange-500               { background-color: hsl(38 72% 46%); }
@@ -355,7 +739,7 @@
 [data-theme="deadlock"] .border-orange-500\/50       { border-color: hsl(38 72% 46% / 0.50); }
 [data-theme="deadlock"] .hover\:border-orange-400\/50:hover { border-color: hsl(38 65% 60% / 0.50); }
 
-/* ── Yellow warning states → warm gold (naturally on-theme) ── */
+/* Yellow warning → warm gold */
 [data-theme="deadlock"] .text-yellow-300             { color: hsl(44 68% 70%); }
 [data-theme="deadlock"] .text-yellow-400             { color: hsl(44 62% 60%); }
 [data-theme="deadlock"] .text-yellow-400\/70         { color: hsl(44 62% 60% / 0.70); }
@@ -372,8 +756,7 @@
 [data-theme="deadlock"] .border-yellow-500\/50       { border-color: hsl(44 56% 52% / 0.50); }
 [data-theme="deadlock"] .fill-yellow-400             { fill: hsl(44 62% 60%); }
 
-/* ── Green success states → on-theme emerald (distinguishable from bg) ──
- * Brighter than bg-primary so "success" reads as distinct from "action". */
+/* Green success → on-theme emerald */
 [data-theme="deadlock"] .text-green-300              { color: hsl(148 42% 65%); }
 [data-theme="deadlock"] .text-green-400              { color: hsl(148 38% 55%); }
 [data-theme="deadlock"] .text-green-500              { color: hsl(148 34% 48%); }
@@ -385,15 +768,113 @@
 [data-theme="deadlock"] .border-green-500\/20        { border-color: hsl(var(--primary) / 0.22); }
 [data-theme="deadlock"] .border-green-500\/30        { border-color: hsl(var(--primary) / 0.32); }
 
-/* ── Red / destructive states → intentionally NOT overridden ─────────────
- * text-red-400, bg-red-500/*, border-red-500/* stay vivid red to maintain
- * unambiguous danger semantics against the dark green background.          */
+/* Red / destructive states → intentionally NOT overridden (stays vivid red) */
 
-/*
- * .font-deadlock helper class.
- * In base theme → renders as Inter (no-op since variable is not set to Pulp Bold).
- * In [data-theme="deadlock"] → Valve Pulp Bold (or Georgia fallback).
- */
+/* ═══════════════════════════════════════════════════════════════════════════
+   FONT PRESETS  (data-font on <html>)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-font="rajdhani"] {
+  --app-font-sans: 'Rajdhani', sans-serif;
+}
+[data-font="rajdhani"] body,
+[data-font="rajdhani"] button,
+[data-font="rajdhani"] input,
+[data-font="rajdhani"] select,
+[data-font="rajdhani"] textarea {
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+[data-font="orbitron"] {
+  --app-font-sans: 'Orbitron', sans-serif;
+}
+[data-font="orbitron"] body,
+[data-font="orbitron"] button,
+[data-font="orbitron"] input,
+[data-font="orbitron"] select,
+[data-font="orbitron"] textarea {
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+[data-font="exo2"] {
+  --app-font-sans: 'Exo 2', sans-serif;
+}
+[data-font="exo2"] body,
+[data-font="exo2"] button,
+[data-font="exo2"] input,
+[data-font="exo2"] select,
+[data-font="exo2"] textarea {
+  font-family: 'Exo 2', sans-serif;
+}
+
+[data-font="saira"] {
+  --app-font-sans: 'Saira', sans-serif;
+}
+[data-font="saira"] body,
+[data-font="saira"] button,
+[data-font="saira"] input,
+[data-font="saira"] select,
+[data-font="saira"] textarea {
+  font-family: 'Saira', sans-serif;
+  letter-spacing: 0.01em;
+}
+
+[data-font="play"] {
+  --app-font-sans: 'Play', sans-serif;
+}
+[data-font="play"] body,
+[data-font="play"] button,
+[data-font="play"] input,
+[data-font="play"] select,
+[data-font="play"] textarea {
+  font-family: 'Play', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FRAME PRESETS  (data-frame on <html>)
+   Controls border-radius across cards, buttons, inputs, badges.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* sharp — no radius at all */
+[data-frame="sharp"] {
+  --radius: 0px;
+}
+
+/* cut — minimal bevel (2px) */
+[data-frame="cut"] {
+  --radius: 0.125rem; /* 2px */
+}
+
+/* tech — slightly softened (4px) */
+[data-frame="tech"] {
+  --radius: 0.25rem; /* 4px */
+}
+
+/* rounded — default (8px), matches :root, so no override needed; kept for completeness */
+[data-frame="rounded"] {
+  --radius: 0.5rem; /* 8px */
+}
+
+/* pill — very rounded */
+[data-frame="pill"] {
+  --radius: 1.5rem; /* 24px */
+}
+
+/* glow — default radius + glowing card shadow */
+[data-frame="glow"] {
+  --radius: 0.5rem; /* 8px */
+}
+[data-frame="glow"] .rounded-xl,
+[data-frame="glow"] .rounded-lg,
+[data-frame="glow"] [class*="rounded"] {
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.18), 0 0 32px hsl(var(--primary) / 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FONT-DEADLOCK helper class
+   ═══════════════════════════════════════════════════════════════════════════ */
 .font-deadlock {
   font-family: var(--app-font-deadlock-display);
 }

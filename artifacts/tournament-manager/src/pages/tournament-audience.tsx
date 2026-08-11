@@ -35,7 +35,7 @@ import { usePlayerBans, useMatchGamePicks } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
-import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
+import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -150,8 +150,9 @@ export default function TournamentAudience() {
   const accessDeniedCode = lockedOutCodeRef.current;
 
   // Must be before any early returns so React hooks order stays stable.
-  const deadlockTheme = tournament?.gameConfig?.gameId === "deadlock" && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
-  useDeadlockHtmlTheme(deadlockTheme);
+  const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
+  const presentationSettings = resolvePresentationSettings(rawPs as any);
+  usePresentationTheme(presentationSettings);
 
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
@@ -270,7 +271,7 @@ export default function TournamentAudience() {
   return (
     <div
       className="min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden"
-      data-theme={deadlockTheme ? "deadlock" : undefined}
+      data-theme={presentationSettings.colorPreset || undefined}
       style={{
         backgroundImage:
           "radial-gradient(circle at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)",
@@ -282,7 +283,7 @@ export default function TournamentAudience() {
         <div className="flex items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
-          <h1 className={`font-bold text-sm sm:text-base truncate${deadlockTheme ? " font-[family-name:var(--font-deadlock-display)]" : ""}`}>{tournament?.name ?? "Ładowanie…"}</h1>
+          <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -687,7 +688,7 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
           {matches.map((match) => {
             const showsScore = match.score1 != null || match.score2 != null;
             return (
-              <article key={match.id} className="rounded-xl border border-white/8 bg-[#0d1629] px-4 py-4">
+              <article key={match.id} className="rounded-xl border border-white/8 bg-card px-4 py-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span className="font-mono text-white/35">Runda {match.round} · Mecz {match.matchNumber}</span>
                   <div className="flex items-center gap-2">
@@ -728,7 +729,7 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
       ) : format === "single_elimination" ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {standings.map((standing) => (
-            <div key={standing.playerId} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
+            <div key={standing.playerId} className="rounded-xl border border-white/8 bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold text-white">{standing.playerName}</div>
@@ -745,7 +746,7 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0d1629]">
+        <div className="overflow-x-auto rounded-xl border border-white/8 bg-card">
           <table className="w-full min-w-[680px] text-sm" aria-label="Pełna klasyfikacja turnieju">
             <thead className="border-b border-white/8 bg-white/3 text-left text-[11px] uppercase tracking-wider text-white/35">
               <tr>
@@ -805,7 +806,7 @@ function PublicPlayersSection({
             const standing = standings.find((entry) => entry.playerId === player.id);
             const bans = playerBansMap?.get(player.id) ?? [];
             return (
-              <article key={player.id} className="rounded-xl border border-white/8 bg-[#0d1629] p-4">
+              <article key={player.id} className="rounded-xl border border-white/8 bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate font-semibold text-white">{player.name}</h3>
@@ -868,7 +869,7 @@ function PublicBracketSection({
       {!bracket ? (
         <EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0d1629] p-4 text-foreground">
+        <div className="overflow-x-auto rounded-xl border border-white/8 bg-card p-4 text-foreground">
           {format === "swiss" ? (
             <SwissRoundsView bracket={bracket} currentRound={currentRound} totalRounds={totalRounds} />
           ) : format === "round_robin" ? (
@@ -898,7 +899,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <div className={`bg-[#0d1629]/80 border border-white/8 rounded-xl p-4 ${className}`}>
+    <div className={`bg-card/80 border border-white/8 rounded-xl p-4 ${className}`}>
       <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold mb-3">{title}</h3>
       {children}
     </div>

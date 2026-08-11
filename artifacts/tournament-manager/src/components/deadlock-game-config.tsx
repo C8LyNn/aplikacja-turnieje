@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   DEADLOCK_CONFIG_VERSION,
   DEADLOCK_GAME_ID,
@@ -269,62 +269,196 @@ export function TournamentGameConfigPanel({
   );
 }
 
+// ── Presentation panel data ──────────────────────────────────────────────────
+
+const COLOR_PRESETS = [
+  { id: "deadlock",      label: "Emerald Occult", swatch: "#0e1a10", accent: "#3d8055" },
+  { id: "obsidian",      label: "Obsidian",       swatch: "#10100f", accent: "#919aaa" },
+  { id: "crimson-vault", label: "Crimson Vault",  swatch: "#130608", accent: "#c23348" },
+  { id: "abyssal",       label: "Abyssal",        swatch: "#0a0f1e", accent: "#4a9ee6" },
+  { id: "iron-citadel",  label: "Iron Citadel",   swatch: "#0d1015", accent: "#7aacba" },
+  { id: "ember",         label: "Ember",          swatch: "#130a06", accent: "#d46a2a" },
+  { id: "void",          label: "Void",           swatch: "#0e080f", accent: "#9946e0" },
+  { id: "copper-age",    label: "Copper Age",     swatch: "#130d06", accent: "#d46828" },
+  { id: "glacier",       label: "Glacier",        swatch: "#080f14", accent: "#20bcd4" },
+  { id: "midnight-rose", label: "Midnight Rose",  swatch: "#0c0a14", accent: "#d44e80" },
+  { id: "toxic",         label: "Toxic",          swatch: "#070f04", accent: "#52c42a" },
+  { id: "sandstorm",     label: "Sandstorm",      swatch: "#120e06", accent: "#d49e28" },
+] as const;
+
+const FONT_PRESETS = [
+  { id: "inter",    label: "Inter",    note: "Domyślna" },
+  { id: "rajdhani", label: "Rajdhani", note: "Geometryczna" },
+  { id: "orbitron", label: "Orbitron", note: "Sci-fi" },
+  { id: "exo2",     label: "Exo 2",   note: "Tech" },
+  { id: "saira",    label: "Saira",    note: "Wąska" },
+  { id: "play",     label: "Play",     note: "Gamelike" },
+] as const;
+
+const FRAME_PRESETS = [
+  { id: "sharp",   label: "Sharp",   note: "0 px" },
+  { id: "cut",     label: "Cut",     note: "2 px" },
+  { id: "tech",    label: "Tech",    note: "4 px" },
+  { id: "rounded", label: "Rounded", note: "8 px" },
+  { id: "pill",    label: "Pill",    note: "24 px" },
+  { id: "glow",    label: "Glow",    note: "Poświata" },
+] as const;
+
 export function TournamentPresentationPanel({ tournament }: { tournament: Tournament }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateTournament = useUpdateTournament();
-  const ps = (tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined;
-  const [deadlockTheme, setDeadlockTheme] = useState<boolean>(ps?.deadlockTheme ?? false);
 
+  const ps = (tournament as any).presentationSettings as {
+    deadlockTheme?: boolean;
+    colorPreset?: string | null;
+    fontPreset?: string | null;
+    frameStyle?: string | null;
+  } | null | undefined;
+
+  // Derive initial values — shim legacy deadlockTheme boolean
+  const initialColor = ps?.colorPreset ?? (ps?.deadlockTheme ? "deadlock" : "");
+  const [colorPreset, setColorPreset] = useState<string>(initialColor);
+  const [fontPreset, setFontPreset]   = useState<string>(ps?.fontPreset ?? "inter");
+  const [frameStyle, setFrameStyle]   = useState<string>(ps?.frameStyle ?? "rounded");
+
+  // Stay in sync if tournament data refreshes externally
   useEffect(() => {
-    setDeadlockTheme((ps?.deadlockTheme) ?? false);
-  }, [ps?.deadlockTheme]);
+    setColorPreset(ps?.colorPreset ?? (ps?.deadlockTheme ? "deadlock" : ""));
+    setFontPreset(ps?.fontPreset ?? "inter");
+    setFrameStyle(ps?.frameStyle ?? "rounded");
+  }, [ps?.colorPreset, ps?.deadlockTheme, ps?.fontPreset, ps?.frameStyle]);
 
-  const handleToggle = (value: boolean) => {
-    setDeadlockTheme(value);
-    updateTournament.mutate(
-      { id: tournament.id, data: { presentationSettings: { deadlockTheme: value } } as any },
-      {
-        onSuccess: () => {
-          void queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(tournament.id) });
-          toast({ title: value ? "Motyw Deadlock włączony" : "Motyw Deadlock wyłączony" });
+  const saveSettings = useCallback(
+    (patch: { colorPreset?: string; fontPreset?: string; frameStyle?: string }) => {
+      const next = {
+        colorPreset: patch.colorPreset  ?? colorPreset,
+        fontPreset:  patch.fontPreset   ?? fontPreset,
+        frameStyle:  patch.frameStyle   ?? frameStyle,
+        deadlockTheme: (patch.colorPreset ?? colorPreset) === "deadlock",
+      };
+      updateTournament.mutate(
+        { id: tournament.id, data: { presentationSettings: next } as any },
+        {
+          onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(tournament.id) });
+            toast({ title: "Zapisano ustawienia prezentacji" });
+          },
+          onError: (error) =>
+            toast({
+              title: "Nie udało się zapisać ustawień prezentacji",
+              description: error instanceof Error ? error.message : undefined,
+              variant: "destructive",
+            }),
         },
-        onError: (error) =>
-          toast({
-            title: "Nie udało się zapisać ustawień prezentacji",
-            description: error instanceof Error ? error.message : undefined,
-            variant: "destructive",
-          }),
-      },
-    );
+      );
+    },
+    [colorPreset, fontPreset, frameStyle, tournament.id, updateTournament, queryClient, toast],
+  );
+
+  const handleColor = (id: string) => {
+    const next = colorPreset === id ? "" : id;
+    setColorPreset(next);
+    saveSettings({ colorPreset: next });
+  };
+
+  const handleFont = (id: string) => {
+    setFontPreset(id);
+    saveSettings({ fontPreset: id });
+  };
+
+  const handleFrame = (id: string) => {
+    setFrameStyle(id);
+    saveSettings({ frameStyle: id });
   };
 
   return (
-    <div className="space-y-3 border-t border-border/50 pt-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prezentacja</p>
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
-        <div className="space-y-0.5">
-          <p className="text-sm font-medium">Motyw Deadlock</p>
-          <p className="text-xs text-muted-foreground">
-            Wygląd turniejowy: motyw Deadlock (beżowy/ciemnobrązowy + Valve Pulp Bold). Edytowalny w każdym statusie turnieju.
-          </p>
+    <div className="space-y-5 border-t border-border/50 pt-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wizualia prezentacji</p>
+
+      {/* ── Colour presets ── */}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium">Motyw kolorów</p>
+        <div className="grid grid-cols-3 gap-2">
+          {COLOR_PRESETS.map((preset) => {
+            const active = colorPreset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleColor(preset.id)}
+                disabled={updateTournament.isPending}
+                title={preset.label}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-2 py-2 text-left text-xs transition-all disabled:opacity-50",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40"
+                    : "border-border/40 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/60",
+                )}
+              >
+                <span
+                  className="h-4 w-4 shrink-0 rounded-sm border border-white/10"
+                  style={{ background: `linear-gradient(135deg, ${preset.swatch} 55%, ${preset.accent} 100%)` }}
+                />
+                <span className="truncate font-medium leading-none">{preset.label}</span>
+              </button>
+            );
+          })}
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={deadlockTheme}
-          onClick={() => handleToggle(!deadlockTheme)}
-          disabled={updateTournament.isPending}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 ${
-            deadlockTheme ? "bg-primary" : "bg-input"
-          }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
-              deadlockTheme ? "translate-x-5" : "translate-x-0"
-            }`}
-          />
-        </button>
+      </div>
+
+      {/* ── Font presets ── */}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium">Czcionka</p>
+        <div className="grid grid-cols-3 gap-2">
+          {FONT_PRESETS.map((preset) => {
+            const active = fontPreset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleFont(preset.id)}
+                disabled={updateTournament.isPending}
+                className={cn(
+                  "flex flex-col rounded-lg border px-2 py-2 text-left text-xs transition-all disabled:opacity-50",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40"
+                    : "border-border/40 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/60",
+                )}
+              >
+                <span className="font-semibold leading-none">{preset.label}</span>
+                <span className="mt-0.5 text-[10px] opacity-60">{preset.note}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Frame presets ── */}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium">Styl ramek</p>
+        <div className="grid grid-cols-3 gap-2">
+          {FRAME_PRESETS.map((preset) => {
+            const active = frameStyle === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => handleFrame(preset.id)}
+                disabled={updateTournament.isPending}
+                className={cn(
+                  "flex flex-col rounded-lg border px-2 py-2 text-left text-xs transition-all disabled:opacity-50",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40"
+                    : "border-border/40 bg-muted/30 text-muted-foreground hover:border-border hover:bg-muted/60",
+                )}
+              >
+                <span className="font-semibold leading-none">{preset.label}</span>
+                <span className="mt-0.5 text-[10px] opacity-60">{preset.note}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

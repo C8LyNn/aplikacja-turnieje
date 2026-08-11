@@ -45,7 +45,7 @@ import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
-import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
+import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -112,8 +112,9 @@ export default function TournamentHost() {
 
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
-  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
-  useDeadlockHtmlTheme(deadlockTheme);
+  const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
+  const presentationSettings = resolvePresentationSettings(rawPs as any);
+  usePresentationTheme(presentationSettings);
 
   const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id });
   const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
@@ -1343,7 +1344,7 @@ export default function TournamentHost() {
   };
 
   return (
-    <Layout deadlockTheme={deadlockTheme}>
+    <Layout colorPreset={presentationSettings.colorPreset || undefined}>
       <div className="flex flex-col gap-4 max-w-6xl mx-auto">
         {/* Top bar */}
         <div className="flex items-center gap-3 border-b pb-4">
