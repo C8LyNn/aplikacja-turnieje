@@ -264,10 +264,6 @@ export function TournamentGameConfigPanel({
           )}
         </div>
 
-        {/* ── Prezentacja (always editable) ── */}
-        {tournament.gameConfig?.gameId === DEADLOCK_GAME_ID && (
-          <TournamentPresentationPanel tournament={tournament} />
-        )}
       </CardContent>
     </Card>
   );
