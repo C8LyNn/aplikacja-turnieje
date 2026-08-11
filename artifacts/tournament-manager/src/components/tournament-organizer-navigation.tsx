@@ -20,6 +20,8 @@ export type OrganizerArea =
   | "correction"
   | "sharing"
   | "backup"
+  | "game-rules"
+  | "visuals"
   | "security";
 
 export type TournamentManagementRole = "organizer" | "support";
@@ -33,6 +35,8 @@ export type OrganizerDetailTab =
   | "history"
   | "sharing"
   | "backup"
+  | "game-rules"
+  | "visuals"
   | "security";
 export type OrganizerHostTab = "prowadzenie" | "wyniki" | "tabela" | "drabinka" | "korekta";
 
@@ -47,6 +51,8 @@ export function organizerDetailTab(
   if (readOnlyDetailTabs.includes(requested as (typeof readOnlyDetailTabs)[number])) {
     return requested as OrganizerDetailTab;
   }
+  if (requested === "game-rules" && capabilities.canManageOrganizerSettings) return requested;
+  if (requested === "visuals" && capabilities.canManageOrganizerSettings) return requested;
   if (requested === "sharing" && capabilities.canManageSharing) return requested;
   if (requested === "backup" && capabilities.canManageBackup) return requested;
   if (requested === "security" && capabilities.canManageOrganizerSettings) return requested;
@@ -115,6 +121,10 @@ export function organizerMoreItems(
   const items: Array<{ area: OrganizerArea; label: string; href: string }> = [
     { area: "history", label: "Historia", href: `/tournaments/${tournamentId}?tab=history` },
   ];
+  if (capabilities.canManageOrganizerSettings) {
+    items.push({ area: "game-rules", label: "Reguły gry", href: `/tournaments/${tournamentId}?tab=game-rules` });
+    items.push({ area: "visuals", label: "Wizualia", href: `/tournaments/${tournamentId}?tab=visuals` });
+  }
   if (capabilities.canUndo) {
     items.push({ area: "correction", label: "Korekta", href: `/tournaments/${tournamentId}/host?tab=korekta` });
   }

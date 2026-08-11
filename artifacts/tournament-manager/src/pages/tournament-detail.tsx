@@ -34,6 +34,7 @@ import {
   ForcedHeroBadge,
   TournamentGameConfigPanel,
 } from "@/components/deadlock-game-config";
+import { TournamentPresentationPanel } from "@/components/tournament-presentation-panel";
 import { PlayerBansRow, GamePicksRow, HeroPickerGrid } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useSetPlayerBans } from "@/lib/deadlock-bans-picks";
 import { useAuth } from "@/context/auth-context";
@@ -1628,15 +1629,24 @@ export default function TournamentDetail() {
           </TabsContent>}
 
           {capabilities.canManageOrganizerSettings && (
+            <TabsContent value="game-rules" className="pt-6">
+              <TournamentGameConfigPanel tournament={tournament} />
+            </TabsContent>
+          )}
+
+          {capabilities.canManageOrganizerSettings && (
+            <TabsContent value="visuals" className="pt-6">
+              <TournamentPresentationPanel />
+            </TabsContent>
+          )}
+
+          {capabilities.canManageOrganizerSettings && (
             <TabsContent value="security" className="pt-6">
-              <div className="space-y-6">
-                <TournamentGameConfigPanel tournament={tournament} />
-                <SecurityPanel
-                  tournamentId={id}
-                  hasOrganizerPassword={!!tournament.hasOrganizerPassword}
-                  onOrganizerPasswordSet={() => refetchTournament()}
-                />
-              </div>
+              <SecurityPanel
+                tournamentId={id}
+                hasOrganizerPassword={!!tournament.hasOrganizerPassword}
+                onOrganizerPasswordSet={() => refetchTournament()}
+              />
             </TabsContent>
           )}
 
