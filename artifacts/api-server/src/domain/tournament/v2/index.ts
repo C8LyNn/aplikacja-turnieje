@@ -6,3 +6,5 @@ export * from "./compiled-routing-model";
 export * from "./stage-format-engine";
 export * from "./validate-compiled-routing-plan";
 export * from "./compile-tournament-blueprint";
+export * from "./double-elimination-format-engine";
+export * from "./routing-execution";

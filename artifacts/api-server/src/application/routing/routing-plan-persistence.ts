@@ -1089,7 +1089,22 @@ export async function loadCompiledRoutingPlanV2(
   return db.transaction((tx) => loadRelationalPlan(tx, lookup));
 }
 
+/** Loads the sealed plan through the caller's transaction and lock scope. */
+export async function loadCompiledRoutingPlanV2InTransaction(
+  tx: RoutingTransaction,
+  lookup: PlanLookup,
+): Promise<LoadedCompiledRoutingPlan> {
+  return loadRelationalPlan(tx, lookup);
+}
+
 export async function saveCompiledRoutingPlanV2(
+  input: SaveCompiledRoutingPlanInput,
+): Promise<SavedCompiledRoutingPlan> {
+  return db.transaction((tx) => saveCompiledRoutingPlanV2InTransaction(tx, input));
+}
+
+export async function saveCompiledRoutingPlanV2InTransaction(
+  tx: RoutingTransaction,
   input: SaveCompiledRoutingPlanInput,
 ): Promise<SavedCompiledRoutingPlan> {
   const validation = validateCompiledTournamentRoutingPlanV2(input.plan);
@@ -1131,7 +1146,7 @@ export async function saveCompiledRoutingPlanV2(
     );
   }
 
-  return db.transaction(async (tx) => {
+  {
     const [tournament] = await tx
       .select()
       .from(tournamentsTable)
@@ -1228,8 +1243,15 @@ export async function saveCompiledRoutingPlanV2(
           "round_robin",
           "group_stage",
           "single_elimination",
+          "double_elimination",
         ].includes(stage.formatId) ||
-        persisted.format !== stage.formatId
+        (
+          persisted.format !== stage.formatId &&
+          !(
+            stage.formatId === "double_elimination" &&
+            persisted.format === "single_elimination"
+          )
+        )
       ) {
         throw new RoutingPlanPersistenceError(
           "ROUTING_PLAN_STAGE_FORMAT_MISMATCH",
@@ -1720,5 +1742,5 @@ export async function saveCompiledRoutingPlanV2(
       );
     }
     return { ...loaded, applied: true };
-  });
+  }
 }

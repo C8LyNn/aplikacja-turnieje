@@ -66,6 +66,10 @@ const TOURNAMENT_PRESENTATION_SETTINGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0016_tournament_presentation_settings.sql",
   import.meta.url,
 );
+const DOUBLE_ELIMINATION_ENGINE_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0017_double_elimination_engine_v2.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -204,6 +208,11 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
         await readFile(TOURNAMENT_GAME_CONFIG_MIGRATION_URL, "utf8"),
         schema,
       ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const doubleEliminationEngineMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(DOUBLE_ELIMINATION_ENGINE_MIGRATION_URL, "utf8"),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -259,6 +268,9 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(tournamentPresentationSettingsMigrationSql);
       // presentationSettings column uses IF NOT EXISTS — safe to replay.
       await pool.query(tournamentPresentationSettingsMigrationSql);
+      await pool.query(doubleEliminationEngineMigrationSql);
+      // The execution table and format reconciliation are idempotent.
+      await pool.query(doubleEliminationEngineMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

@@ -33,7 +33,7 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
-  /** Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection. */
+  /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
   gameConfig?: DeadlockTournamentGameConfig;
 }

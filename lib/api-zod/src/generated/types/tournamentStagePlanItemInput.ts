@@ -18,7 +18,7 @@ export interface TournamentStagePlanItemInput {
   key: string;
   /**
      * @minimum 1
-     * @maximum 3
+     * @maximum 10
      */
   position: number;
   /** @minLength 1 */

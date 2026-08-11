@@ -14,4 +14,5 @@ export const TournamentStagePlanItemInputFormat = {
   round_robin: 'round_robin',
   group_stage: 'group_stage',
   single_elimination: 'single_elimination',
+  double_elimination: 'double_elimination',
 } as const;

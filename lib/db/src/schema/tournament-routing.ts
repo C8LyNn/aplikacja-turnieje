@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   serial,
@@ -876,6 +877,49 @@ export const tournamentRoutingDependenciesTable = pgTable(
       sql`${table.ordinal} >= 0
         AND length(${table.sourceNodeKey}) > 0
         AND length(${table.targetNodeKey}) > 0`,
+    ),
+  ],
+);
+
+/**
+ * Mutable execution snapshot for a sealed routing plan stage. Keeping this
+ * separate from the append-only plan makes corrections and full resets
+ * atomic without rewriting the compiled graph.
+ */
+export const tournamentRoutingExecutionsTable = pgTable(
+  "tournament_routing_executions",
+  {
+    planId: integer("plan_id").notNull(),
+    stageKey: text("stage_key").notNull(),
+    revision: integer("revision").notNull().default(1),
+    state: jsonb("state").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.planId, table.stageKey],
+      name: "tournament_routing_executions_pk",
+    }),
+    foreignKey({
+      columns: [table.planId, table.stageKey],
+      foreignColumns: [
+        tournamentRoutingStagesTable.planId,
+        tournamentRoutingStagesTable.stageKey,
+      ],
+      name: "tournament_routing_executions_stage_fk",
+    }).onDelete("cascade"),
+    check(
+      "tournament_routing_executions_revision_positive",
+      sql`${table.revision} > 0`,
+    ),
+    check(
+      "tournament_routing_executions_state_object",
+      sql`jsonb_typeof(${table.state}) = 'object'`,
     ),
   ],
 );

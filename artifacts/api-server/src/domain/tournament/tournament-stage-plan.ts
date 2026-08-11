@@ -12,6 +12,7 @@ export const TOURNAMENT_STAGE_FORMATS = [
   "round_robin",
   "group_stage",
   "single_elimination",
+  "double_elimination",
 ] as const;
 
 export type TournamentStageFormat = (typeof TOURNAMENT_STAGE_FORMATS)[number];
@@ -97,11 +98,17 @@ export interface SingleEliminationTournamentStagePlan extends BaseTournamentStag
   advancingCount?: number;
 }
 
+export interface DoubleEliminationTournamentStagePlan extends BaseTournamentStagePlan {
+  format: "double_elimination";
+  placementMethod: BracketPlacementMethod;
+}
+
 export type TournamentStagePlan =
   | SwissTournamentStagePlan
   | RoundRobinTournamentStagePlan
   | GroupTournamentStagePlan
-  | SingleEliminationTournamentStagePlan;
+  | SingleEliminationTournamentStagePlan
+  | DoubleEliminationTournamentStagePlan;
 
 export interface TournamentStagesPlan {
   initialParticipantCount: number;
@@ -204,7 +211,7 @@ function normalizedGroupResultSeeding(record: UnknownRecord): GroupResultSeeding
 function usesRandomConfiguration(record: UnknownRecord): boolean {
   return normalizedEntrySeedingMethod(record) === "random" ||
     (record.format === "group_stage" && normalizedGroupPlacement(record) === "random") ||
-    (record.format === "single_elimination" && normalizedBracketPlacement(record) === "random");
+    (["single_elimination", "double_elimination"].includes(String(record.format)) && normalizedBracketPlacement(record) === "random");
 }
 
 function validatePositions(stages: readonly IndexedStage[], problems: TournamentStagePlanProblem[]): boolean {
@@ -237,7 +244,7 @@ function validateCommonStageFields(stages: readonly IndexedStage[], problems: To
       if (firstIndex != null) addProblem(problems, "DUPLICATE_STAGE_KEY", `${path}.key`, `Stage key duplicates stages[${firstIndex}].key.`);
       else firstIndexByKey.set(record.key, index);
     }
-    if (!isStageFormat(record.format)) addProblem(problems, "INVALID_STAGE_FORMAT", `${path}.format`, "Stage format must be swiss, round_robin, group_stage or single_elimination.");
+    if (!isStageFormat(record.format)) addProblem(problems, "INVALID_STAGE_FORMAT", `${path}.format`, "Stage format must be swiss, round_robin, group_stage, single_elimination or double_elimination.");
     if (!isPositiveInteger(record.bestOf) || !STAGE_BEST_OF_VALUES.includes(record.bestOf as StageBestOf)) {
       addProblem(problems, "INVALID_BEST_OF", `${path}.bestOf`, "bestOf must equal 1, 3, 5 or 7.");
     }
@@ -265,8 +272,11 @@ function validateFormatConfiguration(stages: readonly IndexedStage[], problems: 
     if (record.format === "swiss" && !isPositiveInteger(record.rounds)) {
       addProblem(problems, "INVALID_SWISS_ROUNDS", `${path}.rounds`, "Swiss rounds must be a positive integer.");
     }
-    if (record.format === "single_elimination" && normalizedBracketPlacement(record) == null) {
-      addProblem(problems, "INVALID_BRACKET_PLACEMENT_METHOD", `${path}.placementMethod`, "single_elimination placementMethod must be standard or random.");
+    if (["single_elimination", "double_elimination"].includes(String(record.format)) && normalizedBracketPlacement(record) == null) {
+      addProblem(problems, "INVALID_BRACKET_PLACEMENT_METHOD", `${path}.placementMethod`, "Elimination placementMethod must be standard or random.");
+    }
+    if (record.format === "double_elimination" && normalizedBracketPlacement(record) !== "standard") {
+      addProblem(problems, "INVALID_BRACKET_PLACEMENT_METHOD", `${path}.placementMethod`, "double_elimination currently requires standard bracket placement.");
     }
     if (record.format === "group_stage") {
       const participantCount = isPositiveInteger(record.participantCount) ? record.participantCount : null;
@@ -313,6 +323,10 @@ function validateParticipantFlow(
     if (isFinal) {
       if (record.format === "group_stage") addProblem(problems, "GROUP_STAGE_CANNOT_BE_FINAL", `${path}.format`, "group_stage must qualify participants to a following stage.");
       if (record.advancingCount !== undefined) addProblem(problems, "INVALID_ADVANCING_COUNT", `${path}.advancingCount`, "The final stage cannot qualify participants to another stage.");
+      return;
+    }
+    if (record.format === "double_elimination") {
+      addProblem(problems, "INVALID_ADVANCING_COUNT", `${path}.format`, "double_elimination must be the final stage.");
       return;
     }
     const next = ordered[orderedIndex + 1];
@@ -395,6 +409,12 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
           ? {}
           : { advancingCount: record.advancingCount as number }),
       };
+    case "double_elimination":
+      return {
+        ...common,
+        format: "double_elimination",
+        placementMethod: normalizedBracketPlacement(record)!,
+      };
   }
 }
 
@@ -403,7 +423,7 @@ export function validateTournamentStagePlan(input: unknown): TournamentStagePlan
   const plan = asRecord(input) ?? {};
   const rawStages = Array.isArray(plan.stages) ? plan.stages : [];
   const stages = rawStages.map<IndexedStage>((stage, index) => ({ index, record: asRecord(stage) ?? {} }));
-  if (rawStages.length < 1 || rawStages.length > 3) addProblem(problems, "STAGE_COUNT_OUT_OF_RANGE", "stages", "A tournament must contain from 1 to 3 stages.");
+  if (rawStages.length < 1 || rawStages.length > 10) addProblem(problems, "STAGE_COUNT_OUT_OF_RANGE", "stages", "A tournament must contain from 1 to 10 stages.");
   if (!Number.isInteger(plan.initialParticipantCount) || (plan.initialParticipantCount as number) < 2) addProblem(problems, "INVALID_INITIAL_PARTICIPANT_COUNT", "initialParticipantCount", "initialParticipantCount must be an integer of at least 2.");
   const positionsValid = validatePositions(stages, problems);
   validateCommonStageFields(stages, problems);

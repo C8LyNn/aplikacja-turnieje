@@ -235,7 +235,7 @@ test("historical matches URL redirects only an authenticated match operator", ()
 
 test("More exposes only areas backed by each credential", () => {
   assert.deepEqual(organizerMoreItems(41, organizerCapabilities).map((item) => item.label), [
-    "Historia", "Korekta", "Udostępnianie", "Backup", "Bezpieczeństwo",
+    "Historia", "Reguły gry", "Wizualia", "Korekta", "Udostępnianie", "Backup", "Bezpieczeństwo",
   ]);
   assert.deepEqual(organizerMoreItems(41, supportCapabilities).map((item) => item.label), ["Historia", "Korekta"]);
 });

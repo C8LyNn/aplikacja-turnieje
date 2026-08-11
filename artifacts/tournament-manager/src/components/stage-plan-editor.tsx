@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowDown, ArrowUp, Dices, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeadlockStageBansEditor } from "@/components/deadlock-stage-bans-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import {
   balancedGroupSizes,
+  copyStageDraftForNextStage,
   createStageDraft,
   ENTRY_SEEDING_LABELS,
   groupAdvancingCount,
@@ -37,6 +39,7 @@ interface StagePlanEditorProps {
   stages: StageDraft[];
   errors: StagePlanValidationError[];
   onChange: (stages: StageDraft[]) => void;
+  deadlockEnabled?: boolean;
 }
 
 function integer(value: string, fallback: number) {
@@ -50,7 +53,7 @@ function defaultGroupCount(participantCount: number): number {
 
 function defaultPlacement(format: StageFormat): StagePlacementMethod {
   if (format === "group_stage") return "snake";
-  if (format === "single_elimination") return "standard";
+  if (format === "single_elimination" || format === "double_elimination") return "standard";
   return "standings_order";
 }
 
@@ -58,7 +61,7 @@ function previewSeedLabel(seed: number | null): string {
   return seed == null ? "BYE" : `#${seed}`;
 }
 
-export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorProps) {
+export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = false }: StagePlanEditorProps) {
   const update = (index: number, patch: Partial<StageDraft>) => {
     const next = stages.map((stage, stageIndex) =>
       stageIndex === index ? { ...stage, ...patch } : stage,
@@ -109,14 +112,12 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
           type="button"
           variant="outline"
           size="sm"
-          disabled={stages.length >= 3}
+          disabled={stages.length >= 10}
           onClick={() => {
+            const previous = stages.at(-1)!;
             onChange(synchronizeStageParticipantFlow([
               ...stages,
-              {
-                ...createStageDraft(stages.length + 1, "single_elimination"),
-                participantCount: 2,
-              },
+              copyStageDraftForNextStage(previous, stages.length + 1),
             ]));
           }}
         >
@@ -134,10 +135,14 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
         const advancing = stage.format === "group_stage" ? groupAdvancingCount(stage) : 0;
         const everyoneAdvances = stage.format === "group_stage" && advancing === stage.participantCount;
         const groupPreview = stage.format === "group_stage" ? previewGroupSeedPlacement(stage) : [];
-        const bracketPreview = stage.format === "single_elimination" ? previewBracketPairs(stage) : [];
+        const bracketPreview = ["single_elimination", "double_elimination"].includes(stage.format) ? previewBracketPairs(stage) : [];
         const eliminationMetrics = stage.format === "single_elimination"
           ? singleEliminationStageMetrics(stage)
           : null;
+        const inheritedHeroBans = stages
+          .slice(0, index)
+          .flatMap((candidate) => candidate.additionalHeroBans)
+          .filter((heroId, heroIndex, all) => all.indexOf(heroId) === heroIndex);
 
         return (
           <Card key={stage.clientId} className={stageErrors.length > 0 ? "border-destructive/50" : ""}>
@@ -244,6 +249,14 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
                 </>
               )}
 
+              {deadlockEnabled && (
+                <DeadlockStageBansEditor
+                  additional={stage.additionalHeroBans}
+                  inherited={inheritedHeroBans}
+                  onChange={(additionalHeroBans) => update(index, { additionalHeroBans })}
+                />
+              )}
+
               <details className="rounded-md border p-3 sm:col-span-2">
                 <summary className="cursor-pointer text-sm font-medium">Seedowanie i rozmieszczenie (opcjonalne)</summary>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -274,14 +287,14 @@ export function StagePlanEditor({ stages, errors, onChange }: StagePlanEditorPro
                       </Select>
                     </div>
                   )}
-                  {stage.format === "single_elimination" && (
+                  {(stage.format === "single_elimination" || stage.format === "double_elimination") && (
                     <div className="space-y-2">
                       <Label>Rozmieszczenie w drabince</Label>
                       <Select value={stage.placementMethod} onValueChange={(value) => update(index, { placementMethod: value as StagePlacementMethod })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="standard">Standardowe — najwyższy kontra najniższy</SelectItem>
-                          <SelectItem value="random">Losowe miejsca w drabince</SelectItem>
+                          {stage.format === "single_elimination" && <SelectItem value="random">Losowe miejsca w drabince</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>

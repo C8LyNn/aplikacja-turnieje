@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetTournamentStageQueryKey,
   getGetTournamentStageReadinessQueryKey,
+  getGetDoubleEliminationStageQueryKey,
   getListTournamentStagesQueryKey,
   getPreviewStageQualificationQueryKey,
   type Match,
@@ -11,13 +12,17 @@ import {
   type StageQualificationPreview,
   type TournamentStage,
   type TournamentStageDetails,
+  type DeadlockTournamentGameConfig,
   useCompleteTournamentStage,
+  useGetDoubleEliminationStage,
   useGetTournamentStage,
   useGetTournamentStageReadiness,
   useListTournamentStages,
   usePreviewStageQualification,
   useStartTournamentStage,
 } from "@workspace/api-client-react";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-editor";
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import {
   CheckCircle2,
@@ -57,8 +62,10 @@ interface TournamentStagesPanelProps {
   activeStageId?: number | null;
   matches: Match[];
   canManage?: boolean;
+  canWriteResults?: boolean;
   audience?: boolean;
   onChanged?: () => void;
+  gameConfig?: DeadlockTournamentGameConfig | null;
 }
 
 interface PlayerRecord {
@@ -477,8 +484,10 @@ export function TournamentStagesPanel({
   activeStageId,
   matches,
   canManage = false,
+  canWriteResults = canManage,
   audience = false,
   onChanged,
+  gameConfig,
 }: TournamentStagesPanelProps) {
   const queryClient = useQueryClient();
   const [selectedStageId, setSelectedStageId] = useState<number>();
@@ -546,12 +555,30 @@ export function TournamentStagesPanel({
     {
       query: {
         enabled:
-          !!selectedStageId && confirmOpen && selected?.status === "active",
+          !!selectedStageId &&
+          confirmOpen &&
+          selected?.status === "active" &&
+          selected.format !== "double_elimination",
         retry: false,
         queryKey: getPreviewStageQualificationQueryKey(
           tournamentId,
           selectedStageId ?? 0,
         ),
+      },
+    },
+  );
+  const doubleEliminationQuery = useGetDoubleEliminationStage(
+    tournamentId,
+    selectedStageId ?? 0,
+    {
+      query: {
+        enabled:
+          !!selectedStageId &&
+          selected?.format === "double_elimination" &&
+          selected.status !== "planned",
+        retry: false,
+        queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, selectedStageId ?? 0),
+        refetchInterval: audience ? 8000 : false,
       },
     },
   );
@@ -597,6 +624,11 @@ export function TournamentStagesPanel({
               tournamentId,
               selectedStageId,
             ),
+          })
+        : Promise.resolve(),
+      selectedStageId && selected?.format === "double_elimination"
+        ? queryClient.invalidateQueries({
+            queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, selectedStageId),
           })
         : Promise.resolve(),
       selectedStageId
@@ -746,6 +778,12 @@ export function TournamentStagesPanel({
             />
           )}
 
+          <DeadlockStageBansSummary
+            gameConfig={gameConfig}
+            orderedStageKeys={stages.map((stage) => stage.stageKey)}
+            stageKey={selected.stageKey}
+          />
+
           {selected.status === "planned" ? (
             <Card>
               <CardHeader>
@@ -760,6 +798,26 @@ export function TournamentStagesPanel({
                 />
               </CardContent>
             </Card>
+          ) : selected.format === "double_elimination" ? (
+            doubleEliminationQuery.isLoading ? (
+              <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Ładowanie drabinki podwójnej eliminacji…
+              </div>
+            ) : doubleEliminationQuery.error ? (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+                Nie udało się pobrać drabinki. {getApiErrorMessage(doubleEliminationQuery.error)}
+              </div>
+            ) : doubleEliminationQuery.data ? (
+              <DoubleEliminationBracket
+                tournamentId={tournamentId}
+                stageId={selected.id}
+                state={doubleEliminationQuery.data}
+                canManage={canWriteResults}
+                canReset={canManage}
+                onChanged={refresh}
+              />
+            ) : null
           ) : selected.format === "group_stage" ? (
             <StageGroupTables
               details={detailQuery.data}
@@ -821,11 +879,27 @@ export function TournamentStagesPanel({
             </div>
           )}
           {previewQuery.data && <PreviewList preview={previewQuery.data} />}
+          {selected?.format === "double_elimination" && doubleEliminationQuery.data && (
+            <p className="text-sm text-muted-foreground">
+              {doubleEliminationQuery.data.completed
+                ? `Zwycięzca został wyłoniony. Zakończenie etapu zamknie turniej.`
+                : "Najpierw rozegraj Grand Final (oraz reset, jeśli będzie wymagany)."}
+            </p>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Anuluj
             </Button>
-            <Button onClick={complete} disabled={!previewQuery.data || pending}>
+            <Button
+              onClick={complete}
+              disabled={
+                pending ||
+                (selected?.format === "double_elimination"
+                  ? doubleEliminationQuery.data?.completed !== true
+                  : !previewQuery.data)
+              }
+            >
               {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Zakończ etap
             </Button>

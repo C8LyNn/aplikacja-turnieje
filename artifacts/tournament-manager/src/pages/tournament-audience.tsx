@@ -12,6 +12,10 @@ import {
   getGetTournamentStandingsQueryKey,
   getGetTournamentBracketQueryKey,
   getGetResultsHistoryQueryKey,
+  getGetDoubleEliminationStageQueryKey,
+  getListTournamentStagesQueryKey,
+  useGetDoubleEliminationStage,
+  useListTournamentStages,
   type Bracket,
   type Match,
   type Player,
@@ -35,6 +39,7 @@ import { usePlayerBans, useMatchGamePicks } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -133,6 +138,28 @@ export default function TournamentAudience() {
       refetchInterval: 10000,
     },
   });
+  const { data: stages } = useListTournamentStages(id, {
+    query: {
+      enabled: !!id && !!tournament,
+      queryKey: getListTournamentStagesQueryKey(id),
+      refetchInterval: 10000,
+    },
+  });
+  const doubleEliminationStage = stages?.find(
+    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
+  );
+  const doubleEliminationQuery = useGetDoubleEliminationStage(
+    id,
+    doubleEliminationStage?.id ?? 0,
+    {
+      query: {
+        enabled: !!id && !!doubleEliminationStage,
+        retry: false,
+        queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
+        refetchInterval: 10000,
+      },
+    },
+  );
 
   const rawAccessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
 
@@ -153,38 +180,6 @@ export default function TournamentAudience() {
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
   const presentationSettings = resolvePresentationSettings(rawPs as any);
   usePresentationTheme(presentationSettings);
-
-  if (!tournament && accessDeniedCode) {
-    const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
-    return (
-      <div className="min-h-screen bg-background text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
-        <RoleHomeLink
-          fallbackHref="/fan"
-          fallbackLabel="Wróć do turniejów"
-          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400"
-        />
-        <Lock className="w-10 h-10 text-white/50" />
-        <h1 className="text-xl font-semibold">Turniej prywatny</h1>
-        <p className="text-sm text-white/50 max-w-sm">
-          {viewerMayLogin ? "Podaj hasło widza, aby otworzyć transmisję." : "Ten turniej nie jest dostępny dla widzów."}
-        </p>
-        {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
-        <ViewerLoginModal
-          open={showViewerModal}
-          onClose={() => setShowViewerModal(false)}
-          onCancel={() => setShowViewerModal(false)}
-          tournamentId={id}
-          tournamentName={`Turniej #${id}`}
-          onSuccess={(token) => {
-            storeViewerToken(id, token);
-            setActiveViewerToken(token);
-            setShowViewerModal(false);
-            void refetchTournament();
-          }}
-        />
-      </div>
-    );
-  }
 
   // --- Derived data ---
   const featuredMatch = tournament?.featuredMatchId
@@ -236,6 +231,38 @@ export default function TournamentAudience() {
     }
     return map;
   }, [audienceHistory]);
+
+  if (!tournament && accessDeniedCode) {
+    const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
+    return (
+      <div className="min-h-screen bg-background text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <RoleHomeLink
+          fallbackHref="/fan"
+          fallbackLabel="Wróć do turniejów"
+          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400"
+        />
+        <Lock className="w-10 h-10 text-white/50" />
+        <h1 className="text-xl font-semibold">Turniej prywatny</h1>
+        <p className="text-sm text-white/50 max-w-sm">
+          {viewerMayLogin ? "Podaj hasło widza, aby otworzyć transmisję." : "Ten turniej nie jest dostępny dla widzów."}
+        </p>
+        {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
+        <ViewerLoginModal
+          open={showViewerModal}
+          onClose={() => setShowViewerModal(false)}
+          onCancel={() => setShowViewerModal(false)}
+          tournamentId={id}
+          tournamentName={`Turniej #${id}`}
+          onSuccess={(token) => {
+            storeViewerToken(id, token);
+            setActiveViewerToken(token);
+            setShowViewerModal(false);
+            void refetchTournament();
+          }}
+        />
+      </div>
+    );
+  }
 
   const nextMatches = matches
     ?.filter(
@@ -400,7 +427,7 @@ export default function TournamentAudience() {
                     {heroMatch.player1Name || "TBD"}
                   </div>
                   {isDeadlock && heroMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
-                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={20} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
                   )}
                   {isDeadlock && latestPick?.player1HeroId && (
                     <div className="flex items-center gap-1">
@@ -437,7 +464,7 @@ export default function TournamentAudience() {
                     {heroMatch.player2Name || "TBD"}
                   </div>
                   {isDeadlock && heroMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
-                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={20} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
+                    <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
                   )}
                   {isDeadlock && latestPick?.player2HeroId && (
                     <div className="flex items-center gap-1">
@@ -618,6 +645,7 @@ export default function TournamentAudience() {
             tournamentStatus={tournament.status}
             activeStageId={tournament.activeStageId}
             matches={matches ?? []}
+            gameConfig={tournament.gameConfig}
             audience
           />
         )}
@@ -633,15 +661,36 @@ export default function TournamentAudience() {
           />
         )}
         {activeSection === "bracket" && (
-          <PublicBracketSection
-            bracket={bracket}
-            format={tournament?.format ?? ""}
-            currentRound={tournament?.currentRound}
-            totalRounds={tournament?.totalRounds}
-            forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
-            playerBansMap={isDeadlock ? audienceBansMap : undefined}
-            matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
-          />
+          doubleEliminationStage ? (
+            <AudienceSectionShell title="Drabinka" description="Aktualny układ Double Elimination.">
+              {doubleEliminationQuery.data ? (
+                <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
+                  <DoubleEliminationBracket
+                    tournamentId={id}
+                    stageId={doubleEliminationStage.id}
+                    state={doubleEliminationQuery.data}
+                  />
+                </div>
+              ) : doubleEliminationQuery.isPending ? (
+                <EmptyAudienceSection>Ładowanie drabinki Double Elimination…</EmptyAudienceSection>
+              ) : (
+                <div className="space-y-3 rounded-xl border border-red-500/30 bg-red-500/5 p-5 text-sm text-red-300">
+                  <p>Nie udało się pobrać drabinki Double Elimination.</p>
+                  <Button type="button" variant="outline" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
+                </div>
+              )}
+            </AudienceSectionShell>
+          ) : (
+            <PublicBracketSection
+              bracket={bracket}
+              format={tournament?.format ?? ""}
+              currentRound={tournament?.currentRound}
+              totalRounds={tournament?.totalRounds}
+              forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
+              playerBansMap={isDeadlock ? audienceBansMap : undefined}
+              matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
+            />
+          )
         )}
       </main>
     </div>
@@ -823,7 +872,7 @@ function PublicPlayersSection({
                 {isDeadlock && bansPerPlayer > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/6">
                     {bans.length > 0 ? (
-                      <PlayerBansRow bannedHeroIds={bans} size={20} maxBans={bansPerPlayer} />
+                      <PlayerBansRow bannedHeroIds={bans} size={30} maxBans={bansPerPlayer} />
                     ) : (
                       <p className="text-xs text-white/30 italic">Brak banów</p>
                     )}

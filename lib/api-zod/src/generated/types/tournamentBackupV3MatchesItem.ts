@@ -34,6 +34,8 @@ export type TournamentBackupV3MatchesItem = {
   /** @nullable */
   note?: string | null;
   /** @nullable */
+  routingMatchKey?: string | null;
+  /** @nullable */
   nextMatchBackupId?: number | null;
   /** @nullable */
   sortOrder?: number | null;

@@ -74,6 +74,11 @@ test("game catalog rejects unknown games, versions, heroes and fields", () => {
     { gameId: "deadlock", configVersion: 2, config: {} },
     { gameId: "deadlock", configVersion: 1, config: { forcedHeroId: "unknown" } },
     { gameId: "deadlock", configVersion: 1, config: { picks: [] } },
+    {
+      gameId: "deadlock",
+      configVersion: 1,
+      config: { stageBans: [{ stageKey: "stage-1", bannedHeroIds: ["rem"], extra: true }] },
+    },
     { gameId: "deadlock", configVersion: 1, config: {}, extra: true },
   ];
   for (const value of invalidValues) {

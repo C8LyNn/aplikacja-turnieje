@@ -1,26 +1,32 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   DEADLOCK_CONFIG_VERSION,
   DEADLOCK_GAME_ID,
+  DEADLOCK_HEROES,
   getDeadlockHero,
+  type DeadlockHeroId,
   type DeadlockHeroDefinition,
 } from "@workspace/game-catalog";
 
 import {
   getGetTournamentQueryKey,
+  getListTournamentStagesQueryKey,
   useUpdateTournament,
+  useListTournamentStages,
   type DeadlockTournamentGameConfig,
   type Tournament,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Gamepad2, Lock, Minus, Plus } from "lucide-react";
+import { Gamepad2, Lock, Minus, Plus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { DeadlockStageBansEditor } from "@/components/deadlock-stage-bans-editor";
 
 type GameConfig = DeadlockTournamentGameConfig | null;
 
@@ -80,9 +86,9 @@ export function ForcedHeroBadge({
       className={cn("inline-flex gap-2 py-1", compact && "text-xs")}
     >
       {hero ? (
-        <DeadlockHeroIcon hero={hero} className="h-5 w-5" />
+        <DeadlockHeroIcon hero={hero} className={compact ? "h-8 w-8" : "h-10 w-10"} />
       ) : (
-        <Gamepad2 className="h-4 w-4" />
+        <Gamepad2 className={compact ? "h-6 w-6" : "h-8 w-8"} />
       )}
       <span>Deadlock</span>
       {hero && <span className="font-semibold">· {hero.displayName}</span>}
@@ -99,6 +105,14 @@ export function GameConfigPicker({
   onChange: (value: GameConfig) => void;
   disabled?: boolean;
 }) {
+  const [search, setSearch] = useState("");
+  const visibleHeroes = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("pl");
+    return query
+      ? DEADLOCK_HEROES.filter((hero) => hero.displayName.toLocaleLowerCase("pl").includes(query))
+      : DEADLOCK_HEROES;
+  }, [search]);
+  const selectedHeroId = value?.config.forcedHeroId;
   const banMode = value?.config?.banMode ?? "shared_pool";
   const bansPerPlayer = value?.config?.bansPerPlayer ?? 5;
 
@@ -136,6 +150,58 @@ export function GameConfigPicker({
 
       {value?.gameId === DEADLOCK_GAME_ID && (
         <div className="space-y-4">
+
+          <div className="space-y-3">
+            <div>
+              <Label>Wymuszona postać (opcjonalnie)</Label>
+              <p className="text-xs text-muted-foreground">
+                Jeżeli wybierzesz postać, obowiązuje ona wszystkich uczestników turnieju.
+              </p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                aria-label="Szukaj postaci Deadlocka"
+                className="pl-9"
+                value={search}
+                disabled={disabled}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Szukaj postaci…"
+              />
+            </div>
+            <div className="max-h-72 overflow-y-auto rounded-md border p-2">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                {visibleHeroes.map((hero) => {
+                  const selected = selectedHeroId === hero.id;
+                  return (
+                    <button
+                      key={hero.id}
+                      type="button"
+                      disabled={disabled}
+                      aria-pressed={selected}
+                      aria-label={hero.displayName}
+                      className={cn(
+                        "flex min-w-0 flex-col items-center gap-1 rounded-md border p-2 text-center text-xs transition-colors",
+                        selected
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-transparent hover:border-border hover:bg-muted/50",
+                      )}
+                      onClick={() => {
+                        const { forcedHeroId: _forcedHeroId, ...remainingConfig } = value.config;
+                        onChange({
+                          ...value,
+                          config: selected ? remainingConfig : { ...remainingConfig, forcedHeroId: hero.id },
+                        });
+                      }}
+                    >
+                      <DeadlockHeroIcon hero={hero} className="h-16 w-16" />
+                      <span className="w-full truncate">{hero.displayName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           {/* Ban mode */}
           <div className="space-y-2">
@@ -210,6 +276,13 @@ export function TournamentGameConfigPanel({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateTournament = useUpdateTournament();
+  const { data: stages = [] } = useListTournamentStages(tournament.id, {
+    query: {
+      enabled: tournament.id > 0,
+      retry: false,
+      queryKey: getListTournamentStagesQueryKey(tournament.id),
+    },
+  });
   const [value, setValue] = useState<GameConfig>(tournament.gameConfig ?? null);
 
   useEffect(() => setValue(tournament.gameConfig ?? null), [tournament.gameConfig]);
@@ -228,6 +301,33 @@ export function TournamentGameConfigPanel({
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reguły gry</p>
           <GameConfigPicker value={value} onChange={setValue} disabled={locked} />
+          {value?.gameId === DEADLOCK_GAME_ID && stages.map((stage, index) => {
+            const entries = value.config.stageBans ?? [];
+            const inherited = stages
+              .slice(0, index)
+              .flatMap((candidate) => entries.find((entry) => entry.stageKey === candidate.stageKey)?.bannedHeroIds ?? [])
+              .filter((heroId, heroIndex, all) => all.indexOf(heroId) === heroIndex) as DeadlockHeroId[];
+            const additional = (entries.find((entry) => entry.stageKey === stage.stageKey)?.bannedHeroIds ?? []) as DeadlockHeroId[];
+            return (
+              <div key={stage.id} className="space-y-2">
+                <p className="text-sm font-semibold">{stage.name}</p>
+                <DeadlockStageBansEditor
+                  inherited={inherited}
+                  additional={additional}
+                  disabled={locked}
+                  onChange={(bannedHeroIds) => {
+                    const nextEntries = entries
+                      .filter((entry) => entry.stageKey !== stage.stageKey)
+                      .concat(bannedHeroIds.length > 0 ? [{ stageKey: stage.stageKey, bannedHeroIds }] : []);
+                    setValue({
+                      ...value,
+                      config: { ...value.config, stageBans: nextEntries },
+                    });
+                  }}
+                />
+              </div>
+            );
+          })}
           {locked ? (
             <div className="space-y-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
@@ -272,7 +372,7 @@ export function TournamentGameConfigPanel({
 // ── Presentation panel data ──────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
-  { id: "deadlock",      label: "Emerald Occult", swatch: "#0e1a10", accent: "#3d8055" },
+  { id: "deadlock",      label: "Emerald Occult", swatch: "#0e1a10", accent: "#3d8055", recommendedFor: "deadlock" },
   { id: "obsidian",      label: "Obsidian",       swatch: "#10100f", accent: "#919aaa" },
   { id: "crimson-vault", label: "Crimson Vault",  swatch: "#130608", accent: "#c23348" },
   { id: "abyssal",       label: "Abyssal",        swatch: "#0a0f1e", accent: "#4a9ee6" },
@@ -318,6 +418,7 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
 
   // Derive initial values — shim legacy deadlockTheme boolean
   const initialColor = ps?.colorPreset ?? (ps?.deadlockTheme ? "deadlock" : "");
+  const isDeadlock = tournament.gameConfig?.gameId === "deadlock";
   const [colorPreset, setColorPreset] = useState<string>(initialColor);
   const [fontPreset, setFontPreset]   = useState<string>(ps?.fontPreset ?? "inter");
   const [frameStyle, setFrameStyle]   = useState<string>(ps?.frameStyle ?? "rounded");
@@ -400,7 +501,12 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
                   className="h-4 w-4 shrink-0 rounded-sm border border-white/10"
                   style={{ background: `linear-gradient(135deg, ${preset.swatch} 55%, ${preset.accent} 100%)` }}
                 />
-                <span className="truncate font-medium leading-none">{preset.label}</span>
+                <span className="min-w-0 truncate font-medium leading-none">
+                  {preset.label}
+                  {"recommendedFor" in preset && preset.recommendedFor === "deadlock" && (
+                    <span className={cn("ml-1 text-[9px] uppercase tracking-wide", isDeadlock ? "text-primary" : "text-muted-foreground")}>Deadlock</span>
+                  )}
+                </span>
               </button>
             );
           })}
