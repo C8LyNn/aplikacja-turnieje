@@ -220,46 +220,116 @@ export function TournamentGameConfigPanel({
       <CardHeader>
         <CardTitle>Gra i reguły</CardTitle>
         <CardDescription>
-          Opcjonalna konfiguracja gry. Po rozpoczęciu turnieju pozostaje tylko do odczytu.
+          Opcjonalna konfiguracja gry. Po rozpoczęciu turnieju reguły pozostają tylko do odczytu.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <GameConfigPicker value={value} onChange={setValue} disabled={locked} />
-        {locked ? (
-          <div className="space-y-2">
-            <ForcedHeroBadge gameConfig={tournament.gameConfig} />
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Lock className="w-3 h-3 shrink-0" />
-              Turniej aktywny — reguły zablokowane.
-            </p>
-          </div>
-        ) : (
-          <Button
-            disabled={updateTournament.isPending}
-            onClick={() =>
-              updateTournament.mutate(
-                { id: tournament.id, data: { gameConfig: value } },
-                {
-                  onSuccess: () => {
-                    void queryClient.invalidateQueries({
-                      queryKey: getGetTournamentQueryKey(tournament.id),
-                    });
-                    toast({ title: "Zapisano konfigurację gry" });
+      <CardContent className="space-y-6">
+        {/* ── Reguły gry (locked after draft) ── */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reguły gry</p>
+          <GameConfigPicker value={value} onChange={setValue} disabled={locked} />
+          {locked ? (
+            <div className="space-y-2">
+              <ForcedHeroBadge gameConfig={tournament.gameConfig} />
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Lock className="w-3 h-3 shrink-0" />
+                Turniej aktywny — reguły zablokowane.
+              </p>
+            </div>
+          ) : (
+            <Button
+              disabled={updateTournament.isPending}
+              onClick={() =>
+                updateTournament.mutate(
+                  { id: tournament.id, data: { gameConfig: value } },
+                  {
+                    onSuccess: () => {
+                      void queryClient.invalidateQueries({
+                        queryKey: getGetTournamentQueryKey(tournament.id),
+                      });
+                      toast({ title: "Zapisano konfigurację gry" });
+                    },
+                    onError: (error) =>
+                      toast({
+                        title: "Nie udało się zapisać konfiguracji gry",
+                        description: error instanceof Error ? error.message : undefined,
+                        variant: "destructive",
+                      }),
                   },
-                  onError: (error) =>
-                    toast({
-                      title: "Nie udało się zapisać konfiguracji gry",
-                      description: error instanceof Error ? error.message : undefined,
-                      variant: "destructive",
-                    }),
-                },
-              )
-            }
-          >
-            {updateTournament.isPending ? "Zapisywanie…" : "Zapisz konfigurację gry"}
-          </Button>
+                )
+              }
+            >
+              {updateTournament.isPending ? "Zapisywanie…" : "Zapisz konfigurację gry"}
+            </Button>
+          )}
+        </div>
+
+        {/* ── Prezentacja (always editable) ── */}
+        {tournament.gameConfig?.gameId === DEADLOCK_GAME_ID && (
+          <TournamentPresentationPanel tournament={tournament} />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+export function TournamentPresentationPanel({ tournament }: { tournament: Tournament }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const updateTournament = useUpdateTournament();
+  const ps = (tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined;
+  const [deadlockTheme, setDeadlockTheme] = useState<boolean>(ps?.deadlockTheme ?? false);
+
+  useEffect(() => {
+    setDeadlockTheme((ps?.deadlockTheme) ?? false);
+  }, [ps?.deadlockTheme]);
+
+  const handleToggle = (value: boolean) => {
+    setDeadlockTheme(value);
+    updateTournament.mutate(
+      { id: tournament.id, data: { presentationSettings: { deadlockTheme: value } } as any },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(tournament.id) });
+          toast({ title: value ? "Motyw Deadlock włączony" : "Motyw Deadlock wyłączony" });
+        },
+        onError: (error) =>
+          toast({
+            title: "Nie udało się zapisać ustawień prezentacji",
+            description: error instanceof Error ? error.message : undefined,
+            variant: "destructive",
+          }),
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3 border-t border-border/50 pt-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prezentacja</p>
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">Motyw Deadlock</p>
+          <p className="text-xs text-muted-foreground">
+            Wygląd turniejowy: motyw Deadlock (beżowy/ciemnobrązowy + Valve Pulp Bold). Edytowalny w każdym statusie turnieju.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={deadlockTheme}
+          onClick={() => handleToggle(!deadlockTheme)}
+          disabled={updateTournament.isPending}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 ${
+            deadlockTheme ? "bg-primary" : "bg-input"
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+              deadlockTheme ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
+    </div>
   );
 }

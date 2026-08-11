@@ -32,6 +32,8 @@ import { BracketView } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { PlayerBansRow, HeroSelectorButton, PickIcon } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useMatchGamePicks, useSetMatchGamePick } from "@/lib/deadlock-bans-picks";
+import { SideIndicator } from "@/components/deadlock-side-indicator";
+import type { DeadlockSide } from "@/components/deadlock-side-indicator";
 import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
@@ -43,7 +45,6 @@ import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
-import { useDeadlockTheme } from "@/hooks/use-deadlock-theme";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -52,7 +53,6 @@ export default function TournamentHost() {
   const [, params] = useRoute("/tournaments/:id/host");
   const search = useSearch();
   const id = params?.id ? parseInt(params.id, 10) : 0;
-  const [deadlockTheme] = useDeadlockTheme(id);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const {
@@ -183,6 +183,42 @@ export default function TournamentHost() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // --- Focused match (hoisted before any early return for Rules of Hooks compliance) ---
+  const _featuredMatch = tournament?.featuredMatchId
+    ? matches?.find((m) => m.id === tournament.featuredMatchId)
+    : null;
+  const _inProgressMatch = matches?.find((m) => m.status === "in_progress");
+  const _autoFocusMatch =
+    _featuredMatch ??
+    _inProgressMatch ??
+    matches?.find(
+      (m) =>
+        (m.status === "in_progress" || m.status === "pending") &&
+        !!m.player1Id &&
+        !!m.player2Id,
+    ) ??
+    null;
+  const focusedMatchId = selectedMatchId ?? _autoFocusMatch?.id ?? null;
+  const focusedMatch = focusedMatchId
+    ? matches?.find((m) => m.id === focusedMatchId)
+    : null;
+
+  // Deadlock per-game picks for the focused match (must be before any early return — Rules of Hooks)
+  const { data: focusedMatchPicks } = useMatchGamePicks(focusedMatchId, {
+    enabled: isDeadlock && !!focusedMatchId,
+  });
+  const setMatchGamePick = useSetMatchGamePick(focusedMatchId);
+
+  // Build matchPicksMap for bracket display
+  const matchPicksMap = useMemo(() => {
+    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
+    if (isDeadlock && focusedMatchId && focusedMatchPicks && focusedMatchPicks.length > 0) {
+      const last = [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
+      map.set(focusedMatchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
+    }
+    return map;
+  }, [isDeadlock, focusedMatchId, focusedMatchPicks]);
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -732,27 +768,6 @@ export default function TournamentHost() {
   const canGenerateRound =
     tournament.format === "swiss" && allCurrentRoundDone && (tournament.currentRound ?? 0) < (tournament.totalRounds ?? 0);
 
-  // --- Focused match ---
-  const featuredMatch = tournament?.featuredMatchId ? matches?.find((m) => m.id === tournament.featuredMatchId) : null;
-  const inProgressMatch = matches?.find((m) => m.status === "in_progress");
-  const autoFocus = featuredMatch ?? inProgressMatch ?? actionableMatches[0] ?? null;
-  const focusedMatchId = selectedMatchId ?? autoFocus?.id ?? null;
-  const focusedMatch = focusedMatchId ? matches?.find((m) => m.id === focusedMatchId) : null;
-
-  // Deadlock per-game picks for the focused match
-  const { data: focusedMatchPicks } = useMatchGamePicks(focusedMatchId, { enabled: isDeadlock && !!focusedMatchId });
-  const setMatchGamePick = useSetMatchGamePick(focusedMatchId);
-
-  // Build matchPicksMap for bracket display (shows last game's hero per match)
-  const matchPicksMap = useMemo(() => {
-    const map = new Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>();
-    if (isDeadlock && focusedMatchId && focusedMatchPicks && focusedMatchPicks.length > 0) {
-      const last = [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0];
-      map.set(focusedMatchId, { p1HeroId: last.player1HeroId, p2HeroId: last.player2HeroId });
-    }
-    return map;
-  }, [isDeadlock, focusedMatchId, focusedMatchPicks]);
-
   const handleNextMatch = () => {
     const idx = actionableMatches.findIndex((m) => m.id === focusedMatchId);
     const next = actionableMatches[(idx + 1) % actionableMatches.length];
@@ -985,40 +1000,59 @@ export default function TournamentHost() {
                 {Array.from({ length: bo }, (_, i) => {
                   const gn = i + 1;
                   const pick = (focusedMatchPicks ?? []).find((p) => p.gameNumber === gn);
+                  const p1Side = (pick?.player1Side ?? null) as DeadlockSide | null;
+                  const p2Side = (pick?.player2Side ?? null) as DeadlockSide | null;
                   return (
                     <div key={gn} className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-muted-foreground/60 w-7 shrink-0">G{gn}</span>
-                      <HeroSelectorButton
-                        heroId={pick?.player1HeroId}
-                        onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
-                        placeholder={focusedMatch.player1Name ?? "Zaw. A"}
-                        size={20}
-                        bannedByOpponent={(() => {
-                          const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
-                          const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
-                          const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
-                          return banMode === "shared_pool"
-                            ? Array.from(new Set([...p1Bans, ...p2Bans]))
-                            : p2Bans;
-                        })()}
-                        opponentName={focusedMatch.player2Name}
-                      />
-                      <span className="text-[10px] text-muted-foreground/40 shrink-0">vs</span>
-                      <HeroSelectorButton
-                        heroId={pick?.player2HeroId}
-                        onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
-                        placeholder={focusedMatch.player2Name ?? "Zaw. B"}
-                        size={20}
-                        bannedByOpponent={(() => {
-                          const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
-                          const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
-                          const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
-                          return banMode === "shared_pool"
-                            ? Array.from(new Set([...p1Bans, ...p2Bans]))
-                            : p1Bans;
-                        })()}
-                        opponentName={focusedMatch.player1Name}
-                      />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <HeroSelectorButton
+                          heroId={pick?.player1HeroId}
+                          onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
+                          placeholder={focusedMatch.player1Name ?? "Zaw. A"}
+                          size={20}
+                          bannedByOpponent={(() => {
+                            const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
+                            const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
+                            const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
+                            return banMode === "shared_pool"
+                              ? Array.from(new Set([...p1Bans, ...p2Bans]))
+                              : p2Bans;
+                          })()}
+                          opponentName={focusedMatch.player2Name}
+                        />
+                        {p1Side && <SideIndicator side={p1Side} size="sm" showLabel={false} />}
+                      </div>
+                      <button
+                        type="button"
+                        title="Zamień stronę — ta gra"
+                        className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground shrink-0 px-1"
+                        onClick={() => {
+                          const nextSide: DeadlockSide = p1Side === "archmother" ? "hidden_king" : "archmother";
+                          setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: pick?.player2HeroId ?? null, player1Side: nextSide });
+                        }}
+                        disabled={setMatchGamePick.isPending}
+                      >
+                        ↔
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {p2Side && <SideIndicator side={p2Side} size="sm" showLabel={false} />}
+                        <HeroSelectorButton
+                          heroId={pick?.player2HeroId}
+                          onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
+                          placeholder={focusedMatch.player2Name ?? "Zaw. B"}
+                          size={20}
+                          bannedByOpponent={(() => {
+                            const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
+                            const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
+                            const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
+                            return banMode === "shared_pool"
+                              ? Array.from(new Set([...p1Bans, ...p2Bans]))
+                              : p1Bans;
+                          })()}
+                          opponentName={focusedMatch.player1Name}
+                        />
+                      </div>
                     </div>
                   );
                 })}
@@ -1303,8 +1337,10 @@ export default function TournamentHost() {
     );
   };
 
+  const deadlockTheme = isDeadlock && !!((tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+
   return (
-    <Layout deadlockTheme={isDeadlock && deadlockTheme}>
+    <Layout deadlockTheme={deadlockTheme}>
       <div className="flex flex-col gap-4 max-w-6xl mx-auto">
         {/* Top bar */}
         <div className="flex items-center gap-3 border-b pb-4">
@@ -1312,7 +1348,7 @@ export default function TournamentHost() {
             <Link href={`/tournaments/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold flex items-center gap-2 truncate font-deadlock">
+            <h1 className="text-xl font-bold flex items-center gap-2 truncate">
               <Swords className="text-primary w-5 h-5 shrink-0" />
               <span className="truncate">Panel prowadzącego: {tournament.name}</span>
             </h1>

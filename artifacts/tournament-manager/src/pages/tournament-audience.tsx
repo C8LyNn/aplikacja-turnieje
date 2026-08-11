@@ -31,7 +31,6 @@ import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import type { DeadlockHeroId } from "@workspace/game-catalog";
 import { PlayerBansRow, PickIcon } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useMatchGamePicks } from "@/lib/deadlock-bans-picks";
-import { useDeadlockTheme } from "@/hooks/use-deadlock-theme";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
@@ -113,7 +112,6 @@ export default function TournamentAudience() {
     };
   }, [id, isSupportChecking, organizerToken, supportSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [deadlockTheme] = useDeadlockTheme(id);
   const { data: tournament, error: tournamentError, refetch: refetchTournament } = useGetTournament(id, {
     query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 4000, retry: false },
   });
@@ -263,14 +261,15 @@ export default function TournamentAudience() {
       ? "border-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.08)]"
       : "border-white/10";
 
+  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+
   return (
     <div
-      className="min-h-screen bg-background text-foreground flex flex-col select-none overflow-x-hidden"
-      data-theme={isDeadlock && deadlockTheme ? "deadlock" : undefined}
+      className="min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden"
+      data-theme={deadlockTheme ? "deadlock" : undefined}
       style={{
-        backgroundImage: isDeadlock && deadlockTheme
-          ? "radial-gradient(circle at 50% 0%, rgba(255,172,17,0.05) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)"
-          : "radial-gradient(circle at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)",
+        backgroundImage:
+          "radial-gradient(circle at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)",
         backgroundSize: "100% 100%, 40px 40px",
       }}
     >
@@ -279,7 +278,7 @@ export default function TournamentAudience() {
         <div className="flex items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
-          <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
+          <h1 className={`font-bold text-sm sm:text-base truncate${deadlockTheme ? " font-[family-name:var(--font-deadlock-display)]" : ""}`}>{tournament?.name ?? "Ładowanie…"}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -372,7 +371,7 @@ export default function TournamentAudience() {
                   Runda {heroMatch.round} · Mecz {heroMatch.matchNumber}
                 </span>
                 {bo > 1 && (
-                  <Badge className={`text-[11px] font-bold tracking-wider px-2 ${isDeadlock && deadlockTheme ? "bg-primary/15 text-primary border-primary/30" : "bg-cyan-500/15 text-cyan-400 border-cyan-500/30"}`}>
+                  <Badge className="bg-cyan-500/15 text-cyan-400 border-cyan-500/30 text-[11px] font-bold tracking-wider px-2">
                     Best of {bo}
                   </Badge>
                 )}
@@ -382,7 +381,7 @@ export default function TournamentAudience() {
               <div className="flex items-stretch px-6 sm:px-10 py-8 sm:py-12 gap-4 sm:gap-8">
                 {/* Player 1 */}
                 <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p1Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
-                  <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all font-deadlock ${p1Won ? (isDeadlock && deadlockTheme ? "text-primary" : "text-cyan-300") : (isDeadlock && deadlockTheme ? "text-foreground" : "text-white")}`}>
+                  <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p1Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player1Name || "TBD"}
                   </div>
                   {isDeadlock && heroMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
@@ -394,9 +393,7 @@ export default function TournamentAudience() {
                     </div>
                   )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
-                    p1Won
-                      ? (isDeadlock && deadlockTheme ? "text-primary drop-shadow-[0_0_20px_rgba(56,116,174,0.5)]" : "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]")
-                      : (isDeadlock && deadlockTheme ? "text-foreground" : "text-white")
+                    p1Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
                     {heroMatch.resultType === "played" || !isHeroDone ? s1 : "—"}
                   </div>
@@ -404,7 +401,7 @@ export default function TournamentAudience() {
                     <WinDots wins={s1} needed={winsNeeded} side="left" />
                   )}
                   {p1Won && (
-                    <Badge className={`text-xs font-bold tracking-widest mt-1 ${isDeadlock && deadlockTheme ? "bg-primary/20 text-primary border-primary/40" : "bg-cyan-500/20 text-cyan-300 border-cyan-400/40"}`}>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">
                       ZWYCIĘZCA
                     </Badge>
                   )}
@@ -421,7 +418,7 @@ export default function TournamentAudience() {
 
                 {/* Player 2 */}
                 <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p2Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
-                  <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all font-deadlock ${p2Won ? (isDeadlock && deadlockTheme ? "text-primary" : "text-cyan-300") : (isDeadlock && deadlockTheme ? "text-foreground" : "text-white")}`}>
+                  <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p2Won ? "text-cyan-300" : "text-white"}`}>
                     {heroMatch.player2Name || "TBD"}
                   </div>
                   {isDeadlock && heroMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
@@ -433,9 +430,7 @@ export default function TournamentAudience() {
                     </div>
                   )}
                   <div className={`text-6xl sm:text-8xl lg:text-[7rem] font-black font-mono tabular-nums leading-none transition-all ${
-                    p2Won
-                      ? (isDeadlock && deadlockTheme ? "text-primary drop-shadow-[0_0_20px_rgba(56,116,174,0.5)]" : "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]")
-                      : (isDeadlock && deadlockTheme ? "text-foreground" : "text-white")
+                    p2Won ? "text-cyan-400 drop-shadow-[0_0_20px_rgba(0,200,255,0.5)]" : "text-white"
                   }`}>
                     {heroMatch.resultType === "played" || !isHeroDone ? s2 : "—"}
                   </div>
@@ -443,7 +438,7 @@ export default function TournamentAudience() {
                     <WinDots wins={s2} needed={winsNeeded} side="right" />
                   )}
                   {p2Won && (
-                    <Badge className={`text-xs font-bold tracking-widest mt-1 ${isDeadlock && deadlockTheme ? "bg-primary/20 text-primary border-primary/40" : "bg-cyan-500/20 text-cyan-300 border-cyan-400/40"}`}>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">
                       ZWYCIĘZCA
                     </Badge>
                   )}

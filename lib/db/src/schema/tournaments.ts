@@ -153,6 +153,7 @@ export const tournamentsTable = pgTable(
     activeStageId: integer("active_stage_id"),
     winnerId: integer("winner_id"),
     featuredMatchId: integer("featured_match_id"),
+    presentationSettings: jsonb("presentation_settings"),
     hostCode: text("host_code"),
     organizerPasswordHash: text("organizer_password_hash"),
     supportPasswordHash: text("support_password_hash"),
@@ -798,6 +799,7 @@ export const matchGamePicksTable = pgTable(
     gameNumber: integer("game_number").notNull(),
     player1HeroId: text("player1_hero_id"),
     player2HeroId: text("player2_hero_id"),
+    player1Side: text("player1_side"),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -807,6 +809,10 @@ export const matchGamePicksTable = pgTable(
     check(
       "match_game_picks_game_number_check",
       sql`${table.gameNumber} >= 1 AND ${table.gameNumber} <= 5`,
+    ),
+    check(
+      "match_game_picks_player1_side_check",
+      sql`${table.player1Side} IS NULL OR ${table.player1Side} IN ('archmother', 'hidden_king')`,
     ),
   ],
 );

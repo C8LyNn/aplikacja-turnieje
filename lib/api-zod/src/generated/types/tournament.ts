@@ -7,6 +7,7 @@
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { TournamentFormat } from './tournamentFormat';
+import type { TournamentPresentationSettings } from './tournamentPresentationSettings';
 import type { TournamentRankingPolicy } from './tournamentRankingPolicy';
 import type { TournamentResultModelVersion } from './tournamentResultModelVersion';
 import type { TournamentStatus } from './tournamentStatus';
@@ -49,4 +50,5 @@ export interface Tournament {
   visibility?: TournamentVisibility;
   createdAt: string;
   gameConfig?: DeadlockTournamentGameConfig | null;
+  presentationSettings?: TournamentPresentationSettings | null;
 }

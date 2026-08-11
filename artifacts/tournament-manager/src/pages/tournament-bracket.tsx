@@ -14,7 +14,6 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useDeadlockTheme } from "@/hooks/use-deadlock-theme";
 import { RoleHomeLink } from "@/components/app-navigation";
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -30,7 +29,6 @@ const ZOOM_STEP = 0.1;
 export default function TournamentBracket() {
   const [, params] = useRoute("/tournaments/:id/bracket");
   const id = params?.id ? parseInt(params.id, 10) : 0;
-  const [deadlockTheme] = useDeadlockTheme(id);
 
   const { data: tournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
@@ -107,8 +105,10 @@ export default function TournamentBracket() {
     );
   }
 
+  const deadlockTheme = isDeadlock && !!((tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={tournament?.gameConfig?.gameId === "deadlock" && deadlockTheme ? "deadlock" : undefined}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={deadlockTheme ? "deadlock" : undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <RoleHomeLink
@@ -169,7 +169,7 @@ export default function TournamentBracket() {
       {/* Header */}
       <div className="flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
         <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />
-        <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight">
+        <h1 className={`text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight${deadlockTheme ? " font-[family-name:var(--font-deadlock-display)]" : ""}`}>
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">

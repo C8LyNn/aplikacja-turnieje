@@ -56,6 +56,9 @@ export const ListTournamentsResponseItem = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(listTournamentsResponseGameConfigOneConfigBansPerPlayerMin).max(listTournamentsResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 })
 export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
@@ -185,6 +188,9 @@ export const GetTournamentResponse = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(getTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(getTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 })
 
@@ -218,7 +224,10 @@ export const UpdateTournamentBody = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(updateTournamentBodyGameConfigOneConfigBansPerPlayerMin).max(updateTournamentBodyGameConfigOneConfigBansPerPlayerMax).optional()
 })
-}),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.')
+}),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.'),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
+}),zod.null()]).optional().describe('Optional presentation preferences. Editable at any tournament status.')
 })
 
 
@@ -257,6 +266,9 @@ export const UpdateTournamentResponse = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(updateTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(updateTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 })
 
@@ -953,6 +965,9 @@ export const StartTournamentResponse = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(startTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(startTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 })
 
@@ -1059,6 +1074,9 @@ export const GenerateNextRoundResponse = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin).max(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 })
 
@@ -1105,6 +1123,9 @@ export const GetTournamentBracketResponse = zod.object({
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
   "bansPerPlayer": zod.number().min(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin).max(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax).optional()
 })
+}),zod.null()]).optional(),
+  "presentationSettings": zod.union([zod.object({
+  "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
 }),zod.null()]).optional()
 }),
   "rounds": zod.array(zod.object({
@@ -1410,7 +1431,18 @@ export const ExportTournamentResponse = zod.object({
   "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
-}))
+})),
+  "deadlockBans": zod.array(zod.object({
+  "playerBackupId": zod.number(),
+  "bannedHeroIds": zod.array(zod.string())
+})).optional().describe('Per-player Deadlock hero bans (optional, present only for Deadlock tournaments)'),
+  "gamePicks": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "gameNumber": zod.number(),
+  "player1HeroId": zod.string().nullish(),
+  "player2HeroId": zod.string().nullish(),
+  "player1Side": zod.union([zod.literal('archmother'),zod.literal('hidden_king'),zod.literal(null)]).nullish()
+})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)')
 })
 
 
@@ -1641,7 +1673,18 @@ export const ImportTournamentBody = zod.object({
   "undoPayload": zod.record(zod.string(), zod.unknown()).nullable(),
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
-}))
+})),
+  "deadlockBans": zod.array(zod.object({
+  "playerBackupId": zod.number(),
+  "bannedHeroIds": zod.array(zod.string())
+})).optional().describe('Per-player Deadlock hero bans (optional, present only for Deadlock tournaments)'),
+  "gamePicks": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "gameNumber": zod.number(),
+  "player1HeroId": zod.string().nullish(),
+  "player2HeroId": zod.string().nullish(),
+  "player1Side": zod.union([zod.literal('archmother'),zod.literal('hidden_king'),zod.literal(null)]).nullish()
+})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)')
 })]),
   "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
   "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),

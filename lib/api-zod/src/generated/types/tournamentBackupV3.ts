@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TournamentBackupV3ActionLogItem } from './tournamentBackupV3ActionLogItem';
+import type { TournamentBackupV3DeadlockBansItem } from './tournamentBackupV3DeadlockBansItem';
+import type { TournamentBackupV3GamePicksItem } from './tournamentBackupV3GamePicksItem';
 import type { TournamentBackupV3GroupsItem } from './tournamentBackupV3GroupsItem';
 import type { TournamentBackupV3MatchesItem } from './tournamentBackupV3MatchesItem';
 import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersItem';
@@ -31,4 +33,8 @@ export interface TournamentBackupV3 {
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];
+  /** Per-player Deadlock hero bans (optional, present only for Deadlock tournaments) */
+  deadlockBans?: TournamentBackupV3DeadlockBansItem[];
+  /** Per-game hero picks for each match (optional, present only when picks exist) */
+  gamePicks?: TournamentBackupV3GamePicksItem[];
 }

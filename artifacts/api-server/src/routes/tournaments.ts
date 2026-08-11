@@ -241,6 +241,7 @@ function mapTournament(
     hasViewerPassword: !!t.viewerPasswordHash,
     visibility: t.visibility ?? "public_online",
     gameConfig,
+    presentationSettings: t.presentationSettings as { deadlockTheme?: boolean } | null ?? null,
   };
 }
 
@@ -760,6 +761,8 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     return;
   }
   const rawGameConfig = ownValue(req.body, "gameConfig");
+  const rawPresentationSettings = ownValue(req.body, "presentationSettings");
+  const hasPresentationSettings = Object.prototype.hasOwnProperty.call(req.body ?? {}, "presentationSettings");
   const parsed = UpdateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -769,7 +772,22 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(422).json({ error: "defaultBestOf musi być dodatnią nieparzystą liczbą całkowitą.", code: "INVALID_DEFAULT_BEST_OF" });
     return;
   }
-  const changedFields = Object.keys(parsed.data);
+  // Validate presentationSettings if provided
+  if (hasPresentationSettings && rawPresentationSettings != null) {
+    if (typeof rawPresentationSettings !== "object" || Array.isArray(rawPresentationSettings)) {
+      res.status(400).json({ error: "presentationSettings must be an object or null." });
+      return;
+    }
+    const ps = rawPresentationSettings as Record<string, unknown>;
+    if ("deadlockTheme" in ps && ps.deadlockTheme !== undefined && typeof ps.deadlockTheme !== "boolean") {
+      res.status(400).json({ error: "presentationSettings.deadlockTheme must be a boolean." });
+      return;
+    }
+  }
+  const changedFields = [
+    ...Object.keys(parsed.data),
+    ...(hasPresentationSettings ? ["presentationSettings"] : []),
+  ];
   const onlyOperationalFields =
     changedFields.length > 0 &&
     changedFields.every((field) => field === "featuredMatchId");
@@ -822,10 +840,24 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
           )[0];
       if (!updated) throw new Error("Tournament disappeared during update");
 
+      // Handle presentationSettings — no status lock (editable at any tournament status)
+      let finalTournament = updated;
+      if (hasPresentationSettings) {
+        const newPs = rawPresentationSettings == null
+          ? null
+          : { ...((rawPresentationSettings as Record<string, unknown>)) };
+        const [afterPs] = await tx
+          .update(tournamentsTable)
+          .set({ presentationSettings: newPs })
+          .where(eq(tournamentsTable.id, params.data.id))
+          .returning();
+        if (afterPs) finalTournament = afterPs;
+      }
+
       const updatedGameConfig = hasGameConfig
         ? await replaceTournamentGameConfig(
             tx,
-            updated.id,
+            finalTournament.id,
             rawGameConfig === undefined ? gameConfig : rawGameConfig,
           )
         : undefined;
@@ -840,12 +872,12 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
                 .where(
                   and(
                     eq(matchesTable.id, newFeatured),
-                    eq(matchesTable.tournamentId, updated.id),
+                    eq(matchesTable.tournamentId, finalTournament.id),
                   ),
                 )
             : [undefined];
           await tx.insert(actionLogTable).values({
-            tournamentId: updated.id,
+            tournamentId: finalTournament.id,
             actionType: newFeatured ? "match_featured" : "match_unfeatured",
             description: newFeatured
               ? `Wyróżniono mecz R${featuredMatch?.round}M${featuredMatch?.matchNumber}`
@@ -859,7 +891,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
           });
         }
       }
-        return { tournament: updated, gameConfig: updatedGameConfig };
+        return { tournament: finalTournament, gameConfig: updatedGameConfig };
       },
     );
     res.json(
@@ -1906,6 +1938,19 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             ));
+            // Also restore hero picks and sides (swap is symmetric — same SQL restores original values)
+            await tx
+              .update(matchGamePicksTable)
+              .set({
+                player1HeroId: matchGamePicksTable.player2HeroId,
+                player2HeroId: matchGamePicksTable.player1HeroId,
+                player1Side: sql`CASE player1_side
+                  WHEN 'archmother' THEN 'hidden_king'
+                  WHEN 'hidden_king' THEN 'archmother'
+                  ELSE player1_side END`,
+                updatedAt: new Date(),
+              })
+              .where(eq(matchGamePicksTable.matchId, matchId));
             await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: `Cofnięto zamianę zawodników w meczu ID ${matchId}`, matchId }, tx);
             break;
           }
@@ -2335,6 +2380,19 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
         })
         .where(eq(matchesTable.id, params.data.id))
         .returning();
+      // Atomically swap hero picks and sides for all games in this match
+      await tx
+        .update(matchGamePicksTable)
+        .set({
+          player1HeroId: matchGamePicksTable.player2HeroId,
+          player2HeroId: matchGamePicksTable.player1HeroId,
+          player1Side: sql`CASE player1_side
+            WHEN 'archmother' THEN 'hidden_king'
+            WHEN 'hidden_king' THEN 'archmother'
+            ELSE player1_side END`,
+          updatedAt: new Date(),
+        })
+        .where(eq(matchGamePicksTable.matchId, params.data.id));
       const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
       const namePlayers = p1Ids.length > 0
         ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
@@ -2705,6 +2763,8 @@ router.get("/matches/:id/game-picks", async (req, res): Promise<void> => {
       gameNumber: p.gameNumber,
       player1HeroId: p.player1HeroId ?? null,
       player2HeroId: p.player2HeroId ?? null,
+      player1Side: (p.player1Side as "archmother" | "hidden_king" | null) ?? null,
+      player2Side: p.player1Side === "archmother" ? "hidden_king" : p.player1Side === "hidden_king" ? "archmother" : null,
     })),
   );
 });
@@ -2714,11 +2774,16 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
   const mid = parsePositiveInt(req.params.id);
   const gn = parsePositiveInt(req.params.gameNumber);
   if (!mid || !gn || gn > 5) { res.status(400).json({ error: "Invalid params" }); return; }
-  const body = req.body as { player1HeroId?: unknown; player2HeroId?: unknown };
+  const body = req.body as { player1HeroId?: unknown; player2HeroId?: unknown; player1Side?: unknown };
   const p1Raw = body.player1HeroId;
   const p2Raw = body.player2HeroId;
+  const sideRaw = body.player1Side;
   if (p1Raw !== undefined && p1Raw !== null && !isValidHeroId(p1Raw)) { res.status(422).json({ error: "Invalid player1HeroId" }); return; }
   if (p2Raw !== undefined && p2Raw !== null && !isValidHeroId(p2Raw)) { res.status(422).json({ error: "Invalid player2HeroId" }); return; }
+  if (sideRaw !== undefined && sideRaw !== null && sideRaw !== "archmother" && sideRaw !== "hidden_king") {
+    res.status(422).json({ error: "player1Side must be 'archmother', 'hidden_king', or null." });
+    return;
+  }
 
   const [matchRef] = await db
     .select({
@@ -2736,43 +2801,57 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
 
   const p1 = (p1Raw as string | null | undefined) ?? null;
   const p2 = (p2Raw as string | null | undefined) ?? null;
+  const side = (sideRaw as "archmother" | "hidden_king" | null | undefined) ?? undefined;
 
-  // Server-side ban validation: mode-aware pick validation.
+  // Server-side validation: ban checks + player1Side Deadlock-only guard
   const playerIds = [matchRef.player1Id, matchRef.player2Id].filter((id): id is number => id !== null && id !== undefined);
-  if (playerIds.length === 2) {
-    const [matchGameConfig, banRows] = await Promise.all([
-      loadTournamentGameConfig(matchRef.tournamentId),
-      db.select().from(playerDeadlockBansTable).where(inArray(playerDeadlockBansTable.playerId, playerIds)),
-    ]);
-    const p1Bans = banRows.find((b) => b.playerId === matchRef.player1Id)?.bannedHeroIds ?? [];
-    const p2Bans = banRows.find((b) => b.playerId === matchRef.player2Id)?.bannedHeroIds ?? [];
-    const banMode = matchGameConfig?.gameId === "deadlock"
-      ? getDeadlockBanMode(matchGameConfig.config)
-      : "shared_pool";
+  const needsGameConfig = playerIds.length === 2 || (side !== undefined && side !== null);
+  let resolvedGameConfig: Awaited<ReturnType<typeof loadTournamentGameConfig>> | undefined;
+  if (needsGameConfig) {
+    type BanRow = typeof playerDeadlockBansTable.$inferSelect;
+    const matchGameConfig = await loadTournamentGameConfig(matchRef.tournamentId);
+    resolvedGameConfig = matchGameConfig;
+    const banRows: BanRow[] = playerIds.length === 2
+      ? await db.select().from(playerDeadlockBansTable).where(inArray(playerDeadlockBansTable.playerId, playerIds))
+      : [];
+    // Validate player1Side is only used for Deadlock tournaments
+    if (side !== undefined && side !== null && matchGameConfig?.gameId !== "deadlock") {
+      res.status(422).json({ error: "player1Side is only valid for Deadlock tournaments." });
+      return;
+    }
+    if (playerIds.length === 2) {
+      const p1Bans = banRows.find((b) => b.playerId === matchRef.player1Id)?.bannedHeroIds ?? [];
+      const p2Bans = banRows.find((b) => b.playerId === matchRef.player2Id)?.bannedHeroIds ?? [];
+      const banMode = matchGameConfig?.gameId === "deadlock"
+        ? getDeadlockBanMode(matchGameConfig.config)
+        : "shared_pool";
 
-    if (banMode === "shared_pool") {
-      const forbidden = new Set([...p1Bans, ...p2Bans]);
-      if (p1 !== null && forbidden.has(p1)) {
-        res.status(422).json({ error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` });
-        return;
-      }
-      if (p2 !== null && forbidden.has(p2)) {
-        res.status(422).json({ error: `Postać "${p2}" jest zbanowana i nie może być wybrana w tym meczu.` });
-        return;
-      }
-    } else {
-      // opponent_only: each player is blocked only by their opponent's bans
-      if (p1 !== null && p2Bans.includes(p1)) {
-        res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-        return;
-      }
-      if (p2 !== null && p1Bans.includes(p2)) {
-        res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-        return;
+      if (banMode === "shared_pool") {
+        const forbidden = new Set([...p1Bans, ...p2Bans]);
+        if (p1 !== null && forbidden.has(p1)) {
+          res.status(422).json({ error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` });
+          return;
+        }
+        if (p2 !== null && forbidden.has(p2)) {
+          res.status(422).json({ error: `Postać "${p2}" jest zbanowana i nie może być wybrana w tym meczu.` });
+          return;
+        }
+      } else {
+        // opponent_only: each player is blocked only by their opponent's bans
+        if (p1 !== null && p2Bans.includes(p1)) {
+          res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+          return;
+        }
+        if (p2 !== null && p1Bans.includes(p2)) {
+          res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
+          return;
+        }
       }
     }
   }
+  void resolvedGameConfig; // consumed above
 
+  const sideForInsert = side !== undefined ? side : null;
   const [upserted] = await db
     .insert(matchGamePicksTable)
     .values({
@@ -2780,22 +2859,27 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
       gameNumber: gn,
       player1HeroId: p1,
       player2HeroId: p2,
+      player1Side: sideForInsert,
     })
     .onConflictDoUpdate({
       target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
       set: {
         player1HeroId: p1,
         player2HeroId: p2,
+        ...(side !== undefined ? { player1Side: side } : {}),
         updatedAt: new Date(),
       },
     })
     .returning();
 
+  const storedSide = (upserted.player1Side as "archmother" | "hidden_king" | null) ?? null;
   res.json({
     matchId: upserted.matchId,
     gameNumber: upserted.gameNumber,
     player1HeroId: upserted.player1HeroId ?? null,
     player2HeroId: upserted.player2HeroId ?? null,
+    player1Side: storedSide,
+    player2Side: storedSide === "archmother" ? "hidden_king" : storedSide === "hidden_king" ? "archmother" : null,
   });
 });
 

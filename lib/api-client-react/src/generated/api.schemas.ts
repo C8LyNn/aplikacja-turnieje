@@ -443,6 +443,11 @@ export const TournamentVisibility = {
   private_offline: 'private_offline',
 } as const;
 
+export interface TournamentPresentationSettings {
+  /** Enable Deadlock visual theme (beige/dark-brown palette + Valve Pulp Bold font) */
+  deadlockTheme?: boolean;
+}
+
 export interface Tournament {
   id: number;
   name: string;
@@ -480,6 +485,7 @@ export interface Tournament {
   visibility?: TournamentVisibility;
   createdAt: string;
   gameConfig?: DeadlockTournamentGameConfig | null;
+  presentationSettings?: TournamentPresentationSettings | null;
 }
 
 export type TournamentInputFormat = typeof TournamentInputFormat[keyof typeof TournamentInputFormat];
@@ -965,6 +971,8 @@ export interface TournamentUpdate {
   viewerPassword?: string;
   /** Optional game configuration. Null removes it. Editable only while the tournament is a draft. */
   gameConfig?: DeadlockTournamentGameConfig | null;
+  /** Optional presentation preferences. Editable at any tournament status. */
+  presentationSettings?: TournamentPresentationSettings | null;
 }
 
 /**
@@ -1845,6 +1853,33 @@ export type TournamentBackupV3ActionLogItem = {
   createdAt: string;
 };
 
+export type TournamentBackupV3DeadlockBansItem = {
+  playerBackupId: number;
+  bannedHeroIds: string[];
+};
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3GamePicksItemPlayer1Side = typeof TournamentBackupV3GamePicksItemPlayer1Side[keyof typeof TournamentBackupV3GamePicksItemPlayer1Side] | null;
+
+
+export const TournamentBackupV3GamePicksItemPlayer1Side = {
+  archmother: 'archmother',
+  hidden_king: 'hidden_king',
+} as const;
+
+export type TournamentBackupV3GamePicksItem = {
+  matchBackupId: number;
+  gameNumber: number;
+  /** @nullable */
+  player1HeroId?: string | null;
+  /** @nullable */
+  player2HeroId?: string | null;
+  /** @nullable */
+  player1Side?: TournamentBackupV3GamePicksItemPlayer1Side;
+};
+
 export interface TournamentBackupV3 {
   schemaVersion: 3;
   resultModelVersion: 'series_v1';
@@ -1862,6 +1897,10 @@ export interface TournamentBackupV3 {
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];
+  /** Per-player Deadlock hero bans (optional, present only for Deadlock tournaments) */
+  deadlockBans?: TournamentBackupV3DeadlockBansItem[];
+  /** Per-game hero picks for each match (optional, present only when picks exist) */
+  gamePicks?: TournamentBackupV3GamePicksItem[];
 }
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;

@@ -58,6 +58,14 @@ const DEADLOCK_BANS_AND_PICKS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0014_deadlock_bans_and_picks.sql",
   import.meta.url,
 );
+const DEADLOCK_GAME_SIDE_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0015_deadlock_game_side.sql",
+  import.meta.url,
+);
+const TOURNAMENT_PRESENTATION_SETTINGS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0016_tournament_presentation_settings.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 
@@ -235,6 +243,22 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(deadlockBansAndPicksMigrationSql);
       // Deadlock ban/picks schema is idempotent (IF NOT EXISTS).
       await pool.query(deadlockBansAndPicksMigrationSql);
+      const deadlockGameSideMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(DEADLOCK_GAME_SIDE_MIGRATION_URL, "utf8"),
+          schema,
+        ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+      await pool.query(deadlockGameSideMigrationSql);
+      // Side column uses IF NOT EXISTS — safe to replay.
+      await pool.query(deadlockGameSideMigrationSql);
+      const tournamentPresentationSettingsMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(TOURNAMENT_PRESENTATION_SETTINGS_MIGRATION_URL, "utf8"),
+          schema,
+        ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+      await pool.query(tournamentPresentationSettingsMigrationSql);
+      // presentationSettings column uses IF NOT EXISTS — safe to replay.
+      await pool.query(tournamentPresentationSettingsMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

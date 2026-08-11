@@ -13,3 +13,14 @@ The Deadlock visual theme works fully — only the display font falls back to se
 No code change required — the `@font-face` rule already references this path.
 
 Source: https://drive.google.com/drive/folders/1bz9JynTfk9gdFK1xxfUCUq37gPapjY_M
+
+# Display Font
+
+Place `valvepulp-bold.ttf` in this directory.
+
+Used by `--font-deadlock-display` for Deadlock-themed tournament views.
+Supports Polish characters. Not committed to the repository.
+
+Without the file: `font-display: swap` causes the browser to render the
+serif fallback stack (Georgia → Times New Roman → serif) with no layout
+shift or console errors.

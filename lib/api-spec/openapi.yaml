@@ -1633,6 +1633,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
             - type: "null"
+        presentationSettings:
+          oneOf:
+            - $ref: "#/components/schemas/TournamentPresentationSettings"
+            - type: "null"
 
     TournamentInput:
       type: object
@@ -1967,6 +1971,19 @@ components:
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
             - type: "null"
+        presentationSettings:
+          description: Optional presentation preferences. Editable at any tournament status.
+          oneOf:
+            - $ref: "#/components/schemas/TournamentPresentationSettings"
+            - type: "null"
+
+    TournamentPresentationSettings:
+      type: object
+      additionalProperties: false
+      properties:
+        deadlockTheme:
+          type: boolean
+          description: Enable Deadlock visual theme (beige/dark-brown palette + Valve Pulp Bold font)
 
     OrganizerCredentialState:
       type: object
@@ -2724,6 +2741,33 @@ components:
                 additionalProperties: true
               isUndone: { type: boolean }
               createdAt: { type: string }
+        deadlockBans:
+          type: array
+          description: Per-player Deadlock hero bans (optional, present only for Deadlock tournaments)
+          items:
+            type: object
+            additionalProperties: false
+            required: [playerBackupId, bannedHeroIds]
+            properties:
+              playerBackupId: { type: integer }
+              bannedHeroIds:
+                type: array
+                items: { type: string }
+        gamePicks:
+          type: array
+          description: Per-game hero picks for each match (optional, present only when picks exist)
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, gameNumber]
+            properties:
+              matchBackupId: { type: integer }
+              gameNumber: { type: integer }
+              player1HeroId: { type: ["string", "null"] }
+              player2HeroId: { type: ["string", "null"] }
+              player1Side:
+                type: ["string", "null"]
+                enum: [archmother, hidden_king, null]
 
     TournamentBackup:
       oneOf:

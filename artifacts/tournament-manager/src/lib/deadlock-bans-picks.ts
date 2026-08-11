@@ -23,6 +23,8 @@ export interface GamePickRecord {
   gameNumber: number;
   player1HeroId: string | null;
   player2HeroId: string | null;
+  player1Side: "archmother" | "hidden_king" | null;
+  player2Side: "archmother" | "hidden_king" | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,14 +110,18 @@ export function useSetMatchGamePick(matchId: number | null | undefined) {
   return useMutation<
     GamePickRecord,
     Error,
-    { gameNumber: number; player1HeroId: string | null; player2HeroId: string | null }
+    { gameNumber: number; player1HeroId: string | null; player2HeroId: string | null; player1Side?: "archmother" | "hidden_king" | null }
   >({
-    mutationFn: ({ gameNumber, player1HeroId, player2HeroId }) =>
+    mutationFn: ({ gameNumber, player1HeroId, player2HeroId, player1Side }) =>
       customFetch<GamePickRecord>(
         `/api/matches/${matchId}/game-picks/${gameNumber}`,
         {
           method: "PUT",
-          body: JSON.stringify({ player1HeroId, player2HeroId }),
+          body: JSON.stringify({
+            player1HeroId,
+            player2HeroId,
+            ...(player1Side !== undefined ? { player1Side } : {}),
+          }),
           headers: { "Content-Type": "application/json" },
         },
       ),

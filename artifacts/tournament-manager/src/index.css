@@ -3,9 +3,18 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+@font-face {
+  font-family: 'Valve Pulp Bold';
+  src: url('/fonts/valvepulp-bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-deadlock-display: var(--app-font-deadlock-display);
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-border: hsl(var(--border));
@@ -97,22 +106,20 @@
 
   --app-font-sans: 'Inter', sans-serif;
   --app-font-mono: 'JetBrains Mono', monospace;
+  --app-font-deadlock-display: 'Valve Pulp Bold', 'Georgia', 'Times New Roman', serif;
   --radius: .5rem;
+
+  /* Deadlock side colors — always available regardless of theme */
+  --deadlock-archmother: #3874ae;
+  --deadlock-hidden-king: #ffac11;
+  --deadlock-beige: #efddbe;
+  --deadlock-dark: #242021;
 
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-
-  /* ── Deadlock brand tokens (always available) ── */
-  --deadlock-archmother: #3874ae;
-  --deadlock-hidden-king: #ffac11;
-  --deadlock-beige: #efddbe;
-  --deadlock-dark: #242021;
-
-  /* Display font — Inter in base theme; switches to Valve Pulp Bold inside [data-theme="deadlock"] */
-  --app-font-deadlock-display: var(--app-font-sans);
 }
 
 .dark {
@@ -137,15 +144,6 @@
   --destructive-foreground: 210 40% 98%;
   --input: 217 32% 17%;
   --ring: 199 89% 48%;
-}
-
-/* ── Valve Pulp Bold display font ── */
-@font-face {
-  font-family: 'Valve Pulp Bold';
-  src: url('/fonts/valvepulp-bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
 }
 
 /*

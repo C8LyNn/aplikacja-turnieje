@@ -3,6 +3,8 @@ import {
   actionLogTable,
   db,
   matchesTable,
+  matchGamePicksTable,
+  playerDeadlockBansTable,
   playersTable,
   resultHistoryTable,
   stageGroupsTable,
@@ -105,7 +107,7 @@ export async function exportBackupV3(
     .from(tournamentsTable)
     .where(eq(tournamentsTable.id, tournamentId));
   if (!tournament) return null;
-  const [players, stages, groups, memberships, matches, history, actions, gameConfigs] =
+  const [players, stages, groups, memberships, matches, history, actions, gameConfigs, deadlockBanRows, gamePickRows] =
     await Promise.all([
       db
         .select()
@@ -164,6 +166,23 @@ export async function exportBackupV3(
         .select()
         .from(tournamentGameConfigsTable)
         .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId)),
+      db
+        .select()
+        .from(playerDeadlockBansTable)
+        .where(eq(playerDeadlockBansTable.tournamentId, tournamentId)),
+      db
+        .select()
+        .from(matchGamePicksTable)
+        .where(
+          inArray(
+            matchGamePicksTable.matchId,
+            db
+              .select({ id: matchesTable.id })
+              .from(matchesTable)
+              .where(eq(matchesTable.tournamentId, tournamentId)),
+          ),
+        )
+        .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
     ]);
   const gameConfig = gameConfigs[0];
   const parsedGameConfig = gameConfig
@@ -308,6 +327,25 @@ export async function exportBackupV3(
       isUndone: action.isUndone,
       createdAt: action.createdAt.toISOString(),
     })),
+    ...(deadlockBanRows.length > 0
+      ? {
+          deadlockBans: deadlockBanRows.map((b) => ({
+            playerBackupId: b.playerId,
+            bannedHeroIds: b.bannedHeroIds ?? [],
+          })),
+        }
+      : {}),
+    ...(gamePickRows.length > 0
+      ? {
+          gamePicks: gamePickRows.map((p) => ({
+            matchBackupId: p.matchId,
+            gameNumber: p.gameNumber,
+            player1HeroId: p.player1HeroId ?? null,
+            player2HeroId: p.player2HeroId ?? null,
+            player1Side: (p.player1Side as "archmother" | "hidden_king" | null) ?? null,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -1234,6 +1272,52 @@ export async function importBackupV3(
           .update(matchesTable)
           .set({ nextMatchId: matchIds.get(match.nextMatchBackupId)! })
           .where(eq(matchesTable.id, matchIds.get(match.backupId)!));
+    }
+    // Restore per-game picks (Deadlock)
+    if (backup.gamePicks && backup.gamePicks.length > 0) {
+      for (const pick of backup.gamePicks) {
+        const newMatchId = matchIds.get(pick.matchBackupId);
+        if (!newMatchId) continue;
+        await tx
+          .insert(matchGamePicksTable)
+          .values({
+            matchId: newMatchId,
+            gameNumber: pick.gameNumber,
+            player1HeroId: pick.player1HeroId ?? null,
+            player2HeroId: pick.player2HeroId ?? null,
+            player1Side: (pick.player1Side as "archmother" | "hidden_king" | null) ?? null,
+          })
+          .onConflictDoUpdate({
+            target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
+            set: {
+              player1HeroId: pick.player1HeroId ?? null,
+              player2HeroId: pick.player2HeroId ?? null,
+              player1Side: (pick.player1Side as "archmother" | "hidden_king" | null) ?? null,
+              updatedAt: new Date(),
+            },
+          });
+      }
+    }
+    // Restore per-player Deadlock bans
+    if (backup.deadlockBans && backup.deadlockBans.length > 0) {
+      for (const ban of backup.deadlockBans) {
+        const newPlayerId = playerIds.get(ban.playerBackupId);
+        if (!newPlayerId) continue;
+        await tx
+          .insert(playerDeadlockBansTable)
+          .values({
+            playerId: newPlayerId,
+            tournamentId: tournament.id,
+            bannedHeroIds: ban.bannedHeroIds,
+          })
+          .onConflictDoUpdate({
+            target: playerDeadlockBansTable.playerId,
+            set: {
+              bannedHeroIds: ban.bannedHeroIds,
+              updatedAt: new Date(),
+            },
+          });
+      }
     }
     for (const history of backup.resultHistory) {
       await tx.insert(resultHistoryTable).values({
