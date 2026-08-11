@@ -19,7 +19,7 @@ import {
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lock, Trophy } from "lucide-react";
+import { Lock, Trophy, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
@@ -300,10 +300,20 @@ export default function TournamentAudience() {
               R{tournament.currentRound}/{tournament.totalRounds}
             </span>
           )}
+          {(organizerToken || supportSession) && (
+            <Link
+              href={`/tournaments/${id}`}
+              className="ml-1 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+              title="Wróć do panelu zarządzania tym turniejem"
+            >
+              <Settings2 className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Panel organizatora</span>
+            </Link>
+          )}
           <RoleHomeLink
             fallbackHref="/fan"
             fallbackLabel="Wróć do turniejów"
-            className="ml-2 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+            className="ml-1 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
           />
         </div>
       </header>
