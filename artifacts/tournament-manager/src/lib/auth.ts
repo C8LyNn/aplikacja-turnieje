@@ -10,6 +10,20 @@ const ROLE_KEY = "tm_role";
 const ORG_TOKEN_KEY = (id: number) => `tm_org_${id}`;
 const SUP_TOKEN_KEY = (id: number) => `tm_sup_${id}`;
 const SUP_NICK_KEY = (id: number) => `tm_sup_nick_${id}`;
+// Lightweight cross-tab flag: "this browser has organizer or support access for this tournament".
+// Stored in localStorage so new tabs can also show the back-to-organizer link.
+// The flag does NOT store credentials — the panel itself is still auth-protected.
+const MGMT_FLAG_KEY = (id: number) => `tm_mgmt_${id}`;
+
+export function getMgmtFlag(tournamentId: number): boolean {
+  try { return !!localStorage.getItem(MGMT_FLAG_KEY(tournamentId)); } catch { return false; }
+}
+function setMgmtFlag(tournamentId: number): void {
+  try { localStorage.setItem(MGMT_FLAG_KEY(tournamentId), "1"); } catch {}
+}
+function clearMgmtFlag(tournamentId: number): void {
+  try { localStorage.removeItem(MGMT_FLAG_KEY(tournamentId)); } catch {}
+}
 
 export function getStoredRole(): Role | null {
   try {
@@ -42,12 +56,14 @@ export function getOrganizerToken(tournamentId: number): string | null {
 export function setOrganizerToken(tournamentId: number, token: string): void {
   try {
     sessionStorage.setItem(ORG_TOKEN_KEY(tournamentId), token);
+    setMgmtFlag(tournamentId);
   } catch {}
 }
 
 export function clearOrganizerToken(tournamentId: number): void {
   try {
     sessionStorage.removeItem(ORG_TOKEN_KEY(tournamentId));
+    clearMgmtFlag(tournamentId);
   } catch {}
 }
 
@@ -66,6 +82,7 @@ export function setSupportSession(tournamentId: number, token: string, nick: str
   try {
     sessionStorage.setItem(SUP_TOKEN_KEY(tournamentId), token);
     sessionStorage.setItem(SUP_NICK_KEY(tournamentId), nick);
+    setMgmtFlag(tournamentId);
   } catch {}
 }
 
@@ -73,6 +90,8 @@ export function clearSupportSession(tournamentId: number): void {
   try {
     sessionStorage.removeItem(SUP_TOKEN_KEY(tournamentId));
     sessionStorage.removeItem(SUP_NICK_KEY(tournamentId));
+    // Clear the flag only if there's also no organizer token remaining.
+    if (!getOrganizerToken(tournamentId)) clearMgmtFlag(tournamentId);
   } catch {}
 }
 
