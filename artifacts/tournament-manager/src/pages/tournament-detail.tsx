@@ -52,6 +52,7 @@ import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/li
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
+import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -159,6 +160,10 @@ export default function TournamentDetail() {
   );
 
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  // Computed before any early returns so React hooks order is stable.
+  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+  useDeadlockHtmlTheme(deadlockTheme);
+
   const { data: playerBansData } = usePlayerBans(
     id,
     // Bans must load even in draft status — organizers set bans before starting.
@@ -596,8 +601,6 @@ export default function TournamentDetail() {
   if (!tournament) return <Layout><div>Nie znaleziono</div></Layout>;
 
   const statusLabel: Record<string, string> = { draft: "SZKIC", active: "AKTYWNY", completed: "ZAKOŃCZONY" };
-
-  const deadlockTheme = isDeadlock && !!((tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
 
   return (
     <Layout deadlockTheme={deadlockTheme}>

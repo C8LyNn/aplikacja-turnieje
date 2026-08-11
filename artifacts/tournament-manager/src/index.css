@@ -221,6 +221,16 @@
 
   /* ── Display font (Valve Pulp Bold; Georgia/serif fallback if TTF missing) ── */
   --app-font-deadlock-display: 'Valve Pulp Bold', 'Georgia', 'Times New Roman', serif;
+
+  /* ── Surface / elevation / outline tokens ── */
+  /* Replace white-tinted defaults with green-tinted ones so buttons/badges
+     match the dark forest palette instead of looking blue-grey. */
+  --button-outline: rgba(80, 170, 110, 0.22);
+  --badge-outline:  rgba(80, 170, 110, 0.14);
+  --elevate-1:      rgba(80, 170, 110, 0.05);
+  --elevate-2:      rgba(80, 170, 110, 0.12);
+  --surface-1:      var(--elevate-1);
+  --surface-2:      var(--elevate-2);
 }
 
 /*
@@ -295,6 +305,89 @@
 [data-theme="deadlock"] .focus-visible\:ring-cyan-400:focus-visible {
   --tw-ring-color: hsl(var(--ring));
 }
+
+/* ── Dialog / Sheet overlay backdrop → dark green instead of solid black ── */
+[data-theme="deadlock"] .bg-black\/80 { background-color: hsl(135 40% 2% / 0.88); }
+
+/* ── Pure white / black surfaces ── */
+[data-theme="deadlock"] .bg-white                    { background-color: hsl(var(--card)); }
+[data-theme="deadlock"] .border-white                { border-color: hsl(var(--border)); }
+[data-theme="deadlock"] .bg-black                    { background-color: hsl(var(--background)); }
+[data-theme="deadlock"] .hover\:bg-white\/10:hover   { background-color: hsl(var(--accent) / 0.80); }
+
+/* ── Gray / Slate neutrals → warm muted-foreground ── */
+[data-theme="deadlock"] .text-gray-400               { color: hsl(var(--muted-foreground)); }
+[data-theme="deadlock"] .text-slate-400              { color: hsl(var(--muted-foreground)); }
+
+/* ── Blue → emerald primary ── */
+[data-theme="deadlock"] .text-blue-300               { color: hsl(var(--primary) / 0.92); }
+[data-theme="deadlock"] .text-blue-400               { color: hsl(var(--primary)); }
+[data-theme="deadlock"] .text-blue-400\/70           { color: hsl(var(--primary) / 0.70); }
+[data-theme="deadlock"] .bg-blue-500\/10             { background-color: hsl(var(--primary) / 0.12); }
+[data-theme="deadlock"] .bg-blue-600                 { background-color: hsl(var(--primary)); }
+[data-theme="deadlock"] .bg-blue-700                 { background-color: hsl(148 35% 34%); }
+[data-theme="deadlock"] .hover\:bg-blue-700:hover    { background-color: hsl(148 35% 30%); }
+[data-theme="deadlock"] .border-blue-400\/50         { border-color: hsl(var(--primary) / 0.50); }
+[data-theme="deadlock"] .border-blue-500\/30         { border-color: hsl(var(--primary) / 0.30); }
+
+/* ── Cyan → emerald primary (extends existing coverage) ── */
+[data-theme="deadlock"] .text-cyan-300               { color: hsl(var(--primary) / 0.92); }
+[data-theme="deadlock"] .text-cyan-500\/80           { color: hsl(var(--primary) / 0.80); }
+[data-theme="deadlock"] .bg-cyan-500\/5              { background-color: hsl(var(--primary) / 0.06); }
+[data-theme="deadlock"] .border-cyan-500\/50         { border-color: hsl(var(--primary) / 0.55); }
+[data-theme="deadlock"] .ring-cyan-400               { --tw-ring-color: hsl(var(--ring)); }
+
+/* ── Orange "warning-action" buttons → warm amber / Deadlock gold ──────────
+ * "Swap players" and "No contest" use orange as a high-visibility warning.
+ * Map to warm amber (hsl ~38) which echoes the Hidden King gold palette. */
+[data-theme="deadlock"] .text-orange-400             { color: hsl(38 65% 60%); }
+[data-theme="deadlock"] .text-orange-400\/70         { color: hsl(38 65% 60% / 0.70); }
+[data-theme="deadlock"] .bg-orange-500               { background-color: hsl(38 72% 46%); }
+[data-theme="deadlock"] .bg-orange-500\/10           { background-color: hsl(38 72% 46% / 0.10); }
+[data-theme="deadlock"] .bg-orange-500\/20           { background-color: hsl(38 72% 46% / 0.20); }
+[data-theme="deadlock"] .bg-orange-600               { background-color: hsl(38 68% 40%); }
+[data-theme="deadlock"] .bg-orange-700               { background-color: hsl(38 64% 34%); }
+[data-theme="deadlock"] .hover\:bg-orange-600:hover  { background-color: hsl(38 68% 40%); }
+[data-theme="deadlock"] .hover\:bg-orange-700:hover  { background-color: hsl(38 64% 34%); }
+[data-theme="deadlock"] .border-orange-400\/50       { border-color: hsl(38 65% 60% / 0.50); }
+[data-theme="deadlock"] .border-orange-500\/30       { border-color: hsl(38 72% 46% / 0.30); }
+[data-theme="deadlock"] .border-orange-500\/40       { border-color: hsl(38 72% 46% / 0.40); }
+[data-theme="deadlock"] .border-orange-500\/50       { border-color: hsl(38 72% 46% / 0.50); }
+[data-theme="deadlock"] .hover\:border-orange-400\/50:hover { border-color: hsl(38 65% 60% / 0.50); }
+
+/* ── Yellow warning states → warm gold (naturally on-theme) ── */
+[data-theme="deadlock"] .text-yellow-300             { color: hsl(44 68% 70%); }
+[data-theme="deadlock"] .text-yellow-400             { color: hsl(44 62% 60%); }
+[data-theme="deadlock"] .text-yellow-400\/70         { color: hsl(44 62% 60% / 0.70); }
+[data-theme="deadlock"] .text-yellow-500             { color: hsl(44 56% 52%); }
+[data-theme="deadlock"] .bg-yellow-500\/5            { background-color: hsl(44 56% 52% / 0.06); }
+[data-theme="deadlock"] .bg-yellow-500\/10           { background-color: hsl(44 56% 52% / 0.10); }
+[data-theme="deadlock"] .bg-yellow-500\/15           { background-color: hsl(44 56% 52% / 0.15); }
+[data-theme="deadlock"] .bg-yellow-500\/20           { background-color: hsl(44 56% 52% / 0.20); }
+[data-theme="deadlock"] .bg-yellow-500\/30           { background-color: hsl(44 56% 52% / 0.30); }
+[data-theme="deadlock"] .border-yellow-500           { border-color: hsl(44 56% 52%); }
+[data-theme="deadlock"] .border-yellow-500\/20       { border-color: hsl(44 56% 52% / 0.20); }
+[data-theme="deadlock"] .border-yellow-500\/30       { border-color: hsl(44 56% 52% / 0.30); }
+[data-theme="deadlock"] .border-yellow-500\/40       { border-color: hsl(44 56% 52% / 0.40); }
+[data-theme="deadlock"] .border-yellow-500\/50       { border-color: hsl(44 56% 52% / 0.50); }
+[data-theme="deadlock"] .fill-yellow-400             { fill: hsl(44 62% 60%); }
+
+/* ── Green success states → on-theme emerald (distinguishable from bg) ──
+ * Brighter than bg-primary so "success" reads as distinct from "action". */
+[data-theme="deadlock"] .text-green-300              { color: hsl(148 42% 65%); }
+[data-theme="deadlock"] .text-green-400              { color: hsl(148 38% 55%); }
+[data-theme="deadlock"] .text-green-500              { color: hsl(148 34% 48%); }
+[data-theme="deadlock"] .bg-green-500\/5             { background-color: hsl(var(--primary) / 0.07); }
+[data-theme="deadlock"] .bg-green-500\/10            { background-color: hsl(var(--primary) / 0.12); }
+[data-theme="deadlock"] .bg-green-500\/20            { background-color: hsl(var(--primary) / 0.22); }
+[data-theme="deadlock"] .bg-green-500\/60            { background-color: hsl(var(--primary) / 0.58); }
+[data-theme="deadlock"] .border-green-500            { border-color: hsl(var(--primary)); }
+[data-theme="deadlock"] .border-green-500\/20        { border-color: hsl(var(--primary) / 0.22); }
+[data-theme="deadlock"] .border-green-500\/30        { border-color: hsl(var(--primary) / 0.32); }
+
+/* ── Red / destructive states → intentionally NOT overridden ─────────────
+ * text-red-400, bg-red-500/*, border-red-500/* stay vivid red to maintain
+ * unambiguous danger semantics against the dark green background.          */
 
 /*
  * .font-deadlock helper class.

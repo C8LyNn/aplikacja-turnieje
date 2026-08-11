@@ -15,6 +15,7 @@ import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { RoleHomeLink } from "@/components/app-navigation";
+import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -50,6 +51,9 @@ export default function TournamentBracket() {
   const isSwiss = tournament?.format === "swiss";
   const isRoundRobin = tournament?.format === "round_robin";
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  // Computed before any early returns so React hooks order is stable.
+  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+  useDeadlockHtmlTheme(deadlockTheme);
 
   const { data: history } = useGetResultsHistory(id, {
     query: {
@@ -104,8 +108,6 @@ export default function TournamentBracket() {
       </div>
     );
   }
-
-  const deadlockTheme = isDeadlock && !!((tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={deadlockTheme ? "deadlock" : undefined}>

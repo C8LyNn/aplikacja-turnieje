@@ -35,6 +35,7 @@ import { usePlayerBans, useMatchGamePicks } from "@/lib/deadlock-bans-picks";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
+import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -147,6 +148,10 @@ export default function TournamentAudience() {
     lockedOutCodeRef.current = undefined;
   }
   const accessDeniedCode = lockedOutCodeRef.current;
+
+  // Must be before any early returns so React hooks order stays stable.
+  const deadlockTheme = tournament?.gameConfig?.gameId === "deadlock" && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+  useDeadlockHtmlTheme(deadlockTheme);
 
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
@@ -261,8 +266,6 @@ export default function TournamentAudience() {
     : isHeroDone
       ? "border-green-500/30 shadow-[0_0_40px_rgba(34,197,94,0.08)]"
       : "border-white/10";
-
-  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
 
   return (
     <div

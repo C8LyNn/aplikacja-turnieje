@@ -45,6 +45,7 @@ import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
+import { useDeadlockHtmlTheme } from "@/lib/deadlock-theme";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -110,6 +111,10 @@ export default function TournamentHost() {
   );
 
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
+  // Computed before any early returns so React hooks order is stable.
+  const deadlockTheme = isDeadlock && !!((tournament as any)?.presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
+  useDeadlockHtmlTheme(deadlockTheme);
+
   const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id });
   const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
 
@@ -1336,8 +1341,6 @@ export default function TournamentHost() {
       </div>
     );
   };
-
-  const deadlockTheme = isDeadlock && !!((tournament as any).presentationSettings as { deadlockTheme?: boolean } | null | undefined)?.deadlockTheme;
 
   return (
     <Layout deadlockTheme={deadlockTheme}>
