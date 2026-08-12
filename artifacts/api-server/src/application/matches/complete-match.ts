@@ -18,6 +18,10 @@ import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
 } from "../../access-policy";
+import {
+  advanceDoubleEliminationFromCanonicalMatch,
+  lockDoubleEliminationRuntime,
+} from "../stages/double-elimination-match-runtime";
 
 export type CompleteMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -109,7 +113,7 @@ function normalizeResult(params: {
   bestOf: number;
   player1Id: number;
   player2Id: number;
-  format: "single_elimination" | "round_robin" | "swiss" | "group_stage";
+  format: "single_elimination" | "double_elimination" | "round_robin" | "swiss" | "group_stage";
 }): NormalizedResult {
   if (params.input.resultType === "played") {
     const validation = validatePlayedSeriesResult({
@@ -151,7 +155,7 @@ function normalizeResult(params: {
     };
   }
 
-  if (params.format === "single_elimination") {
+  if (params.format === "single_elimination" || params.format === "double_elimination") {
     throw new CompleteMatchError("NO_CONTEST_REQUIRES_RESOLUTION");
   }
   return {
@@ -207,6 +211,9 @@ export async function completeMatch(
       .orderBy(tournamentStagesTable.position)
       .for("update");
     const isSingleStageTournament = tournamentStages.length === 1;
+    const doubleEliminationRuntime = stage.format === "double_elimination"
+      ? await lockDoubleEliminationRuntime(tx, tournament.id, stage)
+      : null;
 
     const [match] = await tx
       .select()
@@ -370,6 +377,19 @@ export async function completeMatch(
       undoPayload: JSON.stringify({ type: "revert_match", matchId: match.id }),
       isUndone: false,
     });
+
+    if (stage.format === "double_elimination") {
+      if (result.winnerId == null || doubleEliminationRuntime == null) {
+        throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
+      }
+      await advanceDoubleEliminationFromCanonicalMatch(tx, {
+        tournamentId: tournament.id,
+        stage,
+        match: updatedMatch,
+        winnerId: result.winnerId,
+        runtime: doubleEliminationRuntime,
+      });
+    }
 
     if (downstreamMatch && downstreamSlot && result.winnerId != null) {
       await tx

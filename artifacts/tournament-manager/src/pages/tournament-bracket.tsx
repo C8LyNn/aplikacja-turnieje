@@ -6,8 +6,13 @@ import {
   getGetTournamentQueryKey,
   getGetTournamentBracketQueryKey,
   getGetResultsHistoryQueryKey,
+  getGetDoubleEliminationStageQueryKey,
+  getListTournamentStagesQueryKey,
+  useGetDoubleEliminationStage,
+  useListTournamentStages,
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
@@ -40,6 +45,28 @@ export default function TournamentBracket() {
       refetchInterval: 10000,
     },
   });
+  const { data: stages } = useListTournamentStages(id, {
+    query: {
+      enabled: !!id,
+      queryKey: getListTournamentStagesQueryKey(id),
+      refetchInterval: 10000,
+    },
+  });
+  const doubleEliminationStage = stages?.find(
+    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
+  );
+  const doubleEliminationQuery = useGetDoubleEliminationStage(
+    id,
+    doubleEliminationStage?.id ?? 0,
+    {
+      query: {
+        enabled: !!id && !!doubleEliminationStage,
+        retry: false,
+        queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
+        refetchInterval: 10000,
+      },
+    },
+  );
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(0.75);
@@ -200,6 +227,21 @@ export default function TournamentBracket() {
         {tournament.status === "draft" ? (
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
             Turniej jeszcze nie wystartował.
+          </div>
+        ) : doubleEliminationStage && doubleEliminationQuery.data ? (
+          <div className="p-8">
+            <DoubleEliminationBracket
+              tournamentId={id}
+              stageId={doubleEliminationStage.id}
+              state={doubleEliminationQuery.data}
+            />
+          </div>
+        ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
+          <div className="flex h-full items-center justify-center p-8 text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
+        ) : doubleEliminationStage && doubleEliminationQuery.error ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-destructive">
+            <p>Nie udało się pobrać drabinki Double Elimination.</p>
+            <Button type="button" variant="outline" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
           </div>
         ) : bracket ? (
           isSwiss ? (

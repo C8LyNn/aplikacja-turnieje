@@ -209,7 +209,7 @@ function MatchBox({
         style={{ height: 16 }}
       >
         <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-mono leading-none">
-          {forcedHero && <DeadlockHeroIcon hero={forcedHero} className="h-3 w-3" />}
+          {forcedHero && <DeadlockHeroIcon hero={forcedHero} className="h-6 w-6" />}
           M{match.matchNumber}
         </span>
         {isLive && (

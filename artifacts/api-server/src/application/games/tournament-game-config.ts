@@ -1,7 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
-import { db, tournamentGameConfigsTable } from "@workspace/db";
+import { db, tournamentGameConfigsTable, tournamentStagesTable } from "@workspace/db";
 import {
   parseTournamentGameConfig,
+  TournamentGameConfigError,
   type SupportedTournamentGameConfig,
 } from "@workspace/game-catalog";
 
@@ -64,6 +65,20 @@ export async function replaceTournamentGameConfig(
   }
 
   const parsed = parseTournamentGameConfig(value);
+  if (parsed.gameId === "deadlock" && (parsed.config.stageBans?.length ?? 0) > 0) {
+    const stages = await tx
+      .select({ stageKey: tournamentStagesTable.stageKey })
+      .from(tournamentStagesTable)
+      .where(eq(tournamentStagesTable.tournamentId, tournamentId));
+    const stageKeys = new Set(stages.map((stage) => stage.stageKey));
+    const unknown = parsed.config.stageBans?.find((entry) => !stageKeys.has(entry.stageKey));
+    if (unknown) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        `Deadlock stage bans reference unknown stage: ${unknown.stageKey}.`,
+      );
+    }
+  }
   const persistedConfig: Record<string, unknown> = { ...parsed.config };
   await tx
     .insert(tournamentGameConfigsTable)

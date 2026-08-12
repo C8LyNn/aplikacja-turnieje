@@ -12,6 +12,8 @@ import type { TournamentBackupV3GroupsItem } from './tournamentBackupV3GroupsIte
 import type { TournamentBackupV3MatchesItem } from './tournamentBackupV3MatchesItem';
 import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersItem';
 import type { TournamentBackupV3ResultHistoryItem } from './tournamentBackupV3ResultHistoryItem';
+import type { TournamentBackupV3RoutingExecutionsItem } from './tournamentBackupV3RoutingExecutionsItem';
+import type { TournamentBackupV3RoutingPlan } from './tournamentBackupV3RoutingPlan';
 import type { TournamentBackupV3StageParticipantsItem } from './tournamentBackupV3StageParticipantsItem';
 import type { TournamentBackupV3StagesItem } from './tournamentBackupV3StagesItem';
 import type { TournamentBackupV3Tournament } from './tournamentBackupV3Tournament';
@@ -25,7 +27,7 @@ export interface TournamentBackupV3 {
   players: TournamentBackupV3PlayersItem[];
   /**
      * @minItems 1
-     * @maxItems 3
+     * @maxItems 10
      */
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
@@ -37,4 +39,11 @@ export interface TournamentBackupV3 {
   deadlockBans?: TournamentBackupV3DeadlockBansItem[];
   /** Per-game hero picks for each match (optional, present only when picks exist) */
   gamePicks?: TournamentBackupV3GamePicksItem[];
+  /**
+     * Optional sealed Tournament Engine V2 routing plan. Required for Double Elimination backups.
+     * @nullable
+     */
+  routingPlan?: TournamentBackupV3RoutingPlan;
+  /** Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage. */
+  routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
 }

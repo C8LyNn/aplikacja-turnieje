@@ -164,6 +164,62 @@ describe("Deadlock tournament game configuration", () => {
     assert.equal(locked.body.code, "GAME_CONFIG_IMMUTABLE");
   });
 
+  test("persists cumulative per-stage bans and round-trips them through Backup v3", async () => {
+    const stageBans = [
+      { stageKey: "opening", bannedHeroIds: ["rem"] },
+      { stageKey: "middle", bannedHeroIds: ["wraith", "haze"] },
+      { stageKey: "final", bannedHeroIds: ["shiv"] },
+    ];
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Deadlock stage bans ${randomUUID()}`,
+        format: "round_robin",
+        defaultBestOf: 3,
+        organizerPassword: ORGANIZER_PASSWORD,
+        stagePlan: {
+          initialParticipantCount: 2,
+          stages: [
+            { key: "opening", position: 1, name: "Opening", format: "round_robin", participantCount: 2, bestOf: 1, advancingCount: 2 },
+            { key: "middle", position: 2, name: "Middle", format: "round_robin", participantCount: 2, bestOf: 3, advancingCount: 2 },
+            { key: "final", position: 3, name: "Final", format: "single_elimination", participantCount: 2, bestOf: 5 },
+          ],
+        },
+        gameConfig: {
+          gameId: "deadlock",
+          configVersion: 1,
+          config: { stageBans },
+        },
+      });
+    assert.equal(created.status, 201, created.text);
+    assert.deepEqual(created.body.gameConfig.config.stageBans, stageBans);
+    const organizer = { "x-organizer-token": created.body.organizerToken as string };
+
+    const invalid = await request(app)
+      .patch(`/api/tournaments/${created.body.id}`)
+      .set(organizer)
+      .send({
+        gameConfig: {
+          gameId: "deadlock",
+          configVersion: 1,
+          config: { stageBans: [{ stageKey: "unknown-stage", bannedHeroIds: ["rem"] }] },
+        },
+      });
+    assert.equal(invalid.status, 400, invalid.text);
+    const unchanged = await request(app).get(`/api/tournaments/${created.body.id}`).expect(200);
+    assert.deepEqual(unchanged.body.gameConfig.config.stageBans, stageBans);
+
+    const exported = await request(app)
+      .get(`/api/tournaments/${created.body.id}/export`)
+      .set(organizer)
+      .expect(200);
+    const restored = await request(app)
+      .post("/api/tournaments/import")
+      .send({ backup: exported.body, organizerPassword: ORGANIZER_PASSWORD })
+      .expect(201);
+    assert.deepEqual(restored.body.tournament.gameConfig.config.stageBans, stageBans);
+  });
+
   test("Backup v3 round-trip preserves config while older v3 without it stays compatible", async () => {
     const created = await createTournament(deadlockConfig("rem"));
     assert.equal(created.status, 201, created.text);

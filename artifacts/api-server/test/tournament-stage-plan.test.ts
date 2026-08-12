@@ -228,18 +228,17 @@ describe("validateTournamentStagePlan invalid plans", () => {
       code: "STAGE_COUNT_OUT_OF_RANGE",
     },
     {
-      name: "four stages",
+      name: "eleven stages",
       mutate: () => ({
-        initialParticipantCount: 16,
-        stages: [1, 2, 3, 4].map((position) => ({
+        initialParticipantCount: 2,
+        stages: Array.from({ length: 11 }, (_, index) => index + 1).map((position) => ({
           key: `stage-${position}`,
           position,
           name: `Stage ${position}`,
-          format: position === 4 ? "single_elimination" : "swiss",
-          participantCount: 16 >> (position - 1),
+          format: position === 11 ? "single_elimination" : "round_robin",
+          participantCount: 2,
           bestOf: 1,
-          rounds: 1,
-          ...(position < 4 ? { advancingCount: 16 >> position } : {}),
+          ...(position < 11 ? { advancingCount: 2 } : {}),
         })),
       }),
       code: "STAGE_COUNT_OUT_OF_RANGE",
@@ -375,7 +374,7 @@ describe("validateTournamentStagePlan invalid plans", () => {
     },
     {
       name: "unsupported stage format",
-      mutate: (plan) => ({ ...plan, stages: [{ ...plan.stages[0], format: "double_elimination" }] }),
+      mutate: (plan) => ({ ...plan, stages: [{ ...plan.stages[0], format: "unsupported_format" as any }] }),
       code: "INVALID_STAGE_FORMAT",
     },
     {

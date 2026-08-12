@@ -25,6 +25,9 @@ export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 
+export const listTournamentsResponseGameConfigOneConfigStageBansMax = 10;
+
+
 
 export const ListTournamentsResponseItem = zod.object({
   "id": zod.number(),
@@ -54,7 +57,11 @@ export const ListTournamentsResponseItem = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(listTournamentsResponseGameConfigOneConfigBansPerPlayerMin).max(listTournamentsResponseGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(listTournamentsResponseGameConfigOneConfigBansPerPlayerMin).max(listTournamentsResponseGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(listTournamentsResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -80,7 +87,7 @@ export const createTournamentBodyViewerPasswordMin = 8;
 export const createTournamentBodyStagePlanInitialParticipantCountMin = 2;
 
 
-export const createTournamentBodyStagePlanStagesItemPositionMax = 3;
+export const createTournamentBodyStagePlanStagesItemPositionMax = 10;
 
 
 export const createTournamentBodyStagePlanStagesItemParticipantCountMin = 2;
@@ -96,10 +103,13 @@ export const createTournamentBodyStagePlanStagesItemEntrySeedingMethodDefault = 
 export const createTournamentBodyStagePlanStagesItemRandomSeedMax = 200;
 
 export const createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault = `instant`;
-export const createTournamentBodyStagePlanStagesMax = 3;
+export const createTournamentBodyStagePlanStagesMax = 10;
 
 export const createTournamentBodyGameConfigConfigBansPerPlayerMin = 0;
 export const createTournamentBodyGameConfigConfigBansPerPlayerMax = 20;
+
+
+export const createTournamentBodyGameConfigConfigStageBansMax = 10;
 
 
 
@@ -120,7 +130,7 @@ export const CreateTournamentBody = zod.object({
   "key": zod.string().min(1),
   "position": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemPositionMax),
   "name": zod.string().min(1),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "participantCount": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantCountMin),
   "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
   "rounds": zod.number().min(1).optional(),
@@ -135,14 +145,18 @@ export const CreateTournamentBody = zod.object({
   "randomRevealOrder": zod.enum(['instant', 'sequential']).default(createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault),
   "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
-}).optional().describe('Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection.'),
+}).optional().describe('Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.'),
   "gameConfig": zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(createTournamentBodyGameConfigConfigBansPerPlayerMin).max(createTournamentBodyGameConfigConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(createTournamentBodyGameConfigConfigBansPerPlayerMin).max(createTournamentBodyGameConfigConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(createTournamentBodyGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }).optional()
 })
@@ -155,6 +169,9 @@ export const GetTournamentParams = zod.object({
 
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
+
+export const getTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
 
 
@@ -186,7 +203,11 @@ export const GetTournamentResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(getTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(getTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(getTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(getTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(getTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -202,6 +223,9 @@ export const UpdateTournamentParams = zod.object({
 
 export const updateTournamentBodyGameConfigOneConfigBansPerPlayerMin = 0;
 export const updateTournamentBodyGameConfigOneConfigBansPerPlayerMax = 20;
+
+
+export const updateTournamentBodyGameConfigOneConfigStageBansMax = 10;
 
 
 
@@ -222,7 +246,11 @@ export const UpdateTournamentBody = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(updateTournamentBodyGameConfigOneConfigBansPerPlayerMin).max(updateTournamentBodyGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(updateTournamentBodyGameConfigOneConfigBansPerPlayerMin).max(updateTournamentBodyGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(updateTournamentBodyGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.'),
   "presentationSettings": zod.union([zod.object({
@@ -233,6 +261,9 @@ export const UpdateTournamentBody = zod.object({
 
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
+
+export const updateTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
 
 
@@ -264,7 +295,11 @@ export const UpdateTournamentResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(updateTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(updateTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(updateTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(updateTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(updateTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -294,7 +329,7 @@ export const ListTournamentStagesResponseItem = zod.object({
   "stageKey": zod.string(),
   "position": zod.number(),
   "name": zod.string(),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "status": zod.enum(['planned', 'active', 'completed']),
   "participantCount": zod.number(),
   "bestOf": zod.number(),
@@ -347,7 +382,7 @@ export const GetTournamentStageResponse = zod.object({
   "stageKey": zod.string(),
   "position": zod.number(),
   "name": zod.string(),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "status": zod.enum(['planned', 'active', 'completed']),
   "participantCount": zod.number(),
   "bestOf": zod.number(),
@@ -817,7 +852,7 @@ export const GetTournamentStageReadinessResponse = zod.object({
   "missingSeeds": zod.array(zod.number().min(1)),
   "blockingMatches": zod.number().min(getTournamentStageReadinessResponseBlockingMatchesMin),
   "blockingGroups": zod.number().min(getTournamentStageReadinessResponseBlockingGroupsMin),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination'])
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination'])
 })
 
 
@@ -898,7 +933,7 @@ export const StartTournamentStageResponse = zod.object({
   "stageKey": zod.string(),
   "position": zod.number(),
   "name": zod.string(),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "status": zod.enum(['planned', 'active', 'completed']),
   "participantCount": zod.number(),
   "bestOf": zod.number(),
@@ -925,6 +960,97 @@ export const StartTournamentStageResponse = zod.object({
 })
 
 
+/**
+ * @summary Read the authoritative Double Elimination bracket execution
+ */
+
+
+
+
+export const GetDoubleEliminationStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+export const getDoubleEliminationStageResponseParticipantsItemLossesMin = 0;
+export const getDoubleEliminationStageResponseParticipantsItemLossesMax = 2;
+
+
+
+export const getDoubleEliminationStageResponseMatchesItemOrderMin = 0;
+
+export const getDoubleEliminationStageResponseMatchesItemSlotsMin = 2;
+export const getDoubleEliminationStageResponseMatchesItemSlotsMax = 2;
+
+export const getDoubleEliminationStageResponseMatchesItemDownstreamResultCountMin = 0;
+
+
+
+export const GetDoubleEliminationStageResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "revision": zod.number().min(1),
+  "completed": zod.boolean(),
+  "championParticipantKey": zod.string().nullable(),
+  "participants": zod.array(zod.object({
+  "participantKey": zod.string(),
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "seed": zod.number(),
+  "losses": zod.number().min(getDoubleEliminationStageResponseParticipantsItemLossesMin).max(getDoubleEliminationStageResponseParticipantsItemLossesMax),
+  "status": zod.enum(['active', 'eliminated', 'winner'])
+})),
+  "matches": zod.array(zod.object({
+  "matchKey": zod.string(),
+  "matchId": zod.number().nullable(),
+  "name": zod.string(),
+  "bracket": zod.enum(['upper', 'lower', 'grand_final', 'grand_final_reset']),
+  "round": zod.number().min(1),
+  "matchNumber": zod.number().min(1),
+  "order": zod.number().min(getDoubleEliminationStageResponseMatchesItemOrderMin),
+  "slots": zod.array(zod.string().nullable()).min(getDoubleEliminationStageResponseMatchesItemSlotsMin).max(getDoubleEliminationStageResponseMatchesItemSlotsMax),
+  "status": zod.enum(['blocked', 'ready', 'completed', 'bye', 'skipped']),
+  "bestOf": zod.number().nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "downstreamResultCount": zod.number().min(getDoubleEliminationStageResponseMatchesItemDownstreamResultCountMin),
+  "winnerParticipantKey": zod.string().nullable(),
+  "loserParticipantKey": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Reset every result in the active Double Elimination stage
+ */
+
+
+
+
+export const ResetDoubleEliminationStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+
+export const ResetDoubleEliminationStageBody = zod.object({
+  "expectedRevision": zod.number().min(1)
+})
+
+
+export const resetDoubleEliminationStageResponseInvalidatedResultCountMin = 0;
+
+
+
+export const ResetDoubleEliminationStageResponse = zod.object({
+  "revision": zod.number().min(1),
+  "invalidatedResultCount": zod.number().min(resetDoubleEliminationStageResponseInvalidatedResultCountMin)
+})
+
+
 export const StartTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
@@ -932,6 +1058,9 @@ export const StartTournamentParams = zod.object({
 
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
+
+
+export const startTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
 
 
@@ -963,7 +1092,11 @@ export const StartTournamentResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(startTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(startTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(startTournamentResponseGameConfigOneConfigBansPerPlayerMin).max(startTournamentResponseGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(startTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1043,6 +1176,9 @@ export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 
+export const generateNextRoundResponseGameConfigOneConfigStageBansMax = 10;
+
+
 
 export const GenerateNextRoundResponse = zod.object({
   "id": zod.number(),
@@ -1072,7 +1208,11 @@ export const GenerateNextRoundResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin).max(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin).max(generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(generateNextRoundResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1088,6 +1228,9 @@ export const GetTournamentBracketParams = zod.object({
 
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax = 20;
+
+
+export const getTournamentBracketResponseTournamentGameConfigOneConfigStageBansMax = 10;
 
 
 
@@ -1121,7 +1264,11 @@ export const GetTournamentBracketResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin).max(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin).max(getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(getTournamentBracketResponseTournamentGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1135,6 +1282,7 @@ export const GetTournamentBracketResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -1291,7 +1439,11 @@ export const ExportTournamentParams = zod.object({
 export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin = 0;
 export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax = 20;
 
-export const exportTournamentResponseStagesMax = 3;
+
+export const exportTournamentResponseTournamentGameConfigConfigStageBansMax = 10;
+
+export const exportTournamentResponseStagesMax = 10;
+
 
 
 
@@ -1316,7 +1468,11 @@ export const ExportTournamentResponse = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin).max(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin).max(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(exportTournamentResponseTournamentGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }).optional()
 }),
@@ -1334,7 +1490,7 @@ export const ExportTournamentResponse = zod.object({
   "stageKey": zod.string(),
   "position": zod.number(),
   "name": zod.string(),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "status": zod.enum(['planned', 'active', 'completed']),
   "participantCount": zod.number(),
   "bestOf": zod.number(),
@@ -1400,6 +1556,7 @@ export const ExportTournamentResponse = zod.object({
   "bestOf": zod.number(),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "note": zod.string().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "nextMatchBackupId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
   "scheduledAt": zod.string().nullish(),
@@ -1442,7 +1599,13 @@ export const ExportTournamentResponse = zod.object({
   "player1HeroId": zod.string().nullish(),
   "player2HeroId": zod.string().nullish(),
   "player1Side": zod.union([zod.literal('archmother'),zod.literal('hidden_king'),zod.literal(null)]).nullish()
-})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)')
+})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)'),
+  "routingPlan": zod.record(zod.string(), zod.unknown()).nullish().describe('Optional sealed Tournament Engine V2 routing plan. Required for Double Elimination backups.'),
+  "routingExecutions": zod.array(zod.object({
+  "stageBackupId": zod.number(),
+  "revision": zod.number().min(1),
+  "state": zod.record(zod.string(), zod.unknown())
+})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.')
 })
 
 
@@ -1454,7 +1617,11 @@ export const ExportTournamentResponse = zod.object({
 export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin = 0;
 export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax = 20;
 
-export const importTournamentBodyBackupTwoStagesMax = 3;
+
+export const importTournamentBodyBackupTwoTournamentGameConfigConfigStageBansMax = 10;
+
+export const importTournamentBodyBackupTwoStagesMax = 10;
+
 
 
 export const importTournamentBodyOrganizerPasswordMin = 8;
@@ -1558,7 +1725,11 @@ export const ImportTournamentBody = zod.object({
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin).max(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax).optional()
+  "bansPerPlayer": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin).max(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax).optional(),
+  "stageBans": zod.array(zod.object({
+  "stageKey": zod.string().min(1),
+  "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
+})).max(importTournamentBodyBackupTwoTournamentGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
 }).optional()
 }),
@@ -1576,7 +1747,7 @@ export const ImportTournamentBody = zod.object({
   "stageKey": zod.string(),
   "position": zod.number(),
   "name": zod.string(),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination']),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
   "status": zod.enum(['planned', 'active', 'completed']),
   "participantCount": zod.number(),
   "bestOf": zod.number(),
@@ -1642,6 +1813,7 @@ export const ImportTournamentBody = zod.object({
   "bestOf": zod.number(),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "note": zod.string().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "nextMatchBackupId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
   "scheduledAt": zod.string().nullish(),
@@ -1684,7 +1856,13 @@ export const ImportTournamentBody = zod.object({
   "player1HeroId": zod.string().nullish(),
   "player2HeroId": zod.string().nullish(),
   "player1Side": zod.union([zod.literal('archmother'),zod.literal('hidden_king'),zod.literal(null)]).nullish()
-})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)')
+})).optional().describe('Per-game hero picks for each match (optional, present only when picks exist)'),
+  "routingPlan": zod.record(zod.string(), zod.unknown()).nullish().describe('Optional sealed Tournament Engine V2 routing plan. Required for Double Elimination backups.'),
+  "routingExecutions": zod.array(zod.object({
+  "stageBackupId": zod.number(),
+  "revision": zod.number().min(1),
+  "state": zod.record(zod.string(), zod.unknown())
+})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.')
 })]),
   "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
   "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),
@@ -1821,6 +1999,7 @@ export const ListMatchesResponseItem = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -1855,6 +2034,7 @@ export const GetMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -1897,6 +2077,7 @@ export const UpdateMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -1943,6 +2124,7 @@ export const CompleteMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -1983,6 +2165,7 @@ export const CancelMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -2019,6 +2202,7 @@ export const RestoreCancelledMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -2055,6 +2239,7 @@ export const SwapMatchPlayersResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -2095,6 +2280,7 @@ export const ReorderMatchesResponseItem = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),
@@ -2132,6 +2318,7 @@ export const RevertMatchResponse = zod.object({
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullish(),

@@ -33,9 +33,11 @@ function stageDefinition(stage: TournamentStagePlan): TournamentStageDefinitionV
   settings.entrySeeding = stage.entrySeedingMethod;
   settings.randomRevealOrder = stage.randomRevealOrder;
   if (stage.randomSeed != null) settings.randomSeed = stage.randomSeed;
-  if (stage.format === "single_elimination") {
+  if (stage.format === "single_elimination" || stage.format === "double_elimination") {
     settings.initialPlacement = stage.placementMethod;
-    if (stage.advancingCount != null) settings.advancingCount = stage.advancingCount;
+    if (stage.format === "single_elimination" && stage.advancingCount != null) {
+      settings.advancingCount = stage.advancingCount;
+    }
   }
 
   const policyId =
@@ -126,7 +128,7 @@ function transitionPlacement(
       ? { type: "random", randomSeed: target.randomSeed }
       : { type: "snake_groups" };
   }
-  if (target.format === "single_elimination") {
+  if (target.format === "single_elimination" || target.format === "double_elimination") {
     return target.placementMethod === "random"
       ? { type: "random", randomSeed: target.randomSeed }
       : { type: "standard_seeded_bracket", reseedEachRound: false };

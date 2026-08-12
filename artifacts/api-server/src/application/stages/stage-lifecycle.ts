@@ -9,6 +9,7 @@ import {
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
+  tournamentRoutingExecutionsTable,
   tournamentsTable,
 } from "@workspace/db";
 import {
@@ -46,6 +47,13 @@ import {
   type TournamentMutationActor,
 } from "../../access-policy";
 import { StageLifecycleError } from "./stage-lifecycle-error";
+import {
+  createRoutingExecutionV2,
+  evaluateRoutingExecutionV2,
+  type RoutingExecutionSnapshotV2,
+} from "../../domain/tournament/v2";
+import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
+import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
 
 export interface StageLifecycleTestHooks {
@@ -557,6 +565,15 @@ export async function completeStage(
   input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
   testHooks: StageLifecycleTestHooks = {},
 ): Promise<QualificationPreview> {
+  const [stageIdentity] = await db.select({ format: tournamentStagesTable.format })
+    .from(tournamentStagesTable)
+    .where(and(
+      eq(tournamentStagesTable.id, input.stageId),
+      eq(tournamentStagesTable.tournamentId, input.tournamentId),
+    ));
+  const routingPlan = stageIdentity?.format === "double_elimination"
+    ? await loadCompiledRoutingPlanV2({ tournamentId: input.tournamentId })
+    : null;
   return db.transaction(async (tx) => {
     const [tournament] = await tx.select().from(tournamentsTable)
       .where(eq(tournamentsTable.id, input.tournamentId)).for("update");
@@ -587,7 +604,24 @@ export async function completeStage(
         .where(eq(stageGroupsTable.stageId, stage.id))
         .orderBy(asc(stageGroupsTable.position)).for("update")
       : [];
-    assertStageComplete(stage, matches, memberships.length, groups);
+    let doubleEliminationEvaluation: ReturnType<typeof evaluateRoutingExecutionV2> | null = null;
+    if (stage.format === "double_elimination") {
+      if (!routingPlan) throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
+      const [execution] = await tx.select().from(tournamentRoutingExecutionsTable).where(and(
+        eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId),
+        eq(tournamentRoutingExecutionsTable.stageKey, stage.stageKey),
+      )).for("update");
+      if (!execution) throw new StageLifecycleError("STAGE_INCOMPLETE");
+      doubleEliminationEvaluation = evaluateRoutingExecutionV2(
+        routingPlan.plan,
+        execution.state as RoutingExecutionSnapshotV2,
+      );
+      if (!doubleEliminationEvaluation.completed || !doubleEliminationEvaluation.championParticipantKey) {
+        throw new StageLifecycleError("STAGE_INCOMPLETE");
+      }
+    } else {
+      assertStageComplete(stage, matches, memberships.length, groups);
+    }
 
     const nextStage = stages.find((candidate) => candidate.position === stage.position + 1);
     let preview: QualificationPreview;
@@ -607,6 +641,43 @@ export async function completeStage(
         groups,
         ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
       });
+    } else if (stage.format === "double_elimination") {
+      if (nextStage || !doubleEliminationEvaluation?.championParticipantKey) {
+        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+      }
+      const participantState = new Map(
+        doubleEliminationEvaluation.participants.map((entry) => [entry.participantKey, entry]),
+      );
+      const ordered = [...memberships].sort((left, right) => {
+        const leftState = participantState.get(String(left.playerId));
+        const rightState = participantState.get(String(right.playerId));
+        if (leftState?.status === "winner") return -1;
+        if (rightState?.status === "winner") return 1;
+        return left.stageSeed - right.stageSeed;
+      });
+      preview = {
+        tournamentId: tournament.id,
+        stageId: stage.id,
+        stageVersion: stage.version,
+        fingerprint: createHash("sha256").update(JSON.stringify(doubleEliminationEvaluation.snapshot)).digest("hex"),
+        ranking: ordered.map((membership, index) => {
+          const player = players.find((candidate) => candidate.id === membership.playerId)!;
+          return {
+            stageParticipantId: membership.id,
+            playerId: membership.playerId,
+            playerName: player.name,
+            stageSeed: membership.stageSeed,
+            rank: index + 1,
+            matchWins: 0,
+            matchLosses: participantState.get(String(membership.playerId))?.losses ?? 0,
+            gameWins: 0,
+            gameLosses: 0,
+            gameDiff: 0,
+            buchholz: null,
+          };
+        }),
+        qualifiers: [],
+      };
     } else {
       const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
       if (nextStage && (
@@ -793,6 +864,15 @@ export async function startStage(
   },
   testHooks: StageLifecycleTestHooks = {},
 ): Promise<typeof tournamentStagesTable.$inferSelect> {
+  const [stageIdentity] = await db.select({ format: tournamentStagesTable.format })
+    .from(tournamentStagesTable)
+    .where(and(
+      eq(tournamentStagesTable.id, input.stageId),
+      eq(tournamentStagesTable.tournamentId, input.tournamentId),
+    ));
+  const routingPlan = stageIdentity?.format === "double_elimination"
+    ? await loadCompiledRoutingPlanV2({ tournamentId: input.tournamentId })
+    : null;
   return db.transaction(async (tx) => {
     const [tournament] = await tx.select().from(tournamentsTable)
       .where(eq(tournamentsTable.id, input.tournamentId)).for("update");
@@ -968,7 +1048,31 @@ export async function startStage(
     }));
     let inserted: Array<typeof matchesTable.$inferSelect>;
     let totalRounds: number;
-    if (stage.format === "group_stage") {
+    if (stage.format === "double_elimination") {
+      if (!routingPlan) throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
+      const execution = createRoutingExecutionV2(
+        routingPlan.plan,
+        stage.stageKey,
+        memberships.map((membership) => String(membership.playerId)),
+      );
+      await tx.insert(tournamentRoutingExecutionsTable).values({
+        planId: routingPlan.planId,
+        stageKey: stage.stageKey,
+        state: execution.snapshot,
+      });
+      const materialized = await reconcileDoubleEliminationMatches(tx, {
+        tournamentId: tournament.id,
+        stage,
+        evaluation: execution,
+      });
+      inserted = [...materialized.values()].filter((match) => match.player1Id != null && match.player2Id != null);
+      totalRounds = Math.max(
+        1,
+        ...routingPlan.plan.logicalMatches
+          .filter((match) => match.stageKey === stage.stageKey)
+          .map((match) => match.order + 1),
+      );
+    } else if (stage.format === "group_stage") {
       const groupCount = stage.groupCount;
       const largestGroupSize = stage.participantsPerGroup;
       const qualifiersPerGroup = stage.qualifiersPerGroup;
@@ -1144,7 +1248,9 @@ export async function startStage(
     await tx.update(tournamentsTable).set({
       status: "active",
       activeStageId: stage.id,
-      ...(stage.format === "group_stage" ? {} : { format: stage.format }),
+      ...(stage.format === "group_stage" || stage.format === "double_elimination"
+        ? {}
+        : { format: stage.format }),
       defaultBestOf: stage.bestOf,
       currentRound: 1,
       totalRounds,

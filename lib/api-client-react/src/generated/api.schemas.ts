@@ -141,6 +141,7 @@ export const StageStartReadinessFormat = {
   round_robin: 'round_robin',
   group_stage: 'group_stage',
   single_elimination: 'single_elimination',
+  double_elimination: 'double_elimination',
 } as const;
 
 export interface StageStartReadiness {
@@ -383,6 +384,56 @@ export const DeadlockTournamentConfigV1BanMode = {
   opponent_only: 'opponent_only',
 } as const;
 
+export type DeadlockTournamentConfigV1StageBansItemBannedHeroIdsItem = typeof DeadlockTournamentConfigV1StageBansItemBannedHeroIdsItem[keyof typeof DeadlockTournamentConfigV1StageBansItemBannedHeroIdsItem];
+
+
+export const DeadlockTournamentConfigV1StageBansItemBannedHeroIdsItem = {
+  abrams: 'abrams',
+  wraith: 'wraith',
+  shiv: 'shiv',
+  silver: 'silver',
+  drifter: 'drifter',
+  the_doorman: 'the_doorman',
+  sinclair: 'sinclair',
+  grey_talon: 'grey_talon',
+  mo_and_krill: 'mo_and_krill',
+  yamato: 'yamato',
+  holliday: 'holliday',
+  warden: 'warden',
+  mina: 'mina',
+  paradox: 'paradox',
+  mcginnis: 'mcginnis',
+  dynamo: 'dynamo',
+  infernus: 'infernus',
+  haze: 'haze',
+  mirage: 'mirage',
+  rem: 'rem',
+  paige: 'paige',
+  ivy: 'ivy',
+  venator: 'venator',
+  vindicta: 'vindicta',
+  viscous: 'viscous',
+  lash: 'lash',
+  vyper: 'vyper',
+  kelvin: 'kelvin',
+  calico: 'calico',
+  victor: 'victor',
+  graves: 'graves',
+  bebop: 'bebop',
+  pocket: 'pocket',
+  seven: 'seven',
+  billy: 'billy',
+  lady_geist: 'lady_geist',
+  apollo: 'apollo',
+  celeste: 'celeste',
+} as const;
+
+export type DeadlockTournamentConfigV1StageBansItem = {
+  /** @minLength 1 */
+  stageKey: string;
+  bannedHeroIds: DeadlockTournamentConfigV1StageBansItemBannedHeroIdsItem[];
+};
+
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockTournamentConfigV1ForcedHeroId;
   banMode?: DeadlockTournamentConfigV1BanMode;
@@ -391,6 +442,11 @@ export interface DeadlockTournamentConfigV1 {
      * @maximum 20
      */
   bansPerPlayer?: number;
+  /**
+     * Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.
+     * @maxItems 10
+     */
+  stageBans?: DeadlockTournamentConfigV1StageBansItem[];
 }
 
 export interface DeadlockTournamentGameConfig {
@@ -517,6 +573,7 @@ export const TournamentStagePlanItemInputFormat = {
   round_robin: 'round_robin',
   group_stage: 'group_stage',
   single_elimination: 'single_elimination',
+  double_elimination: 'double_elimination',
 } as const;
 
 export type TournamentStagePlanItemInputBestOf = typeof TournamentStagePlanItemInputBestOf[keyof typeof TournamentStagePlanItemInputBestOf];
@@ -592,7 +649,7 @@ export interface TournamentStagePlanItemInput {
   key: string;
   /**
      * @minimum 1
-     * @maximum 3
+     * @maximum 10
      */
   position: number;
   /** @minLength 1 */
@@ -648,7 +705,7 @@ export interface TournamentStagePlanInput {
   initialParticipantCount: number;
   /**
      * @minItems 1
-     * @maxItems 3
+     * @maxItems 10
      */
   stages: TournamentStagePlanItemInput[];
 }
@@ -676,7 +733,7 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
-  /** Optional authoritative 1-3 stage plan. The legacy format fields remain a compatibility projection. */
+  /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
   gameConfig?: DeadlockTournamentGameConfig;
 }
@@ -694,6 +751,7 @@ export const TournamentStageFormat = {
   round_robin: 'round_robin',
   group_stage: 'group_stage',
   single_elimination: 'single_elimination',
+  double_elimination: 'double_elimination',
 } as const;
 
 export type TournamentStageStatus = typeof TournamentStageStatus[keyof typeof TournamentStageStatus];
@@ -881,6 +939,121 @@ export interface TournamentStageDetails {
   /** Frozen ranking rows. Empty until a stage has been completed. */
   ranking: StageParticipant[];
   qualifiers: StageParticipant[];
+}
+
+export type DoubleEliminationParticipantStatus = typeof DoubleEliminationParticipantStatus[keyof typeof DoubleEliminationParticipantStatus];
+
+
+export const DoubleEliminationParticipantStatus = {
+  active: 'active',
+  eliminated: 'eliminated',
+  winner: 'winner',
+} as const;
+
+export interface DoubleEliminationParticipant {
+  participantKey: string;
+  playerId: number;
+  name: string;
+  seed: number;
+  /**
+     * @minimum 0
+     * @maximum 2
+     */
+  losses: number;
+  status: DoubleEliminationParticipantStatus;
+}
+
+export type DoubleEliminationMatchBracket = typeof DoubleEliminationMatchBracket[keyof typeof DoubleEliminationMatchBracket];
+
+
+export const DoubleEliminationMatchBracket = {
+  upper: 'upper',
+  lower: 'lower',
+  grand_final: 'grand_final',
+  grand_final_reset: 'grand_final_reset',
+} as const;
+
+export type DoubleEliminationMatchStatus = typeof DoubleEliminationMatchStatus[keyof typeof DoubleEliminationMatchStatus];
+
+
+export const DoubleEliminationMatchStatus = {
+  blocked: 'blocked',
+  ready: 'ready',
+  completed: 'completed',
+  bye: 'bye',
+  skipped: 'skipped',
+} as const;
+
+export interface DoubleEliminationMatch {
+  matchKey: string;
+  /** @nullable */
+  matchId: number | null;
+  name: string;
+  bracket: DoubleEliminationMatchBracket;
+  /** @minimum 1 */
+  round: number;
+  /** @minimum 1 */
+  matchNumber: number;
+  /** @minimum 0 */
+  order: number;
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  slots: (string | null)[];
+  status: DoubleEliminationMatchStatus;
+  /** @nullable */
+  bestOf: number | null;
+  /** @nullable */
+  score1: number | null;
+  /** @nullable */
+  score2: number | null;
+  /** @minimum 0 */
+  downstreamResultCount: number;
+  /** @nullable */
+  winnerParticipantKey: string | null;
+  /** @nullable */
+  loserParticipantKey: string | null;
+}
+
+export interface DoubleEliminationStageState {
+  tournamentId: number;
+  stageId: number;
+  /** @minimum 1 */
+  revision: number;
+  completed: boolean;
+  /** @nullable */
+  championParticipantKey: string | null;
+  participants: DoubleEliminationParticipant[];
+  matches: DoubleEliminationMatch[];
+}
+
+export interface DoubleEliminationResetInput {
+  /** @minimum 1 */
+  expectedRevision: number;
+}
+
+export interface DoubleEliminationMutationReceipt {
+  /** @minimum 1 */
+  revision: number;
+  /** @minimum 0 */
+  invalidatedResultCount: number;
+}
+
+export type DoubleEliminationErrorCode = typeof DoubleEliminationErrorCode[keyof typeof DoubleEliminationErrorCode];
+
+
+export const DoubleEliminationErrorCode = {
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_NOT_FOUND: 'STAGE_NOT_FOUND',
+  DOUBLE_ELIMINATION_NOT_ACTIVE: 'DOUBLE_ELIMINATION_NOT_ACTIVE',
+  DOUBLE_ELIMINATION_EXECUTION_NOT_FOUND: 'DOUBLE_ELIMINATION_EXECUTION_NOT_FOUND',
+  EXECUTION_REVISION_CONFLICT: 'EXECUTION_REVISION_CONFLICT',
+} as const;
+
+export interface DoubleEliminationError {
+  error: string;
+  code: DoubleEliminationErrorCode;
 }
 
 export interface StageRankingEntry {
@@ -1129,6 +1302,8 @@ export interface Match {
   stageId: number;
   /** @nullable */
   stageGroupId?: number | null;
+  /** @nullable */
+  routingMatchKey?: string | null;
   round: number;
   matchNumber: number;
   /** @nullable */
@@ -1569,6 +1744,7 @@ export const TournamentBackupV3StagesItemFormat = {
   round_robin: 'round_robin',
   group_stage: 'group_stage',
   single_elimination: 'single_elimination',
+  double_elimination: 'double_elimination',
 } as const;
 
 export type TournamentBackupV3StagesItemStatus = typeof TournamentBackupV3StagesItemStatus[keyof typeof TournamentBackupV3StagesItemStatus];
@@ -1791,6 +1967,8 @@ export type TournamentBackupV3MatchesItem = {
   /** @nullable */
   note?: string | null;
   /** @nullable */
+  routingMatchKey?: string | null;
+  /** @nullable */
   nextMatchBackupId?: number | null;
   /** @nullable */
   sortOrder?: number | null;
@@ -1880,6 +2058,21 @@ export type TournamentBackupV3GamePicksItem = {
   player1Side?: TournamentBackupV3GamePicksItemPlayer1Side;
 };
 
+/**
+ * Optional sealed Tournament Engine V2 routing plan. Required for Double Elimination backups.
+ * @nullable
+ */
+export type TournamentBackupV3RoutingPlan = { [key: string]: unknown } | null;
+
+export type TournamentBackupV3RoutingExecutionsItemState = { [key: string]: unknown };
+
+export type TournamentBackupV3RoutingExecutionsItem = {
+  stageBackupId: number;
+  /** @minimum 1 */
+  revision: number;
+  state: TournamentBackupV3RoutingExecutionsItemState;
+};
+
 export interface TournamentBackupV3 {
   schemaVersion: 3;
   resultModelVersion: 'series_v1';
@@ -1889,7 +2082,7 @@ export interface TournamentBackupV3 {
   players: TournamentBackupV3PlayersItem[];
   /**
      * @minItems 1
-     * @maxItems 3
+     * @maxItems 10
      */
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
@@ -1901,6 +2094,13 @@ export interface TournamentBackupV3 {
   deadlockBans?: TournamentBackupV3DeadlockBansItem[];
   /** Per-game hero picks for each match (optional, present only when picks exist) */
   gamePicks?: TournamentBackupV3GamePicksItem[];
+  /**
+     * Optional sealed Tournament Engine V2 routing plan. Required for Double Elimination backups.
+     * @nullable
+     */
+  routingPlan?: TournamentBackupV3RoutingPlan;
+  /** Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage. */
+  routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
 }
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;

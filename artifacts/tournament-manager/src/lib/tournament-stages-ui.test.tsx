@@ -20,6 +20,7 @@ import {
   balancedGroupSizes,
   buildStagePlan,
   canShowStageActions,
+  copyStageDraftForNextStage,
   createStageDraft,
   filterMatchesForStage,
   groupAdvancingCount,
@@ -34,6 +35,10 @@ import {
   withOptionalStagePlan,
   type StageDraft,
 } from "./tournament-stages-ui";
+import {
+  getDeadlockEffectiveStageBans,
+  parseTournamentGameConfig,
+} from "@workspace/game-catalog";
 import { StagePlanEditor } from "../components/stage-plan-editor";
 import { organizerCredentialScreen } from "./organizer-credential-screen";
 import { getTournament } from "@workspace/api-client-react";
@@ -72,6 +77,53 @@ test("wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego b
       false,
     ),
     "not_found",
+  );
+});
+
+test("supports ten stages, rejects eleven, and copies authoring configuration only", () => {
+  const first = {
+    ...createStageDraft(1, "round_robin"),
+    participantCount: 2,
+    advancingCount: 2,
+    bestOf: 5 as const,
+    entrySeedingMethod: "alphabetical" as const,
+    additionalHeroBans: ["haze" as const],
+  };
+  const second = copyStageDraftForNextStage(first, 2);
+  assert.equal(second.bestOf, 5);
+  assert.equal(second.entrySeedingMethod, "alphabetical");
+  assert.deepEqual(second.additionalHeroBans, []);
+  assert.notEqual(second.clientId, first.clientId);
+
+  const ten = Array.from({ length: 10 }, (_, index) => ({
+    ...createStageDraft(index + 1, index === 9 ? "single_elimination" : "round_robin"),
+    participantCount: 2,
+    advancingCount: index === 9 ? undefined : 2,
+  }));
+  assert.equal(validateStageDrafts(ten).length, 0);
+  assert.match(validateStageDrafts([...ten, createStageDraft(11)])[0].message, /1 do 10/);
+});
+
+test("derives cumulative stage bans without copying inherited bans", () => {
+  const parsed = parseTournamentGameConfig({
+    gameId: "deadlock",
+    configVersion: 1,
+    config: {
+      stageBans: [
+        { stageKey: "stage_1", bannedHeroIds: ["haze", "abrams"] },
+        { stageKey: "stage_2", bannedHeroIds: ["wraith"] },
+        { stageKey: "stage_3", bannedHeroIds: ["haze", "rem"] },
+      ],
+    },
+  });
+  assert.equal(parsed.gameId, "deadlock");
+  assert.deepEqual(
+    getDeadlockEffectiveStageBans(parsed.config, ["stage_1", "stage_2", "stage_3"], "stage_1"),
+    ["haze", "abrams"],
+  );
+  assert.deepEqual(
+    getDeadlockEffectiveStageBans(parsed.config, ["stage_1", "stage_2", "stage_3"], "stage_3"),
+    ["haze", "abrams", "wraith", "rem"],
   );
 });
 

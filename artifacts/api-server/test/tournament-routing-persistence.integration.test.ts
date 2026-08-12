@@ -6,6 +6,7 @@ import { asc, eq } from "drizzle-orm";
 import {
   compileTournamentBlueprintV2,
   compileV1StagePlanToRoutingV2,
+  doubleEliminationFormatEngineV2,
   serializeCompiledTournamentRoutingPlanV2,
   type CompiledTournamentRoutingPlanV2,
   type StageFormatEngineV2,
@@ -14,7 +15,6 @@ import {
 import {
   gslFixtureEngine,
   minimalBlueprint,
-  partialDoubleEliminationFixtureEngine,
   requireCompiled,
 } from "./tournament-routing-test-helpers";
 import {
@@ -307,7 +307,7 @@ function doubleEliminationPlan(): CompiledTournamentRoutingPlanV2 {
   return requireCompiled(
     compileTournamentBlueprintV2(
       minimalBlueprint("double_elimination", 4),
-      [partialDoubleEliminationFixtureEngine],
+      [doubleEliminationFormatEngineV2],
     ),
   );
 }
@@ -482,7 +482,7 @@ describe("Tournament routing persistence migration", () => {
        WHERE table_schema = current_schema()
          AND table_name LIKE 'tournament_routing_%'`,
     );
-    assert.equal(catalog.rows[0].table_count, 15);
+    assert.equal(catalog.rows[0].table_count, 16);
     const constraints = await database.pool.query(
       `SELECT conname, contype, convalidated
        FROM pg_constraint
@@ -1055,7 +1055,7 @@ describe("Tournament routing plan save/load", () => {
     assert.equal(count.rows[0].count, 0);
   });
 
-  test("requires exact runtime format mapping and rejects V2-only formats", async () => {
+  test("requires exact runtime format mapping and allows the Double Elimination compatibility stage", async () => {
     const swiss = swissPlan();
     const swissFixture = await createTournamentForPlan(swiss);
     const swissStageId = swissFixture.stageIdsByKey.get(
@@ -1111,14 +1111,11 @@ describe("Tournament routing plan save/load", () => {
 
     const v2Only = doubleEliminationPlan();
     const v2OnlyFixture = await createTournamentForPlan(v2Only);
-    await expectPersistenceError(
-      () =>
-        persistence.saveCompiledRoutingPlanV2({
-          ...v2OnlyFixture,
-          plan: v2Only,
-        }),
-      "ROUTING_PLAN_STAGE_FORMAT_MISMATCH",
-    );
+    const saved = await persistence.saveCompiledRoutingPlanV2({
+      ...v2OnlyFixture,
+      plan: v2Only,
+    });
+    assert.equal(saved.plan.stages[0].formatId, "double_elimination");
   });
 
   test("allows only one of two concurrent conflicting writes for the same revision", async () => {
@@ -1151,7 +1148,7 @@ describe("Tournament routing plan save/load", () => {
     );
   });
 
-  test("does not introduce execution assignments or routing history tables", async () => {
+  test("adds only the execution snapshot extension without assignments or history tables", async () => {
     const forbidden = await database.pool.query(
       `SELECT table_name
        FROM information_schema.tables
@@ -1159,20 +1156,26 @@ describe("Tournament routing plan save/load", () => {
          AND (
            table_name LIKE 'tournament_routing%assignment%'
            OR table_name LIKE 'tournament_routing%history%'
-           OR table_name LIKE 'tournament_routing%execution%'
          )`,
     );
     assert.equal(forbidden.rowCount, 0);
+    const executionTables = await database.pool.query(
+      `SELECT table_name
+       FROM information_schema.tables
+       WHERE table_schema = current_schema()
+         AND table_name LIKE 'tournament_routing%execution%'`,
+    );
+    assert.deepEqual(
+      executionTables.rows.map((row: { table_name: string }) => row.table_name),
+      ["tournament_routing_executions"],
+    );
   });
 
-  test("is not imported by V1 runtime, routes, Backup or deployment task entrypoints", async () => {
+  test("is not imported by legacy match, Backup V2 or deployment task entrypoints", async () => {
     const files = [
-      "../src/application/stages/stage-lifecycle.ts",
       "../src/application/matches/complete-match.ts",
       "../src/application/matches/revert-match.ts",
-      "../src/routes/tournaments.ts",
       "../src/application/backups/backup-v2.ts",
-      "../src/application/backups/backup-v3.ts",
       "../src/deployment-task.ts",
     ];
     const contents = await Promise.all(

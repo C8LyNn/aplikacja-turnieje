@@ -880,6 +880,8 @@ export default function TournamentDetail() {
               activeStageId={tournament.activeStageId}
               matches={matches ?? []}
               canManage={capabilities.canManageLifecycle}
+              canWriteResults={capabilities.canWriteTournamentResults}
+              gameConfig={tournament.gameConfig}
               onChanged={invalidateAll}
             />
           </TabsContent>

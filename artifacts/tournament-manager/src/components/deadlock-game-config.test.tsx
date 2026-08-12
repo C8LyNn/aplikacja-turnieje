@@ -67,7 +67,6 @@ test("bans-per-player stepper increments and decrements", async () => {
   assert.equal(after.config.bansPerPlayer, 6);
 
   await userEvent.click(minus);
-  await userEvent.click(minus);
   const after2 = JSON.parse(screen.getByTestId("value").textContent ?? "null") as {
     config: { bansPerPlayer?: number };
   };

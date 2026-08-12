@@ -5,6 +5,7 @@ import {
   TournamentGameConfigError,
   getDeadlockBanMode,
   getDeadlockBansPerPlayer,
+  getDeadlockEffectiveStageBans,
   type SupportedTournamentGameConfig,
 } from "@workspace/game-catalog";
 import {
@@ -72,6 +73,11 @@ import {
   SeedingCeremonyError,
   type SeedingCeremonyErrorCode,
 } from "../application/stages/seeding-ceremony";
+import {
+  DoubleEliminationStageError,
+  getDoubleEliminationStageState,
+  resetDoubleEliminationStage,
+} from "../application/stages/double-elimination-stage";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
@@ -134,6 +140,9 @@ import {
   PreviewStageQualificationParams,
   CompleteTournamentStageParams,
   StartTournamentStageParams,
+  GetDoubleEliminationStageParams,
+  ResetDoubleEliminationStageParams,
+  ResetDoubleEliminationStageBody,
   type TournamentBackupV2,
   type TournamentBackupV3,
 } from "@workspace/api-zod";
@@ -174,6 +183,17 @@ function sendStageLifecycleError(
   ]);
   res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
     .json({ error: error.message, code: error.code });
+}
+
+function sendDoubleEliminationError(
+  error: DoubleEliminationStageError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set(["TOURNAMENT_NOT_FOUND", "STAGE_NOT_FOUND", "DOUBLE_ELIMINATION_EXECUTION_NOT_FOUND"]);
+  res.status(notFound.has(error.code) ? 404 : 409).json({
+    error: error.message,
+    code: error.code,
+  });
 }
 
 function sendSeedingCeremonyError(
@@ -750,6 +770,43 @@ router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<
   }
 });
 
+router.get("/tournaments/:id/stages/:stageId/double-elimination", async (req, res): Promise<void> => {
+  const params = GetDoubleEliminationStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json(await getDoubleEliminationStageState({
+      tournamentId: params.data.id,
+      stageId: params.data.stageId,
+    }));
+  } catch (error) {
+    if (error instanceof DoubleEliminationStageError) { sendDoubleEliminationError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/double-elimination/reset", async (req, res): Promise<void> => {
+  const params = ResetDoubleEliminationStageParams.safeParse(req.params);
+  const body = ResetDoubleEliminationStageBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Invalid Double Elimination reset" });
+    return;
+  }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    res.json(await resetDoubleEliminationStage({
+      tournamentId: params.data.id,
+      stageId: params.data.stageId,
+      expectedRevision: body.data.expectedRevision,
+      actor: getTournamentMutationActor(access),
+    }));
+  } catch (error) {
+    if (error instanceof DoubleEliminationStageError) { sendDoubleEliminationError(error, res); return; }
+    throw error;
+  }
+});
+
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {
   const params = UpdateTournamentParams.safeParse(req.params);
   if (!params.success) {
@@ -952,11 +1009,11 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   const mutationActor = getTournamentMutationActor(access);
 
   const stages = await db
-    .select({ id: tournamentStagesTable.id })
+    .select({ id: tournamentStagesTable.id, format: tournamentStagesTable.format })
     .from(tournamentStagesTable)
     .where(eq(tournamentStagesTable.tournamentId, tournament.id))
     .orderBy(tournamentStagesTable.position);
-  if (stages.length > 1) {
+  if (stages.length > 1 || stages[0]?.format === "double_elimination") {
     try {
       await startStage({
         tournamentId: tournament.id,
@@ -2794,6 +2851,7 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
   const [matchRef] = await db
     .select({
       tournamentId: matchesTable.tournamentId,
+      stageId: matchesTable.stageId,
       bestOf: matchesTable.bestOf,
       player1Id: matchesTable.player1Id,
       player2Id: matchesTable.player2Id,
@@ -2831,9 +2889,24 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
       const banMode = matchGameConfig?.gameId === "deadlock"
         ? getDeadlockBanMode(matchGameConfig.config)
         : "shared_pool";
+      const stageRows = matchGameConfig?.gameId === "deadlock"
+        ? await db.select({ id: tournamentStagesTable.id, stageKey: tournamentStagesTable.stageKey })
+          .from(tournamentStagesTable)
+          .where(eq(tournamentStagesTable.tournamentId, matchRef.tournamentId))
+          .orderBy(tournamentStagesTable.position)
+        : [];
+      const matchStageKey = stageRows.find((stage) => stage.id === matchRef.stageId)?.stageKey;
+      const effectiveStageBans = matchGameConfig?.gameId === "deadlock" && matchStageKey
+        ? getDeadlockEffectiveStageBans(
+            matchGameConfig.config,
+            stageRows.map((stage) => stage.stageKey),
+            matchStageKey,
+          )
+        : [];
+      const effectiveStageBanSet = new Set<string>(effectiveStageBans);
 
       if (banMode === "shared_pool") {
-        const forbidden = new Set([...p1Bans, ...p2Bans]);
+        const forbidden = new Set([...p1Bans, ...p2Bans, ...effectiveStageBans]);
         if (p1 !== null && forbidden.has(p1)) {
           res.status(422).json({ error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` });
           return;
@@ -2844,11 +2917,11 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
         }
       } else {
         // opponent_only: each player is blocked only by their opponent's bans
-        if (p1 !== null && p2Bans.includes(p1)) {
+        if (p1 !== null && (p2Bans.includes(p1) || effectiveStageBanSet.has(p1))) {
           res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
           return;
         }
-        if (p2 !== null && p1Bans.includes(p2)) {
+        if (p2 !== null && (p1Bans.includes(p2) || effectiveStageBanSet.has(p2))) {
           res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
           return;
         }

@@ -39,6 +39,7 @@ export const tournamentStageFormatEnum = pgEnum("tournament_stage_format", [
   "round_robin",
   "group_stage",
   "single_elimination",
+  "double_elimination",
 ]);
 export const tournamentStageStatusEnum = pgEnum("tournament_stage_status", [
   "planned",
@@ -300,7 +301,7 @@ export const tournamentStagesTable = pgTable(
       foreignColumns: [stageParticipantsTable.stageId, stageParticipantsTable.playerId],
       name: "tournament_stages_winner_same_stage_fk",
     }),
-    check("tournament_stages_position_range", sql`${table.position} BETWEEN 1 AND 3`),
+    check("tournament_stages_position_range", sql`${table.position} BETWEEN 1 AND 10`),
     check("tournament_stages_participant_count_nonnegative", sql`${table.participantCount} >= 0`),
     check("tournament_stages_best_of_supported", sql`${table.bestOf} > 0 AND ${table.bestOf} % 2 = 1`),
     check("tournament_stages_round_values_positive", sql`
@@ -326,7 +327,7 @@ export const tournamentStagesTable = pgTable(
     check("tournament_stages_seeding_configuration", sql`
       (${table.format} IN ('swiss', 'round_robin') AND ${table.seedingPolicy} = 'standings_order')
       OR (${table.format} = 'group_stage' AND ${table.seedingPolicy} IN ('snake_groups', 'random_groups'))
-      OR (${table.format} = 'single_elimination' AND ${table.seedingPolicy} IN ('standard_bracket', 'random_bracket'))`),
+      OR (${table.format} IN ('single_elimination', 'double_elimination') AND ${table.seedingPolicy} IN ('standard_bracket', 'random_bracket'))`),
     check("tournament_stages_result_seeding_configuration", sql`
       (${table.format} = 'group_stage' AND ${table.resultSeedingPolicy} IN ('rank_bands', 'global_ranking'))
       OR (${table.format} <> 'group_stage' AND ${table.resultSeedingPolicy} = 'standings_order')`),
@@ -348,6 +349,8 @@ export const tournamentStagesTable = pgTable(
       OR (${table.format} = 'round_robin' AND ${table.rankingPolicy} = 'round_robin_v1' AND ${table.plannedRounds} IS NULL
         AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
       OR (${table.format} = 'single_elimination' AND ${table.rankingPolicy} = 'elimination_bracket_v1' AND ${table.plannedRounds} IS NULL
+        AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
+      OR (${table.format} = 'double_elimination' AND ${table.rankingPolicy} = 'elimination_bracket_v1' AND ${table.plannedRounds} IS NULL
         AND ${table.groupCount} IS NULL AND ${table.participantsPerGroup} IS NULL AND ${table.qualifiersPerGroup} IS NULL)
       OR (${table.format} = 'group_stage' AND ${table.rankingPolicy} = 'group_v1' AND ${table.plannedRounds} IS NULL
         AND ${table.groupCount} >= 1 AND ${table.groupCount} * 2 <= ${table.participantCount}
@@ -462,6 +465,8 @@ export const matchesTable = pgTable(
     sortOrder: integer("sort_order"),
     scheduledAt: timestamp("scheduled_at"),
     completedAt: timestamp("completed_at"),
+    /** Stable Tournament Engine V2 logical match key for canonical routed matches. */
+    routingMatchKey: text("routing_match_key"),
   },
   (table) => [
     unique("matches_stage_round_number_unique").on(
@@ -474,6 +479,10 @@ export const matchesTable = pgTable(
       table.tournamentId,
       table.stageId,
       table.id,
+    ),
+    unique("matches_stage_routing_match_key_unique").on(
+      table.stageId,
+      table.routingMatchKey,
     ),
     index("matches_tournament_status_idx").on(table.tournamentId, table.status),
     foreignKey({

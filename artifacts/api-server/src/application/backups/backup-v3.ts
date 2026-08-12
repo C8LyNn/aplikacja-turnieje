@@ -11,6 +11,7 @@ import {
   stageParticipantsTable,
   tournamentStagesTable,
   tournamentGameConfigsTable,
+  tournamentRoutingExecutionsTable,
   tournamentsTable,
 } from "@workspace/db";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
@@ -27,6 +28,17 @@ import {
   calculateGroupQualifierCounts,
 } from "../../domain/tournament/group-stage";
 import { validateTournamentStagePlan } from "../../domain/tournament/tournament-stage-plan";
+import {
+  evaluateRoutingExecutionV2,
+  validateCompiledTournamentRoutingPlanV2,
+  type CompiledTournamentRoutingPlanV2,
+  type RoutingExecutionSnapshotV2,
+} from "../../domain/tournament/v2";
+import {
+  loadCompiledRoutingPlanV2,
+  saveCompiledRoutingPlanV2InTransaction,
+} from "../routing/routing-plan-persistence";
+import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
 
 export class BackupV3ValidationError extends Error {
   constructor(public readonly details: string[]) {
@@ -185,6 +197,20 @@ export async function exportBackupV3(
         .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
     ]);
   const gameConfig = gameConfigs[0];
+  let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2>> | null = null;
+  try {
+    routingPlan = await loadCompiledRoutingPlanV2({ tournamentId });
+  } catch (error) {
+    if (!(error instanceof RoutingPlanPersistenceError) || error.code !== "ROUTING_PLAN_NOT_FOUND") {
+      throw error;
+    }
+  }
+  const routingExecutions = routingPlan == null
+    ? []
+    : await db.select().from(tournamentRoutingExecutionsTable)
+      .where(eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId))
+      .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
+  const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
   const parsedGameConfig = gameConfig
     ? parseTournamentGameConfig({
         gameId: gameConfig.gameId,
@@ -292,6 +318,7 @@ export async function exportBackupV3(
       bestOf: match.bestOf,
       status: match.status,
       note: match.note ?? null,
+      routingMatchKey: match.routingMatchKey ?? null,
       nextMatchBackupId: match.nextMatchId ?? null,
       sortOrder: match.sortOrder ?? null,
       scheduledAt: match.scheduledAt?.toISOString() ?? null,
@@ -346,6 +373,18 @@ export async function exportBackupV3(
           })),
         }
       : {}),
+    ...(routingPlan == null
+      ? {}
+      : { routingPlan: routingPlan.plan as unknown as Record<string, unknown> }),
+    ...(routingExecutions.length === 0
+      ? {}
+      : {
+          routingExecutions: routingExecutions.map((execution) => ({
+            stageBackupId: stageBackupIdByKey.get(execution.stageKey)!,
+            revision: execution.revision,
+            state: execution.state as Record<string, unknown>,
+          })),
+        }),
   };
 }
 
@@ -416,10 +455,10 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   );
   if (
     orderedStages.length < 1 ||
-    orderedStages.length > 3 ||
+    orderedStages.length > 10 ||
     orderedStages.some((stage, index) => stage.position !== index + 1)
   ) {
-    errors.push("Stages must contain 1-3 contiguous positions.");
+    errors.push("Stages must contain 1-10 contiguous positions.");
   }
   const isEmptyLegacyCompatibleDraft =
     backup.tournament.status === "draft" &&
@@ -455,7 +494,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
                   : "rank_bands",
             }
           : {}),
-        ...(stage.format === "single_elimination"
+        ...(stage.format === "single_elimination" || stage.format === "double_elimination"
           ? {
               placementMethod:
                 stage.seedingPolicy === "random_bracket"
@@ -474,6 +513,83 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
           (problem) => `Stage plan: ${problem.code}.`,
         ),
       );
+  }
+  let compiledRoutingPlan: CompiledTournamentRoutingPlanV2 | null = null;
+  if (backup.routingPlan != null) {
+    const validation = validateCompiledTournamentRoutingPlanV2(backup.routingPlan);
+    if (!validation.valid) {
+      errors.push(...validation.problems.map((problem) => `Routing plan: ${problem.code}.`));
+    } else {
+      compiledRoutingPlan = validation.value;
+      const stageByKey = new Map(backup.stages.map((stage) => [stage.stageKey, stage]));
+      if (
+        validation.value.stages.length !== backup.stages.length ||
+        validation.value.stages.some((compiledStage) => {
+          const stage = stageByKey.get(compiledStage.stageKey);
+          return stage == null ||
+            stage.format !== compiledStage.formatId ||
+            stage.participantCount !== compiledStage.exactParticipantCapacity;
+        })
+      ) {
+        errors.push("Routing plan stages do not match the backed-up stage plan.");
+      }
+    }
+  }
+  const doubleEliminationStages = backup.stages.filter((stage) => stage.format === "double_elimination");
+  if (doubleEliminationStages.length > 0 && compiledRoutingPlan == null) {
+    errors.push("Double Elimination backup requires a sealed routing plan.");
+  }
+  const compiledMatchKeysByStageKey = new Map<string, Set<string>>();
+  for (const logicalMatch of compiledRoutingPlan?.logicalMatches ?? []) {
+    const keys = compiledMatchKeysByStageKey.get(logicalMatch.stageKey) ?? new Set<string>();
+    keys.add(logicalMatch.matchKey);
+    compiledMatchKeysByStageKey.set(logicalMatch.stageKey, keys);
+  }
+  const routingExecutions = backup.routingExecutions ?? [];
+  const executionStageIds = new Set<number>();
+  for (const execution of routingExecutions) {
+    const stage = stageById.get(execution.stageBackupId);
+    if (
+      !stage ||
+      stage.format !== "double_elimination" ||
+      !positive(execution.revision) ||
+      executionStageIds.has(execution.stageBackupId)
+    ) {
+      errors.push(`Routing execution for stage ${execution.stageBackupId} is invalid or duplicated.`);
+      continue;
+    }
+    executionStageIds.add(execution.stageBackupId);
+    if (compiledRoutingPlan != null) {
+      try {
+        const snapshot = execution.state as unknown as RoutingExecutionSnapshotV2;
+        const stagePlayerIds = new Set(
+          backup.stageParticipants
+            .filter((participant) => participant.stageBackupId === stage.backupId)
+            .map((participant) => String(participant.playerBackupId)),
+        );
+        if (
+          snapshot.stageKey !== stage.stageKey ||
+          !Array.isArray(snapshot.entries) ||
+          snapshot.entries.some((entry) => !stagePlayerIds.has(entry.participantKey)) ||
+          !Array.isArray(snapshot.decisions) ||
+          snapshot.decisions.some((decision) =>
+            !compiledMatchKeysByStageKey.get(stage.stageKey)?.has(decision.matchKey) ||
+            !stagePlayerIds.has(decision.winnerParticipantKey)) ||
+          new Set(snapshot.decisions.map((decision) => decision.matchKey)).size !== snapshot.decisions.length
+        ) {
+          throw new Error("execution participants do not match the stage");
+        }
+        evaluateRoutingExecutionV2(compiledRoutingPlan, snapshot);
+      } catch {
+        errors.push(`Routing execution for stage ${execution.stageBackupId} has invalid state.`);
+      }
+    }
+  }
+  for (const stage of doubleEliminationStages) {
+    const hasExecution = executionStageIds.has(stage.backupId);
+    if ((stage.status === "planned" && hasExecution) || (stage.status !== "planned" && !hasExecution)) {
+      errors.push(`Double Elimination stage ${stage.backupId} has inconsistent execution state.`);
+    }
   }
   for (const stage of backup.stages) {
     if (
@@ -729,6 +845,17 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   }
 
   const roundKeys = new Set<string>();
+  const routingMatchKeys = new Set<string>();
+  const routingMatchKeysByStage = new Map<number, Set<string>>();
+  if (compiledRoutingPlan != null) {
+    const stageBackupIdByKey = new Map(
+      backup.stages.map((stage) => [stage.stageKey, stage.backupId]),
+    );
+    for (const [stageKey, logicalMatchKeys] of compiledMatchKeysByStageKey) {
+      const stageBackupId = stageBackupIdByKey.get(stageKey);
+      if (stageBackupId != null) routingMatchKeysByStage.set(stageBackupId, logicalMatchKeys);
+    }
+  }
   const validatePlayerRef = (
     value: number | null | undefined,
     label: string,
@@ -756,6 +883,17 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     if (roundKeys.has(roundKey))
       errors.push(`Match ${match.backupId} duplicates a stage round number.`);
     roundKeys.add(roundKey);
+    if (match.routingMatchKey != null) {
+      const routingKey = `${match.stageBackupId}:${match.routingMatchKey}`;
+      if (
+        stage?.format !== "double_elimination" ||
+        routingMatchKeys.has(routingKey) ||
+        !routingMatchKeysByStage.get(match.stageBackupId)?.has(match.routingMatchKey)
+      ) {
+        errors.push(`Match ${match.backupId} has an invalid routing match key.`);
+      }
+      routingMatchKeys.add(routingKey);
+    }
     if (
       (stage?.format === "group_stage" &&
         (!group || group.stageBackupId !== match.stageBackupId)) ||
@@ -985,7 +1123,9 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
 function compatibilityFormat(
   format: TournamentBackupV3["stages"][number]["format"],
 ) {
-  return format === "group_stage" ? ("round_robin" as const) : format;
+  if (format === "group_stage") return "round_robin" as const;
+  if (format === "double_elimination") return "single_elimination" as const;
+  return format;
 }
 
 function compatibleSeedingPolicy(
@@ -999,7 +1139,7 @@ function compatibleSeedingPolicy(
   if (stage.format === "group_stage") {
     return stage.seedingPolicy === "random_groups" ? "random_groups" : "snake_groups";
   }
-  if (stage.format === "single_elimination") {
+  if (stage.format === "single_elimination" || stage.format === "double_elimination") {
     return stage.seedingPolicy === "random_bracket" ? "random_bracket" : "standard_bracket";
   }
   return "standings_order";
@@ -1031,13 +1171,6 @@ export async function importBackupV3(
         ...credentials,
       })
       .returning();
-    const gameConfig = backup.tournament.gameConfig == null
-      ? null
-      : await replaceTournamentGameConfig(
-        tx,
-        tournament.id,
-        backup.tournament.gameConfig,
-      );
     const [generated] = await tx
       .select()
       .from(tournamentStagesTable)
@@ -1081,6 +1214,30 @@ export async function importBackupV3(
         .values(stageValues(stage))
         .returning();
       stageIds.set(stage.backupId, created.id);
+    }
+    const gameConfig = backup.tournament.gameConfig == null
+      ? null
+      : await replaceTournamentGameConfig(
+        tx,
+        tournament.id,
+        backup.tournament.gameConfig,
+      );
+    let restoredRoutingPlan: Awaited<ReturnType<typeof saveCompiledRoutingPlanV2InTransaction>> | null = null;
+    if (backup.routingPlan != null) {
+      const validation = validateCompiledTournamentRoutingPlanV2(backup.routingPlan);
+      if (!validation.valid) {
+        throw new BackupV3ValidationError(
+          validation.problems.map((problem) => `Routing plan: ${problem.code}.`),
+        );
+      }
+      restoredRoutingPlan = await saveCompiledRoutingPlanV2InTransaction(tx, {
+        tournamentId: tournament.id,
+        plan: validation.value,
+        stageIdsByKey: new Map(
+          orderedStages.map((stage) => [stage.stageKey, stageIds.get(stage.backupId)!]),
+        ),
+        sourceKind: "backup_v3_restore",
+      });
     }
     const groupIds = new Map<number, number>();
     for (const group of backup.groups) {
@@ -1225,6 +1382,44 @@ export async function importBackupV3(
         membershipIds.set(membership.backupId, created.id);
       }
     }
+    if ((backup.routingExecutions?.length ?? 0) > 0) {
+      if (restoredRoutingPlan == null) {
+        throw new BackupV3ValidationError(["Routing executions require a sealed routing plan."]);
+      }
+      for (const execution of backup.routingExecutions ?? []) {
+        const stage = backup.stages.find((candidate) => candidate.backupId === execution.stageBackupId)!;
+        const sourceState = execution.state as unknown as RoutingExecutionSnapshotV2;
+        const remapParticipantKey = (value: string): string => {
+          const sourcePlayerId = Number(value);
+          const restoredPlayerId = Number.isInteger(sourcePlayerId)
+            ? playerIds.get(sourcePlayerId)
+            : undefined;
+          if (restoredPlayerId == null) {
+            throw new BackupV3ValidationError([`Routing execution references missing player ${value}.`]);
+          }
+          return String(restoredPlayerId);
+        };
+        const restoredState: RoutingExecutionSnapshotV2 = {
+          executionVersion: sourceState.executionVersion,
+          stageKey: stage.stageKey,
+          entries: sourceState.entries.map((entry) => ({
+            participantKey: remapParticipantKey(entry.participantKey),
+            position: entry.position,
+          })),
+          decisions: sourceState.decisions.map((decision) => ({
+            matchKey: decision.matchKey,
+            winnerParticipantKey: remapParticipantKey(decision.winnerParticipantKey),
+          })),
+        };
+        evaluateRoutingExecutionV2(restoredRoutingPlan.plan, restoredState);
+        await tx.insert(tournamentRoutingExecutionsTable).values({
+          planId: restoredRoutingPlan.planId,
+          stageKey: stage.stageKey,
+          revision: execution.revision,
+          state: restoredState,
+        });
+      }
+    }
     const matchIds = new Map<number, number>();
     for (const match of backup.matches) {
       const [created] = await tx
@@ -1257,6 +1452,7 @@ export async function importBackupV3(
           bestOf: match.bestOf,
           status: match.status,
           note: match.note ?? null,
+          routingMatchKey: match.routingMatchKey ?? null,
           sortOrder: match.sortOrder ?? null,
           scheduledAt:
             match.scheduledAt == null ? null : new Date(match.scheduledAt),

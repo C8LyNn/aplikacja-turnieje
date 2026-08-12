@@ -221,7 +221,7 @@ function CreateTournamentForm() {
           <div>
             <h1 className="text-2xl font-bold">Nowy turniej</h1>
             <p className="text-sm text-muted-foreground">
-              Skonfiguruj pojedynczy format albo plan do trzech etapów.
+              Skonfiguruj pojedynczy format albo plan do dziesięciu etapów.
             </p>
           </div>
         </div>
@@ -281,7 +281,7 @@ function CreateTournamentForm() {
                         Turniej wieloetapowy
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Włącz, aby połączyć 1–3 formaty z osobnymi BO i zasadami
+                        Włącz, aby połączyć 1–10 formatów z osobnymi BO i zasadami
                         awansu.
                       </p>
                     </div>
@@ -301,6 +301,7 @@ function CreateTournamentForm() {
                 <StagePlanEditor
                   stages={stages}
                   errors={showValidation ? validationErrors : []}
+                  deadlockEnabled={gameConfig?.gameId === "deadlock"}
                   onChange={(next) => {
                     setStages(normalizeStageDrafts(next));
                     setShowValidation(false);

@@ -4,6 +4,7 @@ import type {
   TournamentStagePlanInput,
   TournamentStagePlanItemInput,
 } from "@workspace/api-client-react";
+import type { DeadlockHeroId } from "@workspace/game-catalog";
 
 export type StageFormat = TournamentStagePlanItemInput["format"];
 export type EntrySeedingMethod = "preserve" | "registration_order" | "alphabetical" | "random" | "manual";
@@ -29,6 +30,8 @@ export interface StageDraft {
   resultSeedingMethod: GroupResultSeedingMethod;
   randomSeed?: string;
   randomRevealOrder: RandomRevealOrder;
+  /** Deadlock-only global bans introduced by this stage. Inherited bans are derived. */
+  additionalHeroBans: DeadlockHeroId[];
 }
 
 export interface StagePlanValidationError {
@@ -42,6 +45,7 @@ export const STAGE_FORMAT_LABELS: Record<StageFormat, string> = {
   round_robin: "Każdy z każdym",
   group_stage: "Faza grupowa",
   single_elimination: "Drabinka eliminacyjna",
+  double_elimination: "Podwójna eliminacja",
 };
 
 export const ENTRY_SEEDING_LABELS: Record<EntrySeedingMethod, string> = {
@@ -91,6 +95,7 @@ export function stageOutputParticipantCount(stage: Pick<StageDraft, "format" | "
   if (stage.format === "swiss" || stage.format === "round_robin" || stage.format === "single_elimination") {
     return stage.advancingCount ?? (stage.format === "single_elimination" ? 1 : stage.participantCount);
   }
+  if (stage.format === "double_elimination") return 1;
   return 1;
 }
 
@@ -140,6 +145,7 @@ function normalizeStageForFlow(stage: StageDraft, participantCount: number, isLa
     };
   }
   if (isLast) return { ...normalized, advancingCount: undefined };
+  if (normalized.format === "double_elimination") return normalized;
   if (normalized.format === "single_elimination") {
     const options = singleEliminationAdvancingOptions(participantCount);
     return {
@@ -175,7 +181,7 @@ export function synchronizeStageParticipantFlow(stages: readonly StageDraft[]): 
 
 function defaultPlacement(format: StageFormat): StagePlacementMethod {
   if (format === "group_stage") return "snake";
-  if (format === "single_elimination") return "standard";
+  if (format === "single_elimination" || format === "double_elimination") return "standard";
   return "standings_order";
 }
 
@@ -196,6 +202,18 @@ export function createStageDraft(position: number, format: StageFormat = "swiss"
     resultSeedingMethod: "rank_bands",
     randomSeed: `stage-${position}-seed`,
     randomRevealOrder: "instant",
+    additionalHeroBans: [],
+  };
+}
+
+/** Copies authoring configuration only; runtime stage state is never part of StageDraft. */
+export function copyStageDraftForNextStage(previous: StageDraft, position: number): StageDraft {
+  return {
+    ...previous,
+    clientId: globalThis.crypto?.randomUUID?.() ?? `stage-${Date.now()}-${position}`,
+    name: `Etap ${position}`,
+    advancingCount: undefined,
+    additionalHeroBans: [],
   };
 }
 
@@ -208,19 +226,20 @@ export function normalizeStageDrafts(stages: StageDraft[]): StageDraft[] {
     resultSeedingMethod: stage.resultSeedingMethod ?? "rank_bands",
     randomRevealOrder: stage.randomRevealOrder ?? "instant",
     randomSeed: stage.randomSeed ?? `stage-${index + 1}-seed`,
+    additionalHeroBans: stage.additionalHeroBans ?? [],
   })));
 }
 
 export function stageUsesRandom(stage: Pick<StageDraft, "format" | "entrySeedingMethod" | "placementMethod">): boolean {
   return stage.entrySeedingMethod === "random" ||
     (stage.format === "group_stage" && stage.placementMethod === "random") ||
-    (stage.format === "single_elimination" && stage.placementMethod === "random");
+    (["single_elimination", "double_elimination"].includes(stage.format) && stage.placementMethod === "random");
 }
 
 export function validateStageDrafts(stages: StageDraft[]): StagePlanValidationError[] {
   const errors: StagePlanValidationError[] = [];
-  if (stages.length < 1 || stages.length > 3) {
-    errors.push({ message: "Plan musi zawierać od 1 do 3 etapów." });
+  if (stages.length < 1 || stages.length > 10) {
+    errors.push({ message: "Plan musi zawierać od 1 do 10 etapów." });
     return errors;
   }
   stages.forEach((stage, index) => {
@@ -244,6 +263,9 @@ export function validateStageDrafts(stages: StageDraft[]): StagePlanValidationEr
           });
         }
       }
+    } else if (stage.format === "double_elimination") {
+      if (!isLast) errors.push({ stageIndex: index, field: "format", message: "Podwójna eliminacja musi być ostatnim etapem." });
+      if (stage.placementMethod !== "standard") errors.push({ stageIndex: index, field: "placementMethod", message: "Podwójna eliminacja używa standardowego rozstawienia." });
     } else if (stage.format !== "group_stage" && stage.placementMethod !== "standings_order") {
       errors.push({ stageIndex: index, field: "placementMethod", message: "Ten format używa kolejności seedów bez dodatkowego rozmieszczenia." });
     }
@@ -379,12 +401,31 @@ export function withOptionalStagePlan(base: TournamentInput, enabled: boolean, s
   if (!enabled) return base;
   const stagePlan = buildStagePlan(stages);
   const first = stages[0];
+  const gameConfig = base.gameConfig?.gameId === "deadlock"
+    ? {
+        ...base.gameConfig,
+        config: {
+          ...base.gameConfig.config,
+          stageBans: stages
+            .map((stage, index) => ({
+              stageKey: `stage_${index + 1}`,
+              bannedHeroIds: stage.additionalHeroBans,
+            }))
+            .filter((entry) => entry.bannedHeroIds.length > 0),
+        },
+      }
+    : base.gameConfig;
   return {
     ...base,
-    format: first.format === "group_stage" ? "round_robin" : first.format,
+    format: first.format === "group_stage"
+      ? "round_robin"
+      : first.format === "double_elimination"
+        ? "single_elimination"
+        : first.format,
     maxPlayers: first.participantCount,
     defaultBestOf: first.bestOf,
     swissRounds: first.format === "swiss" ? first.rounds : undefined,
+    gameConfig,
     stagePlan,
   };
 }

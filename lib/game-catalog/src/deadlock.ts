@@ -115,10 +115,17 @@ const DEADLOCK_HERO_BY_ID = new Map(
 
 export type DeadlockBanMode = 'shared_pool' | 'opponent_only';
 
+export interface DeadlockStageBansV1 {
+  stageKey: string;
+  bannedHeroIds: DeadlockHeroId[];
+}
+
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockHeroId;
   banMode?: DeadlockBanMode;
   bansPerPlayer?: number;
+  /** Additional global bans introduced at a stage; effective bans are cumulative. */
+  stageBans?: DeadlockStageBansV1[];
 }
 
 export function getDeadlockBanMode(config: DeadlockTournamentConfigV1): DeadlockBanMode {
@@ -127,6 +134,27 @@ export function getDeadlockBanMode(config: DeadlockTournamentConfigV1): Deadlock
 
 export function getDeadlockBansPerPlayer(config: DeadlockTournamentConfigV1): number {
   return config.bansPerPlayer ?? 5;
+}
+
+export function getDeadlockAdditionalStageBans(
+  config: DeadlockTournamentConfigV1,
+  stageKey: string,
+): DeadlockHeroId[] {
+  return [...(config.stageBans?.find((entry) => entry.stageKey === stageKey)?.bannedHeroIds ?? [])];
+}
+
+export function getDeadlockEffectiveStageBans(
+  config: DeadlockTournamentConfigV1,
+  orderedStageKeys: readonly string[],
+  stageKey: string,
+): DeadlockHeroId[] {
+  const targetIndex = orderedStageKeys.indexOf(stageKey);
+  if (targetIndex < 0) return [];
+  const effective = new Set<DeadlockHeroId>();
+  for (const key of orderedStageKeys.slice(0, targetIndex + 1)) {
+    for (const heroId of getDeadlockAdditionalStageBans(config, key)) effective.add(heroId);
+  }
+  return [...effective];
 }
 
 export function isDeadlockHeroId(value: unknown): value is DeadlockHeroId {
@@ -155,7 +183,7 @@ function parseDeadlockTournamentConfig(
       "Deadlock tournament config must be an object.",
     );
   }
-  const allowedKeys = new Set(["forcedHeroId", "banMode", "bansPerPlayer"]);
+  const allowedKeys = new Set(["forcedHeroId", "banMode", "bansPerPlayer", "stageBans"]);
   const unknownKeys = Object.keys(config).filter((key) => !allowedKeys.has(key));
   if (unknownKeys.length > 0) {
     throw new TournamentGameConfigError(
@@ -195,6 +223,42 @@ function parseDeadlockTournamentConfig(
       );
     }
     result.bansPerPlayer = n;
+  }
+
+  if (config.stageBans != null) {
+    if (!Array.isArray(config.stageBans) || config.stageBans.length > 10) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Deadlock stageBans must be an array with at most 10 entries.",
+      );
+    }
+    const stageKeys = new Set<string>();
+    result.stageBans = config.stageBans.map((raw) => {
+      if (!isPlainObject(raw) || typeof raw.stageKey !== "string" || !raw.stageKey.trim()) {
+        throw new TournamentGameConfigError("INVALID_GAME_CONFIG", "Every Deadlock stage ban entry needs a stageKey.");
+      }
+      const unknownStageBanKeys = Object.keys(raw).filter(
+        (key) => key !== "stageKey" && key !== "bannedHeroIds",
+      );
+      if (unknownStageBanKeys.length > 0) {
+        throw new TournamentGameConfigError(
+          "INVALID_GAME_CONFIG",
+          `Unknown Deadlock stage ban field: ${unknownStageBanKeys[0]}.`,
+        );
+      }
+      if (stageKeys.has(raw.stageKey)) {
+        throw new TournamentGameConfigError("INVALID_GAME_CONFIG", `Duplicate Deadlock stageKey: ${raw.stageKey}.`);
+      }
+      stageKeys.add(raw.stageKey);
+      if (!Array.isArray(raw.bannedHeroIds)) {
+        throw new TournamentGameConfigError("INVALID_GAME_CONFIG", `Deadlock stage ${raw.stageKey} bans must be an array.`);
+      }
+      const bannedHeroIds = raw.bannedHeroIds.filter(isDeadlockHeroId);
+      if (bannedHeroIds.length !== raw.bannedHeroIds.length || new Set(bannedHeroIds).size !== bannedHeroIds.length) {
+        throw new TournamentGameConfigError("INVALID_GAME_CONFIG", `Deadlock stage ${raw.stageKey} contains an invalid or duplicate hero ban.`);
+      }
+      return { stageKey: raw.stageKey, bannedHeroIds };
+    });
   }
 
   return result;

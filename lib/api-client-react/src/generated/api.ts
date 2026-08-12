@@ -30,6 +30,10 @@ import type {
   CsvImportInput,
   CsvImportResult,
   DomainError,
+  DoubleEliminationError,
+  DoubleEliminationMutationReceipt,
+  DoubleEliminationResetInput,
+  DoubleEliminationStageState,
   GameConfigImmutableError,
   HealthStatus,
   ImportResult,
@@ -1341,6 +1345,162 @@ export const useStartTournamentStage = <TError = ErrorType<DomainError | StageLi
         TContext
       > => {
       return useMutation(getStartTournamentStageMutationOptions(options));
+    }
+
+export const getGetDoubleEliminationStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/double-elimination`
+}
+
+/**
+ * @summary Read the authoritative Double Elimination bracket execution
+ */
+export const getDoubleEliminationStage = async (id: number,
+    stageId: number, options?: RequestInit): Promise<DoubleEliminationStageState> => {
+
+  return customFetch<DoubleEliminationStageState>(getGetDoubleEliminationStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDoubleEliminationStageQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/double-elimination`
+    ] as const;
+    }
+
+
+export const getGetDoubleEliminationStageQueryOptions = <TData = Awaited<ReturnType<typeof getDoubleEliminationStage>>, TError = ErrorType<DomainError | DoubleEliminationError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDoubleEliminationStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDoubleEliminationStageQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDoubleEliminationStage>>> = ({ signal }) => getDoubleEliminationStage(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDoubleEliminationStage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDoubleEliminationStageQueryResult = NonNullable<Awaited<ReturnType<typeof getDoubleEliminationStage>>>
+export type GetDoubleEliminationStageQueryError = ErrorType<DomainError | DoubleEliminationError>
+
+
+/**
+ * @summary Read the authoritative Double Elimination bracket execution
+ */
+
+export function useGetDoubleEliminationStage<TData = Awaited<ReturnType<typeof getDoubleEliminationStage>>, TError = ErrorType<DomainError | DoubleEliminationError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDoubleEliminationStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDoubleEliminationStageQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getResetDoubleEliminationStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/double-elimination/reset`
+}
+
+/**
+ * @summary Reset every result in the active Double Elimination stage
+ */
+export const resetDoubleEliminationStage = async (id: number,
+    stageId: number,
+    doubleEliminationResetInput: DoubleEliminationResetInput, options?: RequestInit): Promise<DoubleEliminationMutationReceipt> => {
+
+  return customFetch<DoubleEliminationMutationReceipt>(getResetDoubleEliminationStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      doubleEliminationResetInput,)
+  }
+);}
+
+
+
+
+export const getResetDoubleEliminationStageMutationOptions = <TError = ErrorType<DomainError | DoubleEliminationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetDoubleEliminationStage>>, TError,{id: number;stageId: number;data: BodyType<DoubleEliminationResetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetDoubleEliminationStage>>, TError,{id: number;stageId: number;data: BodyType<DoubleEliminationResetInput>}, TContext> => {
+
+const mutationKey = ['resetDoubleEliminationStage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetDoubleEliminationStage>>, {id: number;stageId: number;data: BodyType<DoubleEliminationResetInput>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  resetDoubleEliminationStage(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetDoubleEliminationStageMutationResult = NonNullable<Awaited<ReturnType<typeof resetDoubleEliminationStage>>>
+    export type ResetDoubleEliminationStageMutationBody = BodyType<DoubleEliminationResetInput>
+    export type ResetDoubleEliminationStageMutationError = ErrorType<DomainError | DoubleEliminationError>
+
+    /**
+ * @summary Reset every result in the active Double Elimination stage
+ */
+export const useResetDoubleEliminationStage = <TError = ErrorType<DomainError | DoubleEliminationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetDoubleEliminationStage>>, TError,{id: number;stageId: number;data: BodyType<DoubleEliminationResetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetDoubleEliminationStage>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<DoubleEliminationResetInput>},
+        TContext
+      > => {
+      return useMutation(getResetDoubleEliminationStageMutationOptions(options));
     }
 
 export const getStartTournamentUrl = (id: number,) => {

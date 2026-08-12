@@ -11,6 +11,7 @@ import {
   stageGroupsTable,
   stageParticipantsTable,
   tournamentRoutingEntryPointsTable,
+  tournamentRoutingExecutionsTable,
   tournamentRoutingLogicalMatchSlotsTable,
   tournamentRoutingLogicalMatchesTable,
   tournamentRoutingOutputsTable,
@@ -69,6 +70,35 @@ function expectUniqueConstraint(
 }
 
 describe("authoritative Drizzle schema", () => {
+  test("declares the routing execution snapshot table", () => {
+    const config = getTableConfig(tournamentRoutingExecutionsTable);
+    assert.equal(config.name, "tournament_routing_executions");
+    assert.deepEqual(
+      config.columns.map((column) => column.name),
+      ["plan_id", "stage_key", "revision", "state", "created_at", "updated_at"],
+    );
+    assert.ok(
+      config.primaryKeys.some(
+        (key) =>
+          key.getName() === "tournament_routing_executions_pk" &&
+          key.columns.map((column) => column.name).join(",") ===
+            "plan_id,stage_key",
+      ),
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        tournamentRoutingExecutionsTable,
+        "tournament_routing_executions_stage_fk",
+      ),
+      {
+        columns: ["plan_id", "stage_key"],
+        foreignTable: "tournament_routing_stages",
+        foreignColumns: ["plan_id", "stage_key"],
+        onDelete: "cascade",
+      },
+    );
+  });
+
   test("keeps Replit push outside the application-owned public schema", () => {
     const pushSchema = readFileSync(
       resolve(repositoryRoot, "lib/db/replit-push-schema.ts"),

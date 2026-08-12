@@ -1,10 +1,10 @@
-import { buildGroupPlayoffSlots } from "../../domain/tournament/group-playoff";
+import { calculateBalancedGroupSizes } from "../../domain/tournament/group-stage";
 import {
   StageLifecycleError,
   type StageLifecycleErrorCode,
 } from "./stage-lifecycle-error";
 
-export type StageStartFormat = "swiss" | "round_robin" | "group_stage" | "single_elimination";
+export type StageStartFormat = "swiss" | "round_robin" | "group_stage" | "single_elimination" | "double_elimination";
 
 export interface StageStartTournament {
   id: number;
@@ -71,12 +71,6 @@ export interface StageStartReadiness {
   format: StageStartFormat;
 }
 
-function bracketPositions(size: number): number[] {
-  if (size === 2) return [1, 2];
-  const previous = bracketPositions(size / 2);
-  return previous.flatMap((seed) => [seed, size + 1 - seed]);
-}
-
 function missingStageSeeds(
   memberships: readonly StageStartParticipant[],
   participantCount: number,
@@ -125,29 +119,15 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
     if (previous.format === "group_stage") {
-      if (stage.format !== "single_elimination") {
-        throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-      }
-      const groupById = new Map(snapshot.sourceGroups.map((group) => [group.id, group]));
-      const playoff = buildGroupPlayoffSlots({
-        groupCount: previous.groupCount ?? 0,
-        qualifiersPerGroup: previous.qualifiersPerGroup ?? 0,
-      });
-      if (!playoff.ok) throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
-      const bracketSeeds = bracketPositions(playoff.slots.length);
-      const expectedSeedBySource = new Map(playoff.slots.map((slot, index) => [
-        `${slot.source.groupKey}:${slot.source.groupRank}`,
-        bracketSeeds[index],
-      ]));
+      const sourceGroupIds = new Set(snapshot.sourceGroups.map((group) => group.id));
       if (memberships.some((membership) => {
         const source = membership.sourceStageParticipantId == null
           ? null
           : sourceById.get(membership.sourceStageParticipantId);
-        const group = source?.groupId == null ? null : groupById.get(source.groupId);
-        const expectedSeed = group && source?.groupRank != null
-          ? expectedSeedBySource.get(`${group.groupKey}:${source.groupRank}`)
-          : null;
-        return membership.qualificationSource !== "group_position" || expectedSeed !== membership.stageSeed;
+        return membership.qualificationSource !== "group_position" ||
+          source?.groupId == null ||
+          !sourceGroupIds.has(source.groupId) ||
+          source.groupRank == null;
       })) {
         throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
@@ -169,23 +149,28 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
     const groupCount = stage.groupCount;
     const groupSize = stage.participantsPerGroup;
     const qualifiersPerGroup = stage.qualifiersPerGroup;
+    let expectedGroupSizes: number[] = [];
+    try {
+      expectedGroupSizes = calculateBalancedGroupSizes(memberships.length, groupCount ?? 0);
+    } catch {
+      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    }
     if (
-      (groupCount !== 2 && groupCount !== 4) ||
-      groupSize == null ||
-      groupSize < 3 ||
-      groupSize > 8 ||
-      (qualifiersPerGroup !== 1 && qualifiersPerGroup !== 2) ||
-      qualifiersPerGroup >= groupSize ||
-      memberships.length !== groupCount * groupSize ||
+      groupCount == null ||
+      groupSize !== Math.max(...expectedGroupSizes) ||
+      qualifiersPerGroup == null ||
+      qualifiersPerGroup < 1 ||
+      qualifiersPerGroup > groupSize ||
       stage.qualificationMode !== "top_n_per_group" ||
-      stage.seedingPolicy !== "snake_groups"
+      !["snake_groups", "random_groups"].includes(stage.seedingPolicy)
     ) {
       throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
     }
   } else if (
     stage.format !== "swiss" &&
     stage.format !== "round_robin" &&
-    stage.format !== "single_elimination"
+    stage.format !== "single_elimination" &&
+    stage.format !== "double_elimination"
   ) {
     throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
   }

@@ -12,7 +12,7 @@ export interface TournamentStagePlanInput {
   initialParticipantCount: number;
   /**
      * @minItems 1
-     * @maxItems 3
+     * @maxItems 10
      */
   stages: TournamentStagePlanItemInput[];
 }

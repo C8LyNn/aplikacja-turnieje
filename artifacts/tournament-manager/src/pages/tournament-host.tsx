@@ -8,11 +8,13 @@ import {
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
   useListTournamentStages, useGetTournamentStageReadiness,
+  useGetDoubleEliminationStage,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
   getListTournamentStagesQueryKey, getGetTournamentStageReadinessQueryKey,
+  getGetDoubleEliminationStageQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { PlayerBansRow, HeroSelectorButton, PickIcon } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useMatchGamePicks, useSetMatchGamePick } from "@/lib/deadlock-bans-picks";
@@ -46,6 +49,7 @@ import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/li
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
+import { getDeadlockEffectiveStageBans } from "@workspace/game-catalog";
 
 type ScoreEntry = { s1: number; s2: number };
 type ConfirmEntry = { matchId: number; score1: number; score2: number };
@@ -97,6 +101,21 @@ export default function TournamentHost() {
   const { data: stages } = useListTournamentStages(id, {
     query: { enabled: !!id, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
+  const doubleEliminationStage = stages?.find(
+    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
+  );
+  const doubleEliminationQuery = useGetDoubleEliminationStage(
+    id,
+    doubleEliminationStage?.id ?? 0,
+    {
+      query: {
+        enabled: !!id && !!doubleEliminationStage,
+        retry: false,
+        queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
+        refetchInterval: 5000,
+      },
+    },
+  );
   const plannedStage = stages?.find((stage) => stage.status === "planned");
   const { data: plannedStageReadiness } = useGetTournamentStageReadiness(
     id,
@@ -209,6 +228,14 @@ export default function TournamentHost() {
   const focusedMatch = focusedMatchId
     ? matches?.find((m) => m.id === focusedMatchId)
     : null;
+  const focusedStage = stages?.find((stage) => stage.id === focusedMatch?.stageId);
+  const effectiveStageHeroBans = tournament?.gameConfig?.gameId === "deadlock" && focusedStage
+    ? getDeadlockEffectiveStageBans(
+        tournament.gameConfig.config,
+        (stages ?? []).map((stage) => stage.stageKey),
+        focusedStage.stageKey,
+      )
+    : [];
 
   // Deadlock per-game picks for the focused match (must be before any early return — Rules of Hooks)
   const { data: focusedMatchPicks } = useMatchGamePicks(focusedMatchId, {
@@ -893,7 +920,7 @@ export default function TournamentHost() {
                 const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
                   ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
                   : null;
-                return <PickIcon heroId={latestPick?.player1HeroId ?? null} size={64} />;
+                return <PickIcon heroId={latestPick?.player1HeroId ?? null} size={76} />;
               })()}
               <div className="text-center w-full px-2">
                 <div
@@ -905,7 +932,7 @@ export default function TournamentHost() {
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik A</div>
               </div>
               {isDeadlock && focusedMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
-                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={18} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
               <div className="flex items-center gap-3">
                 <Button
@@ -952,7 +979,7 @@ export default function TournamentHost() {
                 const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
                   ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
                   : null;
-                return <PickIcon heroId={latestPick?.player2HeroId ?? null} size={64} />;
+                return <PickIcon heroId={latestPick?.player2HeroId ?? null} size={76} />;
               })()}
               <div className="text-center w-full px-2">
                 <div
@@ -964,7 +991,7 @@ export default function TournamentHost() {
                 <div className="text-xs text-muted-foreground mt-0.5">Zawodnik B</div>
               </div>
               {isDeadlock && focusedMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
-                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={18} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
+                <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
               <div className="flex items-center gap-3">
                 <Button
@@ -999,6 +1026,14 @@ export default function TournamentHost() {
           {/* Deadlock per-game picks editor */}
           {isDeadlock && capabilities.canWriteTournamentResults && !isDone && !isCancelled && (
             <div className="px-5 pb-4 border-t border-border/40 pt-4">
+              {effectiveStageHeroBans.length > 0 && (
+                <PlayerBansRow
+                  bannedHeroIds={effectiveStageHeroBans}
+                  size={32}
+                  maxBans={effectiveStageHeroBans.length}
+                  className="mb-3"
+                />
+              )}
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
                 <span className="text-cyan-500/80">◈</span> Postacie graczy (gry)
               </p>
@@ -1016,14 +1051,14 @@ export default function TournamentHost() {
                           heroId={pick?.player1HeroId}
                           onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
                           placeholder={focusedMatch.player1Name ?? "Zaw. A"}
-                          size={20}
+                          size={34}
                           bannedByOpponent={(() => {
                             const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
                             const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
                             const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
                             return banMode === "shared_pool"
-                              ? Array.from(new Set([...p1Bans, ...p2Bans]))
-                              : p2Bans;
+                              ? Array.from(new Set([...p1Bans, ...p2Bans, ...effectiveStageHeroBans]))
+                              : Array.from(new Set([...p2Bans, ...effectiveStageHeroBans]));
                           })()}
                           opponentName={focusedMatch.player2Name}
                         />
@@ -1047,14 +1082,14 @@ export default function TournamentHost() {
                           heroId={pick?.player2HeroId}
                           onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
                           placeholder={focusedMatch.player2Name ?? "Zaw. B"}
-                          size={20}
+                          size={34}
                           bannedByOpponent={(() => {
                             const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
                             const p2Bans = focusedMatch.player2Id ? (playerBansMap.get(focusedMatch.player2Id) ?? []) : [];
                             const banMode = (tournament?.gameConfig as any)?.config?.banMode ?? "shared_pool";
                             return banMode === "shared_pool"
-                              ? Array.from(new Set([...p1Bans, ...p2Bans]))
-                              : p1Bans;
+                              ? Array.from(new Set([...p1Bans, ...p2Bans, ...effectiveStageHeroBans]))
+                              : Array.from(new Set([...p1Bans, ...effectiveStageHeroBans]));
                           })()}
                           opponentName={focusedMatch.player1Name}
                         />
@@ -1849,7 +1884,22 @@ export default function TournamentHost() {
 
           {/* ═══ DRABINKA ═══ */}
           <TabsContent value="drabinka" className="pt-4">
-            {bracket ? (
+            {doubleEliminationStage && doubleEliminationQuery.data ? (
+              <DoubleEliminationBracket
+                tournamentId={id}
+                stageId={doubleEliminationStage.id}
+                state={doubleEliminationQuery.data}
+                canManage={capabilities.canWriteTournamentResults}
+                canReset={capabilities.canManageLifecycle}
+              />
+            ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
+              <div className="rounded-lg border p-6 text-sm text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
+            ) : doubleEliminationStage && doubleEliminationQuery.error ? (
+              <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+                <p>Nie udało się pobrać drabinki Double Elimination.</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
+              </div>
+            ) : bracket ? (
               <BracketView
                 bracket={bracket}
                 forcedHeroId={tournament.gameConfig?.config.forcedHeroId}

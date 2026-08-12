@@ -14,6 +14,10 @@ import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
 } from "../../access-policy";
+import {
+  lockDoubleEliminationRuntime,
+  revertDoubleEliminationCanonicalMatch,
+} from "../stages/double-elimination-match-runtime";
 
 export type RevertMatchErrorCode =
   | "MATCH_NOT_FOUND"
@@ -226,6 +230,9 @@ export async function revertMatch(
       (candidate) => candidate.position > stage.position && candidate.status !== "planned",
     );
     if (startedLaterStage) throw new RevertMatchError("STAGE_ALREADY_ADVANCED");
+    const doubleEliminationRuntime = stage.format === "double_elimination"
+      ? await lockDoubleEliminationRuntime(tx, tournament.id, stage)
+      : null;
 
     const [match] = await tx
       .select()
@@ -428,6 +435,20 @@ export async function revertMatch(
       completionAction.id !== input.expectedCompletionActionId
     ) {
       throw new RevertMatchError("UNDO_ACTION_CHANGED");
+    }
+
+    if (stage.format === "double_elimination") {
+      if (doubleEliminationRuntime == null) {
+        throw new RevertMatchError("RESULT_INCONSISTENT");
+      }
+      return revertDoubleEliminationCanonicalMatch(tx, {
+        tournament,
+        stage,
+        match,
+        completionAction,
+        runtime: doubleEliminationRuntime,
+        afterMatchReset: testHooks.afterMatchReset,
+      });
     }
 
     const shouldReopenCompletedStage =

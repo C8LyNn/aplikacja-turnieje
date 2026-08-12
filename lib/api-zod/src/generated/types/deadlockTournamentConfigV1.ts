@@ -7,6 +7,7 @@
  */
 import type { DeadlockTournamentConfigV1BanMode } from './deadlockTournamentConfigV1BanMode';
 import type { DeadlockTournamentConfigV1ForcedHeroId } from './deadlockTournamentConfigV1ForcedHeroId';
+import type { DeadlockTournamentConfigV1StageBansItem } from './deadlockTournamentConfigV1StageBansItem';
 
 export interface DeadlockTournamentConfigV1 {
   forcedHeroId?: DeadlockTournamentConfigV1ForcedHeroId;
@@ -16,4 +17,9 @@ export interface DeadlockTournamentConfigV1 {
      * @maximum 20
      */
   bansPerPlayer?: number;
+  /**
+     * Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.
+     * @maxItems 10
+     */
+  stageBans?: DeadlockTournamentConfigV1StageBansItem[];
 }

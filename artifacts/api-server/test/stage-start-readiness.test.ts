@@ -95,7 +95,7 @@ test("rejects inconsistent qualification provenance", () => {
   assert.equal(result.reasonCode, "STAGE_PARTICIPANTS_INCONSISTENT");
 });
 
-test("rejects invalid group cross-seeding", () => {
+test("rejects a group qualification that references a group outside the source stage", () => {
   const result = evaluateStageStartReadiness(changed((value) => {
     const previous = {
       ...value.stage,
@@ -120,7 +120,7 @@ test("rejects invalid group cross-seeding", () => {
       id: 400 + index,
       status: "qualified" as const,
       nextStageSeed: index + 1,
-      groupId: index === 0 ? 302 : 301,
+      groupId: index === 0 ? 999 : 301,
       groupRank: 1,
     }));
     value.memberships = value.memberships.map((membership, index) => ({

@@ -14,6 +14,11 @@ import {
 } from "../../domain/tournament/tournament-stage-plan";
 import { replaceTournamentGameConfig } from "../games/tournament-game-config";
 import type { SupportedTournamentGameConfig } from "@workspace/game-catalog";
+import {
+  compileV1StagePlanToRoutingV2,
+  doubleEliminationFormatEngineV2,
+} from "../../domain/tournament/v2";
+import { saveCompiledRoutingPlanV2InTransaction } from "../routing/routing-plan-persistence";
 
 export class TournamentStagePlanError extends Error {
   constructor(public readonly problems: TournamentStagePlanProblem[]) {
@@ -25,7 +30,9 @@ export class TournamentStagePlanError extends Error {
 function compatibilityFormat(
   format: TournamentStagePlan["format"],
 ): "swiss" | "round_robin" | "single_elimination" {
-  return format === "group_stage" ? "round_robin" : format;
+  if (format === "group_stage") return "round_robin";
+  if (format === "double_elimination") return "single_elimination";
+  return format;
 }
 
 function rankingPolicy(format: TournamentStagePlan["format"]) {
@@ -37,6 +44,7 @@ function rankingPolicy(format: TournamentStagePlan["format"]) {
     case "group_stage":
       return "group_v1" as const;
     case "single_elimination":
+    case "double_elimination":
       return "elimination_bracket_v1" as const;
   }
 }
@@ -77,7 +85,7 @@ function persistedStage(
     seedingPolicy:
       stage.format === "group_stage"
         ? stage.placementMethod === "random" ? "random_groups" : "snake_groups"
-        : stage.format === "single_elimination"
+        : stage.format === "single_elimination" || stage.format === "double_elimination"
           ? stage.placementMethod === "random" ? "random_bracket" : "standard_bracket"
           : "standings_order",
     entrySeedingPolicy: stage.entrySeedingMethod,
@@ -130,10 +138,6 @@ export async function createTournamentWithStagePlan(input: {
       })
       .returning();
 
-    const gameConfig = input.gameConfig == null
-      ? null
-      : await replaceTournamentGameConfig(tx, tournament.id, input.gameConfig);
-
     const [generated] = await tx
       .select()
       .from(tournamentStagesTable)
@@ -166,14 +170,43 @@ export async function createTournamentWithStagePlan(input: {
       })
       .where(eq(tournamentStagesTable.id, generated.id));
 
+    const persistedStages = [{ id: generated.id, stageKey: first.key }];
     if (plan.stages.length > 1) {
-      await tx
+      const insertedStages = await tx
         .insert(tournamentStagesTable)
         .values(
           plan.stages
             .slice(1)
             .map((stage) => persistedStage(tournament.id, stage, plan)),
-        );
+        )
+        .returning({ id: tournamentStagesTable.id, stageKey: tournamentStagesTable.stageKey });
+      persistedStages.push(...insertedStages);
+    }
+    const gameConfig = input.gameConfig == null
+      ? null
+      : await replaceTournamentGameConfig(tx, tournament.id, input.gameConfig);
+    if (plan.stages.some((stage) => stage.format === "double_elimination")) {
+      const compiled = compileV1StagePlanToRoutingV2(
+        plan,
+        [doubleEliminationFormatEngineV2],
+      );
+      if (!compiled.valid) {
+        throw new TournamentStagePlanError([
+          {
+            code: "INVALID_STAGE_FORMAT",
+            path: "stages",
+            message: "Double-elimination routing plan could not be compiled.",
+          },
+        ]);
+      }
+      await saveCompiledRoutingPlanV2InTransaction(tx, {
+        tournamentId: tournament.id,
+        plan: compiled.value,
+        stageIdsByKey: Object.fromEntries(
+          persistedStages.map((stage) => [stage.stageKey, stage.id]),
+        ),
+        sourceKind: "stage-plan-v2",
+      });
     }
     return { tournament, gameConfig };
   });

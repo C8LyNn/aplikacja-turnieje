@@ -14,6 +14,8 @@ export interface Match {
   stageId: number;
   /** @nullable */
   stageGroupId?: number | null;
+  /** @nullable */
+  routingMatchKey?: string | null;
   round: number;
   matchNumber: number;
   /** @nullable */
