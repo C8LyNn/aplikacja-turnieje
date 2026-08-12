@@ -23,6 +23,8 @@ export const tournamentFormatEnum = pgEnum("tournament_format", [
   "single_elimination",
   "round_robin",
   "swiss",
+  "group_stage",
+  "double_elimination",
 ]);
 
 export const tournamentStatusEnum = pgEnum("tournament_status", [

@@ -62,10 +62,6 @@ const FORMAT_INFO: Record<
     label: "Każdy z każdym",
     desc: "Każdy uczestnik rozgrywa mecz z każdym pozostałym.",
   },
-  group_stage: {
-    label: "Faza grupowa",
-    desc: "Uczestnicy rywalizują w grupach, najlepsi awansują do fazy pucharowej.",
-  },
   double_elimination: {
     label: "Podwójna eliminacja",
     desc: "Przegrana nie eliminuje — każdy ma drugą szansę w drabince przegranych.",

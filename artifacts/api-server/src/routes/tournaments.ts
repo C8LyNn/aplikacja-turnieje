@@ -575,6 +575,17 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     gameConfig,
     ...rest
   } = parsed.data;
+  // group_stage cannot be a standalone single-stage tournament: it is structurally a
+  // non-final format (GROUP_STAGE_CANNOT_BE_FINAL) and the DB constraint requires
+  // groupCount/participantsPerGroup/qualifiersPerGroup which are not available here.
+  // Users must configure group_stage via the multi-stage plan flow.
+  if (rest.format === "group_stage" && stagePlan == null) {
+    res.status(422).json({
+      error: "Format Faza grupowa wymaga wieloetapowego planu — użyj trybu etapowego i podaj konfigurację grup.",
+      code: "STAGE_FORMAT_NOT_SUPPORTED",
+    });
+    return;
+  }
   const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
   if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);

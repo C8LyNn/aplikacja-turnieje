@@ -172,7 +172,6 @@ const ALL_FORMAT_LABELS = [
   "Drabinka eliminacyjna",
   "System szwajcarski",
   "Każdy z każdym",
-  "Faza grupowa",
   "Podwójna eliminacja",
 ];
 
@@ -196,7 +195,6 @@ test("single-stage selector shows all 5 formats", async () => {
 });
 
 for (const [formatValue, formatLabel] of [
-  ["group_stage", "Faza grupowa"],
   ["double_elimination", "Podwójna eliminacja"],
 ] as const) {
   test(`single-stage submit sends format=${formatValue}`, async () => {
