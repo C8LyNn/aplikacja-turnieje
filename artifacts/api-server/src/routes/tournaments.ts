@@ -539,13 +539,6 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  if (req.body?.format === "double_elimination") {
-    res.status(422).json({
-      error: "Double elimination jest wyłączone do czasu osobnej, kompletnej implementacji.",
-      code: "DOUBLE_ELIMINATION_UNAVAILABLE",
-    });
-    return;
-  }
   const organizerPasswordError = organizerPasswordInputError(req.body?.organizerPassword);
   if (organizerPasswordError) {
     res.status(400).json({
@@ -811,10 +804,6 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
   const params = UpdateTournamentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid id" });
-    return;
-  }
-  if (req.body?.format === "double_elimination") {
-    res.status(422).json({ error: "Double elimination jest obecnie niedostępne.", code: "DOUBLE_ELIMINATION_UNAVAILABLE" });
     return;
   }
   const rawGameConfig = ownValue(req.body, "gameConfig");

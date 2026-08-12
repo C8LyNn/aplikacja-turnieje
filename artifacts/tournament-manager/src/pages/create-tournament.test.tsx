@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
@@ -165,3 +165,55 @@ test("Deadlock and its forced hero are included in the create payload", async ()
     config: { forcedHeroId: "rem" },
   });
 });
+
+// --- Regression: single-stage format selector must expose all 5 formats ---
+
+const ALL_FORMAT_LABELS = [
+  "Drabinka eliminacyjna",
+  "System szwajcarski",
+  "Każdy z każdym",
+  "Faza grupowa",
+  "Podwójna eliminacja",
+];
+
+function getFormatTrigger() {
+  // The format section contains a <Label>Format *</Label> followed by the Select.
+  // Scope with within() to distinguish it from other comboboxes (GameConfigPicker, Best-of).
+  const label = screen.getByText("Format *");
+  const section = label.closest("div")!;
+  return within(section).getByRole("combobox");
+}
+
+test("single-stage selector shows all 5 formats", async () => {
+  renderForm(async () => successfulResponse());
+  await userEvent.click(getFormatTrigger());
+  for (const label of ALL_FORMAT_LABELS) {
+    assert.ok(
+      screen.queryByRole("option", { name: label }) !== null,
+      `Format option "${label}" missing from single-stage selector`,
+    );
+  }
+});
+
+for (const [formatValue, formatLabel] of [
+  ["group_stage", "Faza grupowa"],
+  ["double_elimination", "Podwójna eliminacja"],
+] as const) {
+  test(`single-stage submit sends format=${formatValue}`, async () => {
+    const bodies: Array<Record<string, unknown>> = [];
+    renderForm(async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return successfulResponse();
+    });
+    await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
+    await userEvent.click(getFormatTrigger());
+    await userEvent.click(screen.getByRole("option", { name: formatLabel }));
+    await userEvent.click(screen.getByRole("button", { name: /Utwórz turniej/i }));
+    await waitFor(() => assert.equal(bodies.length, 1));
+    assert.equal(
+      (bodies[0] as Record<string, unknown>).format,
+      formatValue,
+      `Expected format=${formatValue} in request body`,
+    );
+  });
+}
