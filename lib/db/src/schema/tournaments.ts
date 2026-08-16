@@ -387,6 +387,135 @@ export const stageGroupsTable = pgTable(
   ],
 );
 
+/**
+ * Editable stage entry/exit partitions. Tournament Engine V2 keeps ownership of
+ * match-level routing; these rows describe only the stable stage-level baskets
+ * exposed to planning APIs.
+ */
+export const stageBasketsTable = pgTable(
+  "stage_baskets",
+  {
+    id: text("id").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    basketType: text("basket_type").notNull(),
+    ordinal: integer("ordinal").notNull(),
+    displayOrder: integer("display_order").notNull(),
+    colorId: text("color_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [table.tournamentId, table.id], name: "stage_baskets_pkey" }),
+    unique("stage_baskets_tournament_stage_id_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.id,
+    ),
+    unique("stage_baskets_stage_type_ordinal_unique").on(
+      table.stageId,
+      table.basketType,
+      table.ordinal,
+    ),
+    unique("stage_baskets_stage_type_order_unique").on(
+      table.stageId,
+      table.basketType,
+      table.displayOrder,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "stage_baskets_stage_same_tournament_fk",
+    }).onDelete("cascade"),
+    check("stage_baskets_id_valid", sql`${table.id} ~ '^[a-z0-9][a-z0-9._:-]{0,99}$'`),
+    check("stage_baskets_type_supported", sql`${table.basketType} IN ('input', 'output')`),
+    check("stage_baskets_ordinal_range", sql`${table.ordinal} BETWEEN 1 AND 4`),
+    check("stage_baskets_order_range", sql`${table.displayOrder} BETWEEN 1 AND 4`),
+    check(
+      "stage_baskets_color_id_valid",
+      sql`${table.colorId} IS NULL OR length(btrim(${table.colorId})) BETWEEN 1 AND 64`,
+    ),
+  ],
+);
+
+export const stageBasketRoutesTable = pgTable(
+  "stage_basket_routes",
+  {
+    id: text("id").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    sourceStageId: integer("source_stage_id").notNull(),
+    sourceBasketId: text("source_basket_id").notNull(),
+    targetStageId: integer("target_stage_id").notNull(),
+    targetBasketId: text("target_basket_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [table.tournamentId, table.id], name: "stage_basket_routes_pkey" }),
+    unique("stage_basket_routes_source_unique").on(table.tournamentId, table.sourceBasketId),
+    foreignKey({
+      columns: [table.tournamentId, table.sourceStageId, table.sourceBasketId],
+      foreignColumns: [
+        stageBasketsTable.tournamentId,
+        stageBasketsTable.stageId,
+        stageBasketsTable.id,
+      ],
+      name: "stage_basket_routes_source_same_tournament_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.targetStageId, table.targetBasketId],
+      foreignColumns: [
+        stageBasketsTable.tournamentId,
+        stageBasketsTable.stageId,
+        stageBasketsTable.id,
+      ],
+      name: "stage_basket_routes_target_same_tournament_fk",
+    }).onDelete("cascade"),
+    check("stage_basket_routes_id_valid", sql`${table.id} ~ '^[a-z0-9][a-z0-9._:-]{0,99}$'`),
+    check("stage_basket_routes_distinct_baskets", sql`${table.sourceBasketId} <> ${table.targetBasketId}`),
+  ],
+);
+
+/**
+ * Known, direct contents of input baskets. Rows point at the canonical player
+ * roster; they do not create a second participant model and may be configured
+ * before a later stage participant membership is materialized.
+ */
+export const stageBasketParticipantsTable = pgTable(
+  "stage_basket_participants",
+  {
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    basketId: text("basket_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table): PgTableExtraConfigValue[] => [
+    primaryKey({
+      columns: [table.tournamentId, table.basketId, table.playerId],
+      name: "stage_basket_participants_pkey",
+    }),
+    unique("stage_basket_participants_stage_player_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.playerId,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.basketId],
+      foreignColumns: [
+        stageBasketsTable.tournamentId,
+        stageBasketsTable.stageId,
+        stageBasketsTable.id,
+      ],
+      name: "stage_basket_participants_basket_same_stage_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "stage_basket_participants_player_same_tournament_fk",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const stageParticipantsTable = pgTable(
   "stage_participants",
   {
@@ -751,6 +880,10 @@ export type Player = typeof playersTable.$inferSelect;
 export const insertTournamentStageSchema = createInsertSchema(tournamentStagesTable).omit({ id: true, createdAt: true });
 export type InsertTournamentStage = z.infer<typeof insertTournamentStageSchema>;
 export type TournamentStage = typeof tournamentStagesTable.$inferSelect;
+
+export type StageBasket = typeof stageBasketsTable.$inferSelect;
+export type StageBasketRoute = typeof stageBasketRoutesTable.$inferSelect;
+export type StageBasketParticipant = typeof stageBasketParticipantsTable.$inferSelect;
 
 export const insertStageParticipantSchema = createInsertSchema(stageParticipantsTable).omit({ id: true, createdAt: true });
 export type InsertStageParticipant = z.infer<typeof insertStageParticipantSchema>;

@@ -55,6 +55,9 @@ import type {
   SetInitialOrganizerPasswordBadRequestError,
   SetInitialOrganizerPasswordInput,
   SimpleError,
+  StageBasketConfiguration,
+  StageBasketConfigurationError,
+  StageBasketConfigurationInput,
   StageLifecycleError,
   StageQualificationPreview,
   StageStartReadiness,
@@ -586,6 +589,155 @@ export function useListTournamentStages<TData = Awaited<ReturnType<typeof listTo
 
 
 
+
+export const getGetTournamentStageBasketsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stage-baskets`
+}
+
+/**
+ * @summary Read stable stage input/output baskets, routes and validation state
+ */
+export const getTournamentStageBaskets = async (id: number, options?: RequestInit): Promise<StageBasketConfiguration> => {
+
+  return customFetch<StageBasketConfiguration>(getGetTournamentStageBasketsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentStageBasketsQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/stage-baskets`
+    ] as const;
+    }
+
+
+export const getGetTournamentStageBasketsQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentStageBaskets>>, TError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageBaskets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentStageBasketsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentStageBaskets>>> = ({ signal }) => getTournamentStageBaskets(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageBaskets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentStageBasketsQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentStageBaskets>>>
+export type GetTournamentStageBasketsQueryError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>
+
+
+/**
+ * @summary Read stable stage input/output baskets, routes and validation state
+ */
+
+export function useGetTournamentStageBaskets<TData = Awaited<ReturnType<typeof getTournamentStageBaskets>>, TError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentStageBaskets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentStageBasketsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateTournamentStageBasketsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stage-baskets`
+}
+
+/**
+ * @summary Atomically replace the editable stage basket graph before tournament start
+ */
+export const updateTournamentStageBaskets = async (id: number,
+    stageBasketConfigurationInput: StageBasketConfigurationInput, options?: RequestInit): Promise<StageBasketConfiguration> => {
+
+  return customFetch<StageBasketConfiguration>(getUpdateTournamentStageBasketsUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      stageBasketConfigurationInput,)
+  }
+);}
+
+
+
+
+export const getUpdateTournamentStageBasketsMutationOptions = <TError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentStageBaskets>>, TError,{id: number;data: BodyType<StageBasketConfigurationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTournamentStageBaskets>>, TError,{id: number;data: BodyType<StageBasketConfigurationInput>}, TContext> => {
+
+const mutationKey = ['updateTournamentStageBaskets'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTournamentStageBaskets>>, {id: number;data: BodyType<StageBasketConfigurationInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateTournamentStageBaskets(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTournamentStageBasketsMutationResult = NonNullable<Awaited<ReturnType<typeof updateTournamentStageBaskets>>>
+    export type UpdateTournamentStageBasketsMutationBody = BodyType<StageBasketConfigurationInput>
+    export type UpdateTournamentStageBasketsMutationError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>
+
+    /**
+ * @summary Atomically replace the editable stage basket graph before tournament start
+ */
+export const useUpdateTournamentStageBaskets = <TError = ErrorType<SimpleError | DomainError | StageBasketConfigurationError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentStageBaskets>>, TError,{id: number;data: BodyType<StageBasketConfigurationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTournamentStageBaskets>>,
+        TError,
+        {id: number;data: BodyType<StageBasketConfigurationInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateTournamentStageBasketsMutationOptions(options));
+    }
 
 export const getGetTournamentStageUrl = (id: number,
     stageId: number,) => {

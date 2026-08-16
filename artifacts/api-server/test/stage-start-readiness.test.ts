@@ -48,6 +48,23 @@ test("reports a valid planned stage as ready", () => {
   assert.equal(result.ready, true);
   assert.equal(result.reasonCode, "READY");
   assert.deepEqual(result.missingSeeds, []);
+  assert.deepEqual(result.basketValidation, { valid: true, problems: [] });
+});
+
+test("blocks start with the stable basket validation reason", () => {
+  const result = evaluateStageStartReadiness(changed((value) => {
+    value.basketValidation = {
+      valid: false,
+      problems: [{
+        code: "STAGE_OUTPUT_BASKET_COUNT_INVALID",
+        message: "Stage must have between 1 and 4 output baskets.",
+        context: { stageId: 11 },
+      }],
+    };
+  }));
+  assert.equal(result.ready, false);
+  assert.equal(result.reasonCode, "STAGE_BASKET_CONFIGURATION_INVALID");
+  assert.equal(result.basketValidation.valid, false);
 });
 
 test("reports missing participants and seeds without changing the snapshot", () => {

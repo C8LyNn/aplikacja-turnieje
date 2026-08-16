@@ -166,9 +166,9 @@ test("Deadlock and its forced hero are included in the create payload", async ()
   });
 });
 
-// --- Regression: single-stage format selector must expose all 5 formats ---
+// --- Regression: the single-stage selector exposes its four supported formats ---
 
-const ALL_FORMAT_LABELS = [
+const SINGLE_STAGE_FORMAT_LABELS = [
   "Drabinka eliminacyjna",
   "System szwajcarski",
   "Każdy z każdym",
@@ -183,15 +183,16 @@ function getFormatTrigger() {
   return within(section).getByRole("combobox");
 }
 
-test("single-stage selector shows all 5 formats", async () => {
+test("single-stage selector includes double elimination and excludes group stage", async () => {
   renderForm(async () => successfulResponse());
   await userEvent.click(getFormatTrigger());
-  for (const label of ALL_FORMAT_LABELS) {
+  for (const label of SINGLE_STAGE_FORMAT_LABELS) {
     assert.ok(
       screen.queryByRole("option", { name: label }) !== null,
       `Format option "${label}" missing from single-stage selector`,
     );
   }
+  assert.equal(screen.queryByRole("option", { name: "Faza grupowa" }), null);
 });
 
 for (const [formatValue, formatLabel] of [

@@ -21,6 +21,7 @@ interface PoolConstructor {
 
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
+const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
 const MIGRATIONS = [
   "0001_series_v1_clean_cutover.sql",
   "0002_tournament_stages_v1.sql",
@@ -39,6 +40,9 @@ const MIGRATIONS = [
   "0015_deadlock_game_side.sql",
   "0016_tournament_presentation_settings.sql",
   "0017_double_elimination_engine_v2.sql",
+  "0018_tournament_format_add_group_stage_and_de.sql",
+  "0019_fix_de_single_stage_trigger.sql",
+  "0020_stage_participant_baskets.sql",
 ] as const;
 const REQUIRED_OBJECT_NAMES = [
   "tournament_stages_winner_same_stage_fk",
@@ -77,7 +81,9 @@ function quotedIdentifier(identifier: string): string {
 
 async function migrationSql(name: (typeof MIGRATIONS)[number]): Promise<string> {
   const sql = await readFile(new URL(name, MIGRATIONS_URL), "utf8");
-  return sql.replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+  return sql
+    .replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "")
+    .replace(STANDALONE_TRANSACTION_BOUNDARY, "");
 }
 
 async function exportCurrentDrizzleSchema(): Promise<string> {
@@ -238,6 +244,12 @@ before(async () => {
   try {
     for (const migration of MIGRATIONS) {
       await testPool.query(await migrationSql(migration));
+      if (migration === "0018_tournament_format_add_group_stage_and_de.sql") {
+        // PostgreSQL requires new enum values to be committed before 0019 can
+        // reference them in the single-stage compatibility trigger functions.
+        await testPool.query("COMMIT");
+        await testPool.query("BEGIN");
+      }
     }
     await testPool.query(
       `INSERT INTO public.app_schema_migrations (

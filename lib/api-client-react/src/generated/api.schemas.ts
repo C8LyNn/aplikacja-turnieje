@@ -34,7 +34,7 @@ export type CreateTournamentRuleErrorCode = typeof CreateTournamentRuleErrorCode
 
 export const CreateTournamentRuleErrorCode = {
   HOST_CODE_LEGACY_ONLY: 'HOST_CODE_LEGACY_ONLY',
-  DOUBLE_ELIMINATION_UNAVAILABLE: 'DOUBLE_ELIMINATION_UNAVAILABLE',
+  STAGE_FORMAT_NOT_SUPPORTED: 'STAGE_FORMAT_NOT_SUPPORTED',
   VIEWER_PASSWORD_REQUIRED: 'VIEWER_PASSWORD_REQUIRED',
   INVALID_DEFAULT_BEST_OF: 'INVALID_DEFAULT_BEST_OF',
 } as const;
@@ -81,6 +81,123 @@ export interface GameConfigImmutableError {
 
 export type SetInitialOrganizerPasswordBadRequestError = InvalidTournamentIdError | OrganizerPasswordTooShortError;
 
+export type StageBasketProblemCode = typeof StageBasketProblemCode[keyof typeof StageBasketProblemCode];
+
+
+export const StageBasketProblemCode = {
+  STAGE_BASKET_STAGE_NOT_FOUND: 'STAGE_BASKET_STAGE_NOT_FOUND',
+  STAGE_BASKET_ID_INVALID: 'STAGE_BASKET_ID_INVALID',
+  STAGE_BASKET_ID_DUPLICATE: 'STAGE_BASKET_ID_DUPLICATE',
+  STAGE_INPUT_BASKET_COUNT_INVALID: 'STAGE_INPUT_BASKET_COUNT_INVALID',
+  STAGE_OUTPUT_BASKET_COUNT_INVALID: 'STAGE_OUTPUT_BASKET_COUNT_INVALID',
+  STAGE_BASKET_ORDINAL_DUPLICATE: 'STAGE_BASKET_ORDINAL_DUPLICATE',
+  STAGE_BASKET_ORDINAL_INVALID: 'STAGE_BASKET_ORDINAL_INVALID',
+  STAGE_BASKET_ORDER_DUPLICATE: 'STAGE_BASKET_ORDER_DUPLICATE',
+  STAGE_BASKET_ORDER_INVALID: 'STAGE_BASKET_ORDER_INVALID',
+  STAGE_BASKET_COLOR_ID_INVALID: 'STAGE_BASKET_COLOR_ID_INVALID',
+  STAGE_BASKET_PARTICIPANT_NOT_FOUND: 'STAGE_BASKET_PARTICIPANT_NOT_FOUND',
+  STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED: 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED',
+  STAGE_BASKET_PARTICIPANT_DUPLICATE: 'STAGE_BASKET_PARTICIPANT_DUPLICATE',
+  STAGE_BASKET_ROUTE_ID_INVALID: 'STAGE_BASKET_ROUTE_ID_INVALID',
+  STAGE_BASKET_ROUTE_ID_DUPLICATE: 'STAGE_BASKET_ROUTE_ID_DUPLICATE',
+  STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND: 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND',
+  STAGE_BASKET_ROUTE_TARGET_NOT_FOUND: 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND',
+  STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT: 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT',
+  STAGE_BASKET_ROUTE_TARGET_NOT_INPUT: 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT',
+  STAGE_BASKET_ROUTE_OUTPUT_REUSED: 'STAGE_BASKET_ROUTE_OUTPUT_REUSED',
+  STAGE_BASKET_ROUTE_NOT_FORWARD: 'STAGE_BASKET_ROUTE_NOT_FORWARD',
+  STAGE_BASKET_ROUTE_CYCLE: 'STAGE_BASKET_ROUTE_CYCLE',
+} as const;
+
+export interface StageBasketProblemContext {
+  stageId?: number;
+  basketId?: string;
+  routeId?: string;
+  participantId?: number;
+  sourceStageId?: number;
+  targetStageId?: number;
+}
+
+export interface StageBasketProblem {
+  code: StageBasketProblemCode;
+  message: string;
+  context: StageBasketProblemContext;
+}
+
+export interface StageBasketValidation {
+  valid: boolean;
+  problems: StageBasketProblem[];
+}
+
+export type StageBasketType = typeof StageBasketType[keyof typeof StageBasketType];
+
+
+export const StageBasketType = {
+  input: 'input',
+  output: 'output',
+} as const;
+
+export interface StageBasket {
+  /** @pattern ^[a-z0-9][a-z0-9._:-]{0,99}$ */
+  id: string;
+  /** @minimum 1 */
+  stageId: number;
+  type: StageBasketType;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  ordinal: number;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  order: number;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     * @nullable
+     */
+  colorId: string | null;
+  participantIds: number[];
+}
+
+export interface StageBasketRoute {
+  /** @pattern ^[a-z0-9][a-z0-9._:-]{0,99}$ */
+  id: string;
+  sourceBasketId: string;
+  targetBasketId: string;
+}
+
+export interface StageBasketConfigurationInput {
+  baskets: StageBasket[];
+  routes: StageBasketRoute[];
+}
+
+export interface StageBasketConfiguration {
+  tournamentId: number;
+  legacyDefaulted: boolean;
+  baskets: StageBasket[];
+  routes: StageBasketRoute[];
+  validation: StageBasketValidation;
+}
+
+export type StageBasketConfigurationErrorCode = typeof StageBasketConfigurationErrorCode[keyof typeof StageBasketConfigurationErrorCode];
+
+
+export const StageBasketConfigurationErrorCode = {
+  TOURNAMENT_NOT_FOUND: 'TOURNAMENT_NOT_FOUND',
+  STAGE_BASKET_CONFIGURATION_IMMUTABLE: 'STAGE_BASKET_CONFIGURATION_IMMUTABLE',
+  STAGE_BASKET_CONFIGURATION_INVALID: 'STAGE_BASKET_CONFIGURATION_INVALID',
+  STAGE_BASKET_ID_REASSIGNED: 'STAGE_BASKET_ID_REASSIGNED',
+} as const;
+
+export interface StageBasketConfigurationError {
+  error: string;
+  code: StageBasketConfigurationErrorCode;
+  problems: StageBasketProblem[];
+}
+
 export type StageLifecycleErrorCode = typeof StageLifecycleErrorCode[keyof typeof StageLifecycleErrorCode];
 
 
@@ -93,6 +210,7 @@ export const StageLifecycleErrorCode = {
   PREVIOUS_STAGE_NOT_COMPLETED: 'PREVIOUS_STAGE_NOT_COMPLETED',
   STAGE_INCOMPLETE: 'STAGE_INCOMPLETE',
   STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  STAGE_BASKET_CONFIGURATION_INVALID: 'STAGE_BASKET_CONFIGURATION_INVALID',
   QUALIFICATION_CONFIGURATION_INVALID: 'QUALIFICATION_CONFIGURATION_INVALID',
   STAGE_FORMAT_NOT_SUPPORTED: 'STAGE_FORMAT_NOT_SUPPORTED',
   STAGE_ALREADY_COMPLETED: 'STAGE_ALREADY_COMPLETED',
@@ -120,6 +238,7 @@ export const StageStartReadinessReasonCode = {
   PREVIOUS_STAGE_NOT_COMPLETED: 'PREVIOUS_STAGE_NOT_COMPLETED',
   STAGE_INCOMPLETE: 'STAGE_INCOMPLETE',
   STAGE_PARTICIPANTS_INCONSISTENT: 'STAGE_PARTICIPANTS_INCONSISTENT',
+  STAGE_BASKET_CONFIGURATION_INVALID: 'STAGE_BASKET_CONFIGURATION_INVALID',
   QUALIFICATION_CONFIGURATION_INVALID: 'QUALIFICATION_CONFIGURATION_INVALID',
   STAGE_FORMAT_NOT_SUPPORTED: 'STAGE_FORMAT_NOT_SUPPORTED',
   STAGE_ALREADY_COMPLETED: 'STAGE_ALREADY_COMPLETED',
@@ -158,6 +277,7 @@ export interface StageStartReadiness {
   /** @minimum 0 */
   blockingGroups: number;
   format: StageStartReadinessFormat;
+  basketValidation: StageBasketValidation;
 }
 
 export type SeedingCeremonyErrorCode = typeof SeedingCeremonyErrorCode[keyof typeof SeedingCeremonyErrorCode];
@@ -462,6 +582,8 @@ export const TournamentFormat = {
   single_elimination: 'single_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
+  group_stage: 'group_stage',
+  double_elimination: 'double_elimination',
 } as const;
 
 export type TournamentStatus = typeof TournamentStatus[keyof typeof TournamentStatus];
@@ -551,6 +673,7 @@ export const TournamentInputFormat = {
   single_elimination: 'single_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
+  group_stage: 'group_stage',
   double_elimination: 'double_elimination',
 } as const;
 
@@ -1918,6 +2041,45 @@ export type TournamentBackupV3StageParticipantsItem = {
   createdAt: string;
 };
 
+export type TournamentBackupV3StageBasketsItemType = typeof TournamentBackupV3StageBasketsItemType[keyof typeof TournamentBackupV3StageBasketsItemType];
+
+
+export const TournamentBackupV3StageBasketsItemType = {
+  input: 'input',
+  output: 'output',
+} as const;
+
+export type TournamentBackupV3StageBasketsItem = {
+  /** @pattern ^[a-z0-9][a-z0-9._:-]{0,99}$ */
+  id: string;
+  stageBackupId: number;
+  type: TournamentBackupV3StageBasketsItemType;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  ordinal: number;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  order: number;
+  /**
+     * @minLength 1
+     * @maxLength 64
+     * @nullable
+     */
+  colorId: string | null;
+  participantBackupIds: number[];
+};
+
+export type TournamentBackupV3StageBasketRoutesItem = {
+  /** @pattern ^[a-z0-9][a-z0-9._:-]{0,99}$ */
+  id: string;
+  sourceBasketId: string;
+  targetBasketId: string;
+};
+
 /**
  * @nullable
  */
@@ -2088,6 +2250,10 @@ export interface TournamentBackupV3 {
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
   stageParticipants: TournamentBackupV3StageParticipantsItem[];
+  /** Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics. */
+  stageBaskets?: TournamentBackupV3StageBasketsItem[];
+  /** Optional routes between explicit output and input baskets. */
+  stageBasketRoutes?: TournamentBackupV3StageBasketRoutesItem[];
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];

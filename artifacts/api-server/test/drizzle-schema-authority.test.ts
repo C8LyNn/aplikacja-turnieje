@@ -8,6 +8,9 @@ import {
   appSchemaMigrationsTable,
   matchesTable,
   resultHistoryTable,
+  stageBasketParticipantsTable,
+  stageBasketRoutesTable,
+  stageBasketsTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentRoutingEntryPointsTable,
@@ -70,6 +73,55 @@ function expectUniqueConstraint(
 }
 
 describe("authoritative Drizzle schema", () => {
+  test("declares stage baskets with stable identities and relational routing guards", () => {
+    const baskets = getTableConfig(stageBasketsTable);
+    const routes = getTableConfig(stageBasketRoutesTable);
+    const assignments = getTableConfig(stageBasketParticipantsTable);
+
+    assert.ok(baskets.primaryKeys.some(
+      (key) => key.getName() === "stage_baskets_pkey" &&
+        key.columns.map((column) => column.name).join(",") === "tournament_id,id",
+    ));
+    expectUniqueConstraint(
+      stageBasketRoutesTable,
+      "stage_basket_routes_source_unique",
+      ["tournament_id", "source_basket_id"],
+    );
+    expectUniqueConstraint(
+      stageBasketParticipantsTable,
+      "stage_basket_participants_stage_player_unique",
+      ["tournament_id", "stage_id", "player_id"],
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        stageBasketRoutesTable,
+        "stage_basket_routes_source_same_tournament_fk",
+      ),
+      {
+        columns: ["tournament_id", "source_stage_id", "source_basket_id"],
+        foreignTable: "stage_baskets",
+        foreignColumns: ["tournament_id", "stage_id", "id"],
+        onDelete: "cascade",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        stageBasketParticipantsTable,
+        "stage_basket_participants_player_same_tournament_fk",
+      ),
+      {
+        columns: ["tournament_id", "player_id"],
+        foreignTable: "players",
+        foreignColumns: ["tournament_id", "id"],
+        onDelete: "cascade",
+      },
+    );
+    assert.ok(routes.checks.some((check) => check.name === "stage_basket_routes_distinct_baskets"));
+    assert.ok(assignments.primaryKeys.some(
+      (key) => key.getName() === "stage_basket_participants_pkey",
+    ));
+  });
+
   test("declares the routing execution snapshot table", () => {
     const config = getTableConfig(tournamentRoutingExecutionsTable);
     assert.equal(config.name, "tournament_routing_executions");

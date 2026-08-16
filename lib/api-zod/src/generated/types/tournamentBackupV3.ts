@@ -14,6 +14,8 @@ import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersI
 import type { TournamentBackupV3ResultHistoryItem } from './tournamentBackupV3ResultHistoryItem';
 import type { TournamentBackupV3RoutingExecutionsItem } from './tournamentBackupV3RoutingExecutionsItem';
 import type { TournamentBackupV3RoutingPlan } from './tournamentBackupV3RoutingPlan';
+import type { TournamentBackupV3StageBasketRoutesItem } from './tournamentBackupV3StageBasketRoutesItem';
+import type { TournamentBackupV3StageBasketsItem } from './tournamentBackupV3StageBasketsItem';
 import type { TournamentBackupV3StageParticipantsItem } from './tournamentBackupV3StageParticipantsItem';
 import type { TournamentBackupV3StagesItem } from './tournamentBackupV3StagesItem';
 import type { TournamentBackupV3Tournament } from './tournamentBackupV3Tournament';
@@ -32,6 +34,10 @@ export interface TournamentBackupV3 {
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
   stageParticipants: TournamentBackupV3StageParticipantsItem[];
+  /** Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics. */
+  stageBaskets?: TournamentBackupV3StageBasketsItem[];
+  /** Optional routes between explicit output and input baskets. */
+  stageBasketRoutes?: TournamentBackupV3StageBasketRoutesItem[];
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];

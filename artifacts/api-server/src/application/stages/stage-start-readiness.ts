@@ -3,6 +3,8 @@ import {
   StageLifecycleError,
   type StageLifecycleErrorCode,
 } from "./stage-lifecycle-error";
+import type { StageBasketValidationResult } from "../../domain/tournament/stage-baskets";
+import { getStageBasketConfiguration } from "./stage-basket-configuration";
 
 export type StageStartFormat = "swiss" | "round_robin" | "group_stage" | "single_elimination" | "double_elimination";
 
@@ -57,6 +59,7 @@ export interface StageStartValidationSnapshot {
   sourceMemberships: readonly StageStartParticipant[];
   sourceGroups: readonly StageStartGroup[];
   players: readonly StageStartPlayer[];
+  basketValidation?: StageBasketValidationResult;
 }
 
 export interface StageStartReadiness {
@@ -69,6 +72,7 @@ export interface StageStartReadiness {
   blockingMatches: number;
   blockingGroups: number;
   format: StageStartFormat;
+  basketValidation: StageBasketValidationResult;
 }
 
 function missingStageSeeds(
@@ -82,6 +86,9 @@ function missingStageSeeds(
 
 export function assertStageStartReady(snapshot: StageStartValidationSnapshot): void {
   const { tournament, stages, stage, memberships } = snapshot;
+  if (snapshot.basketValidation?.valid === false) {
+    throw new StageLifecycleError("STAGE_BASKET_CONFIGURATION_INVALID");
+  }
   if (stage.status === "active") throw new StageLifecycleError("STAGE_ALREADY_STARTED");
   if (stage.status === "completed") throw new StageLifecycleError("STAGE_ALREADY_COMPLETED");
   if (tournament.activeStageId != null || stages.some((candidate) => candidate.status === "active")) {
@@ -186,6 +193,10 @@ export function evaluateStageStartReadiness(
     blockingMatches: snapshot.existingMatchCount,
     blockingGroups: snapshot.existingGroupCount,
     format: snapshot.stage.format,
+    basketValidation: snapshot.basketValidation ?? {
+      valid: true,
+      problems: [],
+    },
   };
   try {
     assertStageStartReady(snapshot);
@@ -238,6 +249,7 @@ export async function getStageStartReadiness(input: {
     ? []
     : await db.select().from(playersTable)
       .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId)));
+  const basketConfiguration = await getStageBasketConfiguration(tournament.id);
   return evaluateStageStartReadiness({
     tournament,
     stages,
@@ -248,5 +260,6 @@ export async function getStageStartReadiness(input: {
     sourceMemberships,
     sourceGroups,
     players,
+    basketValidation: basketConfiguration.validation,
   });
 }

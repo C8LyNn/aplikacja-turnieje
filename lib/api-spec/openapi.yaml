@@ -174,6 +174,80 @@ paths:
         "404":
           description: Tournament not found
 
+  /tournaments/{id}/stage-baskets:
+    get:
+      operationId: getTournamentStageBaskets
+      tags: [tournaments]
+      summary: Read stable stage input/output baskets, routes and validation state
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Stage basket configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageBasketConfiguration"
+        "400":
+          description: Invalid tournament id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleError" }
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StageBasketConfigurationError" }
+    put:
+      operationId: updateTournamentStageBaskets
+      tags: [tournaments]
+      summary: Atomically replace the editable stage basket graph before tournament start
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageBasketConfigurationInput"
+      responses:
+        "200":
+          description: Updated stage basket configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageBasketConfiguration"
+        "400":
+          description: Invalid tournament id or basket request body
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleError" }
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StageBasketConfigurationError" }
+        "409":
+          description: Configuration is immutable or a stable id was reassigned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StageBasketConfigurationError" }
+        "422":
+          description: Basket graph is invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StageBasketConfigurationError" }
+
   /tournaments/{id}/stages/{stageId}:
     get:
       operationId: getTournamentStage
@@ -1346,7 +1420,7 @@ components:
           type: string
           enum:
             - HOST_CODE_LEGACY_ONLY
-            - DOUBLE_ELIMINATION_UNAVAILABLE
+            - STAGE_FORMAT_NOT_SUPPORTED
             - VIEWER_PASSWORD_REQUIRED
             - INVALID_DEFAULT_BEST_OF
     CreateTournamentBadRequestError:
@@ -1378,6 +1452,126 @@ components:
       oneOf:
         - $ref: "#/components/schemas/InvalidTournamentIdError"
         - $ref: "#/components/schemas/OrganizerPasswordTooShortError"
+    StageBasketProblemCode:
+      type: string
+      enum:
+        - STAGE_BASKET_STAGE_NOT_FOUND
+        - STAGE_BASKET_ID_INVALID
+        - STAGE_BASKET_ID_DUPLICATE
+        - STAGE_INPUT_BASKET_COUNT_INVALID
+        - STAGE_OUTPUT_BASKET_COUNT_INVALID
+        - STAGE_BASKET_ORDINAL_DUPLICATE
+        - STAGE_BASKET_ORDINAL_INVALID
+        - STAGE_BASKET_ORDER_DUPLICATE
+        - STAGE_BASKET_ORDER_INVALID
+        - STAGE_BASKET_COLOR_ID_INVALID
+        - STAGE_BASKET_PARTICIPANT_NOT_FOUND
+        - STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED
+        - STAGE_BASKET_PARTICIPANT_DUPLICATE
+        - STAGE_BASKET_ROUTE_ID_INVALID
+        - STAGE_BASKET_ROUTE_ID_DUPLICATE
+        - STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND
+        - STAGE_BASKET_ROUTE_TARGET_NOT_FOUND
+        - STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT
+        - STAGE_BASKET_ROUTE_TARGET_NOT_INPUT
+        - STAGE_BASKET_ROUTE_OUTPUT_REUSED
+        - STAGE_BASKET_ROUTE_NOT_FORWARD
+        - STAGE_BASKET_ROUTE_CYCLE
+    StageBasketProblemContext:
+      type: object
+      additionalProperties: false
+      properties:
+        stageId: { type: integer }
+        basketId: { type: string }
+        routeId: { type: string }
+        participantId: { type: integer }
+        sourceStageId: { type: integer }
+        targetStageId: { type: integer }
+    StageBasketProblem:
+      type: object
+      additionalProperties: false
+      required: [code, message, context]
+      properties:
+        code: { $ref: "#/components/schemas/StageBasketProblemCode" }
+        message: { type: string }
+        context: { $ref: "#/components/schemas/StageBasketProblemContext" }
+    StageBasketValidation:
+      type: object
+      additionalProperties: false
+      required: [valid, problems]
+      properties:
+        valid: { type: boolean }
+        problems:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasketProblem" }
+    StageBasket:
+      type: object
+      additionalProperties: false
+      required: [id, stageId, type, ordinal, order, colorId, participantIds]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._:-]{0,99}$"
+        stageId: { type: integer, minimum: 1 }
+        type: { type: string, enum: [input, output] }
+        ordinal: { type: integer, minimum: 1, maximum: 4 }
+        order: { type: integer, minimum: 1, maximum: 4 }
+        colorId: { type: ["string", "null"], minLength: 1, maxLength: 64 }
+        participantIds:
+          type: array
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+    StageBasketRoute:
+      type: object
+      additionalProperties: false
+      required: [id, sourceBasketId, targetBasketId]
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9._:-]{0,99}$"
+        sourceBasketId: { type: string }
+        targetBasketId: { type: string }
+    StageBasketConfigurationInput:
+      type: object
+      additionalProperties: false
+      required: [baskets, routes]
+      properties:
+        baskets:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasket" }
+        routes:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasketRoute" }
+    StageBasketConfiguration:
+      type: object
+      additionalProperties: false
+      required: [tournamentId, legacyDefaulted, baskets, routes, validation]
+      properties:
+        tournamentId: { type: integer }
+        legacyDefaulted: { type: boolean }
+        baskets:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasket" }
+        routes:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasketRoute" }
+        validation: { $ref: "#/components/schemas/StageBasketValidation" }
+    StageBasketConfigurationError:
+      type: object
+      additionalProperties: false
+      required: [error, code, problems]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - TOURNAMENT_NOT_FOUND
+            - STAGE_BASKET_CONFIGURATION_IMMUTABLE
+            - STAGE_BASKET_CONFIGURATION_INVALID
+            - STAGE_BASKET_ID_REASSIGNED
+        problems:
+          type: array
+          items: { $ref: "#/components/schemas/StageBasketProblem" }
     StageLifecycleError:
       type: object
       required: [error, code]
@@ -1394,6 +1588,7 @@ components:
             - PREVIOUS_STAGE_NOT_COMPLETED
             - STAGE_INCOMPLETE
             - STAGE_PARTICIPANTS_INCONSISTENT
+            - STAGE_BASKET_CONFIGURATION_INVALID
             - QUALIFICATION_CONFIGURATION_INVALID
             - STAGE_FORMAT_NOT_SUPPORTED
             - STAGE_ALREADY_COMPLETED
@@ -1403,7 +1598,7 @@ components:
             - RANKING_INCONSISTENT
     StageStartReadiness:
       type: object
-      required: [ready, reasonCode, message, participantCount, requiredParticipantCount, missingSeeds, blockingMatches, blockingGroups, format]
+      required: [ready, reasonCode, message, participantCount, requiredParticipantCount, missingSeeds, blockingMatches, blockingGroups, format, basketValidation]
       properties:
         ready: { type: boolean }
         reasonCode:
@@ -1418,6 +1613,7 @@ components:
             - PREVIOUS_STAGE_NOT_COMPLETED
             - STAGE_INCOMPLETE
             - STAGE_PARTICIPANTS_INCONSISTENT
+            - STAGE_BASKET_CONFIGURATION_INVALID
             - QUALIFICATION_CONFIGURATION_INVALID
             - STAGE_FORMAT_NOT_SUPPORTED
             - STAGE_ALREADY_COMPLETED
@@ -1440,6 +1636,8 @@ components:
         format:
           type: string
           enum: [swiss, round_robin, group_stage, single_elimination, double_elimination]
+        basketValidation:
+          $ref: "#/components/schemas/StageBasketValidation"
     SeedingCeremonyError:
       type: object
       required: [error, code]
@@ -1648,7 +1846,7 @@ components:
           type: ["string", "null"]
         format:
           type: string
-          enum: [single_elimination, round_robin, swiss]
+          enum: [single_elimination, round_robin, swiss, group_stage, double_elimination]
         status:
           type: string
           enum: [draft, active, completed]
@@ -1713,7 +1911,7 @@ components:
           type: string
         format:
           type: string
-          enum: [single_elimination, round_robin, swiss]
+          enum: [single_elimination, round_robin, swiss, group_stage, double_elimination]
         maxPlayers:
           type: integer
         swissRounds:
@@ -2827,6 +3025,39 @@ components:
               sourceStageParticipantBackupId: { type: ["integer", "null"] }
               qualifiedAt: { type: ["string", "null"] }
               createdAt: { type: string }
+        stageBaskets:
+          type: array
+          description: Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics.
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, stageBackupId, type, ordinal, order, colorId, participantBackupIds]
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9._:-]{0,99}$"
+              stageBackupId: { type: integer }
+              type: { type: string, enum: [input, output] }
+              ordinal: { type: integer, minimum: 1, maximum: 4 }
+              order: { type: integer, minimum: 1, maximum: 4 }
+              colorId: { type: ["string", "null"], minLength: 1, maxLength: 64 }
+              participantBackupIds:
+                type: array
+                uniqueItems: true
+                items: { type: integer }
+        stageBasketRoutes:
+          type: array
+          description: Optional routes between explicit output and input baskets.
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, sourceBasketId, targetBasketId]
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9._:-]{0,99}$"
+              sourceBasketId: { type: string }
+              targetBasketId: { type: string }
         matches:
           type: array
           items:

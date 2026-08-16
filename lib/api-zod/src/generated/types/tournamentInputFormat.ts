@@ -13,4 +13,6 @@ export const TournamentInputFormat = {
   single_elimination: 'single_elimination',
   round_robin: 'round_robin',
   swiss: 'swiss',
+  group_stage: 'group_stage',
+  double_elimination: 'double_elimination',
 } as const;

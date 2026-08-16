@@ -7,6 +7,9 @@ import {
   playerDeadlockBansTable,
   playersTable,
   resultHistoryTable,
+  stageBasketParticipantsTable,
+  stageBasketRoutesTable,
+  stageBasketsTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
@@ -39,6 +42,7 @@ import {
   saveCompiledRoutingPlanV2InTransaction,
 } from "../routing/routing-plan-persistence";
 import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
+import { validateStageBasketConfiguration } from "../../domain/tournament/stage-baskets";
 
 export class BackupV3ValidationError extends Error {
   constructor(public readonly details: string[]) {
@@ -119,7 +123,21 @@ export async function exportBackupV3(
     .from(tournamentsTable)
     .where(eq(tournamentsTable.id, tournamentId));
   if (!tournament) return null;
-  const [players, stages, groups, memberships, matches, history, actions, gameConfigs, deadlockBanRows, gamePickRows] =
+  const [
+    players,
+    stages,
+    groups,
+    memberships,
+    stageBaskets,
+    stageBasketRoutes,
+    stageBasketAssignments,
+    matches,
+    history,
+    actions,
+    gameConfigs,
+    deadlockBanRows,
+    gamePickRows,
+  ] =
     await Promise.all([
       db
         .select()
@@ -151,6 +169,29 @@ export async function exportBackupV3(
         .orderBy(
           asc(stageParticipantsTable.stageId),
           asc(stageParticipantsTable.stageSeed),
+        ),
+      db
+        .select()
+        .from(stageBasketsTable)
+        .where(eq(stageBasketsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(stageBasketsTable.stageId),
+          asc(stageBasketsTable.basketType),
+          asc(stageBasketsTable.displayOrder),
+        ),
+      db
+        .select()
+        .from(stageBasketRoutesTable)
+        .where(eq(stageBasketRoutesTable.tournamentId, tournamentId))
+        .orderBy(asc(stageBasketRoutesTable.id)),
+      db
+        .select()
+        .from(stageBasketParticipantsTable)
+        .where(eq(stageBasketParticipantsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(stageBasketParticipantsTable.stageId),
+          asc(stageBasketParticipantsTable.basketId),
+          asc(stageBasketParticipantsTable.playerId),
         ),
       db
         .select()
@@ -302,6 +343,28 @@ export async function exportBackupV3(
       qualifiedAt: membership.qualifiedAt?.toISOString() ?? null,
       createdAt: membership.createdAt.toISOString(),
     })),
+    ...(stageBaskets.length === 0
+      ? {}
+      : {
+          stageBaskets: stageBaskets.map((basket) => ({
+            id: basket.id,
+            stageBackupId: basket.stageId,
+            type: basket.basketType as "input" | "output",
+            ordinal: basket.ordinal,
+            order: basket.displayOrder,
+            colorId: basket.colorId,
+            participantBackupIds: basket.basketType === "input"
+              ? stageBasketAssignments
+                .filter((assignment) => assignment.basketId === basket.id)
+                .map((assignment) => assignment.playerId)
+              : [],
+          })),
+          stageBasketRoutes: stageBasketRoutes.map((route) => ({
+            id: route.id,
+            sourceBasketId: route.sourceBasketId,
+            targetBasketId: route.targetBasketId,
+          })),
+        }),
     matches: matches.map((match) => ({
       backupId: match.id,
       stageBackupId: match.stageId,
@@ -449,6 +512,37 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   const matchById = new Map(
     backup.matches.map((match) => [match.backupId, match]),
   );
+
+  const backupBaskets = backup.stageBaskets ?? [];
+  const backupBasketRoutes = backup.stageBasketRoutes ?? [];
+  if (backupBaskets.length === 0) {
+    if (backupBasketRoutes.length > 0) {
+      errors.push("Stage basket routes require explicit stage baskets.");
+    }
+  } else {
+    const validation = validateStageBasketConfiguration({
+      stages: backup.stages.map((stage) => ({
+        id: stage.backupId,
+        position: stage.position,
+      })),
+      playerIds: backup.players.map((player) => player.backupId),
+      baskets: backupBaskets.map((basket) => ({
+        id: basket.id,
+        stageId: basket.stageBackupId,
+        type: basket.type,
+        ordinal: basket.ordinal,
+        order: basket.order,
+        colorId: basket.colorId ?? null,
+        participantIds: basket.participantBackupIds,
+      })),
+      routes: backupBasketRoutes,
+    });
+    errors.push(
+      ...validation.problems.map(
+        (problem) => `Stage baskets: ${problem.code}.`,
+      ),
+    );
+  }
 
   const orderedStages = [...backup.stages].sort(
     (left, right) => left.position - right.position,
@@ -1215,6 +1309,37 @@ export async function importBackupV3(
         .returning();
       stageIds.set(stage.backupId, created.id);
     }
+    const basketIds = new Map<string, string>();
+    for (const basket of backup.stageBaskets ?? []) {
+      const restoredStageId = stageIds.get(basket.stageBackupId)!;
+      const restoredBasketId = basket.id;
+      basketIds.set(basket.id, restoredBasketId);
+      await tx.insert(stageBasketsTable).values({
+        id: restoredBasketId,
+        tournamentId: tournament.id,
+        stageId: restoredStageId,
+        basketType: basket.type,
+        ordinal: basket.ordinal,
+        displayOrder: basket.order,
+        colorId: basket.colorId ?? null,
+      });
+    }
+    for (const route of backup.stageBasketRoutes ?? []) {
+      const source = (backup.stageBaskets ?? []).find(
+        (basket) => basket.id === route.sourceBasketId,
+      )!;
+      const target = (backup.stageBaskets ?? []).find(
+        (basket) => basket.id === route.targetBasketId,
+      )!;
+      await tx.insert(stageBasketRoutesTable).values({
+        id: route.id,
+        tournamentId: tournament.id,
+        sourceStageId: stageIds.get(source.stageBackupId)!,
+        sourceBasketId: basketIds.get(route.sourceBasketId)!,
+        targetStageId: stageIds.get(target.stageBackupId)!,
+        targetBasketId: basketIds.get(route.targetBasketId)!,
+      });
+    }
     const gameConfig = backup.tournament.gameConfig == null
       ? null
       : await replaceTournamentGameConfig(
@@ -1301,6 +1426,19 @@ export async function importBackupV3(
             .returning();
     for (let index = 0; index < backup.players.length; index += 1) {
       playerIds.set(backup.players[index].backupId, createdPlayers[index].id);
+    }
+    const restoredAssignments = (backup.stageBaskets ?? []).flatMap((basket) =>
+      basket.type === "input"
+        ? basket.participantBackupIds.map((playerBackupId) => ({
+            tournamentId: tournament.id,
+            stageId: stageIds.get(basket.stageBackupId)!,
+            basketId: basketIds.get(basket.id)!,
+            playerId: playerIds.get(playerBackupId)!,
+          }))
+        : [],
+    );
+    if (restoredAssignments.length > 0) {
+      await tx.insert(stageBasketParticipantsTable).values(restoredAssignments);
     }
     if (partialFirstGroupRegistration) {
       await tx

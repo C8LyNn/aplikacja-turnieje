@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { StageBasketValidation } from './stageBasketValidation';
 import type { StageStartReadinessFormat } from './stageStartReadinessFormat';
 import type { StageStartReadinessReasonCode } from './stageStartReadinessReasonCode';
 
@@ -22,4 +23,5 @@ export interface StageStartReadiness {
   /** @minimum 0 */
   blockingGroups: number;
   format: StageStartReadinessFormat;
+  basketValidation: StageBasketValidation;
 }

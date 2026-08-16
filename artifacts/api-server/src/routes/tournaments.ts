@@ -65,6 +65,12 @@ import {
   serializeTournamentStage,
 } from "../application/stages/stage-queries";
 import {
+  getStageBasketConfiguration,
+  loadStageBasketConfigurationInTransaction,
+  replaceStageBasketConfiguration,
+  StageBasketConfigurationError,
+} from "../application/stages/stage-basket-configuration";
+import {
   getSeedingCeremony,
   prepareSeedingCeremony,
   resetSeedingCeremony,
@@ -136,6 +142,9 @@ import {
   ExportTournamentParams,
   ImportTournamentBody,
   ListTournamentStagesParams,
+  GetTournamentStageBasketsParams,
+  UpdateTournamentStageBasketsParams,
+  UpdateTournamentStageBasketsBody,
   GetTournamentStageParams,
   PreviewStageQualificationParams,
   CompleteTournamentStageParams,
@@ -183,6 +192,22 @@ function sendStageLifecycleError(
   ]);
   res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
     .json({ error: error.message, code: error.code });
+}
+
+function sendStageBasketConfigurationError(
+  error: StageBasketConfigurationError,
+  res: import("express").Response,
+): void {
+  const status = error.code === "TOURNAMENT_NOT_FOUND"
+    ? 404
+    : error.code === "STAGE_BASKET_CONFIGURATION_INVALID"
+      ? 422
+      : 409;
+  res.status(status).json({
+    error: error.message,
+    code: error.code,
+    problems: error.problems,
+  });
 }
 
 function sendDoubleEliminationError(
@@ -635,6 +660,46 @@ router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
   res.json(await listTournamentStages(params.data.id));
 });
 
+router.get("/tournaments/:id/stage-baskets", async (req, res): Promise<void> => {
+  const params = GetTournamentStageBasketsParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json(await getStageBasketConfiguration(params.data.id));
+  } catch (error) {
+    if (error instanceof StageBasketConfigurationError) {
+      sendStageBasketConfigurationError(error, res);
+      return;
+    }
+    throw error;
+  }
+});
+
+router.put("/tournaments/:id/stage-baskets", async (req, res): Promise<void> => {
+  const params = UpdateTournamentStageBasketsParams.safeParse(req.params);
+  const body = UpdateTournamentStageBasketsBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Invalid stage basket configuration" });
+    return;
+  }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    res.json(await replaceStageBasketConfiguration({
+      tournamentId: params.data.id,
+      baskets: body.data.baskets,
+      routes: body.data.routes,
+      actor: getTournamentMutationActor(access),
+    }));
+  } catch (error) {
+    if (error instanceof StageBasketConfigurationError) {
+      sendStageBasketConfigurationError(error, res);
+      return;
+    }
+    throw error;
+  }
+});
+
 router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> => {
   const params = GetTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -1055,6 +1120,13 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       if (stages.length !== 1 || stages[0].status !== "planned") {
         throw new Error("SINGLE_STAGE_COMPATIBILITY_REQUIRED");
       }
+      const basketConfiguration = await loadStageBasketConfigurationInTransaction(
+        tx,
+        lockedTournament.id,
+      );
+      if (!basketConfiguration.validation.valid) {
+        throw new Error("STAGE_BASKET_CONFIGURATION_INVALID");
+      }
       const stage = stages[0];
       if (stage.format === "group_stage") throw new Error("STAGE_FORMAT_NOT_SUPPORTED");
 
@@ -1203,9 +1275,16 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       STAGE_FORMAT_NOT_SUPPORTED: "Tournament stage format is not supported by this operation",
       NOT_ENOUGH_PLAYERS: "Need at least 2 players to start",
       STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
+      STAGE_BASKET_CONFIGURATION_INVALID: "Tournament stage basket configuration is invalid",
     };
-    res.status(code === "TOURNAMENT_NOT_FOUND" ? 404 : 400).json({
+    const status = code === "TOURNAMENT_NOT_FOUND"
+      ? 404
+      : code === "STAGE_BASKET_CONFIGURATION_INVALID"
+        ? 422
+        : 400;
+    res.status(status).json({
       error: messages[code] ?? "Could not start tournament",
+      code,
     });
   }
 });

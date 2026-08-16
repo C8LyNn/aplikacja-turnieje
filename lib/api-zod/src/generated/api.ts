@@ -232,7 +232,7 @@ export const updateTournamentBodyGameConfigOneConfigStageBansMax = 10;
 export const UpdateTournamentBody = zod.object({
   "name": zod.string().optional(),
   "description": zod.string().optional(),
-  "format": zod.enum(['single_elimination', 'round_robin', 'swiss', 'group_stage', 'double_elimination']).optional(),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']).optional(),
   "status": zod.enum(['draft', 'active', 'completed']).optional(),
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
@@ -355,6 +355,149 @@ export const ListTournamentStagesResponseItem = zod.object({
   "completedAt": zod.string().nullish()
 })
 export const ListTournamentStagesResponse = zod.array(ListTournamentStagesResponseItem)
+
+
+/**
+ * @summary Read stable stage input/output baskets, routes and validation state
+ */
+
+
+
+export const GetTournamentStageBasketsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const getTournamentStageBasketsResponseBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+export const getTournamentStageBasketsResponseBasketsItemOrdinalMax = 4;
+
+export const getTournamentStageBasketsResponseBasketsItemOrderMax = 4;
+
+export const getTournamentStageBasketsResponseBasketsItemColorIdMax = 64;
+
+
+export const getTournamentStageBasketsResponseRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
+export const GetTournamentStageBasketsResponse = zod.object({
+  "tournamentId": zod.number(),
+  "legacyDefaulted": zod.boolean(),
+  "baskets": zod.array(zod.object({
+  "id": zod.string().regex(getTournamentStageBasketsResponseBasketsItemIdRegExp),
+  "stageId": zod.number().min(1),
+  "type": zod.enum(['input', 'output']),
+  "ordinal": zod.number().min(1).max(getTournamentStageBasketsResponseBasketsItemOrdinalMax),
+  "order": zod.number().min(1).max(getTournamentStageBasketsResponseBasketsItemOrderMax),
+  "colorId": zod.string().min(1).max(getTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
+  "participantIds": zod.array(zod.number().min(1))
+})),
+  "routes": zod.array(zod.object({
+  "id": zod.string().regex(getTournamentStageBasketsResponseRoutesItemIdRegExp),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string()
+})),
+  "validation": zod.object({
+  "valid": zod.boolean(),
+  "problems": zod.array(zod.object({
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "message": zod.string(),
+  "context": zod.object({
+  "stageId": zod.number().optional(),
+  "basketId": zod.string().optional(),
+  "routeId": zod.string().optional(),
+  "participantId": zod.number().optional(),
+  "sourceStageId": zod.number().optional(),
+  "targetStageId": zod.number().optional()
+})
+}))
+})
+})
+
+
+/**
+ * @summary Atomically replace the editable stage basket graph before tournament start
+ */
+
+
+
+export const UpdateTournamentStageBasketsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const updateTournamentStageBasketsBodyBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+export const updateTournamentStageBasketsBodyBasketsItemOrdinalMax = 4;
+
+export const updateTournamentStageBasketsBodyBasketsItemOrderMax = 4;
+
+export const updateTournamentStageBasketsBodyBasketsItemColorIdMax = 64;
+
+
+export const updateTournamentStageBasketsBodyRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
+export const UpdateTournamentStageBasketsBody = zod.object({
+  "baskets": zod.array(zod.object({
+  "id": zod.string().regex(updateTournamentStageBasketsBodyBasketsItemIdRegExp),
+  "stageId": zod.number().min(1),
+  "type": zod.enum(['input', 'output']),
+  "ordinal": zod.number().min(1).max(updateTournamentStageBasketsBodyBasketsItemOrdinalMax),
+  "order": zod.number().min(1).max(updateTournamentStageBasketsBodyBasketsItemOrderMax),
+  "colorId": zod.string().min(1).max(updateTournamentStageBasketsBodyBasketsItemColorIdMax).nullable(),
+  "participantIds": zod.array(zod.number().min(1))
+})),
+  "routes": zod.array(zod.object({
+  "id": zod.string().regex(updateTournamentStageBasketsBodyRoutesItemIdRegExp),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string()
+}))
+})
+
+export const updateTournamentStageBasketsResponseBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+export const updateTournamentStageBasketsResponseBasketsItemOrdinalMax = 4;
+
+export const updateTournamentStageBasketsResponseBasketsItemOrderMax = 4;
+
+export const updateTournamentStageBasketsResponseBasketsItemColorIdMax = 64;
+
+
+export const updateTournamentStageBasketsResponseRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
+export const UpdateTournamentStageBasketsResponse = zod.object({
+  "tournamentId": zod.number(),
+  "legacyDefaulted": zod.boolean(),
+  "baskets": zod.array(zod.object({
+  "id": zod.string().regex(updateTournamentStageBasketsResponseBasketsItemIdRegExp),
+  "stageId": zod.number().min(1),
+  "type": zod.enum(['input', 'output']),
+  "ordinal": zod.number().min(1).max(updateTournamentStageBasketsResponseBasketsItemOrdinalMax),
+  "order": zod.number().min(1).max(updateTournamentStageBasketsResponseBasketsItemOrderMax),
+  "colorId": zod.string().min(1).max(updateTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
+  "participantIds": zod.array(zod.number().min(1))
+})),
+  "routes": zod.array(zod.object({
+  "id": zod.string().regex(updateTournamentStageBasketsResponseRoutesItemIdRegExp),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string()
+})),
+  "validation": zod.object({
+  "valid": zod.boolean(),
+  "problems": zod.array(zod.object({
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "message": zod.string(),
+  "context": zod.object({
+  "stageId": zod.number().optional(),
+  "basketId": zod.string().optional(),
+  "routeId": zod.string().optional(),
+  "participantId": zod.number().optional(),
+  "sourceStageId": zod.number().optional(),
+  "targetStageId": zod.number().optional()
+})
+}))
+})
+})
 
 
 /**
@@ -845,14 +988,29 @@ export const getTournamentStageReadinessResponseBlockingGroupsMin = 0;
 
 export const GetTournamentStageReadinessResponse = zod.object({
   "ready": zod.boolean(),
-  "reasonCode": zod.enum(['READY', 'TOURNAMENT_NOT_FOUND', 'STAGE_NOT_FOUND', 'STAGE_NOT_ACTIVE', 'STAGE_NOT_NEXT_PLANNED', 'ACTIVE_STAGE_EXISTS', 'PREVIOUS_STAGE_NOT_COMPLETED', 'STAGE_INCOMPLETE', 'STAGE_PARTICIPANTS_INCONSISTENT', 'QUALIFICATION_CONFIGURATION_INVALID', 'STAGE_FORMAT_NOT_SUPPORTED', 'STAGE_ALREADY_COMPLETED', 'STAGE_ALREADY_STARTED', 'MATCHES_ALREADY_EXIST', 'GROUPS_ALREADY_EXIST', 'RANKING_INCONSISTENT', 'STAGE_SEEDING_CONFIGURATION_INVALID', 'SEEDING_CEREMONY_REQUIRED', 'SEEDING_CEREMONY_INCOMPLETE', 'SEEDING_CEREMONY_STALE']),
+  "reasonCode": zod.enum(['READY', 'TOURNAMENT_NOT_FOUND', 'STAGE_NOT_FOUND', 'STAGE_NOT_ACTIVE', 'STAGE_NOT_NEXT_PLANNED', 'ACTIVE_STAGE_EXISTS', 'PREVIOUS_STAGE_NOT_COMPLETED', 'STAGE_INCOMPLETE', 'STAGE_PARTICIPANTS_INCONSISTENT', 'STAGE_BASKET_CONFIGURATION_INVALID', 'QUALIFICATION_CONFIGURATION_INVALID', 'STAGE_FORMAT_NOT_SUPPORTED', 'STAGE_ALREADY_COMPLETED', 'STAGE_ALREADY_STARTED', 'MATCHES_ALREADY_EXIST', 'GROUPS_ALREADY_EXIST', 'RANKING_INCONSISTENT', 'STAGE_SEEDING_CONFIGURATION_INVALID', 'SEEDING_CEREMONY_REQUIRED', 'SEEDING_CEREMONY_INCOMPLETE', 'SEEDING_CEREMONY_STALE']),
   "message": zod.string(),
   "participantCount": zod.number().min(getTournamentStageReadinessResponseParticipantCountMin),
   "requiredParticipantCount": zod.number().min(getTournamentStageReadinessResponseRequiredParticipantCountMin),
   "missingSeeds": zod.array(zod.number().min(1)),
   "blockingMatches": zod.number().min(getTournamentStageReadinessResponseBlockingMatchesMin),
   "blockingGroups": zod.number().min(getTournamentStageReadinessResponseBlockingGroupsMin),
-  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination'])
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
+  "basketValidation": zod.object({
+  "valid": zod.boolean(),
+  "problems": zod.array(zod.object({
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "message": zod.string(),
+  "context": zod.object({
+  "stageId": zod.number().optional(),
+  "basketId": zod.string().optional(),
+  "routeId": zod.string().optional(),
+  "participantId": zod.number().optional(),
+  "sourceStageId": zod.number().optional(),
+  "targetStageId": zod.number().optional()
+})
+}))
+})
 })
 
 
@@ -1445,6 +1603,14 @@ export const exportTournamentResponseTournamentGameConfigConfigStageBansMax = 10
 export const exportTournamentResponseStagesMax = 10;
 
 
+export const exportTournamentResponseStageBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+export const exportTournamentResponseStageBasketsItemOrdinalMax = 4;
+
+export const exportTournamentResponseStageBasketsItemOrderMax = 4;
+
+export const exportTournamentResponseStageBasketsItemColorIdMax = 64;
+
+export const exportTournamentResponseStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 
 
 
@@ -1540,6 +1706,20 @@ export const ExportTournamentResponse = zod.object({
   "qualifiedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })),
+  "stageBaskets": zod.array(zod.object({
+  "id": zod.string().regex(exportTournamentResponseStageBasketsItemIdRegExp),
+  "stageBackupId": zod.number(),
+  "type": zod.enum(['input', 'output']),
+  "ordinal": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrdinalMax),
+  "order": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrderMax),
+  "colorId": zod.string().min(1).max(exportTournamentResponseStageBasketsItemColorIdMax).nullable(),
+  "participantBackupIds": zod.array(zod.number())
+})).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
+  "stageBasketRoutes": zod.array(zod.object({
+  "id": zod.string().regex(exportTournamentResponseStageBasketRoutesItemIdRegExp),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string()
+})).optional().describe('Optional routes between explicit output and input baskets.'),
   "matches": zod.array(zod.object({
   "backupId": zod.number(),
   "stageBackupId": zod.number(),
@@ -1623,6 +1803,14 @@ export const importTournamentBodyBackupTwoTournamentGameConfigConfigStageBansMax
 export const importTournamentBodyBackupTwoStagesMax = 10;
 
 
+export const importTournamentBodyBackupTwoStageBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+export const importTournamentBodyBackupTwoStageBasketsItemOrdinalMax = 4;
+
+export const importTournamentBodyBackupTwoStageBasketsItemOrderMax = 4;
+
+export const importTournamentBodyBackupTwoStageBasketsItemColorIdMax = 64;
+
+export const importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 
 export const importTournamentBodyOrganizerPasswordMin = 8;
 
@@ -1641,7 +1829,7 @@ export const ImportTournamentBody = zod.object({
   "tournament": zod.object({
   "name": zod.string(),
   "description": zod.string().nullish(),
-  "format": zod.enum(['single_elimination', 'round_robin', 'swiss', 'group_stage', 'double_elimination']),
+  "format": zod.enum(['single_elimination', 'round_robin', 'swiss']),
   "status": zod.enum(['draft', 'active', 'completed']),
   "maxPlayers": zod.number().nullish(),
   "currentRound": zod.number().nullish(),
@@ -1797,6 +1985,20 @@ export const ImportTournamentBody = zod.object({
   "qualifiedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })),
+  "stageBaskets": zod.array(zod.object({
+  "id": zod.string().regex(importTournamentBodyBackupTwoStageBasketsItemIdRegExp),
+  "stageBackupId": zod.number(),
+  "type": zod.enum(['input', 'output']),
+  "ordinal": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrdinalMax),
+  "order": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrderMax),
+  "colorId": zod.string().min(1).max(importTournamentBodyBackupTwoStageBasketsItemColorIdMax).nullable(),
+  "participantBackupIds": zod.array(zod.number())
+})).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
+  "stageBasketRoutes": zod.array(zod.object({
+  "id": zod.string().regex(importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string()
+})).optional().describe('Optional routes between explicit output and input baskets.'),
   "matches": zod.array(zod.object({
   "backupId": zod.number(),
   "stageBackupId": zod.number(),

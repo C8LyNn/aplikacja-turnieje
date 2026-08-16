@@ -7,6 +7,7 @@ export type StageLifecycleErrorCode =
   | "PREVIOUS_STAGE_NOT_COMPLETED"
   | "STAGE_INCOMPLETE"
   | "STAGE_PARTICIPANTS_INCONSISTENT"
+  | "STAGE_BASKET_CONFIGURATION_INVALID"
   | "QUALIFICATION_CONFIGURATION_INVALID"
   | "STAGE_FORMAT_NOT_SUPPORTED"
   | "STAGE_ALREADY_COMPLETED"
@@ -28,6 +29,8 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   PREVIOUS_STAGE_NOT_COMPLETED: "Poprzedni etap nie został zakończony.",
   STAGE_INCOMPLETE: "Nie wszystkie wymagane mecze i rundy etapu są zakończone.",
   STAGE_PARTICIPANTS_INCONSISTENT: "Uczestnicy etapu są niespójni.",
+  STAGE_BASKET_CONFIGURATION_INVALID:
+    "Konfiguracja koszyków etapów jest niespójna.",
   QUALIFICATION_CONFIGURATION_INVALID: "Konfiguracja kwalifikacji między etapami jest niespójna.",
   STAGE_FORMAT_NOT_SUPPORTED: "Ten format etapu nie jest jeszcze obsługiwany przez lifecycle.",
   STAGE_ALREADY_COMPLETED: "Etap został już zakończony.",

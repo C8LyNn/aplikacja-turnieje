@@ -1,4 +1,9 @@
-export type StandingsFormat = "single_elimination" | "round_robin" | "swiss";
+export type StandingsFormat =
+  | "single_elimination"
+  | "round_robin"
+  | "swiss"
+  | "group_stage"
+  | "double_elimination";
 export type StandingsResultType = "played" | "walkover" | "bye" | "no_contest";
 
 export interface StandingsPlayer {

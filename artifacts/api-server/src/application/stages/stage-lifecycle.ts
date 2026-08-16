@@ -54,6 +54,7 @@ import {
 } from "../../domain/tournament/v2";
 import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
 import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
+import { loadStageBasketConfigurationInTransaction } from "./stage-basket-configuration";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
 
 export interface StageLifecycleTestHooks {
@@ -582,6 +583,13 @@ export async function completeStage(
     const stages = await tx.select().from(tournamentStagesTable)
       .where(eq(tournamentStagesTable.tournamentId, tournament.id))
       .orderBy(asc(tournamentStagesTable.position)).for("update");
+    const basketConfiguration = await loadStageBasketConfigurationInTransaction(
+      tx,
+      tournament.id,
+    );
+    if (!basketConfiguration.validation.valid) {
+      throw new StageLifecycleError("STAGE_BASKET_CONFIGURATION_INVALID");
+    }
     const stage = stages.find((candidate) => candidate.id === input.stageId);
     if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
     if (stage.status === "completed") throw new StageLifecycleError("STAGE_ALREADY_COMPLETED");
@@ -881,6 +889,13 @@ export async function startStage(
     const stages = await tx.select().from(tournamentStagesTable)
       .where(eq(tournamentStagesTable.tournamentId, tournament.id))
       .orderBy(asc(tournamentStagesTable.position)).for("update");
+    const basketConfiguration = await loadStageBasketConfigurationInTransaction(
+      tx,
+      tournament.id,
+    );
+    if (!basketConfiguration.validation.valid) {
+      throw new StageLifecycleError("STAGE_BASKET_CONFIGURATION_INVALID");
+    }
     const stage = stages.find((candidate) => candidate.id === input.stageId);
     if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
     if (stage.status === "active") throw new StageLifecycleError("STAGE_ALREADY_STARTED");

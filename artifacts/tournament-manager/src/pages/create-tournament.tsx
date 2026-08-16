@@ -46,8 +46,13 @@ import {
   tournamentNameError,
 } from "@/lib/create-tournament-validation";
 
-const FORMAT_INFO: Record<
+type SingleStageTournamentFormat = Exclude<
   TournamentInput["format"],
+  "group_stage"
+>;
+
+const FORMAT_INFO: Record<
+  SingleStageTournamentFormat,
   { label: string; desc: string }
 > = {
   single_elimination: {
@@ -125,7 +130,7 @@ function CreateTournamentForm() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [format, setFormat] =
-    useState<TournamentInput["format"]>("single_elimination");
+    useState<SingleStageTournamentFormat>("single_elimination");
   const [maxPlayers, setMaxPlayers] = useState("");
   const [swissRounds, setSwissRounds] = useState("");
   const [defaultBestOf, setDefaultBestOf] = useState("1");
@@ -318,7 +323,7 @@ function CreateTournamentForm() {
                     <Select
                       value={format}
                       onValueChange={(value) =>
-                        setFormat(value as TournamentInput["format"])
+                        setFormat(value as SingleStageTournamentFormat)
                       }
                     >
                       <SelectTrigger>

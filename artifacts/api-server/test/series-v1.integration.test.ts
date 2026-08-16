@@ -121,13 +121,67 @@ describe("series_v1 tournament creation", () => {
     assert.equal("allowDraws" in response.body, false);
   });
 
-  test("rejects double elimination explicitly", async () => {
+  test("accepts standalone double elimination", async () => {
     const response = await request(app).post("/api/tournaments").send({
-      name: "Unsupported double elimination",
+      name: `Standalone double elimination ${randomUUID()}`,
       organizerPassword: "integration-organizer-password",
       format: "double_elimination",
+    }).expect(201);
+    assert.equal(response.body.format, "double_elimination");
+  });
+
+  test("rejects standalone group stage with the stable rule code", async () => {
+    const response = await request(app).post("/api/tournaments").send({
+      name: `Standalone group stage ${randomUUID()}`,
+      organizerPassword: "integration-organizer-password",
+      format: "group_stage",
     }).expect(422);
-    assert.equal(response.body.code, "DOUBLE_ELIMINATION_UNAVAILABLE");
+    assert.equal(response.body.code, "STAGE_FORMAT_NOT_SUPPORTED");
+  });
+
+  test("accepts group stage through a valid multi-stage plan", async () => {
+    const response = await request(app).post("/api/tournaments").send({
+      name: `Multi-stage group stage ${randomUUID()}`,
+      organizerPassword: "integration-organizer-password",
+      format: "group_stage",
+      stagePlan: {
+        initialParticipantCount: 4,
+        stages: [
+          {
+            key: "groups",
+            position: 1,
+            name: "Groups",
+            format: "group_stage",
+            participantCount: 4,
+            bestOf: 1,
+            groupCount: 2,
+            participantsPerGroup: 2,
+            qualifiersPerGroup: 1,
+            entrySeedingMethod: "preserve",
+            placementMethod: "snake",
+            resultSeedingMethod: "rank_bands",
+          },
+          {
+            key: "final",
+            position: 2,
+            name: "Final",
+            format: "single_elimination",
+            participantCount: 2,
+            bestOf: 1,
+            entrySeedingMethod: "preserve",
+            placementMethod: "standard",
+          },
+        ],
+      },
+    }).expect(201);
+    assert.equal(response.body.id > 0, true);
+    const stages = await request(app)
+      .get(`/api/tournaments/${response.body.id}/stages`)
+      .expect(200);
+    assert.deepEqual(
+      stages.body.map((stage: { format: string }) => stage.format),
+      ["group_stage", "single_elimination"],
+    );
   });
 
   test("rejects an even defaultBestOf", async () => {

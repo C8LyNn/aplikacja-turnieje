@@ -82,6 +82,7 @@ const readiness = (ready: boolean, message = ready ? "Gotowy." : "Brak składu."
   blockingMatches: 0,
   blockingGroups: 0,
   format: "swiss",
+  basketValidation: { valid: true, problems: [] },
 });
 
 const match = (id: number, status: Match["status"], overrides: Partial<Match> = {}): Match => ({

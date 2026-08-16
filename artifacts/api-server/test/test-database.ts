@@ -70,8 +70,21 @@ const DOUBLE_ELIMINATION_ENGINE_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0017_double_elimination_engine_v2.sql",
   import.meta.url,
 );
+const TOURNAMENT_FORMAT_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0018_tournament_format_add_group_stage_and_de.sql",
+  import.meta.url,
+);
+const DOUBLE_ELIMINATION_TRIGGER_FIX_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0019_fix_de_single_stage_trigger.sql",
+  import.meta.url,
+);
+const STAGE_PARTICIPANT_BASKETS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0020_stage_participant_baskets.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
+const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
 
 function assertSafeTestSchema(schema: string): void {
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
@@ -213,6 +226,20 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
         await readFile(DOUBLE_ELIMINATION_ENGINE_MIGRATION_URL, "utf8"),
         schema,
       ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+    const tournamentFormatMigrationSql = renderSeriesV1MigrationForTestSchema(
+      await readFile(TOURNAMENT_FORMAT_MIGRATION_URL, "utf8"),
+      schema,
+    ).replace(STANDALONE_TRANSACTION_BOUNDARY, "");
+    const doubleEliminationTriggerFixMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(DOUBLE_ELIMINATION_TRIGGER_FIX_MIGRATION_URL, "utf8"),
+        schema,
+      ).replace(STANDALONE_TRANSACTION_BOUNDARY, "");
+    const stageParticipantBasketsMigrationSql =
+      renderSeriesV1MigrationForTestSchema(
+        await readFile(STAGE_PARTICIPANT_BASKETS_MIGRATION_URL, "utf8"),
+        schema,
+      ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
     await pool.query("BEGIN");
     try {
       await pool.query(migrationSql);
@@ -271,6 +298,15 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(doubleEliminationEngineMigrationSql);
       // The execution table and format reconciliation are idempotent.
       await pool.query(doubleEliminationEngineMigrationSql);
+      await pool.query(tournamentFormatMigrationSql);
+      // PostgreSQL requires newly added enum values to be committed before
+      // the trigger definitions in the following migration can use them.
+      await pool.query("COMMIT");
+      await pool.query("BEGIN");
+      await pool.query(doubleEliminationTriggerFixMigrationSql);
+      await pool.query(stageParticipantBasketsMigrationSql);
+      // The basket catalog is forward-only and safe to replay.
+      await pool.query(stageParticipantBasketsMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
