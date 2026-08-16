@@ -353,6 +353,7 @@ export async function exportBackupV3(
             ordinal: basket.ordinal,
             order: basket.displayOrder,
             colorId: basket.colorId,
+            qualifierCount: basket.qualifierCount ?? null,
             participantBackupIds: basket.basketType === "input"
               ? stageBasketAssignments
                 .filter((assignment) => assignment.basketId === basket.id)
@@ -520,23 +521,31 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
       errors.push("Stage basket routes require explicit stage baskets.");
     }
   } else {
-    const validation = validateStageBasketConfiguration({
-      stages: backup.stages.map((stage) => ({
-        id: stage.backupId,
-        position: stage.position,
-      })),
-      playerIds: backup.players.map((player) => player.backupId),
-      baskets: backupBaskets.map((basket) => ({
-        id: basket.id,
-        stageId: basket.stageBackupId,
-        type: basket.type,
-        ordinal: basket.ordinal,
-        order: basket.order,
-        colorId: basket.colorId ?? null,
-        participantIds: basket.participantBackupIds,
-      })),
-      routes: backupBasketRoutes,
-    });
+    // Backup V3 baskets are always an explicit organizer-authored configuration.
+    // Use explicit mode so that output baskets without qualifierCount are caught
+    // during validation rather than silently accepted as legacy-compatible.
+    const validation = validateStageBasketConfiguration(
+      {
+        stages: backup.stages.map((stage) => ({
+          id: stage.backupId,
+          position: stage.position,
+          participantCount: stage.participantCount,
+        })),
+        playerIds: backup.players.map((player) => player.backupId),
+        baskets: backupBaskets.map((basket) => ({
+          id: basket.id,
+          stageId: basket.stageBackupId,
+          type: basket.type,
+          ordinal: basket.ordinal,
+          order: basket.order,
+          colorId: basket.colorId ?? null,
+          qualifierCount: basket.qualifierCount ?? null,
+          participantIds: basket.participantBackupIds,
+        })),
+        routes: backupBasketRoutes,
+      },
+      "explicit",
+    );
     errors.push(
       ...validation.problems.map(
         (problem) => `Stage baskets: ${problem.code}.`,
@@ -1322,6 +1331,7 @@ export async function importBackupV3(
         ordinal: basket.ordinal,
         displayOrder: basket.order,
         colorId: basket.colorId ?? null,
+        qualifierCount: basket.type === "output" ? (basket.qualifierCount ?? null) : null,
       });
     }
     for (const route of backup.stageBasketRoutes ?? []) {

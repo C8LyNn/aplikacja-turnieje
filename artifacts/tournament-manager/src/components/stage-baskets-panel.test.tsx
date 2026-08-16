@@ -105,8 +105,8 @@ const basketsLegacy = {
   tournamentId: 42,
   legacyDefaulted: true,
   baskets: [
-    { id: "s1in1", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [] },
-    { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [] },
+    { id: "s1in1", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
+    { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
   ],
   routes: [],
   validation: { valid: true, problems: [] },
@@ -116,13 +116,13 @@ const basketsExplicit = {
   tournamentId: 42,
   legacyDefaulted: false,
   baskets: [
-    { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [1, 2] },
-    { id: "s1in2", stageId: 1, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [3, 4] },
-    { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [] },
-    { id: "s1out2", stageId: 1, type: "output", ordinal: 2, order: 2, colorId: null, participantIds: [] },
-    { id: "s2in1", stageId: 2, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [] },
-    { id: "s2in2", stageId: 2, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [] },
-    { id: "s2out1", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [] },
+    { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [1, 2], qualifierCount: null },
+    { id: "s1in2", stageId: 1, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [3, 4], qualifierCount: null },
+    { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 2 },
+    { id: "s1out2", stageId: 1, type: "output", ordinal: 2, order: 2, colorId: null, participantIds: [], qualifierCount: 2 },
+    { id: "s2in1", stageId: 2, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [], qualifierCount: null },
+    { id: "s2in2", stageId: 2, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [], qualifierCount: null },
+    { id: "s2out1", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
   ],
   routes: [
     { id: "r.s1out1.s2in1", sourceBasketId: "s1out1", targetBasketId: "s2in1" },
@@ -135,7 +135,7 @@ const basketsInvalid = {
   tournamentId: 42,
   legacyDefaulted: false,
   baskets: [
-    { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: null, participantIds: [] },
+    { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
   ],
   routes: [],
   validation: {
@@ -358,9 +358,9 @@ test("generateBasketId: skips IDs of deleted baskets (ordinal hole scenario)", (
 
 test("toggleParticipantInBasket: player assigned to stage 1 remains after being added to stage 2", () => {
   const baskets: StageBasket[] = [
-    { id: "s1in1", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [1] },
-    { id: "s2in1", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [] },
-    { id: "s2in2", stageId: 2, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [] },
+    { id: "s1in1", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [1], qualifierCount: null },
+    { id: "s2in1", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
+    { id: "s2in2", stageId: 2, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [], qualifierCount: null },
   ];
   // Assign player 1 to stage 2's basket
   const result = toggleParticipantInBasket(baskets, "s2in1", 1);
@@ -372,8 +372,8 @@ test("toggleParticipantInBasket: player assigned to stage 1 remains after being 
 
 test("toggleParticipantInBasket: player moved between baskets within same stage", () => {
   const baskets: StageBasket[] = [
-    { id: "s2in1", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [7] },
-    { id: "s2in2", stageId: 2, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [] },
+    { id: "s2in1", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [7], qualifierCount: null },
+    { id: "s2in2", stageId: 2, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [], qualifierCount: null },
   ];
   // Assign player 7 to s2in2 — should be removed from s2in1 (same stage)
   const result = toggleParticipantInBasket(baskets, "s2in2", 7);
@@ -455,4 +455,134 @@ test("organizer with no orgToken sees no edit button", async () => {
 
   // No advanced button without orgToken
   assert.equal(screen.queryByTestId("enter-advanced-btn"), null, "no advanced button without orgToken");
+});
+
+// ─── Phase 1: qualifierCount UI tests ────────────────────────────────────────
+
+test("quota summary displays Łącznie przechodzi and Odpada for stage with non-null qualifierCounts", async () => {
+  // basketsExplicit has s1out1 (qc=2) and s1out2 (qc=2) → total=4, eliminated=4 for stage 1.
+  // stage 2 output has qualifierCount=null → no quota summary for stage 2.
+  const fetchImpl = makeFetch({
+    "stage-baskets": () => basketsExplicit,
+    "/stages": () => stagesTwoStages,
+    "/players": () => players,
+  });
+  renderPanel(fetchImpl);
+
+  await waitFor(() => {
+    assert.ok(screen.getByTestId("quota-summary-1"), "quota summary appears for stage 1");
+  });
+
+  const summary = screen.getByTestId("quota-summary-1");
+  assert.ok(
+    summary.textContent?.includes("4"),
+    `quota summary must show total=4; got: ${summary.textContent}`,
+  );
+  assert.ok(
+    summary.textContent?.includes("8"),
+    `quota summary must show participantCount=8; got: ${summary.textContent}`,
+  );
+  assert.ok(
+    summary.textContent?.includes("Odpada"),
+    "quota summary must show Odpada text",
+  );
+
+  // Stage 2 has no non-null qualifierCounts → no summary.
+  assert.equal(
+    screen.queryByTestId("quota-summary-2"),
+    null,
+    "no quota-summary-2 when all outputs have null qualifierCount",
+  );
+});
+
+test("advanced mode shows qualifier-count input for output baskets and quota summary updates", async () => {
+  const fetchImpl = makeFetch({
+    "stage-baskets": () => basketsExplicit,
+    "/stages": () => stagesTwoStages,
+    "/players": () => players,
+  });
+  renderPanel(fetchImpl);
+
+  await waitFor(() => {
+    assert.ok(screen.getByTestId("enter-advanced-btn"), "advanced button available");
+  });
+  await userEvent.click(screen.getByTestId("enter-advanced-btn"));
+
+  // Qualifier-count inputs must appear for output baskets in advanced mode.
+  await waitFor(() => {
+    assert.ok(
+      screen.getByTestId("qualifier-count-s1out1"),
+      "qualifier-count input for s1out1 must be present in advanced mode",
+    );
+  });
+
+  const input = screen.getByTestId("qualifier-count-s1out1") as HTMLInputElement;
+  assert.equal(input.value, "2", "initial qualifierCount must be 2");
+
+  // Change qualifierCount from 2 to 3 — total for stage 1 becomes 3+2=5, eliminated=3.
+  await userEvent.clear(input);
+  await userEvent.type(input, "3");
+
+  await waitFor(() => {
+    const summary = screen.getByTestId("quota-summary-1");
+    assert.ok(
+      summary.textContent?.includes("5"),
+      `quota must update to 5 after edit; got: ${summary.textContent}`,
+    );
+    assert.ok(
+      summary.textContent?.includes("3"),
+      `Odpada must update to 3; got: ${summary.textContent}`,
+    );
+  });
+});
+
+test("save button sends PUT with updated qualifierCount", async () => {
+  let capturedPutBody: unknown = null;
+  const fetchImpl = async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method === "PUT" && url.includes("stage-baskets")) {
+      capturedPutBody = JSON.parse((init?.body ?? "{}") as string);
+      return new Response(JSON.stringify({ ...basketsExplicit, legacyDefaulted: false }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (url.includes("stage-baskets")) return new Response(JSON.stringify(basketsExplicit), { status: 200, headers: { "content-type": "application/json" } });
+    if (url.includes("/stages")) return new Response(JSON.stringify(stagesTwoStages), { status: 200, headers: { "content-type": "application/json" } });
+    if (url.includes("/players")) return new Response(JSON.stringify(players), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ error: "not mocked" }), { status: 404 });
+  };
+
+  renderPanel(fetchImpl);
+
+  await waitFor(() => {
+    assert.ok(screen.getByTestId("enter-advanced-btn"), "advanced button available");
+  });
+  await userEvent.click(screen.getByTestId("enter-advanced-btn"));
+
+  // Change qualifierCount of s1out1 from 2 to 5.
+  await waitFor(() => {
+    assert.ok(screen.getByTestId("qualifier-count-s1out1"), "input present");
+  });
+  const input = screen.getByTestId("qualifier-count-s1out1") as HTMLInputElement;
+  await userEvent.clear(input);
+  await userEvent.type(input, "5");
+
+  // Click save.
+  await userEvent.click(screen.getByTestId("save-baskets-btn"));
+
+  // Verify PUT was called and the payload includes the updated qualifierCount.
+  await waitFor(() => {
+    assert.ok(capturedPutBody !== null, "PUT must have been called after save");
+  });
+
+  const body = capturedPutBody as { baskets: Array<{ id: string; qualifierCount: number | null }> };
+  const s1out1 = body.baskets.find((b) => b.id === "s1out1");
+  assert.ok(s1out1, "PUT payload must include s1out1 basket");
+  assert.equal(
+    s1out1?.qualifierCount,
+    5,
+    `PUT payload must carry qualifierCount=5; got ${s1out1?.qualifierCount}`,
+  );
 });

@@ -107,6 +107,10 @@ export const StageBasketProblemCode = {
   STAGE_BASKET_ROUTE_OUTPUT_REUSED: 'STAGE_BASKET_ROUTE_OUTPUT_REUSED',
   STAGE_BASKET_ROUTE_NOT_FORWARD: 'STAGE_BASKET_ROUTE_NOT_FORWARD',
   STAGE_BASKET_ROUTE_CYCLE: 'STAGE_BASKET_ROUTE_CYCLE',
+  STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED: 'STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED',
+  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED: 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED',
+  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID: 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID',
+  STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT: 'STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT',
 } as const;
 
 export interface StageBasketProblemContext {
@@ -160,6 +164,14 @@ export interface StageBasket {
      */
   colorId: string | null;
   participantIds: number[];
+  /**
+   * Exact number of ranked participants this basket captures after stage execution.
+   * Null for input baskets (always) and for implicit legacy output baskets.
+   * Positive integer for organizer-configured explicit output baskets.
+   * @minimum 1
+   * @nullable
+   */
+  qualifierCount: number | null;
 }
 
 export interface StageBasketRoute {
@@ -2070,6 +2082,11 @@ export type TournamentBackupV3StageBasketsItem = {
      * @nullable
      */
   colorId: string | null;
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  qualifierCount?: number | null;
   participantBackupIds: number[];
 };
 

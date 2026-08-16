@@ -120,6 +120,7 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
         order: 1,
         colorId: "blue",
         participantIds: data.playerIds.slice(0, 2),
+        qualifierCount: null,
       },
       {
         id: "first-input-b",
@@ -129,6 +130,7 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
         order: 2,
         colorId: "red",
         participantIds: data.playerIds.slice(2),
+        qualifierCount: null,
       },
       {
         id: "first-output",
@@ -138,6 +140,7 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
         order: 1,
         colorId: null,
         participantIds: [],
+        qualifierCount: 2,
       },
       {
         id: "second-input",
@@ -147,6 +150,7 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
         order: 1,
         colorId: null,
         participantIds: [],
+        qualifierCount: null,
       },
       {
         id: "second-output",
@@ -156,6 +160,7 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
         order: 1,
         colorId: null,
         participantIds: [],
+        qualifierCount: 1,
       },
     ],
     routes: [
@@ -185,6 +190,33 @@ describe("stage basket persistence and API", () => {
       ),
       [...data.playerIds].sort((a, b) => a - b),
     );
+    // Verify legacy qualifierCount derivation:
+    //   - First stage output: qualifierCount = advancingCount (2 from stagePlan).
+    //   - Terminal (second) stage output: qualifierCount = null (no further stage).
+    // GET must NOT persist baskets; legacyDefaulted must remain true on reload.
+    const firstOutput = response.body.baskets.find(
+      (b: { type: string; stageId: number }) =>
+        b.type === "output" && b.stageId === data.stageIds[0],
+    );
+    const terminalOutput = response.body.baskets.find(
+      (b: { type: string; stageId: number }) =>
+        b.type === "output" && b.stageId === data.stageIds[1],
+    );
+    assert.equal(
+      firstOutput?.qualifierCount,
+      2,
+      "non-terminal legacy output basket must derive qualifierCount from stage advancingCount",
+    );
+    assert.equal(
+      terminalOutput?.qualifierCount,
+      null,
+      "terminal legacy output basket must have qualifierCount = null",
+    );
+    // Confirm GET is truly non-materialising: a second fetch must still be legacyDefaulted.
+    const reload = await request(app).get(
+      `/api/tournaments/${data.tournamentId}/stage-baskets`,
+    );
+    assert.equal(reload.body.legacyDefaulted, true, "GET must not persist baskets to DB");
   });
 
   test("organizer atomically persists and reloads explicit baskets", async () => {

@@ -389,7 +389,8 @@ export const GetTournamentStageBasketsResponse = zod.object({
   "ordinal": zod.number().min(1).max(getTournamentStageBasketsResponseBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(getTournamentStageBasketsResponseBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(getTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
-  "participantIds": zod.array(zod.number().min(1))
+  "participantIds": zod.array(zod.number().min(1)),
+  "qualifierCount": zod.number().int().min(1).nullable()
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(getTournamentStageBasketsResponseRoutesItemIdRegExp),
@@ -399,7 +400,7 @@ export const GetTournamentStageBasketsResponse = zod.object({
   "validation": zod.object({
   "valid": zod.boolean(),
   "problems": zod.array(zod.object({
-  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE', 'STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT']),
   "message": zod.string(),
   "context": zod.object({
   "stageId": zod.number().optional(),
@@ -444,7 +445,8 @@ export const UpdateTournamentStageBasketsBody = zod.object({
   "ordinal": zod.number().min(1).max(updateTournamentStageBasketsBodyBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(updateTournamentStageBasketsBodyBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(updateTournamentStageBasketsBodyBasketsItemColorIdMax).nullable(),
-  "participantIds": zod.array(zod.number().min(1))
+  "participantIds": zod.array(zod.number().min(1)),
+  "qualifierCount": zod.number().int().min(1).nullable()
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(updateTournamentStageBasketsBodyRoutesItemIdRegExp),
@@ -475,7 +477,8 @@ export const UpdateTournamentStageBasketsResponse = zod.object({
   "ordinal": zod.number().min(1).max(updateTournamentStageBasketsResponseBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(updateTournamentStageBasketsResponseBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(updateTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
-  "participantIds": zod.array(zod.number().min(1))
+  "participantIds": zod.array(zod.number().min(1)),
+  "qualifierCount": zod.number().int().min(1).nullable()
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(updateTournamentStageBasketsResponseRoutesItemIdRegExp),
@@ -485,7 +488,7 @@ export const UpdateTournamentStageBasketsResponse = zod.object({
   "validation": zod.object({
   "valid": zod.boolean(),
   "problems": zod.array(zod.object({
-  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE', 'STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT']),
   "message": zod.string(),
   "context": zod.object({
   "stageId": zod.number().optional(),
@@ -999,7 +1002,7 @@ export const GetTournamentStageReadinessResponse = zod.object({
   "basketValidation": zod.object({
   "valid": zod.boolean(),
   "problems": zod.array(zod.object({
-  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE']),
+  "code": zod.enum(['STAGE_BASKET_STAGE_NOT_FOUND', 'STAGE_BASKET_ID_INVALID', 'STAGE_BASKET_ID_DUPLICATE', 'STAGE_INPUT_BASKET_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_COUNT_INVALID', 'STAGE_BASKET_ORDINAL_DUPLICATE', 'STAGE_BASKET_ORDINAL_INVALID', 'STAGE_BASKET_ORDER_DUPLICATE', 'STAGE_BASKET_ORDER_INVALID', 'STAGE_BASKET_COLOR_ID_INVALID', 'STAGE_BASKET_PARTICIPANT_NOT_FOUND', 'STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED', 'STAGE_BASKET_PARTICIPANT_DUPLICATE', 'STAGE_BASKET_ROUTE_ID_INVALID', 'STAGE_BASKET_ROUTE_ID_DUPLICATE', 'STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND', 'STAGE_BASKET_ROUTE_TARGET_NOT_FOUND', 'STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT', 'STAGE_BASKET_ROUTE_TARGET_NOT_INPUT', 'STAGE_BASKET_ROUTE_OUTPUT_REUSED', 'STAGE_BASKET_ROUTE_NOT_FORWARD', 'STAGE_BASKET_ROUTE_CYCLE', 'STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED', 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID', 'STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT']),
   "message": zod.string(),
   "context": zod.object({
   "stageId": zod.number().optional(),
@@ -1713,6 +1716,7 @@ export const ExportTournamentResponse = zod.object({
   "ordinal": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(exportTournamentResponseStageBasketsItemColorIdMax).nullable(),
+  "qualifierCount": zod.number().int().min(1).nullable().optional(),
   "participantBackupIds": zod.array(zod.number())
 })).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
   "stageBasketRoutes": zod.array(zod.object({
@@ -1992,6 +1996,7 @@ export const ImportTournamentBody = zod.object({
   "ordinal": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(importTournamentBodyBackupTwoStageBasketsItemColorIdMax).nullable(),
+  "qualifierCount": zod.number().int().min(1).nullable().optional(),
   "participantBackupIds": zod.array(zod.number())
 })).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
   "stageBasketRoutes": zod.array(zod.object({

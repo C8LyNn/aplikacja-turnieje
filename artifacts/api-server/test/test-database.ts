@@ -82,6 +82,10 @@ const STAGE_PARTICIPANT_BASKETS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0020_stage_participant_baskets.sql",
   import.meta.url,
 );
+const STAGE_BASKET_QUALIFIER_COUNT_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0021_stage_basket_qualifier_count.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
@@ -307,6 +311,18 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(stageParticipantBasketsMigrationSql);
       // The basket catalog is forward-only and safe to replay.
       await pool.query(stageParticipantBasketsMigrationSql);
+      const stageBasketQualifierCountMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(STAGE_BASKET_QUALIFIER_COUNT_MIGRATION_URL, "utf8"),
+          schema,
+        )
+          .replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "")
+          // The postcondition DO block references information_schema.columns with
+          // table_schema = 'public'; replace with the isolated test schema name.
+          .replaceAll("table_schema = 'public'", `table_schema = '${schema}'`);
+      await pool.query(stageBasketQualifierCountMigrationSql);
+      // ADD COLUMN IF NOT EXISTS and DROP/ADD CONSTRAINT are idempotent — safe to replay.
+      await pool.query(stageBasketQualifierCountMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

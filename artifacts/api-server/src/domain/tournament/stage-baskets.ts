@@ -8,6 +8,14 @@ export interface StageBasketDefinition {
   order: number;
   colorId: string | null;
   participantIds: readonly number[];
+  /**
+   * How many ranked participants this basket captures after stage execution.
+   * • Input baskets: always `null` (players are assigned, not ranked in).
+   * • Output baskets in explicit config: positive integer set by the organizer.
+   * • Output baskets in legacy implicit config: `null` (not stored in DB;
+   *   the API layer computes a read-only value from `advancingCount`).
+   */
+  qualifierCount: number | null;
 }
 
 export interface StageBasketRouteDefinition {
@@ -19,6 +27,9 @@ export interface StageBasketRouteDefinition {
 export interface StageBasketValidationStage {
   id: number;
   position: number;
+  /** Used to validate that the sum of output basket qualifierCounts does not
+   *  exceed the number of participants entering the stage. */
+  participantCount: number;
 }
 
 export type StageBasketProblemCode =
@@ -43,7 +54,15 @@ export type StageBasketProblemCode =
   | "STAGE_BASKET_ROUTE_TARGET_NOT_INPUT"
   | "STAGE_BASKET_ROUTE_OUTPUT_REUSED"
   | "STAGE_BASKET_ROUTE_NOT_FORWARD"
-  | "STAGE_BASKET_ROUTE_CYCLE";
+  | "STAGE_BASKET_ROUTE_CYCLE"
+  /** Input basket carries a non-null qualifierCount, which is never allowed. */
+  | "STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED"
+  /** Output basket in explicit config has no qualifierCount (null/undefined). */
+  | "STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED"
+  /** Output basket qualifierCount is provided but is not a positive integer. */
+  | "STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID"
+  /** Sum of output basket qualifierCounts exceeds the stage participantCount. */
+  | "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT";
 
 export interface StageBasketProblemContext {
   stageId?: number;
@@ -129,9 +148,18 @@ function graphHasCycle(
 /**
  * Validates the editable, stage-level basket graph. Match routing remains owned
  * by Tournament Engine V2; this graph only partitions stage entry/exit flow.
+ *
+ * @param mode
+ *   - `"explicit"` — every output basket must carry a positive qualifierCount.
+ *     Use for PUT stage-baskets, Backup V3 restore, and any future runtime flow.
+ *   - `"legacy"` (default) — output baskets may have null qualifierCount for
+ *     backward-compatible implicit configurations (terminal stages, group stages
+ *     with ambiguous advancing counts, etc.).  Never use this path to drive
+ *     Phase 2+ runtime basket transfer.
  */
 export function validateStageBasketConfiguration(
   input: StageBasketConfigurationInput,
+  mode: "explicit" | "legacy" = "legacy",
 ): StageBasketValidationResult {
   const problems: StageBasketProblem[] = [];
   const stageById = new Map(input.stages.map((stage) => [stage.id, stage]));
@@ -231,6 +259,45 @@ export function validateStageBasketConfiguration(
         },
       );
     }
+    // qualifierCount invariant: input baskets must have null.
+    if (basket.type === "input" && basket.qualifierCount !== null) {
+      addProblem(
+        problems,
+        "STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED",
+        "Input baskets cannot carry qualifierCount; it must be null.",
+        { stageId: basket.stageId, basketId: basket.id },
+      );
+    }
+    // qualifierCount invariant: when set on an output basket it must be a
+    // positive integer (zero or negative values are not meaningful).
+    if (
+      basket.type === "output" &&
+      basket.qualifierCount !== null &&
+      (!Number.isInteger(basket.qualifierCount) || basket.qualifierCount < 1)
+    ) {
+      addProblem(
+        problems,
+        "STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID",
+        "Output basket qualifierCount must be a positive integer when provided.",
+        { stageId: basket.stageId, basketId: basket.id },
+      );
+    }
+    // In explicit mode every output basket must carry a positive qualifierCount.
+    // Legacy mode allows null on outputs (terminal stages, group stages with
+    // ambiguous advancingCount, etc.) for backward compatibility only.
+    // This null must NEVER be treated as a valid explicit runtime quota.
+    if (
+      mode === "explicit" &&
+      basket.type === "output" &&
+      basket.qualifierCount === null
+    ) {
+      addProblem(
+        problems,
+        "STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED",
+        "Explicit output basket must have a positive qualifierCount.",
+        { stageId: basket.stageId, basketId: basket.id },
+      );
+    }
   }
 
   for (const stage of input.stages) {
@@ -273,6 +340,23 @@ export function validateStageBasketConfiguration(
             stageId: stage.id,
             basketId: typed.find((basket) => basket.order === order)?.id,
           },
+        );
+      }
+    }
+
+    // qualifierCount sum invariant: total qualifying slots must not exceed the
+    // number of participants the stage can host.
+    const outputQualifierCounts = stageBaskets
+      .filter((b) => b.type === "output" && b.qualifierCount !== null)
+      .map((b) => b.qualifierCount as number);
+    if (outputQualifierCounts.length > 0) {
+      const totalQuota = outputQualifierCounts.reduce((a, b) => a + b, 0);
+      if (totalQuota > stage.participantCount) {
+        addProblem(
+          problems,
+          "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT",
+          `Total qualifier quota (${totalQuota}) exceeds stage participant count (${stage.participantCount}).`,
+          { stageId: stage.id },
         );
       }
     }

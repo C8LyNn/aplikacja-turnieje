@@ -402,6 +402,10 @@ export const stageBasketsTable = pgTable(
     ordinal: integer("ordinal").notNull(),
     displayOrder: integer("display_order").notNull(),
     colorId: text("color_id"),
+    /** How many ranked participants this output basket captures. NULL for input
+     *  baskets (always) and for legacy implicit output baskets. Positive integer
+     *  for organizer-configured explicit output baskets. */
+    qualifierCount: integer("qualifier_count"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -434,6 +438,16 @@ export const stageBasketsTable = pgTable(
     check(
       "stage_baskets_color_id_valid",
       sql`${table.colorId} IS NULL OR length(btrim(${table.colorId})) BETWEEN 1 AND 64`,
+    ),
+    // Input baskets must never carry qualifier_count.
+    check(
+      "stage_baskets_qualifier_count_input_null",
+      sql`${table.basketType} <> 'input' OR ${table.qualifierCount} IS NULL`,
+    ),
+    // When set, qualifier_count must be a positive integer.
+    check(
+      "stage_baskets_qualifier_count_positive",
+      sql`${table.qualifierCount} IS NULL OR ${table.qualifierCount} > 0`,
     ),
   ],
 );

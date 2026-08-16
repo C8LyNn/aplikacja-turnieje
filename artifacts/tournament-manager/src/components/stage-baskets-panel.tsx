@@ -157,6 +157,10 @@ const PROBLEM_CODE_MESSAGES: Record<string, string> = {
   STAGE_BASKET_ROUTE_OUTPUT_REUSED:          "Koszyk wyjściowy ma już przypisane połączenie — każde wyjście może mieć tylko jedną trasę.",
   STAGE_BASKET_ROUTE_NOT_FORWARD:            "Połączenia mogą prowadzić wyłącznie do późniejszych etapów.",
   STAGE_BASKET_ROUTE_CYCLE:                  "Konfiguracja połączeń tworzy cykl.",
+  STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED:       "Koszyki wejściowe nie mogą mieć ustawionej liczby kwalifikujących graczy.",
+  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED:         "Każdy koszyk wyjściowy musi mieć ustawioną liczbę przechodzących graczy.",
+  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID:          "Liczba przechodzących graczy musi być dodatnią liczbą całkowitą.",
+  STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT:  "Suma przechodzących graczy przekracza liczbę uczestników etapu.",
 };
 
 const CONFIG_ERROR_MESSAGES: Record<string, string> = {
@@ -183,6 +187,7 @@ interface BasketCardProps {
   isLocked: boolean;
   canRemove: boolean;
   onColorChange?: (basketId: string, colorId: string | null) => void;
+  onQualifierCountChange?: (basketId: string, qualifierCount: number | null) => void;
   onRemove?: (basketId: string) => void;
   onToggleParticipant?: (basketId: string, playerId: number) => void;
   availablePlayers?: Player[];
@@ -199,6 +204,7 @@ export function BasketCard({
   isLocked,
   canRemove,
   onColorChange,
+  onQualifierCountChange,
   onRemove,
   onToggleParticipant,
   availablePlayers = [],
@@ -283,6 +289,37 @@ export function BasketCard({
         </div>
       )}
 
+      {/* Qualifier count field — output baskets in advanced editable mode */}
+      {basket.type === "output" && isAdvanced && !isLocked && (
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <label className="text-xs text-muted-foreground shrink-0" htmlFor={`qc-${basket.id}`}>
+            Przechodzi:
+          </label>
+          <input
+            id={`qc-${basket.id}`}
+            type="number"
+            min={1}
+            step={1}
+            placeholder="—"
+            value={basket.qualifierCount ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") { onQualifierCountChange?.(basket.id, null); return; }
+              const n = parseInt(raw, 10);
+              if (!isNaN(n) && n >= 1) onQualifierCountChange?.(basket.id, n);
+            }}
+            data-testid={`qualifier-count-${basket.id}`}
+            className="w-14 text-xs rounded border border-border bg-background px-1.5 py-0.5 text-right"
+          />
+        </div>
+      )}
+      {/* Qualifier count readonly display */}
+      {basket.type === "output" && (!isAdvanced || isLocked) && basket.qualifierCount !== null && (
+        <div className="text-xs text-muted-foreground">
+          Przechodzi: {basket.qualifierCount}
+        </div>
+      )}
+
       {/* Participants */}
       {basket.type === "input" && (
         <div className="text-xs text-muted-foreground">
@@ -352,6 +389,7 @@ interface StageBlockProps {
   routeSourceId: string | null;
   routeTargetStageIds: Set<number>;
   onColorChange?: (basketId: string, colorId: string | null) => void;
+  onQualifierCountChange?: (basketId: string, qualifierCount: number | null) => void;
   onRemoveBasket?: (basketId: string) => void;
   onToggleParticipant?: (basketId: string, playerId: number) => void;
   onAddInput?: (stageId: number) => void;
@@ -371,6 +409,7 @@ export function StageBlock({
   routeSourceId,
   routeTargetStageIds,
   onColorChange,
+  onQualifierCountChange,
   onRemoveBasket,
   onToggleParticipant,
   onAddInput,
@@ -453,6 +492,7 @@ export function StageBlock({
                 isLocked={isLocked}
                 canRemove={outputBaskets.length > 1}
                 onColorChange={onColorChange}
+                onQualifierCountChange={onQualifierCountChange}
                 onRemove={onRemoveBasket}
                 onToggleParticipant={onToggleParticipant}
                 availablePlayers={[]}
@@ -471,6 +511,31 @@ export function StageBlock({
           )}
         </div>
       </div>
+
+      {/* Qualifier quota summary — only when any output basket has qualifierCount set */}
+      {(() => {
+        const quotas = outputBaskets
+          .map((b) => b.qualifierCount)
+          .filter((q): q is number => q !== null);
+        if (quotas.length === 0) return null;
+        const total = quotas.reduce((a, b) => a + b, 0);
+        const eliminated = stage.participantCount - total;
+        const overQuota = total > stage.participantCount;
+        return (
+          <div
+            className={`px-3 py-1.5 border-t text-xs flex items-center gap-2 rounded-b-lg ${
+              overQuota
+                ? "text-destructive bg-destructive/10 border-destructive/30"
+                : "text-muted-foreground bg-muted/20 border-border"
+            }`}
+            data-testid={`quota-summary-${stage.id}`}
+          >
+            <span>Łącznie przechodzi: <strong className={overQuota ? "text-destructive" : ""}>{total} / {stage.participantCount}</strong></span>
+            {!overQuota && <span>· Odpada: {eliminated}</span>}
+            {overQuota && <span className="text-destructive">— przekroczono limit!</span>}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -784,6 +849,13 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
     });
   }
 
+  function handleQualifierCountChange(basketId: string, qualifierCount: number | null) {
+    mutateDraft((d) => {
+      const idx = d.baskets.findIndex((b) => b.id === basketId);
+      if (idx >= 0) d.baskets[idx] = { ...d.baskets[idx], qualifierCount };
+    });
+  }
+
   function handleRemoveBasket(basketId: string) {
     mutateDraft((d) => {
       d.baskets = d.baskets.filter((b) => b.id !== basketId);
@@ -811,6 +883,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         order: ordinal,
         colorId: null,
         participantIds: [],
+        qualifierCount: null,
       });
     });
   }
@@ -829,6 +902,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         order: ordinal,
         colorId: null,
         participantIds: [],
+        qualifierCount: null,
       });
     });
   }
@@ -1001,6 +1075,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
                     routeSourceId={routeSourceId}
                     routeTargetStageIds={routeTargetStageIds}
                     onColorChange={handleColorChange}
+                    onQualifierCountChange={handleQualifierCountChange}
                     onRemoveBasket={handleRemoveBasket}
                     onToggleParticipant={handleToggleParticipant}
                     onAddInput={handleAddInput}

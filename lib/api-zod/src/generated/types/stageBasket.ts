@@ -30,4 +30,9 @@ export interface StageBasket {
      */
   colorId: string | null;
   participantIds: number[];
+  /**
+   * @minimum 1
+   * @nullable
+   */
+  qualifierCount: number | null;
 }

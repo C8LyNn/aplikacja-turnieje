@@ -109,10 +109,26 @@ export async function loadStageBasketConfigurationInTransaction(
   const baskets: StageBasketDefinition[] = [];
   const legacyDefaulted = storedBaskets.length === 0;
   if (legacyDefaulted) {
+    // For legacy implicit configs we derive qualifierCount from the stage's
+    // linear `advancingCount` field:
+    //   - Non-terminal stage with advancingCount set → qualifierCount = advancingCount
+    //   - Terminal stage (last by position, qualificationMode = 'none')   → null
+    //   - Non-terminal stage with advancingCount = null (e.g. group stage) → null
+    //     (ambiguous: advancing count is derived from group parameters, not
+    //      a single integer; stop and describe rather than guess).
+    const sortedStageIds = stages
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((s) => s.id);
+    const terminalStageId = sortedStageIds[sortedStageIds.length - 1];
     for (const stage of stages) {
       const stageMemberships = memberships.filter(
         (membership) => membership.stageId === stage.id,
       );
+      const legacyQualifierCount: number | null =
+        stage.id === terminalStageId
+          ? null
+          : (stage.advancingCount ?? null);
       baskets.push(
         {
           id: defaultStageBasketId(stage.id, "input"),
@@ -124,6 +140,7 @@ export async function loadStageBasketConfigurationInTransaction(
           participantIds: stageMemberships.map(
             (membership) => membership.playerId,
           ),
+          qualifierCount: null,
         },
         {
           id: defaultStageBasketId(stage.id, "output"),
@@ -133,6 +150,7 @@ export async function loadStageBasketConfigurationInTransaction(
           order: 1,
           colorId: null,
           participantIds: [],
+          qualifierCount: legacyQualifierCount,
         },
       );
     }
@@ -151,6 +169,7 @@ export async function loadStageBasketConfigurationInTransaction(
                 .filter((assignment) => assignment.basketId === basket.id)
                 .map((assignment) => assignment.playerId)
             : [],
+        qualifierCount: basket.qualifierCount ?? null,
       })),
     );
   }
@@ -172,6 +191,7 @@ export async function loadStageBasketConfigurationInTransaction(
     stages: stages.map((stage) => ({
       id: stage.id,
       position: stage.position,
+      participantCount: stage.participantCount,
     })),
     playerIds: players.map((player) => player.id),
     baskets,
@@ -234,15 +254,22 @@ export async function replaceStageBasketConfiguration(input: {
       .from(playersTable)
       .where(eq(playersTable.tournamentId, tournament.id))
       .for("update");
-    const validation = validateStageBasketConfiguration({
-      stages: stages.map((stage) => ({
-        id: stage.id,
-        position: stage.position,
-      })),
-      playerIds: players.map((player) => player.id),
-      baskets: input.baskets,
-      routes: input.routes,
-    });
+    // Use explicit mode: every output basket must carry a positive qualifierCount.
+    // PUT always receives an explicit organizer-authored configuration; legacy
+    // implicit baskets never reach this path.
+    const validation = validateStageBasketConfiguration(
+      {
+        stages: stages.map((stage) => ({
+          id: stage.id,
+          position: stage.position,
+          participantCount: stage.participantCount,
+        })),
+        playerIds: players.map((player) => player.id),
+        baskets: input.baskets,
+        routes: input.routes,
+      },
+      "explicit",
+    );
     if (!validation.valid) {
       throw new StageBasketConfigurationError(
         "STAGE_BASKET_CONFIGURATION_INVALID",
@@ -285,6 +312,7 @@ export async function replaceStageBasketConfiguration(input: {
     await tx
       .delete(stageBasketsTable)
       .where(eq(stageBasketsTable.tournamentId, tournament.id));
+
     await tx.insert(stageBasketsTable).values(
       input.baskets.map((basket) => ({
         id: basket.id,
@@ -294,6 +322,7 @@ export async function replaceStageBasketConfiguration(input: {
         ordinal: basket.ordinal,
         displayOrder: basket.order,
         colorId: basket.colorId,
+        qualifierCount: basket.type === "output" ? basket.qualifierCount : null,
       })),
     );
     const participantAssignments = input.baskets
