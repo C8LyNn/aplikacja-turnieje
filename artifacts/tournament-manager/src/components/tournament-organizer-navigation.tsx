@@ -13,6 +13,7 @@ import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
 export type OrganizerArea =
   | "conducting"
   | "stages"
+  | "baskets"
   | "players"
   | "bracket"
   | "standings"
@@ -28,6 +29,7 @@ export type TournamentManagementRole = "organizer" | "support";
 export type OrganizerDetailTab =
   | "overview"
   | "stages"
+  | "baskets"
   | "players"
   | "matches"
   | "bracket"
@@ -40,7 +42,7 @@ export type OrganizerDetailTab =
   | "security";
 export type OrganizerHostTab = "prowadzenie" | "wyniki" | "tabela" | "drabinka" | "korekta";
 
-const readOnlyDetailTabs = ["overview", "stages", "players", "matches", "bracket", "standings", "history"] as const;
+const readOnlyDetailTabs = ["overview", "stages", "baskets", "players", "matches", "bracket", "standings", "history"] as const;
 const hostTabs = ["prowadzenie", "wyniki", "tabela", "drabinka", "korekta"] as const;
 
 export function organizerDetailTab(
@@ -94,7 +96,7 @@ export function useLegacyMatchesRedirect(
 export function organizerAreaForDetailTab(tab: OrganizerDetailTab): OrganizerArea {
   if (tab === "overview") return "stages";
   if (tab === "matches") return "conducting";
-  return tab;
+  return tab as OrganizerArea;
 }
 
 export function organizerAreaForHostTab(tab: OrganizerHostTab): OrganizerArea {
@@ -108,6 +110,7 @@ export function organizerNavigationItems(tournamentId: number) {
   return [
     { area: "conducting" as const, label: "Prowadzenie", href: `/tournaments/${tournamentId}/host?tab=prowadzenie` },
     { area: "stages" as const, label: "Etapy", href: `/tournaments/${tournamentId}?tab=stages` },
+    { area: "baskets" as const, label: "Koszyki", href: `/tournaments/${tournamentId}?tab=baskets` },
     { area: "players" as const, label: "Gracze", href: `/tournaments/${tournamentId}?tab=players` },
     { area: "bracket" as const, label: "Drabinka", href: `/tournaments/${tournamentId}?tab=bracket` },
     { area: "standings" as const, label: "Tabela", href: `/tournaments/${tournamentId}?tab=standings` },

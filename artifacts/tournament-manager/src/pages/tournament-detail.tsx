@@ -44,6 +44,7 @@ import { SupportLoginModal } from "@/components/support-login-modal";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
+import { StageBasketsPanel } from "@/components/stage-baskets-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
@@ -883,6 +884,14 @@ export default function TournamentDetail() {
               canWriteResults={capabilities.canWriteTournamentResults}
               gameConfig={tournament.gameConfig}
               onChanged={invalidateAll}
+            />
+          </TabsContent>
+
+          <TabsContent value="baskets" className="pt-6">
+            <StageBasketsPanel
+              tournamentId={id}
+              tournamentStatus={tournament.status}
+              orgToken={orgToken ?? null}
             />
           </TabsContent>
 
