@@ -48,6 +48,8 @@ import type {
   Player,
   PlayerInput,
   PlayerUpdate,
+  QualificationOutput,
+  QualificationProposal,
   ReorderMatchesInput,
   ResultRecord,
   SeedingCeremonyError,
@@ -1261,6 +1263,314 @@ export function usePreviewStageQualification<TData = Awaited<ReturnType<typeof p
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getPreviewStageQualificationQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateBasketQualificationProposalUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/basket-qualification-proposal`
+}
+
+/**
+ * @summary Generate or refresh a pending qualification proposal for a stage's output baskets
+ */
+export const generateBasketQualificationProposal = async (id: number,
+    stageId: number, options?: RequestInit): Promise<QualificationProposal> => {
+
+  return customFetch<QualificationProposal>(getGenerateBasketQualificationProposalUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getGenerateBasketQualificationProposalMutationOptions = <TError = ErrorType<SimpleError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['generateBasketQualificationProposal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateBasketQualificationProposal>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  generateBasketQualificationProposal(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateBasketQualificationProposalMutationResult = NonNullable<Awaited<ReturnType<typeof generateBasketQualificationProposal>>>
+
+    export type GenerateBasketQualificationProposalMutationError = ErrorType<SimpleError | DomainError>
+
+    /**
+ * @summary Generate or refresh a pending qualification proposal for a stage's output baskets
+ */
+export const useGenerateBasketQualificationProposal = <TError = ErrorType<SimpleError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateBasketQualificationProposal>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getGenerateBasketQualificationProposalMutationOptions(options));
+    }
+
+export const getGetBasketQualificationProposalUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/basket-qualification-proposal`
+}
+
+/**
+ * @summary Read the current qualification proposal (pending or approved) for a stage
+ */
+export const getBasketQualificationProposal = async (id: number,
+    stageId: number, options?: RequestInit): Promise<QualificationProposal> => {
+
+  return customFetch<QualificationProposal>(getGetBasketQualificationProposalUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBasketQualificationProposalQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/basket-qualification-proposal`
+    ] as const;
+    }
+
+
+export const getGetBasketQualificationProposalQueryOptions = <TData = Awaited<ReturnType<typeof getBasketQualificationProposal>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationProposal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBasketQualificationProposalQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBasketQualificationProposal>>> = ({ signal }) => getBasketQualificationProposal(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationProposal>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBasketQualificationProposalQueryResult = NonNullable<Awaited<ReturnType<typeof getBasketQualificationProposal>>>
+export type GetBasketQualificationProposalQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read the current qualification proposal (pending or approved) for a stage
+ */
+
+export function useGetBasketQualificationProposal<TData = Awaited<ReturnType<typeof getBasketQualificationProposal>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationProposal>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBasketQualificationProposalQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getApproveBasketQualificationProposalUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/basket-qualification-proposal/approve`
+}
+
+/**
+ * @summary Approve a pending proposal and materialise output basket players (idempotent)
+ */
+export const approveBasketQualificationProposal = async (id: number,
+    stageId: number, options?: RequestInit): Promise<QualificationProposal> => {
+
+  return customFetch<QualificationProposal>(getApproveBasketQualificationProposalUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getApproveBasketQualificationProposalMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext> => {
+
+const mutationKey = ['approveBasketQualificationProposal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveBasketQualificationProposal>>, {id: number;stageId: number}> = (props) => {
+          const {id,stageId} = props ?? {};
+
+          return  approveBasketQualificationProposal(id,stageId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveBasketQualificationProposalMutationResult = NonNullable<Awaited<ReturnType<typeof approveBasketQualificationProposal>>>
+
+    export type ApproveBasketQualificationProposalMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Approve a pending proposal and materialise output basket players (idempotent)
+ */
+export const useApproveBasketQualificationProposal = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveBasketQualificationProposal>>, TError,{id: number;stageId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveBasketQualificationProposal>>,
+        TError,
+        {id: number;stageId: number},
+        TContext
+      > => {
+      return useMutation(getApproveBasketQualificationProposalMutationOptions(options));
+    }
+
+export const getGetBasketQualificationOutputUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/basket-qualification-output`
+}
+
+/**
+ * @summary Read materialised output basket players for a stage (empty before approval)
+ */
+export const getBasketQualificationOutput = async (id: number,
+    stageId: number, options?: RequestInit): Promise<QualificationOutput> => {
+
+  return customFetch<QualificationOutput>(getGetBasketQualificationOutputUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBasketQualificationOutputQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/basket-qualification-output`
+    ] as const;
+    }
+
+
+export const getGetBasketQualificationOutputQueryOptions = <TData = Awaited<ReturnType<typeof getBasketQualificationOutput>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationOutput>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBasketQualificationOutputQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBasketQualificationOutput>>> = ({ signal }) => getBasketQualificationOutput(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationOutput>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBasketQualificationOutputQueryResult = NonNullable<Awaited<ReturnType<typeof getBasketQualificationOutput>>>
+export type GetBasketQualificationOutputQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read materialised output basket players for a stage (empty before approval)
+ */
+
+export function useGetBasketQualificationOutput<TData = Awaited<ReturnType<typeof getBasketQualificationOutput>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketQualificationOutput>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBasketQualificationOutputQueryOptions(id,stageId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

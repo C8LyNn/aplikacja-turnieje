@@ -376,6 +376,7 @@ export const getTournamentStageBasketsResponseBasketsItemOrderMax = 4;
 export const getTournamentStageBasketsResponseBasketsItemColorIdMax = 64;
 
 
+
 export const getTournamentStageBasketsResponseRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 
 
@@ -390,7 +391,7 @@ export const GetTournamentStageBasketsResponse = zod.object({
   "order": zod.number().min(1).max(getTournamentStageBasketsResponseBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(getTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
   "participantIds": zod.array(zod.number().min(1)),
-  "qualifierCount": zod.number().int().min(1).nullable()
+  "qualifierCount": zod.number().min(1).nullable().describe('Exact number of ranked participants this output basket captures after stage execution. Null for input baskets (always) and for implicit legacy output baskets. Positive integer for organizer-configured explicit output baskets.\n')
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(getTournamentStageBasketsResponseRoutesItemIdRegExp),
@@ -434,6 +435,7 @@ export const updateTournamentStageBasketsBodyBasketsItemOrderMax = 4;
 export const updateTournamentStageBasketsBodyBasketsItemColorIdMax = 64;
 
 
+
 export const updateTournamentStageBasketsBodyRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 
 
@@ -446,7 +448,7 @@ export const UpdateTournamentStageBasketsBody = zod.object({
   "order": zod.number().min(1).max(updateTournamentStageBasketsBodyBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(updateTournamentStageBasketsBodyBasketsItemColorIdMax).nullable(),
   "participantIds": zod.array(zod.number().min(1)),
-  "qualifierCount": zod.number().int().min(1).nullable()
+  "qualifierCount": zod.number().min(1).nullable().describe('Exact number of ranked participants this output basket captures after stage execution. Null for input baskets (always) and for implicit legacy output baskets. Positive integer for organizer-configured explicit output baskets.\n')
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(updateTournamentStageBasketsBodyRoutesItemIdRegExp),
@@ -464,6 +466,7 @@ export const updateTournamentStageBasketsResponseBasketsItemOrderMax = 4;
 export const updateTournamentStageBasketsResponseBasketsItemColorIdMax = 64;
 
 
+
 export const updateTournamentStageBasketsResponseRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 
 
@@ -478,7 +481,7 @@ export const UpdateTournamentStageBasketsResponse = zod.object({
   "order": zod.number().min(1).max(updateTournamentStageBasketsResponseBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(updateTournamentStageBasketsResponseBasketsItemColorIdMax).nullable(),
   "participantIds": zod.array(zod.number().min(1)),
-  "qualifierCount": zod.number().int().min(1).nullable()
+  "qualifierCount": zod.number().min(1).nullable().describe('Exact number of ranked participants this output basket captures after stage execution. Null for input baskets (always) and for implicit legacy output baskets. Positive integer for organizer-configured explicit output baskets.\n')
 })),
   "routes": zod.array(zod.object({
   "id": zod.string().regex(updateTournamentStageBasketsResponseRoutesItemIdRegExp),
@@ -963,6 +966,124 @@ export const PreviewStageQualificationResponse = zod.object({
   "qualificationSource": zod.enum(['standings', 'group_position']),
   "nextStageSeed": zod.number()
 })))
+})
+
+
+/**
+ * @summary Generate or refresh a pending qualification proposal for a stage's output baskets
+ */
+
+
+
+
+export const GenerateBasketQualificationProposalParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const GenerateBasketQualificationProposalResponse = zod.object({
+  "proposalId": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "revision": zod.number(),
+  "status": zod.enum(['pending', 'approved']),
+  "rankingFingerprint": zod.string().describe('SHA-256 hex over sorted stage members + match results; stale when it changes after generate.'),
+  "createdAt": zod.coerce.date(),
+  "approvedAt": zod.coerce.date().nullish(),
+  "approvedByActorType": zod.string().nullish(),
+  "approvedByActorNick": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerId": zod.number(),
+  "placementRank": zod.number(),
+  "basketPosition": zod.number()
+}))
+})
+
+
+/**
+ * @summary Read the current qualification proposal (pending or approved) for a stage
+ */
+
+
+
+
+export const GetBasketQualificationProposalParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const GetBasketQualificationProposalResponse = zod.object({
+  "proposalId": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "revision": zod.number(),
+  "status": zod.enum(['pending', 'approved']),
+  "rankingFingerprint": zod.string().describe('SHA-256 hex over sorted stage members + match results; stale when it changes after generate.'),
+  "createdAt": zod.coerce.date(),
+  "approvedAt": zod.coerce.date().nullish(),
+  "approvedByActorType": zod.string().nullish(),
+  "approvedByActorNick": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerId": zod.number(),
+  "placementRank": zod.number(),
+  "basketPosition": zod.number()
+}))
+})
+
+
+/**
+ * @summary Approve a pending proposal and materialise output basket players (idempotent)
+ */
+
+
+
+
+export const ApproveBasketQualificationProposalParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const ApproveBasketQualificationProposalResponse = zod.object({
+  "proposalId": zod.number(),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "revision": zod.number(),
+  "status": zod.enum(['pending', 'approved']),
+  "rankingFingerprint": zod.string().describe('SHA-256 hex over sorted stage members + match results; stale when it changes after generate.'),
+  "createdAt": zod.coerce.date(),
+  "approvedAt": zod.coerce.date().nullish(),
+  "approvedByActorType": zod.string().nullish(),
+  "approvedByActorNick": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerId": zod.number(),
+  "placementRank": zod.number(),
+  "basketPosition": zod.number()
+}))
+})
+
+
+/**
+ * @summary Read materialised output basket players for a stage (empty before approval)
+ */
+
+
+
+
+export const GetBasketQualificationOutputParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const GetBasketQualificationOutputResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "basketId": zod.string(),
+  "finalRank": zod.number(),
+  "proposalId": zod.number()
+}))
 })
 
 
@@ -1613,7 +1734,13 @@ export const exportTournamentResponseStageBasketsItemOrderMax = 4;
 
 export const exportTournamentResponseStageBasketsItemColorIdMax = 64;
 
+
 export const exportTournamentResponseStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
+
+
+
 
 
 
@@ -1716,7 +1843,7 @@ export const ExportTournamentResponse = zod.object({
   "ordinal": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(exportTournamentResponseStageBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(exportTournamentResponseStageBasketsItemColorIdMax).nullable(),
-  "qualifierCount": zod.number().int().min(1).nullable().optional(),
+  "qualifierCount": zod.number().min(1).nullish(),
   "participantBackupIds": zod.array(zod.number())
 })).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
   "stageBasketRoutes": zod.array(zod.object({
@@ -1789,7 +1916,28 @@ export const ExportTournamentResponse = zod.object({
   "stageBackupId": zod.number(),
   "revision": zod.number().min(1),
   "state": zod.record(zod.string(), zod.unknown())
-})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.')
+})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.'),
+  "qualificationProposals": zod.array(zod.object({
+  "stageBackupId": zod.number(),
+  "revision": zod.number().min(1),
+  "status": zod.enum(['pending', 'approved']),
+  "rankingFingerprint": zod.string().min(1),
+  "createdAt": zod.string(),
+  "approvedAt": zod.string().nullable(),
+  "approvedByActorType": zod.string().nullable(),
+  "approvedByActorNick": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerBackupId": zod.number(),
+  "placementRank": zod.number().min(1),
+  "basketPosition": zod.number().min(1)
+})),
+  "output": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerBackupId": zod.number(),
+  "finalRank": zod.number().min(1)
+})).optional().describe('Materialised output rows — present only for approved proposals.')
+})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.')
 })
 
 
@@ -1814,7 +1962,13 @@ export const importTournamentBodyBackupTwoStageBasketsItemOrderMax = 4;
 
 export const importTournamentBodyBackupTwoStageBasketsItemColorIdMax = 64;
 
+
 export const importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
+
+
+
 
 export const importTournamentBodyOrganizerPasswordMin = 8;
 
@@ -1996,7 +2150,7 @@ export const ImportTournamentBody = zod.object({
   "ordinal": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrdinalMax),
   "order": zod.number().min(1).max(importTournamentBodyBackupTwoStageBasketsItemOrderMax),
   "colorId": zod.string().min(1).max(importTournamentBodyBackupTwoStageBasketsItemColorIdMax).nullable(),
-  "qualifierCount": zod.number().int().min(1).nullable().optional(),
+  "qualifierCount": zod.number().min(1).nullish(),
   "participantBackupIds": zod.array(zod.number())
 })).optional().describe('Optional explicit stage basket configuration. Its absence preserves legacy one-input\/one-output semantics.'),
   "stageBasketRoutes": zod.array(zod.object({
@@ -2069,7 +2223,28 @@ export const ImportTournamentBody = zod.object({
   "stageBackupId": zod.number(),
   "revision": zod.number().min(1),
   "state": zod.record(zod.string(), zod.unknown())
-})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.')
+})).optional().describe('Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage.'),
+  "qualificationProposals": zod.array(zod.object({
+  "stageBackupId": zod.number(),
+  "revision": zod.number().min(1),
+  "status": zod.enum(['pending', 'approved']),
+  "rankingFingerprint": zod.string().min(1),
+  "createdAt": zod.string(),
+  "approvedAt": zod.string().nullable(),
+  "approvedByActorType": zod.string().nullable(),
+  "approvedByActorNick": zod.string().nullable(),
+  "entries": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerBackupId": zod.number(),
+  "placementRank": zod.number().min(1),
+  "basketPosition": zod.number().min(1)
+})),
+  "output": zod.array(zod.object({
+  "basketId": zod.string(),
+  "playerBackupId": zod.number(),
+  "finalRank": zod.number().min(1)
+})).optional().describe('Materialised output rows — present only for approved proposals.')
+})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.')
 })]),
   "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
   "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),

@@ -5,6 +5,47 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+export interface QualificationProposalEntry {
+  basketId: string;
+  playerId: number;
+  placementRank: number;
+  basketPosition: number;
+}
+
+export type QualificationProposalStatus = typeof QualificationProposalStatus[keyof typeof QualificationProposalStatus];
+
+
+export const QualificationProposalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+} as const;
+
+export interface QualificationProposal {
+  proposalId: number;
+  tournamentId: number;
+  stageId: number;
+  revision: number;
+  status: QualificationProposalStatus;
+  /** SHA-256 hex over sorted stage members + match results; stale when it changes after generate. */
+  rankingFingerprint: string;
+  createdAt: string;
+  approvedAt?: string | null;
+  approvedByActorType?: string | null;
+  approvedByActorNick?: string | null;
+  entries: QualificationProposalEntry[];
+}
+
+export interface QualificationOutputEntry {
+  playerId: number;
+  basketId: string;
+  finalRank: number;
+  proposalId: number;
+}
+
+export interface QualificationOutput {
+  entries: QualificationOutputEntry[];
+}
+
 export interface DomainError {
   error: string;
   code: string;
@@ -165,12 +206,11 @@ export interface StageBasket {
   colorId: string | null;
   participantIds: number[];
   /**
-   * Exact number of ranked participants this basket captures after stage execution.
-   * Null for input baskets (always) and for implicit legacy output baskets.
-   * Positive integer for organizer-configured explicit output baskets.
-   * @minimum 1
-   * @nullable
-   */
+     * Exact number of ranked participants this output basket captures after stage execution. Null for input baskets (always) and for implicit legacy output baskets. Positive integer for organizer-configured explicit output baskets.
+
+     * @minimum 1
+     * @nullable
+     */
   qualifierCount: number | null;
 }
 
@@ -2083,9 +2123,9 @@ export type TournamentBackupV3StageBasketsItem = {
      */
   colorId: string | null;
   /**
-   * @minimum 1
-   * @nullable
-   */
+     * @minimum 1
+     * @nullable
+     */
   qualifierCount?: number | null;
   participantBackupIds: number[];
 };
@@ -2253,6 +2293,49 @@ export type TournamentBackupV3RoutingExecutionsItem = {
   state: TournamentBackupV3RoutingExecutionsItemState;
 };
 
+export type TournamentBackupV3QualificationProposalsItemStatus = typeof TournamentBackupV3QualificationProposalsItemStatus[keyof typeof TournamentBackupV3QualificationProposalsItemStatus];
+
+
+export const TournamentBackupV3QualificationProposalsItemStatus = {
+  pending: 'pending',
+  approved: 'approved',
+} as const;
+
+export type TournamentBackupV3QualificationProposalsItemEntriesItem = {
+  basketId: string;
+  playerBackupId: number;
+  /** @minimum 1 */
+  placementRank: number;
+  /** @minimum 1 */
+  basketPosition: number;
+};
+
+export type TournamentBackupV3QualificationProposalsItemOutputItem = {
+  basketId: string;
+  playerBackupId: number;
+  /** @minimum 1 */
+  finalRank: number;
+};
+
+export type TournamentBackupV3QualificationProposalsItem = {
+  stageBackupId: number;
+  /** @minimum 1 */
+  revision: number;
+  status: TournamentBackupV3QualificationProposalsItemStatus;
+  /** @minLength 1 */
+  rankingFingerprint: string;
+  createdAt: string;
+  /** @nullable */
+  approvedAt: string | null;
+  /** @nullable */
+  approvedByActorType: string | null;
+  /** @nullable */
+  approvedByActorNick: string | null;
+  entries: TournamentBackupV3QualificationProposalsItemEntriesItem[];
+  /** Materialised output rows — present only for approved proposals. */
+  output?: TournamentBackupV3QualificationProposalsItemOutputItem[];
+};
+
 export interface TournamentBackupV3 {
   schemaVersion: 3;
   resultModelVersion: 'series_v1';
@@ -2285,6 +2368,8 @@ export interface TournamentBackupV3 {
   routingPlan?: TournamentBackupV3RoutingPlan;
   /** Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage. */
   routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
+  /** Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal. */
+  qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
 }
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;

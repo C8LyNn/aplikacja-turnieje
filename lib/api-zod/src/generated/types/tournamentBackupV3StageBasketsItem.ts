@@ -29,9 +29,9 @@ export type TournamentBackupV3StageBasketsItem = {
      */
   colorId: string | null;
   /**
-   * @minimum 1
-   * @nullable
-   */
+     * @minimum 1
+     * @nullable
+     */
   qualifierCount?: number | null;
   participantBackupIds: number[];
 };

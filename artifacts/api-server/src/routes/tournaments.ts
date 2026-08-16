@@ -84,6 +84,14 @@ import {
   getDoubleEliminationStageState,
   resetDoubleEliminationStage,
 } from "../application/stages/double-elimination-stage";
+import {
+  approveQualificationProposal,
+  generateQualificationProposal,
+  getQualificationOutput,
+  getQualificationProposal,
+  QualificationProposalError,
+  type QualificationProposalErrorCode,
+} from "../application/stages/stage-basket-qualification";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
@@ -236,6 +244,27 @@ function sendSeedingCeremonyError(
   ]);
   res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
     .json({ error: error.message, code: error.code });
+}
+
+function sendQualificationProposalError(
+  error: QualificationProposalError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set<QualificationProposalErrorCode>([
+    "TOURNAMENT_NOT_FOUND",
+    "STAGE_NOT_FOUND",
+    "STAGE_BASKET_QUALIFICATION_PROPOSAL_NOT_FOUND",
+  ]);
+  const conflict = new Set<QualificationProposalErrorCode>([
+    "STAGE_BASKET_CONFIGURATION_NOT_EXPLICIT",
+    "STAGE_BASKET_QUALIFICATION_FORMAT_NOT_SUPPORTED",
+    "STAGE_BASKET_QUALIFICATION_ALREADY_APPROVED",
+    "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE",
+    "RANKING_INCONSISTENT",
+  ]);
+  res
+    .status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
+    .json({ error: error.message, code: error.code, ...(error.details ? { details: error.details } : {}) });
 }
 
 function sendTournamentRosterError(
@@ -874,6 +903,67 @@ router.post("/tournaments/:id/stages/:stageId/double-elimination/reset", async (
     if (error instanceof DoubleEliminationStageError) { sendDoubleEliminationError(error, res); return; }
     throw error;
   }
+});
+
+// ─── Phase 2: Qualification Proposals ────────────────────────────────────────
+
+router.post("/tournaments/:id/stages/:stageId/basket-qualification-proposal", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    res.json(await generateQualificationProposal(
+      params.data.id,
+      params.data.stageId,
+      getTournamentMutationActor(access),
+    ));
+  } catch (error) {
+    if (error instanceof QualificationProposalError) { sendQualificationProposalError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/basket-qualification-proposal", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    const proposal = await getQualificationProposal(params.data.id, params.data.stageId);
+    if (!proposal) {
+      res.status(404).json({ error: "No proposal found for this stage.", code: "STAGE_BASKET_QUALIFICATION_PROPOSAL_NOT_FOUND" });
+      return;
+    }
+    res.json(proposal);
+  } catch (error) {
+    if (error instanceof QualificationProposalError) { sendQualificationProposalError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/basket-qualification-proposal/approve", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    res.json(await approveQualificationProposal(
+      params.data.id,
+      params.data.stageId,
+      getTournamentMutationActor(access),
+    ));
+  } catch (error) {
+    if (error instanceof QualificationProposalError) { sendQualificationProposalError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/basket-qualification-output", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  const output = await getQualificationOutput(params.data.id, params.data.stageId);
+  res.json({ entries: output });
 });
 
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {

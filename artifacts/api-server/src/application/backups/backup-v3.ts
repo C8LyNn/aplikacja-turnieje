@@ -6,10 +6,13 @@ import {
   matchGamePicksTable,
   playerDeadlockBansTable,
   playersTable,
+  qualificationProposalEntriesTable,
+  qualificationProposalsTable,
   resultHistoryTable,
   stageBasketParticipantsTable,
   stageBasketRoutesTable,
   stageBasketsTable,
+  stageBasketsOutputPlayersTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
@@ -43,6 +46,7 @@ import {
 } from "../routing/routing-plan-persistence";
 import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
 import { validateStageBasketConfiguration } from "../../domain/tournament/stage-baskets";
+import { computeRankingFingerprint } from "../../domain/tournament/stage-basket-qualification";
 
 export class BackupV3ValidationError extends Error {
   constructor(public readonly details: string[]) {
@@ -237,6 +241,35 @@ export async function exportBackupV3(
         )
         .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
     ]);
+  // Load qualification proposals for all stages of this tournament.
+  const stageIdList = stages.map((s) => s.id);
+  const [qualificationProposals, qualificationProposalEntries, qualificationOutputRows] =
+    stageIdList.length === 0
+      ? [[], [], []]
+      : await Promise.all([
+          db
+            .select()
+            .from(qualificationProposalsTable)
+            .where(inArray(qualificationProposalsTable.stageId, stageIdList))
+            .orderBy(asc(qualificationProposalsTable.stageId)),
+          db
+            .select()
+            .from(qualificationProposalEntriesTable)
+            .where(inArray(qualificationProposalEntriesTable.stageId, stageIdList))
+            .orderBy(
+              asc(qualificationProposalEntriesTable.stageId),
+              asc(qualificationProposalEntriesTable.placementRank),
+            ),
+          db
+            .select()
+            .from(stageBasketsOutputPlayersTable)
+            .where(inArray(stageBasketsOutputPlayersTable.stageId, stageIdList))
+            .orderBy(
+              asc(stageBasketsOutputPlayersTable.stageId),
+              asc(stageBasketsOutputPlayersTable.finalRank),
+            ),
+        ]);
+
   const gameConfig = gameConfigs[0];
   let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2>> | null = null;
   try {
@@ -448,6 +481,46 @@ export async function exportBackupV3(
             revision: execution.revision,
             state: execution.state as Record<string, unknown>,
           })),
+        }),
+    ...(qualificationProposals.length === 0
+      ? {}
+      : {
+          qualificationProposals: qualificationProposals.map((proposal) => {
+            const entries = qualificationProposalEntries.filter(
+              (e) => e.proposalId === proposal.id,
+            );
+            const output =
+              proposal.status === "approved"
+                ? qualificationOutputRows.filter(
+                    (o) => o.stageId === proposal.stageId,
+                  )
+                : [];
+            return {
+              stageBackupId: proposal.stageId,
+              revision: proposal.revision,
+              status: proposal.status as "pending" | "approved",
+              rankingFingerprint: proposal.rankingFingerprint,
+              createdAt: proposal.createdAt.toISOString(),
+              approvedAt: proposal.approvedAt?.toISOString() ?? null,
+              approvedByActorType: proposal.approvedByActorType ?? null,
+              approvedByActorNick: proposal.approvedByActorNick ?? null,
+              entries: entries.map((e) => ({
+                basketId: e.basketId,
+                playerBackupId: e.playerId,
+                placementRank: e.placementRank,
+                basketPosition: e.basketPosition,
+              })),
+              ...(output.length === 0
+                ? {}
+                : {
+                    output: output.map((o) => ({
+                      basketId: o.basketId,
+                      playerBackupId: o.playerId,
+                      finalRank: o.finalRank,
+                    })),
+                  }),
+            };
+          }),
         }),
   };
 }
@@ -1219,6 +1292,41 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     )
       errors.push("Action log has invalid stage or match relations.");
   }
+  // Validate qualification proposals
+  for (const proposal of backup.qualificationProposals ?? []) {
+    if (!stageIds.has(proposal.stageBackupId))
+      errors.push(`Qualification proposal references unknown stage ${proposal.stageBackupId}.`);
+    if (!positive(proposal.revision))
+      errors.push(`Qualification proposal for stage ${proposal.stageBackupId} has invalid revision.`);
+    if (!["pending", "approved"].includes(proposal.status))
+      errors.push(`Qualification proposal for stage ${proposal.stageBackupId} has invalid status.`);
+    if (!proposal.rankingFingerprint)
+      errors.push(`Qualification proposal for stage ${proposal.stageBackupId} has empty fingerprint.`);
+    if (!date(proposal.createdAt))
+      errors.push(`Qualification proposal for stage ${proposal.stageBackupId} has invalid createdAt.`);
+    if (proposal.status === "approved") {
+      if (!proposal.approvedAt || !date(proposal.approvedAt))
+        errors.push(`Approved proposal for stage ${proposal.stageBackupId} is missing approvedAt.`);
+      if (!proposal.approvedByActorType || !proposal.approvedByActorNick)
+        errors.push(`Approved proposal for stage ${proposal.stageBackupId} is missing actor info.`);
+    } else {
+      if (proposal.approvedAt != null || proposal.approvedByActorType != null)
+        errors.push(`Pending proposal for stage ${proposal.stageBackupId} has spurious approval data.`);
+    }
+    for (const entry of proposal.entries) {
+      if (!playerIds.has(entry.playerBackupId))
+        errors.push(`Proposal entry references unknown player ${entry.playerBackupId}.`);
+      if (!positive(entry.placementRank) || !positive(entry.basketPosition))
+        errors.push(`Proposal entry has invalid rank/position.`);
+    }
+    for (const row of proposal.output ?? []) {
+      if (!playerIds.has(row.playerBackupId))
+        errors.push(`Proposal output references unknown player ${row.playerBackupId}.`);
+      if (!positive(row.finalRank))
+        errors.push(`Proposal output has invalid finalRank.`);
+    }
+  }
+
   if (errors.length > 0)
     throw new BackupV3ValidationError([...new Set(errors)]);
 }
@@ -1715,6 +1823,118 @@ export async function importBackupV3(
         createdAt: new Date(action.createdAt),
       });
     }
+    // Restore qualification proposals (one per stage)
+    if ((backup.qualificationProposals?.length ?? 0) > 0) {
+      for (const proposal of backup.qualificationProposals!) {
+        const restoredStageId = stageIds.get(proposal.stageBackupId)!;
+        const [createdProposal] = await tx
+          .insert(qualificationProposalsTable)
+          .values({
+            tournamentId: tournament.id,
+            stageId: restoredStageId,
+            revision: proposal.revision,
+            status: proposal.status,
+            rankingFingerprint: proposal.rankingFingerprint,
+            createdAt: new Date(proposal.createdAt),
+            approvedAt: proposal.approvedAt ? new Date(proposal.approvedAt) : null,
+            approvedByActorType: proposal.approvedByActorType ?? null,
+            approvedByActorNick: proposal.approvedByActorNick ?? null,
+          })
+          .returning();
+        if (proposal.entries.length > 0) {
+          await tx.insert(qualificationProposalEntriesTable).values(
+            proposal.entries.map((entry) => ({
+              proposalId: createdProposal.id,
+              tournamentId: tournament.id,
+              stageId: restoredStageId,
+              basketId: entry.basketId,
+              playerId: playerIds.get(entry.playerBackupId)!,
+              placementRank: entry.placementRank,
+              basketPosition: entry.basketPosition,
+            })),
+          );
+        }
+        // For pending proposals: recompute the fingerprint using the remapped
+        // (restored) integer IDs so that a restore→approve does not produce a
+        // false STALE. The revision, entries, and status are preserved.
+        // Approved proposals retain their original snapshot fingerprint.
+        if (proposal.status === "pending") {
+          const stageBackup = backup.stages.find(
+            (s) => s.backupId === proposal.stageBackupId,
+          )!;
+          const restoredOutputBaskets = (backup.stageBaskets ?? [])
+            .filter(
+              (b) =>
+                b.stageBackupId === proposal.stageBackupId &&
+                b.type === "output" &&
+                b.qualifierCount != null &&
+                b.qualifierCount > 0,
+            )
+            .map((b) => ({
+              id: b.id,
+              order: b.order,
+              qualifierCount: b.qualifierCount!,
+            }));
+          const restoredMemberships = backup.stageParticipants
+            .filter((sp) => sp.stageBackupId === proposal.stageBackupId)
+            .map((sp) => ({
+              playerId: playerIds.get(sp.playerBackupId)!,
+              stageSeed: sp.stageSeed,
+              status: sp.status as string,
+            }));
+          const restoredMatches = backup.matches
+            .filter((m) => m.stageBackupId === proposal.stageBackupId)
+            .map((m) => ({
+              id: matchIds.get(m.backupId)!,
+              status: m.status,
+              resultType: m.resultType ?? null,
+              winnerId:
+                m.winnerBackupId != null
+                  ? (playerIds.get(m.winnerBackupId) ?? null)
+                  : null,
+              score1: m.score1 ?? null,
+              score2: m.score2 ?? null,
+              player1Id:
+                m.player1BackupId != null
+                  ? (playerIds.get(m.player1BackupId) ?? null)
+                  : null,
+              player2Id:
+                m.player2BackupId != null
+                  ? (playerIds.get(m.player2BackupId) ?? null)
+                  : null,
+            }));
+          const recomputedFingerprint = computeRankingFingerprint({
+            stageId: restoredStageId,
+            stageFormat: stageBackup.format,
+            rankingPolicy: stageBackup.rankingPolicy,
+            outputBaskets: restoredOutputBaskets,
+            memberships: restoredMemberships,
+            matches: restoredMatches,
+          });
+          await tx
+            .update(qualificationProposalsTable)
+            .set({ rankingFingerprint: recomputedFingerprint })
+            .where(eq(qualificationProposalsTable.id, createdProposal.id));
+        }
+        // Restore materialised output rows (approved proposals only)
+        if (proposal.output && proposal.output.length > 0) {
+          await tx.insert(stageBasketsOutputPlayersTable).values(
+            proposal.output.map((row) => ({
+              tournamentId: tournament.id,
+              stageId: restoredStageId,
+              basketId: row.basketId,
+              playerId: playerIds.get(row.playerBackupId)!,
+              proposalId: createdProposal.id,
+              finalRank: row.finalRank,
+              materializedAt: proposal.approvedAt
+                ? new Date(proposal.approvedAt)
+                : new Date(),
+            })),
+          );
+        }
+      }
+    }
+
     for (const stage of orderedStages) {
       await tx
         .update(tournamentStagesTable)

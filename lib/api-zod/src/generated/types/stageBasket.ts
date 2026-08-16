@@ -31,8 +31,10 @@ export interface StageBasket {
   colorId: string | null;
   participantIds: number[];
   /**
-   * @minimum 1
-   * @nullable
-   */
+     * Exact number of ranked participants this output basket captures after stage execution. Null for input baskets (always) and for implicit legacy output baskets. Positive integer for organizer-configured explicit output baskets.
+
+     * @minimum 1
+     * @nullable
+     */
   qualifierCount: number | null;
 }

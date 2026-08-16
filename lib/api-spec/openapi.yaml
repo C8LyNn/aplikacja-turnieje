@@ -476,6 +476,123 @@ paths:
               schema:
                 $ref: "#/components/schemas/StageLifecycleError"
 
+  /tournaments/{id}/stages/{stageId}/basket-qualification-proposal:
+    post:
+      operationId: generateBasketQualificationProposal
+      tags: [tournaments]
+      summary: Generate or refresh a pending qualification proposal for a stage's output baskets
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Pending qualification proposal with ranked entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualificationProposal"
+        "400":
+          description: Invalid id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SimpleError" }
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "409":
+          description: Format not supported, config not explicit, or already approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "422":
+          description: Tie-break required at basket boundary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+    get:
+      operationId: getBasketQualificationProposal
+      tags: [tournaments]
+      summary: Read the current qualification proposal (pending or approved) for a stage
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Current qualification proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualificationProposal"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament, stage, or proposal not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
+  /tournaments/{id}/stages/{stageId}/basket-qualification-proposal/approve:
+    post:
+      operationId: approveBasketQualificationProposal
+      tags: [tournaments]
+      summary: Approve a pending proposal and materialise output basket players (idempotent)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Approved proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualificationProposal"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament, stage, or proposal not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "409":
+          description: Ranking fingerprint is stale — re-generate before approving
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
+  /tournaments/{id}/stages/{stageId}/basket-qualification-output:
+    get:
+      operationId: getBasketQualificationOutput
+      tags: [tournaments]
+      summary: Read materialised output basket players for a stage (empty before approval)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Materialised output basket players
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualificationOutput"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
   /tournaments/{id}/stages/{stageId}/readiness:
     get:
       operationId: getTournamentStageReadiness
@@ -1364,6 +1481,73 @@ components:
         type: integer
         minimum: 1
   schemas:
+    QualificationProposalEntry:
+      type: object
+      required: [basketId, playerId, placementRank, basketPosition]
+      properties:
+        basketId:
+          type: string
+        playerId:
+          type: integer
+        placementRank:
+          type: integer
+        basketPosition:
+          type: integer
+    QualificationProposal:
+      type: object
+      required: [proposalId, tournamentId, stageId, revision, status, rankingFingerprint, createdAt, entries]
+      properties:
+        proposalId:
+          type: integer
+        tournamentId:
+          type: integer
+        stageId:
+          type: integer
+        revision:
+          type: integer
+        status:
+          type: string
+          enum: [pending, approved]
+        rankingFingerprint:
+          type: string
+          description: SHA-256 hex over sorted stage members + match results; stale when it changes after generate.
+        createdAt:
+          type: string
+          format: date-time
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        approvedByActorType:
+          type: string
+          nullable: true
+        approvedByActorNick:
+          type: string
+          nullable: true
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualificationProposalEntry"
+    QualificationOutputEntry:
+      type: object
+      required: [playerId, basketId, finalRank, proposalId]
+      properties:
+        playerId:
+          type: integer
+        basketId:
+          type: string
+        finalRank:
+          type: integer
+        proposalId:
+          type: integer
+    QualificationOutput:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualificationOutputEntry"
     DomainError:
       type: object
       required: [error, code]
@@ -3180,6 +3364,44 @@ components:
               state:
                 type: object
                 additionalProperties: true
+        qualificationProposals:
+          type: array
+          description: Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.
+          items:
+            type: object
+            additionalProperties: false
+            required: [stageBackupId, revision, status, rankingFingerprint, createdAt, approvedAt, approvedByActorType, approvedByActorNick, entries]
+            properties:
+              stageBackupId: { type: integer }
+              revision: { type: integer, minimum: 1 }
+              status: { type: string, enum: [pending, approved] }
+              rankingFingerprint: { type: string, minLength: 1 }
+              createdAt: { type: string }
+              approvedAt: { type: ["string", "null"] }
+              approvedByActorType: { type: ["string", "null"] }
+              approvedByActorNick: { type: ["string", "null"] }
+              entries:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [basketId, playerBackupId, placementRank, basketPosition]
+                  properties:
+                    basketId: { type: string }
+                    playerBackupId: { type: integer }
+                    placementRank: { type: integer, minimum: 1 }
+                    basketPosition: { type: integer, minimum: 1 }
+              output:
+                type: array
+                description: Materialised output rows — present only for approved proposals.
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [basketId, playerBackupId, finalRank]
+                  properties:
+                    basketId: { type: string }
+                    playerBackupId: { type: integer }
+                    finalRank: { type: integer, minimum: 1 }
 
     TournamentBackup:
       oneOf:

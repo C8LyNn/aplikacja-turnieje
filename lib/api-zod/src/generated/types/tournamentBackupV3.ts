@@ -11,6 +11,7 @@ import type { TournamentBackupV3GamePicksItem } from './tournamentBackupV3GamePi
 import type { TournamentBackupV3GroupsItem } from './tournamentBackupV3GroupsItem';
 import type { TournamentBackupV3MatchesItem } from './tournamentBackupV3MatchesItem';
 import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersItem';
+import type { TournamentBackupV3QualificationProposalsItem } from './tournamentBackupV3QualificationProposalsItem';
 import type { TournamentBackupV3ResultHistoryItem } from './tournamentBackupV3ResultHistoryItem';
 import type { TournamentBackupV3RoutingExecutionsItem } from './tournamentBackupV3RoutingExecutionsItem';
 import type { TournamentBackupV3RoutingPlan } from './tournamentBackupV3RoutingPlan';
@@ -52,4 +53,6 @@ export interface TournamentBackupV3 {
   routingPlan?: TournamentBackupV3RoutingPlan;
   /** Mutable Tournament Engine V2 stage snapshots, keyed by the backed-up stage. */
   routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
+  /** Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal. */
+  qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
 }

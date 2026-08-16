@@ -66,7 +66,7 @@ export interface StageLifecycleTestHooks {
   afterMatchesWritten?: () => void | Promise<void>;
 }
 
-interface RankedParticipant {
+export interface RankedParticipant {
   stageParticipantId: number;
   playerId: number;
   playerName: string;
@@ -195,7 +195,7 @@ function assertStageComplete(
   throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
 }
 
-function calculateRanking(
+export function calculateRanking(
   stage: typeof tournamentStagesTable.$inferSelect,
   memberships: Array<typeof stageParticipantsTable.$inferSelect>,
   players: Array<typeof playersTable.$inferSelect>,

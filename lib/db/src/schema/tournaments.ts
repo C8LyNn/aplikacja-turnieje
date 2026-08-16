@@ -977,3 +977,166 @@ export const matchGamePicksTable = pgTable(
 
 export type PlayerDeadlockBans = typeof playerDeadlockBansTable.$inferSelect;
 export type MatchGamePicks = typeof matchGamePicksTable.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// Phase 2: Qualification proposals and materialised output basket contents
+// ---------------------------------------------------------------------------
+
+/**
+ * One-per-stage qualification proposal header.
+ * Pending proposals can be superseded by re-generation; approved proposals
+ * are locked (a future Phase 3 correction flow will allow resets).
+ */
+export const qualificationProposalsTable = pgTable(
+  "qualification_proposals",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    /** Incremented on each re-generation of a pending proposal. */
+    revision: integer("revision").notNull().default(1),
+    /** 'pending' until approved; 'approved' after the organizer confirms. */
+    status: text("status").notNull().default("pending"),
+    /** SHA-256 hex of the ranking inputs (matches + participants) at generation time. */
+    rankingFingerprint: text("ranking_fingerprint").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    approvedAt: timestamp("approved_at"),
+    approvedByActorType: text("approved_by_actor_type"),
+    approvedByActorNick: text("approved_by_actor_nick"),
+  },
+  (table) => [
+    unique("qualification_proposals_tournament_stage_unique").on(
+      table.tournamentId,
+      table.stageId,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "qualification_proposals_stage_fk",
+    }).onDelete("cascade"),
+    check("qualification_proposals_revision_positive", sql`${table.revision} > 0`),
+    check(
+      "qualification_proposals_status_values",
+      sql`${table.status} IN ('pending', 'approved')`,
+    ),
+    check(
+      "qualification_proposals_fingerprint_nonempty",
+      sql`length(${table.rankingFingerprint}) > 0`,
+    ),
+    check(
+      "qualification_proposals_approval_consistency",
+      sql`(${table.status} = 'approved'
+            AND ${table.approvedAt} IS NOT NULL
+            AND ${table.approvedByActorType} IS NOT NULL
+            AND ${table.approvedByActorNick} IS NOT NULL)
+          OR
+          (${table.status} = 'pending'
+            AND ${table.approvedAt} IS NULL
+            AND ${table.approvedByActorType} IS NULL
+            AND ${table.approvedByActorNick} IS NULL)`,
+    ),
+  ],
+);
+
+/**
+ * Per-player entries for a qualification proposal.
+ * Each player appears in at most one basket per proposal.
+ */
+export const qualificationProposalEntriesTable = pgTable(
+  "qualification_proposal_entries",
+  {
+    id: serial("id").primaryKey(),
+    proposalId: integer("proposal_id").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    /** Text ID of the target output basket (references stage_baskets.id). */
+    basketId: text("basket_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    /** Global stage rank of this player (1 = best). */
+    placementRank: integer("placement_rank").notNull(),
+    /** 1-based position within the target output basket. */
+    basketPosition: integer("basket_position").notNull(),
+  },
+  (table) => [
+    unique("qualification_proposal_entries_proposal_player_unique").on(
+      table.proposalId,
+      table.playerId,
+    ),
+    foreignKey({
+      columns: [table.proposalId],
+      foreignColumns: [qualificationProposalsTable.id],
+      name: "qualification_proposal_entries_proposal_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "qualification_proposal_entries_stage_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "qualification_proposal_entries_player_fk",
+    }).onDelete("cascade"),
+    check(
+      "qualification_proposal_entries_placement_rank_positive",
+      sql`${table.placementRank} > 0`,
+    ),
+    check(
+      "qualification_proposal_entries_basket_position_positive",
+      sql`${table.basketPosition} > 0`,
+    ),
+  ],
+);
+
+/**
+ * Materialised runtime snapshot of output basket membership.
+ * Written atomically at proposal-approval time.
+ * Distinct from stage_basket_participants (input-basket draw assignments).
+ * Each player may appear at most once per (tournament, stage).
+ */
+export const stageBasketsOutputPlayersTable = pgTable(
+  "stage_basket_output_players",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    /** Text ID of the output basket (references stage_baskets.id). */
+    basketId: text("basket_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    /** Approved proposal that backs this output row. */
+    proposalId: integer("proposal_id").notNull(),
+    /** Global stage rank captured at approval time. */
+    finalRank: integer("final_rank").notNull(),
+    materializedAt: timestamp("materialized_at").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("stage_basket_output_players_stage_player_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.playerId,
+    ),
+    foreignKey({
+      columns: [table.proposalId],
+      foreignColumns: [qualificationProposalsTable.id],
+      name: "stage_basket_output_players_proposal_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [tournamentStagesTable.tournamentId, tournamentStagesTable.id],
+      name: "stage_basket_output_players_stage_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "stage_basket_output_players_player_fk",
+    }).onDelete("cascade"),
+    check(
+      "stage_basket_output_players_final_rank_positive",
+      sql`${table.finalRank} > 0`,
+    ),
+  ],
+);
+
+export type QualificationProposal = typeof qualificationProposalsTable.$inferSelect;
+export type QualificationProposalEntry = typeof qualificationProposalEntriesTable.$inferSelect;
+export type StageBasketsOutputPlayer = typeof stageBasketsOutputPlayersTable.$inferSelect;
