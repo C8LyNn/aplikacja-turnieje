@@ -6,6 +6,7 @@ import {
   useCreateTournament,
   type TournamentInput,
 } from "@workspace/api-client-react";
+import { calculateMarvelRoundParticipantCounts } from "@workspace/game-catalog";
 import { Layout } from "@/components/layout";
 import { StagePlanEditor } from "@/components/stage-plan-editor";
 import { GameConfigPicker } from "@/components/deadlock-game-config";
@@ -166,6 +167,8 @@ function CreateTournamentForm() {
     [stageMode, stages],
   );
   const info = FORMAT_INFO[format];
+  const marvelConfig =
+    gameConfig?.gameId === "marvel" ? gameConfig.config : null;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -183,6 +186,23 @@ function CreateTournamentForm() {
       return;
     }
     if (stageMode && validationErrors.length > 0) return;
+    const marvelParticipantCount = Number.parseInt(maxPlayers, 10);
+    if (marvelConfig) {
+      try {
+        calculateMarvelRoundParticipantCounts(
+          marvelParticipantCount,
+          marvelConfig.groupSize,
+          marvelConfig.advancingCount,
+        );
+      } catch (error) {
+        setSubmitError(
+          error instanceof Error
+            ? `Nieprawidłowy przepływ Marvel: ${error.message}`
+            : "Nieprawidłowy przepływ Marvel.",
+        );
+        return;
+      }
+    }
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
 
@@ -206,8 +226,43 @@ function CreateTournamentForm() {
       gameConfig: gameConfig ?? undefined,
     };
 
+    const payload: TournamentInput = marvelConfig
+      ? {
+          ...legacyPayload,
+          format: "round_robin",
+          maxPlayers: marvelParticipantCount,
+          defaultBestOf: 1,
+          stagePlan: {
+            initialParticipantCount: marvelParticipantCount,
+            stages: [
+              {
+                key: "stage_1",
+                position: 1,
+                name: "Marvel — Eliminacyjne grupy",
+                format: "group_stage",
+                participantCount: marvelParticipantCount,
+                bestOf: 1,
+                groupCount: Math.ceil(
+                  marvelParticipantCount / marvelConfig.groupSize,
+                ),
+                participantsPerGroup: Math.min(
+                  marvelParticipantCount,
+                  marvelConfig.groupSize,
+                ),
+                qualifiersPerGroup: marvelConfig.advancingCount,
+                entrySeedingMethod: "preserve",
+                placementMethod: "snake",
+                seedingMethod: "snake",
+                resultSeedingMethod: "rank_bands",
+                randomRevealOrder: "instant",
+              },
+            ],
+          },
+        }
+      : withOptionalStagePlan(legacyPayload, stageMode, stages);
+
     createTournament.mutate(
-      { data: withOptionalStagePlan(legacyPayload, stageMode, stages) },
+      { data: payload },
       {
         onSuccess: (response) => {
           submitInFlightRef.current = false;
@@ -278,7 +333,14 @@ function CreateTournamentForm() {
 
               <GameConfigPicker
                 value={gameConfig}
-                onChange={setGameConfig}
+                onChange={(next) => {
+                  setGameConfig(next);
+                  if (next?.gameId === "marvel") {
+                    setStageMode(false);
+                    setMaxPlayers((current) => current || "32");
+                    setDefaultBestOf("1");
+                  }
+                }}
               />
 
               <div className="rounded-lg border p-4">
@@ -290,14 +352,16 @@ function CreateTournamentForm() {
                         Turniej wieloetapowy
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Włącz, aby połączyć 1–10 formatów z osobnymi BO i zasadami
-                        awansu.
+                        {marvelConfig
+                          ? "Marvel używa jednej fazy z wewnętrznymi rundami grup FFA."
+                          : "Włącz, aby połączyć 1–10 formatów z osobnymi BO i zasadami awansu."}
                       </p>
                     </div>
                   </div>
                   <Switch
                     id="stage-mode"
                     checked={stageMode}
+                    disabled={marvelConfig != null}
                     onCheckedChange={(checked) => {
                       setStageMode(checked);
                       setShowValidation(false);
@@ -306,7 +370,7 @@ function CreateTournamentForm() {
                 </div>
               </div>
 
-              {stageMode ? (
+              {stageMode && !marvelConfig ? (
                 <StagePlanEditor
                   stages={stages}
                   errors={showValidation ? validationErrors : []}
@@ -316,6 +380,32 @@ function CreateTournamentForm() {
                     setShowValidation(false);
                   }}
                 />
+              ) : marvelConfig ? (
+                <div className="space-y-4 rounded-lg border p-4">
+                  <div>
+                    <Label>Format</Label>
+                    <p className="font-semibold">Marvel — Eliminacyjne grupy</p>
+                    <p className="text-xs text-muted-foreground">
+                      Jedna faza grupowa zawierająca kolejne rundy FFA aż do
+                      finału.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="max-players">Liczba graczy *</Label>
+                    <Input
+                      id="max-players"
+                      type="number"
+                      min="2"
+                      value={maxPlayers}
+                      onChange={(event) => setMaxPlayers(event.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Każda runda przed finałem musi dzielić się na pełne grupy
+                      po {marvelConfig.groupSize}.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-5 rounded-lg border p-4">
                   <div className="space-y-2">

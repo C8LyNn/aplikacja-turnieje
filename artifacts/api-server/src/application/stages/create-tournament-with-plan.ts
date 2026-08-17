@@ -15,6 +15,11 @@ import {
 import { replaceTournamentGameConfig } from "../games/tournament-game-config";
 import type { SupportedTournamentGameConfig } from "@workspace/game-catalog";
 import {
+  parseTournamentGameConfig,
+  TournamentGameConfigError,
+} from "@workspace/game-catalog";
+import { calculateMarvelRoundParticipantCounts } from "../../domain/tournament/marvel-elimination-groups";
+import {
   compileV1StagePlanToRoutingV2,
   doubleEliminationFormatEngineV2,
 } from "../../domain/tournament/v2";
@@ -107,7 +112,19 @@ export async function createTournamentWithStagePlan(input: {
   tournament: typeof tournamentsTable.$inferSelect;
   gameConfig: SupportedTournamentGameConfig | null;
 }> {
+  const parsedGameConfig =
+    input.gameConfig == null
+      ? null
+      : parseTournamentGameConfig(input.gameConfig);
+  const marvelConfig =
+    parsedGameConfig?.gameId === "marvel" ? parsedGameConfig.config : null;
   if (input.stagePlan == null) {
+    if (marvelConfig) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Marvel elimination groups require a single group-stage plan.",
+      );
+    }
     return db.transaction(async (tx) => {
       const [created] = await tx
         .insert(tournamentsTable)
@@ -120,11 +137,45 @@ export async function createTournamentWithStagePlan(input: {
     });
   }
 
-  const validation = validateTournamentStagePlan(input.stagePlan);
+  const validation = validateTournamentStagePlan(input.stagePlan, {
+    allowFinalGroupStage: marvelConfig != null,
+  });
   if (!validation.valid)
     throw new TournamentStagePlanError(validation.problems);
   const plan = validation.value;
   const first = plan.stages[0];
+  if (marvelConfig) {
+    const expectedGroupCount = Math.ceil(
+      plan.initialParticipantCount / marvelConfig.groupSize,
+    );
+    if (
+      plan.stages.length !== 1 ||
+      first.format !== "group_stage" ||
+      first.groupCount !== expectedGroupCount ||
+      first.participantsPerGroup !==
+        Math.min(plan.initialParticipantCount, marvelConfig.groupSize) ||
+      first.qualifiersPerGroup !== marvelConfig.advancingCount
+    ) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Marvel stage plan must contain one matching elimination-group stage.",
+      );
+    }
+    try {
+      calculateMarvelRoundParticipantCounts(
+        plan.initialParticipantCount,
+        marvelConfig.groupSize,
+        marvelConfig.advancingCount,
+      );
+    } catch (error) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        error instanceof Error
+          ? `Invalid Marvel participant flow: ${error.message}`
+          : "Invalid Marvel participant flow.",
+      );
+    }
+  }
 
   return db.transaction(async (tx) => {
     const [tournament] = await tx
@@ -215,64 +266,65 @@ export async function createTournamentWithStagePlan(input: {
 export async function addPlayerWithStagePlanCompatibility(
   values: typeof playersTable.$inferInsert,
 ): Promise<typeof playersTable.$inferSelect> {
-  return db.transaction(async (tx) => {
-    const [firstStage] = await tx
-      .select()
-      .from(tournamentStagesTable)
-      .where(eq(tournamentStagesTable.tournamentId, values.tournamentId))
-      .orderBy(asc(tournamentStagesTable.position))
-      .for("update");
-    if (
-      firstStage?.format !== "group_stage" ||
-      firstStage.status !== "planned"
-    ) {
-      const [created] = await tx
-        .insert(playersTable)
-        .values(values)
-        .returning();
-      return created;
-    }
+  return db.transaction((tx) =>
+    addPlayerWithStagePlanCompatibilityInTransaction(tx, values),
+  );
+}
 
-    // The migration's legacy player trigger maintains the live one-stage participant count.
-    // A planned group stage has a fixed configured count, so expose a constraint-valid
-    // compatibility projection only inside this transaction while that trigger runs.
-    await tx
-      .update(tournamentStagesTable)
-      .set({
-        format: "round_robin",
-        rankingPolicy: "round_robin_v1",
-        qualificationMode: "top_n",
-        advancingCount:
-          firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
-            ? calculateGroupAdvancingCount(
-                firstStage.participantCount,
-                firstStage.groupCount,
-                firstStage.qualifiersPerGroup,
-              )
-            : 0,
-        groupCount: null,
-        participantsPerGroup: null,
-        qualifiersPerGroup: null,
-        seedingPolicy: "standings_order",
-        resultSeedingPolicy: "standings_order",
-      })
-      .where(eq(tournamentStagesTable.id, firstStage.id));
+export async function addPlayerWithStagePlanCompatibilityInTransaction(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  values: typeof playersTable.$inferInsert,
+): Promise<typeof playersTable.$inferSelect> {
+  const [firstStage] = await tx
+    .select()
+    .from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, values.tournamentId))
+    .orderBy(asc(tournamentStagesTable.position))
+    .for("update");
+  if (firstStage?.format !== "group_stage" || firstStage.status !== "planned") {
     const [created] = await tx.insert(playersTable).values(values).returning();
-    await tx
-      .update(tournamentStagesTable)
-      .set({
-        format: firstStage.format,
-        participantCount: firstStage.participantCount,
-        rankingPolicy: firstStage.rankingPolicy,
-        qualificationMode: firstStage.qualificationMode,
-        advancingCount: firstStage.advancingCount,
-        groupCount: firstStage.groupCount,
-        participantsPerGroup: firstStage.participantsPerGroup,
-        qualifiersPerGroup: firstStage.qualifiersPerGroup,
-        seedingPolicy: firstStage.seedingPolicy,
-        resultSeedingPolicy: firstStage.resultSeedingPolicy,
-      })
-      .where(eq(tournamentStagesTable.id, firstStage.id));
     return created;
-  });
+  }
+
+  // The migration's legacy player trigger maintains the live one-stage participant count.
+  // A planned group stage has a fixed configured count, so expose a constraint-valid
+  // compatibility projection only inside this transaction while that trigger runs.
+  await tx
+    .update(tournamentStagesTable)
+    .set({
+      format: "round_robin",
+      rankingPolicy: "round_robin_v1",
+      qualificationMode: "top_n",
+      advancingCount:
+        firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
+          ? calculateGroupAdvancingCount(
+              firstStage.participantCount,
+              firstStage.groupCount,
+              firstStage.qualifiersPerGroup,
+            )
+          : 0,
+      groupCount: null,
+      participantsPerGroup: null,
+      qualifiersPerGroup: null,
+      seedingPolicy: "standings_order",
+      resultSeedingPolicy: "standings_order",
+    })
+    .where(eq(tournamentStagesTable.id, firstStage.id));
+  const [created] = await tx.insert(playersTable).values(values).returning();
+  await tx
+    .update(tournamentStagesTable)
+    .set({
+      format: firstStage.format,
+      participantCount: firstStage.participantCount,
+      rankingPolicy: firstStage.rankingPolicy,
+      qualificationMode: firstStage.qualificationMode,
+      advancingCount: firstStage.advancingCount,
+      groupCount: firstStage.groupCount,
+      participantsPerGroup: firstStage.participantsPerGroup,
+      qualifiersPerGroup: firstStage.qualifiersPerGroup,
+      seedingPolicy: firstStage.seedingPolicy,
+      resultSeedingPolicy: firstStage.resultSeedingPolicy,
+    })
+    .where(eq(tournamentStagesTable.id, firstStage.id));
+  return created;
 }

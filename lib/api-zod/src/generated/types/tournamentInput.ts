@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
+import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
 import type { TournamentInputFormat } from './tournamentInputFormat';
 import type { TournamentInputVisibility } from './tournamentInputVisibility';
 import type { TournamentStagePlanInput } from './tournamentStagePlanInput';
@@ -35,5 +36,5 @@ export interface TournamentInput {
   visibility?: TournamentInputVisibility;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
-  gameConfig?: DeadlockTournamentGameConfig;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 }

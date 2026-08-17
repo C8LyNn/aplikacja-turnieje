@@ -641,6 +641,34 @@ export interface DeadlockTournamentGameConfig {
   config: DeadlockTournamentConfigV1;
 }
 
+export type MarvelRegroupingStrategy = typeof MarvelRegroupingStrategy[keyof typeof MarvelRegroupingStrategy];
+
+
+export const MarvelRegroupingStrategy = {
+  paired_merge: 'paired_merge',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export interface MarvelTournamentConfigV1 {
+  /**
+     * @minimum 2
+     * @maximum 128
+     */
+  groupSize: number;
+  /** @minimum 1 */
+  advancingCount: number;
+  /** @minimum 1 */
+  killLimit: number;
+  regroupingStrategy: MarvelRegroupingStrategy;
+}
+
+export interface MarvelTournamentGameConfig {
+  gameId: 'marvel';
+  configVersion: 1;
+  config: MarvelTournamentConfigV1;
+}
+
 export type TournamentFormat = typeof TournamentFormat[keyof typeof TournamentFormat];
 
 
@@ -728,7 +756,7 @@ export interface Tournament {
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
   createdAt: string;
-  gameConfig?: DeadlockTournamentGameConfig | null;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   presentationSettings?: TournamentPresentationSettings | null;
 }
 
@@ -925,7 +953,7 @@ export interface TournamentInput {
   visibility?: TournamentInputVisibility;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
-  gameConfig?: DeadlockTournamentGameConfig;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 }
 
 export type TournamentCreationResponse = Tournament & {
@@ -1131,6 +1159,140 @@ export interface TournamentStageDetails {
   qualifiers: StageParticipant[];
 }
 
+export type MarvelEliminationStageErrorCode = typeof MarvelEliminationStageErrorCode[keyof typeof MarvelEliminationStageErrorCode];
+
+
+export const MarvelEliminationStageErrorCode = {
+  MARVEL_STAGE_NOT_FOUND: 'MARVEL_STAGE_NOT_FOUND',
+  MARVEL_STAGE_NOT_ACTIVE: 'MARVEL_STAGE_NOT_ACTIVE',
+  MARVEL_STAGE_CONFIGURATION_INVALID: 'MARVEL_STAGE_CONFIGURATION_INVALID',
+  MARVEL_GROUP_NOT_FOUND: 'MARVEL_GROUP_NOT_FOUND',
+  MARVEL_GROUP_ALREADY_COMPLETED: 'MARVEL_GROUP_ALREADY_COMPLETED',
+  MARVEL_GROUP_RESULT_INVALID: 'MARVEL_GROUP_RESULT_INVALID',
+  MARVEL_MANUAL_GROUPING_NOT_REQUIRED: 'MARVEL_MANUAL_GROUPING_NOT_REQUIRED',
+  MARVEL_MANUAL_GROUPING_INVALID: 'MARVEL_MANUAL_GROUPING_INVALID',
+} as const;
+
+export interface MarvelEliminationStageError {
+  error: string;
+  code: MarvelEliminationStageErrorCode;
+}
+
+export interface MarvelGroupResultPlacementInput {
+  /** @minimum 1 */
+  playerId: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  kills?: number | null;
+}
+
+export interface MarvelGroupResultInput {
+  /** @minItems 2 */
+  placements: MarvelGroupResultPlacementInput[];
+}
+
+export interface MarvelManualGroupInput {
+  /** @minimum 1 */
+  position: number;
+  /** @minItems 1 */
+  playerIds: number[];
+}
+
+export interface MarvelManualGroupsInput {
+  /** @minItems 1 */
+  groups: MarvelManualGroupInput[];
+}
+
+export interface MarvelEliminationGroupEntry {
+  playerId: number;
+  playerName: string;
+  /** @minimum 1 */
+  groupSlot: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  placement: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  kills: number | null;
+  /** @nullable */
+  qualified: boolean | null;
+  /** @nullable */
+  sourceGroupId: number | null;
+  /** @nullable */
+  nextGroupId: number | null;
+}
+
+export type MarvelEliminationGroupStatus = typeof MarvelEliminationGroupStatus[keyof typeof MarvelEliminationGroupStatus];
+
+
+export const MarvelEliminationGroupStatus = {
+  pending: 'pending',
+  completed: 'completed',
+} as const;
+
+export interface MarvelEliminationGroup {
+  id: number;
+  groupKey: string;
+  /** @minimum 1 */
+  position: number;
+  status: MarvelEliminationGroupStatus;
+  /** @nullable */
+  completedAt: string | null;
+  entries: MarvelEliminationGroupEntry[];
+}
+
+export type MarvelEliminationRoundStatus = typeof MarvelEliminationRoundStatus[keyof typeof MarvelEliminationRoundStatus];
+
+
+export const MarvelEliminationRoundStatus = {
+  active: 'active',
+  awaiting_manual: 'awaiting_manual',
+  completed: 'completed',
+} as const;
+
+export interface MarvelEliminationRound {
+  id: number;
+  /** @minimum 1 */
+  roundNumber: number;
+  /** @minimum 1 */
+  participantCount: number;
+  status: MarvelEliminationRoundStatus;
+  /** @nullable */
+  randomSeed: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  groups: MarvelEliminationGroup[];
+}
+
+export type MarvelEliminationStageStateStatus = typeof MarvelEliminationStageStateStatus[keyof typeof MarvelEliminationStageStateStatus];
+
+
+export const MarvelEliminationStageStateStatus = {
+  planned: 'planned',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export interface MarvelEliminationStageState {
+  tournamentId: number;
+  stageId: number;
+  status: MarvelEliminationStageStateStatus;
+  /** @nullable */
+  currentRound: number | null;
+  /** @nullable */
+  totalRounds: number | null;
+  /** @nullable */
+  winnerId: number | null;
+  config: MarvelTournamentConfigV1;
+  rounds: MarvelEliminationRound[];
+}
+
 export type DoubleEliminationParticipantStatus = typeof DoubleEliminationParticipantStatus[keyof typeof DoubleEliminationParticipantStatus];
 
 
@@ -1333,7 +1495,7 @@ export interface TournamentUpdate {
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
   /** Optional game configuration. Null removes it. Editable only while the tournament is a draft. */
-  gameConfig?: DeadlockTournamentGameConfig | null;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   /** Optional presentation preferences. Editable at any tournament status. */
   presentationSettings?: TournamentPresentationSettings | null;
 }
@@ -1912,7 +2074,7 @@ export type TournamentBackupV3Tournament = {
   /** @nullable */
   featuredMatchBackupId?: number | null;
   visibility: TournamentBackupV3TournamentVisibility;
-  gameConfig?: DeadlockTournamentGameConfig;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 };
 
 export type TournamentBackupV3PlayersItemStatus = typeof TournamentBackupV3PlayersItemStatus[keyof typeof TournamentBackupV3PlayersItemStatus];
@@ -2117,6 +2279,94 @@ export type TournamentBackupV3StageParticipantsItem = {
   /** @nullable */
   qualifiedAt?: string | null;
   createdAt: string;
+};
+
+export type TournamentBackupV3MarvelRoundsItemRegroupingStrategy = typeof TournamentBackupV3MarvelRoundsItemRegroupingStrategy[keyof typeof TournamentBackupV3MarvelRoundsItemRegroupingStrategy];
+
+
+export const TournamentBackupV3MarvelRoundsItemRegroupingStrategy = {
+  paired_merge: 'paired_merge',
+  random: 'random',
+  manual: 'manual',
+} as const;
+
+export type TournamentBackupV3MarvelRoundsItemStatus = typeof TournamentBackupV3MarvelRoundsItemStatus[keyof typeof TournamentBackupV3MarvelRoundsItemStatus];
+
+
+export const TournamentBackupV3MarvelRoundsItemStatus = {
+  active: 'active',
+  awaiting_manual: 'awaiting_manual',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupV3MarvelRoundsItem = {
+  backupId: number;
+  stageBackupId: number;
+  /** @minimum 1 */
+  roundNumber: number;
+  /** @minimum 1 */
+  participantCount: number;
+  /** @minimum 2 */
+  groupSize: number;
+  /** @minimum 1 */
+  advancingCount: number;
+  /** @minimum 1 */
+  killLimit: number;
+  regroupingStrategy: TournamentBackupV3MarvelRoundsItemRegroupingStrategy;
+  status: TournamentBackupV3MarvelRoundsItemStatus;
+  /** @nullable */
+  randomSeed?: string | null;
+  createdAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+};
+
+export type TournamentBackupV3MarvelGroupsItemStatus = typeof TournamentBackupV3MarvelGroupsItemStatus[keyof typeof TournamentBackupV3MarvelGroupsItemStatus];
+
+
+export const TournamentBackupV3MarvelGroupsItemStatus = {
+  pending: 'pending',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupV3MarvelGroupsItem = {
+  backupId: number;
+  stageBackupId: number;
+  roundBackupId: number;
+  /** @minLength 1 */
+  groupKey: string;
+  /** @minimum 1 */
+  position: number;
+  status: TournamentBackupV3MarvelGroupsItemStatus;
+  /** @nullable */
+  completedAt?: string | null;
+  createdAt: string;
+};
+
+export type TournamentBackupV3MarvelGroupEntriesItem = {
+  backupId: number;
+  stageBackupId: number;
+  roundBackupId: number;
+  groupBackupId: number;
+  playerBackupId: number;
+  /** @nullable */
+  sourceGroupBackupId?: number | null;
+  /** @minimum 1 */
+  groupSlot: number;
+  /**
+     * @minimum 1
+     * @nullable
+     */
+  placement?: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  kills?: number | null;
+  /** @nullable */
+  qualified?: boolean | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type TournamentBackupV3StageBasketsItemType = typeof TournamentBackupV3StageBasketsItemType[keyof typeof TournamentBackupV3StageBasketsItemType];
@@ -2397,6 +2647,10 @@ export interface TournamentBackupV3 {
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
   stageParticipants: TournamentBackupV3StageParticipantsItem[];
+  /** Optional persisted internal runtime for Marvel elimination-group stages. */
+  marvelRounds?: TournamentBackupV3MarvelRoundsItem[];
+  marvelGroups?: TournamentBackupV3MarvelGroupsItem[];
+  marvelGroupEntries?: TournamentBackupV3MarvelGroupEntriesItem[];
   /** Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics. */
   stageBaskets?: TournamentBackupV3StageBasketsItem[];
   /** Optional routes between explicit output and input baskets. */

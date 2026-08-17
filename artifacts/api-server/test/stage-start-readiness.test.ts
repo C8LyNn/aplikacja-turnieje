@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   evaluateStageStartReadiness,
+  shouldUseStageLifecycleForLegacyTournamentStart,
   type StageStartValidationSnapshot,
 } from "../src/application/stages/stage-start-readiness";
 
@@ -42,6 +43,36 @@ function changed(change: (value: StageStartValidationSnapshot) => void): StageSt
   change(value);
   return value;
 }
+
+test("legacy start delegates standalone group stage only for Marvel", () => {
+  const groupStage = [{ format: "group_stage" as const }];
+  assert.equal(
+    shouldUseStageLifecycleForLegacyTournamentStart(groupStage, null),
+    false,
+  );
+  assert.equal(
+    shouldUseStageLifecycleForLegacyTournamentStart(groupStage, "deadlock"),
+    false,
+  );
+  assert.equal(
+    shouldUseStageLifecycleForLegacyTournamentStart(groupStage, "marvel"),
+    true,
+  );
+  assert.equal(
+    shouldUseStageLifecycleForLegacyTournamentStart(
+      [{ format: "double_elimination" }],
+      null,
+    ),
+    true,
+  );
+  assert.equal(
+    shouldUseStageLifecycleForLegacyTournamentStart(
+      [{ format: "round_robin" }, { format: "group_stage" }],
+      null,
+    ),
+    true,
+  );
+});
 
 test("reports a valid planned stage as ready", () => {
   const result = evaluateStageStartReadiness(snapshot());
@@ -158,4 +189,19 @@ test("reports non-planned and non-next stages", () => {
   assert.equal(evaluateStageStartReadiness(changed((value) => {
     value.stages = [{ ...value.stage, id: 10, position: 0 }, ...value.stages];
   })).reasonCode, "STAGE_NOT_NEXT_PLANNED");
+});
+
+test("accepts a final Marvel elimination-group stage without legacy qualification", () => {
+  const result = evaluateStageStartReadiness(
+    changed((value) => {
+      value.stage.format = "group_stage";
+      value.stage.groupCount = 1;
+      value.stage.participantsPerGroup = 2;
+      value.stage.qualifiersPerGroup = 1;
+      value.stage.qualificationMode = "none";
+      value.stage.seedingPolicy = "snake_groups";
+      value.marvelEliminationStage = true;
+    }),
+  );
+  assert.equal(result.reasonCode, "READY");
 });

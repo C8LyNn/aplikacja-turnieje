@@ -3,17 +3,16 @@ import { afterEach, test } from "node:test";
 import React, { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { DeadlockTournamentGameConfig } from "@workspace/api-client-react";
-import {
-  ForcedHeroBadge,
-  GameConfigPicker,
-} from "./deadlock-game-config";
+import type { Tournament } from "@workspace/api-client-react";
+import { ForcedHeroBadge, GameConfigPicker } from "./deadlock-game-config";
 import { BracketView } from "./bracket-view";
 
 afterEach(cleanup);
 
 function PickerHarness() {
-  const [value, setValue] = useState<DeadlockTournamentGameConfig | null>(null);
+  const [value, setValue] = useState<NonNullable<
+    Tournament["gameConfig"]
+  > | null>(null);
   return (
     <>
       <GameConfigPicker value={value} onChange={setValue} />
@@ -50,6 +49,31 @@ test("switching ban mode updates persisted config", async () => {
     config: { banMode?: string };
   };
   assert.equal(parsed.config.banMode, "opponent_only");
+});
+
+test("Marvel picker exposes elimination-group defaults without ban controls", async () => {
+  render(<PickerHarness />);
+  await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
+  await userEvent.click(
+    screen.getByRole("option", { name: "Marvel — Eliminacyjne grupy" }),
+  );
+
+  const parsed = JSON.parse(screen.getByTestId("value").textContent ?? "null");
+  assert.deepEqual(parsed, {
+    gameId: "marvel",
+    configVersion: 1,
+    config: {
+      groupSize: 8,
+      advancingCount: 4,
+      killLimit: 20,
+      regroupingStrategy: "paired_merge",
+    },
+  });
+  assert.ok(screen.getByLabelText("Rozmiar grupy"));
+  assert.ok(screen.getByLabelText("Awansuje z grupy"));
+  assert.ok(screen.getByLabelText("Limit killi"));
+  assert.equal(screen.queryByText("Tryb banowania"), null);
+  assert.equal(screen.queryByText("Bany na gracza (0–20)"), null);
 });
 
 test("bans-per-player stepper increments and decrements", async () => {

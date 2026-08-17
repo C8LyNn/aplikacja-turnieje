@@ -1410,13 +1410,14 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="bracket" className="pt-4">
-            <StageProgressView
-              tournamentId={id}
-              activeStageId={tournament.activeStageId}
-              matches={matches ?? []}
-              playerBansMap={isDeadlock ? playerBansMap : undefined}
-              matchPicksMap={isDeadlock ? matchPicksMap : undefined}
-            />
+              <StageProgressView
+                tournamentId={id}
+                activeStageId={tournament.activeStageId}
+                matches={matches ?? []}
+                playerBansMap={isDeadlock ? playerBansMap : undefined}
+                matchPicksMap={isDeadlock ? matchPicksMap : undefined}
+                marvelEnabled={tournament.gameConfig?.gameId === "marvel"}
+              />
           </TabsContent>
 
           <TabsContent value="history" className="pt-6">

@@ -37,6 +37,9 @@ const BACKUP_V3_FULL_MODEL_FIELDS = [
   "stageBasketRoutes",
   "routingPlan",
   "routingExecutions",
+  "marvelRounds",
+  "marvelGroups",
+  "marvelGroupEntries",
 ] as const satisfies readonly (keyof TournamentBackupV3)[];
 
 describe("generated tournament format contract", () => {
@@ -61,7 +64,7 @@ describe("generated tournament format contract", () => {
       Object.values(TournamentBackupV3StagesItemFormat),
       ["swiss", "round_robin", "group_stage", "single_elimination", "double_elimination"],
     );
-    assert.equal(BACKUP_V3_FULL_MODEL_FIELDS.length, 5);
+    assert.equal(BACKUP_V3_FULL_MODEL_FIELDS.length, 8);
   });
 
   for (const format of CURRENT_TOURNAMENT_FORMATS) {

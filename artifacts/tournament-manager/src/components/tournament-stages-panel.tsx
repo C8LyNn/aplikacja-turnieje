@@ -13,7 +13,7 @@ import {
   type StageQualificationPreview,
   type TournamentStage,
   type TournamentStageDetails,
-  type DeadlockTournamentGameConfig,
+  type Tournament,
   useCompleteTournamentStage,
   useGetDoubleEliminationStage,
   useGetTournamentStageBaskets,
@@ -24,6 +24,7 @@ import {
   useStartTournamentStage,
 } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-editor";
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import {
@@ -69,7 +70,7 @@ interface TournamentStagesPanelProps {
   canWriteResults?: boolean;
   audience?: boolean;
   onChanged?: () => void;
-  gameConfig?: DeadlockTournamentGameConfig | null;
+  gameConfig?: Tournament["gameConfig"];
 }
 
 interface PlayerRecord {
@@ -824,11 +825,13 @@ export function TournamentStagesPanel({
             />
           )}
 
-          <DeadlockStageBansSummary
-            gameConfig={gameConfig}
-            orderedStageKeys={stages.map((stage) => stage.stageKey)}
-            stageKey={selected.stageKey}
-          />
+          {gameConfig?.gameId === "deadlock" && (
+            <DeadlockStageBansSummary
+              gameConfig={gameConfig}
+              orderedStageKeys={stages.map((stage) => stage.stageKey)}
+              stageKey={selected.stageKey}
+            />
+          )}
 
           {selected.status === "planned" ? (
             <Card>
@@ -844,6 +847,14 @@ export function TournamentStagesPanel({
                 />
               </CardContent>
             </Card>
+          ) : gameConfig?.gameId === "marvel" &&
+            selected.format === "group_stage" ? (
+            <MarvelEliminationStage
+              tournamentId={tournamentId}
+              stageId={selected.id}
+              canManage={canWriteResults}
+              pollInterval={audience ? 8_000 : 5_000}
+            />
           ) : selected.format === "double_elimination" ? (
             doubleEliminationQuery.isLoading ? (
               <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">

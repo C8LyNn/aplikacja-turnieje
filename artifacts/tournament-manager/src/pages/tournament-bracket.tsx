@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-client-react";
 import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
@@ -55,6 +56,13 @@ export default function TournamentBracket() {
   const doubleEliminationStage = stages?.find(
     (stage) => stage.format === "double_elimination" && stage.status !== "planned",
   );
+  const marvelStage =
+    tournament?.gameConfig?.gameId === "marvel"
+      ? stages?.find(
+          (stage) =>
+            stage.format === "group_stage" && stage.status !== "planned",
+        )
+      : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
     doubleEliminationStage?.id ?? 0,
@@ -203,7 +211,9 @@ export default function TournamentBracket() {
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
-          {FORMAT_LABELS[tournament.format] ?? tournament.format}
+          {tournament.gameConfig?.gameId === "marvel"
+            ? "Marvel — Eliminacyjne grupy"
+            : (FORMAT_LABELS[tournament.format] ?? tournament.format)}
           {tournament.currentRound && tournament.totalRounds
             ? ` · Runda ${tournament.currentRound}/${tournament.totalRounds}`
             : ""}
@@ -227,6 +237,13 @@ export default function TournamentBracket() {
         {tournament.status === "draft" ? (
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
             Turniej jeszcze nie wystartował.
+          </div>
+        ) : marvelStage ? (
+          <div className="p-8">
+            <MarvelEliminationStage
+              tournamentId={id}
+              stageId={marvelStage.id}
+            />
           </div>
         ) : doubleEliminationStage && doubleEliminationQuery.data ? (
           <div className="p-8">
@@ -286,7 +303,11 @@ export default function TournamentBracket() {
                 <BracketView
                   bracket={bracket}
                   format={tournament.format}
-                  forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+                  forcedHeroId={
+                    tournament.gameConfig?.gameId === "deadlock"
+                      ? tournament.gameConfig.config.forcedHeroId
+                      : undefined
+                  }
                   matchPicksMap={isDeadlock ? matchPicksMap : undefined}
                 />
               </div>

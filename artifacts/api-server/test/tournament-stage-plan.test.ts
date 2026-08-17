@@ -595,3 +595,41 @@ describe("configurable seeding and placement", () => {
     assert.equal(groups.resultSeedingMethod, "rank_bands");
   });
 });
+
+test("permits a final group stage only for an explicit special-format caller", () => {
+  const marvelStagePlan = {
+    initialParticipantCount: 32,
+    stages: [
+      {
+        key: "stage_1",
+        position: 1,
+        name: "Marvel — Eliminacyjne grupy",
+        format: "group_stage",
+        participantCount: 32,
+        bestOf: 1,
+        groupCount: 4,
+        participantsPerGroup: 8,
+        qualifiersPerGroup: 4,
+        entrySeedingMethod: "preserve",
+        placementMethod: "snake",
+        resultSeedingMethod: "rank_bands",
+        randomRevealOrder: "instant",
+      },
+    ],
+  };
+  const legacy = validateTournamentStagePlan(marvelStagePlan);
+  assert.equal(legacy.valid, false);
+  if (!legacy.valid) {
+    assert.ok(
+      legacy.problems.some(
+        (problem) => problem.code === "GROUP_STAGE_CANNOT_BE_FINAL",
+      ),
+    );
+  }
+  assert.equal(
+    validateTournamentStagePlan(marvelStagePlan, {
+      allowFinalGroupStage: true,
+    }).valid,
+    true,
+  );
+});

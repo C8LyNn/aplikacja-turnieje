@@ -4,6 +4,9 @@ import {
   db,
   matchesTable,
   matchGamePicksTable,
+  marvelStageGroupEntriesTable,
+  marvelStageGroupsTable,
+  marvelStageRoundsTable,
   playerDeadlockBansTable,
   playersTable,
   qualificationProposalEntriesTable,
@@ -137,6 +140,9 @@ export async function exportBackupV3(
     stages,
     groups,
     memberships,
+    marvelRounds,
+    marvelGroups,
+    marvelGroupEntries,
     stageBaskets,
     stageBasketRoutes,
     stageBasketAssignments,
@@ -178,6 +184,31 @@ export async function exportBackupV3(
         .orderBy(
           asc(stageParticipantsTable.stageId),
           asc(stageParticipantsTable.stageSeed),
+        ),
+      db
+        .select()
+        .from(marvelStageRoundsTable)
+        .where(eq(marvelStageRoundsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageRoundsTable.stageId),
+          asc(marvelStageRoundsTable.roundNumber),
+        ),
+      db
+        .select()
+        .from(marvelStageGroupsTable)
+        .where(eq(marvelStageGroupsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageGroupsTable.roundId),
+          asc(marvelStageGroupsTable.position),
+        ),
+      db
+        .select()
+        .from(marvelStageGroupEntriesTable)
+        .where(eq(marvelStageGroupEntriesTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageGroupEntriesTable.roundId),
+          asc(marvelStageGroupEntriesTable.groupId),
+          asc(marvelStageGroupEntriesTable.groupSlot),
         ),
       db
         .select()
@@ -410,6 +441,49 @@ export async function exportBackupV3(
       qualifiedAt: membership.qualifiedAt?.toISOString() ?? null,
       createdAt: membership.createdAt.toISOString(),
     })),
+    ...(marvelRounds.length === 0
+      ? {}
+      : {
+          marvelRounds: marvelRounds.map((round) => ({
+            backupId: round.id,
+            stageBackupId: round.stageId,
+            roundNumber: round.roundNumber,
+            participantCount: round.participantCount,
+            groupSize: round.groupSize,
+            advancingCount: round.advancingCount,
+            killLimit: round.killLimit,
+            regroupingStrategy: round.regroupingStrategy as
+              "paired_merge" | "random" | "manual",
+            status: round.status as "active" | "awaiting_manual" | "completed",
+            randomSeed: round.randomSeed ?? null,
+            createdAt: round.createdAt.toISOString(),
+            completedAt: round.completedAt?.toISOString() ?? null,
+          })),
+          marvelGroups: marvelGroups.map((group) => ({
+            backupId: group.id,
+            stageBackupId: group.stageId,
+            roundBackupId: group.roundId,
+            groupKey: group.groupKey,
+            position: group.position,
+            status: group.status as "pending" | "completed",
+            completedAt: group.completedAt?.toISOString() ?? null,
+            createdAt: group.createdAt.toISOString(),
+          })),
+          marvelGroupEntries: marvelGroupEntries.map((entry) => ({
+            backupId: entry.id,
+            stageBackupId: entry.stageId,
+            roundBackupId: entry.roundId,
+            groupBackupId: entry.groupId,
+            playerBackupId: entry.playerId,
+            sourceGroupBackupId: entry.sourceGroupId ?? null,
+            groupSlot: entry.groupSlot,
+            placement: entry.placement ?? null,
+            kills: entry.kills ?? null,
+            qualified: entry.qualified ?? null,
+            createdAt: entry.createdAt.toISOString(),
+            updatedAt: entry.updatedAt.toISOString(),
+          })),
+        }),
     ...(stageBaskets.length === 0
       ? {}
       : {
@@ -645,6 +719,166 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     backup.matches.map((match) => [match.backupId, match]),
   );
 
+  const marvelRounds = backup.marvelRounds ?? [];
+  const marvelGroups = backup.marvelGroups ?? [];
+  const marvelEntries = backup.marvelGroupEntries ?? [];
+  const marvelRoundIds = unique(marvelRounds, "Marvel round");
+  const marvelGroupIds = unique(marvelGroups, "Marvel group");
+  unique(marvelEntries, "Marvel group entry");
+  const marvelRoundById = new Map(
+    marvelRounds.map((round) => [round.backupId, round]),
+  );
+  const marvelGroupById = new Map(
+    marvelGroups.map((group) => [group.backupId, group]),
+  );
+  const marvelRuntimePresent =
+    marvelRounds.length > 0 || marvelGroups.length > 0 || marvelEntries.length > 0;
+  const marvelTournament = backup.tournament.gameConfig?.gameId === "marvel";
+  if (
+    marvelTournament &&
+    (backup.stages.length !== 1 || backup.stages[0]?.format !== "group_stage")
+  ) {
+    errors.push("Marvel backup requires exactly one group stage.");
+  }
+  if (marvelRuntimePresent && !marvelTournament) {
+    errors.push("Marvel runtime is allowed only for a Marvel tournament.");
+  }
+  const marvelRoundKeys = new Set<string>();
+  for (const round of marvelRounds) {
+    const stage = stageById.get(round.stageBackupId);
+    const key = `${round.stageBackupId}:${round.roundNumber}`;
+    if (
+      !stage ||
+      stage.format !== "group_stage" ||
+      !positive(round.roundNumber) ||
+      !positive(round.participantCount) ||
+      !positive(round.groupSize) ||
+      round.groupSize < 2 ||
+      !positive(round.advancingCount) ||
+      round.advancingCount >= round.groupSize ||
+      !positive(round.killLimit) ||
+      marvelRoundKeys.has(key) ||
+      !date(round.createdAt) ||
+      (round.completedAt != null && !date(round.completedAt)) ||
+      (round.status === "completed") !== (round.completedAt != null) ||
+      (round.regroupingStrategy === "random" &&
+        round.roundNumber > 1 &&
+        !round.randomSeed?.trim()) ||
+      (round.regroupingStrategy !== "random" && round.randomSeed != null)
+    ) {
+      errors.push(`Marvel round ${round.backupId} is invalid.`);
+    }
+    marvelRoundKeys.add(key);
+  }
+  const marvelGroupKeys = new Set<string>();
+  const marvelGroupPositions = new Set<string>();
+  for (const group of marvelGroups) {
+    const round = marvelRoundById.get(group.roundBackupId);
+    const key = `${group.roundBackupId}:${group.groupKey}`;
+    const positionKey = `${group.roundBackupId}:${group.position}`;
+    if (
+      !marvelRoundIds.has(group.roundBackupId) ||
+      !round ||
+      round.stageBackupId !== group.stageBackupId ||
+      !stageIds.has(group.stageBackupId) ||
+      !group.groupKey.trim() ||
+      !positive(group.position) ||
+      marvelGroupKeys.has(key) ||
+      marvelGroupPositions.has(positionKey) ||
+      !date(group.createdAt) ||
+      (group.completedAt != null && !date(group.completedAt)) ||
+      (group.status === "completed") !== (group.completedAt != null)
+    ) {
+      errors.push(`Marvel group ${group.backupId} is invalid.`);
+    }
+    marvelGroupKeys.add(key);
+    marvelGroupPositions.add(positionKey);
+  }
+  const marvelRoundPlayers = new Set<string>();
+  const marvelGroupSlots = new Set<string>();
+  const marvelGroupPlacements = new Set<string>();
+  for (const entry of marvelEntries) {
+    const round = marvelRoundById.get(entry.roundBackupId);
+    const group = marvelGroupById.get(entry.groupBackupId);
+    const sourceGroup = entry.sourceGroupBackupId == null
+      ? null
+      : marvelGroupById.get(entry.sourceGroupBackupId);
+    const playerKey = `${entry.roundBackupId}:${entry.playerBackupId}`;
+    const slotKey = `${entry.groupBackupId}:${entry.groupSlot}`;
+    const placementKey = `${entry.groupBackupId}:${entry.placement}`;
+    if (
+      !marvelRoundIds.has(entry.roundBackupId) ||
+      !marvelGroupIds.has(entry.groupBackupId) ||
+      !round ||
+      !group ||
+      group.roundBackupId !== entry.roundBackupId ||
+      group.stageBackupId !== entry.stageBackupId ||
+      round.stageBackupId !== entry.stageBackupId ||
+      !playerIds.has(entry.playerBackupId) ||
+      !positive(entry.groupSlot) ||
+      marvelRoundPlayers.has(playerKey) ||
+      marvelGroupSlots.has(slotKey) ||
+      (entry.placement != null &&
+        (!positive(entry.placement) || marvelGroupPlacements.has(placementKey))) ||
+      (entry.placement == null) !== (entry.qualified == null) ||
+      (entry.kills != null &&
+        (!Number.isInteger(entry.kills) || entry.kills < 0)) ||
+      !date(entry.createdAt) ||
+      !date(entry.updatedAt) ||
+      (entry.sourceGroupBackupId != null &&
+        (!sourceGroup ||
+          sourceGroup.stageBackupId !== entry.stageBackupId ||
+          (marvelRoundById.get(sourceGroup.roundBackupId)?.roundNumber ?? 0) >=
+            round.roundNumber))
+    ) {
+      errors.push(`Marvel group entry ${entry.backupId} is invalid.`);
+    }
+    marvelRoundPlayers.add(playerKey);
+    marvelGroupSlots.add(slotKey);
+    if (entry.placement != null) marvelGroupPlacements.add(placementKey);
+  }
+  for (const stage of backup.stages.filter(
+    (candidate) => marvelTournament && candidate.format === "group_stage",
+  )) {
+    const rounds = marvelRounds
+      .filter((round) => round.stageBackupId === stage.backupId)
+      .sort((left, right) => left.roundNumber - right.roundNumber);
+    if (stage.status === "planned" && rounds.length > 0) {
+      errors.push(`Planned Marvel stage ${stage.backupId} cannot have runtime.`);
+    }
+    if (stage.status !== "planned" && rounds.length === 0) {
+      errors.push(`Started Marvel stage ${stage.backupId} requires runtime.`);
+    }
+    if (
+      rounds.some((round, index) => round.roundNumber !== index + 1) ||
+      (stage.status === "active" &&
+        (rounds.filter((round) => round.status !== "completed").length !== 1 ||
+          rounds.at(-1)?.status === "completed")) ||
+      (stage.status === "completed" &&
+        rounds.some((round) => round.status !== "completed"))
+    ) {
+      errors.push(`Marvel stage ${stage.backupId} has inconsistent rounds.`);
+    }
+    for (const round of rounds) {
+      const groups = marvelGroups.filter(
+        (group) => group.roundBackupId === round.backupId,
+      );
+      const entries = marvelEntries.filter(
+        (entry) => entry.roundBackupId === round.backupId,
+      );
+      if (
+        (round.status === "awaiting_manual" &&
+          (groups.length !== 0 || entries.length !== 0)) ||
+        (round.status !== "awaiting_manual" &&
+          (groups.length === 0 || entries.length !== round.participantCount)) ||
+        (round.status === "completed" &&
+          groups.some((group) => group.status !== "completed"))
+      ) {
+        errors.push(`Marvel round ${round.backupId} has inconsistent groups.`);
+      }
+    }
+  }
+
   const backupBaskets = backup.stageBaskets ?? [];
   const backupBasketRoutes = backup.stageBasketRoutes ?? [];
   const basketAuthority =
@@ -766,6 +1000,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
       },
       {
         participantFlowAuthority: basketAuthority ? "basket_v1" : "legacy",
+        allowFinalGroupStage: backup.tournament.gameConfig?.gameId === "marvel",
       },
     );
     if (!planValidation.valid)
@@ -983,6 +1218,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   for (const stage of backup.stages.filter(
     (candidate) => candidate.format === "group_stage",
   )) {
+    if (marvelTournament) continue;
     const count = backup.groups.filter(
       (group) => group.stageBackupId === stage.backupId,
     ).length;
@@ -1026,7 +1262,12 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
       errors.push(
         `Stage participant ${participant.backupId} has an invalid group.`,
       );
-    if (stage?.format === "group_stage" && stage.status !== "planned" && !group)
+    if (
+      stage?.format === "group_stage" &&
+      !marvelTournament &&
+      stage.status !== "planned" &&
+      !group
+    )
       errors.push(
         `Started group participant ${participant.backupId} has no group.`,
       );
@@ -1677,6 +1918,67 @@ export async function importBackupV3(
             .returning();
     for (let index = 0; index < backup.players.length; index += 1) {
       playerIds.set(backup.players[index].backupId, createdPlayers[index].id);
+    }
+    const marvelRoundIds = new Map<number, number>();
+    for (const round of [...(backup.marvelRounds ?? [])].sort(
+      (left, right) => left.roundNumber - right.roundNumber,
+    )) {
+      const [created] = await tx
+        .insert(marvelStageRoundsTable)
+        .values({
+          tournamentId: tournament.id,
+          stageId: stageIds.get(round.stageBackupId)!,
+          roundNumber: round.roundNumber,
+          participantCount: round.participantCount,
+          groupSize: round.groupSize,
+          advancingCount: round.advancingCount,
+          killLimit: round.killLimit,
+          regroupingStrategy: round.regroupingStrategy,
+          status: round.status,
+          randomSeed: round.randomSeed ?? null,
+          createdAt: new Date(round.createdAt),
+          completedAt:
+            round.completedAt == null ? null : new Date(round.completedAt),
+        })
+        .returning();
+      marvelRoundIds.set(round.backupId, created.id);
+    }
+    const marvelGroupIds = new Map<number, number>();
+    for (const group of backup.marvelGroups ?? []) {
+      const [created] = await tx
+        .insert(marvelStageGroupsTable)
+        .values({
+          tournamentId: tournament.id,
+          stageId: stageIds.get(group.stageBackupId)!,
+          roundId: marvelRoundIds.get(group.roundBackupId)!,
+          groupKey: group.groupKey,
+          position: group.position,
+          status: group.status,
+          completedAt:
+            group.completedAt == null ? null : new Date(group.completedAt),
+          createdAt: new Date(group.createdAt),
+        })
+        .returning();
+      marvelGroupIds.set(group.backupId, created.id);
+    }
+    for (const entry of backup.marvelGroupEntries ?? []) {
+      await tx.insert(marvelStageGroupEntriesTable).values({
+        tournamentId: tournament.id,
+        stageId: stageIds.get(entry.stageBackupId)!,
+        roundId: marvelRoundIds.get(entry.roundBackupId)!,
+        groupId: marvelGroupIds.get(entry.groupBackupId)!,
+        playerId: playerIds.get(entry.playerBackupId)!,
+        sourceGroupId:
+          entry.sourceGroupBackupId == null
+            ? null
+            : marvelGroupIds.get(entry.sourceGroupBackupId)!,
+        groupSlot: entry.groupSlot,
+        placement: entry.placement ?? null,
+        kills: entry.kills ?? null,
+        qualified: entry.qualified ?? null,
+        createdAt: new Date(entry.createdAt),
+        updatedAt: new Date(entry.updatedAt),
+      });
     }
     const restoredAssignments = (backup.stageBaskets ?? []).flatMap((basket) =>
       basket.type === "input"

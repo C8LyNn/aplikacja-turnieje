@@ -54,6 +54,10 @@ import {
 } from "../../domain/tournament/v2";
 import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
 import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
+import {
+  initializeMarvelEliminationStage,
+  isMarvelEliminationStage,
+} from "./marvel-elimination-stage";
 import { loadStageBasketConfigurationInTransaction } from "./stage-basket-configuration";
 import { hasLegacyLinearParticipantFlowMismatch } from "../../domain/tournament/stage-baskets";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
@@ -1080,6 +1084,11 @@ export async function startStage(
     }));
     let inserted: Array<typeof matchesTable.$inferSelect>;
     let totalRounds: number;
+    const marvelEliminationStage = await isMarvelEliminationStage(
+      tx,
+      tournament.id,
+      stage,
+    );
     if (stage.format === "double_elimination") {
       if (!routingPlan) throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
       const execution = createRoutingExecutionV2(
@@ -1104,6 +1113,14 @@ export async function startStage(
           .filter((match) => match.stageKey === stage.stageKey)
           .map((match) => match.order + 1),
       );
+    } else if (marvelEliminationStage) {
+      const initialized = await initializeMarvelEliminationStage(tx, {
+        tournamentId: tournament.id,
+        stage,
+        memberships,
+      });
+      inserted = [];
+      totalRounds = initialized.totalRounds;
     } else if (stage.format === "group_stage") {
       const groupCount = stage.groupCount;
       const largestGroupSize = stage.participantsPerGroup;
@@ -1297,4 +1314,4 @@ export async function startStage(
     return updatedStage;
   });
 }
-export { getStageStartReadiness, assertStageStartReady, evaluateStageStartReadiness, type StageStartReadiness, type StageStartValidationSnapshot } from "./stage-start-readiness";
+export { getStageStartReadiness, assertStageStartReady, evaluateStageStartReadiness, shouldUseStageLifecycleForLegacyTournamentStart, type StageStartReadiness, type StageStartValidationSnapshot } from "./stage-start-readiness";

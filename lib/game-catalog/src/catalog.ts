@@ -8,13 +8,27 @@ import {
   DEADLOCK_GAME_DEFINITION,
   type DeadlockTournamentConfigV1,
 } from "./deadlock";
+import {
+  MARVEL_GAME_DEFINITION,
+  type MarvelTournamentConfigV1,
+} from "./marvel";
 
-export type SupportedTournamentGameConfig = TournamentGameConfigEnvelope<
-  DeadlockTournamentConfigV1
-> & { gameId: "deadlock"; configVersion: 1 };
+export type SupportedTournamentGameConfig =
+  | (TournamentGameConfigEnvelope<DeadlockTournamentConfigV1> & {
+      gameId: "deadlock";
+      configVersion: 1;
+    })
+  | (TournamentGameConfigEnvelope<MarvelTournamentConfigV1> & {
+      gameId: "marvel";
+      configVersion: 1;
+    });
 
 const GAME_DEFINITIONS: ReadonlyMap<string, GameDefinition<object>> = new Map([
-  [DEADLOCK_GAME_DEFINITION.id, DEADLOCK_GAME_DEFINITION],
+  [
+    DEADLOCK_GAME_DEFINITION.id,
+    DEADLOCK_GAME_DEFINITION as GameDefinition<object>,
+  ],
+  [MARVEL_GAME_DEFINITION.id, MARVEL_GAME_DEFINITION as GameDefinition<object>],
 ]);
 
 export function getGameDefinition(gameId: string): GameDefinition<object> | undefined {
@@ -58,8 +72,8 @@ export function parseTournamentGameConfig(
   const configVersion = Number(value.configVersion);
   const config = definition.parseTournamentConfig(configVersion, value.config);
   return {
-    gameId: definition.id as "deadlock",
-    configVersion: configVersion as 1,
+    gameId: definition.id,
+    configVersion,
     config,
-  };
+  } as SupportedTournamentGameConfig;
 }

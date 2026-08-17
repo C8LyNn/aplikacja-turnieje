@@ -309,6 +309,7 @@ function validateParticipantFlow(
   initialParticipantCount: unknown,
   positionsValid: boolean,
   enforceLinearFlow: boolean,
+  allowFinalGroupStage: boolean,
   problems: TournamentStagePlanProblem[],
 ): void {
   if (!positionsValid || stages.length === 0) return;
@@ -322,8 +323,20 @@ function validateParticipantFlow(
     const path = `stages[${index}]`;
     const isFinal = orderedIndex === ordered.length - 1;
     if (isFinal) {
-      if (record.format === "group_stage") addProblem(problems, "GROUP_STAGE_CANNOT_BE_FINAL", `${path}.format`, "group_stage must qualify participants to a following stage.");
-      if (record.advancingCount !== undefined) addProblem(problems, "INVALID_ADVANCING_COUNT", `${path}.advancingCount`, "The final stage cannot qualify participants to another stage.");
+      if (record.format === "group_stage" && !allowFinalGroupStage)
+        addProblem(
+          problems,
+          "GROUP_STAGE_CANNOT_BE_FINAL",
+          `${path}.format`,
+          "group_stage must qualify participants to a following stage.",
+        );
+      if (record.advancingCount !== undefined)
+        addProblem(
+          problems,
+          "INVALID_ADVANCING_COUNT",
+          `${path}.advancingCount`,
+          "The final stage cannot qualify participants to another stage.",
+        );
       return;
     }
     if (record.format === "double_elimination") {
@@ -421,7 +434,10 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
 
 export function validateTournamentStagePlan(
   input: unknown,
-  options: { participantFlowAuthority?: "legacy" | "basket_v1" } = {},
+  options: {
+    participantFlowAuthority?: "legacy" | "basket_v1";
+    allowFinalGroupStage?: boolean;
+  } = {},
 ): TournamentStagePlanValidationResult {
   const problems: TournamentStagePlanProblem[] = [];
   const plan = asRecord(input) ?? {};
@@ -437,6 +453,7 @@ export function validateTournamentStagePlan(
     plan.initialParticipantCount,
     positionsValid,
     options.participantFlowAuthority !== "basket_v1",
+    options.allowFinalGroupStage === true,
     problems,
   );
   if (problems.length > 0) return { valid: false, problems };

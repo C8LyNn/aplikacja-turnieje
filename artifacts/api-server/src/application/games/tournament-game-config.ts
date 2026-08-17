@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db, tournamentGameConfigsTable, tournamentStagesTable } from "@workspace/db";
 import {
   parseTournamentGameConfig,
+  calculateMarvelRoundParticipantCounts,
   TournamentGameConfigError,
   type SupportedTournamentGameConfig,
 } from "@workspace/game-catalog";
@@ -57,7 +58,17 @@ export async function replaceTournamentGameConfig(
   tournamentId: number,
   value: unknown | null | undefined,
 ): Promise<SupportedTournamentGameConfig | null> {
+  const [existing] = await tx
+    .select({ gameId: tournamentGameConfigsTable.gameId })
+    .from(tournamentGameConfigsTable)
+    .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId));
   if (value == null) {
+    if (existing?.gameId === "marvel") {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Marvel rules cannot be removed without replacing the stage plan.",
+      );
+    }
     await tx
       .delete(tournamentGameConfigsTable)
       .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId));
@@ -65,7 +76,16 @@ export async function replaceTournamentGameConfig(
   }
 
   const parsed = parseTournamentGameConfig(value);
-  if (parsed.gameId === "deadlock" && (parsed.config.stageBans?.length ?? 0) > 0) {
+  if (existing?.gameId === "marvel" && parsed.gameId !== "marvel") {
+    throw new TournamentGameConfigError(
+      "INVALID_GAME_CONFIG",
+      "Marvel rules cannot be replaced without replacing the stage plan.",
+    );
+  }
+  if (
+    parsed.gameId === "deadlock" &&
+    (parsed.config.stageBans?.length ?? 0) > 0
+  ) {
     const stages = await tx
       .select({ stageKey: tournamentStagesTable.stageKey })
       .from(tournamentStagesTable)
@@ -78,6 +98,56 @@ export async function replaceTournamentGameConfig(
         `Deadlock stage bans reference unknown stage: ${unknown.stageKey}.`,
       );
     }
+  }
+  if (parsed.gameId === "marvel") {
+    const stages = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(eq(tournamentStagesTable.tournamentId, tournamentId));
+    const stage = stages[0];
+    if (
+      stages.length !== 1 ||
+      !stage ||
+      stage.status !== "planned" ||
+      stage.format !== "group_stage"
+    ) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Marvel rules require one planned elimination-group stage.",
+      );
+    }
+    try {
+      calculateMarvelRoundParticipantCounts(
+        stage.participantCount,
+        parsed.config.groupSize,
+        parsed.config.advancingCount,
+      );
+    } catch (error) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        error instanceof Error
+          ? `Invalid Marvel participant flow: ${error.message}`
+          : "Invalid Marvel participant flow.",
+      );
+    }
+    const participantsPerGroup = Math.min(
+      stage.participantCount,
+      parsed.config.groupSize,
+    );
+    if (parsed.config.advancingCount > participantsPerGroup) {
+      throw new TournamentGameConfigError(
+        "INVALID_GAME_CONFIG",
+        "Marvel advancingCount cannot exceed the actual group size.",
+      );
+    }
+    await tx
+      .update(tournamentStagesTable)
+      .set({
+        groupCount: Math.ceil(stage.participantCount / parsed.config.groupSize),
+        participantsPerGroup,
+        qualifiersPerGroup: parsed.config.advancingCount,
+      })
+      .where(eq(tournamentStagesTable.id, stage.id));
   }
   const persistedConfig: Record<string, unknown> = { ...parsed.config };
   await tx

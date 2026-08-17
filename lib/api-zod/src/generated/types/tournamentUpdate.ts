@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
+import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
 import type { TournamentPresentationSettings } from './tournamentPresentationSettings';
 import type { TournamentUpdateFormat } from './tournamentUpdateFormat';
 import type { TournamentUpdateStatus } from './tournamentUpdateStatus';
@@ -25,7 +26,7 @@ export interface TournamentUpdate {
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
   /** Optional game configuration. Null removes it. Editable only while the tournament is a draft. */
-  gameConfig?: DeadlockTournamentGameConfig | null;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   /** Optional presentation preferences. Editable at any tournament status. */
   presentationSettings?: TournamentPresentationSettings | null;
 }

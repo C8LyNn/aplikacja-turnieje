@@ -32,6 +32,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
 import { PlayerBansRow, HeroSelectorButton, PickIcon } from "@/components/deadlock-bans-display";
 import { usePlayerBans, useMatchGamePicks, useSetMatchGamePick } from "@/lib/deadlock-bans-picks";
@@ -104,6 +105,13 @@ export default function TournamentHost() {
   const doubleEliminationStage = stages?.find(
     (stage) => stage.format === "double_elimination" && stage.status !== "planned",
   );
+  const marvelStage =
+    tournament?.gameConfig?.gameId === "marvel"
+      ? stages?.find(
+          (stage) =>
+            stage.format === "group_stage" && stage.status !== "planned",
+        )
+      : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
     doubleEliminationStage?.id ?? 0,
@@ -1884,7 +1892,14 @@ export default function TournamentHost() {
 
           {/* ═══ DRABINKA ═══ */}
           <TabsContent value="drabinka" className="pt-4">
-            {doubleEliminationStage && doubleEliminationQuery.data ? (
+            {marvelStage ? (
+              <MarvelEliminationStage
+                tournamentId={id}
+                stageId={marvelStage.id}
+                canManage={capabilities.canWriteTournamentResults}
+                pollInterval={5_000}
+              />
+            ) : doubleEliminationStage && doubleEliminationQuery.data ? (
               <DoubleEliminationBracket
                 tournamentId={id}
                 stageId={doubleEliminationStage.id}
@@ -1902,7 +1917,11 @@ export default function TournamentHost() {
             ) : bracket ? (
               <BracketView
                 bracket={bracket}
-                forcedHeroId={tournament.gameConfig?.config.forcedHeroId}
+                forcedHeroId={
+                  tournament.gameConfig?.gameId === "deadlock"
+                    ? tournament.gameConfig.config.forcedHeroId
+                    : undefined
+                }
                 matchPicksMap={isDeadlock ? matchPicksMap : undefined}
               />
             ) : (

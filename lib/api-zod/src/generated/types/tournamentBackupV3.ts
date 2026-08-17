@@ -9,6 +9,9 @@ import type { TournamentBackupV3ActionLogItem } from './tournamentBackupV3Action
 import type { TournamentBackupV3DeadlockBansItem } from './tournamentBackupV3DeadlockBansItem';
 import type { TournamentBackupV3GamePicksItem } from './tournamentBackupV3GamePicksItem';
 import type { TournamentBackupV3GroupsItem } from './tournamentBackupV3GroupsItem';
+import type { TournamentBackupV3MarvelGroupEntriesItem } from './tournamentBackupV3MarvelGroupEntriesItem';
+import type { TournamentBackupV3MarvelGroupsItem } from './tournamentBackupV3MarvelGroupsItem';
+import type { TournamentBackupV3MarvelRoundsItem } from './tournamentBackupV3MarvelRoundsItem';
 import type { TournamentBackupV3MatchesItem } from './tournamentBackupV3MatchesItem';
 import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersItem';
 import type { TournamentBackupV3QualificationProposalsItem } from './tournamentBackupV3QualificationProposalsItem';
@@ -36,6 +39,10 @@ export interface TournamentBackupV3 {
   stages: TournamentBackupV3StagesItem[];
   groups: TournamentBackupV3GroupsItem[];
   stageParticipants: TournamentBackupV3StageParticipantsItem[];
+  /** Optional persisted internal runtime for Marvel elimination-group stages. */
+  marvelRounds?: TournamentBackupV3MarvelRoundsItem[];
+  marvelGroups?: TournamentBackupV3MarvelGroupsItem[];
+  marvelGroupEntries?: TournamentBackupV3MarvelGroupEntriesItem[];
   /** Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics. */
   stageBaskets?: TournamentBackupV3StageBasketsItem[];
   /** Optional routes between explicit output and input baskets. */

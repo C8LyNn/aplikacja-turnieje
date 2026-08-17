@@ -23,6 +23,7 @@ import {
   STAGE_FORMAT_LABELS,
 } from "@/lib/tournament-stages-ui";
 import { buildBracketFromMatches, deriveCurrentRound } from "@/lib/stage-utils";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 
 interface StageProgressViewProps {
   tournamentId: number;
@@ -31,7 +32,11 @@ interface StageProgressViewProps {
   /** playerId → bannedHeroIds — pass only for Deadlock tournaments */
   playerBansMap?: Map<number, string[]>;
   /** matchId → { p1HeroId, p2HeroId } — last game's pick per match for bracket display */
-  matchPicksMap?: Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>;
+  matchPicksMap?: Map<
+    number,
+    { p1HeroId?: string | null; p2HeroId?: string | null }
+  >;
+  marvelEnabled?: boolean;
 }
 
 export function StageProgressView({
@@ -40,6 +45,7 @@ export function StageProgressView({
   matches,
   playerBansMap,
   matchPicksMap,
+  marvelEnabled = false,
 }: StageProgressViewProps) {
   const [selectedStageId, setSelectedStageId] = useState<number | undefined>();
 
@@ -157,6 +163,15 @@ export function StageProgressView({
                   participants={detailQuery.data.participants}
                 />
               </div>
+            );
+          }
+
+          if (marvelEnabled && selected.format === "group_stage") {
+            return (
+              <MarvelEliminationStage
+                tournamentId={tournamentId}
+                stageId={selected.id}
+              />
             );
           }
 

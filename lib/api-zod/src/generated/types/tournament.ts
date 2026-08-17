@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
+import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
 import type { TournamentFormat } from './tournamentFormat';
 import type { TournamentPresentationSettings } from './tournamentPresentationSettings';
 import type { TournamentRankingPolicy } from './tournamentRankingPolicy';
@@ -49,6 +50,6 @@ export interface Tournament {
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
   createdAt: string;
-  gameConfig?: DeadlockTournamentGameConfig | null;
+  gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   presentationSettings?: TournamentPresentationSettings | null;
 }

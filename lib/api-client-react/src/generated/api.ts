@@ -40,6 +40,10 @@ import type {
   HealthStatus,
   ImportResult,
   LegacyOrganizerUpgradeInput,
+  MarvelEliminationStageError,
+  MarvelEliminationStageState,
+  MarvelGroupResultInput,
+  MarvelManualGroupsInput,
   Match,
   MatchCancelInput,
   MatchResult,
@@ -2209,6 +2213,238 @@ export const useResetDoubleEliminationStage = <TError = ErrorType<DomainError | 
         TContext
       > => {
       return useMutation(getResetDoubleEliminationStageMutationOptions(options));
+    }
+
+export const getGetMarvelEliminationStageUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/marvel-elimination`
+}
+
+/**
+ * @summary Read persisted Marvel elimination-group rounds and results
+ */
+export const getMarvelEliminationStage = async (id: number,
+    stageId: number, options?: RequestInit): Promise<MarvelEliminationStageState> => {
+
+  return customFetch<MarvelEliminationStageState>(getGetMarvelEliminationStageUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarvelEliminationStageQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/marvel-elimination`
+    ] as const;
+    }
+
+
+export const getGetMarvelEliminationStageQueryOptions = <TData = Awaited<ReturnType<typeof getMarvelEliminationStage>>, TError = ErrorType<DomainError | MarvelEliminationStageError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarvelEliminationStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarvelEliminationStageQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarvelEliminationStage>>> = ({ signal }) => getMarvelEliminationStage(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarvelEliminationStage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarvelEliminationStageQueryResult = NonNullable<Awaited<ReturnType<typeof getMarvelEliminationStage>>>
+export type GetMarvelEliminationStageQueryError = ErrorType<DomainError | MarvelEliminationStageError>
+
+
+/**
+ * @summary Read persisted Marvel elimination-group rounds and results
+ */
+
+export function useGetMarvelEliminationStage<TData = Awaited<ReturnType<typeof getMarvelEliminationStage>>, TError = ErrorType<DomainError | MarvelEliminationStageError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarvelEliminationStage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarvelEliminationStageQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSubmitMarvelEliminationGroupResultUrl = (id: number,
+    stageId: number,
+    groupId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/marvel-elimination/groups/${groupId}/result`
+}
+
+/**
+ * @summary Persist the organizer-authoritative final order of one Marvel FFA group
+ */
+export const submitMarvelEliminationGroupResult = async (id: number,
+    stageId: number,
+    groupId: number,
+    marvelGroupResultInput: MarvelGroupResultInput, options?: RequestInit): Promise<MarvelEliminationStageState> => {
+
+  return customFetch<MarvelEliminationStageState>(getSubmitMarvelEliminationGroupResultUrl(id,stageId,groupId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      marvelGroupResultInput,)
+  }
+);}
+
+
+
+
+export const getSubmitMarvelEliminationGroupResultMutationOptions = <TError = ErrorType<MarvelEliminationStageError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>, TError,{id: number;stageId: number;groupId: number;data: BodyType<MarvelGroupResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>, TError,{id: number;stageId: number;groupId: number;data: BodyType<MarvelGroupResultInput>}, TContext> => {
+
+const mutationKey = ['submitMarvelEliminationGroupResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>, {id: number;stageId: number;groupId: number;data: BodyType<MarvelGroupResultInput>}> = (props) => {
+          const {id,stageId,groupId,data} = props ?? {};
+
+          return  submitMarvelEliminationGroupResult(id,stageId,groupId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitMarvelEliminationGroupResultMutationResult = NonNullable<Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>>
+    export type SubmitMarvelEliminationGroupResultMutationBody = BodyType<MarvelGroupResultInput>
+    export type SubmitMarvelEliminationGroupResultMutationError = ErrorType<MarvelEliminationStageError | DomainError>
+
+    /**
+ * @summary Persist the organizer-authoritative final order of one Marvel FFA group
+ */
+export const useSubmitMarvelEliminationGroupResult = <TError = ErrorType<MarvelEliminationStageError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>, TError,{id: number;stageId: number;groupId: number;data: BodyType<MarvelGroupResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitMarvelEliminationGroupResult>>,
+        TError,
+        {id: number;stageId: number;groupId: number;data: BodyType<MarvelGroupResultInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitMarvelEliminationGroupResultMutationOptions(options));
+    }
+
+export const getAssignMarvelEliminationManualGroupsUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/marvel-elimination/manual-groups`
+}
+
+/**
+ * @summary Persist the manual grouping of all qualifiers for the pending Marvel round
+ */
+export const assignMarvelEliminationManualGroups = async (id: number,
+    stageId: number,
+    marvelManualGroupsInput: MarvelManualGroupsInput, options?: RequestInit): Promise<MarvelEliminationStageState> => {
+
+  return customFetch<MarvelEliminationStageState>(getAssignMarvelEliminationManualGroupsUrl(id,stageId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      marvelManualGroupsInput,)
+  }
+);}
+
+
+
+
+export const getAssignMarvelEliminationManualGroupsMutationOptions = <TError = ErrorType<MarvelEliminationStageError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>, TError,{id: number;stageId: number;data: BodyType<MarvelManualGroupsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>, TError,{id: number;stageId: number;data: BodyType<MarvelManualGroupsInput>}, TContext> => {
+
+const mutationKey = ['assignMarvelEliminationManualGroups'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>, {id: number;stageId: number;data: BodyType<MarvelManualGroupsInput>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  assignMarvelEliminationManualGroups(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignMarvelEliminationManualGroupsMutationResult = NonNullable<Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>>
+    export type AssignMarvelEliminationManualGroupsMutationBody = BodyType<MarvelManualGroupsInput>
+    export type AssignMarvelEliminationManualGroupsMutationError = ErrorType<MarvelEliminationStageError | DomainError>
+
+    /**
+ * @summary Persist the manual grouping of all qualifiers for the pending Marvel round
+ */
+export const useAssignMarvelEliminationManualGroups = <TError = ErrorType<MarvelEliminationStageError | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>, TError,{id: number;stageId: number;data: BodyType<MarvelManualGroupsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignMarvelEliminationManualGroups>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<MarvelManualGroupsInput>},
+        TContext
+      > => {
+      return useMutation(getAssignMarvelEliminationManualGroupsMutationOptions(options));
     }
 
 export const getStartTournamentUrl = (id: number,) => {

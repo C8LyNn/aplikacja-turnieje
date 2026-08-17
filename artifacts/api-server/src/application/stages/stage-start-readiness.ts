@@ -60,6 +60,7 @@ export interface StageStartValidationSnapshot {
   sourceGroups: readonly StageStartGroup[];
   players: readonly StageStartPlayer[];
   basketValidation?: StageBasketValidationResult;
+  marvelEliminationStage?: boolean;
 }
 
 export interface StageStartReadiness {
@@ -73,6 +74,15 @@ export interface StageStartReadiness {
   blockingGroups: number;
   format: StageStartFormat;
   basketValidation: StageBasketValidationResult;
+}
+
+export function shouldUseStageLifecycleForLegacyTournamentStart(
+  stages: readonly Pick<StageStartStage, "format">[],
+  gameId: string | null,
+): boolean {
+  return stages.length > 1 ||
+    stages[0]?.format === "double_elimination" ||
+    (stages[0]?.format === "group_stage" && gameId === "marvel");
 }
 
 function missingStageSeeds(
@@ -152,7 +162,16 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
     throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
 
-  if (stage.format === "group_stage") {
+  if (stage.format === "group_stage" && snapshot.marvelEliminationStage) {
+    if (
+      stage.groupCount == null ||
+      stage.participantsPerGroup == null ||
+      stage.qualifiersPerGroup == null ||
+      stage.qualificationMode !== "none"
+    ) {
+      throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
+    }
+  } else if (stage.format === "group_stage") {
     const groupCount = stage.groupCount;
     const groupSize = stage.participantsPerGroup;
     const qualifiersPerGroup = stage.qualifiersPerGroup;
@@ -214,6 +233,7 @@ import {
   playersTable,
   stageGroupsTable,
   stageParticipantsTable,
+  tournamentGameConfigsTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
@@ -250,6 +270,10 @@ export async function getStageStartReadiness(input: {
     : await db.select().from(playersTable)
       .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId)));
   const basketConfiguration = await getStageBasketConfiguration(tournament.id);
+  const [gameConfig] = await db
+    .select({ gameId: tournamentGameConfigsTable.gameId })
+    .from(tournamentGameConfigsTable)
+    .where(eq(tournamentGameConfigsTable.tournamentId, tournament.id));
   return evaluateStageStartReadiness({
     tournament,
     stages,
@@ -261,5 +285,7 @@ export async function getStageStartReadiness(input: {
     sourceGroups,
     players,
     basketValidation: basketConfiguration.validation,
+    marvelEliminationStage:
+      gameConfig?.gameId === "marvel" && stage.format === "group_stage",
   });
 }

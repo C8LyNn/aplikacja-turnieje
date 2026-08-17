@@ -195,6 +195,59 @@ test("single-stage selector includes double elimination and excludes group stage
   assert.equal(screen.queryByRole("option", { name: "Faza grupowa" }), null);
 });
 
+test("Marvel creates one internal group stage with the documented 32-player defaults", async () => {
+  const bodies: Array<Record<string, any>> = [];
+  renderForm(async (_input, init) => {
+    bodies.push(JSON.parse(String(init?.body)) as Record<string, any>);
+    return successfulResponse();
+  });
+  await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Marvel Cup");
+  await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
+  await userEvent.click(
+    screen.getByRole("option", { name: "Marvel — Eliminacyjne grupy" }),
+  );
+  assert.ok(
+    screen.getByText(
+      "Jedna faza grupowa zawierająca kolejne rundy FFA aż do finału.",
+    ),
+  );
+  assert.equal(screen.queryByText("Best of"), null);
+  assert.equal(screen.queryByText("Tryb banowania"), null);
+  await userEvent.click(
+    screen.getByRole("button", { name: /Utwórz turniej/i }),
+  );
+  await waitFor(() => assert.equal(bodies.length, 1));
+
+  assert.deepEqual(bodies[0].gameConfig, {
+    gameId: "marvel",
+    configVersion: 1,
+    config: {
+      groupSize: 8,
+      advancingCount: 4,
+      killLimit: 20,
+      regroupingStrategy: "paired_merge",
+    },
+  });
+  assert.equal(bodies[0].stagePlan.initialParticipantCount, 32);
+  assert.equal(bodies[0].stagePlan.stages.length, 1);
+  assert.deepEqual(
+    {
+      format: bodies[0].stagePlan.stages[0].format,
+      participantCount: bodies[0].stagePlan.stages[0].participantCount,
+      groupCount: bodies[0].stagePlan.stages[0].groupCount,
+      participantsPerGroup: bodies[0].stagePlan.stages[0].participantsPerGroup,
+      qualifiersPerGroup: bodies[0].stagePlan.stages[0].qualifiersPerGroup,
+    },
+    {
+      format: "group_stage",
+      participantCount: 32,
+      groupCount: 4,
+      participantsPerGroup: 8,
+      qualifiersPerGroup: 4,
+    },
+  );
+});
+
 for (const [formatValue, formatLabel] of [
   ["double_elimination", "Podwójna eliminacja"],
 ] as const) {

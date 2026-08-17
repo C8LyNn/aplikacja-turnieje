@@ -594,6 +594,222 @@ export const stageParticipantsTable = pgTable(
   ],
 );
 
+// Marvel elimination groups are an internal multi-round runtime of one
+// tournament stage. They intentionally do not reuse stage_groups: that legacy
+// table models one round-robin grouping layer and cannot preserve movement
+// between successive FFA rounds.
+export const marvelStageRoundsTable = pgTable(
+  "marvel_stage_rounds",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    roundNumber: integer("round_number").notNull(),
+    participantCount: integer("participant_count").notNull(),
+    groupSize: integer("group_size").notNull(),
+    advancingCount: integer("advancing_count").notNull(),
+    killLimit: integer("kill_limit").notNull(),
+    regroupingStrategy: text("regrouping_strategy").notNull(),
+    status: text("status").notNull().default("active"),
+    randomSeed: text("random_seed"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique("marvel_stage_rounds_stage_round_unique").on(
+      table.stageId,
+      table.roundNumber,
+    ),
+    unique("marvel_stage_rounds_tournament_stage_id_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.id,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId],
+      foreignColumns: [
+        tournamentStagesTable.tournamentId,
+        tournamentStagesTable.id,
+      ],
+      name: "marvel_stage_rounds_stage_fk",
+    }).onDelete("cascade"),
+    check("marvel_stage_rounds_round_positive", sql`${table.roundNumber} > 0`),
+    check(
+      "marvel_stage_rounds_participants_positive",
+      sql`${table.participantCount} > 0`,
+    ),
+    check(
+      "marvel_stage_rounds_group_size_minimum",
+      sql`${table.groupSize} >= 2`,
+    ),
+    check(
+      "marvel_stage_rounds_advancing_range",
+      sql`${table.advancingCount} BETWEEN 1 AND ${table.groupSize} - 1`,
+    ),
+    check(
+      "marvel_stage_rounds_kill_limit_positive",
+      sql`${table.killLimit} > 0`,
+    ),
+    check(
+      "marvel_stage_rounds_strategy_values",
+      sql`${table.regroupingStrategy} IN ('paired_merge', 'random', 'manual')`,
+    ),
+    check(
+      "marvel_stage_rounds_status_values",
+      sql`${table.status} IN ('active', 'awaiting_manual', 'completed')`,
+    ),
+  ],
+);
+
+export const marvelStageGroupsTable = pgTable(
+  "marvel_stage_groups",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    roundId: integer("round_id").notNull(),
+    groupKey: text("group_key").notNull(),
+    position: integer("position").notNull(),
+    status: text("status").notNull().default("pending"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("marvel_stage_groups_round_key_unique").on(
+      table.roundId,
+      table.groupKey,
+    ),
+    unique("marvel_stage_groups_round_position_unique").on(
+      table.roundId,
+      table.position,
+    ),
+    unique("marvel_stage_groups_tournament_stage_id_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.id,
+    ),
+    unique("marvel_stage_groups_tournament_id_unique").on(
+      table.tournamentId,
+      table.id,
+    ),
+    unique("marvel_stage_groups_tournament_stage_round_id_unique").on(
+      table.tournamentId,
+      table.stageId,
+      table.roundId,
+      table.id,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.roundId],
+      foreignColumns: [
+        marvelStageRoundsTable.tournamentId,
+        marvelStageRoundsTable.stageId,
+        marvelStageRoundsTable.id,
+      ],
+      name: "marvel_stage_groups_round_fk",
+    }).onDelete("cascade"),
+    check(
+      "marvel_stage_groups_key_nonempty",
+      sql`length(${table.groupKey}) > 0`,
+    ),
+    check("marvel_stage_groups_position_positive", sql`${table.position} > 0`),
+    check(
+      "marvel_stage_groups_status_values",
+      sql`${table.status} IN ('pending', 'completed')`,
+    ),
+  ],
+);
+
+export const marvelStageGroupEntriesTable = pgTable(
+  "marvel_stage_group_entries",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    stageId: integer("stage_id").notNull(),
+    roundId: integer("round_id").notNull(),
+    groupId: integer("group_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    sourceGroupId: integer("source_group_id"),
+    groupSlot: integer("group_slot").notNull(),
+    placement: integer("placement"),
+    kills: integer("kills"),
+    qualified: boolean("qualified"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("marvel_stage_group_entries_round_player_unique").on(
+      table.roundId,
+      table.playerId,
+    ),
+    unique("marvel_stage_group_entries_group_slot_unique").on(
+      table.groupId,
+      table.groupSlot,
+    ),
+    unique("marvel_stage_group_entries_group_placement_unique").on(
+      table.groupId,
+      table.placement,
+    ),
+    foreignKey({
+      columns: [
+        table.tournamentId,
+        table.stageId,
+        table.roundId,
+        table.groupId,
+      ],
+      foreignColumns: [
+        marvelStageGroupsTable.tournamentId,
+        marvelStageGroupsTable.stageId,
+        marvelStageGroupsTable.roundId,
+        marvelStageGroupsTable.id,
+      ],
+      name: "marvel_stage_group_entries_group_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.stageId, table.roundId],
+      foreignColumns: [
+        marvelStageRoundsTable.tournamentId,
+        marvelStageRoundsTable.stageId,
+        marvelStageRoundsTable.id,
+      ],
+      name: "marvel_stage_group_entries_round_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.sourceGroupId],
+      foreignColumns: [
+        marvelStageGroupsTable.tournamentId,
+        marvelStageGroupsTable.id,
+      ],
+      name: "marvel_stage_group_entries_source_group_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "marvel_stage_group_entries_player_fk",
+    }).onDelete("cascade"),
+    check(
+      "marvel_stage_group_entries_slot_positive",
+      sql`${table.groupSlot} > 0`,
+    ),
+    check(
+      "marvel_stage_group_entries_result_values",
+      sql`(${table.placement} IS NULL AND ${table.qualified} IS NULL)
+        OR (${table.placement} > 0 AND ${table.qualified} IS NOT NULL)`,
+    ),
+    check(
+      "marvel_stage_group_entries_kills_nonnegative",
+      sql`${table.kills} IS NULL OR ${table.kills} >= 0`,
+    ),
+  ],
+);
+
 export const matchesTable = pgTable(
   "matches",
   {
@@ -913,7 +1129,14 @@ export const insertStageParticipantSchema = createInsertSchema(stageParticipants
 export type InsertStageParticipant = z.infer<typeof insertStageParticipantSchema>;
 export type StageParticipant = typeof stageParticipantsTable.$inferSelect;
 
-export const insertStageGroupSchema = createInsertSchema(stageGroupsTable).omit({ id: true, createdAt: true });
+export type MarvelStageRound = typeof marvelStageRoundsTable.$inferSelect;
+export type MarvelStageGroup = typeof marvelStageGroupsTable.$inferSelect;
+export type MarvelStageGroupEntry =
+  typeof marvelStageGroupEntriesTable.$inferSelect;
+
+export const insertStageGroupSchema = createInsertSchema(stageGroupsTable).omit(
+  { id: true, createdAt: true },
+);
 export type InsertStageGroup = z.infer<typeof insertStageGroupSchema>;
 export type StageGroup = typeof stageGroupsTable.$inferSelect;
 

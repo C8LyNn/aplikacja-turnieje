@@ -40,7 +40,11 @@ import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
-import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
+import {
+  usePresentationTheme,
+  resolvePresentationSettings,
+} from "@/lib/presentation-theme";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -148,6 +152,13 @@ export default function TournamentAudience() {
   const doubleEliminationStage = stages?.find(
     (stage) => stage.format === "double_elimination" && stage.status !== "planned",
   );
+  const marvelStage =
+    tournament?.gameConfig?.gameId === "marvel"
+      ? stages?.find(
+          (stage) =>
+            stage.format === "group_stage" && stage.status !== "planned",
+        )
+      : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
     doubleEliminationStage?.id ?? 0,
@@ -660,9 +671,24 @@ export default function TournamentAudience() {
             bansPerPlayer={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5}
           />
         )}
-        {activeSection === "bracket" && (
-          doubleEliminationStage ? (
-            <AudienceSectionShell title="Drabinka" description="Aktualny układ Double Elimination.">
+        {activeSection === "bracket" &&
+          (marvelStage ? (
+            <AudienceSectionShell
+              title="Drabinka"
+              description="Eliminacyjne grupy Marvel FFA."
+            >
+              <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
+                <MarvelEliminationStage
+                  tournamentId={id}
+                  stageId={marvelStage.id}
+                />
+              </div>
+            </AudienceSectionShell>
+          ) : doubleEliminationStage ? (
+            <AudienceSectionShell
+              title="Drabinka"
+              description="Aktualny układ Double Elimination."
+            >
               {doubleEliminationQuery.data ? (
                 <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
                   <DoubleEliminationBracket
@@ -686,7 +712,11 @@ export default function TournamentAudience() {
               format={tournament?.format ?? ""}
               currentRound={tournament?.currentRound}
               totalRounds={tournament?.totalRounds}
-              forcedHeroId={tournament?.gameConfig?.config.forcedHeroId}
+              forcedHeroId={
+                tournament?.gameConfig?.gameId === "deadlock"
+                  ? tournament.gameConfig.config.forcedHeroId
+                  : undefined
+              }
               playerBansMap={isDeadlock ? audienceBansMap : undefined}
               matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
             />

@@ -840,6 +840,235 @@ paths:
         "404": { description: Stage or execution not found, content: { application/json: { schema: { $ref: "#/components/schemas/DoubleEliminationError" } } } }
         "409": { description: Stale revision, content: { application/json: { schema: { $ref: "#/components/schemas/DoubleEliminationError" } } } }
 
+  /tournaments/{id}/stages/{stageId}/marvel-elimination:
+    get:
+      operationId: getMarvelEliminationStage
+      tags: [tournaments]
+      summary: Read persisted Marvel elimination-group rounds and results
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Current Marvel elimination-group state
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/MarvelEliminationStageState" }
+        "403":
+          {
+            description: Tournament is not visible to the current actor,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/DomainError" } },
+              },
+          }
+        "404":
+          {
+            description: Marvel stage not found,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "422":
+          {
+            description: Persisted Marvel stage configuration is invalid,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+
+  /tournaments/{id}/stages/{stageId}/marvel-elimination/groups/{groupId}/result:
+    put:
+      operationId: submitMarvelEliminationGroupResult
+      tags: [tournaments]
+      summary: Persist the organizer-authoritative final order of one Marvel FFA group
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+        - name: groupId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MarvelGroupResultInput" }
+      responses:
+        "200":
+          description: Updated Marvel elimination-group state
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/MarvelEliminationStageState" }
+        "400":
+          {
+            description: Invalid result input,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "403":
+          {
+            description: Organizer authentication required,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/DomainError" } },
+              },
+          }
+        "404":
+          {
+            description: Marvel group not found,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "409":
+          {
+            description: Group result already exists or the stage is not active,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "422":
+          {
+            description: Persisted Marvel stage configuration is invalid,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+
+  /tournaments/{id}/stages/{stageId}/marvel-elimination/manual-groups:
+    put:
+      operationId: assignMarvelEliminationManualGroups
+      tags: [tournaments]
+      summary: Persist the manual grouping of all qualifiers for the pending Marvel round
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MarvelManualGroupsInput" }
+      responses:
+        "200":
+          description: Updated Marvel elimination-group state
+          content:
+            application/json:
+              schema:
+                { $ref: "#/components/schemas/MarvelEliminationStageState" }
+        "400":
+          {
+            description: Invalid manual grouping,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "403":
+          {
+            description: Organizer authentication required,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/DomainError" } },
+              },
+          }
+        "404":
+          {
+            description: Marvel stage not found,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "409":
+          {
+            description: No round is waiting for manual grouping,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+        "422":
+          {
+            description: Persisted Marvel stage configuration is invalid,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      {
+                        $ref: "#/components/schemas/MarvelEliminationStageError",
+                      },
+                  },
+              },
+          }
+
   /tournaments/{id}/start:
     post:
       operationId: startTournament
@@ -2125,6 +2354,33 @@ components:
         config:
           $ref: "#/components/schemas/DeadlockTournamentConfigV1"
 
+    MarvelRegroupingStrategy:
+      type: string
+      enum: [paired_merge, random, manual]
+
+    MarvelTournamentConfigV1:
+      type: object
+      additionalProperties: false
+      required: [groupSize, advancingCount, killLimit, regroupingStrategy]
+      properties:
+        groupSize: { type: integer, minimum: 2, maximum: 128, default: 8 }
+        advancingCount: { type: integer, minimum: 1, default: 4 }
+        killLimit: { type: integer, minimum: 1, default: 20 }
+        regroupingStrategy:
+          allOf:
+            - $ref: "#/components/schemas/MarvelRegroupingStrategy"
+          default: paired_merge
+
+    MarvelTournamentGameConfig:
+      type: object
+      additionalProperties: false
+      required: [gameId, configVersion, config]
+      properties:
+        gameId: { type: string, const: marvel }
+        configVersion: { type: integer, const: 1 }
+        config:
+          $ref: "#/components/schemas/MarvelTournamentConfigV1"
+
     Tournament:
       type: object
       required: [id, name, format, status, resultModelVersion, rankingPolicy, defaultBestOf, createdAt, hasHostCode]
@@ -2185,6 +2441,7 @@ components:
         gameConfig:
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+            - $ref: "#/components/schemas/MarvelTournamentGameConfig"
             - type: "null"
         presentationSettings:
           oneOf:
@@ -2233,7 +2490,9 @@ components:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.
         gameConfig:
-          $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+          oneOf:
+            - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+            - $ref: "#/components/schemas/MarvelTournamentGameConfig"
 
     TournamentCreationResponse:
       allOf:
@@ -2446,6 +2705,152 @@ components:
           type: array
           items: { $ref: "#/components/schemas/StageParticipant" }
 
+    MarvelEliminationStageError:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - MARVEL_STAGE_NOT_FOUND
+            - MARVEL_STAGE_NOT_ACTIVE
+            - MARVEL_STAGE_CONFIGURATION_INVALID
+            - MARVEL_GROUP_NOT_FOUND
+            - MARVEL_GROUP_ALREADY_COMPLETED
+            - MARVEL_GROUP_RESULT_INVALID
+            - MARVEL_MANUAL_GROUPING_NOT_REQUIRED
+            - MARVEL_MANUAL_GROUPING_INVALID
+
+    MarvelGroupResultPlacementInput:
+      type: object
+      additionalProperties: false
+      required: [playerId]
+      properties:
+        playerId: { type: integer, minimum: 1 }
+        kills: { type: ["integer", "null"], minimum: 0 }
+
+    MarvelGroupResultInput:
+      type: object
+      additionalProperties: false
+      required: [placements]
+      properties:
+        placements:
+          type: array
+          minItems: 2
+          items:
+            { $ref: "#/components/schemas/MarvelGroupResultPlacementInput" }
+
+    MarvelManualGroupInput:
+      type: object
+      additionalProperties: false
+      required: [position, playerIds]
+      properties:
+        position: { type: integer, minimum: 1 }
+        playerIds:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+
+    MarvelManualGroupsInput:
+      type: object
+      additionalProperties: false
+      required: [groups]
+      properties:
+        groups:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/MarvelManualGroupInput" }
+
+    MarvelEliminationGroupEntry:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          playerId,
+          playerName,
+          groupSlot,
+          placement,
+          kills,
+          qualified,
+          sourceGroupId,
+          nextGroupId,
+        ]
+      properties:
+        playerId: { type: integer }
+        playerName: { type: string }
+        groupSlot: { type: integer, minimum: 1 }
+        placement: { type: ["integer", "null"], minimum: 1 }
+        kills: { type: ["integer", "null"], minimum: 0 }
+        qualified: { type: ["boolean", "null"] }
+        sourceGroupId: { type: ["integer", "null"] }
+        nextGroupId: { type: ["integer", "null"] }
+
+    MarvelEliminationGroup:
+      type: object
+      additionalProperties: false
+      required: [id, groupKey, position, status, completedAt, entries]
+      properties:
+        id: { type: integer }
+        groupKey: { type: string }
+        position: { type: integer, minimum: 1 }
+        status: { type: string, enum: [pending, completed] }
+        completedAt: { type: ["string", "null"], format: date-time }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/MarvelEliminationGroupEntry" }
+
+    MarvelEliminationRound:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          roundNumber,
+          participantCount,
+          status,
+          randomSeed,
+          completedAt,
+          groups,
+        ]
+      properties:
+        id: { type: integer }
+        roundNumber: { type: integer, minimum: 1 }
+        participantCount: { type: integer, minimum: 1 }
+        status: { type: string, enum: [active, awaiting_manual, completed] }
+        randomSeed: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"], format: date-time }
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/MarvelEliminationGroup" }
+
+    MarvelEliminationStageState:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          tournamentId,
+          stageId,
+          status,
+          currentRound,
+          totalRounds,
+          winnerId,
+          config,
+          rounds,
+        ]
+      properties:
+        tournamentId: { type: integer }
+        stageId: { type: integer }
+        status: { type: string, enum: [planned, active, completed] }
+        currentRound: { type: ["integer", "null"] }
+        totalRounds: { type: ["integer", "null"] }
+        winnerId: { type: ["integer", "null"] }
+        config: { $ref: "#/components/schemas/MarvelTournamentConfigV1" }
+        rounds:
+          type: array
+          items: { $ref: "#/components/schemas/MarvelEliminationRound" }
+
     DoubleEliminationParticipant:
       type: object
       additionalProperties: false
@@ -2608,6 +3013,7 @@ components:
           description: Optional game configuration. Null removes it. Editable only while the tournament is a draft.
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+            - $ref: "#/components/schemas/MarvelTournamentGameConfig"
             - type: "null"
         presentationSettings:
           description: Optional presentation preferences. Editable at any tournament status.
@@ -3231,7 +3637,9 @@ components:
             featuredMatchBackupId: { type: ["integer", "null"] }
             visibility: { type: string, enum: [public_online, private_online, private_offline] }
             gameConfig:
-              $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+              oneOf:
+                - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
+                - $ref: "#/components/schemas/MarvelTournamentGameConfig"
         players:
           type: array
           items:
@@ -3320,6 +3728,60 @@ components:
               sourceStageParticipantBackupId: { type: ["integer", "null"] }
               qualifiedAt: { type: ["string", "null"] }
               createdAt: { type: string }
+        marvelRounds:
+          type: array
+          description: Optional persisted internal runtime for Marvel elimination-group stages.
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, roundNumber, participantCount, groupSize, advancingCount, killLimit, regroupingStrategy, status, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              roundNumber: { type: integer, minimum: 1 }
+              participantCount: { type: integer, minimum: 1 }
+              groupSize: { type: integer, minimum: 2 }
+              advancingCount: { type: integer, minimum: 1 }
+              killLimit: { type: integer, minimum: 1 }
+              regroupingStrategy: { type: string, enum: [paired_merge, random, manual] }
+              status: { type: string, enum: [active, awaiting_manual, completed] }
+              randomSeed: { type: ["string", "null"] }
+              createdAt: { type: string }
+              completedAt: { type: ["string", "null"] }
+        marvelGroups:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, roundBackupId, groupKey, position, status, createdAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              roundBackupId: { type: integer }
+              groupKey: { type: string, minLength: 1 }
+              position: { type: integer, minimum: 1 }
+              status: { type: string, enum: [pending, completed] }
+              completedAt: { type: ["string", "null"] }
+              createdAt: { type: string }
+        marvelGroupEntries:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [backupId, stageBackupId, roundBackupId, groupBackupId, playerBackupId, groupSlot, createdAt, updatedAt]
+            properties:
+              backupId: { type: integer }
+              stageBackupId: { type: integer }
+              roundBackupId: { type: integer }
+              groupBackupId: { type: integer }
+              playerBackupId: { type: integer }
+              sourceGroupBackupId: { type: ["integer", "null"] }
+              groupSlot: { type: integer, minimum: 1 }
+              placement: { type: ["integer", "null"], minimum: 1 }
+              kills: { type: ["integer", "null"], minimum: 0 }
+              qualified: { type: ["boolean", "null"] }
+              createdAt: { type: string }
+              updatedAt: { type: string }
         stageBaskets:
           type: array
           description: Optional explicit stage basket configuration. Its absence preserves legacy one-input/one-output semantics.

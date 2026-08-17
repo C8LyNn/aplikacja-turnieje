@@ -27,7 +27,15 @@ export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const listTournamentsResponseGameConfigOneConfigStageBansMax = 10;
 
+export const listTournamentsResponseGameConfigTwoConfigGroupSizeDefault = 8;
+export const listTournamentsResponseGameConfigTwoConfigGroupSizeMin = 2;
+export const listTournamentsResponseGameConfigTwoConfigGroupSizeMax = 128;
 
+export const listTournamentsResponseGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const listTournamentsResponseGameConfigTwoConfigKillLimitDefault = 20;
+
+export const listTournamentsResponseGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const ListTournamentsResponseItem = zod.object({
   "id": zod.number(),
@@ -62,6 +70,15 @@ export const ListTournamentsResponseItem = zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(listTournamentsResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(listTournamentsResponseGameConfigTwoConfigGroupSizeMin).max(listTournamentsResponseGameConfigTwoConfigGroupSizeMax).default(listTournamentsResponseGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(listTournamentsResponseGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(listTournamentsResponseGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(listTournamentsResponseGameConfigTwoConfigRegroupingStrategyDefault)
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -105,13 +122,21 @@ export const createTournamentBodyStagePlanStagesItemRandomSeedMax = 200;
 export const createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault = `instant`;
 export const createTournamentBodyStagePlanStagesMax = 10;
 
-export const createTournamentBodyGameConfigConfigBansPerPlayerMin = 0;
-export const createTournamentBodyGameConfigConfigBansPerPlayerMax = 20;
+export const createTournamentBodyGameConfigOneConfigBansPerPlayerMin = 0;
+export const createTournamentBodyGameConfigOneConfigBansPerPlayerMax = 20;
 
 
-export const createTournamentBodyGameConfigConfigStageBansMax = 10;
+export const createTournamentBodyGameConfigOneConfigStageBansMax = 10;
 
+export const createTournamentBodyGameConfigTwoConfigGroupSizeDefault = 8;
+export const createTournamentBodyGameConfigTwoConfigGroupSizeMin = 2;
+export const createTournamentBodyGameConfigTwoConfigGroupSizeMax = 128;
 
+export const createTournamentBodyGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const createTournamentBodyGameConfigTwoConfigKillLimitDefault = 20;
+
+export const createTournamentBodyGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const CreateTournamentBody = zod.object({
   "name": zod.string().min(1),
@@ -146,19 +171,28 @@ export const CreateTournamentBody = zod.object({
   "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
 }).optional().describe('Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.'),
-  "gameConfig": zod.object({
+  "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(createTournamentBodyGameConfigConfigBansPerPlayerMin).max(createTournamentBodyGameConfigConfigBansPerPlayerMax).optional(),
+  "bansPerPlayer": zod.number().min(createTournamentBodyGameConfigOneConfigBansPerPlayerMin).max(createTournamentBodyGameConfigOneConfigBansPerPlayerMax).optional(),
   "stageBans": zod.array(zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
-})).max(createTournamentBodyGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})).max(createTournamentBodyGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
-}).optional()
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(createTournamentBodyGameConfigTwoConfigGroupSizeMin).max(createTournamentBodyGameConfigTwoConfigGroupSizeMax).default(createTournamentBodyGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(createTournamentBodyGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(createTournamentBodyGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(createTournamentBodyGameConfigTwoConfigRegroupingStrategyDefault)
+})
+})]).optional()
 })
 
 
@@ -173,7 +207,15 @@ export const getTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const getTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
+export const getTournamentResponseGameConfigTwoConfigGroupSizeDefault = 8;
+export const getTournamentResponseGameConfigTwoConfigGroupSizeMin = 2;
+export const getTournamentResponseGameConfigTwoConfigGroupSizeMax = 128;
 
+export const getTournamentResponseGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const getTournamentResponseGameConfigTwoConfigKillLimitDefault = 20;
+
+export const getTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const GetTournamentResponse = zod.object({
   "id": zod.number(),
@@ -209,6 +251,15 @@ export const GetTournamentResponse = zod.object({
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(getTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(getTournamentResponseGameConfigTwoConfigGroupSizeMin).max(getTournamentResponseGameConfigTwoConfigGroupSizeMax).default(getTournamentResponseGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(getTournamentResponseGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(getTournamentResponseGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(getTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault)
+})
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
   "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
@@ -227,7 +278,15 @@ export const updateTournamentBodyGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const updateTournamentBodyGameConfigOneConfigStageBansMax = 10;
 
+export const updateTournamentBodyGameConfigTwoConfigGroupSizeDefault = 8;
+export const updateTournamentBodyGameConfigTwoConfigGroupSizeMin = 2;
+export const updateTournamentBodyGameConfigTwoConfigGroupSizeMax = 128;
 
+export const updateTournamentBodyGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const updateTournamentBodyGameConfigTwoConfigKillLimitDefault = 20;
+
+export const updateTournamentBodyGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const UpdateTournamentBody = zod.object({
   "name": zod.string().optional(),
@@ -252,6 +311,15 @@ export const UpdateTournamentBody = zod.object({
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(updateTournamentBodyGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(updateTournamentBodyGameConfigTwoConfigGroupSizeMin).max(updateTournamentBodyGameConfigTwoConfigGroupSizeMax).default(updateTournamentBodyGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(updateTournamentBodyGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(updateTournamentBodyGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(updateTournamentBodyGameConfigTwoConfigRegroupingStrategyDefault)
+})
 }),zod.null()]).optional().describe('Optional game configuration. Null removes it. Editable only while the tournament is a draft.'),
   "presentationSettings": zod.union([zod.object({
   "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
@@ -265,7 +333,15 @@ export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const updateTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
+export const updateTournamentResponseGameConfigTwoConfigGroupSizeDefault = 8;
+export const updateTournamentResponseGameConfigTwoConfigGroupSizeMin = 2;
+export const updateTournamentResponseGameConfigTwoConfigGroupSizeMax = 128;
 
+export const updateTournamentResponseGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const updateTournamentResponseGameConfigTwoConfigKillLimitDefault = 20;
+
+export const updateTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const UpdateTournamentResponse = zod.object({
   "id": zod.number(),
@@ -300,6 +376,15 @@ export const UpdateTournamentResponse = zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(updateTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(updateTournamentResponseGameConfigTwoConfigGroupSizeMin).max(updateTournamentResponseGameConfigTwoConfigGroupSizeMax).default(updateTournamentResponseGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(updateTournamentResponseGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(updateTournamentResponseGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(updateTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault)
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1487,6 +1572,245 @@ export const ResetDoubleEliminationStageResponse = zod.object({
 })
 
 
+/**
+ * @summary Read persisted Marvel elimination-group rounds and results
+ */
+
+
+
+
+export const GetMarvelEliminationStageParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const getMarvelEliminationStageResponseConfigGroupSizeDefault = 8;
+export const getMarvelEliminationStageResponseConfigGroupSizeMin = 2;
+export const getMarvelEliminationStageResponseConfigGroupSizeMax = 128;
+
+export const getMarvelEliminationStageResponseConfigAdvancingCountDefault = 4;
+
+export const getMarvelEliminationStageResponseConfigKillLimitDefault = 20;
+
+export const getMarvelEliminationStageResponseConfigRegroupingStrategyDefault = `paired_merge`;
+
+
+
+
+export const getMarvelEliminationStageResponseRoundsItemGroupsItemEntriesItemKillsMin = 0;
+
+
+
+export const GetMarvelEliminationStageResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "currentRound": zod.number().nullable(),
+  "totalRounds": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "config": zod.object({
+  "groupSize": zod.number().min(getMarvelEliminationStageResponseConfigGroupSizeMin).max(getMarvelEliminationStageResponseConfigGroupSizeMax).default(getMarvelEliminationStageResponseConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(getMarvelEliminationStageResponseConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(getMarvelEliminationStageResponseConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(getMarvelEliminationStageResponseConfigRegroupingStrategyDefault)
+}),
+  "rounds": zod.array(zod.object({
+  "id": zod.number(),
+  "roundNumber": zod.number().min(1),
+  "participantCount": zod.number().min(1),
+  "status": zod.enum(['active', 'awaiting_manual', 'completed']),
+  "randomSeed": zod.string().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "groups": zod.array(zod.object({
+  "id": zod.number(),
+  "groupKey": zod.string(),
+  "position": zod.number().min(1),
+  "status": zod.enum(['pending', 'completed']),
+  "completedAt": zod.coerce.date().nullable(),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "groupSlot": zod.number().min(1),
+  "placement": zod.number().min(1).nullable(),
+  "kills": zod.number().min(getMarvelEliminationStageResponseRoundsItemGroupsItemEntriesItemKillsMin).nullable(),
+  "qualified": zod.boolean().nullable(),
+  "sourceGroupId": zod.number().nullable(),
+  "nextGroupId": zod.number().nullable()
+}))
+}))
+}))
+})
+
+
+/**
+ * @summary Persist the organizer-authoritative final order of one Marvel FFA group
+ */
+
+
+
+
+
+export const SubmitMarvelEliminationGroupResultParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1),
+  "groupId": zod.coerce.number().min(1)
+})
+
+
+export const submitMarvelEliminationGroupResultBodyPlacementsItemKillsMin = 0;
+
+export const submitMarvelEliminationGroupResultBodyPlacementsMin = 2;
+
+
+
+export const SubmitMarvelEliminationGroupResultBody = zod.object({
+  "placements": zod.array(zod.object({
+  "playerId": zod.number().min(1),
+  "kills": zod.number().min(submitMarvelEliminationGroupResultBodyPlacementsItemKillsMin).nullish()
+})).min(submitMarvelEliminationGroupResultBodyPlacementsMin)
+})
+
+export const submitMarvelEliminationGroupResultResponseConfigGroupSizeDefault = 8;
+export const submitMarvelEliminationGroupResultResponseConfigGroupSizeMin = 2;
+export const submitMarvelEliminationGroupResultResponseConfigGroupSizeMax = 128;
+
+export const submitMarvelEliminationGroupResultResponseConfigAdvancingCountDefault = 4;
+
+export const submitMarvelEliminationGroupResultResponseConfigKillLimitDefault = 20;
+
+export const submitMarvelEliminationGroupResultResponseConfigRegroupingStrategyDefault = `paired_merge`;
+
+
+
+
+export const submitMarvelEliminationGroupResultResponseRoundsItemGroupsItemEntriesItemKillsMin = 0;
+
+
+
+export const SubmitMarvelEliminationGroupResultResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "currentRound": zod.number().nullable(),
+  "totalRounds": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "config": zod.object({
+  "groupSize": zod.number().min(submitMarvelEliminationGroupResultResponseConfigGroupSizeMin).max(submitMarvelEliminationGroupResultResponseConfigGroupSizeMax).default(submitMarvelEliminationGroupResultResponseConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(submitMarvelEliminationGroupResultResponseConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(submitMarvelEliminationGroupResultResponseConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(submitMarvelEliminationGroupResultResponseConfigRegroupingStrategyDefault)
+}),
+  "rounds": zod.array(zod.object({
+  "id": zod.number(),
+  "roundNumber": zod.number().min(1),
+  "participantCount": zod.number().min(1),
+  "status": zod.enum(['active', 'awaiting_manual', 'completed']),
+  "randomSeed": zod.string().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "groups": zod.array(zod.object({
+  "id": zod.number(),
+  "groupKey": zod.string(),
+  "position": zod.number().min(1),
+  "status": zod.enum(['pending', 'completed']),
+  "completedAt": zod.coerce.date().nullable(),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "groupSlot": zod.number().min(1),
+  "placement": zod.number().min(1).nullable(),
+  "kills": zod.number().min(submitMarvelEliminationGroupResultResponseRoundsItemGroupsItemEntriesItemKillsMin).nullable(),
+  "qualified": zod.boolean().nullable(),
+  "sourceGroupId": zod.number().nullable(),
+  "nextGroupId": zod.number().nullable()
+}))
+}))
+}))
+})
+
+
+/**
+ * @summary Persist the manual grouping of all qualifiers for the pending Marvel round
+ */
+
+
+
+
+export const AssignMarvelEliminationManualGroupsParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+
+
+
+
+
+
+export const AssignMarvelEliminationManualGroupsBody = zod.object({
+  "groups": zod.array(zod.object({
+  "position": zod.number().min(1),
+  "playerIds": zod.array(zod.number().min(1)).min(1)
+})).min(1)
+})
+
+export const assignMarvelEliminationManualGroupsResponseConfigGroupSizeDefault = 8;
+export const assignMarvelEliminationManualGroupsResponseConfigGroupSizeMin = 2;
+export const assignMarvelEliminationManualGroupsResponseConfigGroupSizeMax = 128;
+
+export const assignMarvelEliminationManualGroupsResponseConfigAdvancingCountDefault = 4;
+
+export const assignMarvelEliminationManualGroupsResponseConfigKillLimitDefault = 20;
+
+export const assignMarvelEliminationManualGroupsResponseConfigRegroupingStrategyDefault = `paired_merge`;
+
+
+
+
+export const assignMarvelEliminationManualGroupsResponseRoundsItemGroupsItemEntriesItemKillsMin = 0;
+
+
+
+export const AssignMarvelEliminationManualGroupsResponse = zod.object({
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "currentRound": zod.number().nullable(),
+  "totalRounds": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "config": zod.object({
+  "groupSize": zod.number().min(assignMarvelEliminationManualGroupsResponseConfigGroupSizeMin).max(assignMarvelEliminationManualGroupsResponseConfigGroupSizeMax).default(assignMarvelEliminationManualGroupsResponseConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(assignMarvelEliminationManualGroupsResponseConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(assignMarvelEliminationManualGroupsResponseConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(assignMarvelEliminationManualGroupsResponseConfigRegroupingStrategyDefault)
+}),
+  "rounds": zod.array(zod.object({
+  "id": zod.number(),
+  "roundNumber": zod.number().min(1),
+  "participantCount": zod.number().min(1),
+  "status": zod.enum(['active', 'awaiting_manual', 'completed']),
+  "randomSeed": zod.string().nullable(),
+  "completedAt": zod.coerce.date().nullable(),
+  "groups": zod.array(zod.object({
+  "id": zod.number(),
+  "groupKey": zod.string(),
+  "position": zod.number().min(1),
+  "status": zod.enum(['pending', 'completed']),
+  "completedAt": zod.coerce.date().nullable(),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "groupSlot": zod.number().min(1),
+  "placement": zod.number().min(1).nullable(),
+  "kills": zod.number().min(assignMarvelEliminationManualGroupsResponseRoundsItemGroupsItemEntriesItemKillsMin).nullable(),
+  "qualified": zod.boolean().nullable(),
+  "sourceGroupId": zod.number().nullable(),
+  "nextGroupId": zod.number().nullable()
+}))
+}))
+}))
+})
+
+
 export const StartTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
@@ -1498,7 +1822,15 @@ export const startTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const startTournamentResponseGameConfigOneConfigStageBansMax = 10;
 
+export const startTournamentResponseGameConfigTwoConfigGroupSizeDefault = 8;
+export const startTournamentResponseGameConfigTwoConfigGroupSizeMin = 2;
+export const startTournamentResponseGameConfigTwoConfigGroupSizeMax = 128;
 
+export const startTournamentResponseGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const startTournamentResponseGameConfigTwoConfigKillLimitDefault = 20;
+
+export const startTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const StartTournamentResponse = zod.object({
   "id": zod.number(),
@@ -1533,6 +1865,15 @@ export const StartTournamentResponse = zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(startTournamentResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(startTournamentResponseGameConfigTwoConfigGroupSizeMin).max(startTournamentResponseGameConfigTwoConfigGroupSizeMax).default(startTournamentResponseGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(startTournamentResponseGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(startTournamentResponseGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(startTournamentResponseGameConfigTwoConfigRegroupingStrategyDefault)
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1614,7 +1955,15 @@ export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
 export const generateNextRoundResponseGameConfigOneConfigStageBansMax = 10;
 
+export const generateNextRoundResponseGameConfigTwoConfigGroupSizeDefault = 8;
+export const generateNextRoundResponseGameConfigTwoConfigGroupSizeMin = 2;
+export const generateNextRoundResponseGameConfigTwoConfigGroupSizeMax = 128;
 
+export const generateNextRoundResponseGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const generateNextRoundResponseGameConfigTwoConfigKillLimitDefault = 20;
+
+export const generateNextRoundResponseGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 export const GenerateNextRoundResponse = zod.object({
   "id": zod.number(),
@@ -1650,6 +1999,15 @@ export const GenerateNextRoundResponse = zod.object({
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(generateNextRoundResponseGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(generateNextRoundResponseGameConfigTwoConfigGroupSizeMin).max(generateNextRoundResponseGameConfigTwoConfigGroupSizeMax).default(generateNextRoundResponseGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(generateNextRoundResponseGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(generateNextRoundResponseGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(generateNextRoundResponseGameConfigTwoConfigRegroupingStrategyDefault)
+})
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
   "deadlockTheme": zod.boolean().optional().describe('Enable Deadlock visual theme (beige\/dark-brown palette + Valve Pulp Bold font)')
@@ -1668,7 +2026,15 @@ export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPla
 
 export const getTournamentBracketResponseTournamentGameConfigOneConfigStageBansMax = 10;
 
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeDefault = 8;
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeMin = 2;
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeMax = 128;
 
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigKillLimitDefault = 20;
+
+export const getTournamentBracketResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 
 export const GetTournamentBracketResponse = zod.object({
@@ -1705,6 +2071,15 @@ export const GetTournamentBracketResponse = zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
 })).max(getTournamentBracketResponseTournamentGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeMin).max(getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeMax).default(getTournamentBracketResponseTournamentGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(getTournamentBracketResponseTournamentGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(getTournamentBracketResponseTournamentGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(getTournamentBracketResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault)
 })
 }),zod.null()]).optional(),
   "presentationSettings": zod.union([zod.object({
@@ -1872,14 +2247,35 @@ export const ExportTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
 
-export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin = 0;
-export const exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax = 20;
+export const exportTournamentResponseTournamentGameConfigOneConfigBansPerPlayerMin = 0;
+export const exportTournamentResponseTournamentGameConfigOneConfigBansPerPlayerMax = 20;
 
 
-export const exportTournamentResponseTournamentGameConfigConfigStageBansMax = 10;
+export const exportTournamentResponseTournamentGameConfigOneConfigStageBansMax = 10;
 
+export const exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeDefault = 8;
+export const exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeMin = 2;
+export const exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeMax = 128;
+
+export const exportTournamentResponseTournamentGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const exportTournamentResponseTournamentGameConfigTwoConfigKillLimitDefault = 20;
+
+export const exportTournamentResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 export const exportTournamentResponseStagesMax = 10;
 
+
+
+
+export const exportTournamentResponseMarvelRoundsItemGroupSizeMin = 2;
+
+
+
+
+
+
+
+export const exportTournamentResponseMarvelGroupEntriesItemKillsMin = 0;
 
 export const exportTournamentResponseStageBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 export const exportTournamentResponseStageBasketsItemOrdinalMax = 4;
@@ -1915,19 +2311,28 @@ export const ExportTournamentResponse = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
-  "gameConfig": zod.object({
+  "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMin).max(exportTournamentResponseTournamentGameConfigConfigBansPerPlayerMax).optional(),
+  "bansPerPlayer": zod.number().min(exportTournamentResponseTournamentGameConfigOneConfigBansPerPlayerMin).max(exportTournamentResponseTournamentGameConfigOneConfigBansPerPlayerMax).optional(),
   "stageBans": zod.array(zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
-})).max(exportTournamentResponseTournamentGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})).max(exportTournamentResponseTournamentGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
-}).optional()
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeMin).max(exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeMax).default(exportTournamentResponseTournamentGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(exportTournamentResponseTournamentGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(exportTournamentResponseTournamentGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(exportTournamentResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault)
+})
+})]).optional()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -1993,6 +2398,44 @@ export const ExportTournamentResponse = zod.object({
   "qualifiedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })),
+  "marvelRounds": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundNumber": zod.number().min(1),
+  "participantCount": zod.number().min(1),
+  "groupSize": zod.number().min(exportTournamentResponseMarvelRoundsItemGroupSizeMin),
+  "advancingCount": zod.number().min(1),
+  "killLimit": zod.number().min(1),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']),
+  "status": zod.enum(['active', 'awaiting_manual', 'completed']),
+  "randomSeed": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "completedAt": zod.string().nullish()
+})).optional().describe('Optional persisted internal runtime for Marvel elimination-group stages.'),
+  "marvelGroups": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundBackupId": zod.number(),
+  "groupKey": zod.string().min(1),
+  "position": zod.number().min(1),
+  "status": zod.enum(['pending', 'completed']),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional(),
+  "marvelGroupEntries": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundBackupId": zod.number(),
+  "groupBackupId": zod.number(),
+  "playerBackupId": zod.number(),
+  "sourceGroupBackupId": zod.number().nullish(),
+  "groupSlot": zod.number().min(1),
+  "placement": zod.number().min(1).nullish(),
+  "kills": zod.number().min(exportTournamentResponseMarvelGroupEntriesItemKillsMin).nullish(),
+  "qualified": zod.boolean().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "stageBaskets": zod.array(zod.object({
   "id": zod.string().regex(exportTournamentResponseStageBasketsItemIdRegExp),
   "stageBackupId": zod.number(),
@@ -2118,14 +2561,35 @@ export const ExportTournamentResponse = zod.object({
  */
 
 
-export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin = 0;
-export const importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax = 20;
+export const importTournamentBodyBackupTwoTournamentGameConfigOneConfigBansPerPlayerMin = 0;
+export const importTournamentBodyBackupTwoTournamentGameConfigOneConfigBansPerPlayerMax = 20;
 
 
-export const importTournamentBodyBackupTwoTournamentGameConfigConfigStageBansMax = 10;
+export const importTournamentBodyBackupTwoTournamentGameConfigOneConfigStageBansMax = 10;
 
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeDefault = 8;
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeMin = 2;
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeMax = 128;
+
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigAdvancingCountDefault = 4;
+
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigKillLimitDefault = 20;
+
+export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 export const importTournamentBodyBackupTwoStagesMax = 10;
 
+
+
+
+export const importTournamentBodyBackupTwoMarvelRoundsItemGroupSizeMin = 2;
+
+
+
+
+
+
+
+export const importTournamentBodyBackupTwoMarvelGroupEntriesItemKillsMin = 0;
 
 export const importTournamentBodyBackupTwoStageBasketsItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
 export const importTournamentBodyBackupTwoStageBasketsItemOrdinalMax = 4;
@@ -2240,19 +2704,28 @@ export const ImportTournamentBody = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
-  "gameConfig": zod.object({
+  "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
   "config": zod.object({
   "forcedHeroId": zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']).optional(),
   "banMode": zod.enum(['shared_pool', 'opponent_only']).optional(),
-  "bansPerPlayer": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMin).max(importTournamentBodyBackupTwoTournamentGameConfigConfigBansPerPlayerMax).optional(),
+  "bansPerPlayer": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigOneConfigBansPerPlayerMin).max(importTournamentBodyBackupTwoTournamentGameConfigOneConfigBansPerPlayerMax).optional(),
   "stageBans": zod.array(zod.object({
   "stageKey": zod.string().min(1),
   "bannedHeroIds": zod.array(zod.enum(['abrams', 'wraith', 'shiv', 'silver', 'drifter', 'the_doorman', 'sinclair', 'grey_talon', 'mo_and_krill', 'yamato', 'holliday', 'warden', 'mina', 'paradox', 'mcginnis', 'dynamo', 'infernus', 'haze', 'mirage', 'rem', 'paige', 'ivy', 'venator', 'vindicta', 'viscous', 'lash', 'vyper', 'kelvin', 'calico', 'victor', 'graves', 'bebop', 'pocket', 'seven', 'billy', 'lady_geist', 'apollo', 'celeste']))
-})).max(importTournamentBodyBackupTwoTournamentGameConfigConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
+})).max(importTournamentBodyBackupTwoTournamentGameConfigOneConfigStageBansMax).optional().describe('Additional global hero bans introduced by each stage. Effective bans are cumulative in stage order.')
 })
-}).optional()
+}),zod.object({
+  "gameId": zod.literal("marvel"),
+  "configVersion": zod.number(),
+  "config": zod.object({
+  "groupSize": zod.number().min(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeMin).max(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeMax).default(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigGroupSizeDefault),
+  "advancingCount": zod.number().min(1).default(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigAdvancingCountDefault),
+  "killLimit": zod.number().min(1).default(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigKillLimitDefault),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']).default(importTournamentBodyBackupTwoTournamentGameConfigTwoConfigRegroupingStrategyDefault)
+})
+})]).optional()
 }),
   "players": zod.array(zod.object({
   "backupId": zod.number(),
@@ -2318,6 +2791,44 @@ export const ImportTournamentBody = zod.object({
   "qualifiedAt": zod.string().nullish(),
   "createdAt": zod.string()
 })),
+  "marvelRounds": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundNumber": zod.number().min(1),
+  "participantCount": zod.number().min(1),
+  "groupSize": zod.number().min(importTournamentBodyBackupTwoMarvelRoundsItemGroupSizeMin),
+  "advancingCount": zod.number().min(1),
+  "killLimit": zod.number().min(1),
+  "regroupingStrategy": zod.enum(['paired_merge', 'random', 'manual']),
+  "status": zod.enum(['active', 'awaiting_manual', 'completed']),
+  "randomSeed": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "completedAt": zod.string().nullish()
+})).optional().describe('Optional persisted internal runtime for Marvel elimination-group stages.'),
+  "marvelGroups": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundBackupId": zod.number(),
+  "groupKey": zod.string().min(1),
+  "position": zod.number().min(1),
+  "status": zod.enum(['pending', 'completed']),
+  "completedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})).optional(),
+  "marvelGroupEntries": zod.array(zod.object({
+  "backupId": zod.number(),
+  "stageBackupId": zod.number(),
+  "roundBackupId": zod.number(),
+  "groupBackupId": zod.number(),
+  "playerBackupId": zod.number(),
+  "sourceGroupBackupId": zod.number().nullish(),
+  "groupSlot": zod.number().min(1),
+  "placement": zod.number().min(1).nullish(),
+  "kills": zod.number().min(importTournamentBodyBackupTwoMarvelGroupEntriesItemKillsMin).nullish(),
+  "qualified": zod.boolean().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})).optional(),
   "stageBaskets": zod.array(zod.object({
   "id": zod.string().regex(importTournamentBodyBackupTwoStageBasketsItemIdRegExp),
   "stageBackupId": zod.number(),

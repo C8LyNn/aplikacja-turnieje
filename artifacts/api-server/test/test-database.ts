@@ -98,6 +98,10 @@ const BASKET_FLOW_AUTHORITY_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0024_basket_flow_authority.sql",
   import.meta.url,
 );
+const MARVEL_ELIMINATION_GROUPS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0025_marvel_elimination_groups.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
@@ -369,6 +373,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(basketFlowAuthorityMigrationSql);
       // ADD COLUMN IF NOT EXISTS and DROP/ADD CONSTRAINT remain replay-safe.
       await pool.query(basketFlowAuthorityMigrationSql);
+      const marvelEliminationGroupsMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(MARVEL_ELIMINATION_GROUPS_MIGRATION_URL, "utf8"),
+          schema,
+        ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+      await pool.query(marvelEliminationGroupsMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

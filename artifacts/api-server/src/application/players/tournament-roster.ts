@@ -9,6 +9,7 @@ import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
 } from "../../access-policy";
+import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -109,10 +110,11 @@ export async function addTournamentPlayer(input: {
     if (playerCount >= (tournament.maxPlayers ?? 256))
       throw new TournamentRosterError("PLAYER_LIMIT_REACHED");
 
-    const [player] = await tx
-      .insert(playersTable)
-      .values({ ...input.player, tournamentId: input.tournamentId, name })
-      .returning();
+    const player = await addPlayerWithStagePlanCompatibilityInTransaction(tx, {
+      ...input.player,
+      tournamentId: input.tournamentId,
+      name,
+    });
     await tx.insert(actionLogTable).values({
       tournamentId: input.tournamentId,
       actionType: "player_added",

@@ -7,6 +7,9 @@ import {
   actionLogTable,
   appSchemaMigrationsTable,
   matchesTable,
+  marvelStageGroupEntriesTable,
+  marvelStageGroupsTable,
+  marvelStageRoundsTable,
   resultHistoryTable,
   stageBasketParticipantsTable,
   stageBasketRoutesTable,
@@ -74,6 +77,76 @@ function expectUniqueConstraint(
 }
 
 describe("authoritative Drizzle schema", () => {
+  test("declares the persisted Marvel round, group, and entry runtime", () => {
+    assert.equal(
+      getTableConfig(marvelStageRoundsTable).name,
+      "marvel_stage_rounds",
+    );
+    assert.equal(
+      getTableConfig(marvelStageGroupsTable).name,
+      "marvel_stage_groups",
+    );
+    assert.equal(
+      getTableConfig(marvelStageGroupEntriesTable).name,
+      "marvel_stage_group_entries",
+    );
+    assert.equal(
+      foreignKeyConfig(marvelStageRoundsTable, "marvel_stage_rounds_stage_fk")
+        .foreignTable,
+      "tournament_stages",
+    );
+    assert.equal(
+      foreignKeyConfig(
+        marvelStageGroupEntriesTable,
+        "marvel_stage_group_entries_player_fk",
+      ).foreignTable,
+      "players",
+    );
+    expectUniqueConstraint(
+      marvelStageGroupsTable,
+      "marvel_stage_groups_tournament_stage_round_id_unique",
+      ["tournament_id", "stage_id", "round_id", "id"],
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        marvelStageGroupEntriesTable,
+        "marvel_stage_group_entries_group_fk",
+      ),
+      {
+        columns: ["tournament_id", "stage_id", "round_id", "group_id"],
+        foreignTable: "marvel_stage_groups",
+        foreignColumns: ["tournament_id", "stage_id", "round_id", "id"],
+        onDelete: "cascade",
+      },
+    );
+    assert.deepEqual(
+      foreignKeyConfig(
+        marvelStageGroupEntriesTable,
+        "marvel_stage_group_entries_source_group_fk",
+      ),
+      {
+        columns: ["tournament_id", "source_group_id"],
+        foreignTable: "marvel_stage_groups",
+        foreignColumns: ["tournament_id", "id"],
+        onDelete: "cascade",
+      },
+    );
+    const migration = readFileSync(
+      resolve(
+        repositoryRoot,
+        "lib/db/migrations/0025_marvel_elimination_groups.sql",
+      ),
+      "utf8",
+    );
+    assert.match(migration, /CREATE TABLE public\.marvel_stage_rounds/);
+    assert.match(migration, /CREATE TABLE public\.marvel_stage_groups/);
+    assert.match(migration, /CREATE TABLE public\.marvel_stage_group_entries/);
+    assert.match(
+      migration,
+      /marvel_stage_group_entries_source_group_fk[\s\S]*?ON DELETE CASCADE/,
+    );
+  });
+
   test("persists basket-flow authority as an explicit compatibility-safe version", () => {
     const tournaments = getTableConfig(tournamentsTable);
     const authorityVersion = tournaments.columns.find(

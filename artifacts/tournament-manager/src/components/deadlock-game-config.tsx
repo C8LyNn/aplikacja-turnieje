@@ -3,6 +3,9 @@ import {
   DEADLOCK_CONFIG_VERSION,
   DEADLOCK_GAME_ID,
   DEADLOCK_HEROES,
+  DEFAULT_MARVEL_TOURNAMENT_CONFIG,
+  MARVEL_CONFIG_VERSION,
+  MARVEL_GAME_ID,
   getDeadlockHero,
   type DeadlockHeroId,
   type DeadlockHeroDefinition,
@@ -13,7 +16,6 @@ import {
   getListTournamentStagesQueryKey,
   useUpdateTournament,
   useListTournamentStages,
-  type DeadlockTournamentGameConfig,
   type Tournament,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { DeadlockStageBansEditor } from "@/components/deadlock-stage-bans-editor";
 
-type GameConfig = DeadlockTournamentGameConfig | null;
+type GameConfig = NonNullable<Tournament["gameConfig"]> | null;
 
 export function gameAssetUrl(iconKey: string): string {
   const base = import.meta.env?.BASE_URL || "/";
@@ -77,8 +79,8 @@ export function ForcedHeroBadge({
   gameConfig?: Tournament["gameConfig"];
   compact?: boolean;
 }) {
-  const hero = getDeadlockHero(gameConfig?.config.forcedHeroId);
   if (!gameConfig || gameConfig.gameId !== DEADLOCK_GAME_ID) return null;
+  const hero = getDeadlockHero(gameConfig.config.forcedHeroId);
 
   return (
     <Badge
@@ -100,10 +102,12 @@ export function GameConfigPicker({
   value,
   onChange,
   disabled = false,
+  lockGameSelection = false,
 }: {
   value: GameConfig;
   onChange: (value: GameConfig) => void;
   disabled?: boolean;
+  lockGameSelection?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const visibleHeroes = useMemo(() => {
@@ -112,17 +116,22 @@ export function GameConfigPicker({
       ? DEADLOCK_HEROES.filter((hero) => hero.displayName.toLocaleLowerCase("pl").includes(query))
       : DEADLOCK_HEROES;
   }, [search]);
-  const selectedHeroId = value?.config.forcedHeroId;
-  const banMode = value?.config?.banMode ?? "shared_pool";
-  const bansPerPlayer = value?.config?.bansPerPlayer ?? 5;
+  const deadlockConfig =
+    value?.gameId === DEADLOCK_GAME_ID ? value.config : null;
+  const marvelConfig = value?.gameId === MARVEL_GAME_ID ? value.config : null;
+  const selectedHeroId = deadlockConfig?.forcedHeroId;
+  const banMode = deadlockConfig?.banMode ?? "shared_pool";
+  const bansPerPlayer = deadlockConfig?.bansPerPlayer ?? 5;
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="tournament-game">Gra (opcjonalnie)</Label>
+        <Label htmlFor="tournament-game">
+          Specjalne zasady gry (opcjonalnie)
+        </Label>
         <Select
           value={value?.gameId ?? "none"}
-          disabled={disabled}
+          disabled={disabled || lockGameSelection}
           onValueChange={(gameId) =>
             onChange(
               gameId === DEADLOCK_GAME_ID
@@ -131,20 +140,29 @@ export function GameConfigPicker({
                     configVersion: DEADLOCK_CONFIG_VERSION,
                     config: {},
                   }
-                : null,
+                : gameId === MARVEL_GAME_ID
+                  ? {
+                      gameId: MARVEL_GAME_ID,
+                      configVersion: MARVEL_CONFIG_VERSION,
+                      config: { ...DEFAULT_MARVEL_TOURNAMENT_CONFIG },
+                    }
+                  : null,
             )
           }
         >
-          <SelectTrigger id="tournament-game">
+          <SelectTrigger id="tournament-game" aria-label="Gra (opcjonalnie)">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Bez konfiguracji gry</SelectItem>
             <SelectItem value={DEADLOCK_GAME_ID}>Deadlock</SelectItem>
+            <SelectItem value={MARVEL_GAME_ID}>
+              Marvel — Eliminacyjne grupy
+            </SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Konfiguracja gry jest niezależna od formatu i etapów turnieju.
+          Marvel uruchamia eliminacyjne grupy FFA wewnątrz jednego etapu.
         </p>
       </div>
 
@@ -264,6 +282,116 @@ export function GameConfigPicker({
           </div>
         </div>
       )}
+
+      {value?.gameId === MARVEL_GAME_ID && marvelConfig && (
+        <div className="space-y-4 rounded-lg border bg-muted/10 p-4">
+          <div>
+            <p className="font-semibold">Marvel FFA</p>
+            <p className="text-xs text-muted-foreground">
+              Organizator zapisuje końcową kolejność po mapie. Kille są
+              opcjonalne, a wpisana kolejność rozstrzyga także remisy.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="marvel-group-size">Rozmiar grupy</Label>
+              <Input
+                id="marvel-group-size"
+                type="number"
+                min={2}
+                max={128}
+                value={marvelConfig.groupSize}
+                disabled={disabled}
+                onChange={(event) => {
+                  const groupSize = Number(event.target.value);
+                  onChange({
+                    ...value,
+                    config: {
+                      ...marvelConfig,
+                      groupSize,
+                      advancingCount: Math.min(
+                        marvelConfig.advancingCount,
+                        Math.max(1, groupSize - 1),
+                      ),
+                    },
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marvel-advancing-count">Awansuje z grupy</Label>
+              <Input
+                id="marvel-advancing-count"
+                type="number"
+                min={1}
+                max={Math.max(1, marvelConfig.groupSize - 1)}
+                value={marvelConfig.advancingCount}
+                disabled={disabled}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    config: {
+                      ...marvelConfig,
+                      advancingCount: Number(event.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="marvel-kill-limit">Limit killi</Label>
+              <Input
+                id="marvel-kill-limit"
+                type="number"
+                min={1}
+                value={marvelConfig.killLimit}
+                disabled={disabled}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    config: {
+                      ...marvelConfig,
+                      killLimit: Number(event.target.value),
+                    },
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="marvel-regrouping">Kolejna runda</Label>
+            <Select
+              value={marvelConfig.regroupingStrategy}
+              disabled={disabled}
+              onValueChange={(regroupingStrategy) =>
+                onChange({
+                  ...value,
+                  config: {
+                    ...marvelConfig,
+                    regroupingStrategy:
+                      regroupingStrategy as typeof marvelConfig.regroupingStrategy,
+                  },
+                })
+              }
+            >
+              <SelectTrigger id="marvel-regrouping">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paired_merge">
+                  Połącz sąsiednie grupy
+                </SelectItem>
+                <SelectItem value="random">Losuj ponownie</SelectItem>
+                <SelectItem value="manual">Ustaw ręcznie</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Wymagane: 1 ≤ liczba awansujących &lt; rozmiar grupy, limit killi
+            &gt; 0. Dla Marvela system banów nie jest tworzony ani wyświetlany.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -299,35 +427,56 @@ export function TournamentGameConfigPanel({
       <CardContent className="space-y-6">
         {/* ── Reguły gry (locked after draft) ── */}
         <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reguły gry</p>
-          <GameConfigPicker value={value} onChange={setValue} disabled={locked} />
-          {value?.gameId === DEADLOCK_GAME_ID && stages.map((stage, index) => {
-            const entries = value.config.stageBans ?? [];
-            const inherited = stages
-              .slice(0, index)
-              .flatMap((candidate) => entries.find((entry) => entry.stageKey === candidate.stageKey)?.bannedHeroIds ?? [])
-              .filter((heroId, heroIndex, all) => all.indexOf(heroId) === heroIndex) as DeadlockHeroId[];
-            const additional = (entries.find((entry) => entry.stageKey === stage.stageKey)?.bannedHeroIds ?? []) as DeadlockHeroId[];
-            return (
-              <div key={stage.id} className="space-y-2">
-                <p className="text-sm font-semibold">{stage.name}</p>
-                <DeadlockStageBansEditor
-                  inherited={inherited}
-                  additional={additional}
-                  disabled={locked}
-                  onChange={(bannedHeroIds) => {
-                    const nextEntries = entries
-                      .filter((entry) => entry.stageKey !== stage.stageKey)
-                      .concat(bannedHeroIds.length > 0 ? [{ stageKey: stage.stageKey, bannedHeroIds }] : []);
-                    setValue({
-                      ...value,
-                      config: { ...value.config, stageBans: nextEntries },
-                    });
-                  }}
-                />
-              </div>
-            );
-          })}
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Reguły gry
+          </p>
+          <GameConfigPicker
+            value={value}
+            onChange={setValue}
+            disabled={locked}
+            lockGameSelection={tournament.gameConfig?.gameId === "marvel"}
+          />
+          {value?.gameId === DEADLOCK_GAME_ID &&
+            stages.map((stage, index) => {
+              const entries = value.config.stageBans ?? [];
+              const inherited = stages
+                .slice(0, index)
+                .flatMap(
+                  (candidate) =>
+                    entries.find(
+                      (entry) => entry.stageKey === candidate.stageKey,
+                    )?.bannedHeroIds ?? [],
+                )
+                .filter(
+                  (heroId, heroIndex, all) => all.indexOf(heroId) === heroIndex,
+                ) as DeadlockHeroId[];
+              const additional = (entries.find(
+                (entry) => entry.stageKey === stage.stageKey,
+              )?.bannedHeroIds ?? []) as DeadlockHeroId[];
+              return (
+                <div key={stage.id} className="space-y-2">
+                  <p className="text-sm font-semibold">{stage.name}</p>
+                  <DeadlockStageBansEditor
+                    inherited={inherited}
+                    additional={additional}
+                    disabled={locked}
+                    onChange={(bannedHeroIds) => {
+                      const nextEntries = entries
+                        .filter((entry) => entry.stageKey !== stage.stageKey)
+                        .concat(
+                          bannedHeroIds.length > 0
+                            ? [{ stageKey: stage.stageKey, bannedHeroIds }]
+                            : [],
+                        );
+                      setValue({
+                        ...value,
+                        config: { ...value.config, stageBans: nextEntries },
+                      });
+                    }}
+                  />
+                </div>
+              );
+            })}
           {locked ? (
             <div className="space-y-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
@@ -346,6 +495,11 @@ export function TournamentGameConfigPanel({
                     onSuccess: () => {
                       void queryClient.invalidateQueries({
                         queryKey: getGetTournamentQueryKey(tournament.id),
+                      });
+                      void queryClient.invalidateQueries({
+                        queryKey: getListTournamentStagesQueryKey(
+                          tournament.id,
+                        ),
                       });
                       toast({ title: "Zapisano konfigurację gry" });
                     },

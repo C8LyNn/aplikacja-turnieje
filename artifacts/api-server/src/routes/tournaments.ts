@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
-import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable } from "@workspace/db";
+import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable, tournamentGameConfigsTable } from "@workspace/db";
 import {
   TournamentGameConfigError,
   getDeadlockBanMode,
@@ -42,6 +42,7 @@ import {
   completeStage,
   getQualificationPreview,
   getStageStartReadiness,
+  shouldUseStageLifecycleForLegacyTournamentStart,
   startStage,
   StageLifecycleError,
   type StageLifecycleErrorCode,
@@ -84,6 +85,12 @@ import {
   getDoubleEliminationStageState,
   resetDoubleEliminationStage,
 } from "../application/stages/double-elimination-stage";
+import {
+  assignMarvelManualGroups,
+  getMarvelEliminationStageState,
+  MarvelEliminationStageError,
+  submitMarvelGroupResult,
+} from "../application/stages/marvel-elimination-stage";
 import {
   approveQualificationProposal,
   generateQualificationProposal,
@@ -167,6 +174,11 @@ import {
   GetDoubleEliminationStageParams,
   ResetDoubleEliminationStageParams,
   ResetDoubleEliminationStageBody,
+  GetMarvelEliminationStageParams,
+  SubmitMarvelEliminationGroupResultParams,
+  SubmitMarvelEliminationGroupResultBody,
+  AssignMarvelEliminationManualGroupsParams,
+  AssignMarvelEliminationManualGroupsBody,
   type TournamentBackupV2,
   type TournamentBackupV3,
 } from "@workspace/api-zod";
@@ -245,6 +257,28 @@ function sendDoubleEliminationError(
     error: error.message,
     code: error.code,
   });
+}
+
+function sendMarvelEliminationError(
+  error: MarvelEliminationStageError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set([
+    "MARVEL_STAGE_NOT_FOUND",
+    "MARVEL_GROUP_NOT_FOUND",
+  ]);
+  const invalid = new Set([
+    "MARVEL_GROUP_RESULT_INVALID",
+    "MARVEL_MANUAL_GROUPING_INVALID",
+  ]);
+  const status = notFound.has(error.code)
+    ? 404
+    : invalid.has(error.code)
+      ? 400
+      : error.code === "MARVEL_STAGE_CONFIGURATION_INVALID"
+        ? 422
+        : 409;
+  res.status(status).json({ error: error.message, code: error.code });
 }
 
 function sendSeedingCeremonyError(
@@ -902,6 +936,10 @@ router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<
       sendStageLifecycleError(error, res);
       return;
     }
+    if (error instanceof MarvelEliminationStageError) {
+      sendMarvelEliminationError(error, res);
+      return;
+    }
     throw error;
   }
 });
@@ -942,6 +980,93 @@ router.post("/tournaments/:id/stages/:stageId/double-elimination/reset", async (
     throw error;
   }
 });
+
+router.get(
+  "/tournaments/:id/stages/:stageId/marvel-elimination",
+  async (req, res): Promise<void> => {
+    const params = GetMarvelEliminationStageParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    if (!await requireTournamentRead(req, res, params.data.id)) return;
+    try {
+      res.json(await getMarvelEliminationStageState({
+        tournamentId: params.data.id,
+        stageId: params.data.stageId,
+      }));
+    } catch (error) {
+      if (error instanceof MarvelEliminationStageError) {
+        sendMarvelEliminationError(error, res);
+        return;
+      }
+      throw error;
+    }
+  },
+);
+
+router.put(
+  "/tournaments/:id/stages/:stageId/marvel-elimination/groups/:groupId/result",
+  async (req, res): Promise<void> => {
+    const params = SubmitMarvelEliminationGroupResultParams.safeParse(req.params);
+    const body = SubmitMarvelEliminationGroupResultBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({
+        error: "Invalid Marvel group result",
+        code: "MARVEL_GROUP_RESULT_INVALID",
+      });
+      return;
+    }
+    const access = await requireTournamentWrite(req, res, params.data.id);
+    if (!access) return;
+    try {
+      res.json(await submitMarvelGroupResult({
+        tournamentId: params.data.id,
+        stageId: params.data.stageId,
+        groupId: params.data.groupId,
+        placements: body.data.placements,
+        actor: getTournamentMutationActor(access),
+      }));
+    } catch (error) {
+      if (error instanceof MarvelEliminationStageError) {
+        sendMarvelEliminationError(error, res);
+        return;
+      }
+      throw error;
+    }
+  },
+);
+
+router.put(
+  "/tournaments/:id/stages/:stageId/marvel-elimination/manual-groups",
+  async (req, res): Promise<void> => {
+    const params = AssignMarvelEliminationManualGroupsParams.safeParse(req.params);
+    const body = AssignMarvelEliminationManualGroupsBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({
+        error: "Invalid Marvel manual grouping",
+        code: "MARVEL_MANUAL_GROUPING_INVALID",
+      });
+      return;
+    }
+    const access = await requireTournamentWrite(req, res, params.data.id);
+    if (!access) return;
+    try {
+      res.json(await assignMarvelManualGroups({
+        tournamentId: params.data.id,
+        stageId: params.data.stageId,
+        groups: body.data.groups,
+        actor: getTournamentMutationActor(access),
+      }));
+    } catch (error) {
+      if (error instanceof MarvelEliminationStageError) {
+        sendMarvelEliminationError(error, res);
+        return;
+      }
+      throw error;
+    }
+  },
+);
 
 // ─── Phase 2: Qualification Proposals ────────────────────────────────────────
 
@@ -1257,7 +1382,16 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     .from(tournamentStagesTable)
     .where(eq(tournamentStagesTable.tournamentId, tournament.id))
     .orderBy(tournamentStagesTable.position);
-  if (stages.length > 1 || stages[0]?.format === "double_elimination") {
+  const [startGameConfig] = stages.length === 1 && stages[0]?.format === "group_stage"
+    ? await db
+      .select({ gameId: tournamentGameConfigsTable.gameId })
+      .from(tournamentGameConfigsTable)
+      .where(eq(tournamentGameConfigsTable.tournamentId, tournament.id))
+    : [];
+  if (shouldUseStageLifecycleForLegacyTournamentStart(
+    stages,
+    startGameConfig?.gameId ?? null,
+  )) {
     try {
       await startStage({
         tournamentId: tournament.id,
@@ -1272,6 +1406,10 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     } catch (error) {
       if (error instanceof StageLifecycleError) {
         sendStageLifecycleError(error, res);
+        return;
+      }
+      if (error instanceof MarvelEliminationStageError) {
+        sendMarvelEliminationError(error, res);
         return;
       }
       throw error;
@@ -3034,6 +3172,9 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
     if (bannedHeroIds.length > configuredLimit) {
       res.status(422).json({ error: `bannedHeroIds exceeds the configured limit of ${configuredLimit} bans per player` }); return;
     }
+  } else if (gameConfig?.gameId === "marvel") {
+    res.status(422).json({ error: "Hero bans are not available for Marvel tournaments" });
+    return;
   } else {
     // Default limit of 5 when no game config
     if (bannedHeroIds.length > 5) {
