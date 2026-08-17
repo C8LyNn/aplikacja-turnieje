@@ -24,6 +24,8 @@ import type {
   AssistantSnapshot,
   BackupImportError,
   BackupRestoreInput,
+  BasketRouteExecution,
+  BasketRouteStatus,
   Bracket,
   CreateTournamentBadRequestError,
   CreateTournamentUnprocessableError,
@@ -64,6 +66,7 @@ import type {
   StageQualificationPreview,
   StageStartReadiness,
   Standing,
+  TargetStageInputArrivals,
   Tournament,
   TournamentBackupV3,
   TournamentCreationResponse,
@@ -1571,6 +1574,249 @@ export function useGetBasketQualificationOutput<TData = Awaited<ReturnType<typeo
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBasketQualificationOutputQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getExecuteBasketRouteUrl = (id: number,
+    stageId: number,
+    basketId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/baskets/${basketId}/route/execute`
+}
+
+/**
+ * @summary Materialise a configured basket route — copy approved output players to the target stage input basket
+ */
+export const executeBasketRoute = async (id: number,
+    stageId: number,
+    basketId: string, options?: RequestInit): Promise<BasketRouteExecution> => {
+
+  return customFetch<BasketRouteExecution>(getExecuteBasketRouteUrl(id,stageId,basketId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getExecuteBasketRouteMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeBasketRoute>>, TError,{id: number;stageId: number;basketId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof executeBasketRoute>>, TError,{id: number;stageId: number;basketId: string}, TContext> => {
+
+const mutationKey = ['executeBasketRoute'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof executeBasketRoute>>, {id: number;stageId: number;basketId: string}> = (props) => {
+          const {id,stageId,basketId} = props ?? {};
+
+          return  executeBasketRoute(id,stageId,basketId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExecuteBasketRouteMutationResult = NonNullable<Awaited<ReturnType<typeof executeBasketRoute>>>
+
+    export type ExecuteBasketRouteMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Materialise a configured basket route — copy approved output players to the target stage input basket
+ */
+export const useExecuteBasketRoute = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeBasketRoute>>, TError,{id: number;stageId: number;basketId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof executeBasketRoute>>,
+        TError,
+        {id: number;stageId: number;basketId: string},
+        TContext
+      > => {
+      return useMutation(getExecuteBasketRouteMutationOptions(options));
+    }
+
+export const getGetBasketRouteStatusUrl = (id: number,
+    stageId: number,
+    basketId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/baskets/${basketId}/route`
+}
+
+/**
+ * @summary Read the configured route and execution status for a source basket
+ */
+export const getBasketRouteStatus = async (id: number,
+    stageId: number,
+    basketId: string, options?: RequestInit): Promise<BasketRouteStatus> => {
+
+  return customFetch<BasketRouteStatus>(getGetBasketRouteStatusUrl(id,stageId,basketId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBasketRouteStatusQueryKey = (id: number,
+    stageId: number,
+    basketId: string,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/baskets/${basketId}/route`
+    ] as const;
+    }
+
+
+export const getGetBasketRouteStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBasketRouteStatus>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number,
+    basketId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketRouteStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBasketRouteStatusQueryKey(id,stageId,basketId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBasketRouteStatus>>> = ({ signal }) => getBasketRouteStatus(id,stageId,basketId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId && basketId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBasketRouteStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBasketRouteStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBasketRouteStatus>>>
+export type GetBasketRouteStatusQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read the configured route and execution status for a source basket
+ */
+
+export function useGetBasketRouteStatus<TData = Awaited<ReturnType<typeof getBasketRouteStatus>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number,
+    basketId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketRouteStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBasketRouteStatusQueryOptions(id,stageId,basketId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBasketInputArrivalsUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/basket-input-arrivals`
+}
+
+/**
+ * @summary Read aggregated input basket arrivals for a target stage (direct assignments + routed arrivals)
+ */
+export const getBasketInputArrivals = async (id: number,
+    stageId: number, options?: RequestInit): Promise<TargetStageInputArrivals> => {
+
+  return customFetch<TargetStageInputArrivals>(getGetBasketInputArrivalsUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBasketInputArrivalsQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/basket-input-arrivals`
+    ] as const;
+    }
+
+
+export const getGetBasketInputArrivalsQueryOptions = <TData = Awaited<ReturnType<typeof getBasketInputArrivals>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketInputArrivals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBasketInputArrivalsQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBasketInputArrivals>>> = ({ signal }) => getBasketInputArrivals(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBasketInputArrivals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBasketInputArrivalsQueryResult = NonNullable<Awaited<ReturnType<typeof getBasketInputArrivals>>>
+export type GetBasketInputArrivalsQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Read aggregated input basket arrivals for a target stage (direct assignments + routed arrivals)
+ */
+
+export function useGetBasketInputArrivals<TData = Awaited<ReturnType<typeof getBasketInputArrivals>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBasketInputArrivals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBasketInputArrivalsQueryOptions(id,stageId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

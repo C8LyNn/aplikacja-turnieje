@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -10,6 +10,8 @@ import {
   qualificationProposalsTable,
   resultHistoryTable,
   stageBasketParticipantsTable,
+  stageBasketRouteEntriesTable,
+  stageBasketRouteExecutionsTable,
   stageBasketRoutesTable,
   stageBasketsTable,
   stageBasketsOutputPlayersTable,
@@ -270,6 +272,32 @@ export async function exportBackupV3(
             ),
         ]);
 
+  // Load route executions and their entries (Phase 3).
+  const routeExecutionRows =
+    stageBaskets.length === 0 || stageBasketRoutes.length === 0
+      ? []
+      : await db
+          .select()
+          .from(stageBasketRouteExecutionsTable)
+          .where(eq(stageBasketRouteExecutionsTable.tournamentId, tournamentId))
+          .orderBy(asc(stageBasketRouteExecutionsTable.id));
+  const routeEntryRows =
+    routeExecutionRows.length === 0
+      ? []
+      : await db
+          .select()
+          .from(stageBasketRouteEntriesTable)
+          .where(
+            inArray(
+              stageBasketRouteEntriesTable.executionId,
+              routeExecutionRows.map((r) => r.id),
+            ),
+          )
+          .orderBy(
+            asc(stageBasketRouteEntriesTable.executionId),
+            asc(stageBasketRouteEntriesTable.sourceFinalRank),
+          );
+
   const gameConfig = gameConfigs[0];
   let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2>> | null = null;
   try {
@@ -481,6 +509,30 @@ export async function exportBackupV3(
             revision: execution.revision,
             state: execution.state as Record<string, unknown>,
           })),
+        }),
+    ...(routeExecutionRows.length === 0
+      ? {}
+      : {
+          routeExecutions: routeExecutionRows.map((execution) => {
+            const entries = routeEntryRows.filter(
+              (e) => e.executionId === execution.id,
+            );
+            return {
+              routeId: execution.routeId,
+              sourceBasketId: execution.sourceBasketId,
+              targetBasketId: execution.targetBasketId,
+              sourceProposalRevision: execution.sourceProposalRevision,
+              executedAt: execution.executedAt.toISOString(),
+              actorType: execution.actorType,
+              actorNick: execution.actorNick,
+              entries: entries.map((e) => ({
+                playerBackupId: e.playerId,
+                sourceBasketId: e.sourceBasketId,
+                sourceFinalRank: e.sourceFinalRank,
+                sourceBasketPosition: e.sourceBasketPosition,
+              })),
+            };
+          }),
         }),
     ...(qualificationProposals.length === 0
       ? {}
@@ -1292,6 +1344,44 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     )
       errors.push("Action log has invalid stage or match relations.");
   }
+  // Validate route executions (Phase 3).
+  const backupBasketById = new Map(
+    (backup.stageBaskets ?? []).map((basket) => [basket.id, basket]),
+  );
+  const backupRouteById = new Map(
+    (backup.stageBasketRoutes ?? []).map((route) => [route.id, route]),
+  );
+  const executionRouteIds = new Set<string>();
+  for (const exec of backup.routeExecutions ?? []) {
+    const route = backupRouteById.get(exec.routeId);
+    if (!route) {
+      errors.push(`Route execution references unknown route ${exec.routeId}.`);
+      continue;
+    }
+    if (executionRouteIds.has(exec.routeId))
+      errors.push(`Route execution for route ${exec.routeId} is duplicated.`);
+    executionRouteIds.add(exec.routeId);
+    if (!positive(exec.sourceProposalRevision))
+      errors.push(`Route execution for route ${exec.routeId} has invalid revision.`);
+    if (!date(exec.executedAt))
+      errors.push(`Route execution for route ${exec.routeId} has invalid executedAt.`);
+    const sourceBasket = backupBasketById.get(exec.sourceBasketId);
+    if (!sourceBasket)
+      errors.push(`Route execution for route ${exec.routeId} references unknown source basket ${exec.sourceBasketId}.`);
+    const targetBasket = backupBasketById.get(exec.targetBasketId);
+    if (!targetBasket)
+      errors.push(`Route execution for route ${exec.routeId} references unknown target basket ${exec.targetBasketId}.`);
+    for (const entry of exec.entries) {
+      if (!playerIds.has(entry.playerBackupId))
+        errors.push(`Route execution entry references unknown player ${entry.playerBackupId}.`);
+      if (!positive(entry.sourceFinalRank))
+        errors.push(`Route execution entry has invalid sourceFinalRank.`);
+      const entrySourceBasket = backupBasketById.get(entry.sourceBasketId);
+      if (!entrySourceBasket)
+        errors.push(`Route execution entry references unknown source basket ${entry.sourceBasketId}.`);
+    }
+  }
+
   // Validate qualification proposals
   for (const proposal of backup.qualificationProposals ?? []) {
     if (!stageIds.has(proposal.stageBackupId))
@@ -1932,6 +2022,86 @@ export async function importBackupV3(
             })),
           );
         }
+      }
+    }
+
+    // Restore route executions (Phase 3).
+    for (const exec of backup.routeExecutions ?? []) {
+      // Find the source basket to determine which stage it belongs to.
+      const sourceBasketBackup = (backup.stageBaskets ?? []).find(
+        (basket) => basket.id === exec.sourceBasketId,
+      );
+      if (!sourceBasketBackup) continue; // validated above
+      const restoredSourceStageId = stageIds.get(sourceBasketBackup.stageBackupId)!;
+      const targetBasketBackup = (backup.stageBaskets ?? []).find(
+        (basket) => basket.id === exec.targetBasketId,
+      );
+      if (!targetBasketBackup) continue;
+      const restoredTargetStageId = stageIds.get(targetBasketBackup.stageBackupId)!;
+
+      // Look up the restored proposal for the source stage.
+      const [restoredProposal] = await tx
+        .select({ id: qualificationProposalsTable.id, revision: qualificationProposalsTable.revision })
+        .from(qualificationProposalsTable)
+        .where(
+          and(
+            eq(qualificationProposalsTable.tournamentId, tournament.id),
+            eq(qualificationProposalsTable.stageId, restoredSourceStageId),
+          ),
+        );
+      if (!restoredProposal) continue;
+
+      // Insert the execution row.
+      const [insertedExecution] = await tx
+        .insert(stageBasketRouteExecutionsTable)
+        .values({
+          tournamentId: tournament.id,
+          routeId: exec.routeId,
+          sourceStageId: restoredSourceStageId,
+          sourceBasketId: exec.sourceBasketId,
+          targetStageId: restoredTargetStageId,
+          targetBasketId: exec.targetBasketId,
+          sourceProposalId: restoredProposal.id,
+          sourceProposalRevision: exec.sourceProposalRevision,
+          executedAt: new Date(exec.executedAt),
+          actorType: exec.actorType,
+          actorNick: exec.actorNick,
+        })
+        .returning();
+
+      // Insert entry rows.
+      for (const entry of exec.entries) {
+        const restoredPlayerId = playerIds.get(entry.playerBackupId);
+        if (restoredPlayerId == null) continue;
+
+        // Look up the restored output player row (needed for FK).
+        const [outputPlayerRow] = await tx
+          .select({ id: stageBasketsOutputPlayersTable.id })
+          .from(stageBasketsOutputPlayersTable)
+          .where(
+            and(
+              eq(stageBasketsOutputPlayersTable.tournamentId, tournament.id),
+              eq(stageBasketsOutputPlayersTable.stageId, restoredSourceStageId),
+              eq(stageBasketsOutputPlayersTable.basketId, entry.sourceBasketId),
+              eq(stageBasketsOutputPlayersTable.playerId, restoredPlayerId),
+            ),
+          );
+        if (!outputPlayerRow) continue;
+
+        await tx.insert(stageBasketRouteEntriesTable).values({
+          executionId: insertedExecution.id,
+          tournamentId: tournament.id,
+          routeId: exec.routeId,
+          sourceStageId: restoredSourceStageId,
+          sourceBasketId: entry.sourceBasketId,
+          sourceOutputPlayerId: outputPlayerRow.id,
+          targetStageId: restoredTargetStageId,
+          targetBasketId: exec.targetBasketId,
+          playerId: restoredPlayerId,
+          sourceFinalRank: entry.sourceFinalRank,
+          sourceBasketPosition: entry.sourceBasketPosition,
+          arrivedAt: new Date(exec.executedAt),
+        });
       }
     }
 

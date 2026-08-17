@@ -92,6 +92,13 @@ import {
   QualificationProposalError,
   type QualificationProposalErrorCode,
 } from "../application/stages/stage-basket-qualification";
+import {
+  BasketRouteExecutionError,
+  type BasketRouteExecutionErrorCode,
+  executeBasketRoute,
+  getBasketRouteStatus,
+  getTargetStageInputArrivals,
+} from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
@@ -165,6 +172,17 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+
+// Phase 3 — basket-level route params (stageId + basketId).
+function parseStageBasketParams(
+  params: Record<string, string>,
+): { id: number; stageId: number; basketId: string } | null {
+  const id = parseInt(params["id"] ?? "", 10);
+  const stageId = parseInt(params["stageId"] ?? "", 10);
+  const basketId = params["basketId"] ?? "";
+  if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(stageId) || stageId <= 0 || !basketId) return null;
+  return { id, stageId, basketId };
+}
 
 // ========== HELPERS ==========
 
@@ -244,6 +262,26 @@ function sendSeedingCeremonyError(
   ]);
   res.status(notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422)
     .json({ error: error.message, code: error.code });
+}
+
+function sendBasketRouteExecutionError(
+  error: BasketRouteExecutionError,
+  res: import("express").Response,
+): void {
+  const notFound = new Set<BasketRouteExecutionErrorCode>([
+    "TOURNAMENT_NOT_FOUND",
+    "STAGE_NOT_FOUND",
+    "ROUTE_NOT_FOUND",
+  ]);
+  const conflict = new Set<BasketRouteExecutionErrorCode>([
+    "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED",
+    "STAGE_BASKET_ROUTE_SOURCE_OUTPUT_INCOMPLETE",
+    "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED",
+    "STAGE_BASKET_ROUTE_PARTICIPANT_CONFLICT",
+    "STAGE_BASKET_ROUTE_LEGACY_NOT_SUPPORTED",
+  ]);
+  const status = notFound.has(error.code) ? 404 : conflict.has(error.code) ? 409 : 422;
+  res.status(status).json({ error: error.message, code: error.code, details: error.details ?? null });
 }
 
 function sendQualificationProposalError(
@@ -964,6 +1002,57 @@ router.get("/tournaments/:id/stages/:stageId/basket-qualification-output", async
   if (!await requireTournamentRead(req, res, params.data.id)) return;
   const output = await getQualificationOutput(params.data.id, params.data.stageId);
   res.json({ entries: output });
+});
+
+// ─── Phase 3: Basket Route Execution ─────────────────────────────────────────
+
+router.post("/tournaments/:id/stages/:stageId/baskets/:basketId/route/execute", async (req, res): Promise<void> => {
+  const params = parseStageBasketParams(req.params as Record<string, string>);
+  if (!params) { res.status(400).json({ error: "Invalid parameters" }); return; }
+  const access = await requireOrganizer(req, res, params.id);
+  if (!access) return;
+  try {
+    const result = await executeBasketRoute(
+      params.id,
+      params.stageId,
+      params.basketId,
+      getTournamentMutationActor(access),
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof BasketRouteExecutionError) { sendBasketRouteExecutionError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/baskets/:basketId/route", async (req, res): Promise<void> => {
+  const params = parseStageBasketParams(req.params as Record<string, string>);
+  if (!params) { res.status(400).json({ error: "Invalid parameters" }); return; }
+  if (!await requireTournamentRead(req, res, params.id)) return;
+  try {
+    const result = await getBasketRouteStatus(
+      params.id,
+      params.stageId,
+      params.basketId,
+    );
+    res.json(result);
+  } catch (error) {
+    if (error instanceof BasketRouteExecutionError) { sendBasketRouteExecutionError(error, res); return; }
+    throw error;
+  }
+});
+
+router.get("/tournaments/:id/stages/:stageId/basket-input-arrivals", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    const result = await getTargetStageInputArrivals(params.data.id, params.data.stageId);
+    res.json(result);
+  } catch (error) {
+    if (error instanceof BasketRouteExecutionError) { sendBasketRouteExecutionError(error, res); return; }
+    throw error;
+  }
 });
 
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {

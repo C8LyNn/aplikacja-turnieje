@@ -1088,6 +1088,158 @@ export const GetBasketQualificationOutputResponse = zod.object({
 
 
 /**
+ * @summary Materialise a configured basket route — copy approved output players to the target stage input basket
+ */
+
+
+
+
+export const ExecuteBasketRouteParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1),
+  "basketId": zod.coerce.string()
+})
+
+
+export const executeBasketRouteResponseRoutedPlayerCountMin = 0;
+
+
+
+
+export const ExecuteBasketRouteResponse = zod.object({
+  "executionId": zod.number(),
+  "tournamentId": zod.number(),
+  "routeId": zod.string(),
+  "sourceStageId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "targetStageId": zod.number(),
+  "targetBasketId": zod.string(),
+  "sourceProposalId": zod.number(),
+  "sourceProposalRevision": zod.number().min(1),
+  "executedAt": zod.string(),
+  "actorType": zod.string(),
+  "actorNick": zod.string(),
+  "routedPlayerCount": zod.number().min(executeBasketRouteResponseRoutedPlayerCountMin),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "sourceFinalRank": zod.number().min(1),
+  "sourceBasketPosition": zod.number().nullable(),
+  "sourceOutputPlayerId": zod.number()
+}))
+})
+
+
+/**
+ * @summary Read the configured route and execution status for a source basket
+ */
+
+
+
+
+export const GetBasketRouteStatusParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1),
+  "basketId": zod.coerce.string()
+})
+
+export const getBasketRouteStatusResponseRoutedPlayerCountMin = 0;
+
+
+export const getBasketRouteStatusResponseExecutionOneRoutedPlayerCountMin = 0;
+
+
+
+
+export const GetBasketRouteStatusResponse = zod.object({
+  "routeId": zod.string(),
+  "tournamentId": zod.number(),
+  "sourceStageId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "targetStageId": zod.number(),
+  "targetBasketId": zod.string(),
+  "sourceOutputApproved": zod.boolean(),
+  "materialized": zod.boolean(),
+  "routedPlayerCount": zod.number().min(getBasketRouteStatusResponseRoutedPlayerCountMin),
+  "execution": zod.union([zod.object({
+  "executionId": zod.number(),
+  "tournamentId": zod.number(),
+  "routeId": zod.string(),
+  "sourceStageId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "targetStageId": zod.number(),
+  "targetBasketId": zod.string(),
+  "sourceProposalId": zod.number(),
+  "sourceProposalRevision": zod.number().min(1),
+  "executedAt": zod.string(),
+  "actorType": zod.string(),
+  "actorNick": zod.string(),
+  "routedPlayerCount": zod.number().min(getBasketRouteStatusResponseExecutionOneRoutedPlayerCountMin),
+  "entries": zod.array(zod.object({
+  "playerId": zod.number(),
+  "sourceFinalRank": zod.number().min(1),
+  "sourceBasketPosition": zod.number().nullable(),
+  "sourceOutputPlayerId": zod.number()
+}))
+}),zod.null()])
+})
+
+
+/**
+ * @summary Read aggregated input basket arrivals for a target stage (direct assignments + routed arrivals)
+ */
+
+
+
+
+export const GetBasketInputArrivalsParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const getBasketInputArrivalsResponseTotalDirectCountMin = 0;
+
+export const getBasketInputArrivalsResponseTotalRoutedCountMin = 0;
+
+export const getBasketInputArrivalsResponseTotalCountMin = 0;
+
+export const getBasketInputArrivalsResponseBasketsItemDirectCountMin = 0;
+
+export const getBasketInputArrivalsResponseBasketsItemRoutedCountMin = 0;
+
+export const getBasketInputArrivalsResponseBasketsItemTotalCountMin = 0;
+
+
+
+
+export const GetBasketInputArrivalsResponse = zod.object({
+  "targetStageId": zod.number(),
+  "totalDirectCount": zod.number().min(getBasketInputArrivalsResponseTotalDirectCountMin),
+  "totalRoutedCount": zod.number().min(getBasketInputArrivalsResponseTotalRoutedCountMin),
+  "totalCount": zod.number().min(getBasketInputArrivalsResponseTotalCountMin),
+  "baskets": zod.array(zod.object({
+  "basketId": zod.string(),
+  "directCount": zod.number().min(getBasketInputArrivalsResponseBasketsItemDirectCountMin),
+  "routedCount": zod.number().min(getBasketInputArrivalsResponseBasketsItemRoutedCountMin),
+  "totalCount": zod.number().min(getBasketInputArrivalsResponseBasketsItemTotalCountMin),
+  "directPlayers": zod.array(zod.object({
+  "playerId": zod.number()
+})),
+  "routedArrivals": zod.array(zod.object({
+  "playerId": zod.number(),
+  "sourceFinalRank": zod.number().min(1),
+  "sourceBasketPosition": zod.number().nullable(),
+  "sourceStageId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "routeId": zod.string(),
+  "sourceProposalId": zod.number(),
+  "executionId": zod.number(),
+  "arrivedAt": zod.string()
+}))
+}))
+})
+
+
+/**
  * @summary Check whether a planned stage can be started without modifying it
  */
 
@@ -1744,6 +1896,8 @@ export const exportTournamentResponseStageBasketRoutesItemIdRegExp = new RegExp(
 
 
 
+
+
 export const ExportTournamentResponse = zod.object({
   "schemaVersion": zod.number(),
   "resultModelVersion": zod.literal("series_v1"),
@@ -1937,7 +2091,22 @@ export const ExportTournamentResponse = zod.object({
   "playerBackupId": zod.number(),
   "finalRank": zod.number().min(1)
 })).optional().describe('Materialised output rows — present only for approved proposals.')
-})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.')
+})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.'),
+  "routeExecutions": zod.array(zod.object({
+  "routeId": zod.string(),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string(),
+  "sourceProposalRevision": zod.number().min(1),
+  "executedAt": zod.string(),
+  "actorType": zod.string(),
+  "actorNick": zod.string(),
+  "entries": zod.array(zod.object({
+  "playerBackupId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "sourceFinalRank": zod.number().min(1),
+  "sourceBasketPosition": zod.number().nullable()
+}))
+})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.')
 })
 
 
@@ -1964,6 +2133,8 @@ export const importTournamentBodyBackupTwoStageBasketsItemColorIdMax = 64;
 
 
 export const importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+
+
 
 
 
@@ -2244,7 +2415,22 @@ export const ImportTournamentBody = zod.object({
   "playerBackupId": zod.number(),
   "finalRank": zod.number().min(1)
 })).optional().describe('Materialised output rows — present only for approved proposals.')
-})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.')
+})).optional().describe('Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal.'),
+  "routeExecutions": zod.array(zod.object({
+  "routeId": zod.string(),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string(),
+  "sourceProposalRevision": zod.number().min(1),
+  "executedAt": zod.string(),
+  "actorType": zod.string(),
+  "actorNick": zod.string(),
+  "entries": zod.array(zod.object({
+  "playerBackupId": zod.number(),
+  "sourceBasketId": zod.string(),
+  "sourceFinalRank": zod.number().min(1),
+  "sourceBasketPosition": zod.number().nullable()
+}))
+})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.')
 })]),
   "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
   "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),

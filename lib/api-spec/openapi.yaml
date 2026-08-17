@@ -593,6 +593,97 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/DomainError" }
 
+  /tournaments/{id}/stages/{stageId}/baskets/{basketId}/route/execute:
+    post:
+      operationId: executeBasketRoute
+      tags: [tournaments]
+      summary: Materialise a configured basket route — copy approved output players to the target stage input basket
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+        - name: basketId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Route execution result (idempotent — returns existing if already materialised)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketRouteExecution"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament, stage, or route not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "409":
+          description: Precondition not met (source not approved, target stage started, participant conflict, etc.)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
+  /tournaments/{id}/stages/{stageId}/baskets/{basketId}/route:
+    get:
+      operationId: getBasketRouteStatus
+      tags: [tournaments]
+      summary: Read the configured route and execution status for a source basket
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+        - name: basketId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Route configuration and execution state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketRouteStatus"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament, stage, or route not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
+  /tournaments/{id}/stages/{stageId}/basket-input-arrivals:
+    get:
+      operationId: getBasketInputArrivals
+      tags: [tournaments]
+      summary: Read aggregated input basket arrivals for a target stage (direct assignments + routed arrivals)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Aggregated input basket arrivals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TargetStageInputArrivals"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DomainError" }
+
   /tournaments/{id}/stages/{stageId}/readiness:
     get:
       operationId: getTournamentStageReadiness
@@ -3402,6 +3493,126 @@ components:
                     basketId: { type: string }
                     playerBackupId: { type: integer }
                     finalRank: { type: integer, minimum: 1 }
+        routeExecutions:
+          type: array
+          description: Materialised basket route executions. Present only when at least one route has been executed.
+          items:
+            type: object
+            additionalProperties: false
+            required: [routeId, sourceBasketId, targetBasketId, sourceProposalRevision, executedAt, actorType, actorNick, entries]
+            properties:
+              routeId: { type: string }
+              sourceBasketId: { type: string }
+              targetBasketId: { type: string }
+              sourceProposalRevision: { type: integer, minimum: 1 }
+              executedAt: { type: string }
+              actorType: { type: string }
+              actorNick: { type: string }
+              entries:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [playerBackupId, sourceBasketId, sourceFinalRank, sourceBasketPosition]
+                  properties:
+                    playerBackupId: { type: integer }
+                    sourceBasketId: { type: string }
+                    sourceFinalRank: { type: integer, minimum: 1 }
+                    sourceBasketPosition: { type: ["integer", "null"] }
+
+    BasketRouteExecution:
+      type: object
+      additionalProperties: false
+      required: [executionId, tournamentId, routeId, sourceStageId, sourceBasketId, targetStageId, targetBasketId, sourceProposalId, sourceProposalRevision, executedAt, actorType, actorNick, routedPlayerCount, entries]
+      properties:
+        executionId: { type: integer }
+        tournamentId: { type: integer }
+        routeId: { type: string }
+        sourceStageId: { type: integer }
+        sourceBasketId: { type: string }
+        targetStageId: { type: integer }
+        targetBasketId: { type: string }
+        sourceProposalId: { type: integer }
+        sourceProposalRevision: { type: integer, minimum: 1 }
+        executedAt: { type: string }
+        actorType: { type: string }
+        actorNick: { type: string }
+        routedPlayerCount: { type: integer, minimum: 0 }
+        entries:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [playerId, sourceFinalRank, sourceBasketPosition, sourceOutputPlayerId]
+            properties:
+              playerId: { type: integer }
+              sourceFinalRank: { type: integer, minimum: 1 }
+              sourceBasketPosition: { type: ["integer", "null"] }
+              sourceOutputPlayerId: { type: integer }
+
+    BasketRouteStatus:
+      type: object
+      additionalProperties: false
+      required: [routeId, tournamentId, sourceStageId, sourceBasketId, targetStageId, targetBasketId, sourceOutputApproved, materialized, routedPlayerCount, execution]
+      properties:
+        routeId: { type: string }
+        tournamentId: { type: integer }
+        sourceStageId: { type: integer }
+        sourceBasketId: { type: string }
+        targetStageId: { type: integer }
+        targetBasketId: { type: string }
+        sourceOutputApproved: { type: boolean }
+        materialized: { type: boolean }
+        routedPlayerCount: { type: integer, minimum: 0 }
+        execution:
+          oneOf:
+            - $ref: "#/components/schemas/BasketRouteExecution"
+            - type: "null"
+
+    TargetStageInputArrivals:
+      type: object
+      additionalProperties: false
+      required: [targetStageId, baskets, totalDirectCount, totalRoutedCount, totalCount]
+      properties:
+        targetStageId: { type: integer }
+        totalDirectCount: { type: integer, minimum: 0 }
+        totalRoutedCount: { type: integer, minimum: 0 }
+        totalCount: { type: integer, minimum: 0 }
+        baskets:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [basketId, directPlayers, routedArrivals, directCount, routedCount, totalCount]
+            properties:
+              basketId: { type: string }
+              directCount: { type: integer, minimum: 0 }
+              routedCount: { type: integer, minimum: 0 }
+              totalCount: { type: integer, minimum: 0 }
+              directPlayers:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [playerId]
+                  properties:
+                    playerId: { type: integer }
+              routedArrivals:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: false
+                  required: [playerId, sourceFinalRank, sourceBasketPosition, sourceStageId, sourceBasketId, routeId, sourceProposalId, executionId, arrivedAt]
+                  properties:
+                    playerId: { type: integer }
+                    sourceFinalRank: { type: integer, minimum: 1 }
+                    sourceBasketPosition: { type: ["integer", "null"] }
+                    sourceStageId: { type: integer }
+                    sourceBasketId: { type: string }
+                    routeId: { type: string }
+                    sourceProposalId: { type: integer }
+                    executionId: { type: integer }
+                    arrivedAt: { type: string }
 
     TournamentBackup:
       oneOf:

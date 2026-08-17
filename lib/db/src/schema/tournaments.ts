@@ -1140,3 +1140,118 @@ export const stageBasketsOutputPlayersTable = pgTable(
 export type QualificationProposal = typeof qualificationProposalsTable.$inferSelect;
 export type QualificationProposalEntry = typeof qualificationProposalEntriesTable.$inferSelect;
 export type StageBasketsOutputPlayer = typeof stageBasketsOutputPlayersTable.$inferSelect;
+
+/**
+ * Immutable execution snapshot for a single basket route.
+ * At most one execution per route (UNIQUE tournament_id + route_id).
+ * Created by an organizer command; never modified after creation.
+ */
+export const stageBasketRouteExecutionsTable = pgTable(
+  "stage_basket_route_executions",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull(),
+    routeId: text("route_id").notNull(),
+    sourceStageId: integer("source_stage_id").notNull(),
+    sourceBasketId: text("source_basket_id").notNull(),
+    targetStageId: integer("target_stage_id").notNull(),
+    targetBasketId: text("target_basket_id").notNull(),
+    /** Approved proposal that backs the routed output rows. */
+    sourceProposalId: integer("source_proposal_id").notNull(),
+    /** Proposal revision captured at execution time (for provenance). */
+    sourceProposalRevision: integer("source_proposal_revision").notNull(),
+    executedAt: timestamp("executed_at").notNull().defaultNow(),
+    actorType: text("actor_type").notNull(),
+    actorNick: text("actor_nick").notNull(),
+  },
+  (table) => [
+    // At most one execution per route.
+    unique("stage_basket_route_executions_route_unique").on(
+      table.tournamentId,
+      table.routeId,
+    ),
+    foreignKey({
+      columns: [table.tournamentId, table.routeId],
+      foreignColumns: [stageBasketRoutesTable.tournamentId, stageBasketRoutesTable.id],
+      name: "stage_basket_route_executions_route_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tournamentId, table.sourceBasketId],
+      foreignColumns: [stageBasketsTable.tournamentId, stageBasketsTable.id],
+      name: "stage_basket_route_executions_source_basket_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tournamentId, table.targetBasketId],
+      foreignColumns: [stageBasketsTable.tournamentId, stageBasketsTable.id],
+      name: "stage_basket_route_executions_target_basket_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.sourceProposalId],
+      foreignColumns: [qualificationProposalsTable.id],
+      name: "stage_basket_route_executions_proposal_fk",
+    }).onDelete("restrict"),
+    check(
+      "stage_basket_route_executions_revision_positive",
+      sql`${table.sourceProposalRevision} > 0`,
+    ),
+  ],
+);
+
+/**
+ * Per-player routed arrival records belonging to an execution.
+ * Each player may arrive in a target stage from at most one route
+ * (UNIQUE tournament_id + target_stage_id + player_id).
+ */
+export const stageBasketRouteEntriesTable = pgTable(
+  "stage_basket_route_entries",
+  {
+    id: serial("id").primaryKey(),
+    executionId: integer("execution_id").notNull(),
+    tournamentId: integer("tournament_id").notNull(),
+    routeId: text("route_id").notNull(),
+    sourceStageId: integer("source_stage_id").notNull(),
+    sourceBasketId: text("source_basket_id").notNull(),
+    /** FK to stage_basket_output_players.id — provenance of this arrival. */
+    sourceOutputPlayerId: integer("source_output_player_id").notNull(),
+    targetStageId: integer("target_stage_id").notNull(),
+    targetBasketId: text("target_basket_id").notNull(),
+    playerId: integer("player_id").notNull(),
+    sourceFinalRank: integer("source_final_rank").notNull(),
+    sourceBasketPosition: integer("source_basket_position"),
+    arrivedAt: timestamp("arrived_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // One player may arrive in a target stage from at most one route.
+    unique("stage_basket_route_entries_target_player_unique").on(
+      table.tournamentId,
+      table.targetStageId,
+      table.playerId,
+    ),
+    foreignKey({
+      columns: [table.executionId],
+      foreignColumns: [stageBasketRouteExecutionsTable.id],
+      name: "stage_basket_route_entries_execution_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.sourceOutputPlayerId],
+      foreignColumns: [stageBasketsOutputPlayersTable.id],
+      name: "stage_basket_route_entries_output_player_fk",
+    }).onDelete("restrict"),
+    foreignKey({
+      columns: [table.tournamentId, table.playerId],
+      foreignColumns: [playersTable.tournamentId, playersTable.id],
+      name: "stage_basket_route_entries_player_fk",
+    }).onDelete("cascade"),
+    check(
+      "stage_basket_route_entries_final_rank_positive",
+      sql`${table.sourceFinalRank} > 0`,
+    ),
+    check(
+      "stage_basket_route_entries_basket_position_positive",
+      sql`${table.sourceBasketPosition} IS NULL OR ${table.sourceBasketPosition} > 0`,
+    ),
+  ],
+);
+
+export type StageBasketRouteExecution = typeof stageBasketRouteExecutionsTable.$inferSelect;
+export type StageBasketRouteEntry = typeof stageBasketRouteEntriesTable.$inferSelect;

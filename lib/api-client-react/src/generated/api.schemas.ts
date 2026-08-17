@@ -2336,6 +2336,27 @@ export type TournamentBackupV3QualificationProposalsItem = {
   output?: TournamentBackupV3QualificationProposalsItemOutputItem[];
 };
 
+export type TournamentBackupV3RouteExecutionsItemEntriesItem = {
+  playerBackupId: number;
+  sourceBasketId: string;
+  /** @minimum 1 */
+  sourceFinalRank: number;
+  /** @nullable */
+  sourceBasketPosition: number | null;
+};
+
+export type TournamentBackupV3RouteExecutionsItem = {
+  routeId: string;
+  sourceBasketId: string;
+  targetBasketId: string;
+  /** @minimum 1 */
+  sourceProposalRevision: number;
+  executedAt: string;
+  actorType: string;
+  actorNick: string;
+  entries: TournamentBackupV3RouteExecutionsItemEntriesItem[];
+};
+
 export interface TournamentBackupV3 {
   schemaVersion: 3;
   resultModelVersion: 'series_v1';
@@ -2370,6 +2391,91 @@ export interface TournamentBackupV3 {
   routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
   /** Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal. */
   qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
+  /** Materialised basket route executions. Present only when at least one route has been executed. */
+  routeExecutions?: TournamentBackupV3RouteExecutionsItem[];
+}
+
+export type BasketRouteExecutionEntriesItem = {
+  playerId: number;
+  /** @minimum 1 */
+  sourceFinalRank: number;
+  /** @nullable */
+  sourceBasketPosition: number | null;
+  sourceOutputPlayerId: number;
+};
+
+export interface BasketRouteExecution {
+  executionId: number;
+  tournamentId: number;
+  routeId: string;
+  sourceStageId: number;
+  sourceBasketId: string;
+  targetStageId: number;
+  targetBasketId: string;
+  sourceProposalId: number;
+  /** @minimum 1 */
+  sourceProposalRevision: number;
+  executedAt: string;
+  actorType: string;
+  actorNick: string;
+  /** @minimum 0 */
+  routedPlayerCount: number;
+  entries: BasketRouteExecutionEntriesItem[];
+}
+
+export interface BasketRouteStatus {
+  routeId: string;
+  tournamentId: number;
+  sourceStageId: number;
+  sourceBasketId: string;
+  targetStageId: number;
+  targetBasketId: string;
+  sourceOutputApproved: boolean;
+  materialized: boolean;
+  /** @minimum 0 */
+  routedPlayerCount: number;
+  execution: BasketRouteExecution | null;
+}
+
+export type TargetStageInputArrivalsBasketsItemDirectPlayersItem = {
+  playerId: number;
+};
+
+export type TargetStageInputArrivalsBasketsItemRoutedArrivalsItem = {
+  playerId: number;
+  /** @minimum 1 */
+  sourceFinalRank: number;
+  /** @nullable */
+  sourceBasketPosition: number | null;
+  sourceStageId: number;
+  sourceBasketId: string;
+  routeId: string;
+  sourceProposalId: number;
+  executionId: number;
+  arrivedAt: string;
+};
+
+export type TargetStageInputArrivalsBasketsItem = {
+  basketId: string;
+  /** @minimum 0 */
+  directCount: number;
+  /** @minimum 0 */
+  routedCount: number;
+  /** @minimum 0 */
+  totalCount: number;
+  directPlayers: TargetStageInputArrivalsBasketsItemDirectPlayersItem[];
+  routedArrivals: TargetStageInputArrivalsBasketsItemRoutedArrivalsItem[];
+};
+
+export interface TargetStageInputArrivals {
+  targetStageId: number;
+  /** @minimum 0 */
+  totalDirectCount: number;
+  /** @minimum 0 */
+  totalRoutedCount: number;
+  /** @minimum 0 */
+  totalCount: number;
+  baskets: TargetStageInputArrivalsBasketsItem[];
 }
 
 export type TournamentBackup = TournamentBackupV2 | TournamentBackupV3;

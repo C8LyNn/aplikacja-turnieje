@@ -13,6 +13,7 @@ import type { TournamentBackupV3MatchesItem } from './tournamentBackupV3MatchesI
 import type { TournamentBackupV3PlayersItem } from './tournamentBackupV3PlayersItem';
 import type { TournamentBackupV3QualificationProposalsItem } from './tournamentBackupV3QualificationProposalsItem';
 import type { TournamentBackupV3ResultHistoryItem } from './tournamentBackupV3ResultHistoryItem';
+import type { TournamentBackupV3RouteExecutionsItem } from './tournamentBackupV3RouteExecutionsItem';
 import type { TournamentBackupV3RoutingExecutionsItem } from './tournamentBackupV3RoutingExecutionsItem';
 import type { TournamentBackupV3RoutingPlan } from './tournamentBackupV3RoutingPlan';
 import type { TournamentBackupV3StageBasketRoutesItem } from './tournamentBackupV3StageBasketRoutesItem';
@@ -55,4 +56,6 @@ export interface TournamentBackupV3 {
   routingExecutions?: TournamentBackupV3RoutingExecutionsItem[];
   /** Qualification proposals (one per stage). Present only when the organiser has generated at least one proposal. */
   qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
+  /** Materialised basket route executions. Present only when at least one route has been executed. */
+  routeExecutions?: TournamentBackupV3RouteExecutionsItem[];
 }

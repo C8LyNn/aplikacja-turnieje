@@ -90,6 +90,10 @@ const QUALIFICATION_PROPOSAL_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0022_qualification_proposal.sql",
   import.meta.url,
 );
+const BASKET_ROUTE_EXECUTION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0023_basket_route_execution.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
@@ -338,6 +342,16 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       await pool.query(qualificationProposalMigrationSql);
       // CREATE TABLE IF NOT EXISTS — safe to replay.
       await pool.query(qualificationProposalMigrationSql);
+      const basketRouteExecutionMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(BASKET_ROUTE_EXECUTION_MIGRATION_URL, "utf8"),
+          schema,
+        )
+          .replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "")
+          .replaceAll("table_schema = 'public'", `table_schema = '${schema}'`);
+      await pool.query(basketRouteExecutionMigrationSql);
+      // CREATE TABLE IF NOT EXISTS — safe to replay.
+      await pool.query(basketRouteExecutionMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
