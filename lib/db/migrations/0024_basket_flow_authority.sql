@@ -22,15 +22,7 @@ END;
 $prerequisites$;
 
 ALTER TABLE public.tournaments
-  ADD COLUMN IF NOT EXISTS basket_flow_authority_version integer;
-
-UPDATE public.tournaments
-SET basket_flow_authority_version = 0
-WHERE basket_flow_authority_version IS NULL;
-
-ALTER TABLE public.tournaments
-  ALTER COLUMN basket_flow_authority_version SET DEFAULT 0,
-  ALTER COLUMN basket_flow_authority_version SET NOT NULL;
+  ADD COLUMN IF NOT EXISTS basket_flow_authority_version integer NOT NULL DEFAULT 0;
 
 ALTER TABLE public.tournaments
   DROP CONSTRAINT IF EXISTS tournaments_basket_flow_authority_version_supported;
