@@ -173,15 +173,11 @@ describe("authoritative Drizzle schema", () => {
     );
     assert.match(
       migration,
-      /SET basket_flow_authority_version = 0\s+WHERE basket_flow_authority_version IS NULL/,
+      /ADD COLUMN\s+(?:IF NOT EXISTS\s+)?basket_flow_authority_version\s+integer\s+NOT NULL\s+DEFAULT 0/,
     );
-    assert.match(
+    assert.doesNotMatch(
       migration,
-      /ALTER COLUMN basket_flow_authority_version SET DEFAULT 0/,
-    );
-    assert.match(
-      migration,
-      /ALTER COLUMN basket_flow_authority_version SET NOT NULL/,
+      /UPDATE\s+(?:public\.)?tournaments\s+SET\s+basket_flow_authority_version/,
     );
     assert.match(
       migration,
