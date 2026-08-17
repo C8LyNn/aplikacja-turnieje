@@ -102,6 +102,10 @@ const MARVEL_ELIMINATION_GROUPS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0025_marvel_elimination_groups.sql",
   import.meta.url,
 );
+const BASKET_AUTHORITY_TRIGGER_BYPASS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0026_basket_authority_trigger_bypass.sql",
+  import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
@@ -379,6 +383,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
           schema,
         ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
       await pool.query(marvelEliminationGroupsMigrationSql);
+      const basketAuthorityTriggerBypassMigrationSql =
+        renderSeriesV1MigrationForTestSchema(
+          await readFile(BASKET_AUTHORITY_TRIGGER_BYPASS_MIGRATION_URL, "utf8"),
+          schema,
+        ).replace(MIGRATION_RUNNER_TRANSACTION_BLOCK, "");
+      await pool.query(basketAuthorityTriggerBypassMigrationSql);
+      // CREATE OR REPLACE FUNCTION is idempotent — safe to replay.
+      await pool.query(basketAuthorityTriggerBypassMigrationSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

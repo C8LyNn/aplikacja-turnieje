@@ -289,14 +289,19 @@ export async function addPlayerWithStagePlanCompatibilityInTransaction(
   // The migration's legacy player trigger maintains the live one-stage participant count.
   // A planned group stage has a fixed configured count, so expose a constraint-valid
   // compatibility projection only inside this transaction while that trigger runs.
+  // For a terminal group stage (qualification_mode = 'none', e.g. a Marvel single-stage),
+  // the legacy trigger requires qualification_mode = 'none' and advancing_count IS NULL.
+  // For intermediate group stages the trigger requires top_n + a computed advancing_count.
+  const isTerminalGroupStage = firstStage.qualificationMode === "none";
   await tx
     .update(tournamentStagesTable)
     .set({
       format: "round_robin",
       rankingPolicy: "round_robin_v1",
-      qualificationMode: "top_n",
-      advancingCount:
-        firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
+      qualificationMode: isTerminalGroupStage ? "none" : "top_n",
+      advancingCount: isTerminalGroupStage
+        ? null
+        : firstStage.groupCount != null && firstStage.qualifiersPerGroup != null
           ? calculateGroupAdvancingCount(
               firstStage.participantCount,
               firstStage.groupCount,
