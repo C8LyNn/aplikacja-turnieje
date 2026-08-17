@@ -1756,6 +1756,7 @@ components:
         - STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED
         - STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID
         - STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT
+        - STAGE_DERIVED_PARTICIPANT_COUNT_INVALID
     StageBasketProblemContext:
       type: object
       additionalProperties: false
@@ -1831,10 +1832,14 @@ components:
     StageBasketConfiguration:
       type: object
       additionalProperties: false
-      required: [tournamentId, legacyDefaulted, baskets, routes, validation]
+      required: [tournamentId, legacyDefaulted, flowAuthority, baskets, routes, validation]
       properties:
         tournamentId: { type: integer }
         legacyDefaulted: { type: boolean }
+        flowAuthority:
+          type: string
+          enum: [legacy, basket_v1]
+          description: Persisted participant-flow authority. Stored pre-Phase-3.5 basket graphs remain legacy.
         baskets:
           type: array
           items: { $ref: "#/components/schemas/StageBasket" }
@@ -3215,6 +3220,10 @@ components:
           properties:
             name: { type: string }
             description: { type: ["string", "null"] }
+            basketFlowAuthorityVersion:
+              type: integer
+              enum: [1]
+              description: Present only when the restored graph uses basket-authoritative flow. Omission preserves legacy compatibility.
             status: { type: string, enum: [draft, active, completed] }
             maxPlayers: { type: ["integer", "null"] }
             activeStageBackupId: { type: ["integer", "null"] }

@@ -506,6 +506,48 @@ describe("validateTournamentStagePlan invalid plans", () => {
     });
     assert.equal(result.valid, true);
   });
+
+  test("basket authority skips only the legacy linear participant-flow equality", () => {
+    const plan = {
+      initialParticipantCount: 24,
+      stages: [
+        {
+          key: "opening",
+          position: 1,
+          name: "Opening",
+          format: "swiss",
+          participantCount: 16,
+          bestOf: 1,
+          rounds: 5,
+          advancingCount: 8,
+        },
+        {
+          key: "double-final",
+          position: 2,
+          name: "Double Final",
+          format: "double_elimination",
+          participantCount: 16,
+          bestOf: 3,
+          placementMethod: "standard",
+        },
+      ],
+    };
+    const legacy = validateTournamentStagePlan(plan);
+    assert.equal(legacy.valid, false);
+    if (!legacy.valid) {
+      assert.ok(
+        legacy.problems.some(
+          (problem) => problem.code === "PARTICIPANT_FLOW_MISMATCH",
+        ),
+      );
+    }
+    assert.equal(
+      validateTournamentStagePlan(plan, {
+        participantFlowAuthority: "basket_v1",
+      }).valid,
+      true,
+    );
+  });
 });
 
 

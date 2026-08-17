@@ -47,7 +47,10 @@ import {
   saveCompiledRoutingPlanV2InTransaction,
 } from "../routing/routing-plan-persistence";
 import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
-import { validateStageBasketConfiguration } from "../../domain/tournament/stage-baskets";
+import {
+  deriveStageBasketFlowCounts,
+  validateStageBasketConfiguration,
+} from "../../domain/tournament/stage-baskets";
 import { computeRankingFingerprint } from "../../domain/tournament/stage-basket-qualification";
 
 export class BackupV3ValidationError extends Error {
@@ -328,6 +331,9 @@ export async function exportBackupV3(
     tournament: {
       name: tournament.name,
       description: tournament.description ?? null,
+      ...(tournament.basketFlowAuthorityVersion === 1
+        ? { basketFlowAuthorityVersion: 1 as const }
+        : {}),
       status: tournament.status,
       maxPlayers: tournament.maxPlayers ?? null,
       activeStageBackupId: tournament.activeStageId ?? null,
@@ -641,41 +647,63 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
 
   const backupBaskets = backup.stageBaskets ?? [];
   const backupBasketRoutes = backup.stageBasketRoutes ?? [];
+  const basketAuthority =
+    backup.tournament.basketFlowAuthorityVersion === 1;
   if (backupBaskets.length === 0) {
     if (backupBasketRoutes.length > 0) {
       errors.push("Stage basket routes require explicit stage baskets.");
     }
+    if (basketAuthority) {
+      errors.push("Basket-authoritative backup requires stored stage baskets.");
+    }
   } else {
-    // Backup V3 baskets are always an explicit organizer-authored configuration.
-    // Use explicit mode so that output baskets without qualifierCount are caught
-    // during validation rather than silently accepted as legacy-compatible.
+    const basketValidationInput = {
+      stages: backup.stages.map((stage) => ({
+        id: stage.backupId,
+        position: stage.position,
+        participantCount: stage.participantCount,
+      })),
+      playerIds: backup.players.map((player) => player.backupId),
+      baskets: backupBaskets.map((basket) => ({
+        id: basket.id,
+        stageId: basket.stageBackupId,
+        type: basket.type,
+        ordinal: basket.ordinal,
+        order: basket.order,
+        colorId: basket.colorId ?? null,
+        qualifierCount: basket.qualifierCount ?? null,
+        participantIds: basket.participantBackupIds,
+      })),
+      routes: backupBasketRoutes,
+    };
     const validation = validateStageBasketConfiguration(
-      {
-        stages: backup.stages.map((stage) => ({
-          id: stage.backupId,
-          position: stage.position,
-          participantCount: stage.participantCount,
-        })),
-        playerIds: backup.players.map((player) => player.backupId),
-        baskets: backupBaskets.map((basket) => ({
-          id: basket.id,
-          stageId: basket.stageBackupId,
-          type: basket.type,
-          ordinal: basket.ordinal,
-          order: basket.order,
-          colorId: basket.colorId ?? null,
-          qualifierCount: basket.qualifierCount ?? null,
-          participantIds: basket.participantBackupIds,
-        })),
-        routes: backupBasketRoutes,
-      },
-      "explicit",
+      basketValidationInput,
+      basketAuthority ? "explicit" : "legacy",
     );
     errors.push(
       ...validation.problems.map(
         (problem) => `Stage baskets: ${problem.code}.`,
       ),
     );
+    if (basketAuthority) {
+      const derived = deriveStageBasketFlowCounts(basketValidationInput);
+      for (const stage of backup.stages) {
+        const counts = derived.get(stage.backupId)!;
+        if (stage.participantCount !== counts.derivedParticipantCount) {
+          errors.push(
+            `Stage ${stage.backupId} participantCount does not match basket authority.`,
+          );
+        }
+        if (
+          stage.qualificationMode === "top_n" &&
+          stage.advancingCount !== counts.outputQualifierCount
+        ) {
+          errors.push(
+            `Stage ${stage.backupId} advancingCount does not match basket authority.`,
+          );
+        }
+      }
+    }
   }
 
   const orderedStages = [...backup.stages].sort(
@@ -693,9 +721,10 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     orderedStages.length === 1 &&
     (orderedStages[0]?.participantCount ?? 0) < 2;
   if (!isEmptyLegacyCompatibleDraft) {
-    const planValidation = validateTournamentStagePlan({
-      initialParticipantCount: orderedStages[0]?.participantCount,
-      stages: orderedStages.map((stage) => ({
+    const planValidation = validateTournamentStagePlan(
+      {
+        initialParticipantCount: orderedStages[0]?.participantCount,
+        stages: orderedStages.map((stage) => ({
         key: stage.stageKey,
         position: stage.position,
         name: stage.name,
@@ -733,8 +762,12 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
         entrySeedingMethod: stage.entrySeedingPolicy ?? "preserve",
         randomSeed: stage.randomSeed ?? undefined,
         randomRevealOrder: stage.randomRevealOrder ?? "instant",
-      })),
-    });
+        })),
+      },
+      {
+        participantFlowAuthority: basketAuthority ? "basket_v1" : "legacy",
+      },
+    );
     if (!planValidation.valid)
       errors.push(
         ...planValidation.problems.map(
@@ -1037,6 +1070,12 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     const members = backup.stageParticipants.filter(
       (item) => item.stageBackupId === stage.backupId,
     );
+    // Phase 3.5 persists the planning graph without materializing or deleting
+    // runtime memberships. While the stage is still planned, its compatibility
+    // rows may therefore reflect the pre-authority plan (or be empty). The
+    // basket graph is the durable source for the future materialization step.
+    const basketAuthorityAwaitingMaterialization =
+      basketAuthority && stage.status === "planned";
     const registrationOpen =
       stage.position === 1 &&
       stage.status === "planned" &&
@@ -1044,6 +1083,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     const mayAwaitQualification =
       stage.position > 1 && stage.status === "planned" && members.length === 0;
     if (
+      !basketAuthorityAwaitingMaterialization &&
       !registrationOpen &&
       !mayAwaitQualification &&
       members.length !== stage.participantCount
@@ -1057,6 +1097,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   }
   const firstStageId = orderedStages[0]?.backupId;
   if (
+    !basketAuthority &&
     backup.players.some(
       (player) =>
         !membershipsByStagePlayer.has(`${firstStageId}:${player.backupId}`),
@@ -1463,6 +1504,8 @@ export async function importBackupV3(
         description: backup.tournament.description ?? null,
         resultModelVersion: "series_v1",
         rankingPolicy: "match_record_v1",
+        basketFlowAuthorityVersion:
+          backup.tournament.basketFlowAuthorityVersion ?? 0,
         format: compatibilityFormat(first.format),
         status: "draft",
         maxPlayers: backup.tournament.maxPlayers ?? null,

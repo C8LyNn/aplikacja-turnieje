@@ -6,12 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StageBasket } from './stageBasket';
+import type { StageBasketConfigurationFlowAuthority } from './stageBasketConfigurationFlowAuthority';
 import type { StageBasketRoute } from './stageBasketRoute';
 import type { StageBasketValidation } from './stageBasketValidation';
 
 export interface StageBasketConfiguration {
   tournamentId: number;
   legacyDefaulted: boolean;
+  /** Persisted participant-flow authority. Stored pre-Phase-3.5 basket graphs remain legacy. */
+  flowAuthority: StageBasketConfigurationFlowAuthority;
   baskets: StageBasket[];
   routes: StageBasketRoute[];
   validation: StageBasketValidation;

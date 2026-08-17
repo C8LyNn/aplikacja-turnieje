@@ -23,6 +23,10 @@ import {
   type Player,
   type StageBasketProblem,
 } from "@workspace/api-client-react";
+import {
+  deriveStageBasketFlowCounts,
+  type StageBasketFlowCounts,
+} from "@workspace/stage-basket-flow";
 
 // ─── color palette ──────────────────────────────────────────────────────────
 
@@ -161,6 +165,7 @@ const PROBLEM_CODE_MESSAGES: Record<string, string> = {
   STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED:         "Każdy koszyk wyjściowy musi mieć ustawioną liczbę przechodzących graczy.",
   STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID:          "Liczba przechodzących graczy musi być dodatnią liczbą całkowitą.",
   STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT:  "Suma przechodzących graczy przekracza liczbę uczestników etapu.",
+  STAGE_DERIVED_PARTICIPANT_COUNT_INVALID:              "Etap musi mieć co najmniej dwóch uczestników wynikających z wejść i tras.",
 };
 
 const CONFIG_ERROR_MESSAGES: Record<string, string> = {
@@ -388,6 +393,8 @@ interface StageBlockProps {
   isLocked: boolean;
   routeSourceId: string | null;
   routeTargetStageIds: Set<number>;
+  explicitAuthority: boolean;
+  flowCounts?: StageBasketFlowCounts;
   onColorChange?: (basketId: string, colorId: string | null) => void;
   onQualifierCountChange?: (basketId: string, qualifierCount: number | null) => void;
   onRemoveBasket?: (basketId: string) => void;
@@ -408,6 +415,8 @@ export function StageBlock({
   isLocked,
   routeSourceId,
   routeTargetStageIds,
+  explicitAuthority,
+  flowCounts,
   onColorChange,
   onQualifierCountChange,
   onRemoveBasket,
@@ -419,6 +428,9 @@ export function StageBlock({
 }: StageBlockProps) {
   const formatLabel = FORMAT_LABELS[stage.format] ?? stage.format;
   const isTargetStage = routeTargetStageIds.has(stage.id);
+  const participantCount = explicitAuthority
+    ? (flowCounts?.derivedParticipantCount ?? 0)
+    : stage.participantCount;
 
   // Players already assigned to any basket in this stage (to prevent double-assign)
   const assignedInStage = new Set(
@@ -436,8 +448,16 @@ export function StageBlock({
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-muted-foreground">{formatLabel}</span>
           <span className="text-xs text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{stage.participantCount} uczestników</span>
+          <span className="text-xs text-muted-foreground">{participantCount} uczestników</span>
         </div>
+        {explicitAuthority && (
+          <div
+            className="mt-1 text-[11px] text-muted-foreground"
+            data-testid={`stage-flow-summary-${stage.id}`}
+          >
+            Bezpośrednio: {flowCounts?.directParticipantCount ?? 0} · Z tras: {flowCounts?.incomingRouteQuota ?? 0} · Razem: {participantCount}
+          </div>
+        )}
       </div>
 
       {/* Baskets body */}
@@ -518,9 +538,9 @@ export function StageBlock({
           .map((b) => b.qualifierCount)
           .filter((q): q is number => q !== null);
         if (quotas.length === 0) return null;
-        const total = quotas.reduce((a, b) => a + b, 0);
-        const eliminated = stage.participantCount - total;
-        const overQuota = total > stage.participantCount;
+        const total = flowCounts?.outputQualifierCount ?? 0;
+        const eliminated = participantCount - total;
+        const overQuota = total > participantCount;
         return (
           <div
             className={`px-3 py-1.5 border-t text-xs flex items-center gap-2 rounded-b-lg ${
@@ -530,7 +550,7 @@ export function StageBlock({
             }`}
             data-testid={`quota-summary-${stage.id}`}
           >
-            <span>Łącznie przechodzi: <strong className={overQuota ? "text-destructive" : ""}>{total} / {stage.participantCount}</strong></span>
+            <span>Łącznie przechodzi: <strong className={overQuota ? "text-destructive" : ""}>{total} / {participantCount}</strong></span>
             {!overQuota && <span>· Odpada: {eliminated}</span>}
             {overQuota && <span className="text-destructive">— przekroczono limit!</span>}
           </div>
@@ -771,6 +791,8 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
   // Working baskets and routes: draft in advanced mode, else API data
   const active = advancedMode && draft ? draft : basketConfig;
+  const persistedAuthority = basketConfig?.flowAuthority === "basket_v1";
+  const showDerivedFlow = advancedMode || persistedAuthority;
 
   // Build lookups
   const basketById = useMemo(() => {
@@ -797,6 +819,16 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
     }
     return map;
   }, [active, stages]);
+
+  const flowCountsByStage = useMemo(
+    () =>
+      deriveStageBasketFlowCounts(
+        stages,
+        active?.baskets ?? [],
+        active?.routes ?? [],
+      ),
+    [active, stages],
+  );
 
   // Which stages can be route targets (later than source stage)
   const routeTargetStageIds = useMemo(() => {
@@ -984,6 +1016,26 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         </div>
       )}
 
+      {persistedAuthority && (
+        <div
+          className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 flex items-center gap-2 text-sm text-muted-foreground"
+          data-testid="explicit-basket-authority-banner"
+        >
+          <Info className="w-4 h-4 shrink-0" />
+          Liczby uczestników etapów i awansów wynikają z bezpośrednich przypisań, tras i limitów wyjść. Przepływem zarządzasz tutaj, w Koszykach.
+        </div>
+      )}
+
+      {advancedMode && !persistedAuthority && (
+        <div
+          className="rounded-lg border border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-sm text-muted-foreground"
+          data-testid="basket-authority-draft-preview-banner"
+        >
+          <Info className="w-4 h-4 shrink-0" />
+          Podgląd planowanych liczb z koszyków. Nowy model stanie się autorytatywny dopiero po poprawnym zapisie.
+        </div>
+      )}
+
       {/* API validation errors */}
       {apiError && (
         <div
@@ -1074,6 +1126,8 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
                     isLocked={isLocked}
                     routeSourceId={routeSourceId}
                     routeTargetStageIds={routeTargetStageIds}
+                    explicitAuthority={showDerivedFlow}
+                    flowCounts={flowCountsByStage.get(stage.id)}
                     onColorChange={handleColorChange}
                     onQualifierCountChange={handleQualifierCountChange}
                     onRemoveBasket={handleRemoveBasket}

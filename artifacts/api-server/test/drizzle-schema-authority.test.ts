@@ -25,6 +25,7 @@ import {
   tournamentRoutingSelectionsTable,
   tournamentRoutingStagesTable,
   tournamentStagesTable,
+  tournamentsTable,
 } from "@workspace/db/schema";
 import { getTableConfig } from "drizzle-orm/pg-core";
 
@@ -73,6 +74,48 @@ function expectUniqueConstraint(
 }
 
 describe("authoritative Drizzle schema", () => {
+  test("persists basket-flow authority as an explicit compatibility-safe version", () => {
+    const tournaments = getTableConfig(tournamentsTable);
+    const authorityVersion = tournaments.columns.find(
+      (column) => column.name === "basket_flow_authority_version",
+    );
+
+    assert.ok(authorityVersion, "missing basket_flow_authority_version column");
+    assert.equal(authorityVersion.notNull, true);
+    assert.equal(authorityVersion.default, 0);
+    assert.ok(
+      tournaments.checks.some(
+        (check) =>
+          check.name ===
+          "tournaments_basket_flow_authority_version_supported",
+      ),
+    );
+
+    const migration = readFileSync(
+      resolve(
+        repositoryRoot,
+        "lib/db/migrations/0024_basket_flow_authority.sql",
+      ),
+      "utf8",
+    );
+    assert.match(
+      migration,
+      /SET basket_flow_authority_version = 0\s+WHERE basket_flow_authority_version IS NULL/,
+    );
+    assert.match(
+      migration,
+      /ALTER COLUMN basket_flow_authority_version SET DEFAULT 0/,
+    );
+    assert.match(
+      migration,
+      /ALTER COLUMN basket_flow_authority_version SET NOT NULL/,
+    );
+    assert.match(
+      migration,
+      /CHECK \(basket_flow_authority_version IN \(0, 1\)\)/,
+    );
+  });
+
   test("declares stage baskets with stable identities and relational routing guards", () => {
     const baskets = getTableConfig(stageBasketsTable);
     const routes = getTableConfig(stageBasketRoutesTable);

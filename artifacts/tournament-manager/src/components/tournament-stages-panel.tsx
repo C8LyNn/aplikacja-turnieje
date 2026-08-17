@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetTournamentStageQueryKey,
+  getGetTournamentStageBasketsQueryKey,
   getGetTournamentStageReadinessQueryKey,
   getGetDoubleEliminationStageQueryKey,
   getListTournamentStagesQueryKey,
@@ -15,6 +16,7 @@ import {
   type DeadlockTournamentGameConfig,
   useCompleteTournamentStage,
   useGetDoubleEliminationStage,
+  useGetTournamentStageBaskets,
   useGetTournamentStage,
   useGetTournamentStageReadiness,
   useListTournamentStages,
@@ -27,6 +29,7 @@ import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import {
   CheckCircle2,
   Circle,
+  Info,
   Loader2,
   Play,
   Trophy,
@@ -50,6 +53,7 @@ import {
   STAGE_STATUS_LABELS,
 } from "@/lib/tournament-stages-ui";
 import { SeedingCeremony } from "@/components/seeding-ceremony";
+import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import {
   isSequentialCeremonyReady,
@@ -106,10 +110,12 @@ export function StageNavigation({
   stages,
   selectedStageId,
   onSelect,
+  participantCounts,
 }: {
   stages: TournamentStage[];
   selectedStageId?: number;
   onSelect: (stageId: number) => void;
+  participantCounts?: ReadonlyMap<number, number>;
 }) {
   return (
     <div
@@ -152,7 +158,7 @@ export function StageNavigation({
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {STAGE_FORMAT_LABELS[stage.format]} · BO{stage.bestOf} ·{" "}
-              {stage.participantCount} graczy
+              {participantCounts?.get(stage.id) ?? stage.participantCount} graczy
             </p>
           </button>
         );
@@ -503,6 +509,36 @@ export function TournamentStagesPanel({
     },
   });
   const stages = stagesQuery.data ?? [];
+  const basketConfigurationQuery = useGetTournamentStageBaskets(tournamentId, {
+    query: {
+      enabled: tournamentId > 0,
+      retry: false,
+      queryKey: getGetTournamentStageBasketsQueryKey(tournamentId),
+    },
+  });
+  const explicitBasketAuthority =
+    basketConfigurationQuery.data?.flowAuthority === "basket_v1";
+  const explicitFlowCounts = useMemo(
+    () =>
+      deriveStageBasketFlowCounts(
+        stages,
+        basketConfigurationQuery.data?.baskets ?? [],
+        basketConfigurationQuery.data?.routes ?? [],
+      ),
+    [basketConfigurationQuery.data, stages],
+  );
+  const explicitParticipantCounts = useMemo(
+    () =>
+      explicitBasketAuthority
+        ? new Map(
+            [...explicitFlowCounts].map(([stageId, counts]) => [
+              stageId,
+              counts.derivedParticipantCount,
+            ]),
+          )
+        : undefined,
+    [explicitBasketAuthority, explicitFlowCounts],
+  );
 
   useEffect(() => {
     setCeremonyState(null);
@@ -708,9 +744,19 @@ export function TournamentStagesPanel({
           Wybierz etap, aby zobaczyć jego uczestników, ranking, grupy i mecze.
         </p>
       </div>
+      {explicitBasketAuthority && (
+        <div
+          className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-muted-foreground flex items-center gap-2"
+          data-testid="stages-explicit-basket-authority"
+        >
+          <Info className="h-4 w-4 shrink-0" />
+          Liczby uczestników i awansów są tylko do odczytu — wynikają z konfiguracji w zakładce Koszyki.
+        </div>
+      )}
       <StageNavigation
         stages={stages}
         selectedStageId={selectedStageId}
+        participantCounts={explicitParticipantCounts}
         onSelect={(stageId) => {
           setSelectedStageId(stageId);
           setActionError(undefined);
@@ -750,7 +796,7 @@ export function TournamentStagesPanel({
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {STAGE_FORMAT_LABELS[selected.format]} · BO{selected.bestOf} ·{" "}
-                  {selected.participantCount} uczestników
+                  {explicitParticipantCounts?.get(selected.id) ?? selected.participantCount} uczestników
                   {selected.plannedRounds
                     ? ` · ${selected.plannedRounds} rund`
                     : ""}

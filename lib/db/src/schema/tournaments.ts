@@ -141,6 +141,12 @@ export const tournamentsTable = pgTable(
     rankingPolicy: rankingPolicyEnum("ranking_policy")
       .notNull()
       .default("match_record_v1"),
+    // Persisted opt-in for the Phase 3.5 basket-authoritative participant-flow
+    // model. Version 0 keeps both implicit baskets and pre-Phase-3.5 stored
+    // basket graphs on the legacy stage-plan authority path.
+    basketFlowAuthorityVersion: integer("basket_flow_authority_version")
+      .notNull()
+      .default(0),
     // Compatibility projection for the legacy single-stage API. TournamentStage
     // is authoritative after migration 0002; these columns are removed only after
     // stage-aware OpenAPI, Backup v3 and all runtime reads have been migrated.
@@ -176,6 +182,10 @@ export const tournamentsTable = pgTable(
       sql`(${table.currentRound} IS NULL OR ${table.currentRound} > 0)
         AND (${table.totalRounds} IS NULL OR ${table.totalRounds} > 0)
         AND (${table.swissRounds} IS NULL OR ${table.swissRounds} > 0)`,
+    ),
+    check(
+      "tournaments_basket_flow_authority_version_supported",
+      sql`${table.basketFlowAuthorityVersion} IN (0, 1)`,
     ),
   ],
 );

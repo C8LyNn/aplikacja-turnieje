@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
+import type { TournamentBackupV3TournamentBasketFlowAuthorityVersion } from './tournamentBackupV3TournamentBasketFlowAuthorityVersion';
 import type { TournamentBackupV3TournamentStatus } from './tournamentBackupV3TournamentStatus';
 import type { TournamentBackupV3TournamentVisibility } from './tournamentBackupV3TournamentVisibility';
 
@@ -13,6 +14,8 @@ export type TournamentBackupV3Tournament = {
   name: string;
   /** @nullable */
   description?: string | null;
+  /** Present only when the restored graph uses basket-authoritative flow. Omission preserves legacy compatibility. */
+  basketFlowAuthorityVersion?: TournamentBackupV3TournamentBasketFlowAuthorityVersion;
   status: TournamentBackupV3TournamentStatus;
   /** @nullable */
   maxPlayers?: number | null;

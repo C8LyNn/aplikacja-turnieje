@@ -55,6 +55,7 @@ import {
 import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
 import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
 import { loadStageBasketConfigurationInTransaction } from "./stage-basket-configuration";
+import { hasLegacyLinearParticipantFlowMismatch } from "../../domain/tournament/stage-baskets";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
 
 export interface StageLifecycleTestHooks {
@@ -534,7 +535,11 @@ export async function getQualificationPreview(input: {
       groups.length !== stage.groupCount ||
       stage.qualificationMode !== "top_n_per_group" ||
       !nextStage ||
-      nextStage.participantCount !== qualifierCount
+      hasLegacyLinearParticipantFlowMismatch({
+        basketFlowAuthorityVersion: tournament.basketFlowAuthorityVersion,
+        qualifierCount,
+        nextParticipantCount: nextStage.participantCount,
+      })
     ) {
       throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
     }
@@ -548,7 +553,11 @@ export async function getQualificationPreview(input: {
   const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
   if (nextStage && (
     stage.qualificationMode !== "top_n" ||
-    advancingCount !== nextStage.participantCount ||
+    hasLegacyLinearParticipantFlowMismatch({
+      basketFlowAuthorityVersion: tournament.basketFlowAuthorityVersion,
+      qualifierCount: advancingCount,
+      nextParticipantCount: nextStage.participantCount,
+    }) ||
     advancingCount < 2 ||
     advancingCount > memberships.length
   )) {
@@ -639,7 +648,11 @@ export async function completeStage(
         groups.length !== stage.groupCount ||
         stage.qualificationMode !== "top_n_per_group" ||
         !nextStage ||
-        nextStage.participantCount !== qualifierCount
+        hasLegacyLinearParticipantFlowMismatch({
+          basketFlowAuthorityVersion: tournament.basketFlowAuthorityVersion,
+          qualifierCount,
+          nextParticipantCount: nextStage.participantCount,
+        })
       ) {
         throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
       }
@@ -690,7 +703,11 @@ export async function completeStage(
       const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
       if (nextStage && (
         stage.qualificationMode !== "top_n" ||
-        advancingCount !== nextStage.participantCount ||
+        hasLegacyLinearParticipantFlowMismatch({
+          basketFlowAuthorityVersion: tournament.basketFlowAuthorityVersion,
+          qualifierCount: advancingCount,
+          nextParticipantCount: nextStage.participantCount,
+        }) ||
         advancingCount < 2 ||
         advancingCount > memberships.length
       )) {

@@ -171,6 +171,9 @@ importers:
       '@workspace/game-catalog':
         specifier: workspace:*
         version: link:../../lib/game-catalog
+      '@workspace/stage-basket-flow':
+        specifier: workspace:*
+        version: link:../../lib/stage-basket-flow
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -541,6 +544,9 @@ importers:
       '@workspace/game-catalog':
         specifier: workspace:*
         version: link:../../lib/game-catalog
+      '@workspace/stage-basket-flow':
+        specifier: workspace:*
+        version: link:../../lib/stage-basket-flow
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -664,6 +670,8 @@ importers:
         version: 0.31.10
 
   lib/game-catalog: {}
+
+  lib/stage-basket-flow: {}
 
   scripts:
     devDependencies:

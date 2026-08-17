@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  deriveStageBasketFlowCounts,
+  hasLegacyLinearParticipantFlowMismatch,
   validateStageBasketConfiguration,
   type StageBasketConfigurationInput,
 } from "../src/domain/tournament/stage-baskets";
+import { compileBasketAuthorityRoutingPlan } from "../src/application/stages/basket-authority-routing-plan";
 
 // Helper: run validation in legacy mode (default) — allows null on output baskets.
 function codes(input: StageBasketConfigurationInput): string[] {
@@ -13,7 +16,8 @@ function codes(input: StageBasketConfigurationInput): string[] {
 }
 
 // Helper: run validation in explicit mode — every output basket must carry a
-// positive qualifierCount. Use for PUT and Backup V3 restore paths.
+// positive qualifierCount. Use for PUT and basket-authoritative Backup V3
+// restore paths; pre-Phase-3.5 backups remain in legacy mode.
 function explicitCodes(input: StageBasketConfigurationInput): string[] {
   return validateStageBasketConfiguration(input, "explicit").problems.map(
     (problem) => problem.code,
@@ -76,6 +80,73 @@ function validConfiguration(): StageBasketConfigurationInput {
 }
 
 describe("stage basket domain validation", () => {
+  test("basket authority permits routed qualifiers plus direct entrants while legacy remains linear", () => {
+    assert.equal(
+      hasLegacyLinearParticipantFlowMismatch({
+        basketFlowAuthorityVersion: 0,
+        qualifierCount: 8,
+        nextParticipantCount: 16,
+      }),
+      true,
+    );
+    assert.equal(
+      hasLegacyLinearParticipantFlowMismatch({
+        basketFlowAuthorityVersion: 1,
+        qualifierCount: 8,
+        nextParticipantCount: 16,
+      }),
+      false,
+    );
+  });
+
+  test("shared flow projection covers direct, routed, mixed, fan-in, skip-stage and multiple baskets", () => {
+    const projection = deriveStageBasketFlowCounts({
+      stages: [
+        { id: 1, position: 1, participantCount: 99 },
+        { id: 2, position: 2, participantCount: 99 },
+        { id: 3, position: 3, participantCount: 99 },
+      ],
+      playerIds: [1, 2, 3, 4, 5, 6],
+      baskets: [
+        { id: "s1-in-a", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [1, 2], qualifierCount: null },
+        { id: "s1-in-b", stageId: 1, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [3, 4], qualifierCount: null },
+        { id: "s1-out-a", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 2 },
+        { id: "s1-out-b", stageId: 1, type: "output", ordinal: 2, order: 2, colorId: null, participantIds: [], qualifierCount: 1 },
+        { id: "s2-in", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
+        { id: "s2-out", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 1 },
+        { id: "s3-in-a", stageId: 3, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [5], qualifierCount: null },
+        { id: "s3-in-b", stageId: 3, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [6], qualifierCount: null },
+        { id: "s3-out", stageId: 3, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 1 },
+      ],
+      routes: [
+        { id: "r1", sourceBasketId: "s1-out-a", targetBasketId: "s2-in" },
+        { id: "r2", sourceBasketId: "s1-out-b", targetBasketId: "s3-in-a" },
+        { id: "r3", sourceBasketId: "s2-out", targetBasketId: "s3-in-b" },
+      ],
+    });
+
+    assert.deepEqual(projection.get(1), {
+      stageId: 1,
+      directParticipantCount: 4,
+      incomingRouteQuota: 0,
+      derivedParticipantCount: 4,
+      outputQualifierCount: 3,
+    });
+    assert.deepEqual(projection.get(2), {
+      stageId: 2,
+      directParticipantCount: 0,
+      incomingRouteQuota: 2,
+      derivedParticipantCount: 2,
+      outputQualifierCount: 1,
+    });
+    assert.deepEqual(projection.get(3), {
+      stageId: 3,
+      directParticipantCount: 2,
+      incomingRouteQuota: 2,
+      derivedParticipantCount: 4,
+      outputQualifierCount: 1,
+    });
+  });
   test("accepts a forward one-input/one-output graph", () => {
     assert.deepEqual(validateStageBasketConfiguration(validConfiguration()), {
       valid: true,
@@ -334,14 +405,184 @@ describe("stage basket domain validation", () => {
 
   test("explicit mode accepts configuration where all output baskets have positive qualifierCount", () => {
     const input = validConfiguration();
-    // Set non-null qualifierCount on the terminal output basket.
+    // Explicit capacity comes from assigned and routed participants, not from
+    // the legacy stage participantCount fields.
     input.baskets = input.baskets.map((b) =>
-      b.id === "s2-out" ? { ...b, qualifierCount: 2 } : b,
+      b.id === "s1-in"
+        ? { ...b, participantIds: [1, 2, 3, 4] }
+        : b.id === "s2-out"
+          ? { ...b, qualifierCount: 2 }
+          : b,
     );
     assert.equal(
       validateStageBasketConfiguration(input, "explicit").valid,
       true,
       "explicit mode must accept all-positive-quota configuration",
+    );
+  });
+
+  test("explicit authority derives the 24-player split as 16 direct then 8 routed plus 8 direct", () => {
+    const input: StageBasketConfigurationInput = {
+      stages: [
+        { id: 1, position: 1, participantCount: 24 },
+        { id: 2, position: 2, participantCount: 12 },
+      ],
+      playerIds: Array.from({ length: 24 }, (_, index) => index + 1),
+      baskets: [
+        { id: "s1-in", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: Array.from({ length: 16 }, (_, index) => index + 1), qualifierCount: null },
+        { id: "s1-out", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 8 },
+        { id: "s2-in", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: Array.from({ length: 8 }, (_, index) => index + 17), qualifierCount: null },
+        { id: "s2-out", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 1 },
+      ],
+      routes: [
+        { id: "s1-to-s2", sourceBasketId: "s1-out", targetBasketId: "s2-in" },
+      ],
+    };
+
+    const counts = deriveStageBasketFlowCounts(input);
+    assert.deepEqual(counts.get(1), {
+      stageId: 1,
+      directParticipantCount: 16,
+      incomingRouteQuota: 0,
+      derivedParticipantCount: 16,
+      outputQualifierCount: 8,
+    });
+    assert.deepEqual(counts.get(2), {
+      stageId: 2,
+      directParticipantCount: 8,
+      incomingRouteQuota: 8,
+      derivedParticipantCount: 16,
+      outputQualifierCount: 1,
+    });
+    assert.equal(validateStageBasketConfiguration(input, "explicit").valid, true);
+
+    const compiled = compileBasketAuthorityRoutingPlan(
+      [
+        {
+          id: 1,
+          stageKey: "opening",
+          position: 1,
+          name: "Opening",
+          format: "swiss",
+          participantCount: 16,
+          bestOf: 1,
+          plannedRounds: 5,
+          advancingCount: 8,
+          groupCount: null,
+          participantsPerGroup: null,
+          qualifiersPerGroup: null,
+          seedingPolicy: "standings_order",
+          entrySeedingPolicy: "preserve",
+          resultSeedingPolicy: "standings_order",
+          randomSeed: null,
+          randomRevealOrder: "instant",
+        },
+        {
+          id: 2,
+          stageKey: "double-final",
+          position: 2,
+          name: "Double Final",
+          format: "double_elimination",
+          participantCount: 16,
+          bestOf: 3,
+          plannedRounds: null,
+          advancingCount: null,
+          groupCount: null,
+          participantsPerGroup: null,
+          qualifiersPerGroup: null,
+          seedingPolicy: "standard_bracket",
+          entrySeedingPolicy: "preserve",
+          resultSeedingPolicy: "standings_order",
+          randomSeed: null,
+          randomRevealOrder: "instant",
+        },
+      ],
+      input.baskets,
+      input.routes,
+    );
+    assert.equal(compiled.valid, true);
+    if (compiled.valid) {
+      assert.equal(
+        compiled.value.stages.find(
+          (stage) => stage.stageKey === "double-final",
+        )?.exactParticipantCapacity,
+        16,
+      );
+      assert.ok(
+        compiled.value.logicalMatches.some(
+          (match) => match.stageKey === "double-final",
+        ),
+      );
+    }
+  });
+
+  test("explicit authority accepts fan-in, skip-stage routes and direct target entrants", () => {
+    const input: StageBasketConfigurationInput = {
+      stages: [
+        { id: 1, position: 1, participantCount: 99 },
+        { id: 2, position: 2, participantCount: 99 },
+        { id: 3, position: 3, participantCount: 1 },
+      ],
+      playerIds: Array.from({ length: 12 }, (_, index) => index + 1),
+      baskets: [
+        { id: "s1-in", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [1, 2, 3, 4, 5, 6], qualifierCount: null },
+        { id: "s1-out", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 4 },
+        { id: "s2-in", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [7, 8, 9, 10], qualifierCount: null },
+        { id: "s2-out", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 2 },
+        { id: "s3-in-a", stageId: 3, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [11], qualifierCount: null },
+        { id: "s3-in-b", stageId: 3, type: "input", ordinal: 2, order: 2, colorId: null, participantIds: [12], qualifierCount: null },
+        { id: "s3-out", stageId: 3, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 3 },
+      ],
+      routes: [
+        { id: "s1-skip-s3", sourceBasketId: "s1-out", targetBasketId: "s3-in-a" },
+        { id: "s2-to-s3", sourceBasketId: "s2-out", targetBasketId: "s3-in-b" },
+      ],
+    };
+
+    assert.equal(validateStageBasketConfiguration(input, "explicit").valid, true);
+    assert.deepEqual(deriveStageBasketFlowCounts(input).get(3), {
+      stageId: 3,
+      directParticipantCount: 2,
+      incomingRouteQuota: 6,
+      derivedParticipantCount: 8,
+      outputQualifierCount: 3,
+    });
+  });
+
+  test("explicit authority accepts a routed-only target and rejects quota above source capacity", () => {
+    const input: StageBasketConfigurationInput = {
+      stages: [
+        { id: 1, position: 1, participantCount: 100 },
+        { id: 2, position: 2, participantCount: 100 },
+      ],
+      playerIds: [1, 2, 3, 4],
+      baskets: [
+        { id: "s1-in", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [1, 2, 3, 4], qualifierCount: null },
+        { id: "s1-out", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 4 },
+        { id: "s2-in", stageId: 2, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
+        { id: "s2-out", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 2 },
+      ],
+      routes: [
+        { id: "s1-to-s2", sourceBasketId: "s1-out", targetBasketId: "s2-in" },
+      ],
+    };
+    assert.equal(validateStageBasketConfiguration(input, "explicit").valid, true);
+    assert.equal(
+      deriveStageBasketFlowCounts(input).get(2)?.derivedParticipantCount,
+      4,
+    );
+
+    const overCapacity: StageBasketConfigurationInput = {
+      ...input,
+      baskets: input.baskets.map((basket) =>
+        basket.id === "s1-out" ? { ...basket, qualifierCount: 5 } : basket,
+      ),
+    };
+    assert.ok(
+      explicitCodes(overCapacity).includes(
+        "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT",
+      ),
+      "legacy participantCount=100 must not mask a source quota above four direct entrants",
     );
   });
 

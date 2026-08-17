@@ -747,6 +747,7 @@ describe("Phase 3 — Basket Route Execution", () => {
       .set(fix.organizerHeaders);
     assert.equal(exportRes.status, 200);
     const backup = exportRes.body as {
+      tournament: { basketFlowAuthorityVersion?: 1 };
       routeExecutions?: {
         routeId: string;
         sourceBasketId: string;
@@ -755,6 +756,11 @@ describe("Phase 3 — Basket Route Execution", () => {
         entries: { playerBackupId: number; sourceFinalRank: number }[];
       }[];
     };
+    assert.equal(
+      backup.tournament.basketFlowAuthorityVersion,
+      undefined,
+      "stored Phase 3 basket graphs must export without basket authority",
+    );
     assert.ok(
       Array.isArray(backup.routeExecutions) && backup.routeExecutions.length === 1,
       "backup must include routeExecutions",
@@ -773,6 +779,24 @@ describe("Phase 3 — Basket Route Execution", () => {
     );
     const newTournamentId = importRes.body.tournament.id as number;
     const newOrganizerToken = importRes.body.organizerToken as string;
+    const [restoredTournament] = await database.db
+      .select({
+        basketFlowAuthorityVersion:
+          database.tournamentsTable.basketFlowAuthorityVersion,
+      })
+      .from(database.tournamentsTable)
+      .where(eq(database.tournamentsTable.id, newTournamentId));
+    assert.equal(
+      restoredTournament.basketFlowAuthorityVersion,
+      0,
+      "old Backup V3 documents must restore in compatibility mode",
+    );
+    const restoredConfiguration = await request(app).get(
+      `/api/tournaments/${newTournamentId}/stage-baskets`,
+    );
+    assert.equal(restoredConfiguration.status, 200);
+    assert.equal(restoredConfiguration.body.legacyDefaulted, false);
+    assert.equal(restoredConfiguration.body.flowAuthority, "legacy");
 
     // Find restored stage by position 1 (source)
     const stages = await database.db

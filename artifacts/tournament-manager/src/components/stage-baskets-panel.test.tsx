@@ -104,6 +104,7 @@ const stagesTwoStages = [
 const basketsLegacy = {
   tournamentId: 42,
   legacyDefaulted: true,
+  flowAuthority: "legacy" as const,
   baskets: [
     { id: "s1in1", stageId: 1, type: "input", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
     { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
@@ -115,6 +116,7 @@ const basketsLegacy = {
 const basketsExplicit = {
   tournamentId: 42,
   legacyDefaulted: false,
+  flowAuthority: "basket_v1" as const,
   baskets: [
     { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [1, 2], qualifierCount: null },
     { id: "s1in2", stageId: 1, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [3, 4], qualifierCount: null },
@@ -122,7 +124,7 @@ const basketsExplicit = {
     { id: "s1out2", stageId: 1, type: "output", ordinal: 2, order: 2, colorId: null, participantIds: [], qualifierCount: 2 },
     { id: "s2in1", stageId: 2, type: "input",  ordinal: 1, order: 1, colorId: "blue", participantIds: [], qualifierCount: null },
     { id: "s2in2", stageId: 2, type: "input",  ordinal: 2, order: 2, colorId: "red",  participantIds: [], qualifierCount: null },
-    { id: "s2out1", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
+    { id: "s2out1", stageId: 2, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: 1 },
   ],
   routes: [
     { id: "r.s1out1.s2in1", sourceBasketId: "s1out1", targetBasketId: "s2in1" },
@@ -134,6 +136,7 @@ const basketsExplicit = {
 const basketsInvalid = {
   tournamentId: 42,
   legacyDefaulted: false,
+  flowAuthority: "legacy" as const,
   baskets: [
     { id: "s1in1", stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: null, participantIds: [], qualifierCount: null },
   ],
@@ -199,6 +202,11 @@ test("shows legacy defaulted info banner for legacyDefaulted config", async () =
   // Legacy info banner should be present
   const infoText = screen.getByText(/Domyślna konfiguracja koszyków/i);
   assert.ok(infoText, "info banner shown for legacy baskets");
+  assert.equal(screen.queryByTestId("stage-flow-summary-1"), null);
+  assert.ok(
+    screen.getByTestId("stage-block-1").textContent?.includes("8 uczestników"),
+    "legacy view must keep the stage plan participantCount",
+  );
 });
 
 test("renders stage blocks and basket labels for explicit multi-basket config", async () => {
@@ -224,6 +232,51 @@ test("renders stage blocks and basket labels for explicit multi-basket config", 
   // Stage names appear in headers
   assert.ok(screen.getByText("Eliminacje"), "stage 1 name rendered");
   assert.ok(screen.getByText("Finały"), "stage 2 name rendered");
+  assert.ok(screen.getByTestId("explicit-basket-authority-banner"));
+  assert.match(
+    screen.getByTestId("stage-flow-summary-1").textContent ?? "",
+    /Bezpośrednio: 4.*Z tras: 0.*Razem: 4/,
+  );
+  assert.match(
+    screen.getByTestId("stage-flow-summary-2").textContent ?? "",
+    /Bezpośrednio: 0.*Z tras: 4.*Razem: 4/,
+  );
+});
+
+test("stored pre-authority baskets stay on persisted legacy flow until save", async () => {
+  const compatibilityConfig = {
+    ...basketsExplicit,
+    flowAuthority: "legacy" as const,
+  };
+  const fetch = makeFetch({
+    "stage-baskets": () => compatibilityConfig,
+    "/stages": () => stagesTwoStages,
+    "/players": () => players,
+  });
+  renderPanel(fetch);
+
+  await waitFor(() => {
+    assert.ok(screen.getByTestId("stage-block-1"));
+  });
+  assert.equal(screen.queryByTestId("explicit-basket-authority-banner"), null);
+  assert.equal(screen.queryByTestId("stage-flow-summary-1"), null);
+  assert.ok(
+    screen.getByTestId("stage-block-1").textContent?.includes("8 uczestników"),
+  );
+
+  await userEvent.click(screen.getByTestId("enter-advanced-btn"));
+  assert.ok(screen.getByTestId("basket-authority-draft-preview-banner"));
+  assert.match(
+    screen.getByTestId("stage-flow-summary-1").textContent ?? "",
+    /Razem: 4/,
+  );
+  assert.equal(screen.queryByTestId("explicit-basket-authority-banner"), null);
+
+  await userEvent.click(screen.getByText(/Anuluj/i));
+  assert.equal(screen.queryByTestId("stage-flow-summary-1"), null);
+  assert.ok(
+    screen.getByTestId("stage-block-1").textContent?.includes("8 uczestników"),
+  );
 });
 
 test("renders route connectors between stages", async () => {
@@ -302,6 +355,26 @@ test("entering advanced mode shows save and cancel buttons", async () => {
 
   assert.ok(screen.getByTestId("save-baskets-btn"), "save button appears in advanced mode");
   assert.ok(screen.getByText(/Anuluj/i), "cancel button appears in advanced mode");
+  assert.ok(
+    screen.getByTestId("basket-authority-draft-preview-banner"),
+    "unsaved draft is clearly a preview",
+  );
+  assert.equal(
+    screen.queryByTestId("explicit-basket-authority-banner"),
+    null,
+    "opening advanced mode must not claim persisted authority",
+  );
+
+  await userEvent.click(screen.getByText(/Anuluj/i));
+  assert.equal(
+    screen.queryByTestId("basket-authority-draft-preview-banner"),
+    null,
+    "cancelling leaves the persisted legacy mode unchanged",
+  );
+  assert.ok(
+    screen.getByTestId("stage-block-1").textContent?.includes("8 uczestników"),
+    "cancel restores the persisted legacy participant count",
+  );
 });
 
 test("add route button appears in advanced mode for multi-stage tournament", async () => {
@@ -407,6 +480,7 @@ test("skip-stage route (Stage 1 → Stage 3) displays target stage name in conne
   const skipRouteConfig = {
     tournamentId: 42,
     legacyDefaulted: false,
+    flowAuthority: "basket_v1" as const,
     baskets: [
       { id: "s1in1",  stageId: 1, type: "input",  ordinal: 1, order: 1, colorId: null, participantIds: [] },
       { id: "s1out1", stageId: 1, type: "output", ordinal: 1, order: 1, colorId: null, participantIds: [] },
@@ -460,8 +534,8 @@ test("organizer with no orgToken sees no edit button", async () => {
 // ─── Phase 1: qualifierCount UI tests ────────────────────────────────────────
 
 test("quota summary displays Łącznie przechodzi and Odpada for stage with non-null qualifierCounts", async () => {
-  // basketsExplicit has s1out1 (qc=2) and s1out2 (qc=2) → total=4, eliminated=4 for stage 1.
-  // stage 2 output has qualifierCount=null → no quota summary for stage 2.
+  // Explicit authority derives stage 1 from four direct assignments, ignoring
+  // the legacy participantCount=8 compatibility field.
   const fetchImpl = makeFetch({
     "stage-baskets": () => basketsExplicit,
     "/stages": () => stagesTwoStages,
@@ -478,21 +552,13 @@ test("quota summary displays Łącznie przechodzi and Odpada for stage with non-
     summary.textContent?.includes("4"),
     `quota summary must show total=4; got: ${summary.textContent}`,
   );
-  assert.ok(
-    summary.textContent?.includes("8"),
-    `quota summary must show participantCount=8; got: ${summary.textContent}`,
-  );
+  assert.ok(summary.textContent?.includes("4 / 4"));
   assert.ok(
     summary.textContent?.includes("Odpada"),
     "quota summary must show Odpada text",
   );
 
-  // Stage 2 has no non-null qualifierCounts → no summary.
-  assert.equal(
-    screen.queryByTestId("quota-summary-2"),
-    null,
-    "no quota-summary-2 when all outputs have null qualifierCount",
-  );
+  assert.ok(screen.getByTestId("quota-summary-2"));
 });
 
 test("advanced mode shows qualifier-count input for output baskets and quota summary updates", async () => {
@@ -519,7 +585,8 @@ test("advanced mode shows qualifier-count input for output baskets and quota sum
   const input = screen.getByTestId("qualifier-count-s1out1") as HTMLInputElement;
   assert.equal(input.value, "2", "initial qualifierCount must be 2");
 
-  // Change qualifierCount from 2 to 3 — total for stage 1 becomes 3+2=5, eliminated=3.
+  // Change qualifierCount from 2 to 3 — total becomes five against the
+  // explicit derived capacity of four.
   await userEvent.clear(input);
   await userEvent.type(input, "3");
 
@@ -529,10 +596,7 @@ test("advanced mode shows qualifier-count input for output baskets and quota sum
       summary.textContent?.includes("5"),
       `quota must update to 5 after edit; got: ${summary.textContent}`,
     );
-    assert.ok(
-      summary.textContent?.includes("3"),
-      `Odpada must update to 3; got: ${summary.textContent}`,
-    );
+    assert.ok(summary.textContent?.includes("przekroczono limit"));
   });
 });
 

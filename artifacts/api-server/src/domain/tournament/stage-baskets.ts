@@ -1,3 +1,8 @@
+import {
+  deriveStageBasketFlowCounts as deriveSharedStageBasketFlowCounts,
+  type StageBasketFlowCounts,
+} from "@workspace/stage-basket-flow";
+
 export type StageBasketType = "input" | "output";
 
 export interface StageBasketDefinition {
@@ -27,10 +32,12 @@ export interface StageBasketRouteDefinition {
 export interface StageBasketValidationStage {
   id: number;
   position: number;
-  /** Used to validate that the sum of output basket qualifierCounts does not
-   *  exceed the number of participants entering the stage. */
+  /** Legacy compatibility count. Explicit basket validation derives the stage
+   *  capacity from direct assignments and incoming route quotas instead. */
   participantCount: number;
 }
+
+export type StageBasketDerivedStageCounts = StageBasketFlowCounts;
 
 export type StageBasketProblemCode =
   | "STAGE_BASKET_STAGE_NOT_FOUND"
@@ -62,7 +69,9 @@ export type StageBasketProblemCode =
   /** Output basket qualifierCount is provided but is not a positive integer. */
   | "STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID"
   /** Sum of output basket qualifierCounts exceeds the stage participantCount. */
-  | "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT";
+  | "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT"
+  /** Basket-authoritative stage capacity must remain executable. */
+  | "STAGE_DERIVED_PARTICIPANT_COUNT_INVALID";
 
 export interface StageBasketProblemContext {
   stageId?: number;
@@ -145,6 +154,32 @@ function graphHasCycle(
   return [...edges.keys()].some(visit);
 }
 
+export function hasLegacyLinearParticipantFlowMismatch(input: {
+  basketFlowAuthorityVersion: number;
+  qualifierCount: number;
+  nextParticipantCount: number;
+}): boolean {
+  return (
+    input.basketFlowAuthorityVersion !== 1 &&
+    input.qualifierCount !== input.nextParticipantCount
+  );
+}
+
+/**
+ * Computes the organizer-authored participant flow for an explicit basket
+ * graph. Direct input assignments and materialized route arrivals remain
+ * separate at runtime; this function counts only the configured route quota.
+ */
+export function deriveStageBasketFlowCounts(
+  input: StageBasketConfigurationInput,
+): Map<number, StageBasketDerivedStageCounts> {
+  return deriveSharedStageBasketFlowCounts(
+    input.stages,
+    input.baskets,
+    input.routes,
+  );
+}
+
 /**
  * Validates the editable, stage-level basket graph. Match routing remains owned
  * by Tournament Engine V2; this graph only partitions stage entry/exit flow.
@@ -166,6 +201,7 @@ export function validateStageBasketConfiguration(
   const playerIds = new Set(input.playerIds);
   const basketById = new Map<string, StageBasketDefinition>();
   const seenBasketIds = new Set<string>();
+  const derivedCounts = deriveStageBasketFlowCounts(input);
 
   for (const basket of input.baskets) {
     if (!STABLE_ID.test(basket.id)) {
@@ -304,6 +340,17 @@ export function validateStageBasketConfiguration(
     const stageBaskets = input.baskets.filter(
       (basket) => basket.stageId === stage.id,
     );
+    if (
+      mode === "explicit" &&
+      (derivedCounts.get(stage.id)?.derivedParticipantCount ?? 0) < 2
+    ) {
+      addProblem(
+        problems,
+        "STAGE_DERIVED_PARTICIPANT_COUNT_INVALID",
+        "Basket-authoritative stage participant count must be at least 2.",
+        { stageId: stage.id },
+      );
+    }
     for (const type of ["input", "output"] as const) {
       const typed = stageBaskets.filter((basket) => basket.type === type);
       if (typed.length < 1 || typed.length > 4) {
@@ -344,18 +391,23 @@ export function validateStageBasketConfiguration(
       }
     }
 
-    // qualifierCount sum invariant: total qualifying slots must not exceed the
-    // number of participants the stage can host.
+    // qualifierCount sum invariant: legacy configurations retain the stage
+    // plan's linear participantCount. Explicit configurations instead derive
+    // capacity from direct assignments plus incoming route quotas.
     const outputQualifierCounts = stageBaskets
       .filter((b) => b.type === "output" && b.qualifierCount !== null)
       .map((b) => b.qualifierCount as number);
     if (outputQualifierCounts.length > 0) {
       const totalQuota = outputQualifierCounts.reduce((a, b) => a + b, 0);
-      if (totalQuota > stage.participantCount) {
+      const participantCapacity =
+        mode === "explicit"
+          ? (derivedCounts.get(stage.id)?.derivedParticipantCount ?? 0)
+          : stage.participantCount;
+      if (totalQuota > participantCapacity) {
         addProblem(
           problems,
           "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT",
-          `Total qualifier quota (${totalQuota}) exceeds stage participant count (${stage.participantCount}).`,
+          `Total qualifier quota (${totalQuota}) exceeds stage participant count (${participantCapacity}).`,
           { stageId: stage.id },
         );
       }

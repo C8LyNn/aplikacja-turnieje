@@ -408,12 +408,14 @@ test("renderuje listę etapów i statusy planned, active, completed", () => {
       ]}
       selectedStageId={2}
       onSelect={() => undefined}
+      participantCounts={new Map([[2, 16]])}
     />,
   );
   assert.match(html, /Ukończony/);
   assert.match(html, /Aktywny/);
   assert.match(html, /Planowany/);
   assert.match(html, /Faza grupowa/);
+  assert.match(html, /16 graczy/);
 });
 
 test("opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy", () => {

@@ -152,6 +152,7 @@ export const StageBasketProblemCode = {
   STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED: 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED',
   STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID: 'STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID',
   STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT: 'STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT',
+  STAGE_DERIVED_PARTICIPANT_COUNT_INVALID: 'STAGE_DERIVED_PARTICIPANT_COUNT_INVALID',
 } as const;
 
 export interface StageBasketProblemContext {
@@ -226,9 +227,22 @@ export interface StageBasketConfigurationInput {
   routes: StageBasketRoute[];
 }
 
+/**
+ * Persisted participant-flow authority. Stored pre-Phase-3.5 basket graphs remain legacy.
+ */
+export type StageBasketConfigurationFlowAuthority = typeof StageBasketConfigurationFlowAuthority[keyof typeof StageBasketConfigurationFlowAuthority];
+
+
+export const StageBasketConfigurationFlowAuthority = {
+  legacy: 'legacy',
+  basket_v1: 'basket_v1',
+} as const;
+
 export interface StageBasketConfiguration {
   tournamentId: number;
   legacyDefaulted: boolean;
+  /** Persisted participant-flow authority. Stored pre-Phase-3.5 basket graphs remain legacy. */
+  flowAuthority: StageBasketConfigurationFlowAuthority;
   baskets: StageBasket[];
   routes: StageBasketRoute[];
   validation: StageBasketValidation;
@@ -1854,6 +1868,16 @@ export interface TournamentBackupV2 {
   actionLog: TournamentBackupV2ActionLogItem[];
 }
 
+/**
+ * Present only when the restored graph uses basket-authoritative flow. Omission preserves legacy compatibility.
+ */
+export type TournamentBackupV3TournamentBasketFlowAuthorityVersion = typeof TournamentBackupV3TournamentBasketFlowAuthorityVersion[keyof typeof TournamentBackupV3TournamentBasketFlowAuthorityVersion];
+
+
+export const TournamentBackupV3TournamentBasketFlowAuthorityVersion = {
+  NUMBER_1: 1,
+} as const;
+
 export type TournamentBackupV3TournamentStatus = typeof TournamentBackupV3TournamentStatus[keyof typeof TournamentBackupV3TournamentStatus];
 
 
@@ -1876,6 +1900,8 @@ export type TournamentBackupV3Tournament = {
   name: string;
   /** @nullable */
   description?: string | null;
+  /** Present only when the restored graph uses basket-authoritative flow. Omission preserves legacy compatibility. */
+  basketFlowAuthorityVersion?: TournamentBackupV3TournamentBasketFlowAuthorityVersion;
   status: TournamentBackupV3TournamentStatus;
   /** @nullable */
   maxPlayers?: number | null;

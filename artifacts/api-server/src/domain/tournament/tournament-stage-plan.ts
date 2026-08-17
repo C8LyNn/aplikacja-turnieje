@@ -308,12 +308,13 @@ function validateParticipantFlow(
   stages: readonly IndexedStage[],
   initialParticipantCount: unknown,
   positionsValid: boolean,
+  enforceLinearFlow: boolean,
   problems: TournamentStagePlanProblem[],
 ): void {
   if (!positionsValid || stages.length === 0) return;
   const ordered = [...stages].sort((left, right) => (left.record.position as number) - (right.record.position as number));
   const first = ordered[0];
-  if (isPositiveInteger(initialParticipantCount) && isPositiveInteger(first.record.participantCount) && first.record.participantCount !== initialParticipantCount) {
+  if (enforceLinearFlow && isPositiveInteger(initialParticipantCount) && isPositiveInteger(first.record.participantCount) && first.record.participantCount !== initialParticipantCount) {
     addProblem(problems, "PARTICIPANT_FLOW_MISMATCH", `stages[${first.index}].participantCount`, "The first stage participantCount must equal initialParticipantCount.");
   }
   ordered.forEach((stage, orderedIndex) => {
@@ -365,7 +366,7 @@ function validateParticipantFlow(
         }
       }
     }
-    if (advancingCount != null && isPositiveInteger(next.record.participantCount) && next.record.participantCount !== advancingCount) {
+    if (enforceLinearFlow && advancingCount != null && isPositiveInteger(next.record.participantCount) && next.record.participantCount !== advancingCount) {
       addProblem(problems, "PARTICIPANT_FLOW_MISMATCH", `stages[${next.index}].participantCount`, `participantCount must equal ${advancingCount}, the number advancing from the previous stage.`);
     }
   });
@@ -418,7 +419,10 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
   }
 }
 
-export function validateTournamentStagePlan(input: unknown): TournamentStagePlanValidationResult {
+export function validateTournamentStagePlan(
+  input: unknown,
+  options: { participantFlowAuthority?: "legacy" | "basket_v1" } = {},
+): TournamentStagePlanValidationResult {
   const problems: TournamentStagePlanProblem[] = [];
   const plan = asRecord(input) ?? {};
   const rawStages = Array.isArray(plan.stages) ? plan.stages : [];
@@ -428,7 +432,13 @@ export function validateTournamentStagePlan(input: unknown): TournamentStagePlan
   const positionsValid = validatePositions(stages, problems);
   validateCommonStageFields(stages, problems);
   validateFormatConfiguration(stages, problems);
-  validateParticipantFlow(stages, plan.initialParticipantCount, positionsValid, problems);
+  validateParticipantFlow(
+    stages,
+    plan.initialParticipantCount,
+    positionsValid,
+    options.participantFlowAuthority !== "basket_v1",
+    problems,
+  );
   if (problems.length > 0) return { valid: false, problems };
   return {
     valid: true,

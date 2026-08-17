@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
 import type { Express } from "express";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import request from "supertest";
 import {
   dropTestSchema,
@@ -15,9 +15,14 @@ import {
 interface DatabaseModule {
   db: typeof import("@workspace/db").db;
   pool: typeof import("@workspace/db").pool;
+  matchesTable: typeof import("@workspace/db").matchesTable;
   playersTable: typeof import("@workspace/db").playersTable;
   stageBasketsTable: typeof import("@workspace/db").stageBasketsTable;
+  stageParticipantsTable: typeof import("@workspace/db").stageParticipantsTable;
+  tournamentRoutingPlansTable: typeof import("@workspace/db").tournamentRoutingPlansTable;
+  tournamentRoutingStagesTable: typeof import("@workspace/db").tournamentRoutingStagesTable;
   tournamentStagesTable: typeof import("@workspace/db").tournamentStagesTable;
+  tournamentsTable: typeof import("@workspace/db").tournamentsTable;
 }
 
 const SESSION_SECRET = `stage-baskets-${randomUUID()}`;
@@ -173,6 +178,48 @@ function explicitConfiguration(data: Awaited<ReturnType<typeof fixture>>) {
   };
 }
 
+function derivedParticipantCounts(configuration: {
+  baskets: Array<{
+    id: string;
+    stageId: number;
+    type: "input" | "output";
+    participantIds: number[];
+    qualifierCount: number | null;
+  }>;
+  routes: Array<{ sourceBasketId: string; targetBasketId: string }>;
+}): Map<number, number> {
+  const directIds = new Map<number, Set<number>>();
+  const incoming = new Map<number, number>();
+  const basketById = new Map(
+    configuration.baskets.map((basket) => [basket.id, basket]),
+  );
+  for (const basket of configuration.baskets) {
+    if (!directIds.has(basket.stageId)) directIds.set(basket.stageId, new Set());
+    if (!incoming.has(basket.stageId)) incoming.set(basket.stageId, 0);
+    if (basket.type === "input") {
+      for (const participantId of basket.participantIds) {
+        directIds.get(basket.stageId)!.add(participantId);
+      }
+    }
+  }
+  for (const route of configuration.routes) {
+    const source = basketById.get(route.sourceBasketId);
+    const target = basketById.get(route.targetBasketId);
+    if (source?.type === "output" && target?.type === "input") {
+      incoming.set(
+        target.stageId,
+        (incoming.get(target.stageId) ?? 0) + (source.qualifierCount ?? 0),
+      );
+    }
+  }
+  return new Map(
+    [...directIds].map(([stageId, playerIds]) => [
+      stageId,
+      playerIds.size + (incoming.get(stageId) ?? 0),
+    ]),
+  );
+}
+
 describe("stage basket persistence and API", () => {
   test("legacy stages expose deterministic implicit baskets and forward routes", async () => {
     const data = await fixture();
@@ -181,6 +228,7 @@ describe("stage basket persistence and API", () => {
     );
     assert.equal(response.status, 200, response.text);
     assert.equal(response.body.legacyDefaulted, true);
+    assert.equal(response.body.flowAuthority, "legacy");
     assert.equal(response.body.baskets.length, 4);
     assert.equal(response.body.routes.length, 1);
     assert.equal(response.body.validation.valid, true);
@@ -228,12 +276,238 @@ describe("stage basket persistence and API", () => {
       .send(input);
     assert.equal(saved.status, 200, saved.text);
     assert.equal(saved.body.legacyDefaulted, false);
+    assert.equal(saved.body.flowAuthority, "basket_v1");
     assert.deepEqual(saved.body.baskets, input.baskets);
     assert.deepEqual(saved.body.routes, input.routes);
     const loaded = await request(app).get(
       `/api/tournaments/${data.tournamentId}/stage-baskets`,
     );
     assert.deepEqual(loaded.body, saved.body);
+  });
+
+  test("explicit basket authority accepts 16 direct then 8 routed plus 8 direct without starting runtime", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        name: `Basket authority ${randomUUID()}`,
+        format: "swiss",
+        organizerPassword: "basket-authority-password",
+        stagePlan: {
+          initialParticipantCount: 24,
+          stages: [
+            {
+              key: "opening",
+              position: 1,
+              name: "Opening",
+              format: "swiss",
+              participantCount: 24,
+              bestOf: 1,
+              rounds: 5,
+              advancingCount: 12,
+            },
+            {
+              key: "double-final",
+              position: 2,
+              name: "Double Final",
+              format: "double_elimination",
+              participantCount: 12,
+              bestOf: 3,
+              entrySeedingMethod: "preserve",
+              placementMethod: "standard",
+            },
+          ],
+        },
+      });
+    assert.equal(created.status, 201, created.text);
+    const tournamentId = created.body.id as number;
+    const organizer = {
+      "x-organizer-token": created.body.organizerToken as string,
+    };
+    const players = await database.db
+      .insert(database.playersTable)
+      .values(
+        Array.from({ length: 24 }, (_, index) => ({
+          tournamentId,
+          name: `Authority Player ${index + 1}-${randomUUID()}`,
+          seed: index + 1,
+        })),
+      )
+      .returning({ id: database.playersTable.id });
+    const stages = await database.db
+      .select()
+      .from(database.tournamentStagesTable)
+      .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
+    stages.sort((left, right) => left.position - right.position);
+    const [opening, doubleFinal] = stages;
+    assert.equal(opening.participantCount, 24);
+    assert.equal(opening.advancingCount, 12);
+    assert.equal(doubleFinal.participantCount, 12);
+    const membershipsBefore = await database.db
+      .select({ id: database.stageParticipantsTable.id })
+      .from(database.stageParticipantsTable)
+      .where(eq(database.stageParticipantsTable.tournamentId, tournamentId));
+    const matchesBefore = await database.db
+      .select({ id: database.matchesTable.id })
+      .from(database.matchesTable)
+      .where(eq(database.matchesTable.tournamentId, tournamentId));
+
+    const saved = await request(app)
+      .put(`/api/tournaments/${tournamentId}/stage-baskets`)
+      .set(organizer)
+      .send({
+        baskets: [
+          {
+            id: "opening-input",
+            stageId: opening.id,
+            type: "input",
+            ordinal: 1,
+            order: 1,
+            colorId: null,
+            participantIds: players.slice(0, 16).map((player) => player.id),
+            qualifierCount: null,
+          },
+          {
+            id: "opening-output",
+            stageId: opening.id,
+            type: "output",
+            ordinal: 1,
+            order: 1,
+            colorId: null,
+            participantIds: [],
+            qualifierCount: 8,
+          },
+          {
+            id: "double-final-input",
+            stageId: doubleFinal.id,
+            type: "input",
+            ordinal: 1,
+            order: 1,
+            colorId: null,
+            participantIds: players.slice(16).map((player) => player.id),
+            qualifierCount: null,
+          },
+          {
+            id: "double-final-output",
+            stageId: doubleFinal.id,
+            type: "output",
+            ordinal: 1,
+            order: 1,
+            colorId: null,
+            participantIds: [],
+            qualifierCount: 1,
+          },
+        ],
+        routes: [
+          {
+            id: "opening-to-double-final",
+            sourceBasketId: "opening-output",
+            targetBasketId: "double-final-input",
+          },
+        ],
+      });
+    assert.equal(saved.status, 200, saved.text);
+    assert.equal(saved.body.legacyDefaulted, false);
+    assert.equal(saved.body.flowAuthority, "basket_v1");
+    assert.equal(saved.body.validation.valid, true);
+
+    const directByStage = new Map<number, number>();
+    for (const basket of saved.body.baskets as Array<{
+      stageId: number;
+      type: string;
+      participantIds: number[];
+    }>) {
+      if (basket.type === "input") {
+        directByStage.set(
+          basket.stageId,
+          (directByStage.get(basket.stageId) ?? 0) + basket.participantIds.length,
+        );
+      }
+    }
+    assert.equal(directByStage.get(opening.id), 16);
+    assert.equal(directByStage.get(doubleFinal.id), 8);
+    assert.equal(
+      directByStage.get(doubleFinal.id)! +
+        (saved.body.baskets as Array<{ id: string; qualifierCount: number | null }>).find(
+          (basket) => basket.id === "opening-output",
+        )!.qualifierCount!,
+      16,
+      "target capacity must be eight incoming route slots plus eight direct assignments",
+    );
+
+    const membershipsAfter = await database.db
+      .select({ id: database.stageParticipantsTable.id })
+      .from(database.stageParticipantsTable)
+      .where(eq(database.stageParticipantsTable.tournamentId, tournamentId));
+    const matchesAfter = await database.db
+      .select({ id: database.matchesTable.id })
+      .from(database.matchesTable)
+      .where(eq(database.matchesTable.tournamentId, tournamentId));
+    const stagesAfter = await database.db
+      .select({
+        position: database.tournamentStagesTable.position,
+        status: database.tournamentStagesTable.status,
+        participantCount: database.tournamentStagesTable.participantCount,
+        advancingCount: database.tournamentStagesTable.advancingCount,
+      })
+      .from(database.tournamentStagesTable)
+      .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
+    stagesAfter.sort((left, right) => left.position - right.position);
+    assert.equal(stagesAfter[0].participantCount, 16);
+    assert.equal(stagesAfter[0].advancingCount, 8);
+    assert.equal(stagesAfter[1].participantCount, 16);
+    assert.equal(stagesAfter[1].advancingCount, null);
+    const [persistedTournament] = await database.db
+      .select({
+        basketFlowAuthorityVersion:
+          database.tournamentsTable.basketFlowAuthorityVersion,
+      })
+      .from(database.tournamentsTable)
+      .where(eq(database.tournamentsTable.id, tournamentId));
+    assert.equal(persistedTournament.basketFlowAuthorityVersion, 1);
+    const [latestPlan] = await database.db
+      .select({ id: database.tournamentRoutingPlansTable.id })
+      .from(database.tournamentRoutingPlansTable)
+      .where(eq(database.tournamentRoutingPlansTable.tournamentId, tournamentId))
+      .orderBy(desc(database.tournamentRoutingPlansTable.revision))
+      .limit(1);
+    const compiledStages = await database.db
+      .select({
+        stageId: database.tournamentRoutingStagesTable.stageId,
+        capacity:
+          database.tournamentRoutingStagesTable.exactParticipantCapacity,
+      })
+      .from(database.tournamentRoutingStagesTable)
+      .where(eq(database.tournamentRoutingStagesTable.planId, latestPlan.id));
+    assert.equal(
+      compiledStages.find((stage) => stage.stageId === doubleFinal.id)?.capacity,
+      16,
+      "sealed Double Elimination capacity must follow the basket-derived count",
+    );
+    assert.equal(membershipsAfter.length, membershipsBefore.length);
+    assert.equal(matchesAfter.length, matchesBefore.length);
+    assert.equal(stagesAfter.length, 2);
+    assert.ok(stagesAfter.every((stage) => stage.status === "planned"));
+
+    const exported = await request(app)
+      .get(`/api/tournaments/${tournamentId}/export`)
+      .set(organizer);
+    assert.equal(exported.status, 200, exported.text);
+    assert.equal(exported.body.tournament.basketFlowAuthorityVersion, 1);
+    const restored = await request(app).post("/api/tournaments/import").send({
+      backup: exported.body,
+      organizerPassword: "restored-authority-password",
+    });
+    assert.equal(restored.status, 201, restored.text);
+    const restoredConfiguration = await request(app).get(
+      `/api/tournaments/${restored.body.tournament.id}/stage-baskets`,
+    );
+    assert.equal(restoredConfiguration.status, 200, restoredConfiguration.text);
+    assert.equal(restoredConfiguration.body.flowAuthority, "basket_v1");
+    assert.deepEqual(
+      [...derivedParticipantCounts(restoredConfiguration.body).values()],
+      [16, 16],
+      "Backup V3 must preserve basket-derived capacity without materializing runtime memberships",
+    );
   });
 
   test("anonymous and support actors cannot update baskets", async () => {
@@ -315,15 +589,16 @@ describe("stage basket persistence and API", () => {
   test("Backup V3 round-trip preserves explicit basket identities and assignments", async () => {
     const data = await fixture();
     const input = explicitConfiguration(data);
-    await request(app)
+    const saved = await request(app)
       .put(`/api/tournaments/${data.tournamentId}/stage-baskets`)
       .set(data.organizer)
-      .send(input)
-      .expect(200);
+      .send(input);
+    assert.equal(saved.status, 200, saved.text);
     const exported = await request(app)
       .get(`/api/tournaments/${data.tournamentId}/export`)
       .set(data.organizer);
     assert.equal(exported.status, 200, exported.text);
+    assert.equal(exported.body.tournament.basketFlowAuthorityVersion, 1);
     assert.equal(exported.body.stageBaskets.length, input.baskets.length);
     const restored = await request(app).post("/api/tournaments/import").send({
       backup: exported.body,
@@ -336,6 +611,7 @@ describe("stage basket persistence and API", () => {
     );
     assert.equal(loaded.status, 200, loaded.text);
     assert.equal(loaded.body.legacyDefaulted, false);
+    assert.equal(loaded.body.flowAuthority, "basket_v1");
     assert.deepEqual(
       loaded.body.baskets.map((basket: { id: string }) => basket.id),
       input.baskets.map((basket) => basket.id),
@@ -349,6 +625,16 @@ describe("stage basket persistence and API", () => {
         ],
       ),
       input.baskets.map((basket) => [basket.type, basket.participantIds.length]),
+    );
+    assert.deepEqual(
+      [...derivedParticipantCounts(saved.body).values()],
+      [4, 2],
+      "export source must derive four direct entrants then two routed entrants",
+    );
+    assert.deepEqual(
+      [...derivedParticipantCounts(loaded.body).values()],
+      [4, 2],
+      "Backup V3 restore must derive the same participant counts from the restored graph",
     );
   });
 });

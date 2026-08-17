@@ -6,10 +6,12 @@ import {
   stageBasketRoutesTable,
   stageBasketsTable,
   stageParticipantsTable,
+  tournamentRoutingPlansTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
 import {
+  deriveStageBasketFlowCounts,
   defaultStageBasketId,
   defaultStageBasketRouteId,
   validateStageBasketConfiguration,
@@ -18,8 +20,11 @@ import {
   type StageBasketProblem,
   type StageBasketRouteDefinition,
 } from "../../domain/tournament/stage-baskets";
+import { validateTournamentStagePlan } from "../../domain/tournament/tournament-stage-plan";
 import type { TournamentMutationActor } from "../../access-policy";
 import { revalidateTournamentMutationActor } from "../../access-policy";
+import { compileBasketAuthorityRoutingPlan } from "./basket-authority-routing-plan";
+import { saveCompiledRoutingPlanV2InTransaction } from "../routing/routing-plan-persistence";
 
 type StageBasketTransaction = Parameters<
   Parameters<typeof db.transaction>[0]
@@ -52,6 +57,7 @@ export class StageBasketConfigurationError extends Error {
 export interface StageBasketConfiguration {
   tournamentId: number;
   legacyDefaulted: boolean;
+  flowAuthority: "legacy" | "basket_v1";
   baskets: StageBasketDefinition[];
   routes: StageBasketRouteDefinition[];
   validation: {
@@ -64,6 +70,13 @@ export async function loadStageBasketConfigurationInTransaction(
   tx: StageBasketTransaction,
   tournamentId: number,
 ): Promise<StageBasketConfiguration> {
+  const [tournament] = await tx
+    .select({
+      basketFlowAuthorityVersion:
+        tournamentsTable.basketFlowAuthorityVersion,
+    })
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.id, tournamentId));
   const stages = await tx
     .select()
     .from(tournamentStagesTable)
@@ -108,6 +121,8 @@ export async function loadStageBasketConfigurationInTransaction(
 
   const baskets: StageBasketDefinition[] = [];
   const legacyDefaulted = storedBaskets.length === 0;
+  const flowAuthority =
+    tournament?.basketFlowAuthorityVersion === 1 ? "basket_v1" : "legacy";
   if (legacyDefaulted) {
     // For legacy implicit configs we derive qualifierCount from the stage's
     // linear `advancingCount` field:
@@ -200,9 +215,79 @@ export async function loadStageBasketConfigurationInTransaction(
   return {
     tournamentId,
     legacyDefaulted,
+    flowAuthority,
     baskets,
     routes,
-    validation: validateStageBasketConfiguration(validationInput),
+    // Stored Phase 1-3 basket graphs remain on legacy flow authority until a
+    // successful Phase 3.5 save explicitly persists the version marker.
+    validation: validateStageBasketConfiguration(
+      validationInput,
+      flowAuthority === "basket_v1" ? "explicit" : "legacy",
+    ),
+  };
+}
+
+function basketAuthorityStagePlan(
+  stages: readonly (typeof tournamentStagesTable.$inferSelect)[],
+  derivedCounts: ReturnType<typeof deriveStageBasketFlowCounts>,
+): unknown {
+  return {
+    initialParticipantCount:
+      derivedCounts.get(stages[0]?.id ?? -1)?.derivedParticipantCount ?? 0,
+    stages: stages.map((stage) => {
+      const counts = derivedCounts.get(stage.id)!;
+      const advancingCount =
+        stage.qualificationMode === "top_n"
+          ? counts.outputQualifierCount
+          : null;
+      return {
+        key: stage.stageKey,
+        position: stage.position,
+        name: stage.name,
+        format: stage.format,
+        participantCount: counts.derivedParticipantCount,
+        bestOf: stage.bestOf,
+        ...(stage.format === "swiss"
+          ? { rounds: stage.plannedRounds }
+          : {}),
+        ...((stage.format === "swiss" ||
+          stage.format === "round_robin" ||
+          stage.format === "single_elimination") &&
+        advancingCount != null
+          ? { advancingCount }
+          : {}),
+        ...(stage.format === "group_stage"
+          ? {
+              groupCount: stage.groupCount,
+              participantsPerGroup:
+                stage.groupCount == null
+                  ? null
+                  : Math.ceil(
+                      counts.derivedParticipantCount / stage.groupCount,
+                    ),
+              qualifiersPerGroup: stage.qualifiersPerGroup,
+              placementMethod:
+                stage.seedingPolicy === "random_groups" ? "random" : "snake",
+              resultSeedingMethod:
+                stage.resultSeedingPolicy === "global_ranking"
+                  ? "global_ranking"
+                  : "rank_bands",
+            }
+          : {}),
+        ...(stage.format === "single_elimination" ||
+        stage.format === "double_elimination"
+          ? {
+              placementMethod:
+                stage.seedingPolicy === "random_bracket"
+                  ? "random"
+                  : "standard",
+            }
+          : {}),
+        entrySeedingMethod: stage.entrySeedingPolicy,
+        randomSeed: stage.randomSeed ?? undefined,
+        randomRevealOrder: stage.randomRevealOrder,
+      };
+    }),
   };
 }
 
@@ -274,6 +359,59 @@ export async function replaceStageBasketConfiguration(input: {
       throw new StageBasketConfigurationError(
         "STAGE_BASKET_CONFIGURATION_INVALID",
         validation.problems,
+      );
+    }
+    const authorityInput: StageBasketConfigurationInput = {
+      stages: stages.map((stage) => ({
+        id: stage.id,
+        position: stage.position,
+        participantCount: stage.participantCount,
+      })),
+      playerIds: players.map((player) => player.id),
+      baskets: input.baskets,
+      routes: input.routes,
+    };
+    const derivedCounts = deriveStageBasketFlowCounts(authorityInput);
+    const stagePlanValidation = validateTournamentStagePlan(
+      basketAuthorityStagePlan(stages, derivedCounts),
+      { participantFlowAuthority: "basket_v1" },
+    );
+    if (!stagePlanValidation.valid) {
+      throw new StageBasketConfigurationError(
+        "STAGE_BASKET_CONFIGURATION_INVALID",
+        [],
+      );
+    }
+
+    const projectedStages = stages.map((stage) => {
+      const counts = derivedCounts.get(stage.id)!;
+      return {
+        ...stage,
+        participantCount: counts.derivedParticipantCount,
+        advancingCount:
+          stage.qualificationMode === "top_n"
+            ? counts.outputQualifierCount
+            : null,
+        participantsPerGroup:
+          stage.format === "group_stage" && stage.groupCount != null
+            ? Math.ceil(counts.derivedParticipantCount / stage.groupCount)
+            : stage.participantsPerGroup,
+      };
+    });
+    const requiresCompiledPlan = projectedStages.some(
+      (stage) => stage.format === "double_elimination",
+    );
+    const compiledPlan = requiresCompiledPlan
+      ? compileBasketAuthorityRoutingPlan(
+          projectedStages,
+          input.baskets,
+          input.routes,
+        )
+      : null;
+    if (compiledPlan != null && !compiledPlan.valid) {
+      throw new StageBasketConfigurationError(
+        "STAGE_BASKET_CONFIGURATION_INVALID",
+        [],
       );
     }
 
@@ -356,6 +494,38 @@ export async function replaceStageBasketConfiguration(input: {
         })),
       );
     }
+    for (const stage of projectedStages) {
+      await tx
+        .update(tournamentStagesTable)
+        .set({
+          participantCount: stage.participantCount,
+          advancingCount: stage.advancingCount,
+          participantsPerGroup: stage.participantsPerGroup,
+          version: stage.version + 1,
+        })
+        .where(eq(tournamentStagesTable.id, stage.id));
+    }
+    if (compiledPlan?.valid) {
+      const existingPlans = await tx
+        .select({ revision: tournamentRoutingPlansTable.revision })
+        .from(tournamentRoutingPlansTable)
+        .where(eq(tournamentRoutingPlansTable.tournamentId, tournament.id))
+        .orderBy(asc(tournamentRoutingPlansTable.revision))
+        .for("update");
+      await saveCompiledRoutingPlanV2InTransaction(tx, {
+        tournamentId: tournament.id,
+        revision: (existingPlans.at(-1)?.revision ?? 0) + 1,
+        plan: compiledPlan.value,
+        stageIdsByKey: new Map(
+          projectedStages.map((stage) => [stage.stageKey, stage.id]),
+        ),
+        sourceKind: "basket-authority-v1",
+      });
+    }
+    await tx
+      .update(tournamentsTable)
+      .set({ basketFlowAuthorityVersion: 1 })
+      .where(eq(tournamentsTable.id, tournament.id));
     return loadStageBasketConfigurationInTransaction(tx, tournament.id);
   });
 }
