@@ -149,3 +149,7 @@ BEGIN
   END IF;
 END;
 $postcondition$;
+
+-- migration-runner-strip-begin
+COMMIT;
+-- migration-runner-strip-end
