@@ -1,13 +1,19 @@
 /**
- * DEBracketCanvas — visual layout for a Double Elimination bracket.
+ * DEBracketCanvas — professional double-elimination bracket layout.
  *
- * Renders Upper Bracket, Lower Bracket and Grand Final sections with
- * SVG connector lines based on actual match dependency data (data-driven)
- * and structural fallback for pending matches.
+ * One horizontally-scrollable canvas:
+ *   • UB section (top):  columns R1 → R2 → … → UB Final
+ *   • LB section (below): columns LB R1 → … → LB Final
+ *   • Grand Final: rightmost column, to the right of both sections
  *
- * Slot highlighting: LB slots that received a loser from UB are marked
- * with a distinct left-border colour so viewers can distinguish
- * "dropped from Upper" from "won in Lower".
+ * All cards are absolutely positioned in a single div; one SVG layer
+ * renders all connectors (UB winner path, LB winner path, UB→LB
+ * loser-drop diagonal lines).
+ *
+ * Root cause of previous "giant empty areas" bug:
+ *   m.order is a global sequential number across all rounds, not a
+ *   round-local index. The fix: group by round, sort within each
+ *   round, and use a local 0-based index for Y positioning.
  */
 
 import { useMemo } from "react";
@@ -20,35 +26,14 @@ import type {
 // ─── Layout constants ────────────────────────────────────────────────────────
 
 const CARD_W = 220;
-const CARD_H = 76;   // header(16) + two player rows(30×2)
-const SMALL_GAP = 8; // gap between adjacent R1 cards
-const UNIT = CARD_H + SMALL_GAP; // 84 — vertical rhythm unit
-const COL_GAP = 56;  // horizontal gap between round columns
-const SECTION_LABEL_H = 28; // section header height
-const SECTION_GAP = 32; // vertical gap between UB and LB sections
-
-// ─── Position helpers ────────────────────────────────────────────────────────
-
-/** Top-Y for a match at round-index ri (0-based) and order i (0-based, within that round). */
-function ubMatchTopY(ri: number, i: number): number {
-  return ((2 ** ri) - 1) * UNIT / 2 + i * (2 ** ri) * UNIT;
-}
-
-/**
- * Top-Y for a match in the Lower Bracket.
- * k = ceil((lbRi+1)/2) encodes whether it is a minor or major round.
- * Minor rounds (lbRi=0,2,4…) receive UB losers; major rounds (lbRi=1,3,5…) receive 1 UB loser + 1 LB winner.
- */
-function lbMatchTopY(lbRi: number, i: number): number {
-  const k = Math.ceil((lbRi + 1) / 2);
-  const paddingTop = ((2 ** k) - 1) * UNIT / 2;
-  const spacing = (2 ** k) * UNIT;
-  return paddingTop + i * spacing;
-}
-
-function matchLeftX(ri: number): number {
-  return ri * (CARD_W + COL_GAP);
-}
+const CARD_H = 76;
+const SMALL_GAP = 8;
+const UNIT = CARD_H + SMALL_GAP; // 84 — base vertical rhythm
+const COL_GAP = 56;
+const COL_STEP = CARD_W + COL_GAP; // 276 — column stride
+const SECTION_LABEL_H = 24;
+const SECTION_GAP = 48; // vertical gap between UB area bottom and LB label
+const GF_LABEL_H = 20;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,253 +41,306 @@ export interface DEBracketCanvasProps {
   matches: DoubleEliminationMatch[];
   participants: ReadonlyMap<string, DoubleEliminationParticipant>;
   finalsPosition?: "upper" | "between";
-  /** Compact mode reduces card heights for OBS */
   compact?: boolean;
-  /** Colour of connector lines (CSS value) */
   connectorColor?: string;
   connectorWidth?: number;
-  /** Hide match names/numbers */
   hideMatchNames?: boolean;
-  /** Hide empty/TBD matches */
   hideEmpty?: boolean;
 }
 
-// ─── Derived data ─────────────────────────────────────────────────────────────
-
 interface MatchPos {
   match: DoubleEliminationMatch;
-  x: number;
-  y: number;
-  ri: number; // round index (0-based within its bracket)
-  i: number;  // order index (0-based within its round)
+  x: number;  // absolute canvas x
+  y: number;  // absolute canvas y (top of card)
+  ri: number; // round index 0-based within its bracket
+  i: number;  // local match index 0-based within the round
 }
 
-interface ConnectorLine {
+interface WinnerLine {
   x1: number; y1: number;
   x2: number; y2: number;
   midX: number;
-  /** For pair connectors, the second source y */
-  y2b?: number;
-  type: "winner" | "loser-drop";
+  y2b?: number; // second source y for pair connector
 }
+
+interface LoserDropLine {
+  x1: number; y1: number; // bottom-center of source UB card
+  x2: number; y2: number; // top-center of target LB card
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Group matches by round number, sort each group by global order. */
+function groupAndSortByRound(
+  matches: DoubleEliminationMatch[],
+): Map<number, DoubleEliminationMatch[]> {
+  const map = new Map<number, DoubleEliminationMatch[]>();
+  for (const m of matches) {
+    if (!map.has(m.round)) map.set(m.round, []);
+    map.get(m.round)!.push(m);
+  }
+  for (const ms of map.values()) ms.sort((a, b) => a.order - b.order);
+  return map;
+}
+
+/**
+ * Y offset (relative to section origin) for match at local index `localIdx`
+ * in a round containing `N` matches, given that the first round of this
+ * bracket has `r1Count` matches.
+ *
+ * spacing = r1Count * UNIT / N  (doubles each time N halves)
+ * paddingTop = (spacing - UNIT) / 2  (centers the card within its slot)
+ */
+function cardY(localIdx: number, N: number, r1Count: number): number {
+  const spacing = (r1Count * UNIT) / N;
+  const paddingTop = (spacing - UNIT) / 2;
+  return paddingTop + localIdx * spacing;
+}
+
+// ─── Layout hook ─────────────────────────────────────────────────────────────
 
 function useDELayout(
   matches: DoubleEliminationMatch[],
-  participants: ReadonlyMap<string, DoubleEliminationParticipant>,
-  finalsPosition: "upper" | "between",
-): {
-  ubPositions: MatchPos[];
-  lbPositions: MatchPos[];
-  gfPositions: MatchPos[];
-  gfrPositions: MatchPos[];
-  ubWidth: number;
-  lbWidth: number;
-  gfWidth: number;
-  ubHeight: number;
-  lbHeight: number;
-  ubConnectors: ConnectorLine[];
-  lbConnectors: ConnectorLine[];
-  /** Set of matchKey+slot combinations that are UB-drop slots in LB */
-  ubDropSlots: Set<string>;
-} {
+  _participants: ReadonlyMap<string, DoubleEliminationParticipant>,
+  _finalsPosition: "upper" | "between",
+) {
   return useMemo(() => {
-    const ubMatches = matches.filter(m => m.bracket === "upper").sort((a, b) => a.round - b.round || a.order - b.order);
-    const lbMatches = matches.filter(m => m.bracket === "lower").sort((a, b) => a.round - b.round || a.order - b.order);
+    const ubMatches = matches.filter(m => m.bracket === "upper");
+    const lbMatches = matches.filter(m => m.bracket === "lower");
     const gfMatches = matches.filter(m => m.bracket === "grand_final");
     const gfrMatches = matches.filter(m => m.bracket === "grand_final_reset");
 
-    // Sorted unique round numbers
-    const ubRoundNums = [...new Set(ubMatches.map(m => m.round))].sort((a, b) => a - b);
-    const lbRoundNums = [...new Set(lbMatches.map(m => m.round))].sort((a, b) => a - b);
+    const ubByRound = groupAndSortByRound(ubMatches);
+    const lbByRound = groupAndSortByRound(lbMatches);
 
-    // Maps for quick lookup
-    const ubByRoundOrder = new Map<string, DoubleEliminationMatch>();
-    const lbByRoundOrder = new Map<string, DoubleEliminationMatch>();
-    for (const m of ubMatches) ubByRoundOrder.set(`${m.round}-${m.order}`, m);
-    for (const m of lbMatches) lbByRoundOrder.set(`${m.round}-${m.order}`, m);
+    const ubRoundNums = [...ubByRound.keys()].sort((a, b) => a - b);
+    const lbRoundNums = [...lbByRound.keys()].sort((a, b) => a - b);
 
-    // Participant → source match (winner/loser)
-    const winnerOf = new Map<string, DoubleEliminationMatch>();
-    const loserOf = new Map<string, DoubleEliminationMatch>();
-    for (const m of matches) {
-      if (m.winnerParticipantKey) winnerOf.set(m.winnerParticipantKey, m);
-      if (m.loserParticipantKey) loserOf.set(m.loserParticipantKey, m);
-    }
+    const ubR1Count = ubByRound.get(ubRoundNums[0])?.length ?? 1;
+    const lbR1Count = lbByRound.get(lbRoundNums[0])?.length ?? 1;
 
-    // UB match positions
-    const ubPositions: MatchPos[] = ubMatches.map(m => {
-      const ri = ubRoundNums.indexOf(m.round);
-      const i = m.order;
-      return { match: m, x: matchLeftX(ri), y: ubMatchTopY(ri, i), ri, i };
-    });
+    // ── Section Y offsets (absolute canvas coords) ────────────────────────────
+    const UB_LABEL_Y = 0;
+    const UB_Y = SECTION_LABEL_H;
+    const ubHeight = ubR1Count * UNIT - SMALL_GAP;
 
-    // LB match positions
-    const lbPositions: MatchPos[] = lbMatches.map(m => {
-      const lbRi = lbRoundNums.indexOf(m.round);
-      const i = m.order;
-      return { match: m, x: matchLeftX(lbRi), y: lbMatchTopY(lbRi, i), ri: lbRi, i };
-    });
+    const LB_LABEL_Y = UB_Y + ubHeight + SECTION_GAP;
+    const LB_Y = LB_LABEL_Y + SECTION_LABEL_H;
+    const lbHeight = lbR1Count > 0 ? lbR1Count * UNIT - SMALL_GAP : CARD_H;
+    const totalHeight = LB_Y + lbHeight;
 
-    // GF positions
-    const gfX = finalsPosition === "upper"
-      ? matchLeftX(ubRoundNums.length) // after last UB column
-      : 0;
-    const gfY = 0;
-    const gfPositions: MatchPos[] = gfMatches.map((m, idx) => ({
-      match: m, x: gfX + idx * (CARD_W + COL_GAP), y: gfY, ri: idx, i: 0,
-    }));
-    const gfrPositions: MatchPos[] = gfrMatches.map((m, idx) => ({
-      match: m, x: gfX + (gfMatches.length + idx) * (CARD_W + COL_GAP), y: gfY, ri: idx, i: 0,
-    }));
-
-    // Dimensions
-    const ubRounds = ubRoundNums.length;
-    const lbRounds = lbRoundNums.length;
-    const gfRounds = gfMatches.length + gfrMatches.length;
-
-    // UB R1 count for height calculation
-    const ubR1Count = ubMatches.filter(m => m.round === ubRoundNums[0]).length;
-    const lbR1Count = lbMatches.filter(m => m.round === lbRoundNums[0]).length;
-    const lbLastRoundIdx = lbRoundNums.length - 1;
-    const lbK = Math.ceil((lbLastRoundIdx + 1) / 2);
-    const lbLastPaddingTop = lbLastRoundIdx >= 0 ? ((2 ** lbK) - 1) * UNIT / 2 : 0;
-
-    const ubWidth = ubRounds * CARD_W + Math.max(0, ubRounds - 1) * COL_GAP
-      + (finalsPosition === "upper" && gfRounds > 0 ? COL_GAP + gfRounds * (CARD_W + COL_GAP) : 0);
-    const lbWidth = lbRounds * CARD_W + Math.max(0, lbRounds - 1) * COL_GAP;
-    const gfWidth = gfRounds * CARD_W + Math.max(0, gfRounds - 1) * COL_GAP;
-    const ubHeight = ubR1Count > 0 ? ubR1Count * UNIT - SMALL_GAP : CARD_H;
-    const lbHeight = lbR1Count > 0 ? Math.max(lbLastPaddingTop + CARD_H, lbR1Count * 2 * UNIT - SMALL_GAP) : CARD_H;
-
-    // ── UB structural connectors ─────────────────────────────────────────────
-    const ubConnectors: ConnectorLine[] = [];
-    const ubPosByKey = new Map<string, MatchPos>(ubPositions.map(p => [p.match.matchKey, p]));
-    const lbPosByKey = new Map<string, MatchPos>(lbPositions.map(p => [p.match.matchKey, p]));
-
-    for (let ri = 0; ri < ubRoundNums.length - 1; ri++) {
-      const roundMatches = ubPositions.filter(p => p.ri === ri).sort((a, b) => a.i - b.i);
-      for (let j = 0; j < roundMatches.length; j += 2) {
-        const src1 = roundMatches[j];
-        const src2 = roundMatches[j + 1];
-        const nextOrder = Math.floor(j / 2);
-        const tgtMatch = ubByRoundOrder.get(`${ubRoundNums[ri + 1]}-${nextOrder}`);
-        const tgt = tgtMatch ? ubPosByKey.get(tgtMatch.matchKey) : undefined;
-        if (!tgt) continue;
-
-        const x1 = src1.x + CARD_W;
-        const y1 = src1.y + CARD_H / 2;
-        const midX = src1.x + CARD_W + COL_GAP / 2;
-
-        if (src2) {
-          ubConnectors.push({ x1, y1, x2: tgt.x, y2: tgt.y + CARD_H / 2, midX, y2b: src2.y + CARD_H / 2, type: "winner" });
-        } else {
-          ubConnectors.push({ x1, y1, x2: tgt.x, y2: tgt.y + CARD_H / 2, midX, type: "winner" });
-        }
-      }
-    }
-
-    // UB last round → GF (winner path)
-    if (finalsPosition === "upper" && ubRoundNums.length > 0 && gfPositions.length > 0) {
-      const lastUbRound = ubPositions.filter(p => p.ri === ubRoundNums.length - 1)[0];
-      const gfFirst = gfPositions[0];
-      if (lastUbRound && gfFirst) {
-        ubConnectors.push({
-          x1: lastUbRound.x + CARD_W,
-          y1: lastUbRound.y + CARD_H / 2,
-          x2: gfFirst.x,
-          y2: gfFirst.y + CARD_H / 2,
-          midX: lastUbRound.x + CARD_W + COL_GAP / 2,
-          type: "winner",
+    // ── UB card positions ─────────────────────────────────────────────────────
+    const ubPositions: MatchPos[] = [];
+    for (const [ri, roundNum] of ubRoundNums.entries()) {
+      const roundMatches = ubByRound.get(roundNum)!;
+      const N = roundMatches.length;
+      for (const [localIdx, m] of roundMatches.entries()) {
+        ubPositions.push({
+          match: m,
+          x: ri * COL_STEP,
+          y: UB_Y + cardY(localIdx, N, ubR1Count),
+          ri,
+          i: localIdx,
         });
       }
     }
 
-    // ── LB structural connectors ─────────────────────────────────────────────
-    const lbConnectors: ConnectorLine[] = [];
+    // ── LB card positions ─────────────────────────────────────────────────────
+    const lbPositions: MatchPos[] = [];
+    for (const [lbRi, roundNum] of lbRoundNums.entries()) {
+      const roundMatches = lbByRound.get(roundNum)!;
+      const N = roundMatches.length;
+      for (const [localIdx, m] of roundMatches.entries()) {
+        lbPositions.push({
+          match: m,
+          x: lbRi * COL_STEP,
+          y: LB_Y + cardY(localIdx, N, lbR1Count),
+          ri: lbRi,
+          i: localIdx,
+        });
+      }
+    }
 
+    // ── GF positions — rightmost column of the whole canvas ──────────────────
+    // Place GF to the right of whichever bracket is wider so both UB Final
+    // and LB Final connectors travel left-to-right.
+    const gfBaseX = Math.max(ubRoundNums.length, lbRoundNums.length) * COL_STEP;
+    const gfCenterY = UB_Y + (ubHeight - CARD_H) / 2; // vertically centred in UB area
+
+    const gfPositions: MatchPos[] = gfMatches.map((m, idx) => ({
+      match: m,
+      x: gfBaseX + idx * COL_STEP,
+      y: gfCenterY,
+      ri: idx,
+      i: 0,
+    }));
+    const gfrPositions: MatchPos[] = gfrMatches.map((m, idx) => ({
+      match: m,
+      x: gfBaseX + (gfMatches.length + idx) * COL_STEP,
+      y: gfCenterY,
+      ri: idx,
+      i: 0,
+    }));
+
+    // ── Canvas total width ────────────────────────────────────────────────────
+    const gfRoundsCount = gfMatches.length + gfrMatches.length;
+    const rightEdge = gfRoundsCount > 0
+      ? gfBaseX + (gfRoundsCount - 1) * COL_STEP + CARD_W
+      : Math.max(
+          ubRoundNums.length > 0 ? (ubRoundNums.length - 1) * COL_STEP + CARD_W : 0,
+          lbRoundNums.length > 0 ? (lbRoundNums.length - 1) * COL_STEP + CARD_W : 0,
+        );
+    const totalWidth = rightEdge + 2; // +2 for sub-pixel border safety
+
+    // ── Winner connectors ─────────────────────────────────────────────────────
+    const winnerLines: WinnerLine[] = [];
+
+    // UB internal: pair every two consecutive-round matches (2:1 always for UB)
+    for (let ri = 0; ri < ubRoundNums.length - 1; ri++) {
+      const cur = ubPositions.filter(p => p.ri === ri).sort((a, b) => a.i - b.i);
+      const nxt = ubPositions.filter(p => p.ri === ri + 1).sort((a, b) => a.i - b.i);
+      for (let j = 0; j < cur.length; j += 2) {
+        const src1 = cur[j];
+        const src2 = cur[j + 1];
+        const tgt = nxt[Math.floor(j / 2)];
+        if (!src1 || !tgt) continue;
+        winnerLines.push({
+          x1: src1.x + CARD_W, y1: src1.y + CARD_H / 2,
+          x2: tgt.x,           y2: tgt.y + CARD_H / 2,
+          midX: src1.x + CARD_W + COL_GAP / 2,
+          y2b: src2 ? src2.y + CARD_H / 2 : undefined,
+        });
+      }
+    }
+
+    // UB Final → GF
+    const ubFinal = ubPositions.filter(p => p.ri === ubRoundNums.length - 1)[0];
+    if (ubFinal && gfPositions[0]) {
+      winnerLines.push({
+        x1: ubFinal.x + CARD_W, y1: ubFinal.y + CARD_H / 2,
+        x2: gfPositions[0].x,  y2: gfPositions[0].y + CARD_H / 2,
+        midX: ubFinal.x + CARD_W + (gfPositions[0].x - ubFinal.x - CARD_W) / 2,
+      });
+    }
+
+    // LB internal: 1:1 when count stays the same, 2:1 (pair) when it halves
     for (let lbRi = 0; lbRi < lbRoundNums.length - 1; lbRi++) {
-      const roundMatches = lbPositions.filter(p => p.ri === lbRi).sort((a, b) => a.i - b.i);
-      const nextRoundMatches = lbPositions.filter(p => p.ri === lbRi + 1).sort((a, b) => a.i - b.i);
-      const isMinorRound = lbRi % 2 === 0; // even index = minor → goes 1:1 to next major
+      const cur = lbPositions.filter(p => p.ri === lbRi).sort((a, b) => a.i - b.i);
+      const nxt = lbPositions.filter(p => p.ri === lbRi + 1).sort((a, b) => a.i - b.i);
+      const isPair = cur.length > nxt.length;
 
-      if (isMinorRound) {
-        // Minor → Major: 1:1 connections (match i winner → match i in next round)
-        for (let j = 0; j < roundMatches.length; j++) {
-          const src = roundMatches[j];
-          const tgt = nextRoundMatches[j];
-          if (!src || !tgt) continue;
-          lbConnectors.push({
-            x1: src.x + CARD_W,
-            y1: src.y + CARD_H / 2,
-            x2: tgt.x,
-            y2: tgt.y + CARD_H / 2,
-            midX: src.x + CARD_W + COL_GAP / 2,
-            type: "winner",
+      if (isPair) {
+        // 2:1: pairs of current-round winners feed one next-round match
+        for (let j = 0; j < cur.length; j += 2) {
+          const src1 = cur[j], src2 = cur[j + 1];
+          const tgt = nxt[Math.floor(j / 2)];
+          if (!src1 || !tgt) continue;
+          winnerLines.push({
+            x1: src1.x + CARD_W, y1: src1.y + CARD_H / 2,
+            x2: tgt.x,           y2: tgt.y + CARD_H / 2,
+            midX: src1.x + CARD_W + COL_GAP / 2,
+            y2b: src2 ? src2.y + CARD_H / 2 : undefined,
           });
         }
       } else {
-        // Major → Minor: pair connections (matches 2i, 2i+1 → match i in next round)
-        for (let j = 0; j < roundMatches.length; j += 2) {
-          const src1 = roundMatches[j];
-          const src2 = roundMatches[j + 1];
-          const tgt = nextRoundMatches[Math.floor(j / 2)];
-          if (!src1 || !tgt) continue;
-          lbConnectors.push({
-            x1: src1.x + CARD_W,
-            y1: src1.y + CARD_H / 2,
-            x2: tgt.x,
-            y2: tgt.y + CARD_H / 2,
-            midX: src1.x + CARD_W + COL_GAP / 2,
-            y2b: src2 ? src2.y + CARD_H / 2 : undefined,
-            type: "winner",
+        // 1:1: each winner advances (other slot is filled by UB drop)
+        for (let j = 0; j < cur.length; j++) {
+          const src = cur[j], tgt = nxt[j];
+          if (!src || !tgt) continue;
+          winnerLines.push({
+            x1: src.x + CARD_W, y1: src.y + CARD_H / 2,
+            x2: tgt.x,          y2: tgt.y + CARD_H / 2,
+            midX: src.x + CARD_W + COL_GAP / 2,
           });
         }
       }
     }
 
-    // LB last round → GF (winner path, when GF is "between")
-    if (finalsPosition === "between" && lbRoundNums.length > 0 && gfPositions.length > 0) {
-      const lastLbRound = lbPositions.filter(p => p.ri === lbRoundNums.length - 1)[0];
-      if (lastLbRound && gfPositions[0]) {
-        lbConnectors.push({
-          x1: lastLbRound.x + CARD_W,
-          y1: lastLbRound.y + CARD_H / 2,
-          x2: lbWidth + COL_GAP,
-          y2: lastLbRound.y + CARD_H / 2,
-          midX: lastLbRound.x + CARD_W + COL_GAP / 2,
-          type: "winner",
+    // LB Final → GF
+    const lbFinal = lbPositions.filter(p => p.ri === lbRoundNums.length - 1)[0];
+    if (lbFinal && gfPositions[0]) {
+      // GF is to the right of LB, so connector goes right then up
+      const midX = lbFinal.x + CARD_W + (gfPositions[0].x - lbFinal.x - CARD_W) / 2;
+      winnerLines.push({
+        x1: lbFinal.x + CARD_W, y1: lbFinal.y + CARD_H / 2,
+        x2: gfPositions[0].x,   y2: gfPositions[0].y + CARD_H / 2,
+        midX,
+      });
+    }
+
+    // GF → GFR
+    if (gfPositions[0] && gfrPositions[0]) {
+      winnerLines.push({
+        x1: gfPositions[0].x + CARD_W, y1: gfPositions[0].y + CARD_H / 2,
+        x2: gfrPositions[0].x,         y2: gfrPositions[0].y + CARD_H / 2,
+        midX: gfPositions[0].x + CARD_W + COL_GAP / 2,
+      });
+    }
+
+    // ── Loser-drop connectors (structural, UB→LB diagonal lines) ─────────────
+    //
+    // Mapping: UB ubRi=k drops losers into LB lbRi=2k (the "minor" LB rounds
+    // that do NOT receive winners from the previous LB round — confirmed by
+    // checking match counts: LB lbRi=0,2,4,6 each have the same count as the
+    // corresponding UB round, and the other slot is the UB drop).
+    //
+    // Lines go from bottom-centre of UB card to top-centre of LB card,
+    // passing through the SECTION_GAP. For the same column (ubRi=0→lbRi=0)
+    // they are vertical; for later rounds they are diagonals from left to right
+    // (UB cols 0-4 dropping into LB cols 0,2,4,6 which are further right).
+    const loserDropLines: LoserDropLine[] = [];
+    for (let ubRi = 0; ubRi < ubRoundNums.length - 1; ubRi++) {
+      const targetLbRi = 2 * ubRi;
+      if (targetLbRi >= lbRoundNums.length) continue;
+      const ubRound = ubPositions.filter(p => p.ri === ubRi).sort((a, b) => a.i - b.i);
+      const lbRound = lbPositions.filter(p => p.ri === targetLbRi).sort((a, b) => a.i - b.i);
+      const count = Math.min(ubRound.length, lbRound.length);
+      for (let j = 0; j < count; j++) {
+        const src = ubRound[j];
+        const tgt = lbRound[j];
+        loserDropLines.push({
+          x1: src.x + CARD_W / 2, y1: src.y + CARD_H,
+          x2: tgt.x + CARD_W / 2, y2: tgt.y,
         });
       }
     }
 
-    // ── Detect UB-drop slots ─────────────────────────────────────────────────
-    // A slot in an LB match is a "UB drop" if the participant there came from a
-    // loserOf relationship (i.e. they lost in UB and dropped down).
+    // ── UB-drop slot detection (for amber left-border in LB cards) ───────────
+    const loserOf = new Map<string, DoubleEliminationMatch>();
+    for (const m of ubMatches) {
+      if (m.loserParticipantKey) loserOf.set(m.loserParticipantKey, m);
+    }
     const ubDropSlots = new Set<string>();
+    // Data-driven: participant confirmed to have come from UB loss
     for (const m of lbMatches) {
-      for (const [slotIdx, participantKey] of m.slots.entries()) {
-        if (!participantKey) continue;
-        const src = loserOf.get(participantKey);
-        if (src && src.bracket === "upper") {
-          ubDropSlots.add(`${m.matchKey}-${slotIdx}`);
-        }
+      for (const [slotIdx, pk] of m.slots.entries()) {
+        if (pk && loserOf.has(pk)) ubDropSlots.add(`${m.matchKey}-${slotIdx}`);
       }
     }
-    // Also mark LB R1 slots structurally (all slots from UB R1 losers = LB minor R1)
+    // Structural: all LB R1 slots (both players are UB losers, or a UB loser + bye)
     if (lbRoundNums.length > 0) {
       for (const m of lbMatches.filter(m => m.round === lbRoundNums[0])) {
-        for (let s = 0; s < 2; s++) {
-          ubDropSlots.add(`${m.matchKey}-${s}`);
-        }
+        ubDropSlots.add(`${m.matchKey}-0`);
+        ubDropSlots.add(`${m.matchKey}-1`);
+      }
+    }
+    // Structural: second slot of 1:1 LB rounds (lbRi=2,4,6…) receives UB drop
+    for (let ubRi = 1; ubRi < ubRoundNums.length - 1; ubRi++) {
+      const targetLbRi = 2 * ubRi;
+      if (targetLbRi >= lbRoundNums.length) continue;
+      for (const m of lbMatches.filter(m => m.round === lbRoundNums[targetLbRi])) {
+        ubDropSlots.add(`${m.matchKey}-1`);
       }
     }
 
     return {
       ubPositions, lbPositions, gfPositions, gfrPositions,
-      ubWidth, lbWidth, gfWidth, ubHeight, lbHeight,
-      ubConnectors, lbConnectors, ubDropSlots,
+      UB_LABEL_Y, UB_Y, LB_LABEL_Y, LB_Y,
+      ubHeight, lbHeight, totalWidth, totalHeight,
+      winnerLines, loserDropLines,
+      ubDropSlots,
     };
-  }, [matches, participants, finalsPosition]);
+  }, [matches]);
 }
 
 // ─── Match card ───────────────────────────────────────────────────────────────
@@ -326,7 +364,7 @@ function DEMatchCard({
 
   const isDone = match.status === "completed";
   const isBye = match.status === "bye" || match.status === "skipped";
-  const isReady = match.status === "ready"; // both players known, waiting for result
+  const isReady = match.status === "ready";
 
   const borderClass = isDone
     ? "border-border/50 opacity-85"
@@ -355,7 +393,7 @@ function DEMatchCard({
         </div>
       </div>
 
-      {/* Slots */}
+      {/* Player slots */}
       {match.slots.map((participantKey, slotIdx) => {
         const participant = participantKey ? participants.get(participantKey) : undefined;
         const isWinner = participantKey != null && match.winnerParticipantKey === participantKey;
@@ -369,10 +407,18 @@ function DEMatchCard({
             className={`flex items-center px-2 flex-1 min-h-0 gap-1 relative ${
               isWinner ? "bg-primary/10" : ""
             }`}
-            style={{ borderLeft: isUbDrop ? "2px solid hsl(var(--warning, 38 92% 50%))" : "2px solid transparent" }}
+            style={{
+              borderLeft: isUbDrop
+                ? "2px solid hsl(38 92% 50% / 0.6)"
+                : "2px solid transparent",
+              height: rowH,
+            }}
           >
             {isUbDrop && !isWinner && (
-              <ArrowDownRight className="w-3 h-3 text-amber-400/70 shrink-0" aria-label="Spada z Upper Bracket" />
+              <ArrowDownRight
+                className="w-3 h-3 text-amber-400/70 shrink-0"
+                aria-label="Spada z Upper Bracket"
+              />
             )}
             <span
               className={`text-[11px] leading-tight truncate flex-1 min-w-0 ${
@@ -402,197 +448,6 @@ function DEMatchCard({
   );
 }
 
-// ─── Connector SVG ────────────────────────────────────────────────────────────
-
-function ConnectorSVG({
-  width,
-  height,
-  connectors,
-  connectorColor,
-  connectorWidth: lineWidth = 1,
-}: {
-  width: number;
-  height: number;
-  connectors: ConnectorLine[];
-  connectorColor?: string;
-  connectorWidth?: number;
-}) {
-  const stroke = connectorColor ?? "hsl(var(--border))";
-  const dropStroke = connectorColor ?? "hsl(var(--warning, 38 92% 50%) / 0.5)";
-
-  return (
-    <svg
-      className="absolute inset-0 pointer-events-none"
-      width={width}
-      height={height}
-      style={{ overflow: "visible" }}
-      aria-hidden="true"
-    >
-      {connectors.map((c, idx) => {
-        const isDrop = c.type === "loser-drop";
-        const s = isDrop ? dropStroke : stroke;
-        const sw = lineWidth;
-        const dash = isDrop ? "4 3" : undefined;
-
-        if (c.y2b !== undefined) {
-          // Pair connector: two sources → one target via midpoint
-          return (
-            <g key={idx} stroke={s} strokeWidth={sw} fill="none" strokeDasharray={dash}>
-              <line x1={c.x1} y1={c.y1} x2={c.midX} y2={c.y1} />
-              <line x1={c.x1} y1={c.y2b} x2={c.midX} y2={c.y2b} />
-              <line x1={c.midX} y1={c.y1} x2={c.midX} y2={c.y2b} />
-              <line x1={c.midX} y1={c.y2} x2={c.x2} y2={c.y2} />
-            </g>
-          );
-        } else {
-          // Simple 1:1 connector
-          return (
-            <g key={idx} stroke={s} strokeWidth={sw} fill="none" strokeDasharray={dash}>
-              <line x1={c.x1} y1={c.y1} x2={c.midX} y2={c.y1} />
-              {c.y1 !== c.y2 && <line x1={c.midX} y1={c.y1} x2={c.midX} y2={c.y2} />}
-              <line x1={c.midX} y1={c.y2} x2={c.x2} y2={c.y2} />
-            </g>
-          );
-        }
-      })}
-    </svg>
-  );
-}
-
-// ─── Section renderer ─────────────────────────────────────────────────────────
-
-function BracketSection({
-  label,
-  positions,
-  totalWidth,
-  totalHeight,
-  connectors,
-  participants,
-  ubDropSlots,
-  connectorColor,
-  connectorWidth,
-  compact,
-  hideMatchNames,
-}: {
-  label: string;
-  positions: MatchPos[];
-  totalWidth: number;
-  totalHeight: number;
-  connectors: ConnectorLine[];
-  participants: ReadonlyMap<string, DoubleEliminationParticipant>;
-  ubDropSlots: Set<string>;
-  connectorColor?: string;
-  connectorWidth?: number;
-  compact?: boolean;
-  hideMatchNames?: boolean;
-}) {
-  return (
-    <div className="flex flex-col">
-      <div
-        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 pb-2"
-        style={{ height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
-      >
-        {label}
-      </div>
-      <div
-        className="relative shrink-0"
-        style={{ width: Math.max(totalWidth, CARD_W), height: Math.max(totalHeight, CARD_H) }}
-      >
-        <ConnectorSVG
-          width={Math.max(totalWidth, CARD_W)}
-          height={Math.max(totalHeight, CARD_H)}
-          connectors={connectors}
-          connectorColor={connectorColor}
-          connectorWidth={connectorWidth}
-        />
-        {positions.map(({ match, x, y }) => (
-          <div
-            key={match.matchKey}
-            className="absolute"
-            style={{ left: x, top: y, width: CARD_W, height: compact ? 64 : CARD_H }}
-          >
-            <DEMatchCard
-              match={match}
-              participants={participants}
-              ubDropSlots={ubDropSlots}
-              hideMatchName={hideMatchNames}
-              compact={compact}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Grand Final section ──────────────────────────────────────────────────────
-
-function GrandFinalSection({
-  gfPositions,
-  gfrPositions,
-  participants,
-  ubDropSlots,
-  compact,
-  hideMatchNames,
-}: {
-  gfPositions: MatchPos[];
-  gfrPositions: MatchPos[];
-  participants: ReadonlyMap<string, DoubleEliminationParticipant>;
-  ubDropSlots: Set<string>;
-  compact?: boolean;
-  hideMatchNames?: boolean;
-}) {
-  const allGf = [...gfPositions, ...gfrPositions];
-  if (allGf.length === 0) return null;
-
-  const skippedReset = gfrPositions.every(p => p.match.status === "skipped");
-
-  return (
-    <div className="flex flex-col">
-      <div
-        className="text-[10px] font-bold uppercase tracking-widest text-primary/70 pb-2"
-        style={{ height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
-      >
-        Grand Final
-      </div>
-      <div className="flex items-start gap-4">
-        {gfPositions.map(({ match }) => (
-          <div key={match.matchKey} style={{ width: CARD_W, height: compact ? 64 : CARD_H }}>
-            <DEMatchCard
-              match={match}
-              participants={participants}
-              ubDropSlots={ubDropSlots}
-              hideMatchName={hideMatchNames}
-              compact={compact}
-            />
-          </div>
-        ))}
-        {gfrPositions.map(({ match }) => (
-          skippedReset ? (
-            <div
-              key={match.matchKey}
-              className="border border-dashed border-border/30 rounded-md flex items-center justify-center text-[11px] text-muted-foreground/40"
-              style={{ width: CARD_W, height: compact ? 64 : CARD_H }}
-            >
-              Reset nie jest wymagany
-            </div>
-          ) : (
-            <div key={match.matchKey} style={{ width: CARD_W, height: compact ? 64 : CARD_H }}>
-              <DEMatchCard
-                match={match}
-                participants={participants}
-                ubDropSlots={ubDropSlots}
-                hideMatchName={hideMatchNames}
-                compact={compact}
-              />
-            </div>
-          )
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function DEBracketCanvas({
@@ -609,12 +464,13 @@ export function DEBracketCanvas({
     lbPositions,
     gfPositions,
     gfrPositions,
-    ubWidth,
-    lbWidth,
-    ubHeight,
-    lbHeight,
-    ubConnectors,
-    lbConnectors,
+    UB_LABEL_Y,
+    UB_Y,
+    LB_LABEL_Y,
+    totalWidth,
+    totalHeight,
+    winnerLines,
+    loserDropLines,
     ubDropSlots,
   } = useDELayout(matches, participants, finalsPosition);
 
@@ -626,83 +482,192 @@ export function DEBracketCanvas({
     );
   }
 
-  // When finalsPosition === "upper", extend the UB section width to include GF columns
-  const ubSectionWidth = finalsPosition === "upper"
-    ? ubWidth
-    : ubWidth;
+  const stroke = connectorColor ?? "hsl(var(--border))";
+  const dropStroke = connectorColor ?? "hsl(38 92% 50% / 0.55)";
+  const lineW = connectorWidth ?? 1;
 
-  // Width of the whole canvas
-  const canvasWidth = Math.max(ubSectionWidth, lbWidth);
+  const cardH = compact ? 64 : CARD_H;
+
+  const skippedReset =
+    gfrPositions.length > 0 &&
+    gfrPositions.every(p => p.match.status === "skipped");
+
+  const allGfPos = [...gfPositions, ...gfrPositions];
 
   return (
     <div
-      className="overflow-auto select-none"
-      style={{ minWidth: "max-content" }}
+      className="overflow-x-auto overflow-y-auto select-none"
+      style={{ minWidth: 0 }}
       aria-label="Drabinka podwójnej eliminacji"
     >
-      <div style={{ minWidth: canvasWidth }}>
-        {/* ── Upper Bracket ── */}
+      {/* Single absolute container — all sections live here */}
+      <div
+        className="relative shrink-0"
+        style={{ width: totalWidth, height: totalHeight }}
+      >
+        {/* ── Connector SVG (drawn first, behind cards) ───────────────────── */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={totalWidth}
+          height={totalHeight}
+          style={{ overflow: "visible" }}
+          aria-hidden="true"
+        >
+          {/* Winner connectors (UB + LB + GF paths) */}
+          {winnerLines.map((c, idx) => {
+            if (c.y2b !== undefined) {
+              // Pair connector: two sources converge at midX, then join target
+              return (
+                <g key={`w${idx}`} stroke={stroke} strokeWidth={lineW} fill="none">
+                  <line x1={c.x1} y1={c.y1} x2={c.midX} y2={c.y1} />
+                  <line x1={c.x1} y1={c.y2b} x2={c.midX} y2={c.y2b} />
+                  <line x1={c.midX} y1={c.y1} x2={c.midX} y2={c.y2b} />
+                  <line x1={c.midX} y1={c.y2} x2={c.x2} y2={c.y2} />
+                </g>
+              );
+            }
+            // Simple connector: right → vertical → right
+            return (
+              <g key={`w${idx}`} stroke={stroke} strokeWidth={lineW} fill="none">
+                <line x1={c.x1} y1={c.y1} x2={c.midX} y2={c.y1} />
+                {Math.abs(c.y1 - c.y2) > 0.5 && (
+                  <line x1={c.midX} y1={c.y1} x2={c.midX} y2={c.y2} />
+                )}
+                <line x1={c.midX} y1={c.y2} x2={c.x2} y2={c.y2} />
+              </g>
+            );
+          })}
+
+          {/* Loser-drop connectors (UB→LB diagonal bezier lines) */}
+          {loserDropLines.map((c, idx) => {
+            // Cubic bezier: departs downward from UB card bottom,
+            // arrives upward at LB card top. The horizontal shift
+            // (x2-x1) is handled by the control-point spread.
+            const dy = c.y2 - c.y1;
+            const ctrlOffset = Math.min(60, dy * 0.45);
+            return (
+              <path
+                key={`ld${idx}`}
+                d={`M ${c.x1} ${c.y1}
+                    C ${c.x1} ${c.y1 + ctrlOffset},
+                      ${c.x2} ${c.y2 - ctrlOffset},
+                      ${c.x2} ${c.y2}`}
+                stroke={dropStroke}
+                strokeWidth={lineW}
+                strokeDasharray="5 3"
+                fill="none"
+              />
+            );
+          })}
+        </svg>
+
+        {/* ── Section labels ─────────────────────────────────────────────── */}
         {ubPositions.length > 0 && (
-          <BracketSection
-            label="Upper Bracket"
-            positions={ubPositions}
-            totalWidth={ubSectionWidth}
-            totalHeight={ubHeight}
-            connectors={ubConnectors}
-            participants={participants}
-            ubDropSlots={ubDropSlots}
-            connectorColor={connectorColor}
-            connectorWidth={connectorWidth}
-            compact={compact}
-            hideMatchNames={hideMatchNames}
-          />
-        )}
-
-        {/* ── Grand Final (between) ── */}
-        {finalsPosition === "between" && (gfPositions.length > 0 || gfrPositions.length > 0) && (
-          <div style={{ marginTop: SECTION_GAP }}>
-            <GrandFinalSection
-              gfPositions={gfPositions}
-              gfrPositions={gfrPositions}
-              participants={participants}
-              ubDropSlots={ubDropSlots}
-              compact={compact}
-              hideMatchNames={hideMatchNames}
-            />
+          <div
+            className="absolute text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60"
+            style={{ top: UB_LABEL_Y, left: 0, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
+          >
+            Upper Bracket
           </div>
         )}
-
-        {/* ── Lower Bracket ── */}
         {lbPositions.length > 0 && (
-          <div style={{ marginTop: SECTION_GAP }}>
-            <BracketSection
-              label="Lower Bracket"
-              positions={lbPositions}
-              totalWidth={lbWidth}
-              totalHeight={lbHeight}
-              connectors={lbConnectors}
-              participants={participants}
-              ubDropSlots={ubDropSlots}
-              connectorColor={connectorColor}
-              connectorWidth={connectorWidth}
-              compact={compact}
-              hideMatchNames={hideMatchNames}
-            />
+          <div
+            className="absolute text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60"
+            style={{ top: LB_LABEL_Y, left: 0, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
+          >
+            Lower Bracket
+          </div>
+        )}
+        {allGfPos.length > 0 && (
+          <div
+            className="absolute text-[10px] font-bold uppercase tracking-widest text-primary/70"
+            style={{
+              top: allGfPos[0].y - GF_LABEL_H - 4,
+              left: allGfPos[0].x,
+              height: GF_LABEL_H,
+              lineHeight: `${GF_LABEL_H}px`,
+            }}
+          >
+            Grand Final
           </div>
         )}
 
-        {/* ── Grand Final (upper — appended to UB section) ── */}
-        {finalsPosition === "upper" && (gfPositions.length > 0 || gfrPositions.length > 0) && (
-          <div style={{ marginTop: SECTION_GAP }}>
-            <GrandFinalSection
-              gfPositions={gfPositions}
-              gfrPositions={gfrPositions}
+        {/* ── UB cards ────────────────────────────────────────────────────── */}
+        {ubPositions.map(({ match, x, y }) => (
+          <div
+            key={match.matchKey}
+            className="absolute"
+            style={{ left: x, top: y, width: CARD_W, height: cardH }}
+          >
+            <DEMatchCard
+              match={match}
               participants={participants}
               ubDropSlots={ubDropSlots}
+              hideMatchName={hideMatchNames}
               compact={compact}
-              hideMatchNames={hideMatchNames}
             />
           </div>
+        ))}
+
+        {/* ── LB cards ────────────────────────────────────────────────────── */}
+        {lbPositions.map(({ match, x, y }) => (
+          <div
+            key={match.matchKey}
+            className="absolute"
+            style={{ left: x, top: y, width: CARD_W, height: cardH }}
+          >
+            <DEMatchCard
+              match={match}
+              participants={participants}
+              ubDropSlots={ubDropSlots}
+              hideMatchName={hideMatchNames}
+              compact={compact}
+            />
+          </div>
+        ))}
+
+        {/* ── Grand Final cards ────────────────────────────────────────────── */}
+        {gfPositions.map(({ match, x, y }) => (
+          <div
+            key={match.matchKey}
+            className="absolute"
+            style={{ left: x, top: y, width: CARD_W, height: cardH }}
+          >
+            <DEMatchCard
+              match={match}
+              participants={participants}
+              ubDropSlots={ubDropSlots}
+              hideMatchName={hideMatchNames}
+              compact={compact}
+            />
+          </div>
+        ))}
+
+        {/* Grand Final Reset cards (or placeholder if skipped) */}
+        {gfrPositions.map(({ match, x, y }) =>
+          skippedReset ? (
+            <div
+              key={match.matchKey}
+              className="absolute border border-dashed border-border/30 rounded-md flex items-center justify-center text-[10px] text-muted-foreground/40"
+              style={{ left: x, top: y, width: CARD_W, height: cardH }}
+            >
+              Reset nie jest wymagany
+            </div>
+          ) : (
+            <div
+              key={match.matchKey}
+              className="absolute"
+              style={{ left: x, top: y, width: CARD_W, height: cardH }}
+            >
+              <DEMatchCard
+                match={match}
+                participants={participants}
+                ubDropSlots={ubDropSlots}
+                hideMatchName={hideMatchNames}
+                compact={compact}
+              />
+            </div>
+          ),
         )}
       </div>
     </div>

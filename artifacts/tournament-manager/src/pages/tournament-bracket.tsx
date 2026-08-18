@@ -72,6 +72,8 @@ export default function TournamentBracket() {
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
         refetchInterval: 10000,
+        staleTime: 9000,
+        refetchOnWindowFocus: false,
       },
     },
   );

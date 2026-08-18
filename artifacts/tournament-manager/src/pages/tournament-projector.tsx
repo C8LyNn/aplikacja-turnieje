@@ -115,6 +115,8 @@ export default function TournamentProjector() {
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, deStage?.id ?? 0),
         refetchInterval: 10000,
+        staleTime: 9000,
+        refetchOnWindowFocus: false,
       },
     },
   );

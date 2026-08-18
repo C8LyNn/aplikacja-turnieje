@@ -121,6 +121,8 @@ export default function TournamentHost() {
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
         refetchInterval: 5000,
+        staleTime: 4500,
+        refetchOnWindowFocus: false,
       },
     },
   );
