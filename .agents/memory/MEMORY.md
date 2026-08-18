@@ -6,4 +6,3 @@
 - [Host Access Control](host-access-control.md) — upgraded to role-based system; see topic file for full auth architecture (HMAC organizer token, DB support sessions, backward-compat host code).
 - [Bracket seeding](bracket-seeding.md) — standard single-elim seeding uses recursive interleave so #1 vs #2 can only meet in the final.
 - [Deadlock theme architecture](deadlock-theme-arch.md) — localStorage hook (useDeadlockTheme) bridges gap until Task #15 presentationSettings API merges; CSS via [data-theme="deadlock"]; nav has Reguły gry + Wizualia tabs.
-- [Legacy DE routing-plan auto-generation](legacy-de-routing-plan.md) — legacy tourneys (basketFlowAuthorityVersion=0, no baskets) get a canonical plan auto-saved at startStage time; non-legacy missing plan → ROUTING_PLAN_MISSING 422.
