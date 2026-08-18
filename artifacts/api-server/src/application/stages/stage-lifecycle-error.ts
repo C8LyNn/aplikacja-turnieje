@@ -10,6 +10,7 @@ export type StageLifecycleErrorCode =
   | "STAGE_BASKET_CONFIGURATION_INVALID"
   | "QUALIFICATION_CONFIGURATION_INVALID"
   | "STAGE_FORMAT_NOT_SUPPORTED"
+  | "ROUTING_PLAN_MISSING"
   | "STAGE_ALREADY_COMPLETED"
   | "STAGE_ALREADY_STARTED"
   | "MATCHES_ALREADY_EXIST"
@@ -33,6 +34,7 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
     "Konfiguracja koszyków etapów jest niespójna.",
   QUALIFICATION_CONFIGURATION_INVALID: "Konfiguracja kwalifikacji między etapami jest niespójna.",
   STAGE_FORMAT_NOT_SUPPORTED: "Ten format etapu nie jest jeszcze obsługiwany przez lifecycle.",
+  ROUTING_PLAN_MISSING: "Brak routing planu dla etapu Double Elimination. Skonfiguruj koszyki lub odtwórz turniej przez nowy kreator.",
   STAGE_ALREADY_COMPLETED: "Etap został już zakończony.",
   STAGE_ALREADY_STARTED: "Etap został już uruchomiony.",
   MATCHES_ALREADY_EXIST: "Planowany etap zawiera już mecze.",

@@ -53,6 +53,7 @@ import {
   type RoutingExecutionSnapshotV2,
 } from "../../domain/tournament/v2";
 import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
+import { ensureLegacyDeRoutingPlanExists } from "./legacy-de-routing-plan";
 import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
 import {
   initializeMarvelEliminationStage,
@@ -899,6 +900,13 @@ export async function startStage(
       eq(tournamentStagesTable.id, input.stageId),
       eq(tournamentStagesTable.tournamentId, input.tournamentId),
     ));
+  // Auto-ensure a canonical routing plan for legacy DE tournaments that were
+  // created before the routing-plan requirement was introduced.  Idempotent —
+  // exits immediately when a plan already exists or the tournament is
+  // basket-authoritative.
+  if (stageIdentity?.format === "double_elimination") {
+    await ensureLegacyDeRoutingPlanExists(input.tournamentId);
+  }
   const routingPlan = stageIdentity?.format === "double_elimination"
     ? await loadCompiledRoutingPlanV2({ tournamentId: input.tournamentId })
     : null;

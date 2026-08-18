@@ -49,6 +49,22 @@ export interface StageStartGroup {
   groupKey: string;
 }
 
+/**
+ * Routing-plan availability status for Double Elimination stages.
+ *
+ * - `exists: true`  — a compiled plan is already persisted, start can proceed.
+ * - `exists: false, legacyAutoGeneratable: true`  — no plan yet, but the
+ *   tournament is legacy (basket_flow_authority_version = 0, no baskets) so
+ *   one will be generated automatically at start time → stage is still READY.
+ * - `exists: false, legacyAutoGeneratable: false`  — no plan and automatic
+ *   generation is not allowed (e.g. basket-authoritative tournament) →
+ *   ROUTING_PLAN_MISSING error.
+ */
+export interface RoutingPlanStatus {
+  exists: boolean;
+  legacyAutoGeneratable: boolean;
+}
+
 export interface StageStartValidationSnapshot {
   tournament: StageStartTournament;
   stages: readonly StageStartStage[];
@@ -61,6 +77,8 @@ export interface StageStartValidationSnapshot {
   players: readonly StageStartPlayer[];
   basketValidation?: StageBasketValidationResult;
   marvelEliminationStage?: boolean;
+  /** Present only for double_elimination stages; absent for all other formats. */
+  routingPlanStatus?: RoutingPlanStatus;
 }
 
 export interface StageStartReadiness {
@@ -192,11 +210,19 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
     ) {
       throw new StageLifecycleError("QUALIFICATION_CONFIGURATION_INVALID");
     }
+  } else if (stage.format === "double_elimination") {
+    // When routingPlanStatus is provided (i.e. from getStageStartReadiness),
+    // verify the plan situation.  Legacy auto-generatable DE is still READY
+    // because ensureLegacyDeRoutingPlanExists will create the plan at start
+    // time.  Only block when a plan is missing AND cannot be auto-generated.
+    const rps = snapshot.routingPlanStatus;
+    if (rps && !rps.exists && !rps.legacyAutoGeneratable) {
+      throw new StageLifecycleError("ROUTING_PLAN_MISSING");
+    }
   } else if (
     stage.format !== "swiss" &&
     stage.format !== "round_robin" &&
-    stage.format !== "single_elimination" &&
-    stage.format !== "double_elimination"
+    stage.format !== "single_elimination"
   ) {
     throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
   }
@@ -231,12 +257,15 @@ import {
   db,
   matchesTable,
   playersTable,
+  stageBasketsTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentGameConfigsTable,
+  tournamentRoutingPlansTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
+import { isLegacyDeAutoGeneratable } from "./legacy-de-routing-plan";
 
 export async function getStageStartReadiness(input: {
   tournamentId: number;
@@ -274,6 +303,32 @@ export async function getStageStartReadiness(input: {
     .select({ gameId: tournamentGameConfigsTable.gameId })
     .from(tournamentGameConfigsTable)
     .where(eq(tournamentGameConfigsTable.tournamentId, tournament.id));
+
+  // For DE stages, determine routing-plan availability so the readiness check
+  // can surface ROUTING_PLAN_MISSING instead of letting a 500 propagate later.
+  let routingPlanStatus: RoutingPlanStatus | undefined;
+  if (stage.format === "double_elimination") {
+    const [existingPlan] = await db
+      .select({ id: tournamentRoutingPlansTable.id })
+      .from(tournamentRoutingPlansTable)
+      .where(eq(tournamentRoutingPlansTable.tournamentId, tournament.id))
+      .limit(1);
+    if (existingPlan) {
+      routingPlanStatus = { exists: true, legacyAutoGeneratable: false };
+    } else {
+      const [basket] = await db
+        .select({ id: stageBasketsTable.id })
+        .from(stageBasketsTable)
+        .where(eq(stageBasketsTable.tournamentId, tournament.id))
+        .limit(1);
+      const legacyAutoGeneratable = isLegacyDeAutoGeneratable(
+        tournament.basketFlowAuthorityVersion,
+        basket != null,
+      );
+      routingPlanStatus = { exists: false, legacyAutoGeneratable };
+    }
+  }
+
   return evaluateStageStartReadiness({
     tournament,
     stages,
@@ -287,5 +342,6 @@ export async function getStageStartReadiness(input: {
     basketValidation: basketConfiguration.validation,
     marvelEliminationStage:
       gameConfig?.gameId === "marvel" && stage.format === "group_stage",
+    routingPlanStatus,
   });
 }
