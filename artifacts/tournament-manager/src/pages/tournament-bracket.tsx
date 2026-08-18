@@ -3,9 +3,11 @@ import {
   useGetTournament,
   useGetTournamentBracket,
   useGetResultsHistory,
+  useGetTournamentStandings,
   getGetTournamentQueryKey,
   getGetTournamentBracketQueryKey,
   getGetResultsHistoryQueryKey,
+  getGetTournamentStandingsQueryKey,
   getGetDoubleEliminationStageQueryKey,
   getListTournamentStagesQueryKey,
   useGetDoubleEliminationStage,
@@ -39,18 +41,37 @@ export default function TournamentBracket() {
   const { data: tournament } = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
   });
+
+  // Phase-offset enabling: stagger initial fetches after tournament loads so
+  // bracket, standings/history, and stages don't all fire in the same render.
+  // Phase 1 (0 ms): bracket, stages — Phase 2 (+600 ms): standings, history
+  const [fetchPhase, setFetchPhase] = useState(0);
+  useEffect(() => {
+    if (!tournament) { setFetchPhase(0); return; }
+    setFetchPhase(1);
+    const t2 = setTimeout(() => setFetchPhase(2), 600);
+    return () => { clearTimeout(t2); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!tournament]);
+
   const { data: bracket } = useGetTournamentBracket(id, {
     query: {
-      enabled: !!id && tournament?.status !== "draft",
+      enabled: !!id && fetchPhase >= 1 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
-      refetchInterval: 10000,
+      refetchInterval: 11000,
+      staleTime: 10500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
   const { data: stages } = useListTournamentStages(id, {
     query: {
-      enabled: !!id,
+      enabled: !!id && fetchPhase >= 1,
       queryKey: getListTournamentStagesQueryKey(id),
-      refetchInterval: 10000,
+      refetchInterval: 13000,
+      staleTime: 12500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
   const doubleEliminationStage = stages?.find(
@@ -74,6 +95,7 @@ export default function TournamentBracket() {
         refetchInterval: 10000,
         staleTime: 9000,
         refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
       },
     },
   );
@@ -86,6 +108,17 @@ export default function TournamentBracket() {
 
   const isSwiss = tournament?.format === "swiss";
   const isRoundRobin = tournament?.format === "round_robin";
+
+  const { data: swissStandings } = useGetTournamentStandings(id, {
+    query: {
+      enabled: !!id && isSwiss && tournament?.status !== "draft" && fetchPhase >= 2,
+      queryKey: getGetTournamentStandingsQueryKey(id),
+      refetchInterval: 13000,
+      staleTime: 12500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  });
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -94,9 +127,12 @@ export default function TournamentBracket() {
 
   const { data: history } = useGetResultsHistory(id, {
     query: {
-      enabled: isDeadlock && !!id && tournament?.status !== "draft",
+      enabled: isDeadlock && !!id && tournament?.status !== "draft" && fetchPhase >= 2,
       queryKey: getGetResultsHistoryQueryKey(id),
-      refetchInterval: 15000,
+      refetchInterval: 17000,
+      staleTime: 16500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
 
@@ -158,8 +194,8 @@ export default function TournamentBracket() {
         </a>
 
         <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-background border border-border rounded-lg px-2 py-1 shadow-md">
+          {/* Zoom controls — hidden for Swiss (responsive layout, no transform) */}
+          {!isSwiss && <div className="flex items-center gap-1 bg-background border border-border rounded-lg px-2 py-1 shadow-md">
             <button
               className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
               onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
@@ -191,7 +227,7 @@ export default function TournamentBracket() {
             >
               <Minimize2 className="w-3.5 h-3.5" />
             </button>
-          </div>
+          </div>}
           <Button
             variant="outline"
             size="icon"
@@ -264,21 +300,13 @@ export default function TournamentBracket() {
           </div>
         ) : bracket ? (
           isSwiss ? (
-            <div className="p-8" style={{ minWidth: "100%", minHeight: "100%" }}>
-              <div
-                style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "top left",
-                  display: "inline-block",
-                  minWidth: "max-content",
-                }}
-              >
-                <SwissRoundsView
-                  bracket={bracket}
-                  currentRound={tournament.currentRound}
-                  totalRounds={tournament.totalRounds}
-                />
-              </div>
+            <div className="p-6 md:p-8 min-h-full">
+              <SwissRoundsView
+                bracket={bracket}
+                currentRound={tournament.currentRound}
+                totalRounds={tournament.totalRounds}
+                standings={swissStandings}
+              />
             </div>
           ) : isRoundRobin ? (
             <div className="p-8" style={{ minWidth: "100%", minHeight: "100%" }}>

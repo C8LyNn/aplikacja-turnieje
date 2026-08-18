@@ -124,29 +124,52 @@ export default function TournamentAudience() {
   }, [id, isSupportChecking, organizerToken, supportSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tournament, error: tournamentError, refetch: refetchTournament } = useGetTournament(id, {
-    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 4000, retry: false },
+    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 5000, staleTime: 4500, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false },
   });
+
+  // Phase-offset enabling: stagger initial fetches after tournament loads to avoid
+  // request bursts that can trigger 429s. Each phase introduces a 600 ms gap.
+  // Phase 1 (0 ms): matches, stages — Phase 2 (+600 ms): bracket
+  // Phase 3 (+1200 ms): standings — Phase 4 (+1800 ms): players
+  const [fetchPhase, setFetchPhase] = useState(0);
+  useEffect(() => {
+    if (!tournament) { setFetchPhase(0); return; }
+    setFetchPhase(1);
+    const t2 = setTimeout(() => setFetchPhase(2), 600);
+    const t3 = setTimeout(() => setFetchPhase(3), 1200);
+    const t4 = setTimeout(() => setFetchPhase(4), 1800);
+    return () => { clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!tournament]);
+
+  // Staggered co-prime intervals: matches=6s, stages=7s, bracket=9s, standings=11s, players=13s
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id && !!tournament, queryKey: getListMatchesQueryKey(id), refetchInterval: 4000 },
+    query: { enabled: !!id && fetchPhase >= 1, queryKey: getListMatchesQueryKey(id), refetchInterval: 6000, staleTime: 5500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
   const { data: standings } = useGetTournamentStandings(id, {
-    query: { enabled: !!id && !!tournament, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 8000 },
+    query: { enabled: !!id && fetchPhase >= 3, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 11000, staleTime: 10500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
   const { data: players } = useListPlayers(id, {
-    query: { enabled: !!id && !!tournament, queryKey: getListPlayersQueryKey(id), refetchInterval: 8000 },
+    query: { enabled: !!id && fetchPhase >= 4, queryKey: getListPlayersQueryKey(id), refetchInterval: 13000, staleTime: 12500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
   const { data: bracket } = useGetTournamentBracket(id, {
     query: {
-      enabled: !!id && !!tournament && tournament.status !== "draft",
+      enabled: !!id && fetchPhase >= 2 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
-      refetchInterval: 10000,
+      refetchInterval: 9000,
+      staleTime: 8500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
   const { data: stages } = useListTournamentStages(id, {
     query: {
-      enabled: !!id && !!tournament,
+      enabled: !!id && fetchPhase >= 1,
       queryKey: getListTournamentStagesQueryKey(id),
-      refetchInterval: 10000,
+      refetchInterval: 7000,
+      staleTime: 6500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
   const doubleEliminationStage = stages?.find(
@@ -170,6 +193,7 @@ export default function TournamentAudience() {
         refetchInterval: 10000,
         staleTime: 9000,
         refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
       },
     },
   );
@@ -231,6 +255,9 @@ export default function TournamentAudience() {
       enabled: isDeadlock && !!id && tournament?.status !== "draft",
       queryKey: getGetResultsHistoryQueryKey(id),
       refetchInterval: 15000,
+      staleTime: 14500,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
   });
   const audienceMatchPicksMap = useMemo(() => {
@@ -721,6 +748,7 @@ export default function TournamentAudience() {
               }
               playerBansMap={isDeadlock ? audienceBansMap : undefined}
               matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
+              standings={standings}
             />
           )
         )}
@@ -936,6 +964,7 @@ function PublicBracketSection({
   forcedHeroId,
   playerBansMap,
   matchPicksMap,
+  standings,
 }: {
   bracket?: Bracket;
   format: string;
@@ -944,6 +973,7 @@ function PublicBracketSection({
   forcedHeroId?: DeadlockHeroId;
   playerBansMap?: Map<number, string[]>;
   matchPicksMap?: Map<number, { p1HeroId?: string | null; p2HeroId?: string | null }>;
+  standings?: Standing[];
 }) {
   return (
     <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
@@ -952,7 +982,7 @@ function PublicBracketSection({
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/8 bg-card p-4 text-foreground">
           {format === "swiss" ? (
-            <SwissRoundsView bracket={bracket} currentRound={currentRound} totalRounds={totalRounds} />
+            <SwissRoundsView bracket={bracket} currentRound={currentRound} totalRounds={totalRounds} standings={standings} />
           ) : format === "round_robin" ? (
             <RoundRobinView bracket={bracket} hideStandings />
           ) : (
