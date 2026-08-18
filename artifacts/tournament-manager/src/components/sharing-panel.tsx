@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle } from "lucide-react";
+import { Copy, Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle, Tv2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,11 +98,32 @@ export function SharingPanel({ tournament, orgToken }: Props) {
   const base = typeof window !== "undefined" ? window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "") : "";
   const tid = tournament.id;
 
+  // OBS projector URL builder state
+  const [obsPreset, setObsPreset] = useState<string>("classic");
+  const [obsTransparent, setObsTransparent] = useState(false);
+  const [obsCompact, setObsCompact] = useState(false);
+  const [obsFinals, setObsFinals] = useState<"upper" | "between">("upper");
+  const [obsZoom, setObsZoom] = useState("1");
+  const [obsHideHeader, setObsHideHeader] = useState(false);
+  const [showObsConfig, setShowObsConfig] = useState(false);
+
+  const buildObsUrl = () => {
+    const params = new URLSearchParams();
+    if (obsPreset !== "classic") params.set("preset", obsPreset);
+    if (obsTransparent) params.set("transparent", "1");
+    if (obsCompact) params.set("compact", "1");
+    if (obsFinals !== "upper") params.set("finals", obsFinals);
+    if (obsZoom !== "1" && obsZoom !== "") params.set("zoom", obsZoom);
+    if (obsHideHeader) params.set("hide-header", "1");
+    const qs = params.toString();
+    return `${base}/tournaments/${tid}/projector${qs ? `?${qs}` : ""}`;
+  };
+
   const links = {
     viewer: `${base}/tournaments/${tid}`,
     organizer: `${base}/tournaments/${tid}?login=organizer`,
     support: `${base}/tournaments/${tid}?login=support`,
-    projector: `${base}/tournaments/${tid}/bracket`,
+    projector: buildObsUrl(),
   };
 
   async function handleSaveVisibility(e: React.FormEvent) {
@@ -177,11 +198,103 @@ export function SharingPanel({ tournament, orgToken }: Props) {
             url={links.support}
             icon={<Shield className="w-3.5 h-3.5" />}
           />
-          <LinkRow
-            label="Link projektora (widok drabinki pełnoekranowy)"
-            url={links.projector}
-            icon={<Monitor className="w-3.5 h-3.5" />}
-          />
+          {/* OBS Projector section */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Tv2 className="w-3.5 h-3.5" />
+                Projektor OBS (Browser Source)
+              </div>
+              <button
+                type="button"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowObsConfig(v => !v)}
+              >
+                {showObsConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                {showObsConfig ? "Zwiń" : "Konfiguruj"}
+              </button>
+            </div>
+            <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
+              <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{links.projector}</span>
+              <CopyButton text={links.projector} />
+            </div>
+
+            {showObsConfig && (
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3 mt-1">
+                <p className="text-[11px] text-muted-foreground">
+                  Skonfiguruj wygląd projektora. URL zaktualizuje się automatycznie.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Preset</Label>
+                    <select
+                      className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5"
+                      value={obsPreset}
+                      onChange={e => setObsPreset(e.target.value)}
+                    >
+                      <option value="classic">Classic</option>
+                      <option value="dark-minimal">Dark Minimal</option>
+                      <option value="deadlock">Deadlock</option>
+                      <option value="neon">Neon</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Grand Finał</Label>
+                    <select
+                      className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5"
+                      value={obsFinals}
+                      onChange={e => setObsFinals(e.target.value as "upper" | "between")}
+                    >
+                      <option value="upper">Przy Upper</option>
+                      <option value="between">Pomiędzy UB i LB</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Zoom (np. 0.8, 1, 1.2)</Label>
+                  <Input
+                    type="number"
+                    min={0.3}
+                    max={3}
+                    step={0.05}
+                    value={obsZoom}
+                    onChange={e => setObsZoom(e.target.value)}
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: "obsTransparent", label: "Transparent BG", val: obsTransparent, set: setObsTransparent },
+                    { key: "obsCompact", label: "Compact", val: obsCompact, set: setObsCompact },
+                    { key: "obsHideHeader", label: "Ukryj nagłówek", val: obsHideHeader, set: setObsHideHeader },
+                  ].map(({ key, label, val, set }) => (
+                    <label key={key} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={val}
+                        onChange={e => set(e.target.checked)}
+                        className="accent-primary"
+                      />
+                      <span className="text-[11px] text-muted-foreground">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="pt-1 border-t border-border/40 flex gap-2">
+                  <a
+                    href={links.projector}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-primary underline-offset-2 hover:underline"
+                  >
+                    Otwórz w nowej karcie ↗
+                  </a>
+                  <span className="text-muted-foreground/40 text-[11px]">·</span>
+                  <CopyButton text={links.projector} />
+                  <span className="text-[11px] text-muted-foreground/60">Skopiuj URL do OBS</span>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

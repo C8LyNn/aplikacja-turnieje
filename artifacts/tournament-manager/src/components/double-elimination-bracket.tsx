@@ -9,19 +9,13 @@ import {
   useResetDoubleEliminationStage,
   useRevertMatch,
 } from "@workspace/api-client-react";
-import { RotateCcw, Shield, Trophy } from "lucide-react";
+import { RotateCcw, Shield, Trophy, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
-
-const BRACKET_LABELS = {
-  upper: "Upper Bracket",
-  lower: "Lower Bracket",
-  grand_final: "Grand Final",
-  grand_final_reset: "Grand Final Reset",
-} as const;
+import { DEBracketCanvas } from "@/components/de-bracket-canvas";
 
 interface DoubleEliminationBracketProps {
   tournamentId: number;
@@ -30,12 +24,13 @@ interface DoubleEliminationBracketProps {
   canManage?: boolean;
   canReset?: boolean;
   onChanged?: () => void;
+  /** Where Grand Final appears. Default: "upper" (appended to UB). */
+  finalsPosition?: "upper" | "between";
 }
 
-function MatchCard({
+/** Inline score form rendered below the canvas for ready matches. */
+function ScoreForm({
   match,
-  participants,
-  canManage,
   pending,
   scores,
   onScores,
@@ -43,74 +38,57 @@ function MatchCard({
   onRevert,
 }: {
   match: DoubleEliminationMatch;
-  participants: ReadonlyMap<string, DoubleEliminationParticipant>;
-  canManage: boolean;
   pending: boolean;
   scores: readonly [number, number];
-  onScores: (scores: [number, number]) => void;
+  onScores: (s: [number, number]) => void;
   onComplete: () => void;
   onRevert: () => void;
 }) {
   const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
-
   return (
-    <div className="min-w-64 rounded-lg border bg-card p-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span>{match.name}</span>
-        <Badge variant="secondary">{match.status}</Badge>
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="font-medium">{match.name}</span>
+        {match.status === "completed" ? (
+          <Badge variant="secondary">Zakończony</Badge>
+        ) : (
+          <Badge variant="outline">
+            BO{match.bestOf ?? 1} — do {winsRequired} wygranych
+          </Badge>
+        )}
       </div>
-      <div className="space-y-2">
-        {match.slots.map((participantKey, slotIndex) => {
-          const participant = participantKey ? participants.get(participantKey) : undefined;
-          const winner = participantKey != null && match.winnerParticipantKey === participantKey;
-          return (
-            <div
-              key={`${match.matchKey}-${slotIndex}`}
-              className={`flex min-h-10 items-center justify-between gap-2 rounded-md border px-3 py-2 ${winner ? "border-primary bg-primary/10" : "bg-background"}`}
-            >
-              <span className={winner ? "font-semibold" : ""}>
-                {participant ? `#${participant.seed} ${participant.name}` : "TBD"}
-              </span>
-              <span className="flex items-center gap-2">
-                {match.status === "completed" && (
-                  <span className="font-mono text-sm">{slotIndex === 0 ? match.score1 : match.score2}</span>
-                )}
-                {winner && <Trophy className="h-4 w-4 text-primary" />}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      {canManage && match.status === "ready" && match.matchId != null && (
-        <div className="mt-3 space-y-2">
-          <p className="text-xs text-muted-foreground">
-            BO{match.bestOf ?? 1}: do {winsRequired} wygranych gier/map
-          </p>
-          <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-            <Input
-              aria-label={`Wynik pierwszej strony ${match.name}`}
-              type="number"
-              min={0}
-              max={winsRequired}
-              value={scores[0]}
-              onChange={(event) => onScores([Number(event.target.value), scores[1]])}
-            />
-            <Input
-              aria-label={`Wynik drugiej strony ${match.name}`}
-              type="number"
-              min={0}
-              max={winsRequired}
-              value={scores[1]}
-              onChange={(event) => onScores([scores[0], Number(event.target.value)])}
-            />
-            <Button type="button" size="sm" disabled={pending} onClick={onComplete}>
-              Zapisz
-            </Button>
-          </div>
+      {match.status === "ready" && match.matchId != null && (
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+          <Input
+            aria-label={`Wynik 1 — ${match.name}`}
+            type="number"
+            min={0}
+            max={winsRequired}
+            value={scores[0]}
+            onChange={e => onScores([Number(e.target.value), scores[1]])}
+          />
+          <Input
+            aria-label={`Wynik 2 — ${match.name}`}
+            type="number"
+            min={0}
+            max={winsRequired}
+            value={scores[1]}
+            onChange={e => onScores([scores[0], Number(e.target.value)])}
+          />
+          <Button type="button" size="sm" disabled={pending} onClick={onComplete}>
+            Zapisz
+          </Button>
         </div>
       )}
-      {canManage && match.status === "completed" && match.matchId != null && (
-        <Button className="mt-3 w-full" type="button" size="sm" variant="outline" disabled={pending} onClick={onRevert}>
+      {match.status === "completed" && match.matchId != null && (
+        <Button
+          className="w-full"
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          onClick={onRevert}
+        >
           Cofnij / skoryguj wynik
         </Button>
       )}
@@ -125,15 +103,21 @@ export function DoubleEliminationBracket({
   canManage = false,
   canReset = false,
   onChanged,
+  finalsPosition: finalsPositionProp,
 }: DoubleEliminationBracketProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
   const [scores, setScores] = useState<Record<string, [number, number]>>({});
+  const [finalsPos, setFinalsPos] = useState<"upper" | "between">(finalsPositionProp ?? "upper");
+
   const complete = useCompleteMatch();
   const revert = useRevertMatch();
   const reset = useResetDoubleEliminationStage();
+
   const participants = useMemo(
-    () => new Map(state.participants.map((participant) => [participant.participantKey, participant])),
+    () => new Map<string, DoubleEliminationParticipant>(
+      state.participants.map(p => [p.participantKey, p])
+    ),
     [state.participants],
   );
   const pending = complete.isPending || revert.isPending || reset.isPending;
@@ -153,36 +137,35 @@ export function DoubleEliminationBracket({
       { id: match.matchId, data: { resultType: "played", score1, score2 } },
       {
         onSuccess: () => {
-          setScores((current) => {
-            const next = { ...current };
-            delete next[match.matchKey];
-            return next;
-          });
+          setScores(cur => { const n = { ...cur }; delete n[match.matchKey]; return n; });
           void refresh();
         },
-        onError: (reason) => setError(getApiErrorMessage(reason)),
+        onError: reason => setError(getApiErrorMessage(reason)),
       },
     );
   };
 
   const revertCanonicalMatch = (match: DoubleEliminationMatch) => {
     if (match.matchId == null) return;
-    if (match.downstreamResultCount > 0 && !window.confirm(
-      `Cofnięcie zmieni dalszą drabinkę i unieważni ${match.downstreamResultCount} późniejszych wyników. ` +
-      "Wyniki i game-picki tych meczów zostaną cofnięte. Kontynuować?",
-    )) return;
+    if (
+      match.downstreamResultCount > 0 &&
+      !window.confirm(
+        `Cofnięcie zmieni dalszą drabinkę i unieważni ${match.downstreamResultCount} późniejszych wyników. ` +
+        "Wyniki i game-picki tych meczów zostaną cofnięte. Kontynuować?",
+      )
+    ) return;
     setError(undefined);
     revert.mutate(
       { id: match.matchId },
       {
         onSuccess: () => void refresh(),
-        onError: (reason) => setError(getApiErrorMessage(reason)),
+        onError: reason => setError(getApiErrorMessage(reason)),
       },
     );
   };
 
   const resetStage = () => {
-    const completed = state.matches.filter((match) => match.status === "completed").length;
+    const completed = state.matches.filter(m => m.status === "completed").length;
     if (!window.confirm(
       `Reset usunie ${completed} zapisanych wyników, powiązane game-picki i odtworzy drabinkę od początku. ` +
       "Konfiguracja etapu pozostanie bez zmian. Kontynuować?",
@@ -192,7 +175,7 @@ export function DoubleEliminationBracket({
       { id: tournamentId, stageId, data: { expectedRevision: state.revision } },
       {
         onSuccess: () => void refresh(),
-        onError: (reason) => setError(getApiErrorMessage(reason)),
+        onError: reason => setError(getApiErrorMessage(reason)),
       },
     );
   };
@@ -201,20 +184,44 @@ export function DoubleEliminationBracket({
     ? participants.get(state.championParticipantKey)
     : undefined;
 
+  // Matches eligible for management (ready or completed with matchId)
+  const actionableMatches = canManage
+    ? state.matches.filter(
+        m => m.matchId != null && (m.status === "ready" || m.status === "completed"),
+      )
+    : [];
+
   return (
     <div className="space-y-4" aria-label="Drabinka podwójnej eliminacji">
+      {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Shield className="h-4 w-4" />
           <span>Uczestnik odpada po drugiej porażce.</span>
           <Badge variant="outline">Rewizja {state.revision}</Badge>
         </div>
-        {canReset && (
-          <Button type="button" variant="outline" size="sm" disabled={pending} onClick={resetStage}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Resetuj etap
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Finals position toggle */}
+          {!finalsPositionProp && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => setFinalsPos(v => v === "upper" ? "between" : "upper")}
+              title="Zmień pozycję Grand Finału"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" />
+              Finały: {finalsPos === "upper" ? "przy Upper" : "pomiędzy"}
+            </Button>
+          )}
+          {canReset && (
+            <Button type="button" variant="outline" size="sm" disabled={pending} onClick={resetStage}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Resetuj etap
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -235,52 +242,36 @@ export function DoubleEliminationBracket({
         </Card>
       )}
 
-      {(Object.keys(BRACKET_LABELS) as Array<keyof typeof BRACKET_LABELS>).map((bracket) => {
-        const bracketMatches = state.matches.filter((match) => match.bracket === bracket);
-        if (bracketMatches.length === 0) return null;
-        if (bracket === "grand_final_reset" && bracketMatches.every((match) => match.status === "skipped")) {
-          return (
-            <Card key={bracket}>
-              <CardContent className="p-4 text-sm text-muted-foreground">
-                Reset finału nie jest wymagany.
-              </CardContent>
-            </Card>
-          );
-        }
-        const rounds = [...new Set(bracketMatches.map((match) => match.round))].sort((a, b) => a - b);
-        return (
-          <Card key={bracket}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{BRACKET_LABELS[bracket]}</CardTitle>
-            </CardHeader>
-            <CardContent className="overflow-x-auto pb-5">
-              <div className="flex min-w-max items-start gap-6">
-                {rounds.map((round) => (
-                  <section key={round} className="space-y-3" aria-label={`${BRACKET_LABELS[bracket]}, runda ${round}`}>
-                    <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Runda {round}</p>
-                    {bracketMatches
-                      .filter((match) => match.round === round)
-                      .sort((left, right) => left.order - right.order)
-                      .map((match) => (
-                        <MatchCard
-                          key={match.matchKey}
-                          match={match}
-                          participants={participants}
-                          canManage={canManage}
-                          pending={pending}
-                          scores={scores[match.matchKey] ?? [0, 0]}
-                          onScores={(next) => setScores((current) => ({ ...current, [match.matchKey]: next }))}
-                          onComplete={() => completeCanonicalMatch(match)}
-                          onRevert={() => revertCanonicalMatch(match)}
-                        />
-                      ))}
-                  </section>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* Visual bracket canvas */}
+      <div className="overflow-x-auto rounded-xl border border-border bg-card/50 p-4">
+        <DEBracketCanvas
+          matches={state.matches}
+          participants={participants}
+          finalsPosition={finalsPositionProp ?? finalsPos}
+        />
+      </div>
+
+      {/* Management: score forms for actionable matches */}
+      {actionableMatches.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Zarządzanie wynikami
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {actionableMatches.map(match => (
+              <ScoreForm
+                key={match.matchKey}
+                match={match}
+                pending={pending}
+                scores={scores[match.matchKey] ?? [0, 0]}
+                onScores={s => setScores(cur => ({ ...cur, [match.matchKey]: s }))}
+                onComplete={() => completeCanonicalMatch(match)}
+                onRevert={() => revertCanonicalMatch(match)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
