@@ -12,12 +12,12 @@ function snapshot(): StageStartValidationSnapshot {
     stages: [{
       id: 11, tournamentId: 1, position: 1, status: "planned", participantCount: 2,
       format: "swiss", groupCount: null, participantsPerGroup: null, qualifiersPerGroup: null,
-      qualificationMode: "top_n", seedingPolicy: "standings_order",
+      qualificationMode: "top_n", seedingPolicy: "standings_order", entrySeedingPolicy: "preserve",
     }],
     stage: {
       id: 11, tournamentId: 1, position: 1, status: "planned", participantCount: 2,
       format: "swiss", groupCount: null, participantsPerGroup: null, qualifiersPerGroup: null,
-      qualificationMode: "top_n", seedingPolicy: "standings_order",
+      qualificationMode: "top_n", seedingPolicy: "standings_order", entrySeedingPolicy: "preserve",
     },
     existingMatchCount: 0,
     existingGroupCount: 0,
@@ -45,7 +45,7 @@ function changed(change: (value: StageStartValidationSnapshot) => void): StageSt
 }
 
 test("legacy start delegates standalone group stage only for Marvel", () => {
-  const groupStage = [{ format: "group_stage" as const }];
+  const groupStage = [{ format: "group_stage" as const, entrySeedingPolicy: "preserve" }];
   assert.equal(
     shouldUseStageLifecycleForLegacyTournamentStart(groupStage, null),
     false,
@@ -60,18 +60,46 @@ test("legacy start delegates standalone group stage only for Marvel", () => {
   );
   assert.equal(
     shouldUseStageLifecycleForLegacyTournamentStart(
-      [{ format: "double_elimination" }],
+      [{ format: "double_elimination", entrySeedingPolicy: "preserve" }],
       null,
     ),
     true,
   );
   assert.equal(
     shouldUseStageLifecycleForLegacyTournamentStart(
-      [{ format: "round_robin" }, { format: "group_stage" }],
+      [{ format: "round_robin", entrySeedingPolicy: "preserve" }, { format: "group_stage", entrySeedingPolicy: "preserve" }],
       null,
     ),
     true,
   );
+});
+
+test("legacy start routes configured seeding (non-preserve, non-registration_order) through lifecycle", () => {
+  // SE, Swiss, RR with alphabetical/manual/random seeding must go through startStage
+  // so that seeds are properly assigned and the ceremony check is applied.
+  for (const format of ["single_elimination", "swiss", "round_robin"] as const) {
+    for (const policy of ["alphabetical", "manual", "random"] as const) {
+      assert.equal(
+        shouldUseStageLifecycleForLegacyTournamentStart(
+          [{ format, entrySeedingPolicy: policy }],
+          null,
+        ),
+        true,
+        `Expected lifecycle route for ${format} + ${policy}`,
+      );
+    }
+    // registration_order uses legacy path (same as preserve)
+    for (const policy of ["preserve", "registration_order"] as const) {
+      assert.equal(
+        shouldUseStageLifecycleForLegacyTournamentStart(
+          [{ format, entrySeedingPolicy: policy }],
+          null,
+        ),
+        format === "single_elimination" ? false : false,
+        `Expected legacy route for ${format} + ${policy}`,
+      );
+    }
+  }
 });
 
 test("reports a valid planned stage as ready", () => {

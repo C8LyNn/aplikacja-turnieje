@@ -397,6 +397,63 @@ export function buildStagePlan(stages: StageDraft[]): TournamentStagePlanInput {
   };
 }
 
+// ── Single-stage seeding helpers ──────────────────────────────────────────────
+
+/** Seeding methods available for single-stage tournaments (excludes "preserve", which is multi-stage only). */
+export type SingleStageEntrySeedingMethod = Exclude<EntrySeedingMethod, "preserve">;
+
+export const SINGLE_STAGE_SEEDING_LABELS: Record<SingleStageEntrySeedingMethod, string> = {
+  registration_order: "Kolejność dodania",
+  alphabetical: "Alfabetycznie",
+  manual: "Ręcznie ustawione seedy graczy",
+  random: "Losowanie (ceremonia losowania)",
+};
+
+/**
+ * Builds a minimal stage plan carrying only the seeding policy for a
+ * single-stage tournament.
+ *
+ * `participantCount` in the plan is used only for server-side validation
+ * at creation time.  A DB trigger (`compat_sync_single_stage_participant`)
+ * keeps `stage.participant_count` in sync with the actual registered player
+ * count, so the lifecycle always starts with the real number of participants
+ * regardless of `maxPlayers`.  Pass `maxPlayers` when known (it provides a
+ * better initial value); leave it undefined for unlimited tournaments.
+ */
+export function buildSingleStageSeedingPlan(
+  format: Exclude<StageFormat, "group_stage">,
+  options: {
+    maxPlayers?: number;
+    bestOf: 1 | 3 | 5 | 7;
+    swissRounds?: number;
+    entrySeedingMethod: SingleStageEntrySeedingMethod;
+    randomRevealOrder: RandomRevealOrder;
+  },
+): TournamentStagePlanInput {
+  const { maxPlayers, bestOf, swissRounds, entrySeedingMethod, randomRevealOrder } = options;
+  // Use maxPlayers as a hint for plan validation only.  The trigger will
+  // override this to reflect the real player count as players are added.
+  const participantCount = maxPlayers && maxPlayers >= 2 ? maxPlayers : 2;
+  const placementMethod = defaultPlacement(format);
+
+  const draft: StageDraft = {
+    clientId: globalThis.crypto?.randomUUID?.() ?? `stage-1-${Date.now()}`,
+    name: "Etap 1",
+    format,
+    participantCount,
+    bestOf,
+    rounds: format === "swiss" ? (swissRounds ?? 3) : undefined,
+    entrySeedingMethod,
+    placementMethod,
+    resultSeedingMethod: "rank_bands",
+    randomSeed: globalThis.crypto?.randomUUID?.() ?? `seed-${Date.now()}`,
+    randomRevealOrder,
+    additionalHeroBans: [],
+  };
+
+  return buildStagePlan([draft]);
+}
+
 export function withOptionalStagePlan(base: TournamentInput, enabled: boolean, stages: StageDraft[]): TournamentInput {
   if (!enabled) return base;
   const stagePlan = buildStagePlan(stages);

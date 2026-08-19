@@ -68,7 +68,7 @@ export async function getTournamentStageDetails(input: {
     memberships.length === 0
       ? []
       : await db
-          .select({ id: playersTable.id, name: playersTable.name })
+          .select({ id: playersTable.id, name: playersTable.name, seed: playersTable.seed })
           .from(playersTable)
           .where(
             inArray(
@@ -77,10 +77,12 @@ export async function getTournamentStageDetails(input: {
             ),
           );
   const playerName = new Map(players.map((player) => [player.id, player.name]));
+  const playerSeed = new Map(players.map((player) => [player.id, player.seed ?? null]));
   const groupKey = new Map(groups.map((group) => [group.id, group.groupKey]));
   const participants = memberships.map((participant) => ({
     ...participant,
     playerName: playerName.get(participant.playerId) ?? "",
+    manualSeed: playerSeed.get(participant.playerId) ?? null,
     groupId: participant.groupId ?? null,
     groupKey:
       participant.groupId == null

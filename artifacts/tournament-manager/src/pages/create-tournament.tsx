@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Globe, Layers3, Lock, Trophy } from "lucide-react";
+import { Globe, Layers3, Lock, Shuffle, Trophy } from "lucide-react";
 import {
   setActiveOrganizerToken,
   useCreateTournament,
@@ -32,9 +32,13 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/auth-context";
 import {
+  buildSingleStageSeedingPlan,
   createStageDraft,
   getApiErrorMessage,
   normalizeStageDrafts,
+  type RandomRevealOrder,
+  type SingleStageEntrySeedingMethod,
+  SINGLE_STAGE_SEEDING_LABELS,
   type StageDraft,
   validateStageDrafts,
   withOptionalStagePlan,
@@ -145,6 +149,10 @@ function CreateTournamentForm() {
   const [showOrgPass, setShowOrgPass] = useState(false);
   const [showSupPass, setShowSupPass] = useState(false);
   const [showViewerPass, setShowViewerPass] = useState(false);
+  const [entrySeedingMethod, setEntrySeedingMethod] =
+    useState<SingleStageEntrySeedingMethod>("registration_order");
+  const [randomRevealOrder, setRandomRevealOrder] =
+    useState<RandomRevealOrder>("sequential");
   const [stageMode, setStageMode] = useState(false);
   const [stages, setStages] = useState<StageDraft[]>([
     createStageDraft(1, "swiss"),
@@ -226,6 +234,23 @@ function CreateTournamentForm() {
       gameConfig: gameConfig ?? undefined,
     };
 
+    // Only generate a stagePlan for non-default seeding methods.
+    // "registration_order" uses the legacy path which needs no plan.
+    // maxPlayers is optional — the DB trigger keeps stage.participant_count
+    // in sync with the actual registered player count, so the lifecycle
+    // always starts with the real number regardless of the plan's value.
+    let singleStagePlan: import("@workspace/api-client-react").TournamentStagePlanInput | undefined;
+    if (!stageMode && !marvelConfig && entrySeedingMethod !== "registration_order") {
+      const parsedMaxPlayers = maxPlayers ? Number.parseInt(maxPlayers, 10) : undefined;
+      singleStagePlan = buildSingleStageSeedingPlan(format, {
+        maxPlayers: parsedMaxPlayers,
+        bestOf: (Number.parseInt(defaultBestOf, 10) || 1) as 1 | 3 | 5 | 7,
+        swissRounds: format === "swiss" && swissRounds ? Number.parseInt(swissRounds, 10) : undefined,
+        entrySeedingMethod,
+        randomRevealOrder,
+      });
+    }
+
     const payload: TournamentInput = marvelConfig
       ? {
           ...legacyPayload,
@@ -259,7 +284,9 @@ function CreateTournamentForm() {
             ],
           },
         }
-      : withOptionalStagePlan(legacyPayload, stageMode, stages);
+      : stageMode
+        ? withOptionalStagePlan(legacyPayload, stageMode, stages)
+        : { ...legacyPayload, stagePlan: singleStagePlan };
 
     createTournament.mutate(
       { data: payload },
@@ -473,6 +500,78 @@ function CreateTournamentForm() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  {/* Seeding section */}
+                  <div className="space-y-3 border-t pt-4">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Shuffle className="h-4 w-4 text-primary" />
+                      Seedowanie uczestników
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="entry-seeding-method">Metoda seedowania</Label>
+                      <Select
+                        value={entrySeedingMethod}
+                        onValueChange={(value) =>
+                          setEntrySeedingMethod(value as SingleStageEntrySeedingMethod)
+                        }
+                      >
+                        <SelectTrigger id="entry-seeding-method">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.entries(SINGLE_STAGE_SEEDING_LABELS) as [SingleStageEntrySeedingMethod, string][]).map(
+                            ([key, label]) => (
+                              <SelectItem key={key} value={key}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {entrySeedingMethod === "random" && (
+                      <div className="space-y-2">
+                        <Label>Typ ceremonii losowania</Label>
+                        <div className="flex flex-col gap-2">
+                          {(
+                            [
+                              { value: "sequential", label: "Sekwencyjne — jeden losowany seed po drugim" },
+                              { value: "instant", label: "Natychmiastowe — wszystkie seedy od razu" },
+                            ] as { value: RandomRevealOrder; label: string }[]
+                          ).map((option) => (
+                            <label
+                              key={option.value}
+                              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm ${randomRevealOrder === option.value ? "border-primary bg-primary/5" : "hover:bg-muted/20"}`}
+                            >
+                              <input
+                                type="radio"
+                                name="random-reveal-order"
+                                value={option.value}
+                                checked={randomRevealOrder === option.value}
+                                onChange={() => setRandomRevealOrder(option.value)}
+                                className="mt-0.5 accent-primary"
+                              />
+                              {option.label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {entrySeedingMethod === "manual" && (
+                      <p className="text-xs text-muted-foreground">
+                        Ustaw numery seedów dla graczy na liście uczestników przed
+                        uruchomieniem turnieju. Gracz z niższym numerem seeda
+                        otrzymuje korzystniejszą pozycję startową.
+                      </p>
+                    )}
+                    {entrySeedingMethod === "random" && (
+                      <p className="text-xs text-muted-foreground">
+                        Po utworzeniu turnieju i dodaniu uczestników uruchom
+                        ceremonię losowania, aby przypisać seedy. Wynik jest
+                        zapisany po stronie serwera i stabilny między przeładowaniami.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

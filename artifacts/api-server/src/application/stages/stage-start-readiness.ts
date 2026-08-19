@@ -25,6 +25,7 @@ export interface StageStartStage {
   qualifiersPerGroup: number | null;
   qualificationMode: string;
   seedingPolicy: string;
+  entrySeedingPolicy: string;
 }
 
 export interface StageStartParticipant {
@@ -95,12 +96,20 @@ export interface StageStartReadiness {
 }
 
 export function shouldUseStageLifecycleForLegacyTournamentStart(
-  stages: readonly Pick<StageStartStage, "format">[],
+  stages: readonly Pick<StageStartStage, "format" | "entrySeedingPolicy">[],
   gameId: string | null,
 ): boolean {
+  const first = stages[0];
+  // Route single-stage tournaments with a configured non-default seeding policy
+  // through the full stage lifecycle so that ceremony checks, seed assignment, and
+  // seeding algorithms (alphabetical, manual, random) are properly applied.
+  const usesConfiguredSeeding = first != null &&
+    first.entrySeedingPolicy !== "preserve" &&
+    first.entrySeedingPolicy !== "registration_order";
   return stages.length > 1 ||
-    stages[0]?.format === "double_elimination" ||
-    (stages[0]?.format === "group_stage" && gameId === "marvel");
+    first?.format === "double_elimination" ||
+    (first?.format === "group_stage" && gameId === "marvel") ||
+    usesConfiguredSeeding;
 }
 
 function missingStageSeeds(
@@ -132,7 +141,14 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
   }
   if (snapshot.existingMatchCount > 0) throw new StageLifecycleError("MATCHES_ALREADY_EXIST");
   if (snapshot.existingGroupCount > 0) throw new StageLifecycleError("GROUPS_ALREADY_EXIST");
-  if (memberships.length !== stage.participantCount || memberships.length < 2) {
+  // For first-stage DE: maxPlayers is a bracket capacity, not a required attendance count.
+  // Actual participants may be fewer — empty slots become BYEs.  All other formats and
+  // subsequent DE stages require an exact participant count.
+  const isFirstStageDe = stage.format === "double_elimination" && !previous;
+  const participantCountOk = isFirstStageDe
+    ? memberships.length >= 2 && memberships.length <= stage.participantCount
+    : memberships.length === stage.participantCount;
+  if (!participantCountOk || memberships.length < 2) {
     throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
   if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
@@ -231,10 +247,20 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
 export function evaluateStageStartReadiness(
   snapshot: StageStartValidationSnapshot,
 ): StageStartReadiness {
+  // For first-stage DE the bracket capacity (stage.participantCount = maxPlayers) is a
+  // ceiling, not an attendance requirement.  Report required = actual so the UI reflects
+  // "you have enough players" rather than "you need N more".
+  const hasPrevious = snapshot.stages.some(
+    (candidate) => candidate.position === snapshot.stage.position - 1,
+  );
+  const isFirstStageDe = snapshot.stage.format === "double_elimination" && !hasPrevious;
+  const effectiveRequired = isFirstStageDe
+    ? snapshot.memberships.length
+    : snapshot.stage.participantCount;
   const base = {
     participantCount: snapshot.memberships.length,
-    requiredParticipantCount: snapshot.stage.participantCount,
-    missingSeeds: missingStageSeeds(snapshot.memberships, snapshot.stage.participantCount),
+    requiredParticipantCount: effectiveRequired,
+    missingSeeds: missingStageSeeds(snapshot.memberships, effectiveRequired),
     blockingMatches: snapshot.existingMatchCount,
     blockingGroups: snapshot.existingGroupCount,
     format: snapshot.stage.format,

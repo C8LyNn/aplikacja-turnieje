@@ -1378,7 +1378,11 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   const mutationActor = getTournamentMutationActor(access);
 
   const stages = await db
-    .select({ id: tournamentStagesTable.id, format: tournamentStagesTable.format })
+    .select({
+      id: tournamentStagesTable.id,
+      format: tournamentStagesTable.format,
+      entrySeedingPolicy: tournamentStagesTable.entrySeedingPolicy,
+    })
     .from(tournamentStagesTable)
     .where(eq(tournamentStagesTable.tournamentId, tournament.id))
     .orderBy(tournamentStagesTable.position);

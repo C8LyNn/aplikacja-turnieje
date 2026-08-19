@@ -52,8 +52,8 @@ import {
   evaluateRoutingExecutionV2,
   type RoutingExecutionSnapshotV2,
 } from "../../domain/tournament/v2";
-import { loadCompiledRoutingPlanV2 } from "../routing/routing-plan-persistence";
-import { ensureLegacyDeRoutingPlanExists } from "./legacy-de-routing-plan";
+import { loadCompiledRoutingPlanV2, saveCompiledRoutingPlanV2InTransaction } from "../routing/routing-plan-persistence";
+import { compileLegacyDeCanonicalPlan, ensureLegacyDeRoutingPlanExists } from "./legacy-de-routing-plan";
 import { reconcileDoubleEliminationMatches } from "./double-elimination-match-runtime";
 import {
   initializeMarvelEliminationStage,
@@ -925,8 +925,11 @@ export async function startStage(
     if (!basketConfiguration.validation.valid) {
       throw new StageLifecycleError("STAGE_BASKET_CONFIGURATION_INVALID");
     }
-    const stage = stages.find((candidate) => candidate.id === input.stageId);
-    if (!stage) throw new StageLifecycleError("STAGE_NOT_FOUND");
+    // TypeScript cannot narrow `let` variables: capture into `const` first, then widen
+    // to `let` so subsequent adjustments (e.g. participantCount update) are possible.
+    const foundStage = stages.find((candidate) => candidate.id === input.stageId);
+    if (!foundStage) throw new StageLifecycleError("STAGE_NOT_FOUND");
+    let stage = foundStage;
     if (stage.status === "active") throw new StageLifecycleError("STAGE_ALREADY_STARTED");
     if (stage.status === "completed") throw new StageLifecycleError("STAGE_ALREADY_COMPLETED");
     if (tournament.activeStageId != null || stages.some((candidate) => candidate.status === "active")) {
@@ -946,6 +949,38 @@ export async function startStage(
     let memberships = await tx.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
+
+    // Single-stage DE capacity semantics: maxPlayers is a bracket capacity, not a required
+    // attendance count.  When the plan was compiled at tournament creation time it encoded
+    // participantCount = maxPlayers; but fewer players may register and those empty slots
+    // become BYEs.  We recompile the routing plan for the actual participant count and sync
+    // stage.participantCount so that the consistency check and createRoutingExecutionV2 both
+    // see the real number.  Only applies to the first DE stage (no predecessor stage).
+    let effectiveRoutingPlan = routingPlan;
+    if (
+      stage.format === "double_elimination" &&
+      !previous &&
+      memberships.length >= 2 &&
+      memberships.length < stage.participantCount
+    ) {
+      // saveCompiledRoutingPlanV2InTransaction validates compiled capacity against the
+      // persisted stage.participant_count — update the stage row first so the check passes.
+      await tx.update(tournamentStagesTable)
+        .set({ participantCount: memberships.length })
+        .where(eq(tournamentStagesTable.id, stage!.id));
+      stage = { ...stage!, participantCount: memberships.length };
+      const recompiled = compileLegacyDeCanonicalPlan(stage);
+      if (recompiled == null) throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+      const nextRevision = (routingPlan?.revision ?? 0) + 1;
+      effectiveRoutingPlan = await saveCompiledRoutingPlanV2InTransaction(tx, {
+        tournamentId: tournament.id,
+        plan: recompiled,
+        stageIdsByKey: { [stage.stageKey]: stage.id },
+        sourceKind: "legacy-de-auto",
+        revision: nextRevision,
+      });
+    }
+
     if (memberships.length !== stage.participantCount || memberships.length < 2) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
@@ -1098,14 +1133,14 @@ export async function startStage(
       stage,
     );
     if (stage.format === "double_elimination") {
-      if (!routingPlan) throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
+      if (!effectiveRoutingPlan) throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
       const execution = createRoutingExecutionV2(
-        routingPlan.plan,
+        effectiveRoutingPlan.plan,
         stage.stageKey,
         memberships.map((membership) => String(membership.playerId)),
       );
       await tx.insert(tournamentRoutingExecutionsTable).values({
-        planId: routingPlan.planId,
+        planId: effectiveRoutingPlan.planId,
         stageKey: stage.stageKey,
         state: execution.snapshot,
       });
@@ -1117,7 +1152,7 @@ export async function startStage(
       inserted = [...materialized.values()].filter((match) => match.player1Id != null && match.player2Id != null);
       totalRounds = Math.max(
         1,
-        ...routingPlan.plan.logicalMatches
+        ...effectiveRoutingPlan.plan.logicalMatches
           .filter((match) => match.stageKey === stage.stageKey)
           .map((match) => match.order + 1),
       );

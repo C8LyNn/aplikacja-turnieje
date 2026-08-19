@@ -464,10 +464,24 @@ async function loadPlannedStageForCeremony(
     .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
   const players = memberships.length === 0 ? [] : await tx.select().from(playersTable)
     .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId))).for("update");
-  if (memberships.length !== stage.participantCount || memberships.length < 2 || players.length !== memberships.length) {
+  // For single-stage DE, maxPlayers is a bracket capacity, not a required attendance count.
+  // When actual < maxPlayers the routing plan is recompiled to the actual count at startStage
+  // time.  Allow ceremony prepare/reveal with fewer participants than plan capacity, and use
+  // the actual count in the configuration signature so it stays consistent across
+  // prepare → reveal → startStage (where the recompile sets participantCount = actual too).
+  const isDeCapacityCase = stage.format === "double_elimination" &&
+    memberships.length >= 2 &&
+    memberships.length <= stage.participantCount;
+  const participantCountOk = isDeCapacityCase || memberships.length === stage.participantCount;
+  if (!participantCountOk || memberships.length < 2 || players.length !== memberships.length) {
     throw new SeedingCeremonyError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
-  return { tournament, stage, memberships, players };
+  // Use the actual participant count for the configuration signature so that the ceremony
+  // remains valid even after the routing plan is recompiled to the actual count.
+  const effectiveStage = (isDeCapacityCase && memberships.length < stage.participantCount)
+    ? { ...stage, participantCount: memberships.length }
+    : stage;
+  return { tournament, stage: effectiveStage, memberships, players };
 }
 
 export async function getSeedingCeremony(input: { tournamentId: number; stageId: number }): Promise<SeedingCeremonyState | null> {

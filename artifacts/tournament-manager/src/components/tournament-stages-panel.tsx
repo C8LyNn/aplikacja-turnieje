@@ -342,12 +342,18 @@ export function StageGroupTables({
   );
 }
 
+// manualSeed is added to the stage detail response by the API but not yet
+// reflected in the generated TypeScript type — access via local type extension.
+type ParticipantWithManualSeed = StageParticipant & { manualSeed?: number | null };
+
 export function PlannedStageParticipants({
   stagePosition,
   participants,
+  entrySeedingPolicy,
 }: {
   stagePosition: number;
   participants: StageParticipant[];
+  entrySeedingPolicy?: string | null;
 }) {
   if (participants.length === 0) {
     return (
@@ -358,20 +364,36 @@ export function PlannedStageParticipants({
       </p>
     );
   }
+  const isManual = entrySeedingPolicy === "manual";
+  const withManualSeed = participants as ParticipantWithManualSeed[];
+  const sorted = isManual
+    ? [...withManualSeed].sort((a, b) => {
+        const sa = a.manualSeed ?? Number.MAX_SAFE_INTEGER;
+        const sb = b.manualSeed ?? Number.MAX_SAFE_INTEGER;
+        return sa !== sb ? sa - sb : a.stageSeed - b.stageSeed;
+      })
+    : withManualSeed;
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {participants.map((participant) => (
-        <div
-          key={participant.id}
-          className="flex items-center gap-2 rounded-lg border p-3"
-        >
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span>{participant.playerName}</span>
-          <Badge variant="secondary" className="ml-auto">
-            #{participant.stageSeed}
-          </Badge>
-        </div>
-      ))}
+      {sorted.map((participant) => {
+        const seedLabel = isManual
+          ? participant.manualSeed != null
+            ? `#${participant.manualSeed}`
+            : "—"
+          : `#${participant.stageSeed}`;
+        return (
+          <div
+            key={participant.id}
+            className="flex items-center gap-2 rounded-lg border p-3"
+          >
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span>{participant.playerName}</span>
+            <Badge variant="secondary" className="ml-auto">
+              {seedLabel}
+            </Badge>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -844,6 +866,7 @@ export function TournamentStagesPanel({
                 <PlannedStageParticipants
                   stagePosition={selected.position}
                   participants={detailQuery.data.participants}
+                  entrySeedingPolicy={selected.entrySeedingPolicy}
                 />
               </CardContent>
             </Card>
