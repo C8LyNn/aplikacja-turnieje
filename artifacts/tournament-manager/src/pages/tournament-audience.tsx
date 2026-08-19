@@ -96,6 +96,8 @@ function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "
 export default function TournamentAudience() {
   const [, params] = useRoute("/tournaments/:id/audience");
   const [searchParams] = useSearchParams();
+  // show-drops=0 in the URL hides UB→LB loser-drop connector lines (default: visible)
+  const showDropLines = searchParams.get("show-drops") !== "0";
   const id = params?.id ? parseInt(params.id, 10) : 0;
   const { getOrgToken, getSupSession, getViewerTok, storeViewerToken } = useAuth();
   const [showViewerModal, setShowViewerModal] = useState(false);
@@ -724,6 +726,7 @@ export default function TournamentAudience() {
                     tournamentId={id}
                     stageId={doubleEliminationStage.id}
                     state={doubleEliminationQuery.data}
+                    showDropLines={showDropLines}
                   />
                 </div>
               ) : doubleEliminationQuery.isPending ? (

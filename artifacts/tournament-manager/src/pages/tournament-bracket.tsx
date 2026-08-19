@@ -102,6 +102,7 @@ export default function TournamentBracket() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(0.75);
+  const [showDropLines, setShowDropLines] = useState(true);
 
   const clampZoom = (z: number) =>
     Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) * 100) / 100;
@@ -194,6 +195,21 @@ export default function TournamentBracket() {
         </a>
 
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* UB→LB drop toggle — visible only when DE bracket is active */}
+          {!!doubleEliminationStage && (
+            <button
+              type="button"
+              onClick={() => setShowDropLines(v => !v)}
+              className={`px-2 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                showDropLines
+                  ? "bg-background border-border text-muted-foreground hover:text-foreground"
+                  : "bg-primary/10 border-primary/50 text-primary"
+              }`}
+              title="Pokaż / ukryj linie przejść Upper → Lower"
+            >
+              UB→LB {showDropLines ? "●" : "○"}
+            </button>
+          )}
           {/* Zoom controls — hidden for Swiss (responsive layout, no transform) */}
           {!isSwiss && <div className="flex items-center gap-1 bg-background border border-border rounded-lg px-2 py-1 shadow-md">
             <button
@@ -289,6 +305,7 @@ export default function TournamentBracket() {
               tournamentId={id}
               stageId={doubleEliminationStage.id}
               state={doubleEliminationQuery.data}
+              showDropLines={showDropLines}
             />
           </div>
         ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (

@@ -26,6 +26,8 @@ interface DoubleEliminationBracketProps {
   onChanged?: () => void;
   /** Where Grand Final appears. Default: "upper" (appended to UB). */
   finalsPosition?: "upper" | "between";
+  /** When false, hides UB→LB loser-drop connector lines. Default: true. */
+  showDropLines?: boolean;
 }
 
 /** Inline score form rendered below the canvas for ready matches. */
@@ -104,6 +106,7 @@ export function DoubleEliminationBracket({
   canReset = false,
   onChanged,
   finalsPosition: finalsPositionProp,
+  showDropLines = true,
 }: DoubleEliminationBracketProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
@@ -248,6 +251,7 @@ export function DoubleEliminationBracket({
           matches={state.matches}
           participants={participants}
           finalsPosition={finalsPositionProp ?? finalsPos}
+          showDropLines={showDropLines}
         />
       </div>
 

@@ -105,6 +105,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
   const [obsFinals, setObsFinals] = useState<"upper" | "between">("upper");
   const [obsZoom, setObsZoom] = useState("1");
   const [obsHideHeader, setObsHideHeader] = useState(false);
+  const [obsShowDrops, setObsShowDrops] = useState(true);
   const [showObsConfig, setShowObsConfig] = useState(false);
 
   const buildObsUrl = () => {
@@ -115,6 +116,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
     if (obsFinals !== "upper") params.set("finals", obsFinals);
     if (obsZoom !== "1" && obsZoom !== "") params.set("zoom", obsZoom);
     if (obsHideHeader) params.set("hide-header", "1");
+    if (!obsShowDrops) params.set("show-drops", "0");
     const qs = params.toString();
     return `${base}/tournaments/${tid}/projector${qs ? `?${qs}` : ""}`;
   };
@@ -262,11 +264,12 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     className="h-7 text-xs"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { key: "obsTransparent", label: "Transparent BG", val: obsTransparent, set: setObsTransparent },
                     { key: "obsCompact", label: "Compact", val: obsCompact, set: setObsCompact },
                     { key: "obsHideHeader", label: "Ukryj nagłówek", val: obsHideHeader, set: setObsHideHeader },
+                    { key: "obsShowDrops", label: "Pokaż przejścia UB→LB", val: obsShowDrops, set: setObsShowDrops },
                   ].map(({ key, label, val, set }) => (
                     <label key={key} className="flex items-center gap-1.5 cursor-pointer">
                       <input

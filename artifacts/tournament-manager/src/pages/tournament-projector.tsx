@@ -77,6 +77,8 @@ export default function TournamentProjector() {
   const connectorColor = sp.get("connector-color") ?? undefined;
   const connectorWidth = parseFloat(sp.get("connector-width") ?? "1") || 1;
   const forceAspect = sp.get("aspect") === "169";
+  // show-drops=0 hides UB→LB loser-drop connector lines; default on
+  const showDropLines = sp.get("show-drops") !== "0";
 
   // No auth tokens — projector is read-only public access
   useEffect(() => {
@@ -209,6 +211,7 @@ export default function TournamentProjector() {
             compact={compact}
             connectorColor={connectorColor}
             connectorWidth={connectorWidth}
+            showDropLines={showDropLines}
           />
         ) : (
           <div className="flex items-center justify-center py-20 text-muted-foreground/40 font-mono text-sm">

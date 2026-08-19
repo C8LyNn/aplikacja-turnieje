@@ -46,6 +46,8 @@ export interface DEBracketCanvasProps {
   connectorWidth?: number;
   hideMatchNames?: boolean;
   hideEmpty?: boolean;
+  /** When false, hides the dashed UB→LB loser-drop connector lines. Default: true. */
+  showDropLines?: boolean;
 }
 
 interface MatchPos {
@@ -458,6 +460,7 @@ export function DEBracketCanvas({
   connectorColor,
   connectorWidth,
   hideMatchNames,
+  showDropLines = true,
 }: DEBracketCanvasProps) {
   const {
     ubPositions,
@@ -539,7 +542,7 @@ export function DEBracketCanvas({
           })}
 
           {/* Loser-drop connectors (UB→LB diagonal bezier lines) */}
-          {loserDropLines.map((c, idx) => {
+          {showDropLines && loserDropLines.map((c, idx) => {
             // Cubic bezier: departs downward from UB card bottom,
             // arrives upward at LB card top. The horizontal shift
             // (x2-x1) is handled by the control-point spread.
