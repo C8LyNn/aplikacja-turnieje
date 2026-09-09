@@ -26,12 +26,13 @@ after(async () => {
 
 const sorted = (ids: number[]) => [...ids].sort((a, b) => a - b);
 
-async function fixture(directCount: number, fanIn = false) {
+async function fixture(directCount: number, fanIn = false, ceremony = false) {
   const created = await request(app).post("/api/tournaments").send({
     name: `Basket flow ${randomUUID()}`, format: "swiss", organizerPassword: "basket-flow-test",
     stagePlan: { initialParticipantCount: 8 + directCount, stages: [
       { key: "source", name: "Source", position: 1, format: "swiss", participantCount: 8 + directCount, rounds: 1, bestOf: 1, advancingCount: 8 },
-      { key: "target", name: "Target", position: 2, format: "single_elimination", participantCount: 8, bestOf: 1 },
+      { key: "target", name: "Target", position: 2, format: "single_elimination", participantCount: 8, bestOf: 1,
+        ...(ceremony ? { entrySeedingMethod: "random", randomRevealOrder: "sequential", randomSeed: "basket-ceremony-regression" } : {}) },
     ] },
   }).expect(201);
   const id = created.body.id as number;
@@ -138,6 +139,72 @@ test("two routes feed the same target input without losing participants", async 
   await request(app).post(`${endpoint}/start`).set(f.headers).expect(200);
   const members = await database.pool.query<{ player_id: number }>("SELECT player_id FROM stage_participants WHERE stage_id=$1", [f.target]);
   assert.deepEqual(sorted(members.rows.map((entry) => entry.player_id)), sorted(f.playerIds));
+});
+
+test("mixed basket ceremony preserves its roster and seeds through prepare, GET, reveal and start", async () => {
+  const f = await fixture(8, false, true);
+  await qualifyAndRoute(f);
+  const endpoint = `/api/tournaments/${f.id}/stages/${f.target}`;
+  const { loadBasketInputRoster } = await import("../src/application/stages/basket-input-roster");
+  const { eq } = await import("drizzle-orm");
+  const [stageRow] = await database.db.select().from(database.tournamentStagesTable).where(eq(database.tournamentStagesTable.id, f.target));
+  const roster = await loadBasketInputRoster(database.db, stageRow);
+  assert.deepEqual(sorted(roster.map((entry) => entry.playerId)), sorted(f.playerIds));
+  const membershipsBefore = await database.pool.query("SELECT id FROM stage_participants WHERE stage_id=$1", [f.target]);
+  assert.equal(membershipsBefore.rows.length, 0);
+  const ready = await request(app).get(`${endpoint}/readiness`).set(f.headers).expect(200);
+  assert.equal(ready.body.reasonCode, "READY");
+  assert.equal(ready.body.participantCount, 16);
+  await request(app).post(`${endpoint}/seeding-ceremony/prepare`).set(f.headers).expect(200);
+  const prepared = (await request(app).get(`${endpoint}/seeding-ceremony`).set(f.headers).expect(200)).body.ceremony;
+  assert.ok(prepared);
+  assert.equal(prepared.draws.length, 16);
+  assert.deepEqual(sorted(prepared.draws.map((draw: { playerId: number }) => draw.playerId)), sorted(f.playerIds));
+  assert.equal(new Set(prepared.draws.map((draw: { playerId: number }) => draw.playerId)).size, 16);
+  const repeated = (await request(app).post(`${endpoint}/seeding-ceremony/prepare`).set(f.headers).expect(200)).body.ceremony;
+  assert.deepEqual(repeated, prepared);
+  await request(app).delete(`${endpoint}/seeding-ceremony`).set(f.headers).expect(204);
+  const reset = (await request(app).get(`${endpoint}/seeding-ceremony`).set(f.headers).expect(200)).body.ceremony;
+  assert.equal(reset, null);
+  const preparedAgain = (await request(app).post(`${endpoint}/seeding-ceremony/prepare`).set(f.headers).expect(200)).body.ceremony;
+  assert.deepEqual(preparedAgain.draws, prepared.draws);
+  await request(app).post(`${endpoint}/seeding-ceremony/reveal-next`).set(f.headers).expect(200);
+  const partial = (await request(app).get(`${endpoint}/seeding-ceremony`).set(f.headers).expect(200)).body.ceremony;
+  assert.equal(partial.revealedCount, 1);
+  assert.deepEqual(partial.draws, prepared.draws);
+  await request(app).post(`${endpoint}/seeding-ceremony/reveal-all`).set(f.headers).expect(200);
+  const revealed = (await request(app).get(`${endpoint}/seeding-ceremony`).set(f.headers).expect(200)).body.ceremony;
+  assert.equal(revealed.status, "completed");
+  assert.equal(revealed.participantSignature, prepared.participantSignature);
+  assert.equal(revealed.configurationSignature, prepared.configurationSignature);
+  const stillNotMaterialized = await database.pool.query("SELECT id FROM stage_participants WHERE stage_id=$1", [f.target]);
+  assert.equal(stillNotMaterialized.rows.length, 0, "Ceremony must only read the basket roster");
+  await request(app).post(`${endpoint}/start`).set(f.headers).expect(200);
+  const members = await database.pool.query<{ player_id: number; stage_seed: number }>(
+    "SELECT player_id, stage_seed FROM stage_participants WHERE stage_id=$1 ORDER BY stage_seed", [f.target],
+  );
+  assert.deepEqual(members.rows, [...prepared.draws].sort((a, b) => a.seed - b.seed)
+    .map((draw) => ({ player_id: draw.playerId, stage_seed: draw.seed })));
+  const applied = (await request(app).get(`${endpoint}/seeding-ceremony`).set(f.headers).expect(200)).body.ceremony;
+  assert.equal(applied.status, "applied");
+  assert.deepEqual(applied.draws, prepared.draws);
+});
+
+test("incomplete basket input invalidates GET ceremony and blocks reveal without materializing players", async () => {
+  const f = await fixture(8, false, true);
+  await qualifyAndRoute(f);
+  const endpoint = `/api/tournaments/${f.id}/stages/${f.target}/seeding-ceremony`;
+  await request(app).post(`${endpoint}/prepare`).set(f.headers).expect(200);
+  // Simulate incomplete persisted input after preparation: consumers must fail closed.
+  await database.pool.query("DELETE FROM stage_basket_route_entries WHERE target_stage_id=$1 AND player_id=$2", [f.target, f.playerIds[0]]);
+  const current = await request(app).get(endpoint).set(f.headers).expect(200);
+  assert.equal(current.body.ceremony, null);
+  for (const action of ["prepare", "reveal-next", "reveal-all"]) {
+    const result = await request(app).post(`${endpoint}/${action}`).set(f.headers).expect(422);
+    assert.equal(result.body.code, "STAGE_PARTICIPANTS_INCONSISTENT");
+  }
+  const members = await database.pool.query("SELECT id FROM stage_participants WHERE stage_id=$1", [f.target]);
+  assert.equal(members.rows.length, 0);
 });
 
 test("conflicting direct and routed inputs block readiness and leave no partial memberships", async () => {
