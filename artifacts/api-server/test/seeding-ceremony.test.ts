@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-process.env.DATABASE_URL ??= "postgresql://unused:unused@127.0.0.1:1/unused";
 
 const ceremonyModule = import("../src/application/stages/seeding-ceremony");
 

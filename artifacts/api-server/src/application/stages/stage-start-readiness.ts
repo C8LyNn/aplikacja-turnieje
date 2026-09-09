@@ -4,7 +4,6 @@ import {
   type StageLifecycleErrorCode,
 } from "./stage-lifecycle-error";
 import type { StageBasketValidationResult } from "../../domain/tournament/stage-baskets";
-import { getStageBasketConfiguration } from "./stage-basket-configuration";
 
 export type StageStartFormat = "swiss" | "round_robin" | "group_stage" | "single_elimination" | "double_elimination";
 
@@ -279,24 +278,18 @@ export function evaluateStageStartReadiness(
 }
 
 import { asc, eq, inArray } from "drizzle-orm";
-import {
-  db,
-  matchesTable,
-  playersTable,
-  stageBasketsTable,
-  stageGroupsTable,
-  stageParticipantsTable,
-  tournamentGameConfigsTable,
-  tournamentRoutingPlansTable,
-  tournamentStagesTable,
-  tournamentsTable,
-} from "@workspace/db";
-import { isLegacyDeAutoGeneratable } from "./legacy-de-routing-plan";
 
 export async function getStageStartReadiness(input: {
   tournamentId: number;
   stageId: number;
 }): Promise<StageStartReadiness> {
+  const {
+    db, matchesTable, playersTable, stageBasketsTable, stageGroupsTable,
+    stageParticipantsTable, tournamentGameConfigsTable, tournamentRoutingPlansTable,
+    tournamentStagesTable, tournamentsTable,
+  } = await import("@workspace/db");
+  const { getStageBasketConfiguration } = await import("./stage-basket-configuration");
+  const { isLegacyDeAutoGeneratable } = await import("./legacy-de-routing-plan");
   const [tournament] = await db.select().from(tournamentsTable)
     .where(eq(tournamentsTable.id, input.tournamentId));
   if (!tournament) throw new StageLifecycleError("TOURNAMENT_NOT_FOUND");

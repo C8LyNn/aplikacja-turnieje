@@ -1,7 +1,6 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   actionLogTable,
-  db,
   matchesTable,
   matchGamePicksTable,
   marvelStageGroupEntriesTable,
@@ -24,14 +23,13 @@ import {
   tournamentGameConfigsTable,
   tournamentRoutingExecutionsTable,
   tournamentsTable,
-} from "@workspace/db";
+} from "@workspace/db/schema";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
 import {
   parseTournamentGameConfig,
   TournamentGameConfigError,
 } from "@workspace/game-catalog";
 import type { BackupRestoreCredentials } from "./backup-credentials";
-import { replaceTournamentGameConfig } from "../games/tournament-game-config";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 import {
   calculateBalancedGroupSizes,
@@ -45,10 +43,6 @@ import {
   type CompiledTournamentRoutingPlanV2,
   type RoutingExecutionSnapshotV2,
 } from "../../domain/tournament/v2";
-import {
-  loadCompiledRoutingPlanV2,
-  saveCompiledRoutingPlanV2InTransaction,
-} from "../routing/routing-plan-persistence";
 import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
 import {
   deriveStageBasketFlowCounts,
@@ -130,6 +124,8 @@ function remapUndoPayload(
 export async function exportBackupV3(
   tournamentId: number,
 ): Promise<TournamentBackupV3 | null> {
+  const { db } = await import("@workspace/db");
+  const { loadCompiledRoutingPlanV2 } = await import("../routing/routing-plan-persistence");
   const [tournament] = await db
     .select()
     .from(tournamentsTable)
@@ -1733,6 +1729,9 @@ export async function importBackupV3(
   credentials: BackupRestoreCredentials,
 ) {
   validateBackupV3(backup);
+  const { db } = await import("@workspace/db");
+  const { replaceTournamentGameConfig } = await import("../games/tournament-game-config");
+  const { saveCompiledRoutingPlanV2InTransaction } = await import("../routing/routing-plan-persistence");
   return db.transaction(async (tx) => {
     const orderedStages = [...backup.stages].sort(
       (left, right) => left.position - right.position,

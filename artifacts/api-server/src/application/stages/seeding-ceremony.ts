@@ -2,18 +2,15 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   actionLogTable,
-  db,
   matchesTable,
   playersTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
   tournamentsTable,
-} from "@workspace/db";
-import {
-  revalidateTournamentMutationActor,
-  type TournamentMutationActor,
-} from "../../access-policy";
+} from "@workspace/db/schema";
+import type { db } from "@workspace/db";
+import type { TournamentMutationActor } from "../../access-policy";
 import {
   calculateBalancedGroupSizes,
   groupKeyFromIndex,
@@ -454,6 +451,7 @@ async function loadPlannedStageForCeremony(
   tx: DatabaseTransaction,
   input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
 ) {
+  const { revalidateTournamentMutationActor } = await import("../../access-policy");
   const [tournament] = await tx.select().from(tournamentsTable)
     .where(eq(tournamentsTable.id, input.tournamentId)).for("update");
   if (!tournament) throw new SeedingCeremonyError("TOURNAMENT_NOT_FOUND");
@@ -483,6 +481,7 @@ async function loadPlannedStageForCeremony(
 }
 
 export async function getSeedingCeremony(input: { tournamentId: number; stageId: number }): Promise<SeedingCeremonyState | null> {
+  const { db } = await import("@workspace/db");
   const [stage] = await db.select().from(tournamentStagesTable)
     .where(and(eq(tournamentStagesTable.id, input.stageId), eq(tournamentStagesTable.tournamentId, input.tournamentId)));
   if (!stage) throw new SeedingCeremonyError("STAGE_NOT_FOUND");
@@ -497,6 +496,7 @@ export async function getSeedingCeremony(input: { tournamentId: number; stageId:
 }
 
 export async function prepareSeedingCeremony(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<SeedingCeremonyState> {
+  const { db } = await import("@workspace/db");
   return db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const existing = parseSeedingCeremonyState(loaded.stage.seedingAudit);
@@ -547,6 +547,7 @@ async function revealCeremony(
   input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
   revealAll: boolean,
 ): Promise<SeedingCeremonyState> {
+  const { db } = await import("@workspace/db");
   return db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const current = parseSeedingCeremonyState(loaded.stage.seedingAudit);
@@ -583,6 +584,7 @@ export async function revealAllSeedingDraws(input: { tournamentId: number; stage
 }
 
 export async function resetSeedingCeremony(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<void> {
+  const { db } = await import("@workspace/db");
   await db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const current = parseSeedingCeremonyState(loaded.stage.seedingAudit);
