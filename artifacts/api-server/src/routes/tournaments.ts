@@ -1395,6 +1395,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   if (shouldUseStageLifecycleForLegacyTournamentStart(
     stages,
     startGameConfig?.gameId ?? null,
+    tournament.basketFlowAuthorityVersion,
   )) {
     try {
       await startStage({

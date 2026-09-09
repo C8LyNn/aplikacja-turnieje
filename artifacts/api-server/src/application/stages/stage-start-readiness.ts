@@ -79,6 +79,7 @@ export interface StageStartValidationSnapshot {
   marvelEliminationStage?: boolean;
   /** Present only for double_elimination stages; absent for all other formats. */
   routingPlanStatus?: RoutingPlanStatus;
+  participantFlowAuthority?: "basket_v1";
 }
 
 export interface StageStartReadiness {
@@ -97,6 +98,7 @@ export interface StageStartReadiness {
 export function shouldUseStageLifecycleForLegacyTournamentStart(
   stages: readonly Pick<StageStartStage, "format" | "entrySeedingPolicy">[],
   gameId: string | null,
+  basketFlowAuthorityVersion = 0,
 ): boolean {
   const first = stages[0];
   // Route single-stage tournaments with a configured non-default seeding policy
@@ -105,7 +107,7 @@ export function shouldUseStageLifecycleForLegacyTournamentStart(
   const usesConfiguredSeeding = first != null &&
     first.entrySeedingPolicy !== "preserve" &&
     first.entrySeedingPolicy !== "registration_order";
-  return stages.length > 1 ||
+  return basketFlowAuthorityVersion === 1 || stages.length > 1 ||
     first?.format === "double_elimination" ||
     (first?.format === "group_stage" && gameId === "marvel") ||
     usesConfiguredSeeding;
@@ -143,7 +145,7 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
   // For first-stage DE: maxPlayers is a bracket capacity, not a required attendance count.
   // Actual participants may be fewer — empty slots become BYEs.  All other formats and
   // subsequent DE stages require an exact participant count.
-  const isFirstStageDe = stage.format === "double_elimination" && !previous;
+  const isFirstStageDe = stage.format === "double_elimination" && !previous && snapshot.participantFlowAuthority !== "basket_v1";
   const participantCountOk = isFirstStageDe
     ? memberships.length >= 2 && memberships.length <= stage.participantCount
     : memberships.length === stage.participantCount;
@@ -154,7 +156,7 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
     throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
 
-  if (previous) {
+  if (previous && snapshot.participantFlowAuthority !== "basket_v1") {
     const sourceById = new Map(snapshot.sourceMemberships.map((membership) => [membership.id, membership]));
     if (memberships.some((membership) => {
       const source = membership.sourceStageParticipantId == null
@@ -182,7 +184,7 @@ export function assertStageStartReady(snapshot: StageStartValidationSnapshot): v
         throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
     }
-  } else if (memberships.some(
+  } else if (snapshot.participantFlowAuthority !== "basket_v1" && memberships.some(
     (membership) => membership.sourceStageParticipantId != null || membership.qualificationSource !== "registration",
   )) {
     throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
@@ -252,7 +254,7 @@ export function evaluateStageStartReadiness(
   const hasPrevious = snapshot.stages.some(
     (candidate) => candidate.position === snapshot.stage.position - 1,
   );
-  const isFirstStageDe = snapshot.stage.format === "double_elimination" && !hasPrevious;
+  const isFirstStageDe = snapshot.stage.format === "double_elimination" && !hasPrevious && snapshot.participantFlowAuthority !== "basket_v1";
   const effectiveRequired = isFirstStageDe
     ? snapshot.memberships.length
     : snapshot.stage.participantCount;
@@ -303,9 +305,25 @@ export async function getStageStartReadiness(input: {
     .where(eq(matchesTable.stageId, stage.id));
   const existingGroups = await db.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
     .where(eq(stageGroupsTable.stageId, stage.id));
-  const memberships = await db.select().from(stageParticipantsTable)
+  let memberships: StageStartParticipant[] = await db.select().from(stageParticipantsTable)
     .where(eq(stageParticipantsTable.stageId, stage.id))
     .orderBy(asc(stageParticipantsTable.stageSeed));
+  const basketAuthority = tournament.basketFlowAuthorityVersion === 1;
+  if (basketAuthority && stage.status === "planned") {
+    const { loadBasketInputRoster } = await import("./basket-input-roster");
+    try {
+      const roster = await loadBasketInputRoster(db, stage);
+      memberships = roster.map((entry, index) => ({
+        ...entry, id: -(index + 1), status: "active", nextStageSeed: null,
+        groupId: null, groupRank: null,
+        qualificationSource: entry.qualificationSource ?? "registration",
+        sourceStageParticipantId: entry.sourceStageParticipantId ?? null,
+      }));
+    } catch (error) {
+      if (!(error instanceof StageLifecycleError)) throw error;
+      memberships = [];
+    }
+  }
   const sourceMemberships = previous
     ? await db.select().from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, previous.id))
@@ -362,5 +380,6 @@ export async function getStageStartReadiness(input: {
     marvelEliminationStage:
       gameConfig?.gameId === "marvel" && stage.format === "group_stage",
     routingPlanStatus,
+    ...(basketAuthority ? { participantFlowAuthority: "basket_v1" as const } : {}),
   });
 }

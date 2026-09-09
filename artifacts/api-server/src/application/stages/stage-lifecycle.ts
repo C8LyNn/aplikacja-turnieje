@@ -61,6 +61,7 @@ import {
 } from "./marvel-elimination-stage";
 import { loadStageBasketConfigurationInTransaction } from "./stage-basket-configuration";
 import { hasLegacyLinearParticipantFlowMismatch } from "../../domain/tournament/stage-baskets";
+import { loadBasketInputRoster, materializeBasketInputRoster } from "./basket-input-roster";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
 
 export interface StageLifecycleTestHooks {
@@ -744,7 +745,7 @@ export async function completeStage(
       }).where(eq(stageParticipantsTable.id, entry.stageParticipantId));
     }
 
-    if (nextStage) {
+    if (nextStage && tournament.basketFlowAuthorityVersion !== 1) {
       const existing = await tx.select({ id: stageParticipantsTable.id })
         .from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId, nextStage.id)).for("update");
       if (existing.length > 0) throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
@@ -950,6 +951,12 @@ export async function startStage(
       .where(eq(stageParticipantsTable.stageId, stage.id))
       .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
 
+    const basketAuthority = tournament.basketFlowAuthorityVersion === 1;
+    if (basketAuthority) {
+      const roster = await loadBasketInputRoster(tx, stage);
+      memberships = await materializeBasketInputRoster(tx, stage, roster);
+    }
+
     // Single-stage DE capacity semantics: maxPlayers is a bracket capacity, not a required
     // attendance count.  When the plan was compiled at tournament creation time it encoded
     // participantCount = maxPlayers; but fewer players may register and those empty slots
@@ -959,6 +966,7 @@ export async function startStage(
     let effectiveRoutingPlan = routingPlan;
     if (
       stage.format === "double_elimination" &&
+      !basketAuthority &&
       !previous &&
       memberships.length >= 2 &&
       memberships.length < stage.participantCount
@@ -987,7 +995,7 @@ export async function startStage(
     if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
     }
-    if (previous) {
+    if (previous && !basketAuthority) {
       const sourceMemberships = await tx.select().from(stageParticipantsTable)
         .where(eq(stageParticipantsTable.stageId, previous.id)).for("update");
       const sourceById = new Map(sourceMemberships.map((membership) => [membership.id, membership]));
@@ -1011,7 +1019,7 @@ export async function startStage(
       )) {
         throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
       }
-    } else if (memberships.some(
+    } else if (!basketAuthority && memberships.some(
       (membership) => membership.sourceStageParticipantId != null || membership.qualificationSource !== "registration",
     )) {
       throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
