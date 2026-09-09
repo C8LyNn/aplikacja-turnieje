@@ -330,13 +330,22 @@ function placementByParticipant(
   return placements;
 }
 
+/** Use attendance for DE ceremony signatures before and after start recompiles capacity. */
+function effectiveCeremonyStage(stage: StageRow, participantCount: number): StageRow {
+  return stage.format === "double_elimination" &&
+    participantCount >= 2 && participantCount < stage.participantCount
+    ? { ...stage, participantCount }
+    : stage;
+}
+
 export function buildSeedingCeremonyState(input: {
   stage: StageRow;
   memberships: readonly MembershipRow[];
   players: readonly PlayerRow[];
   now?: Date;
 }): SeedingCeremonyState {
-  const { stage, memberships, players } = input;
+  const { memberships, players } = input;
+  const stage = effectiveCeremonyStage(input.stage, memberships.length);
   if (!stageUsesRandomCeremony(stage)) {
     throw new SeedingCeremonyError("SEEDING_CEREMONY_NOT_AVAILABLE");
   }
@@ -424,7 +433,9 @@ export function isCeremonyCurrent(input: {
 }): boolean {
   return input.ceremony.stageId === input.stage.id &&
     input.ceremony.participantSignature === ceremonyParticipantSignature(input.memberships, input.players) &&
-    input.ceremony.configurationSignature === ceremonyConfigurationSignature(input.stage);
+    input.ceremony.configurationSignature === ceremonyConfigurationSignature(
+      effectiveCeremonyStage(input.stage, input.memberships.length),
+    );
 }
 
 export function markCeremonyApplied(ceremony: SeedingCeremonyState, now = new Date()): SeedingCeremonyState {
@@ -464,23 +475,10 @@ async function loadPlannedStageForCeremony(
     .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
   const players = memberships.length === 0 ? [] : await tx.select().from(playersTable)
     .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId))).for("update");
-  // For single-stage DE, maxPlayers is a bracket capacity, not a required attendance count.
-  // When actual < maxPlayers the routing plan is recompiled to the actual count at startStage
-  // time.  Allow ceremony prepare/reveal with fewer participants than plan capacity, and use
-  // the actual count in the configuration signature so it stays consistent across
-  // prepare → reveal → startStage (where the recompile sets participantCount = actual too).
-  const isDeCapacityCase = stage.format === "double_elimination" &&
-    memberships.length >= 2 &&
-    memberships.length <= stage.participantCount;
-  const participantCountOk = isDeCapacityCase || memberships.length === stage.participantCount;
-  if (!participantCountOk || memberships.length < 2 || players.length !== memberships.length) {
+  const effectiveStage = effectiveCeremonyStage(stage, memberships.length);
+  if (memberships.length !== effectiveStage.participantCount || memberships.length < 2 || players.length !== memberships.length) {
     throw new SeedingCeremonyError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
-  // Use the actual participant count for the configuration signature so that the ceremony
-  // remains valid even after the routing plan is recompiled to the actual count.
-  const effectiveStage = (isDeCapacityCase && memberships.length < stage.participantCount)
-    ? { ...stage, participantCount: memberships.length }
-    : stage;
   return { tournament, stage: effectiveStage, memberships, players };
 }
 
