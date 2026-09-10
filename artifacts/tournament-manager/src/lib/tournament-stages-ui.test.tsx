@@ -408,14 +408,15 @@ test("renderuje listę etapów i statusy planned, active, completed", () => {
       ]}
       selectedStageId={2}
       onSelect={() => undefined}
-      participantCounts={new Map([[2, 16]])}
+        participantCounts={new Map([[2, 99], [3, 16]])}
     />,
   );
-  assert.match(html, /Ukończony/);
+  assert.match(html, /Zakończony/);
   assert.match(html, /Aktywny/);
   assert.match(html, /Planowany/);
   assert.match(html, /Faza grupowa/);
   assert.match(html, /16 graczy/);
+  assert.doesNotMatch(html, /99 graczy/);
 });
 
 test("opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy", () => {
@@ -535,8 +536,8 @@ test("pokazuje CompleteStage i StartStage tylko organizatorowi z tokenem", () =>
       onStart={() => undefined}
     />,
   );
-  assert.match(complete, /Zakończ aktywny etap/);
-  assert.match(start, /Uruchom ten etap/);
+  assert.match(complete, /Zakończ etap/);
+  assert.match(start, /Rozpocznij etap/);
   assert.equal(readonly, "");
 });
 

@@ -54,3 +54,15 @@ Bez zmian kontraktów API, reguł backendu, nawigacji głównej i motywu. Nie wd
 Weryfikacja drugiej serii: **167/167 frontend tests PASS**, bez pominięć, proces kończy się sam (około 7 s); **typecheck PASS**, **build PASS**. Zachowano na liście także mecze legacy bez etapu i wyróżnienie zwycięzcy. Pozostały wcześniejsze ostrzeżenia buildu o sourcemapach, foncie i wielkości chunka.
 
 Następny obszar: **Etapy + readiness + operacje lifecycle**; nie rozpoczęto go w tej serii.
+
+## Trzecia seria — Etapy, readiness i lifecycle
+
+- P1: start znikał bez wyjaśnienia blokady, a lokalne warunki powielały readiness. Teraz planowany etap pokazuje przycisk, gotowość, liczebność i listę problemów z API, wraz z linkami do seedów/losowania lub koszyków. Zachowano dodatkową blokadę wynikającą z odpowiedzi API ceremonii sekwencyjnej — samo readiness składu jej nie uwzględnia.
+- P1: pending kończył się przed pełnym odświeżeniem. Start i zakończenie mają wspólny oczekiwany refetch oraz synchroniczną blokadę kolejnego requestu. Konflikt/błąd odświeża stan bez komunikatu sukcesu; błąd readiness i podglądu zakończenia można ponowić.
+- P2: naturalna kolejność etapów, wyraźny aktywny etap, wspólne nazwy „Planowany”, „Aktywny”, „Zakończony”, odróżnienie planowanej liczebności od danych uczestników. Zakończenie wyjaśnia zamrożenie rankingu i osobny start następnego etapu. Host kieruje do weryfikacji przez API zamiast osobno rekonstruować kompletność formatów.
+- Pierwszy etap korzysta z istniejącego startu turnieju; kolejne z istniejącego startu etapu. Nie zmieniono backendu ani kontraktów. Readiness, podgląd kwalifikacji, ceremonia i odczyt propozycji pozostają źródłami stanu.
+- **Pozostające P1:** dla przepływu `basket_v1` istnieją API zatwierdzania propozycji i wykonania routingu, lecz nie ma obsługujących je akcji we frontendzie. Widok pokazuje status propozycji (brak / oczekuje / zatwierdzona) oraz kolejność dalszych kroków i jawnie informuje o niedostępności tych operacji. Nie dodawano nowego workflow w tej serii. To ograniczenie trzeba uwzględnić przed próbą szkoleniową wieloetapowego turnieju z koszykami. Nie potwierdzono nowego P0.
+
+Weryfikacja: **175/175 frontend tests PASS**, bez pominięć, proces kończy się sam (około 7 s); **typecheck PASS**, **build PASS**. Testy obejmują start, request/refetch, konflikt, blokady, ceremonię, zakończenie i oczekującą kwalifikację. Pozostały wcześniejsze ostrzeżenia buildu.
+
+**VISUAL QA: PENDING.** Wcześniejsza automatyczna kontrola dostępu przeglądarki odrzuciła podgląd z powodu limitu użycia. Następny krok to pełna kontrola wizualna Host + Mecze + Etapy oraz próba organizatora przed przekazaniem wersji szkoleniowej. Nie rozpoczęto kolejnej przebudowy.

@@ -73,7 +73,7 @@ export function groupLabelFromIndex(index: number): string {
 export const STAGE_STATUS_LABELS = {
   planned: "Planowany",
   active: "Aktywny",
-  completed: "Ukończony",
+  completed: "Zakończony",
 } as const;
 
 export function balancedGroupSizes(participantCount: number, groupCount: number): number[] {

@@ -244,7 +244,7 @@ test("More exposes only areas backed by each credential", () => {
 test("planned stage without proven readiness has no start CTA", () => {
   const model = nextStep({ stages: [stage()], matches: [], readiness: readiness(false) });
   assert.equal(model.kind, "stage_preparation");
-  assert.equal(model.actionLabel, undefined);
+  assert.equal(model.actionLabel, "Sprawdź gotowość etapu");
 });
 
 test("planned stage with backend readiness gets one organizer start CTA", () => {
@@ -262,7 +262,7 @@ test("ready to roster mutation to pending refetch hides CTA until not-ready arri
       matches: [],
       readiness: availableStageStartReadiness(ready, true),
     }).actionLabel,
-    undefined,
+    "Sprawdź gotowość etapu",
   );
   assert.equal(
     nextStep({
@@ -270,7 +270,7 @@ test("ready to roster mutation to pending refetch hides CTA until not-ready arri
       matches: [],
       readiness: availableStageStartReadiness(readiness(false), false),
     }).actionLabel,
-    undefined,
+    "Sprawdź gotowość etapu",
   );
 });
 

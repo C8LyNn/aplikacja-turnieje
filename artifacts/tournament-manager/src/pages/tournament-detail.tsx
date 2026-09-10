@@ -52,6 +52,7 @@ import { availableStageStartReadiness, deriveOrganizerNextStep } from "@/lib/org
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
+import { stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 
@@ -156,6 +157,7 @@ export default function TournamentDetail() {
         enabled: !!id && readOk && !!plannedStage,
         retry: false,
         queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
+        refetchInterval: 5000,
       },
     },
   );
@@ -190,7 +192,14 @@ export default function TournamentDetail() {
   const [editingBansPlayerId, setEditingBansPlayerId] = useState<number | null>(null);
   const [pendingBans, setPendingBans] = useState<string[]>([]);
 
-  const startTournament = useStartTournament();
+  const initialStartLock = useRef(false);
+  const [startError, setStartError] = useState<string>();
+  const startTournament = useStartTournament({ mutation: {
+    onMutate: () => setStartError(undefined),
+    onSuccess: () => invalidateTournamentDependentQueries(queryClient, id),
+    onError: async (error) => { setStartError(stageLifecycleError(error)); await invalidateTournamentDependentQueries(queryClient, id); },
+    onSettled: () => { initialStartLock.current = false; },
+  } });
   const addPlayer = useAddPlayer();
   const deletePlayer = useDeletePlayer();
   const importPlayers = useImportPlayers();
@@ -304,12 +313,12 @@ export default function TournamentDetail() {
   };
 
   const handleStart = () => {
+    if (initialStartLock.current || !plannedStageReadiness?.ready || isFetchingPlannedStageReadiness) return;
+    initialStartLock.current = true;
     startTournament.mutate({ id }, {
       onSuccess: () => {
         toast({ title: "Turniej wystartował!" });
-        invalidateAll();
       },
-      onError: (e: any) => handleMutationError(e),
     });
   };
 
@@ -680,10 +689,12 @@ export default function TournamentDetail() {
         {nextStep && (
           <OrganizerNextStep
             step={nextStep}
-            onAction={nextStep.kind === "planned_stage" ? handleStart : undefined}
+            onAction={nextStep.kind === "planned_stage" && !capabilities.canManageLifecycle ? handleStart : undefined}
             pending={startTournament.isPending}
           />
         )}
+        {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}
+        {startTournament.isPending && <p role="status">Uruchamianie etapu i odświeżanie danych…</p>}
 
         {/* Fan read-only banner */}
         {role === "fan" && (
@@ -883,7 +894,6 @@ export default function TournamentDetail() {
               canManage={capabilities.canManageLifecycle}
               canWriteResults={capabilities.canWriteTournamentResults}
               gameConfig={tournament.gameConfig}
-              onChanged={invalidateAll}
             />
           </TabsContent>
 
