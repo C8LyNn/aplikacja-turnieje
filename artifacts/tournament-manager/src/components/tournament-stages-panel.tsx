@@ -24,10 +24,9 @@ import {
   usePreviewStageQualification,
   useStartTournamentStage,
   useStartTournament,
-  useGetBasketQualificationProposal,
-  getGetBasketQualificationProposalQueryKey,
 } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { StageQualificationRouting } from "@/components/stage-qualification-routing";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-editor";
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
@@ -664,10 +663,7 @@ export function TournamentStagesPanel({
   const completeMutation = useCompleteTournamentStage({ mutation: lifecycleFeedback });
   const startMutation = useStartTournamentStage({ mutation: lifecycleFeedback });
   const firstStartMutation = useStartTournament({ mutation: lifecycleFeedback });
-  const proposalQuery = useGetBasketQualificationProposal(tournamentId, selectedStageId ?? 0, {
-    query: { enabled: canManage && explicitBasketAuthority && selected?.status === "completed", retry: false, refetchInterval: 5000,
-      queryKey: getGetBasketQualificationProposalQueryKey(tournamentId, selectedStageId ?? 0) },
-  });
+  const [qualificationPending, setQualificationPending] = useState(false);
 
   const selectedMatches = useMemo(
     () =>
@@ -684,7 +680,7 @@ export function TournamentStagesPanel({
       readinessQuery.data,
       readinessQuery.isFetching,
     )?.ready === true;
-  const pending = completeMutation.isPending || startMutation.isPending || firstStartMutation.isPending;
+  const pending = completeMutation.isPending || startMutation.isPending || firstStartMutation.isPending || qualificationPending;
   const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
@@ -935,17 +931,13 @@ export function TournamentStagesPanel({
           )}
           {selected.status === "completed" && (
             <div className="rounded-lg border bg-card p-4 space-y-2" aria-label="Dalsze kroki po etapie">
-              {!stages.some(stage => stage.position > selected.position) ? <p className="text-sm">Etap zakończony. Plan nie zawiera kolejnego etapu.</p> : explicitBasketAuthority ? <>
-                <p className="font-semibold">Kwalifikacja i przekazanie uczestników</p>
-                <p className="text-sm">Zakończenie etapu → zatwierdzenie kwalifikacji → przekazanie uczestników → sprawdzenie gotowości → rozpoczęcie kolejnego etapu.</p>
-                {canManage && <p className="text-sm">{proposalQuery.isPending ? "Sprawdzanie propozycji kwalifikacji…"
-                  : proposalQuery.data?.status === "approved" ? "Kwalifikacja zatwierdzona. O gotowości następnego etapu decyduje jego readiness, po przekazaniu uczestników."
-                  : proposalQuery.data?.status === "pending" ? "Propozycja kwalifikacji oczekuje na zatwierdzenie."
-                  : (proposalQuery.error as { status?: number })?.status === 404 ? "Nie przygotowano jeszcze propozycji kwalifikacji."
-                  : "Nie udało się sprawdzić propozycji kwalifikacji."}</p>}
-                {canManage && <p className="text-sm text-muted-foreground">Zatwierdzanie propozycji i przekazanie uczestników nie są jeszcze dostępne w aplikacji. Samo zakończenie etapu nie zastępuje tych operacji.</p>}
-                <Button variant="outline" asChild><Link href={`/tournaments/${tournamentId}?tab=baskets`}>Sprawdź przepływ w Koszykach</Link></Button>
-              </> : <p className="text-sm">Ranking został zamrożony. Wybierz kolejny planowany etap, aby sprawdzić jego gotowość. Zakończenie nie uruchamia kolejnego etapu.</p>}
+              {explicitBasketAuthority && canManage && basketConfigurationQuery.data ? <StageQualificationRouting
+                tournamentId={tournamentId} stage={selected} stages={stages} configuration={basketConfigurationQuery.data}
+                participants={detailQuery.data.participants} onPendingChange={setQualificationPending}
+                onSelectStage={id => { if (!pending) { setSelectedStageId(id); setActionError(undefined); setActionSuccess(undefined); setCeremonyState(null); } }}
+              /> : !stages.some(stage => stage.position > selected.position)
+                ? <p className="text-sm">Etap zakończony. Plan nie zawiera kolejnego etapu.</p>
+                : <p className="text-sm">Ranking został zamrożony. Wybierz kolejny planowany etap, aby sprawdzić jego gotowość. Zakończenie nie uruchamia kolejnego etapu.</p>}
             </div>
           )}
           {selected.status === "completed" && (
