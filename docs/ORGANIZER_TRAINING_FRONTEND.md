@@ -1,0 +1,41 @@
+# Frontend szkoleniowy organizatora — pierwsza seria
+
+Zakres przeglądu: interfejs organizatora i obsługujący go kod React. Lokalny turniej testowy: Swiss → finały, ośmiu graczy, zapisany wynik i oczekujące mecze. Bez audytu silnika, zmian backendu, schematu ani głównej nawigacji.
+
+## Mapa ekranów i priorytety
+
+| Obszar | Najważniejsza obserwacja | Priorytet / seria |
+| --- | --- | --- |
+| Szczegóły / overview | Status jest widoczny, ale podpowiedzi i panel następnego kroku konkurują o uwagę; nagłówek pokazuje techniczne `series_v1`. | P2; poza pierwszą serią |
+| Prowadzenie / Host | Fokus wyróżnionego meczu i listy obejmowały cały turniej zamiast aktywnego etapu. Pusty widok nie odróżniał błędu odczytu od braku meczów. | P1; poprawione |
+| Etapy | Wybór etapu, ranking i potwierdzenie zakończenia już istnieją. Ranking pokazuje techniczne statusy; wskazówka następnego kroku upraszcza przejście kwalifikantów. | P1 dla komunikatu przejścia, P2 dla etykiet; seria Etapy |
+| Mecze | Ekran prowadzenia jest istniejącym miejscem obsługi; kolejka ukrywała pozycje po ósmej i pomijała trwające mecze. | P2; kolejka poprawiona w Host |
+| Wpisywanie wyników | Potwierdzenie zapisu istnieje. Brak wspólnej blokady pozostałych operacji na czas requestu/refetchu; część błędów trafiała tylko do ogólnego toastu. | P1; blokada i feedback poprawione w Host |
+| Korekta / historia | Cofnięcie ma potwierdzenie, ale lista pokazuje techniczne typy akcji, a kontekst etapu wymaga dopracowania. | P1/P2; kolejna seria Mecze + korekta |
+| Gracze | Lista i edycja są dostępne; ikonowe akcje wymagają czytelnych nazw dostępności. | P2; seria Gracze |
+| Losowanie | Prepare/reveal i zabezpieczenia istnieją; operacyjne komunikaty oraz wyjaśnienia blokad wymagają osobnego scenariusza szkoleniowego. | Do weryfikacji w serii Gracze + seeding |
+| Kwalifikacja / koszyki | Mapa pokazuje przepływ, a po starcie konfiguracja jest tylko do odczytu. Trzeba wyraźnie odróżnić zaplanowaną liczebność wejścia od faktycznych arrivals. | P1; seria Etapy + readiness |
+| Drabinka | Wybór etapu i jego status są dostępne; nie ma potrzeby zmieniać lokalizacji tej funkcji. | Bez zmiany w pierwszej serii |
+| Konfiguracja podczas prowadzenia | BO, przełożenie, anulowanie i wyróżnienie meczu są dostępne w Host; wymagają spójnego feedbacku i rozróżnienia od zakończenia etapu. | P1/P2; nazwy i feedback poprawione w Host |
+
+Nie potwierdzono P0 w sprawdzonym przebiegu. P3 (dekoracje, drobne odstępy w pozostałych widokach) odłożone. Nie jest to deklaracja pełnego pokrycia wszystkich formatów i ustawień.
+
+## Pięć zmian pierwszej serii
+
+1. Kontekst aktywnego etapu: jego nazwa, status, runda i liczniki. Kolejka, ostatnie wyniki i automatyczny fokus dotyczą tego etapu; historia turnieju pozostaje dostępna.
+2. Oddzielenie ładowania, błędu i pustego wejścia. Błąd odświeżania wstrzymuje operacje i daje przycisk ponowienia.
+3. Wspólne pending/error/refetch dla mutacji Host. Po zapisie blokada trwa do zakończenia odświeżenia; błędy pozostają na ekranie wraz z kodem diagnostycznym. Potwierdzenia kosztownych operacji zachowane.
+4. Czytelniejsza hierarchia: status etapu przed wybranym meczem, mniejszy panel wyniku, podpowiedzi w rozwijanej sekcji, neutralniejsza prezentacja ostatniej akcji. Zachowany motyw dark futuristic.
+5. Cała kolejka dostępna, także mecze trwające. „Wybrany” oznacza wybór do obsługi, a „Oczekuje” / „LIVE” stan meczu. Etykiety „Rozpocznij mecz”, „Zatwierdź wynik” i „Anuluj mecz” rozróżniają operacje.
+
+## Weryfikacja i dalszy zakres
+
+Testy komponentu obejmują aktywny etap i starszy wyróżniony mecz, kolejkę większą niż osiem pozycji, błąd odczytu i retry, rozróżnienie błędu sieci od braku uprawnień, podwójne kliknięcie, błąd zapisu oraz blokadę do refetchu.
+
+Weryfikacja końcowa: frontend **155/155 PASS**, bez pominiętych testów; proces zakończył się sam po około 18 s. Frontend typecheck **PASS**, build **PASS** (około 8 s). Build nadal zgłasza ostrzeżenia o sourcemapach, foncie `valvepulp-bold.ttf` i wielkości chunka; nie rozszerzano zakresu o ich naprawę.
+
+Wykonano oględziny wcześniejszego interfejsu w lokalnym turnieju. Końcową kontrolę wizualną po zmianach zablokowała automatyczna kontrola dostępu przeglądarki z powodu limitu użycia. Pozostaje ona wymagana przed przekazaniem wersji do szkolenia; testy komponentu nie zastępują tej kontroli.
+
+Celowo pozostawiono: układ głównej nawigacji, backendowe reguły lifecycle, algorytmy kwalifikacji, mechanikę losowania, cały edytor wyników oraz kosmetykę innych ekranów. Szczegółowe zabezpieczenie niezapisanych wyników przy opuszczeniu strony i korekta wyników należą do następnej serii.
+
+Następny obszar: **Mecze + wpisywanie i korekta wyników**. Kolejne serie: Etapy/readiness, następnie Gracze/seeding. Układ funkcji powinien pozostać stabilny na czas szkolenia.
