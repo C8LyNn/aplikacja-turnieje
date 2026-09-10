@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
@@ -19,6 +19,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
   window.localStorage.clear();
   window.sessionStorage.clear();
+  window.history.replaceState(null, "", "/tournaments/1/host");
 });
 
 function jsonResponse(body: unknown): Response {
@@ -110,19 +111,21 @@ function hostStage(id = 2, status = "active") {
     format: "single_elimination", status, participantCount: 4, bestOf: 3, currentRound: 1, totalRounds: 2 };
 }
 
-function hostMatch(id: number, stageId = 2, status = "pending") {
+function hostMatch(id: number, stageId: number | null = 2, status = "pending") {
   return { id, tournamentId: 1, stageId, round: 1, matchNumber: id, status, bestOf: 3,
     player1Id: id * 2, player2Id: id * 2 + 1, player1Name: `Gracz A${id}`, player2Name: `Gracz B${id}`,
-    score1: 0, score2: 0, resultType: null, winnerId: null };
+    score1: 0, score2: 0, resultType: null as "played" | null, winnerId: null };
 }
 
 async function renderOperationalHost(options: {
   matches: ReturnType<typeof hostMatch>[];
   stages?: ReturnType<typeof hostStage>[];
+  tab?: string;
   intercept?: (path: string, init?: RequestInit) => Promise<Response | undefined>;
 }) {
   window.localStorage.setItem("tm_role", "organizer");
   window.sessionStorage.setItem("tm_org_1", "test-organizer-token");
+  window.history.replaceState(null, "", `/tournaments/1/host${options.tab ? `?tab=${options.tab}` : ""}`);
   globalThis.fetch = async (input, init) => {
     const path = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, "http://localhost").pathname;
     const intercepted = await options.intercept?.(path, init);
@@ -140,7 +143,7 @@ async function renderOperationalHost(options: {
   };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   clients.add(client);
-  const location = memoryLocation({ path: "/tournaments/1/host" });
+  const location = memoryLocation({ path: `/tournaments/1/host${options.tab ? `?tab=${options.tab}` : ""}` });
   render(<QueryClientProvider client={client}><Router hook={location.hook}><AuthProvider><TournamentHost /></AuthProvider></Router></QueryClientProvider>);
   return userEvent.setup();
 }
@@ -154,6 +157,139 @@ test("Host does not mistake an initial network failure for missing organizer acc
   failed = false;
   await user.click(screen.getByRole("button", { name: "Spróbuj ponownie" }));
   await screen.findByRole("button", { name: "Rozpocznij mecz" });
+});
+
+test("Host retains a partial score on failure and retries the same complete result", async () => {
+  const matches = [{ ...hostMatch(1), score1: 1, score2: 1 }];
+  let writes = 0;
+  const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+    if (path !== "/api/matches/1/complete") return undefined;
+    writes++;
+    assert.deepEqual(JSON.parse(String(init?.body)), { resultType: "played", score1: 2, score2: 1 });
+    if (writes === 1) return new Response("unavailable", { status: 503 });
+    matches[0] = { ...matches[0], score1: 2, status: "completed", resultType: "played" };
+    return jsonResponse(matches[0]);
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByRole("alert");
+  assert.match(screen.getByRole("alert").textContent ?? "", /Wpisany wynik pozostaje/);
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"), false));
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" });
+  assert.equal(writes, 2);
+  assert.equal(screen.queryByRole("alert") === null, true);
+});
+
+test("Host refreshes a concurrent completion without reporting success or replacing it with the draft", async () => {
+  const matches = [hostMatch(1)];
+  let reads = 0;
+  const user = await renderOperationalHost({ matches, intercept: async (path) => {
+    if (path.endsWith("/matches")) reads++;
+    if (path !== "/api/matches/1/complete") return undefined;
+    matches[0] = { ...matches[0], status: "completed", resultType: "played", score1: 0, score2: 2 };
+    return new Response(JSON.stringify({ code: "MATCH_ALREADY_FINALIZED" }), { status: 409, headers: { "content-type": "application/json" } });
+  } });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" });
+  assert.ok(reads >= 2);
+  assert.match(screen.getByRole("alert").textContent ?? "", /Ten mecz ma już zapisany wynik/);
+  assert.ok(screen.getByText("0:2"));
+  assert.equal(screen.queryByText("Wynik zapisany!") === null, true);
+});
+
+test("Host correction identifies the saved result and returns to score entry after reverting", async () => {
+  const matches = [{ ...hostMatch(1), status: "completed", resultType: "played" as const, score1: 2, score2: 1 }];
+  let writes = 0;
+  let finish: () => void = () => {};
+  const user = await renderOperationalHost({ matches, intercept: async (path) => {
+    if (path !== "/api/matches/1/revert") return undefined;
+    writes++;
+    await new Promise<void>((resolve) => { finish = resolve; });
+    Object.assign(matches[0], { status: "pending", resultType: null, score1: 0, score2: 0 });
+    return jsonResponse(matches[0]);
+  } });
+  await user.click(await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+  const dialog = screen.getByRole("dialog");
+  assert.match(dialog.textContent ?? "", /Cofnąć wynik meczu Gracz A1 – Gracz B1.*2:1.*Ranking i awans/);
+  const confirm = within(dialog).getByRole("button", { name: "Cofnij wynik i przejdź do wpisywania" });
+  await user.dblClick(confirm);
+  assert.equal(writes, 1);
+  assert.ok(confirm.matches(":disabled"));
+  finish();
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await waitFor(() => assert.equal(screen.queryByRole("dialog") === null, true));
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }));
+});
+
+test("Host match list separates identical round numbers across stages and puts LIVE first", async () => {
+  await renderOperationalHost({ tab: "wyniki", matches: [hostMatch(100, 1, "completed"), hostMatch(1), hostMatch(2, 2, "in_progress")] });
+  const finals = await screen.findByRole("region", { name: "Mecze: Finały szkoleniowe" });
+  assert.equal(within(finals).queryByText(/Gracz A100/) === null, true);
+  assert.match(finals.textContent ?? "", /Gracz A2.*LIVE.*Gracz A1.*Oczekuje/);
+  assert.match(screen.getByRole("region", { name: "Mecze: Eliminacje" }).textContent ?? "", /Gracz A100.*Zakończony/);
+});
+
+test("Host protects draft scores against reload and releases the guard after discarding", async () => {
+  const user = await renderOperationalHost({ matches: [hostMatch(1)] });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  const unload = new window.Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  assert.equal(unload.defaultPrevented, true);
+  await user.click(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }));
+  const nextUnload = new window.Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(nextUnload);
+  assert.equal(nextUnload.defaultPrevented, false);
+});
+
+test("Host keeps a draft but requires review if a refetch changes the players", async () => {
+  const matches = [hostMatch(1)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  matches[0] = { ...matches[0], player1Id: 99, player1Name: "Nowy gracz" };
+  await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
+  await screen.findByText(/Stan meczu zmienił się od rozpoczęcia edycji/);
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"));
+  await user.click(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }));
+  assert.equal(screen.getByRole("button", { name: "Zwiększ wynik: Nowy gracz" }).matches(":disabled"), false);
+});
+
+test("Host keeps a blocked correction open with an operational explanation and allows cancellation", async () => {
+  const matches = [{ ...hostMatch(1), status: "completed", resultType: "played" as const, score1: 2 }];
+  const user = await renderOperationalHost({ matches, intercept: async (path) => path.endsWith("/revert")
+    ? new Response(JSON.stringify({ code: "DOWNSTREAM_BLOCKED" }), { status: 409, headers: { "content-type": "application/json" } }) : undefined });
+  await user.click(await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+  await user.click(screen.getByRole("button", { name: "Cofnij wynik i przejdź do wpisywania" }));
+  const dialog = screen.getByRole("dialog");
+  await within(dialog).findByText(/zależne mecze lub kolejna runda już się rozpoczęły/);
+  await waitFor(() => assert.equal(within(dialog).getByRole("button", { name: "Zachowaj wynik" }).matches(":disabled"), false));
+  await user.click(within(dialog).getByRole("button", { name: "Zachowaj wynik" }));
+  await waitFor(() => assert.equal(screen.queryByRole("dialog") === null, true));
+  assert.ok(screen.getByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+});
+
+test("Host keeps all results reachable after stages finish", async () => {
+  const user = await renderOperationalHost({ stages: [hostStage(2, "completed")], matches: [{ ...hostMatch(1), status: "completed", resultType: "played", score1: 2 }] });
+  await user.click(await screen.findByRole("link", { name: "Wszystkie mecze i wyniki" }));
+  await screen.findByRole("region", { name: "Mecze: Finały szkoleniowe" });
+  assert.ok(screen.getByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+});
+
+test("Host all-match list retains legacy matches without stage assignment", async () => {
+  await renderOperationalHost({ tab: "wyniki", matches: [hostMatch(1), hostMatch(90, null, "completed")] });
+  const legacy = await screen.findByRole("region", { name: "Mecze: Mecze bez przypisanego etapu" });
+  assert.match(legacy.textContent ?? "", /Gracz A90.*Zakończony/);
+});
+
+test("Host correction shows the downstream count supplied for the selected DE stage", async () => {
+  const user = await renderOperationalHost({ stages: [{ ...hostStage(), format: "double_elimination" }],
+    matches: [{ ...hostMatch(1), status: "completed", resultType: "played", score1: 2 }],
+    intercept: async path => path.endsWith("/double-elimination") ? jsonResponse({ matches: [{ matchId: 1, downstreamResultCount: 3 }] }) : undefined });
+  await user.click(await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+  await within(screen.getByRole("dialog")).findByText(/unieważni także 3 późniejszych wyników/);
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: "Cofnij wynik i przejdź do wpisywania" }).matches(":disabled"), false));
 });
 
 test("Host focuses the active stage and exposes the entire queue including live matches", async () => {
@@ -227,13 +363,12 @@ test("Host waits for refreshed data after saving a score before enabling further
   const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
   await user.click(plus);
   await user.click(plus);
-  await user.click(screen.getByRole("button", { name: "Zatwierdź wynik" }));
   const save = screen.getByRole("button", { name: "Zapisz wynik" });
   await user.dblClick(save);
   await waitFor(() => assert.equal(writes, 1));
   assert.ok(save.matches(":disabled"));
   releaseRead();
-  await waitFor(() => assert.equal(screen.queryByRole("button", { name: "Zapisz wynik" }) === null, true));
   await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A2" }).matches(":disabled"), false));
   assert.match(screen.getByRole("region", { name: "Stan prowadzenia" }).textContent ?? "", /Zakończone1/);
 });

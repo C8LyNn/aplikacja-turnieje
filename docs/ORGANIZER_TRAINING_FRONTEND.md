@@ -39,3 +39,18 @@ Wykonano oględziny wcześniejszego interfejsu w lokalnym turnieju. Końcową ko
 Celowo pozostawiono: układ głównej nawigacji, backendowe reguły lifecycle, algorytmy kwalifikacji, mechanikę losowania, cały edytor wyników oraz kosmetykę innych ekranów. Szczegółowe zabezpieczenie niezapisanych wyników przy opuszczeniu strony i korekta wyników należą do następnej serii.
 
 Następny obszar: **Mecze + wpisywanie i korekta wyników**. Kolejne serie: Etapy/readiness, następnie Gracze/seeding. Układ funkcji powinien pozostać stabilny na czas szkolenia.
+
+## Druga seria — mecze i wyniki
+
+- P1: edycja częściowego wyniku mogła zerować drugą stronę; teraz rozpoczyna się od pobranego wyniku. Błąd zapisu zachowuje wpis, konflikt 409 odświeża dane i nie pokazuje sukcesu. Zmiana uczestników, BO lub wyniku podczas edycji wymaga odrzucenia starego wpisu przed kolejnym zapisem. Odświeżenie strony i wyjście linkiem z Host ostrzegają o niezapisanym wyniku.
+- P1: korekta miała ogólne potwierdzenie i pozostawiała użytkownika w historii. Teraz wskazuje parę, zapisany wynik oraz konsekwencje; po cofnięciu otwiera ten mecz do ponownego wpisu. Dla DE pobiera liczbę zależnych wyników z API właściwego etapu i wstrzymuje potwierdzenie do jej odczytu. Odmowa backendu pozostawia dialog z wyjaśnieniem.
+- P2: lista grupowała wspólnie rundy różnych etapów. Teraz pokazuje etap, parę, wynik, czytelny status oraz akcję, z LIVE na początku grupy. Lista wszystkich meczów jest dostępna także po zakończeniu etapów. Opisy historii mają pierwszeństwo przed kodami technicznymi.
+- Zwykły zapis w Host ma jeden przycisk, bez dodatkowego potwierdzenia. Blokada zapisu trwa do refetchu. Formularze DE blokują także edycję podczas requestu, odświeżają zależne dane i pokazują sukces/błąd; potwierdzenie cofnięcia zawiera uczestników i konsekwencje.
+
+Bez zmian kontraktów API, reguł backendu, nawigacji głównej i motywu. Nie wdrażano własnej synchronizacji ani wersjonowania zapisu. Ochrona integralności przy wyścigu requestów pozostaje po stronie backendu. Nie rozszerzano serii na formularz grupowego wyniku Marvel ani operacje lifecycle.
+
+**VISUAL QA: PENDING.** Wcześniejsza odmowa automatycznej kontroli dostępu przeglądarki (limit użycia) pozostaje nierozwiązana. Przed szkoleniem trzeba obejrzeć Host, listę/LIVE, zapis, korektę i stany błędu/pending na desktopie. Nie potwierdzono nowego P0; opisane P1/P2 objęto poprawkami i testami zachowań.
+
+Weryfikacja drugiej serii: **167/167 frontend tests PASS**, bez pominięć, proces kończy się sam (około 7 s); **typecheck PASS**, **build PASS**. Zachowano na liście także mecze legacy bez etapu i wyróżnienie zwycięzcy. Pozostały wcześniejsze ostrzeżenia buildu o sourcemapach, foncie i wielkości chunka.
+
+Następny obszar: **Etapy + readiness + operacje lifecycle**; nie rozpoczęto go w tej serii.

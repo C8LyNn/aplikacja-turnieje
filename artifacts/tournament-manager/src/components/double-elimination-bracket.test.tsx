@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
-import type { DoubleEliminationStageState } from "@workspace/api-client-react";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { getGetDoubleEliminationStageQueryKey, type DoubleEliminationStageState } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "./double-elimination-bracket";
 
-afterEach(cleanup);
+const originalFetch = globalThis.fetch;
+const originalConfirm = window.confirm;
+const clients = new Set<QueryClient>();
+afterEach(() => {
+  cleanup();
+  clients.forEach(client => client.clear()); clients.clear();
+  globalThis.fetch = originalFetch; window.confirm = originalConfirm;
+});
 
 const state: DoubleEliminationStageState = {
   tournamentId: 1,
@@ -41,4 +49,65 @@ test("renders all Double Elimination brackets read-only for viewers", () => {
   assert.equal(screen.queryByRole("button", { name: /Resetuj etap/ }), null);
   assert.equal(screen.queryByRole("button", { name: /Ustaw|Wygrywa/ }), null);
   queryClient.clear();
+});
+
+function renderManagement(current: () => DoubleEliminationStageState) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
+  clients.add(client);
+  function Management() {
+    const query = useQuery({ queryKey: getGetDoubleEliminationStageQueryKey(1, 2), queryFn: async () => current(), initialData: current() });
+    return <DoubleEliminationBracket tournamentId={1} stageId={2} state={query.data} canManage />;
+  }
+  render(<QueryClientProvider client={client}><Management /></QueryClientProvider>);
+  return userEvent.setup();
+}
+
+test("DE score form preserves input on failure, blocks double submit, and shows refreshed success", async () => {
+  let current: DoubleEliminationStageState = { ...state, matches: [{ ...state.matches[0], status: "ready", score1: null, score2: null }] };
+  let writes = 0;
+  let finish: (response: Response) => void = () => {};
+  globalThis.fetch = async (_input, init) => {
+    writes++;
+    assert.deepEqual(JSON.parse(String(init?.body)), { resultType: "played", score1: 2, score2: 1 });
+    return new Promise<Response>(resolve => { finish = resolve; });
+  };
+  const user = renderManagement(() => current);
+  const a = screen.getByRole("spinbutton", { name: "Wynik 1 — Upper 1" });
+  const b = screen.getByRole("spinbutton", { name: "Wynik 2 — Upper 1" });
+  await user.clear(a); await user.type(a, "2");
+  await user.clear(b); await user.type(b, "1");
+  await user.dblClick(screen.getByRole("button", { name: "Zapisz wynik" }));
+  assert.equal(writes, 1); assert.ok(a.matches(":disabled"));
+  finish(new Response("unavailable", { status: 503 }));
+  await screen.findByRole("alert");
+  assert.equal((a as HTMLInputElement).value, "2");
+  await waitFor(() => assert.equal(a.matches(":disabled"), false));
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  current = { ...state, matches: [{ ...state.matches[0], score2: 1 }] };
+  finish(new Response(JSON.stringify({}), { status: 200, headers: { "content-type": "application/json" } }));
+  await screen.findByText("Wynik zapisany. Stan drabinki został odświeżony.");
+  assert.equal(writes, 2);
+  assert.ok(screen.getByText("Zapisany wynik: 2:1"));
+});
+
+test("DE correction confirms participants, saved result and downstream count before reverting", async () => {
+  let current: DoubleEliminationStageState = { ...state, matches: [{ ...state.matches[0], downstreamResultCount: 2 }] };
+  let writes = 0;
+  let accept = false;
+  let confirmation = "";
+  window.confirm = message => { confirmation = String(message); return accept; };
+  globalThis.fetch = async () => {
+    writes++;
+    current = { ...current, matches: [{ ...current.matches[0], status: "ready", score1: null, score2: null }] };
+    return new Response(JSON.stringify({}), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const user = renderManagement(() => current);
+  await user.click(screen.getByRole("button", { name: "Cofnij / skoryguj wynik" }));
+  assert.equal(writes, 0);
+  assert.match(confirmation, /Alpha – Bravo.*2:0.*2 późniejszych wyników/);
+  accept = true;
+  await user.click(screen.getByRole("button", { name: "Cofnij / skoryguj wynik" }));
+  await screen.findByRole("spinbutton", { name: "Wynik 1 — Upper 1" });
+  assert.equal(writes, 1);
+  await screen.findByText("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
 });

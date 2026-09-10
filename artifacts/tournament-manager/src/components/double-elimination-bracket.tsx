@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
+import { matchOperationError } from "@/lib/match-operation-feedback";
+import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
 
 interface DoubleEliminationBracketProps {
@@ -38,6 +39,7 @@ function ScoreForm({
   onScores,
   onComplete,
   onRevert,
+  playerNames,
 }: {
   match: DoubleEliminationMatch;
   pending: boolean;
@@ -45,10 +47,12 @@ function ScoreForm({
   onScores: (s: [number, number]) => void;
   onComplete: () => void;
   onRevert: () => void;
+  playerNames: string;
 }) {
   const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
+      <p className="text-sm font-semibold">{playerNames}</p>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="font-medium">{match.name}</span>
         {match.status === "completed" ? (
@@ -67,6 +71,7 @@ function ScoreForm({
             min={0}
             max={winsRequired}
             value={scores[0]}
+            disabled={pending}
             onChange={e => onScores([Number(e.target.value), scores[1]])}
           />
           <Input
@@ -75,12 +80,16 @@ function ScoreForm({
             min={0}
             max={winsRequired}
             value={scores[1]}
+            disabled={pending}
             onChange={e => onScores([scores[0], Number(e.target.value)])}
           />
           <Button type="button" size="sm" disabled={pending} onClick={onComplete}>
-            Zapisz
+            Zapisz wynik
           </Button>
         </div>
+      )}
+      {match.status === "completed" && match.matchId != null && (
+        <p className="text-sm font-mono">Zapisany wynik: {match.score1}:{match.score2}</p>
       )}
       {match.status === "completed" && match.matchId != null && (
         <Button
@@ -110,12 +119,22 @@ export function DoubleEliminationBracket({
 }: DoubleEliminationBracketProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
+  const [success, setSuccess] = useState<string>();
   const [scores, setScores] = useState<Record<string, [number, number]>>({});
   const [finalsPos, setFinalsPos] = useState<"upper" | "between">(finalsPositionProp ?? "upper");
 
-  const complete = useCompleteMatch();
-  const revert = useRevertMatch();
-  const reset = useResetDoubleEliminationStage();
+  const feedback = {
+    onMutate: () => { setError(undefined); setSuccess(undefined); },
+    onSuccess: () => refresh(),
+    onError: async (reason: unknown) => {
+      const failure = matchOperationError(reason);
+      setError(`${failure.message}${failure.code ? ` Kod diagnostyczny: ${failure.code}` : ""}`);
+      if (failure.conflict) await refresh();
+    },
+  };
+  const complete = useCompleteMatch({ mutation: feedback });
+  const revert = useRevertMatch({ mutation: feedback });
+  const reset = useResetDoubleEliminationStage({ mutation: feedback });
 
   const participants = useMemo(
     () => new Map<string, DoubleEliminationParticipant>(
@@ -126,14 +145,14 @@ export function DoubleEliminationBracket({
   const pending = complete.isPending || revert.isPending || reset.isPending;
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({
+    await Promise.all([invalidateTournamentDependentQueries(queryClient, tournamentId), queryClient.invalidateQueries({
       queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, stageId),
-    });
+    }, { throwOnError: true })]);
     onChanged?.();
   };
 
   const completeCanonicalMatch = (match: DoubleEliminationMatch) => {
-    if (match.matchId == null) return;
+    if (match.matchId == null || pending) return;
     const [score1, score2] = scores[match.matchKey] ?? [0, 0];
     setError(undefined);
     complete.mutate(
@@ -141,28 +160,29 @@ export function DoubleEliminationBracket({
       {
         onSuccess: () => {
           setScores(cur => { const n = { ...cur }; delete n[match.matchKey]; return n; });
-          void refresh();
+          setSuccess("Wynik zapisany. Stan drabinki został odświeżony.");
         },
-        onError: reason => setError(getApiErrorMessage(reason)),
       },
     );
   };
 
   const revertCanonicalMatch = (match: DoubleEliminationMatch) => {
-    if (match.matchId == null) return;
+    if (match.matchId == null || pending) return;
     if (
-      match.downstreamResultCount > 0 &&
       !window.confirm(
-        `Cofnięcie zmieni dalszą drabinkę i unieważni ${match.downstreamResultCount} późniejszych wyników. ` +
-        "Wyniki i game-picki tych meczów zostaną cofnięte. Kontynuować?",
+        `Cofnąć wynik meczu ${match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")} (${match.score1}:${match.score2})? ` +
+        (match.downstreamResultCount > 0 ? `Zostanie unieważnionych ${match.downstreamResultCount} późniejszych wyników i powiązane wybory postaci. ` : "Ranking i awans zostaną przeliczone. ") +
+        "Następnie wpiszesz i zapiszesz poprawny wynik.",
       )
     ) return;
     setError(undefined);
     revert.mutate(
       { id: match.matchId },
       {
-        onSuccess: () => void refresh(),
-        onError: reason => setError(getApiErrorMessage(reason)),
+        onSuccess: () => {
+          setScores(current => { const next = { ...current }; delete next[match.matchKey]; return next; });
+          setSuccess("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
+        },
       },
     );
   };
@@ -177,8 +197,7 @@ export function DoubleEliminationBracket({
     reset.mutate(
       { id: tournamentId, stageId, data: { expectedRevision: state.revision } },
       {
-        onSuccess: () => void refresh(),
-        onError: reason => setError(getApiErrorMessage(reason)),
+        onSuccess: () => { setScores({}); setSuccess("Stan drabinki został odświeżony."); },
       },
     );
   };
@@ -228,10 +247,12 @@ export function DoubleEliminationBracket({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
+      {pending && <p role="status" className="text-sm">Zapisywanie i odświeżanie drabinki…</p>}
+      {success && <p role="status" className="text-sm text-primary">{success}</p>}
 
       {champion && (
         <Card className="border-primary/50 bg-primary/5">
@@ -266,6 +287,7 @@ export function DoubleEliminationBracket({
               <ScoreForm
                 key={match.matchKey}
                 match={match}
+                playerNames={match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")}
                 pending={pending}
                 scores={scores[match.matchKey] ?? [0, 0]}
                 onScores={s => setScores(cur => ({ ...cur, [match.matchKey]: s }))}
