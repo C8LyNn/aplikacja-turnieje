@@ -1,4 +1,8 @@
-# Frontend szkoleniowy organizatora — pierwsza seria
+# Frontend szkoleniowy organizatora — wdrożenie i walidacja
+
+Aktualny wynik: **manualne Visual QA wykonane 2026-09-11, z problemami opisanymi w sekcji „Walidacja manualna” poniżej**. Próbny turniej zakończony. Historyczne wpisy `VISUAL QA: PENDING` dotyczą wcześniejszych serii; nie opisują już dostępności przeglądarki. Nie jest to zatwierdzenie wszystkich formatów do użycia produkcyjnego.
+
+## Historia — pierwsza seria
 
 Zakres przeglądu: interfejs organizatora i obsługujący go kod React. Lokalny turniej testowy: Swiss → finały, ośmiu graczy, zapisany wynik i oczekujące mecze. Bez audytu silnika, zmian backendu, schematu ani głównej nawigacji.
 
@@ -78,3 +82,114 @@ Blokada podwójnego wysłania trwa przez zapis i cały refetch. Konflikty oraz b
 Weryfikacja: **192/192 frontend tests PASS**, bez pominięć, proces kończy się sam (około 7 s); **typecheck PASS**, **build PASS**. Dodano 17 testów zachowania, w tym pełne przejście panelu do backendowego `READY` z kontrolowanymi odpowiedziami API, pending/refetch, konflikty, błędy odczytu, zmianę propozycji, wiele tras i brak wymaganych operacji. Nie zmieniono backendu, kontraktów ani reguł lifecycle. Pozostały wcześniejsze ostrzeżenia buildu o sourcemapach, foncie i wielkości chunka.
 
 **VISUAL QA: PENDING.** Wcześniejsza odmowa automatycznej kontroli dostępu przeglądarki z powodu limitu użycia pozostaje nierozwiązana. Pełny próbny turniej wykonany wyłącznie przez frontend również oczekuje na tę weryfikację. Test komponentu z kontrolowanymi odpowiedziami API nie zastępuje próby na działającej aplikacji. Następny krok: Visual QA całego krytycznego flow Host / Mecze / Etapy oraz próbny turniej. Po tej serii nie rozpoczynano kolejnej przebudowy.
+
+## Walidacja manualna — 2026-09-11
+
+Testowany kod: `codex/organizer-host-training`, `7c957aacf973e0e6647a36a76b663ea6de0e7e56`. Commit był na origin. Potwierdzony przodek backendowy: `64c81cada1d0ed0db2b5f570ef2e4fb9c0e8d456`. Bez zmian kodu produkcyjnego, ponownego audytu ani przebudowy lifecycle.
+
+### Manual QA scenario
+
+Wznowiono ten sam turniej lokalny #1: „QA szkolenie 11.09 — kwalifikacja i finał”. PostgreSQL 16, baza `organizer_training_test`, schemat `tm_test_training_qa`, wyłącznie `127.0.0.1:55440`; aplikacja na `127.0.0.1:4173`. Przeglądarka desktopowa, oględziny rzeczywistych ekranów i dialogów, dwie sesje organizatora oraz Audience/projector. Nie korzystano z produkcyjnej bazy.
+
+Przez UI: utworzenie turnieju i czterech graczy, konfiguracja RR BO3 → finał SE BO3 dla dwóch osób, koszyki i trasa, start, siedem wyników, korekta pierwszego wyniku, zakończenie RR, wygenerowanie i zatwierdzenie kwalifikacji, routing dwóch osób, READY i start finału, LIVE, wynik finału, zakończenie ostatniego etapu. Dodatkowo sprawdzono kwalifikację skonfigurowanego końcowego koszyka bez dalszej trasy.
+
+| Etap | Końcowe wyniki / ranking |
+| --- | --- |
+| Eliminacje | Alicja–Dawid 2:1; Celina–Bartek 0:2; Celina–Alicja 0:2; Dawid–Bartek 0:2; Alicja–Bartek 2:0; Dawid–Celina 0:2. |
+| Ranking RR | Alicja 3–0 (gry 6:1), Bartek 2–1 (4:2), Celina 1–2 (2:4), Dawid 0–3 (1:6). Alicja i Bartek w zatwierdzonej propozycji i routingu. |
+| Finał | Alicja–Bartek **2:0**; zamrożony ranking finału: Alicja #1, Bartek #2. |
+| Turniej | **completed**, oba etapy zakończone, **7/7 meczów completed**. Audience pokazuje zwyciężczynię Alicję. Końcowe wyniki potwierdzone dodatkowym odczytem DB. |
+
+**Cały lifecycle turnieju wykonano przez UI. Cała próba nie była jednak wyłącznie UI:** po utracie pierwotnej sesji turnieju bez hasła użytkownik wyraźnie zatwierdził jednorazowe odzyskanie dostępu skryptem `recover-legacy-organizer`. Nadano początkowe hasło tylko temu turniejowi w lokalnej bazie. Nie zmieniano skryptem wyników, uczestników ani lifecycle. Dalsze logowania odbywały się normalnie przez UI.
+
+### Passed flows
+
+- Start pokazuje blokery i potwierdzenie; odświeżenie zachowuje aktywny etap. Host rozróżnia gotowe, LIVE i zakończone mecze. Korekta 2:0 → cofnięcie → 2:1 zachowuje poprawny zapis po refreshu.
+- Odrzucone przedwczesne zakończenie RR pokazuje `STAGE_INCOMPLETE`, blokuje potwierdzenie i udostępnia ponowienie. Po zapisaniu ostatniego meczu w drugiej karcie „Ponów sprawdzenie wyników” pokazuje kwalifikantów i odblokowuje zakończenie.
+- Propozycja pokazuje nazwiska, miejsca, koszyk i kolejność. Potwierdzenie approval wyjaśnia utrwalenie składu i osobny routing. Po sukcesie akcja zatwierdzenia znika; refresh zachowuje stan.
+- Routing pokazuje źródło Eliminacje i cel Finał. Po wykonaniu wyświetla liczbę **2** i „Etap gotowy do startu”; readiness oraz panel następnego kroku aktualizują się bez ręcznego refreshu. Kolejny refresh zachowuje READY. Routing nie ma osobnego confirmation; liczby osób nie podaje wprost przed wykonaniem (skład jest w tabeli propozycji).
+- Finał: start → LIVE → robocze 1:0 → zapis 2:0 → zakończenie etapu → zakończony turniej. Organizatorska drabinka poprawnie pokazuje tylko finał i zwyciężczynię.
+- Szybkie dwa kliknięcia startu, zapisu wyniku, zakończenia RR i approval RR nie spowodowały podwójnego zapisu. Logi potwierdzają po jednym właściwym POST. Dla routingu zarejestrowano jeden udany POST, ale **nie wykonano skutecznej manualnej próby podwójnego kliknięcia**; nie zaliczamy jej na podstawie samego logu. Ochrona routingu pozostaje pokryta wcześniejszym testem komponentu.
+- Kwalifikacja końcowego koszyka nie wymaga pustego routingu. Nie testowano osobnego turnieju całkowicie bez kwalifikacji ani ceremonii seeding; użyto istniejących seedów i zachowania kolejności wejścia.
+
+### P0
+
+**P0-01 — utrata jedynego dostępu do turnieju bez hasła.** Po zamknięciu pierwotnej karty/sesji nie można było kontynuować zapisów. Token organizatora jest w `sessionStorage`, a znacznik zarządzania w `localStorage` nie jest poświadczeniem. Nowa karta nie ma odziedziczyć takiego tokena; samo to jest zamierzonym zachowaniem auth. Problem operacyjny: utworzenie turnieju bez hasła nie zapewnia później samodzielnego odzyskania dostępu przez UI. W tej próbie potrzebna była administracyjna interwencja za zgodą użytkownika. Dane pozostały nienaruszone, QA odblokowano, **przyczyny produktowej nie naprawiono**. Przed użyciem trzeba ustawić hasło w dostępnej sesji i sprawdzić ponowne logowanie. Nie zaobserwowano innego P0 w tym scenariuszu.
+
+### P1
+
+- **P1-01 — automatyczny wybór meczu zmienia formularz podczas edycji.** A: automatycznie wybrany Celina–Alicja, robocze 1:0 bez kliknięcia karty meczu. B zapisuje ten mecz 0:2. Polling A przełącza formularz na Dawid–Bartek; następne kliknięcie w tym samym miejscu edytuje już inną parę. Stary draft pozostaje ukryty. Nie zapisano błędnego wyniku, ale ryzyko jest bezpośrednie. W `tournament-host.tsx` automatyczny fokus zależy od oczekujących meczów, a `adjustScore` nie utrwala jawnego wyboru. Przy jawnym wyborze meczu ochrona działa — szczegóły poniżej.
+- **P1-02 — publiczna drabinka i projektor mieszają etapy RR → SE.** Otworzyć `/tournaments/1/bracket` podczas RR, następnie uruchomić finał. Po pollingu pojawia się siódmy mecz w terminarzu RR, a nagłówek nadal pokazuje RR 1/3. Po refreshu format zmienia się na SE, ale wszystkie siedem meczów tworzy pozorny ćwierćfinał/półfinał/finał. Tak samo zachowuje się `audience?section=bracket`, również po zakończeniu. Organizatorskie `?tab=bracket` pokazuje poprawny pojedynczy finał. Celowane sprawdzenie kodu projektora potwierdza odczyt drabinki całego turnieju i brak okresowego odświeżania metadanych turnieju. Bez naprawy.
+
+### P2
+
+- Sprzeczne dalsze kroki: po RR checklista mówi „Wszystkie mecze zakończone. Możesz zakończyć turniej”, gdy finał jeszcze nie wystartował. Panel następnego kroku akcentuje brak seedów zamiast oczekującej kwalifikacji. Właściwa akcja znajduje się poniżej rankingu i sześciu meczów.
+- Po routingu readiness podaje 2/2 i gotowość, lecz sekcja składu nadal mówi „Uczestnicy pojawią się po kwalifikacji”. Po końcowym finale feedback zakończenia nadal odsyła do kolejnego etapu. Kontekst komunikatów wymaga dopracowania.
+- Udanym startom/zakończeniu/approval towarzyszy krótki stan zamykanego dialogu z tekstem „Etap został już uruchomiony”, `STAGE_NOT_ACTIVE` lub „Propozycja zmieniła się”. Nie było drugiego POST ani trwałego błędu, ale wygląda to jak konflikt własnej poprawnej operacji.
+- Nagłówek RR pozostaje „Runda 1/3” podczas rundy 3. Audience „Ostatnie wyniki” po finale nadal pokazuje pięć wyników RR i pomija dopiero zapisany finał. Historyczne i bieżące wyniki wymagają jednoznacznego kontekstu etapu/czasu.
+- Gęstość: checklista, panel następnego kroku, stan logowania i nagłówek Etapów odsuwają właściwe czynności pod pierwszy ekran. Zielone znaczniki „Planowany” i „Zakończony” są zbyt podobne.
+- Słaby kontrast czerwonych akcji/błędów na granatowym tle (np. „Anuluj mecz”, błąd kompletności). Dialogi startu, korekty i approval mieściły się w sprawdzonym widoku; nie zaobserwowano ucięcia ich treści.
+- Techniczne `series_v1`, `active`, `eliminated` oraz „Awans” przy zwyciężczyni ostatniego etapu utrudniają odczyt pod presją.
+
+### P3
+
+Drobne teksty: „1 meczów”, brak polskich znaków w części checklisty, powtórzone komunikaty „Kwalifikacja zatwierdzona”. Nie wykonywano osobnego przeglądu kosmetycznego.
+
+### Multi-window
+
+Po ustanowieniu hasła dwie niezależnie zalogowane karty działają. Przy **jawnym wyborze** meczu A zachowała parę i pokazała: wynik roboczy 1:0, aktualny 0:2 oraz akcję odrzucenia draftu po zapisie B. Edycja/zapis zostały zablokowane, bez fałszywego sukcesu. Automatyczny wybór ma P1-01.
+
+Dodatkowo A otworzyła approval końcowej propozycji v1; B wygenerowała v2 przez „Odśwież propozycję z wyników”. A pokazała zmianę propozycji i zablokowała zatwierdzenie. Zamknięcie, przegląd v2 i ponowne potwierdzenie zakończyły się sukcesem. To test wykrycia stale state przez odświeżenie; **nie uzyskano odpowiedzi HTTP 409 w wyścigu zapisów** i nie deklarujemy jej ręcznej walidacji.
+
+### Refresh/recovery
+
+PASS: refresh aktywnego etapu, LIVE, zakończonego RR, wygenerowanej niezatwierdzonej propozycji, zatwierdzonej propozycji, wykonanego routingu/READY, aktywnego finału i zakończonego turnieju. Dane trwałe odpowiadały backendowi.
+
+BO3 1:0 jest jawnie oznaczonym **niezapisanym draftem**; przycisk zapisu jest wyłączony do osiągnięcia wyniku końcowego. Audience pokazuje w tym czasie zapisane 0:0. Próba refreshu z draftem nie opuściła formularza w użytej automatyzacji; draft 1:0 pozostał i został później uzupełniony do 2:0. Kod instaluje `beforeunload` i ostrzeżenie przy opuszczeniu Host; draft jest stanem React. **Nie potwierdzono ręcznie zachowania po zaakceptowaniu natywnego ostrzeżenia przeglądarki** — nie traktujemy tej próby jako dowodu trwałego zapisywania częściowych wyników ani jako P1 utraty danych.
+
+Backend rejection i skuteczne ponowienie: `STAGE_INCOMPLETE` jak wyżej. Bezpiecznie zatrzymano wyłącznie lokalne API po zakończeniu turnieju: Host zachował dane, pokazał błąd odświeżania i wstrzymał operacje. Po uruchomieniu tego samego serwera polling sam przywrócił aktualny stan i odblokował UI, bez odświeżania strony. Nie zmieniano DB podczas tego testu. Recovery dostępu wymagało wyjątku opisanego w P0-01.
+
+### Audience/projector
+
+Audience Na żywo aktualizuje LIVE i zakończenie przez polling; zwyciężczynię pokazuje także po refreshu i zakończeniu ładowania. Częściowy draft nie jest publikowany. Audience Etapy aktualizuje statusy i nazwę aktywnego finału, zachowując wcześniej wybraną kartę Eliminacji; nie przełącza automatycznie oglądanego etapu. To jawny wybór w interfejsie, nie zatrzymany polling. Organizatorska drabinka ma poprawny zakres etapu. **Publiczna drabinka i projektor: FAIL (P1-02)**. Nie deklarujemy poprawności widoków publicznych dla całego flow.
+
+### Excel benchmark
+
+Ocena jakościowa tej próby względem prostego, przygotowanego arkusza. Nie przeprowadzono mierzonego testu szybkości w Excelu ani nie otrzymano arkusza najbliższego turnieju; ocena nie dotyczy dowolnego zaawansowanego szablonu.
+
+| Kategoria | Ocena | Uzasadnienie |
+| --- | --- | --- |
+| Wprowadzanie uczestników | EXCEL BETTER | Prosta lista jest szybsza do zbiorczej edycji; sprawdzony flow aplikacji wymaga konfiguracji i formularzy. |
+| Rozpoczęcie turnieju | EXCEL BETTER | Dla prostego formatu koszt nauki etapów, koszyków i readiness nie daje jeszcze jednoznacznej korzyści. |
+| Wprowadzanie wyniku | SIMILAR | Plusy BO3 i jeden zapis są czytelne; nie wykazano przewagi czasowej nad wpisem do komórki. |
+| Korekta błędu | APP BETTER | Potwierdzenie pary i konsekwencji, cofnięcie i ponowny zapis chronią wynik. |
+| Tabela / ranking | APP BETTER | Automatyczne statystyki i zamrożenie rankingu ograniczają ręczne operacje. |
+| Kolejne mecze | APP BETTER | Generowanie par, kolejka i LIVE ograniczają ręczne pilnowanie terminarza przy jednym operatorze. |
+| Wieloetapowość | APP BETTER | Sprawdzony przepływ kwalifikacja → routing → READY jest realną automatyzacją. |
+| Widoczność aktualnego stanu | SIMILAR | Host ma użyteczne liczniki, lecz sprzeczne wskazówki i numer rundy osłabiają przewagę. |
+| Praca wielu operatorów | EXCEL BETTER | P1-01 stwarza ryzyko zmiany obsługiwanego meczu pod ręką operatora. |
+| Widok publiczny | SIMILAR | LIVE i ekran zwycięzcy są zaletą; błędna drabinka/projector odbierają pewność całego rozwiązania. |
+| Odporność na błędy | APP BETTER | Backendowe blokady, potwierdzenia, pending i wykrywanie starej propozycji rzeczywiście zadziałały. |
+| Recovery | EXCEL BETTER | Utrata sesji turnieju bez hasła wymagała interwencji administracyjnej; recovery odczytu działa. |
+
+### Current verdict
+
+**Najbliższy prosty turniej: EXCEL PREFERRED. Czy aplikacja już wyraźnie przebija Excel: NO.** Nie znamy dokładnego arkusza i pełnych ustawień tego wydarzenia; to konserwatywny werdykt na podstawie obecnego produktu. Udany turniej testowy nie usuwa P0 dostępu i P1 operacyjnych. **Nie zatwierdzamy jeszcze wersji do samodzielnej obsługi turnieju przez przeszkolonego tylko z UI operatora (NOT READY).** Możliwa jest kontrolowana próba szkoleniowa z wcześniej sprawdzonym hasłem i znajomością ograniczeń.
+
+### Product readiness for later tournaments
+
+Rdzeń jest użyteczną podstawą: reprezentatywny RR → kwalifikacja → routing → finał ukończono bez ręcznych zmian lifecycle. Dla dwóch późniejszych, bardziej złożonych wydarzeń potrzebne są poprawki i ponowna próba ich rzeczywistych formatów. To nie jest jeszcze walidacja DE/Swiss, ceremonii, dużej obsady, mobile, obciążenia ani restartu całego hostingu podczas aktywnego meczu.
+
+Kolejne zmiany, w kolejności wartości — **nie rozpoczęto ich podczas QA**:
+
+1. Trwała ścieżka odzyskania dostępu i jednoznaczne przygotowanie poświadczeń przed startem (P0-01).
+2. Utrwalenie kontekstu edytowanego meczu przy automatycznym fokusie i pracy dwóch operatorów (P1-01).
+3. Zakres aktywnego etapu i odświeżanie metadanych w publicznej drabince/projectorze (P1-02).
+4. Spójne dalsze kroki RR → kwalifikacja → routing → finał oraz komunikaty po własnym udanym zapisie.
+5. Czytelność pod presją: kontrast, hierarchia Etapów, poprawne rundy i kolejność ostatnich wyników.
+
+### Weryfikacja techniczna i cleanup
+
+Nie zmieniono kodu produkcyjnego, dlatego zgodnie z zakresem QA nie powtarzano pełnych suite'ów. Ostatnia weryfikacja testowanego commita: **192/192 frontend PASS, typecheck PASS, build PASS**; to wcześniejsze wyniki, nie nowe uruchomienie. Manualne ograniczenia (routing double-click, zaakceptowany refresh draftu, HTTP 409) zapisano jawnie powyżej.
+
+Zatrzymano lokalne API i tymczasowy PostgreSQL. Usunięto nieśledzone helpery `.training-qa-server.mts` i `.training-qa-setup.mts`. Testowa baza pozostała poza repozytorium w zatrzymanym klastrze; nie dodano jej ani helperów do commita. Jedyna zmiana w repozytorium to ten dokument.
