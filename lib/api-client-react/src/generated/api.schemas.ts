@@ -937,8 +937,11 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
-  organizerPassword?: string;
+  /**
+     * Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.
+     * @minLength 8
+     */
+  organizerPassword: string;
   /**
      * Optional password for support staff access
      * @minLength 8

@@ -93,9 +93,7 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
  */
 
 
-export const createTournamentBodyOrganizerPasswordOneMax = 0;
-
-export const createTournamentBodyOrganizerPasswordTwoMin = 8;
+export const createTournamentBodyOrganizerPasswordMin = 8;
 
 export const createTournamentBodySupportPasswordMin = 8;
 
@@ -145,7 +143,7 @@ export const CreateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
-  "organizerPassword": zod.union([zod.string().max(createTournamentBodyOrganizerPasswordOneMax),zod.string().min(createTournamentBodyOrganizerPasswordTwoMin)]).optional().describe('Optional password. Empty means no password; a non-empty value must contain at least 8 characters.'),
+  "organizerPassword": zod.string().min(createTournamentBodyOrganizerPasswordMin).describe('Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.'),
   "supportPassword": zod.string().min(createTournamentBodySupportPasswordMin).optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().min(createTournamentBodyViewerPasswordMin).optional().describe('Password for viewer access; required when visibility=private_online.'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),

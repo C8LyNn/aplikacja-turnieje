@@ -26,12 +26,52 @@ let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
 let signViewerToken: typeof import("../src/auth").signViewerToken;
+let signVersionedOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 let hashPassword: typeof import("../src/auth").hashPassword;
 let importTournamentPlayers: typeof import("../src/application/players/tournament-roster").importTournamentPlayers;
 let upgradeLegacyOrganizerCredentials: typeof import("../src/application/auth/legacy-organizer-credentials").upgradeLegacyOrganizerCredentials;
 let upgradeLegacyOrganizerCredentialsRateLimited: typeof import("../src/application/auth/legacy-organizer-credentials").upgradeLegacyOrganizerCredentialsRateLimited;
 let recoverLegacyOrganizerCredentials: typeof import("../src/application/auth/legacy-organizer-credentials").recoverLegacyOrganizerCredentials;
 const organizerTokens = new Map<number, string>();
+
+test("organizer recovery after session loss preserves independent sessions and denies viewers", async () => {
+  const password = "durable-organizer-password";
+  const created = await request(app).post("/api/tournaments").send({
+    name: "Recoverable owner", format: "single_elimination", organizerPassword: password,
+  }).expect(201);
+  const id = created.body.id as number;
+  const original = { "x-organizer-token": created.body.organizerToken as string };
+  assert.equal(created.body.hasOrganizerPassword, true);
+  await request(app).post(`/api/tournaments/${id}/players`).set(original)
+    .send({ name: "Before session loss", seed: 1 }).expect(201);
+  // Losing the browser token leaves an ordinary unauthenticated request.
+  await request(app).post(`/api/tournaments/${id}/players`)
+    .send({ name: "No credential", seed: 2 }).expect(403);
+  const viewer = { "x-viewer-token": signViewerToken(id) };
+  await request(app).post(`/api/tournaments/${id}/players`).set(viewer)
+    .send({ name: "Viewer cannot write", seed: 2 }).expect(403);
+  const wrong = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password: "incorrect-secret" }).expect(403);
+  const absent = await request(app).post("/api/tournaments/2147483647/auth/organizer-login")
+    .send({ password: "incorrect-secret" }).expect(403);
+  assert.deepEqual(wrong.body, absent.body);
+  assert.equal(wrong.body.token, undefined);
+  const login = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password }).expect(200);
+  const second = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password }).expect(200);
+  for (const [index, token] of [original["x-organizer-token"], login.body.token, second.body.token].entries()) {
+    await request(app).post(`/api/tournaments/${id}/players`).set("x-organizer-token", token)
+      .send({ name: `Independent session ${index}`, seed: index + 2 }).expect(201);
+  }
+  const publicRead = await request(app).get(`/api/tournaments/${id}`).expect(200);
+  const stored = await database.pool.query("SELECT organizer_password_hash FROM tournaments WHERE id = $1", [id]);
+  const serialized = JSON.stringify(publicRead.body);
+  for (const secret of [password, stored.rows[0].organizer_password_hash, original["x-organizer-token"], login.body.token]) {
+    assert.equal(serialized.includes(secret), false);
+  }
+  assert.notEqual(stored.rows[0].organizer_password_hash, password);
+});
 
 function organizerHeaders(tournamentId: number): Record<string, string> {
   const token = organizerTokens.get(tournamentId);
@@ -211,7 +251,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signViewerToken, hashPassword } = await import("../src/auth"));
+  ({ signViewerToken, signVersionedOrganizerToken, hashPassword } = await import("../src/auth"));
   ({ importTournamentPlayers } = await import("../src/application/players/tournament-roster"));
   ({
     upgradeLegacyOrganizerCredentials,
@@ -431,33 +471,22 @@ describe("security and tournament integrity regressions", () => {
     assert.equal(response.status, 404);
   });
 
-  test("creates immediately manageable tournaments with optional organizer credentials and validates private viewer access", async () => {
+  test("creates immediately manageable tournaments with required organizer credentials and validates private viewer access", async () => {
     const base = { name: `Credentials ${randomUUID()}`, format: "single_elimination" };
     const noOrganizer = await request(app).post("/api/tournaments").send(base);
-    assert.equal(noOrganizer.status, 201, noOrganizer.text);
-    assert.equal(typeof noOrganizer.body.organizerToken, "string");
-    await request(app)
-      .post(`/api/tournaments/${noOrganizer.body.id}/players`)
-      .set("x-organizer-token", noOrganizer.body.organizerToken)
-      .send({ name: "Immediate owner mutation", seed: 1 })
-      .expect(201);
+    assert.equal(noOrganizer.status, 400, noOrganizer.text);
+    assert.equal(noOrganizer.body.organizerToken, undefined);
 
+    const emptyOrganizerName = `Empty organizer ${randomUUID()}`;
     const emptyOrganizer = await request(app).post("/api/tournaments").send({
       ...base,
-      name: `Empty organizer ${randomUUID()}`,
+      name: emptyOrganizerName,
       organizerPassword: "",
     });
-    assert.equal(emptyOrganizer.status, 201, emptyOrganizer.text);
-    assert.equal(typeof emptyOrganizer.body.organizerToken, "string");
-    await request(app)
-      .post(`/api/tournaments/${emptyOrganizer.body.id}/players`)
-      .set("x-organizer-token", emptyOrganizer.body.organizerToken)
-      .send({ name: "Empty password owner mutation", seed: 1 })
-      .expect(201);
-    await request(app)
-      .post(`/api/tournaments/${emptyOrganizer.body.id}/auth/organizer-login`)
-      .send({ password: "" })
-      .expect(400);
+    assert.equal(emptyOrganizer.status, 400, emptyOrganizer.text);
+    assert.equal(emptyOrganizer.body.organizerToken, undefined);
+    const missingRows = await database.pool.query("SELECT id FROM tournaments WHERE name = ANY($1)", [[base.name, emptyOrganizerName]]);
+    assert.equal(missingRows.rowCount, 0);
 
     const privateName = `Private without viewer ${randomUUID()}`;
     const privateWithoutViewer = await request(app).post("/api/tournaments").send({
@@ -490,6 +519,7 @@ describe("security and tournament integrity regressions", () => {
         ...base,
         visibility: "private_online",
         viewerPassword: VIEWER_PASSWORD,
+        organizerPassword: ORGANIZER_PASSWORD,
       },
       { ...base, visibility: "private_offline", organizerPassword: ORGANIZER_PASSWORD },
     ]) {
@@ -499,14 +529,10 @@ describe("security and tournament integrity regressions", () => {
   });
 
   test("lets only a passwordless organizer set the first password and rotates its token", async () => {
-    const created = await request(app).post("/api/tournaments").send({
-      name: `Passwordless owner ${randomUUID()}`,
-      format: "single_elimination",
-      supportPassword: SUPPORT_PASSWORD,
-    });
-    assert.equal(created.status, 201, created.text);
-    const tournamentId = created.body.id as number;
-    const passwordlessToken = created.body.organizerToken as string;
+    // Historical data and an already issued session, no longer created by the public API.
+    const tournamentId = await createLegacyTournament();
+    await database.pool.query("UPDATE tournaments SET support_password_hash = $1 WHERE id = $2", [await hashPassword(SUPPORT_PASSWORD), tournamentId]);
+    const passwordlessToken = signVersionedOrganizerToken(tournamentId, null);
     assert.equal(typeof passwordlessToken, "string");
 
     const support = await supportHeaders(tournamentId);

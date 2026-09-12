@@ -7,7 +7,6 @@ import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
-import { getOrganizerToken } from "@/lib/auth";
 import CreateTournament from "./create-tournament";
 
 const originalFetch = globalThis.fetch;
@@ -70,36 +69,23 @@ test("clicking submit focuses the empty name and does not send a request", async
   await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
   const name = screen.getByLabelText("Nazwa turnieju *");
   assert.equal(document.activeElement, name);
-  assert.equal(screen.getByRole("alert").textContent?.includes("Podaj nazwę turnieju"), true);
+  assert.ok(screen.getAllByRole("alert").some((alert) => alert.textContent?.includes("Podaj nazwę turnieju")));
   assert.equal(requests, 0);
 });
 
-for (const length of [1, 7]) {
+for (const length of [0, 1, 7]) {
   test(`password length ${length} is rejected by the actual form`, async () => {
     let requests = 0;
     renderForm(async () => { requests += 1; return successfulResponse(); });
     await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
-    const password = screen.getByLabelText("Hasło organizatora (opcjonalne)");
-    await userEvent.type(password, "x".repeat(length));
+    const password = screen.getByLabelText("Hasło organizatora *");
+    if (length) await userEvent.type(password, "x".repeat(length));
     await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
     assert.equal(document.activeElement, password);
     assert.equal(screen.getByRole("alert").textContent?.includes("co najmniej 8"), true);
     assert.equal(requests, 0);
   });
 }
-
-test("an empty optional password submits by clicking the actual button", async () => {
-  const bodies: unknown[] = [];
-  renderForm(async (_input, init) => {
-    bodies.push(JSON.parse(String(init?.body)));
-    return successfulResponse();
-  });
-  await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
-  fireEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
-  await waitFor(() => assert.equal(bodies.length, 1));
-  assert.equal("organizerPassword" in (bodies[0] as Record<string, unknown>), false);
-  await waitFor(() => assert.equal(getOrganizerToken(77), "creator-organizer-token"));
-});
 
 test("an eight-character password submits with Enter", async () => {
   const bodies: Array<Record<string, unknown>> = [];
@@ -108,7 +94,7 @@ test("an eight-character password submits with Enter", async () => {
     return successfulResponse();
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
-  const password = screen.getByLabelText("Hasło organizatora (opcjonalne)");
+  const password = screen.getByLabelText("Hasło organizatora *");
   await userEvent.type(password, "12345678{Enter}");
   await waitFor(() => assert.equal(bodies.length, 1));
   assert.equal(bodies[0].organizerPassword, "12345678");
@@ -123,6 +109,7 @@ test("two submit events in the same frame call the mutation once", async () => {
     return response;
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
+  await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
   const form = container.querySelector("form");
   assert.ok(form);
   fireEvent.submit(form);
@@ -141,6 +128,7 @@ test("the synchronous submit lock is released after an error", async () => {
     });
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
+  await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
   await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
   await screen.findByText("Błąd testowy");
   await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
@@ -154,6 +142,7 @@ test("Deadlock and its forced hero are included in the create payload", async ()
     return successfulResponse();
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Deadlock Cup");
+  await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
   await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
   await userEvent.click(screen.getByRole("option", { name: "Deadlock" }));
   await userEvent.click(screen.getByRole("button", { name: "Rem" }));
@@ -202,6 +191,7 @@ test("Marvel creates one internal group stage with the documented 32-player defa
     return successfulResponse();
   });
   await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Marvel Cup");
+  await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
   await userEvent.click(screen.getByLabelText("Gra (opcjonalnie)"));
   await userEvent.click(
     screen.getByRole("option", { name: "Marvel — Eliminacyjne grupy" }),
@@ -258,6 +248,7 @@ for (const [formatValue, formatLabel] of [
       return successfulResponse();
     });
     await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej");
+    await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
     await userEvent.click(getFormatTrigger());
     await userEvent.click(screen.getByRole("option", { name: formatLabel }));
     await userEvent.click(screen.getByRole("button", { name: /Utwórz turniej/i }));

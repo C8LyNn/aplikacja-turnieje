@@ -30,6 +30,7 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
+import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import {
   ForcedHeroBadge,
   TournamentGameConfigPanel,
@@ -546,7 +547,6 @@ export default function TournamentDetail() {
   const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED" && role === "fan";
-    const organizerMayLogin = role === "organizer" || role === "developer";
     const supportMayLogin = role === "support";
     const tournamentLabel = `Turniej #${id}`;
     return (
@@ -561,7 +561,7 @@ export default function TournamentDetail() {
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
-            {organizerMayLogin && <Button onClick={() => setShowOrgModal(true)}>Zaloguj jako organizator</Button>}
+            <Button onClick={() => setShowOrgModal(true)}>Wejdź jako organizator</Button>
             {supportMayLogin && <Button onClick={() => setShowSupModal(true)}>Zaloguj jako wsparcie</Button>}
           </div>
         </div>
@@ -697,26 +697,26 @@ export default function TournamentDetail() {
         {startTournament.isPending && <p role="status">Uruchamianie etapu i odświeżanie danych…</p>}
 
         {/* Fan read-only banner */}
-        {role === "fan" && (
+        {role === "fan" && !isAuthenticated && (
           <div className="bg-muted/40 border border-muted rounded-lg p-3 flex items-center gap-3">
             <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">Tryb kibica — tylko do odczytu. Edycja turnieju jest niedostępna.</p>
           </div>
         )}
 
-        {/* Auth gate for password-protected tournaments */}
-        {tournament.hasOrganizerPassword && !isAuthenticated && role !== "fan" && (
+        {/* Login is available even after the browser has lost its stored role. */}
+        {!isAuthenticated && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-yellow-400 shrink-0" />
               <div>
-                <p className="font-semibold text-yellow-400 text-sm">Turniej chroniony hasłem</p>
-                <p className="text-xs text-muted-foreground">Zaloguj się, aby dodawać graczy i zarządzać turniejem.</p>
+                <p className="font-semibold text-yellow-400 text-sm">Masz dostęp tylko do podglądu.</p>
+                <p className="text-xs text-muted-foreground">Użyj zachowanego hasła organizatora, aby wrócić do zarządzania turniejem.</p>
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" onClick={() => setShowOrgModal(true)}>
-                <Key className="w-3.5 h-3.5 mr-1.5" /> Organizator
+                <Key className="w-3.5 h-3.5 mr-1.5" /> Wejdź jako organizator
               </Button>
               {tournament.hasSupportPassword && (
                 <Button size="sm" variant="outline" onClick={() => setShowSupModal(true)}>
@@ -728,6 +728,7 @@ export default function TournamentDetail() {
         )}
 
         {/* Authenticated badge */}
+        {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
         {tournament.hasOrganizerPassword && isAuthenticated && (
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2">
             <Shield className="w-4 h-4 text-green-400 shrink-0" />

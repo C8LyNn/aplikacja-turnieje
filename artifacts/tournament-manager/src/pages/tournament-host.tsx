@@ -42,6 +42,7 @@ import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
+import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
@@ -1428,6 +1429,7 @@ export default function TournamentHost() {
             capabilities={capabilities}
           />
         )}
+        {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
         <section aria-label="Stan prowadzenia" className="rounded-xl border border-primary/30 bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

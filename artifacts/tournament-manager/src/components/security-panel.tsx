@@ -139,8 +139,11 @@ export function SecurityPanel({
             <span className="text-sm font-semibold">Ustaw hasło organizatora</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Hasło jest opcjonalne i nie blokuje zarządzania turniejem. Jeśli je ustawisz,
-            pozwoli Ci ponownie zalogować się po utracie bieżącej sesji.
+            Zabezpiecz dostęp przed opuszczeniem tej przeglądarki. Hasło pozwoli Ci
+            ponownie zalogować się po utracie bieżącej sesji i na drugim urządzeniu.
+            Zachowaj je — aplikacja nie pokaże go ponownie i nie udostępnia resetu.
+            Ustawienie pierwszego hasła zastąpi dotychczasowy dostęp: inne otwarte
+            sesje tego turnieju będą wymagały zalogowania nowym hasłem.
           </p>
           <form onSubmit={handleSetOrganizerPassword} className="space-y-2">
             <div className="space-y-1">

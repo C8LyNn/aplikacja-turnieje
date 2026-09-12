@@ -194,7 +194,7 @@ describe("series_v1 tournament creation", () => {
     assert.equal(response.body.code, "INVALID_DEFAULT_BEST_OF");
   });
 
-  test("enforces the optional organizer password contract on direct POST requests", async () => {
+  test("enforces the required organizer password contract on direct POST requests", async () => {
     for (const [label, organizerPassword] of [
       ["missing", undefined],
       ["empty", ""],
@@ -205,8 +205,9 @@ describe("series_v1 tournament creation", () => {
         name: `Password ${label} ${randomUUID()}`,
         format: "single_elimination",
         ...(organizerPassword === undefined ? {} : { organizerPassword }),
-      }).expect(201);
-      assert.equal(response.body.hasOrganizerPassword, organizerPassword !== undefined && organizerPassword.length >= 8);
+      }).expect(organizerPassword && organizerPassword.length >= 8 ? 201 : 400);
+      if (organizerPassword && organizerPassword.length >= 8) assert.equal(response.body.hasOrganizerPassword, true);
+      else assert.equal(response.body.organizerToken, undefined);
     }
 
     for (const length of [1, 7]) {
@@ -218,7 +219,7 @@ describe("series_v1 tournament creation", () => {
       assert.equal(response.body.code, "ORGANIZER_PASSWORD_TOO_SHORT");
       assert.equal(
         response.body.error,
-        "Hasło organizatora musi być puste albo mieć co najmniej 8 znaków.",
+        "Hasło organizatora jest wymagane i musi mieć co najmniej 8 znaków.",
       );
     }
   });

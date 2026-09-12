@@ -2450,7 +2450,7 @@ components:
 
     TournamentInput:
       type: object
-      required: [name, format]
+      required: [name, format, organizerPassword]
       properties:
         name:
           type: string
@@ -2468,12 +2468,9 @@ components:
           type: integer
           minimum: 1
         organizerPassword:
-          description: Optional password. Empty means no password; a non-empty value must contain at least 8 characters.
-          oneOf:
-            - type: string
-              maxLength: 0
-            - type: string
-              minLength: 8
+          type: string
+          minLength: 8
+          description: Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.
         supportPassword:
           type: string
           minLength: 8

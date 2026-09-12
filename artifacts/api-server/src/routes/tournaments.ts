@@ -24,7 +24,6 @@ import {
   withTournamentMutationLock,
 } from "../access-policy";
 import {
-  normalizeOrganizerPassword,
   organizerPasswordInputError,
   ORGANIZER_PASSWORD_TOO_SHORT_CODE,
 } from "../validation/organizer-password";
@@ -673,9 +672,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const requestBody = req.body?.organizerPassword === ""
-    ? { ...req.body, organizerPassword: undefined }
-    : req.body;
+  const requestBody = req.body;
   const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
@@ -712,9 +709,8 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
-  if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
+  insertValues.organizerPasswordHash = await hashPassword(rawOrganizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {

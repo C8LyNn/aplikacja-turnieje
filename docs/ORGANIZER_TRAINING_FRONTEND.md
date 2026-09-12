@@ -193,3 +193,51 @@ Kolejne zmiany, w kolejności wartości — **nie rozpoczęto ich podczas QA**:
 Nie zmieniono kodu produkcyjnego, dlatego zgodnie z zakresem QA nie powtarzano pełnych suite'ów. Ostatnia weryfikacja testowanego commita: **192/192 frontend PASS, typecheck PASS, build PASS**; to wcześniejsze wyniki, nie nowe uruchomienie. Manualne ograniczenia (routing double-click, zaakceptowany refresh draftu, HTTP 409) zapisano jawnie powyżej.
 
 Zatrzymano lokalne API i tymczasowy PostgreSQL. Usunięto nieśledzone helpery `.training-qa-server.mts` i `.training-qa-setup.mts`. Testowa baza pozostała poza repozytorium w zatrzymanym klastrze; nie dodano jej ani helperów do commita. Jedyna zmiana w repozytorium to ten dokument.
+
+## P0-01 — trwałe poświadczenie i ponowne logowanie (12.09.2026)
+
+Poniższa weryfikacja aktualizuje wyłącznie P0-01 z powyższego historycznego raportu. P1 wyboru meczu i publicznej drabinki pozostają otwarte; nie wykonano ponownego audytu ani kolejnego pełnego turnieju.
+
+### Przyczyna i model dostępu
+
+Przed poprawką utworzenie turnieju bez hasła dawało twórcy podpisany, ograniczony do turnieju token organizatora w `sessionStorage`. Rola i flaga zarządzania w `localStorage` służą nawigacji, nie są dowodem uprawnień. Po utracie tokenu nie pozostawało poświadczenie, które organizator mógł przedstawić serwerowi. Istniejący endpoint logowania działał poprawnie dla turniejów z hasłem; frontend dodatkowo ukrywał wejście do logowania przy utracie zapisanej roli lub roli kibica.
+
+Nowe turnieje wymagają hasła organizatora o długości co najmniej 8 znaków zarówno w UI, jak i `POST /api/tournaments`. API, OpenAPI i wygenerowani klienci mają ten sam kontrakt. Starszy klient tworzący turniej bez hasła otrzyma 400 i musi uzupełnić dane. Nie zmieniono schematu DB ani mechanizmu weryfikacji istniejących sesji.
+
+Hasło jest trwałym poświadczeniem ponownego logowania; serwer przechowuje wyłącznie solony hash scrypt. Formularz tworzenia informuje, że hasło należy zachować, aplikacja nie pokaże go ponownie i nie oferuje w tej wersji zmiany ani resetu hasła. Po utracie sesji ścieżka to: link do turnieju → „Masz dostęp tylko do podglądu.” → „Wejdź jako organizator” → hasło → istniejące logowanie API → dostęp do zapisu. Wejście do logowania jest dostępne także bez zapisanej roli, przy roli kibica i na bramce prywatnego turnieju. Rola organizatora jest ustawiana dopiero po poprawnej odpowiedzi logowania. Formularz blokuje równoczesne wysłanie i umożliwia ponowienie po błędzie.
+
+### Zgodność i granica odzyskiwania
+
+- Istniejące turnieje z hasłem i już wydane sesje nadal działają. Drugie logowanie nie zmienia hasła ani nie unieważnia pierwszej sesji.
+- Właściciel starszego turnieju bez hasła, który nadal ma ważną sesję, widzi w Host i szczegółach wskazówkę prowadzącą do istniejącego formularza ustawienia pierwszego hasła. Ta jawna zmiana poświadczenia zastępuje stare sesje bez hasła; formularz uprzedza, że pozostałe sesje muszą zalogować się nowym hasłem. Bieżąca sesja otrzymuje nowy token.
+- Istniejąca ścieżka ulepszenia dostępu za pomocą historycznego kodu hosta pozostaje dostępna.
+- Już osierocony turniej bez hasła, kodu i ważnej sesji nie ma dowodu własności umożliwiającego samodzielne odzyskanie. UI zachowuje komunikat o konieczności interwencji administracyjnej. Nie dodano przejęcia po ID ani obejścia uprawnień. Poprawka zapobiega tworzeniu kolejnych takich turniejów; nie oznacza automatycznego odzyskania wszystkich historycznych rekordów.
+
+### Security review
+
+Hasło trafia w ciele istniejącego żądania POST; nie dodano sekretów do adresów URL ani query params. Aplikacja nie zapisuje hasła w browser storage. Token pozostaje w dotychczasowym `sessionStorage`; `localStorage` zawiera wyłącznie rolę i flagę nawigacji. Zwykły publiczny odczyt nie zwraca tokenu ani hasha. Serializer żądań loguje ID, metodę i ścieżkę bez query, bez ciała i nagłówków; wpis audytu logowania nie zawiera poświadczeń.
+
+Wykorzystano istniejące limity prób: 5 nieudanych prób ze źródła i 25 dla turnieju w oknie 15 minut, z blokadą na 15 minut. Istniejący dummy hash i ogólna odpowiedź błędnych poświadczeń pozostają; regresja porównuje odpowiedź błędnego hasła z odpowiedzią nieistniejącego turnieju. Viewer bez sekretu nie uzyskuje zapisu. Nie dodano kont, nowego endpointu recovery, migracji ani równoległego mechanizmu auth.
+
+### Automatyczna weryfikacja
+
+| Zakres | Wynik |
+| --- | --- |
+| API unit/regression bez `DATABASE_URL` | 432/432 PASS: 377 runner API + 25 współdzielonych + 30 UI używanych przez skrypt API |
+| Pełne integracje API | 499/499 PASS, 0 skipped |
+| Wyodrębnione integracje security-integrity, access i credential-rate-limit | 109/109 PASS; zawarte także w pełnym przebiegu |
+| Frontend | 198/198 PASS, proces kończy się sam, około 9 s |
+| Typecheck bibliotek, API, testów API i frontendu | PASS |
+| Build API i frontendu | PASS |
+
+Nowe regresje obejmują utratę wszystkich wpisów storage, brak roli i rolę kibica, logowanie przez link publicznego/prywatnego turnieju, błędne hasło bez fałszywego sukcesu, retry, blokadę double-submit, brak publicznego przejęcia osieroconego turnieju, brak sekretów w storage i publicznej odpowiedzi oraz zapis z pierwotnej i dwóch zalogowanych sesji. Testy tworzenia wymagają hasła, także przy bezpośrednim POST. Test zgodności pierwszego hasła używa historycznego rekordu i wcześniej wydanej sesji. Dotychczasowe fixture'y DE i series_v1 dostosowano do wymaganego hasła; nie zmieniono logiki rozgrywek.
+
+### Manual QA — PASS
+
+Po automatycznych PASS użyto lokalnego `organizer_training_test`, dotychczasowego schematu QA i nowego turnieju #2 „QA P0 — powrót organizatora 12.09”. Wszystkie zapisy i logowania wykonano przez frontend, bez skryptu, SQL ani ręcznego API do odzyskiwania. Poprzedni ukończony turniej #1 pozostał nienaruszony.
+
+Scenariusz A: utworzenie z hasłem → zapis gracza „P0 Twórca” → „Wyloguj” usuwające lokalny token i flagę zarządzania → reload → tylko podgląd bez formularza dodawania → „Wejdź jako organizator” → błędne hasło odrzucone czytelnym komunikatem → poprawne hasło → zapis „P0 Po odzyskaniu”. Obejrzano ekran podglądu, formularz i błąd. Pełne wyczyszczenie również roli z obu storage potwierdzają testy automatyczne; ręczna próba użyła produktowego wylogowania.
+
+Scenariusz B: nowa karta z oddzielnym `sessionStorage` zaczęła od podglądu i logowania, mimo zalogowanej pierwszej karty. Poprawne hasło umożliwiło zapis „P0 Druga sesja”. Pierwsza karta po reload nadal była zalogowana i zapisała „P0 Pierwsza nadal działa”. Druga karta po reload zachowała uprawnienia i pokazała wszystkich czterech graczy. To ręczna próba dwóch niezależnych sesji kart; nie deklarujemy testu na fizycznym drugim urządzeniu.
+
+P0 tworzenia turnieju bez trwałego poświadczenia i ponownego wejścia dla turniejów z hasłem jest zamknięte w powyższym zakresie. Historyczne rekordy bez jakiegokolwiek dowodu własności mają opisane ograniczenie. Po tym commicie STOP; P1-01 nie został rozpoczęty.

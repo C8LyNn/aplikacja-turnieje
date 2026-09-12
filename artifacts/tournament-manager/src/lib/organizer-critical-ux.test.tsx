@@ -127,8 +127,8 @@ function nextStep(input: {
   });
 }
 
-test("optional organizer password accepts 0 and >=8, and rejects 1-7", () => {
-  for (const [length, accepted] of [[0, true], [1, false], [7, false], [8, true], [20, true]] as const) {
+test("required organizer password accepts >=8 and rejects 0-7", () => {
+  for (const [length, accepted] of [[0, false], [1, false], [7, false], [8, true], [20, true]] as const) {
     const value = "x".repeat(length);
     assert.equal(organizerPasswordError(value) == null, accepted, `length ${length}`);
   }
