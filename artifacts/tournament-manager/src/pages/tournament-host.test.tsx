@@ -12,6 +12,143 @@ import TournamentHost from "./tournament-host";
 const originalFetch = globalThis.fetch;
 const clients = new Set<QueryClient>();
 
+async function refreshHost() {
+  await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
+}
+
+test("editing the suggested match pins its draft when another match becomes LIVE", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  matches[1] = { ...matches[1], status: "in_progress" };
+  await refreshHost();
+  await screen.findByRole("button", { name: /Gracz A2 vs Gracz B2.*LIVE/ });
+  assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz A1" }).matches(":enabled"));
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz B1" }).matches(":disabled"));
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"));
+});
+
+test("explicit selection keeps its 1:0 draft when another match finishes and the recommendation changes", async () => {
+  const matches = [hostMatch(1), hostMatch(2, 2, "in_progress"), hostMatch(3)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: /Gracz A1 vs Gracz B1/ }));
+  await user.click(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  matches[1] = { ...matches[1], status: "completed", resultType: "played", score1: 2 };
+  matches[2] = { ...matches[2], status: "in_progress" };
+  await refreshHost();
+  await screen.findByRole("button", { name: /Gracz A3 vs Gracz B3.*LIVE/ });
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz A1" }).matches(":enabled"));
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"));
+  await user.click(screen.getByRole("button", { name: /Gracz A3 vs Gracz B3/ }));
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz A3" }).matches(":disabled"));
+  assert.equal(screen.queryByRole("button", { name: "Odrzuć wynik roboczy" }), null);
+  await user.click(screen.getByRole("button", { name: /Gracz A1 vs Gracz B1/ }));
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz A1" }).matches(":enabled"));
+});
+
+test("an untouched automatic suggestion follows the refreshed LIVE match", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  await renderOperationalHost({ matches });
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  matches[1] = { ...matches[1], status: "in_progress" };
+  await refreshHost();
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+});
+
+test("remote completion keeps the edited match and its stale draft in context", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  matches[0] = { ...matches[0], status: "completed", resultType: "played", score2: 2 };
+  await refreshHost();
+  await screen.findByText(/Twój wynik roboczy: 1:0. Aktualny wynik: 0:2/);
+  assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }).matches(":disabled"));
+  assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A2" }), null);
+  assert.equal(screen.queryByText("Wynik zapisany!"), null);
+});
+
+test("correction remains attached to A while another match changes", async () => {
+  const matches = [{ ...hostMatch(1, 2, "completed"), resultType: "played" as const, score1: 2 }, hostMatch(2)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+  matches[1] = { ...matches[1], status: "in_progress" };
+  await refreshHost();
+  await screen.findByRole("button", { name: /Gracz A2 vs Gracz B2.*LIVE/, hidden: true });
+  assert.match(screen.getByRole("dialog").textContent ?? "", /Gracz A1 – Gracz B1/);
+});
+
+test("a removed selected match clears its draft with an explanation before suggesting another", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  matches.shift();
+  await refreshHost();
+  await screen.findByText(/Wybrany mecz nie jest już dostępny/);
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+  assert.ok(screen.getByRole("button", { name: "Zmniejsz wynik: Gracz A2" }).matches(":disabled"));
+  assert.equal(screen.queryByRole("button", { name: "Odrzuć wynik roboczy" }), null);
+  const unload = new window.Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(unload);
+  assert.equal(unload.defaultPrevented, false);
+});
+
+test("failed refetch keeps selection and draft instead of treating a match as removed", async () => {
+  let failed = false;
+  const user = await renderOperationalHost({ matches: [hostMatch(1), hostMatch(2)], intercept: async path =>
+    failed && path.endsWith("/matches") ? new Response("unavailable", { status: 503 }) : undefined });
+  for (const client of clients) client.setQueryDefaults(["/api/tournaments/1/matches"], { retry: false });
+  await user.click(await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  failed = true;
+  await refreshHost();
+  await screen.findByText("Nie udało się odświeżyć stanu prowadzenia.");
+  assert.equal(screen.queryByText(/Wybrany mecz nie jest już dostępny/), null);
+  failed = false;
+  await refreshHost();
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  assert.ok(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }));
+  assert.equal(screen.queryByText(/Wybrany mecz nie jest już dostępny/), null);
+});
+
+test("keyboard focus pins the form before the first score change", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  await renderOperationalHost({ matches });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  act(() => plus.focus());
+  matches[1] = { ...matches[1], status: "in_progress" };
+  await refreshHost();
+  await screen.findByRole("button", { name: /Gracz A2 vs Gracz B2.*LIVE/ });
+  assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+});
+
+test("a conflict refreshes the same match without switching to the next available match", async () => {
+  const matches = [hostMatch(1), hostMatch(2)];
+  const user = await renderOperationalHost({ matches, intercept: async path => {
+    if (!path.endsWith("/1/complete")) return undefined;
+    matches[0] = { ...matches[0], status: "completed", resultType: "played", score2: 2 };
+    return new Response(JSON.stringify({ code: "MATCH_ALREADY_FINALIZED" }), { status: 409, headers: { "content-type": "application/json" } });
+  } });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByText(/Twój wynik roboczy: 2:0. Aktualny wynik: 0:2/);
+  assert.match(screen.getByRole("alert").textContent ?? "", /Ten mecz ma już zapisany wynik/);
+  assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A2" }), null);
+  assert.equal(screen.queryByText("Wynik zapisany!"), null);
+});
+
+test("correction closes with an explanation if its match is actually removed", async () => {
+  const matches = [{ ...hostMatch(1, 2, "completed"), resultType: "played" as const, score1: 2 }, hostMatch(2)];
+  const user = await renderOperationalHost({ matches });
+  await user.click(await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" }));
+  matches.shift();
+  await refreshHost();
+  await screen.findByText(/Wybrany mecz nie jest już dostępny/);
+  assert.equal(screen.queryByRole("dialog"), null);
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+});
+
 afterEach(() => {
   cleanup();
   clients.forEach((client) => client.clear());

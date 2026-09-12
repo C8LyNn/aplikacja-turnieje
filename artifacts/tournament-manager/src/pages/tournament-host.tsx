@@ -27,7 +27,7 @@ import {
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
   Share2, Lock, Key, Copy, Check, Eye, EyeOff, Loader2, RefreshCw,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
@@ -229,8 +229,19 @@ export default function TournamentHost() {
     : null;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
-  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(null);
+  const selectionRevision = useRef(0);
+  const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
+  const setSelectedMatchId = (matchId: number | null) => {
+    selectionRevision.current++;
+    storeSelectedMatchId(matchId);
+    setSelectionNotice(null);
+  };
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
+  const openCorrection = (matchId: number) => {
+    setSelectedMatchId(matchId);
+    setRevertConfirm(matchId);
+  };
   const correctionMatch = matches?.find(match => match.id === revertConfirm);
   const correctionStage = stages?.find(stage => stage.id === correctionMatch?.stageId);
   const correctionDE = useGetDoubleEliminationStage(id, correctionStage?.id ?? 0, {
@@ -288,11 +299,34 @@ export default function TournamentHost() {
     ) ??
     null;
   const selectedMatch = matches?.find((match) => match.id === selectedMatchId);
-  const focusedMatchId = selectedMatch?.id ?? _autoFocusMatch?.id ?? null;
+  const focusedMatchId = selectedMatchId === null ? _autoFocusMatch?.id ?? null : selectedMatch?.id ?? null;
   const focusedMatch = focusedMatchId
     ? matches?.find((m) => m.id === focusedMatchId)
     : null;
   const focusedStage = stages?.find((stage) => stage.id === focusedMatch?.stageId);
+  // Only a successful, settled list can prove that a selected match was removed.
+  useEffect(() => {
+    if (!matchesQuery.isSuccess || matchesQuery.isFetching || hostPending || !matches) return;
+    const missing = (matchId: number | null) => matchId !== null && !matches.some(match => match.id === matchId);
+    if (missing(selectedMatchId) || missing(revertConfirm)) {
+      if (missing(selectedMatchId)) setSelectedMatchId(null);
+      if (missing(revertConfirm)) setRevertConfirm(null);
+      setSelectionNotice("Wybrany mecz nie jest już dostępny. Jego edycja została zamknięta; sprawdź aktualną kolejkę.");
+    }
+    setScores(previous => {
+      const remaining = Object.fromEntries(Object.entries(previous).filter(([matchId]) => !missing(Number(matchId))));
+      return Object.keys(remaining).length === Object.keys(previous).length ? previous : remaining;
+    });
+  }, [matches, matchesQuery.isSuccess, matchesQuery.isFetching, hostPending, selectedMatchId, revertConfirm]);
+
+  const beginMatchOperation = (matchId: number) => {
+    // A completion callback must not steal a later selection or interaction.
+    const revision = selectionRevision.current;
+    const wasFocused = focusedMatchId === matchId;
+    return () => wasFocused && revision === selectionRevision.current &&
+      [getListMatchesQueryKey(id), getGetTournamentQueryKey(id), getListTournamentStagesQueryKey(id)]
+        .every(key => queryClient.getQueryState(key)?.status === "success" && queryClient.getQueryState(key)?.fetchStatus === "idle");
+  };
   const effectiveStageHeroBans = tournament?.gameConfig?.gameId === "deadlock" && focusedStage
     ? getDeadlockEffectiveStageBans(
         tournament.gameConfig.config,
@@ -363,6 +397,7 @@ export default function TournamentHost() {
 
   const adjustScore = (matchId: number, player: 1 | 2, delta: number, bo: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    setSelectedMatchId(matchId);
     const max = Math.ceil(bo / 2);
     const match = matches?.find((entry) => entry.id === matchId);
     const cur = getS(matchId, player, player === 1 ? match?.score1 : match?.score2);
@@ -387,13 +422,13 @@ export default function TournamentHost() {
 
   const handlePostpone = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
+    const mayAdvance = beginMatchOperation(matchId);
     updateMatch.mutate(
       { id: matchId, data: { status: "postponed" } },
       {
         onSuccess: () => {
           toast({ title: "Mecz przełożony", description: "Możesz go przywrócić z sekcji Przełożone." });
-          const next = actionableMatches.find((m) => m.id !== matchId);
-          setSelectedMatchId(next?.id ?? null);
+          if (mayAdvance()) setSelectedMatchId(null);
         },
       },
     );
@@ -488,14 +523,14 @@ export default function TournamentHost() {
     const match = matches?.find((candidate) => candidate.id === matchId);
     const winnerId = winner === 1 ? match?.player1Id : match?.player2Id;
     if (!winnerId) return;
+    const mayAdvance = beginMatchOperation(matchId);
     completeMatch.mutate({ id: matchId, data: { resultType: "walkover", winnerId, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
         setWalkoverConfirm(null);
         setResultReason("");
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
         toast({ title: "Walkower zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} wygrywa mecz.` });
-        const next = actionableMatches.find((m) => m.id !== matchId);
-        setSelectedMatchId(next?.id ?? null);
+        if (mayAdvance()) setSelectedMatchId(null);
       },
     });
   };
@@ -581,12 +616,12 @@ export default function TournamentHost() {
 
   const doComplete = (matchId: number, score1: number, score2: number) => {
     if (!capabilities.canWriteTournamentResults || completeMatch.isPending) return;
+    const mayAdvance = beginMatchOperation(matchId);
     completeMatch.mutate({ id: matchId, data: { resultType: "played", score1, score2 } }, {
       onSuccess: () => {
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
         toast({ title: "Wynik zapisany!" });
-        const next = actionableMatches.find((m) => m.id !== matchId);
-        setSelectedMatchId(next?.id ?? null);
+        if (mayAdvance()) setSelectedMatchId(null);
       },
     });
   };
@@ -888,7 +923,7 @@ export default function TournamentHost() {
         : "N/C";
 
     return (
-      <div className={`rounded-xl border-2 overflow-hidden transition-colors ${
+      <div onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`rounded-xl border-2 overflow-hidden transition-colors ${
         isCancelled
           ? "border-destructive/30 opacity-80"
           : isLive
@@ -1357,7 +1392,7 @@ export default function TournamentHost() {
                   <Button
                     variant="outline"
                     className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() => setRevertConfirm(focusedMatch.id)}
+                    onClick={() => openCorrection(focusedMatch.id)}
                   >
                     <RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik
                   </Button>
@@ -1469,6 +1504,7 @@ export default function TournamentHost() {
           {actionError.code && <p className="mt-2 text-xs text-muted-foreground">Kod diagnostyczny: {actionError.code}</p>}
         </div>}
         {hostPending && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
+        {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
         {nextStep && !dataLoading && !dataError && nextStep.kind !== "active_matches" && (
           <OrganizerNextStep
@@ -1673,7 +1709,7 @@ export default function TournamentHost() {
                               </span>
                             </div>
                           )}
-                          {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => setRevertConfirm(m.id)}>Popraw wynik</Button>}
+                          {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
                         </div>
                       ))
                     )}
@@ -1774,7 +1810,7 @@ export default function TournamentHost() {
                         <span className="font-mono tabular-nums">{match.resultType === "walkover" ? "W.O." : match.resultType === "bye" ? "BYE" : match.resultType === "no_contest" ? "N/C" : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? match.status}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
-                          <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => setRevertConfirm(match.id)}>Popraw wynik</Button>
+                          <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
                           : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(`/tournaments/${id}/host`); }}>Pokaż mecz</Button>}
                       </div>
                     ))}
@@ -1978,7 +2014,7 @@ export default function TournamentHost() {
                                 variant="outline"
                                 size="sm"
                                 className="text-xs border-destructive text-destructive hover:bg-destructive/10"
-                                onClick={() => entry.matchId && setRevertConfirm(entry.matchId)}
+                                onClick={() => entry.matchId && openCorrection(entry.matchId)}
                               >
                                 <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
                               </Button>

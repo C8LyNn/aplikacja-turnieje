@@ -241,3 +241,36 @@ Scenariusz A: utworzenie z hasłem → zapis gracza „P0 Twórca” → „Wylo
 Scenariusz B: nowa karta z oddzielnym `sessionStorage` zaczęła od podglądu i logowania, mimo zalogowanej pierwszej karty. Poprawne hasło umożliwiło zapis „P0 Druga sesja”. Pierwsza karta po reload nadal była zalogowana i zapisała „P0 Pierwsza nadal działa”. Druga karta po reload zachowała uprawnienia i pokazała wszystkich czterech graczy. To ręczna próba dwóch niezależnych sesji kart; nie deklarujemy testu na fizycznym drugim urządzeniu.
 
 P0 tworzenia turnieju bez trwałego poświadczenia i ponownego wejścia dla turniejów z hasłem jest zamknięte w powyższym zakresie. Historyczne rekordy bez jakiegokolwiek dowodu własności mają opisane ograniczenie. Po tym commicie STOP; P1-01 nie został rozpoczęty.
+
+## P1-01 — stabilny wybór edytowanego meczu (13.09.2026)
+
+Przed rozpoczęciem potwierdzono czysty working tree i P0 `1bb342bf2eb1bd0b5c83b5a72dfb330275f69e84` na `origin/codex/organizer-host-training`. Ta osobna poprawka dotyczy wyłącznie selekcji i formularza Host. Backend, auth, kwalifikacja, routing, lifecycle i widoki publiczne nie zostały zmienione.
+
+### Przyczyna i zachowanie po poprawce
+
+Host przechowywał jawny wybór w `selectedMatchId`, a draft w `scores[matchId]`. Gdy wybór był pusty, `focusedMatchId` był wyliczany przy każdym renderze z wyróżnionego meczu, LIVE lub pierwszej gotowej pary. Rozpoczęcie edycji tak zasugerowanego meczu nie zapisywało `selectedMatchId`. Polling mógł więc wyświetlić inną parę, mimo pozostającego w pamięci draftu poprzedniej. Nie był to effect nadpisujący jawnie wybrane ID — problemem było niewykonane przypięcie przy interakcji z automatyczną sugestią.
+
+Teraz kliknięcie/fokus w panelu meczu, zmiana wyniku i otwarcie korekty utrwalają ID. Polling aktualizuje dane tej pary, zachowując wybór. Bez interakcji dotychczasowa automatyczna sugestia nadal działa. Draft pozostaje przypisany do `matchId`; jawne przełączenie i powrót zachowuje właściwy draft, a inny mecz nie dziedziczy jego wyniku. Zdalna zmiana tego samego meczu uruchamia istniejące porównanie stanu początkowego i blokadę starego wyniku, bez zmiany pary.
+
+Po udanym zapisie lub przełożeniu bieżącego meczu można ponownie użyć automatycznej sugestii dopiero po zakończonym odświeżeniu podstawowych danych i przy niezmienionej wersji interakcji użytkownika. Wybór następnego meczu korzysta wtedy z aktualnych danych. Powtórne kliknięcie podczas pending nie jest nową interakcją. Korekta nadal ma osobne ID i przypina także panel. Jeżeli poprawnie pobrana, zakończona lista naprawdę nie zawiera wybranego meczu, UI zamyka jego edycję/korektę, usuwa osierocony draft i pokazuje wyjaśnienie przed ponowną sugestią. Błąd pobrania ani zwykła zmiana statusu nie oznaczają usunięcia.
+
+### Weryfikacja automatyczna
+
+Najpierw dodano test edycji automatycznej sugestii A, po której B staje się LIVE. Po oczekiwaniu na odmalowanie odświeżonej kolejki test na kodzie sprzed poprawki miał **FAIL**: brak formularza A. Po poprawce przechodzi.
+
+- **Frontend: 208/208 PASS**, około 10 s, proces kończy się sam.
+- **Frontend typecheck: PASS.**
+- **Frontend build: PASS.** Pozostaje dotychczasowe ostrzeżenie o rozmiarze bundla.
+- Dziesięć nowych behavioral tests obejmuje reprodukcję, jawny wybór i draft 1:0, nadal działającą sugestię bez interakcji, zdalne zakończenie tego samego meczu, korektę podczas zmiany innego meczu, usunięcie meczu i draftu, błąd refetchu, fokus klawiatury, HTTP 409 bez przeskoku i usunięcie meczu przy otwartej korekcie. Istniejący test pending aż do refetchu i przejścia do następnego meczu również PASS.
+
+### Manual two-session QA — PASS
+
+Użyto dotychczasowej lokalnej bazy `organizer_training_test` i turnieju QA #2 z czterema graczami. Użytkownik potwierdził rozpoczęcie etapu i zapisy dwóch sesji. Obie karty zalogowano przez UI istniejącym hasłem. Nie tworzono ani nie zmieniano poświadczeń, nie używano SQL/skryptu/API do operacji turniejowych. BO3 dla R1M1 ustawiono istniejącym przyciskiem w Host przed edycją. Następnie przeładowano kartę A, aby zacząć od automatycznej sugestii bez wcześniejszego przypięcia.
+
+1. A rozpoczęła edycję R1M1 „P0 Twórca – P0 Pierwsza nadal działa”: draft **1:0 w BO3**, przycisk zapisu wyłączony.
+2. B wybrała R1M2 „P0 Po odzyskaniu – P0 Druga sesja” i rozpoczęła go jako LIVE. Po zwykłym pollingu A nadal pokazywała R1M1 i draft 1:0, mimo zmiany priorytetu kolejki.
+3. B zapisała R1M2 jako 1:0. A odebrała zmianę liczników, historii i kolejki, zachowując R1M1 i draft. Po swoim zapisie B poprawnie przeszła do następnej dostępnej pary.
+4. B zapisała R1M1 jako **0:2**. A pozostała przy R1M1, pokazała wynik serwera 0:2 i komunikat „Twój wynik roboczy: 1:0. Aktualny wynik: 0:2”, zablokowała edycję i nie pokazała fałszywego sukcesu. Nie przeskoczyła do dostępnego finału R2M1.
+5. Przy R2M1 już LIVE A otworzyła korektę R1M1. B wyróżniła R2M1 istniejącym przyciskiem Host. Po pollingu A pokazała nową ostatnią akcję w tle, a dialog nadal identyfikował R1M1 i zapisane 0:2. Wybrano „Zachowaj wynik”; panel pozostał przy R1M1 bez cofania wyniku.
+
+Ręczna próba potwierdza konflikt wykryty przez polling; wymuszony HTTP 409 i rzeczywiste usunięcie wybranego meczu zweryfikowano behavioral tests, nie osobnym ręcznym wyścigiem. Nie przeprowadzano ponownie pełnego turnieju ani ponownego audytu. P1-01 zamknięte; P1-02 (publiczna drabinka/projector) pozostaje otwarte i nie zostało rozpoczęte.
