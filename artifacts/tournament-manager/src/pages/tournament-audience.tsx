@@ -41,6 +41,7 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
+import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 import {
   usePresentationTheme,
   resolvePresentationSettings,
@@ -154,7 +155,7 @@ export default function TournamentAudience() {
   const { data: players } = useListPlayers(id, {
     query: { enabled: !!id && fetchPhase >= 4, queryKey: getListPlayersQueryKey(id), refetchInterval: 13000, staleTime: 12500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
-  const { data: bracket } = useGetTournamentBracket(id, {
+  const { data: tournamentBracket } = useGetTournamentBracket(id, {
     query: {
       enabled: !!id && fetchPhase >= 2 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
@@ -174,15 +175,12 @@ export default function TournamentAudience() {
       refetchOnReconnect: false,
     },
   });
-  const doubleEliminationStage = stages?.find(
-    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
-  );
+  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  const bracket = publicStageBracket(tournamentBracket, publicStage);
+  const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
   const marvelStage =
     tournament?.gameConfig?.gameId === "marvel"
-      ? stages?.find(
-          (stage) =>
-            stage.format === "group_stage" && stage.status !== "planned",
-        )
+      ? publicStage?.format === "group_stage" ? publicStage : undefined
       : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
@@ -703,10 +701,12 @@ export default function TournamentAudience() {
           />
         )}
         {activeSection === "bracket" &&
-          (marvelStage ? (
+          (!publicStage ? (
+            <AudienceSectionShell title="Drabinka" description={stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}><EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection></AudienceSectionShell>
+          ) : marvelStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description="Eliminacyjne grupy Marvel FFA."
+              description={publicStageLabel(publicStage)}
             >
               <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
                 <MarvelEliminationStage
@@ -718,7 +718,7 @@ export default function TournamentAudience() {
           ) : doubleEliminationStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description="Aktualny układ Double Elimination."
+              description={publicStageLabel(publicStage)}
             >
               {doubleEliminationQuery.data ? (
                 <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
@@ -741,9 +741,10 @@ export default function TournamentAudience() {
           ) : (
             <PublicBracketSection
               bracket={bracket}
-              format={tournament?.format ?? ""}
-              currentRound={tournament?.currentRound}
-              totalRounds={tournament?.totalRounds}
+              stageLabel={publicStageLabel(publicStage)}
+              format={publicStage.format}
+              currentRound={publicStage.currentRound}
+              totalRounds={publicStage.totalRounds}
               forcedHeroId={
                 tournament?.gameConfig?.gameId === "deadlock"
                   ? tournament.gameConfig.config.forcedHeroId
@@ -751,7 +752,7 @@ export default function TournamentAudience() {
               }
               playerBansMap={isDeadlock ? audienceBansMap : undefined}
               matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
-              standings={standings}
+              standings={stages?.length === 1 ? standings : undefined}
             />
           )
         )}
@@ -961,6 +962,7 @@ function PlayerStat({ label, value, emphasize = false }: { label: string; value:
 
 function PublicBracketSection({
   bracket,
+  stageLabel,
   format,
   currentRound,
   totalRounds,
@@ -970,6 +972,7 @@ function PublicBracketSection({
   standings,
 }: {
   bracket?: Bracket;
+  stageLabel: string;
   format: string;
   currentRound?: number | null;
   totalRounds?: number | null;
@@ -979,7 +982,7 @@ function PublicBracketSection({
   standings?: Standing[];
 }) {
   return (
-    <AudienceSectionShell title="Drabinka" description="Aktualny układ rund i par turniejowych.">
+    <AudienceSectionShell title="Drabinka" description={stageLabel}>
       {!bracket ? (
         <EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection>
       ) : (

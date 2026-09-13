@@ -274,3 +274,32 @@ Użyto dotychczasowej lokalnej bazy `organizer_training_test` i turnieju QA #2 z
 5. Przy R2M1 już LIVE A otworzyła korektę R1M1. B wyróżniła R2M1 istniejącym przyciskiem Host. Po pollingu A pokazała nową ostatnią akcję w tle, a dialog nadal identyfikował R1M1 i zapisane 0:2. Wybrano „Zachowaj wynik”; panel pozostał przy R1M1 bez cofania wyniku.
 
 Ręczna próba potwierdza konflikt wykryty przez polling; wymuszony HTTP 409 i rzeczywiste usunięcie wybranego meczu zweryfikowano behavioral tests, nie osobnym ręcznym wyścigiem. Nie przeprowadzano ponownie pełnego turnieju ani ponownego audytu. P1-01 zamknięte; P1-02 (publiczna drabinka/projector) pozostaje otwarte i nie zostało rozpoczęte.
+
+## P1-02 — oddzielenie etapów w widokach publicznych (13.09.2026)
+
+Punkt wyjścia: czysty `codex/organizer-host-training`, HEAD `84ec21800a6798d32fb863473e9b2ed335493104`. Zakres: public bracket, projector, Audience Drabinka, wspólny helper i behavioral tests. Host, auth, qualification, routing, backend lifecycle i layout ogólny pozostają bez zmian.
+
+### Przyczyna i model prezentacji
+
+Endpoint turniejowego bracketu zwraca mecze wszystkich etapów pogrupowane po numerze rundy. Public bracket i Audience przekazywały te rundy bez filtrowania, a komponent formatu wybierały na podstawie `tournament.format`. Dodatkowo public bracket nie odświeżał okresowo metadanych turnieju. Projector w aktualnym kodzie obsługiwał wyłącznie DE i wybierał pierwszy DE o statusie innym niż planned; bez takiego etapu pozostawał na ładowaniu. Wcześniejszy raport QA nie opisywał dokładnie tej ostatniej implementacji projektora.
+
+Wspólna reguła wybiera aktywny etap (preferując zgodny z `activeStageId`), następnie ostatni ukończony według `position`. Nie zależy od kolejności odpowiedzi API ani formatu etapu. Same planned nie dają aktywnej drabinki. Statusy etapów pozwalają przełączyć widok także przed dogonieniem ich przez turniejowy `activeStageId`.
+
+Każda runda publicznego bracketu zawiera wyłącznie mecze z wybranym `stageId`; puste rundy są pomijane. Format, numer rundy i nazwa kontekstu pochodzą z tego samego etapu. Zwycięzca jest prezentowany według backendowego `stage.winnerId`, bez obliczania awansu na froncie. DE nadal korzysta z istniejącego endpointu konkretnego etapu i istniejącego canvasu. Projector używa także istniejących komponentów RR/SE/Swiss/Marvel zamiast wymuszać DE. Wieloetapowy Swiss nie otrzymuje zbiorczej klasyfikacji całego turnieju.
+
+Tournament, stages i bracket pozostają odświeżane przez query polling; dla public bracket dodano polling tournament. Nierównoczesne odpowiedzi mogą chwilowo pozostawić pusty zakres nowego etapu, ale filtr nie dopuści meczów poprzedniego. W tych trzech widokach nie było jawnego selektora stage ani parametru URL stage; nie dodano nowej nawigacji. Historia pozostaje w dotychczasowych Audience Etapy/Mecze. Istniejący wybór historycznego etapu w panelu Etapy nie został zmieniony.
+
+### Weryfikacja automatyczna — PASS
+
+- Reprodukcja przed poprawką: **3/3 FAIL** — historyczne RR w public bracket i Audience, brak finału w projectorze.
+- Po poprawce: **229/229 frontend tests PASS**, w tym 21 nowych behavioral tests trzech widoków; proces kończy się sam (około 14 s).
+- **Frontend typecheck PASS; build PASS.** Dotychczasowe ostrzeżenie o wielkości bundla pozostaje.
+- Nowe przypadki: RR completed → SE active, transition z opóźnionym tournament metadata, tylko planned, finalny stage przy odwróconej kolejności rekordów, single-stage SE, wybór aktywnego DE spośród dwóch DE z zachowaniem Upper/Lower/Grand Final oraz odejście od cache DE po starcie SE.
+
+### Manual QA — PASS częściowy / PENDING
+
+Użyto zbudowanego frontendu z lokalną bazą `organizer_training_test` i turnieju QA „QA P1 — etapy publiczne 13.09”. Przez panel Etapy przygotowano i uruchomiono RR, zakończono etap z kwalifikacją QA Alfa i QA Beta, a następnie uruchomiono finał SE. Wcześniej otwarte karty public bracket, projector i Audience wykryły zmianę aktywnego etapu przez polling bez ręcznego refreshu (**PASS**): przeszły z Stage 1 RR na finał, pokazały wyłącznie mecze finału i poprawny kontekst etapu, bez mieszania meczów RR.
+
+Następujące kroki nie zostały wykonane, ponieważ narzędzie przeglądarki wielokrotnie blokowało dostęp z powodu limitu użycia: refresh bracket/projector/Audience podczas finału; zapis wyniku finału przez UI; potwierdzenie finalnego zwycięzcy; kontrola finalnego bracketu, projectora i Audience po zakończeniu; refresh wszystkich trzech widoków po zakończeniu. Oznaczenie: **MANUAL QA PENDING — blocked by browser tool usage limit**. Nie jest to FAIL produktu. Nie wykonywano ręcznych wywołań HTTP ani SQL.
+
+P1-02 pozostaje automatycznie zweryfikowane i manualnie częściowo potwierdzone; pozostałe punkty są jawnie PENDING z powodu blokady narzędzia. Lokalny helper QA usunięto przed commitem.

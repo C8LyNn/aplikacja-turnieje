@@ -23,6 +23,7 @@ import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
+import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -39,7 +40,7 @@ export default function TournamentBracket() {
   const id = params?.id ? parseInt(params.id, 10) : 0;
 
   const { data: tournament } = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
+    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 10000 },
   });
 
   // Phase-offset enabling: stagger initial fetches after tournament loads so
@@ -54,7 +55,7 @@ export default function TournamentBracket() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!tournament]);
 
-  const { data: bracket } = useGetTournamentBracket(id, {
+  const { data: tournamentBracket } = useGetTournamentBracket(id, {
     query: {
       enabled: !!id && fetchPhase >= 1 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
@@ -74,15 +75,12 @@ export default function TournamentBracket() {
       refetchOnReconnect: false,
     },
   });
-  const doubleEliminationStage = stages?.find(
-    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
-  );
+  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  const bracket = useMemo(() => publicStageBracket(tournamentBracket, publicStage), [tournamentBracket, publicStage]);
+  const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
   const marvelStage =
     tournament?.gameConfig?.gameId === "marvel"
-      ? stages?.find(
-          (stage) =>
-            stage.format === "group_stage" && stage.status !== "planned",
-        )
+      ? publicStage?.format === "group_stage" ? publicStage : undefined
       : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
@@ -107,12 +105,12 @@ export default function TournamentBracket() {
   const clampZoom = (z: number) =>
     Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) * 100) / 100;
 
-  const isSwiss = tournament?.format === "swiss";
-  const isRoundRobin = tournament?.format === "round_robin";
+  const isSwiss = publicStage?.format === "swiss";
+  const isRoundRobin = publicStage?.format === "round_robin";
 
   const { data: swissStandings } = useGetTournamentStandings(id, {
     query: {
-      enabled: !!id && isSwiss && tournament?.status !== "draft" && fetchPhase >= 2,
+      enabled: !!id && isSwiss && stages?.length === 1 && tournament?.status !== "draft" && fetchPhase >= 2,
       queryKey: getGetTournamentStandingsQueryKey(id),
       refetchInterval: 13000,
       staleTime: 12500,
@@ -162,7 +160,7 @@ export default function TournamentBracket() {
     const availH = canvas.clientHeight - 64;
     const z = clampZoom(Math.min(availW / natW, availH / natH));
     setZoom(z);
-  }, [bracket, isSwiss]);
+  }, [bracket, isSwiss, isRoundRobin]);
 
   useEffect(() => {
     if (bracket) fitZoom();
@@ -265,11 +263,11 @@ export default function TournamentBracket() {
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
-          {tournament.gameConfig?.gameId === "marvel"
+          {publicStageLabel(publicStage)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
-            : (FORMAT_LABELS[tournament.format] ?? tournament.format)}
-          {tournament.currentRound && tournament.totalRounds
-            ? ` · Runda ${tournament.currentRound}/${tournament.totalRounds}`
+            : (FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
+          {publicStage?.currentRound && publicStage.totalRounds
+            ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
             : ""}
         </p>
         <div className="relative z-10 mt-2">
@@ -292,6 +290,8 @@ export default function TournamentBracket() {
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
             Turniej jeszcze nie wystartował.
           </div>
+        ) : !publicStage ? (
+          <div className="p-8 text-muted-foreground">{stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}</div>
         ) : marvelStage ? (
           <div className="p-8">
             <MarvelEliminationStage
@@ -320,9 +320,9 @@ export default function TournamentBracket() {
             <div className="p-6 md:p-8 min-h-full">
               <SwissRoundsView
                 bracket={bracket}
-                currentRound={tournament.currentRound}
-                totalRounds={tournament.totalRounds}
-                standings={swissStandings}
+                currentRound={publicStage.currentRound}
+                totalRounds={publicStage.totalRounds}
+                standings={stages?.length === 1 ? swissStandings : undefined}
               />
             </div>
           ) : isRoundRobin ? (
@@ -349,7 +349,7 @@ export default function TournamentBracket() {
               >
                 <BracketView
                   bracket={bracket}
-                  format={tournament.format}
+                  format={publicStage.format}
                   forcedHeroId={
                     tournament.gameConfig?.gameId === "deadlock"
                       ? tournament.gameConfig.config.forcedHeroId

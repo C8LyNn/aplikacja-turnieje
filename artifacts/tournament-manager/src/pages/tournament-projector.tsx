@@ -23,6 +23,8 @@ import {
   useGetTournament,
   useGetDoubleEliminationStage,
   useListTournamentStages,
+  useGetTournamentBracket,
+  getGetTournamentBracketQueryKey,
   getGetTournamentQueryKey,
   getGetDoubleEliminationStageQueryKey,
   getListTournamentStagesQueryKey,
@@ -34,6 +36,11 @@ import { useEffect, useMemo } from "react";
 import { Trophy } from "lucide-react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
+import { BracketView } from "@/components/bracket-view";
+import { RoundRobinView } from "@/components/round-robin-view";
+import { SwissRoundsView } from "@/components/swiss-rounds-view";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
+import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
@@ -104,11 +111,20 @@ export default function TournamentProjector() {
     },
   });
 
-  const deStage = stages?.find(
-    s => s.format === "double_elimination" && s.status !== "planned",
-  );
+  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  const deStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
+  const marvelStage = tournament?.gameConfig?.gameId === "marvel" && publicStage?.format === "group_stage" ? publicStage : undefined;
+  const bracketQuery = useGetTournamentBracket(id, {
+    query: {
+      enabled: !!id && !!publicStage && !deStage && !marvelStage,
+      queryKey: getGetTournamentBracketQueryKey(id),
+      refetchInterval: 10000,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const bracket = publicStageBracket(bracketQuery.data, publicStage);
 
-  const { data: deState } = useGetDoubleEliminationStage(
+  const deQuery = useGetDoubleEliminationStage(
     id,
     deStage?.id ?? 0,
     {
@@ -122,6 +138,7 @@ export default function TournamentProjector() {
       },
     },
   );
+  const deState = deQuery.data;
 
   // Apply presentation settings (color preset / font preset / frame)
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -160,7 +177,7 @@ export default function TournamentProjector() {
     containerStyle.transformOrigin = "top left";
   }
 
-  if (!tournament || (!deStage && tournament.status !== "draft")) {
+  if (!tournament || !stages) {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={transparent ? {} : { background: presetStyle.background as string }}>
         <div className="flex flex-col items-center gap-3 text-muted-foreground animate-pulse">
@@ -185,12 +202,13 @@ export default function TournamentProjector() {
           >
             {tournament.name}
           </h1>
-          {tournament.currentRound && tournament.totalRounds && (
+          {publicStage && (
             <p
               className="font-mono uppercase tracking-widest text-muted-foreground"
               style={{ fontSize: compact ? "0.6rem" : "0.7rem" }}
             >
-              Double Elimination · Runda {tournament.currentRound}/{tournament.totalRounds}
+              {publicStageLabel(publicStage)}
+              {publicStage.currentRound && publicStage.totalRounds ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}` : ""}
             </p>
           )}
         </div>
@@ -203,7 +221,11 @@ export default function TournamentProjector() {
           ...(forceAspect ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),
         }}
       >
-        {deState ? (
+        {!publicStage ? (
+          <p className="py-20 text-center text-muted-foreground">Brak rozpoczętego etapu.</p>
+        ) : marvelStage ? (
+          <MarvelEliminationStage tournamentId={id} stageId={marvelStage.id} />
+        ) : deStage && deState ? (
           <DEBracketCanvas
             matches={deState.matches}
             participants={participants}
@@ -213,11 +235,15 @@ export default function TournamentProjector() {
             connectorWidth={connectorWidth}
             showDropLines={showDropLines}
           />
+        ) : deStage ? (
+          <p className="py-20 text-center text-muted-foreground">{deQuery.isError ? "Nie udało się pobrać drabinki Double Elimination." : "Ładowanie drabinki Double Elimination…"}</p>
+        ) : bracket ? (
+          publicStage.format === "round_robin" ? <RoundRobinView bracket={bracket} hideStandings />
+          : publicStage.format === "swiss" ? <SwissRoundsView bracket={bracket} currentRound={publicStage.currentRound} totalRounds={publicStage.totalRounds} />
+          : <BracketView bracket={bracket} format={publicStage.format} />
         ) : (
           <div className="flex items-center justify-center py-20 text-muted-foreground/40 font-mono text-sm">
-            {tournament.status === "draft"
-              ? "Turniej jeszcze nie wystartował."
-              : "Brak etapu Double Elimination."}
+            {bracketQuery.isError ? "Nie udało się pobrać drabinki." : "Ładowanie drabinki…"}
           </div>
         )}
       </div>
