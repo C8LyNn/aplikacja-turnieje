@@ -296,10 +296,33 @@ Tournament, stages i bracket pozostają odświeżane przez query polling; dla pu
 - **Frontend typecheck PASS; build PASS.** Dotychczasowe ostrzeżenie o wielkości bundla pozostaje.
 - Nowe przypadki: RR completed → SE active, transition z opóźnionym tournament metadata, tylko planned, finalny stage przy odwróconej kolejności rekordów, single-stage SE, wybór aktywnego DE spośród dwóch DE z zachowaniem Upper/Lower/Grand Final oraz odejście od cache DE po starcie SE.
 
-### Manual QA — PASS częściowy / PENDING
+### Manual QA — PASS widoków publicznych (domknięcie 14.09.2026)
 
 Użyto zbudowanego frontendu z lokalną bazą `organizer_training_test` i turnieju QA „QA P1 — etapy publiczne 13.09”. Przez panel Etapy przygotowano i uruchomiono RR, zakończono etap z kwalifikacją QA Alfa i QA Beta, a następnie uruchomiono finał SE. Wcześniej otwarte karty public bracket, projector i Audience wykryły zmianę aktywnego etapu przez polling bez ręcznego refreshu (**PASS**): przeszły z Stage 1 RR na finał, pokazały wyłącznie mecze finału i poprawny kontekst etapu, bez mieszania meczów RR.
 
-Następujące kroki nie zostały wykonane, ponieważ narzędzie przeglądarki wielokrotnie blokowało dostęp z powodu limitu użycia: refresh bracket/projector/Audience podczas finału; zapis wyniku finału przez UI; potwierdzenie finalnego zwycięzcy; kontrola finalnego bracketu, projectora i Audience po zakończeniu; refresh wszystkich trzech widoków po zakończeniu. Oznaczenie: **MANUAL QA PENDING — blocked by browser tool usage limit**. Nie jest to FAIL produktu. Nie wykonywano ręcznych wywołań HTTP ani SQL.
+Poprzednie oznaczenie **MANUAL QA PENDING — blocked by browser tool usage limit** zostało rozstrzygnięte 14.09.2026 na istniejącym turnieju #3, bez odtwarzania danych. Repozytorium wskazywało commit `9e14a0bbc8c6343110d21f24fab046530fef1c23`. Środowisko i sesja organizatora działały. Publiczne karty otwarto ponownie, ponieważ poprzednie zostały zamknięte; wcześniejszego testu pollingu RR → finał nie powtarzano.
 
-P1-02 pozostaje automatycznie zweryfikowane i manualnie częściowo potwierdzone; pozostałe punkty są jawnie PENDING z powodu blokady narzędzia. Lokalny helper QA usunięto przed commitem.
+- **Refresh podczas aktywnego finału: PASS** we wszystkich trzech widokach; kontekst „Finał — Etap 2”, wyłącznie QA Alfa–QA Beta, bez sześciu historycznych meczów RR.
+- **Wynik i zwycięzca: PASS.** W Host rozpoczęto mecz, ustawiono i zapisano QA Alfa 2:0 QA Beta (BO3). W Etapach potwierdzono zakończenie finału; turniej przeszedł do ZAKOŃCZONY, zamrożony ranking wskazał QA Alfa na pierwszym miejscu.
+- **Finalny public bracket / projector / Audience Drabinka: PASS.** Bez reloadu pojawiły się wynik 2:0 oraz „ZWYCIĘZCA QA Alfa”, przy zachowanym kontekście finału i bez historycznych meczów.
+- **Refresh po zakończeniu: PASS** we wszystkich trzech widokach. Po zakończeniu ładowania Audience również pokazało finał, wynik i zwycięzcę. AX oraz zrzuty ekranów potwierdziły poprawny stan.
+
+Nie zmieniano kodu produkcyjnego, nie uruchamiano ponownie testów i nie zapisywano wyników przez ręczne HTTP/SQL. Lokalny helper QA pozostaje usunięty.
+
+### Obserwacja P2 — chwilowy błędny komunikat przy zakończeniu etapu
+
+Reprodukcja zaobserwowana podczas powyższej próby: turniej #3, aktywny Finał SE BO3, jedyny mecz zapisany 2:0; otworzyć Etapy, wybrać Finał, kliknąć „Zakończ etap”, następnie jednokrotnie „Potwierdź zakończenie etapu”. Dialog chwilowo pokazał „Ten etap nie jest obecnie aktywny. Kod diagnostyczny: STAGE_NOT_ACTIVE”, po czym sam zniknął i pojawiło się potwierdzenie zakończenia. Etap oraz turniej zostały poprawnie zakończone, wynik i zwycięzca zachowane. Nie jest to blocker publicznych widoków ani utrata danych; to **P2 — mylący przejściowy feedback organizatora**. Czasu widoczności nie mierzono; nie powtarzano mutacji.
+
+Prawdopodobna przyczyna: `tournament-stages-panel.tsx` odświeża zapytania w `lifecycleFeedback.onSuccess` przed zamknięciem dialogu w callbacku mutacji. `invalidateTournamentDependentQueries` obejmuje również preview kwalifikacji. Preview może więc ponownie trafić do serwera już po zakończeniu etapu, zanim dialog i lokalny status zostaną odświeżone. To wniosek z celowanego odczytu kodu, bez potwierdzenia śladem sieciowym. Zgodnie z instrukcją po znalezieniu błędu zatrzymano pracę bez naprawy i bez commita/pushu raportu.
+
+## P2 — kolejność zamykania etapu i odświeżania preview (14.09.2026)
+
+Root cause potwierdzono testem regresyjnym: po sukcesie `/complete` zablokowano odpowiedź odświeżenia listy etapów, a preview zakończonego etapu zwracało `STAGE_NOT_ACTIVE`. Przed poprawką test **FAIL**: odnotował jedno niedozwolone ponowne pobranie preview. Dwa pozostałe nowe testy (rzeczywisty błąd mutacji i preview aktywnego etapu) już wtedy przeszły.
+
+Zmiana dotyczy wyłącznie sukcesu mutacji zakończenia etapu w panelu Etapy: zamknięcie dialogu → anulowanie i usunięcie nieaktualnego preview konkretnego etapu z cache → dotychczasowe odświeżenie zależnych danych. Usunięcie preview zabezpiecza również moment przed zatwierdzeniem renderu React. Blokada ponownego zapisu pozostaje do końca odświeżania. Obsługa rzeczywistych błędów mutacji, preview aktywnego etapu i backendowy lifecycle nie zostały zmienione; brak timerów i globalnego ukrywania kodów błędów.
+
+Walidacja po poprawce: **28/28 testów panelu Etapy PASS**, **232/232 frontend tests PASS**, **frontend typecheck PASS**, **build PASS**. Build zgłosił ostrzeżenia sourcemap, fontu rozwiązywanego w runtime i rozmiaru bundla, bez błędu wykonania. Test regresyjny potwierdza brak preview po sukcesie, zamknięcie dialogu przed końcem refetchu i utrzymanie blokady zapisu; osobne testy potwierdzają widoczny rzeczywisty `STAGE_NOT_ACTIVE` oraz preview po ponownym otwarciu aktywnego etapu.
+
+Manual QA poprawki P2: **PASS** na lokalnym buildzie `index-ienEfnnk.js`. Po zalogowaniu przez użytkownika zakończono ostatni mecz QA #2 wynikiem P0 Pierwsza nadal działa 1:0 P0 Po odzyskaniu; ten turniej zakończył się automatycznie, więc nie posłużył do testu dialogu. W zachowanej sesji QA #3 użyto istniejącej korekty finału i ponownie zapisano identyczny wynik QA Alfa 2:0 QA Beta. Następnie wykonano dokładnie **Etapy → Zakończ etap → Potwierdź zakończenie etapu**. Odczyt bezpośrednio po potwierdzeniu nie pokazał `STAGE_NOT_ACTIVE`; dialog zamknął się i pojawiło się potwierdzenie sukcesu. Etap i turniej są ZAKOŃCZONE, zamrożony ranking wskazuje QA Alfa na pierwszym miejscu, a finał zachował 2:0. Wszystkie zapisy wykonano przez UI. Nie powtarzano testów automatycznych po samej aktualizacji raportu.
+
+Podczas przygotowawczej korekty wyniku zaobserwowano osobny chwilowy komunikat „Ten mecz nie ma już zapisanego wyniku do cofnięcia”, po czym dialog sam zniknął i korekta poprawnie otworzyła mecz. Odnotowano go poza zakresem tej poprawki; nie analizowano ani nie zmieniano Host.

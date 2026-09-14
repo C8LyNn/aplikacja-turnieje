@@ -354,6 +354,83 @@ test("completion explains consequences, prevents double submit and reveals pendi
   assert.ok(screen.getByRole("button", { name: "Rozpocznij etap" }).matches(":disabled"));
 });
 
+test("complete success closes confirmation before refetch and never previews the completed stage", async () => {
+  const stages = [stage(1, "active")];
+  let saved = false;
+  let refreshStarted = false;
+  let completedPreviews = 0;
+  let releaseRead!: () => void;
+  const readBarrier = new Promise<void>(resolve => { releaseRead = resolve; });
+  const user = setup({ stages, intercept: async path => {
+    if (path.endsWith("/complete")) {
+      saved = true;
+      stages[0] = stage(1, "completed");
+      return json(stages[0]);
+    }
+    if (saved && path.endsWith("/qualification-preview")) {
+      completedPreviews++;
+      return json({ code: "STAGE_NOT_ACTIVE" }, 409);
+    }
+    if (saved && path.endsWith("/stages")) {
+      refreshStarted = true;
+      await readBarrier;
+      return json(stages);
+    }
+    return undefined;
+  } });
+  try {
+    await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+    const confirm = screen.getByRole("button", { name: "Potwierdź zakończenie etapu" });
+    await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+    await user.click(confirm);
+    await waitFor(() => assert.equal(refreshStarted, true));
+    assert.equal(completedPreviews, 0, "Success refetched qualification preview for a completed stage");
+    await waitFor(() => assert.equal(screen.queryByRole("dialog"), null));
+    assert.equal(screen.queryByText(/STAGE_NOT_ACTIVE/), null);
+    assert.ok(screen.getByText("Kończenie etapu i odświeżanie danych…"));
+    assert.ok(screen.getByRole("button", { name: "Zakończ etap" }).matches(":disabled"));
+  } finally {
+    releaseRead();
+  }
+  await screen.findByText(/Etap „Eliminacje” zakończony/);
+  assert.equal(completedPreviews, 0);
+  assert.equal(screen.queryByRole("dialog"), null);
+});
+
+test("real complete STAGE_NOT_ACTIVE failure remains visible without claiming success", async () => {
+  let stageReads = 0;
+  const user = setup({ stages: [stage(1, "active")], intercept: async path => {
+    if (path.endsWith("/stages")) stageReads++;
+    if (path.endsWith("/complete")) return json({ code: "STAGE_NOT_ACTIVE" }, 409);
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = screen.getByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  await user.click(confirm);
+  await within(screen.getByRole("dialog")).findByText(/STAGE_NOT_ACTIVE/);
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: "Anuluj" }).matches(":disabled"), false));
+  assert.ok(stageReads >= 2);
+  assert.equal(screen.queryByText(/Etap „Eliminacje” zakończony/), null);
+});
+
+test("active stage confirmation still loads qualification preview on each opening", async () => {
+  let previews = 0;
+  const user = setup({ stages: [stage(1, "active")], intercept: async path => {
+    if (path.endsWith("/qualification-preview")) previews++;
+    return undefined;
+  } });
+  await screen.findByRole("button", { name: "Zakończ etap" });
+  assert.equal(previews, 0);
+  for (const expected of [1, 2]) {
+    await user.click(screen.getByRole("button", { name: "Zakończ etap" }));
+    await waitFor(() => assert.equal(screen.getByRole("button", { name: "Potwierdź zakończenie etapu" }).matches(":disabled"), false));
+    assert.equal(previews, expected);
+    await user.click(screen.getByRole("button", { name: "Anuluj" }));
+    assert.equal(screen.queryByRole("dialog"), null);
+  }
+});
+
 test("first stage uses the existing tournament start endpoint", async () => {
   const stages = [stage(1)];
   let writes = 0;

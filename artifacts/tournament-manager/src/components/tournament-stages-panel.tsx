@@ -660,7 +660,18 @@ export function TournamentStagesPanel({
     },
     onSettled: () => { mutationLock.current = false; },
   };
-  const completeMutation = useCompleteTournamentStage({ mutation: lifecycleFeedback });
+  const completeMutation = useCompleteTournamentStage({ mutation: {
+    ...lifecycleFeedback,
+    onSuccess: async (_result, { stageId }) => {
+      setConfirmOpen(false);
+      const preview = { queryKey: getPreviewStageQualificationQueryKey(tournamentId, stageId), exact: true };
+      // A completed stage no longer has an active-stage preview. Remove it before
+      // invalidation, even if React has not committed the dialog closing yet.
+      await queryClient.cancelQueries(preview);
+      queryClient.removeQueries(preview);
+      await refresh();
+    },
+  } });
   const startMutation = useStartTournamentStage({ mutation: lifecycleFeedback });
   const firstStartMutation = useStartTournament({ mutation: lifecycleFeedback });
   const [qualificationPending, setQualificationPending] = useState(false);
@@ -701,7 +712,6 @@ export function TournamentStagesPanel({
       { id: tournamentId, stageId: selected.id },
       {
         onSuccess: () => {
-          setConfirmOpen(false);
           setActionSuccess(`Etap „${selected.name}” zakończony. Sprawdź kwalifikację i gotowość kolejnego etapu.`);
         },
       },
