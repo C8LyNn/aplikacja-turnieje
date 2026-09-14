@@ -76,6 +76,20 @@ export const STAGE_STATUS_LABELS = {
   completed: "Zakończony",
 } as const;
 
+export const TOURNAMENT_STATUS_LABELS: Record<string, string> = {
+  draft: "Szkic",
+  active: "Aktywny",
+  completed: "Zakończony",
+};
+
+export const PLAYER_STATUS_LABELS: Record<string, string> = {
+  active: "Aktywny",
+  pending: "Oczekuje",
+  qualified: "Zakwalifikowany",
+  eliminated: "Wyeliminowany",
+  winner: "Zwycięzca",
+};
+
 export function balancedGroupSizes(participantCount: number, groupCount: number): number[] {
   if (!Number.isInteger(participantCount) || participantCount < 2 || !Number.isInteger(groupCount) || groupCount < 1 || groupCount > Math.floor(participantCount / 2)) return [];
   const smallerSize = Math.floor(participantCount / groupCount);

@@ -251,7 +251,7 @@ function hostStage(id = 2, status = "active") {
 function hostMatch(id: number, stageId: number | null = 2, status = "pending") {
   return { id, tournamentId: 1, stageId, round: 1, matchNumber: id, status, bestOf: 3,
     player1Id: id * 2, player2Id: id * 2 + 1, player1Name: `Gracz A${id}`, player2Name: `Gracz B${id}`,
-    score1: 0, score2: 0, resultType: null as "played" | null, winnerId: null };
+    score1: 0, score2: 0, resultType: null as "played" | "walkover" | "no_contest" | null, winnerId: null };
 }
 
 async function renderOperationalHost(options: {
@@ -439,6 +439,55 @@ test("Host focuses the active stage and exposes the entire queue including live 
   assert.ok(screen.getByRole("button", { name: /Gracz A10 vs Gracz B10/ }));
   assert.ok(screen.getByRole("button", { name: /Gracz A2 vs Gracz B2.*LIVE/ }));
   assert.equal(screen.queryByText("▶ aktywny"), null);
+});
+
+test("Host next-match action follows the displayed queue order", async () => {
+  const matches = [
+    { ...hostMatch(1), sortOrder: 30 },
+    { ...hostMatch(3), sortOrder: 20 },
+    { ...hostMatch(2), sortOrder: 10 },
+  ];
+  const user = await renderOperationalHost({ matches });
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(screen.getByRole("button", { name: "Następny" }));
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+  assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A3" }), null);
+});
+
+test("Host advances from a completed no-contest match after the refreshed state", async () => {
+  const matches = [hostMatch(1)];
+  let saved = false;
+  let refreshedMatchReads = 0;
+  const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/matches" && saved) refreshedMatchReads++;
+    if (path === "/api/matches/1/complete" && init?.method === "POST") {
+      assert.equal(JSON.parse(String(init.body)).resultType, "no_contest");
+      saved = true;
+      matches[0] = { ...matches[0], status: "completed", resultType: "no_contest" };
+      return jsonResponse(matches[0]);
+    }
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "No contest" }));
+  await user.click(screen.getByRole("button", { name: "Zapisz no contest" }));
+  // The active stage is Single Elimination, even though the tournament's legacy
+  // format is Swiss. Its last completed match leads to stage completion.
+  const nextStep = await screen.findByRole("region", { name: "Sprawdź zakończenie etapu" });
+  assert.equal(within(nextStep).getByRole("link", { name: "Zakończ etap" }).getAttribute("href"), "/tournaments/1?tab=stages&stage=2&action=complete");
+  await waitFor(() => {
+    assert.equal(screen.queryByText(/Zapisywanie i odświeżanie stanu/), null);
+    assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A1" }), null);
+    assert.equal(screen.queryByRole("button", { name: "Zapisz no contest" }), null);
+  });
+  assert.ok(refreshedMatchReads > 0, "The operational state must come from the refreshed match list");
+  const summary = screen.getByRole("region", { name: "Stan prowadzenia" });
+  assert.match(summary.textContent ?? "", /Finały szkoleniowe.*Runda 1\/2/);
+  for (const [label, count] of [["W trakcie", "0"], ["Gotowe do gry", "0"], ["Zakończone", "1"], ["Pozostałe", "0"]]) {
+    assert.equal(within(summary).getByText(label).nextElementSibling?.textContent, count);
+  }
+  assert.equal(screen.queryByRole("button", { name: /Gracz A1 vs Gracz B1/ }), null);
+  assert.equal(screen.queryByRole("button", { name: /Wygeneruj rundę/ }), null);
+  assert.equal(screen.queryByText("No contest — bez zwycięzcy"), null);
 });
 
 test("Host distinguishes a failed match load from an empty queue and can retry", async () => {

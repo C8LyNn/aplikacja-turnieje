@@ -64,6 +64,14 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    // Keep relative /api requests on the backend, ahead of Vite's SPA fallback.
+    // Override when the local API uses a different port from the workspace default.
+    proxy: {
+      "/api": {
+        target: process.env.API_PROXY_TARGET ?? "http://127.0.0.1:8080",
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
     },

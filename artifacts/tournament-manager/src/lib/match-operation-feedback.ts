@@ -10,6 +10,7 @@ export function matchOperationError(error: unknown) {
     CONCURRENT_MODIFICATION: "Stan meczu zmienił się w trakcie operacji. Sprawdź aktualne dane przed ponowieniem.",
     DOWNSTREAM_BLOCKED: "Nie można cofnąć wyniku, ponieważ zależne mecze lub kolejna runda już się rozpoczęły.",
     STAGE_ALREADY_ADVANCED: "Nie można cofnąć wyniku po uruchomieniu kolejnego etapu.",
+    STAGE_QUALIFICATION_ALREADY_COMMITTED: "Nie można cofnąć wyniku po zatwierdzeniu kwalifikacji lub wykonaniu routingu etapu.",
   };
   const detail = getApiErrorMessage(error);
   const message = (code && messages[code]) || (response?.data?.error && !/^[A-Z_\d]+$/.test(detail) ? detail

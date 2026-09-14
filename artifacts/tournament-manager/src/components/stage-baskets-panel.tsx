@@ -151,7 +151,7 @@ const PROBLEM_CODE_MESSAGES: Record<string, string> = {
   STAGE_BASKET_COLOR_ID_INVALID:             "Nieprawidłowy identyfikator koloru koszyka.",
   STAGE_BASKET_PARTICIPANT_NOT_FOUND:        "Uczestnik przypisany do koszyka nie istnieje w turnieju.",
   STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED: "Do koszyków wyjściowych nie można przypisywać uczestników.",
-  STAGE_BASKET_PARTICIPANT_DUPLICATE:        "Uczestnik jest przypisany do więcej niż jednego koszyka w tym etapie.",
+  STAGE_BASKET_PARTICIPANT_DUPLICATE:        "Uczestnik jest przypisany do więcej niż jednego koszyka lub etapu.",
   STAGE_BASKET_ROUTE_ID_INVALID:             "ID połączenia jest nieprawidłowe.",
   STAGE_BASKET_ROUTE_ID_DUPLICATE:           "Zduplikowane ID połączenia.",
   STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND:       "Źródłowy koszyk połączenia nie istnieje.",

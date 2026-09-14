@@ -118,7 +118,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
 
   return <section className="space-y-4" aria-label="Kwalifikacja i routing">
     <h4 className="font-semibold">Kwalifikacja i przekazanie uczestników</h4>
-    <p className="text-sm">Etap zakończony → zatwierdź kwalifikację{routes.length > 0 && " → wykonaj routing → sprawdź gotowość kolejnego etapu"}.</p>
+    <p className="text-sm">Stan kwalifikacji{routes.length > 0 && " i routingu"} według serwera.</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {success && <p role="status" className="text-sm">{success}</p>}
     {pending && <p role="status" className="text-sm">Trwa operacja i odświeżanie stanu…</p>}

@@ -44,7 +44,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { data: tournaments, isLoading } = useListTournaments();
+  const { data: tournaments, isLoading, isError, isFetching, refetch } = useListTournaments();
   const deleteTournament = useDeleteTournament();
   const createTournament = useCreateTournament();
   const importPlayers = useImportPlayers();
@@ -403,6 +403,14 @@ export default function Dashboard() {
                 <CardContent className="h-20" />
               </Card>
             ))}
+          </div>
+        ) : isError ? (
+          <div role="alert" className="rounded-lg border p-4">
+            <p>Nie udało się pobrać listy turniejów.</p>
+            <p className="text-sm text-muted-foreground">Sprawdź połączenie z API i spróbuj ponownie.</p>
+            <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => void refetch()}>
+              Spróbuj ponownie
+            </Button>
           </div>
         ) : !tournaments || tournaments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card/50">

@@ -4,16 +4,16 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGetTournament, useListMatches, useUpdateMatch, useCompleteMatch, useRevertMatch,
   useUpdateTournament,
-  useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
+  useGetTournamentStandings, useGetResultsHistory, useGenerateNextRound,
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
-  useListTournamentStages, useGetTournamentStageReadiness,
+  useListTournamentStages,
   useGetDoubleEliminationStage,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
-  getListTournamentStagesQueryKey, getGetTournamentStageReadinessQueryKey,
+  getListTournamentStagesQueryKey,
   getGetDoubleEliminationStageQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
@@ -46,13 +46,13 @@ import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice"
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { getDeadlockEffectiveStageBans } from "@workspace/game-catalog";
-import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
+import { PLAYER_STATUS_LABELS, STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import { matchOperationError, MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string };
@@ -100,9 +100,6 @@ export default function TournamentHost() {
   const { data: history } = useGetResultsHistory(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
   });
-  const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id && isAuthReady, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
-  });
 
   const { data: actionLog } = useGetActionLog(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
@@ -139,20 +136,7 @@ export default function TournamentHost() {
       },
     },
   );
-  const plannedStage = stages?.find((stage) => stage.status === "planned");
-  const { data: plannedStageReadiness } = useGetTournamentStageReadiness(
-    id,
-    plannedStage?.id ?? 0,
-    {
-      query: {
-        enabled: !!id && isAuthReady && !!plannedStage,
-        retry: false,
-        refetchInterval: 5000,
-        queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
-      },
-    },
-  );
-
+  const plannedStage = [...(stages ?? [])].sort((a, b) => a.position - b.position).find(stage => stage.status === "planned");
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -217,16 +201,9 @@ export default function TournamentHost() {
     : undefined;
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeHostTab = organizerHostTab(search, capabilities);
-  const nextStep = tournament && managementRole && stages !== undefined
-    ? deriveOrganizerNextStep({
-        tournament,
-        stages,
-        matches: tournament.status === "draft" ? [] : matches,
-        surface: "conducting",
-        capabilities,
-        plannedStageReadiness,
-      })
-    : null;
+  const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
+    capabilities, surface: "conducting", enabled: !!managementRole && isAuthReady });
+  const nextStep = operation.nextStep;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(null);
@@ -544,11 +521,13 @@ export default function TournamentHost() {
 
   const doNoContest = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const mayAdvance = beginMatchOperation(matchId);
     completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", reason: resultReason.trim() || null } }, {
       onSuccess: () => {
         setNoContestConfirm(null);
         setResultReason("");
         toast({ title: "Mecz zakończony jako no contest" });
+        if (mayAdvance()) setSelectedMatchId(null);
       },
     });
   };
@@ -879,8 +858,8 @@ export default function TournamentHost() {
   const canGenerateRound = nextStep?.kind === "swiss_round";
 
   const handleNextMatch = () => {
-    const idx = actionableMatches.findIndex((m) => m.id === focusedMatchId);
-    const next = actionableMatches[(idx + 1) % actionableMatches.length];
+    const idx = queueMatches.findIndex((m) => m.id === focusedMatchId);
+    const next = queueMatches[(idx + 1) % queueMatches.length];
     if (next) setSelectedMatchId(next.id);
   };
 
@@ -1474,7 +1453,7 @@ export default function TournamentHost() {
               </p>
               <h2 className="mt-1 text-xl font-semibold">{activeStage?.name ?? plannedStage?.name ?? tournament.name}</h2>
               {activeStage && <p className="mt-1 text-sm text-muted-foreground">
-                {STAGE_FORMAT_LABELS[activeStage.format]} · Runda {activeStage.currentRound ?? tournament.currentRound ?? "—"}/{activeStage.totalRounds ?? activeStage.plannedRounds ?? tournament.totalRounds ?? "—"}
+                {STAGE_FORMAT_LABELS[activeStage.format]} · {operation.summary.roundLabel}
               </p>}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1506,9 +1485,9 @@ export default function TournamentHost() {
         {hostPending && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
-        {nextStep && !dataLoading && !dataError && nextStep.kind !== "active_matches" && (
+        {nextStep && !dataLoading && !dataError && (
           <OrganizerNextStep
-            step={nextStep.kind === "complete_stage" ? { ...nextStep, description: "Przejdź do Etapów, sprawdź ranking i potwierdź zakończenie. Następnie zweryfikuj kwalifikację do kolejnego etapu." } : nextStep}
+            step={nextStep}
             onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
             pending={generateNextRound.isPending}
           />
@@ -1808,7 +1787,7 @@ export default function TournamentHost() {
                           {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? "Oczekuje na gracza"}</span>
                         </span>
                         <span className="font-mono tabular-nums">{match.resultType === "walkover" ? "W.O." : match.resultType === "bye" ? "BYE" : match.resultType === "no_contest" ? "N/C" : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
-                        <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? match.status}</Badge>
+                        <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
                           : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(`/tournaments/${id}/host`); }}>Pokaż mecz</Button>}
@@ -1837,7 +1816,7 @@ export default function TournamentHost() {
                           <div className="font-semibold">{s.playerName}</div>
                           <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
                         </div>
-                        <Badge variant="outline">{s.status}</Badge>
+                        <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
                       </div>
                       <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                         <div><strong className="block text-lg text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
@@ -2029,10 +2008,6 @@ export default function TournamentHost() {
             </div>
           </TabsContent>
         </Tabs>
-        {assistant && <details className="rounded-lg border p-3 text-sm text-muted-foreground">
-          <summary className="cursor-pointer font-medium">Wskazówki prowadzenia</summary>
-          <p className="mt-2">{assistant.stepTitle} — {assistant.nextAction}</p>
-        </details>}
         </fieldset>
       </div>
 

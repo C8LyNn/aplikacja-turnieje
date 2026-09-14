@@ -6,6 +6,7 @@ import type {
 } from "@workspace/api-client-react";
 import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
 import { stageReadinessMessages } from "./stage-lifecycle-feedback";
+import { organizerStageSummary } from "./organizer-stage-summary";
 
 export type OrganizerSurface = "details" | "conducting";
 export type OrganizerNextStepKind =
@@ -60,10 +61,11 @@ export function deriveOrganizerNextStep(input: {
   surface: OrganizerSurface;
   capabilities: OrganizerCapabilities;
   plannedStageReadiness?: StageStartReadiness;
+  transitionStep?: OrganizerNextStepModel;
 }): OrganizerNextStepModel {
   const { tournament, matches, surface, capabilities } = input;
   const stages = [...input.stages].sort((a, b) => a.position - b.position);
-  if (tournament.status === "completed") {
+  if (tournament.status === "completed" && !stages.some(s => s.status !== "completed") && !input.transitionStep) {
     return {
       kind: "completed",
       title: "Turniej zakończony",
@@ -113,7 +115,7 @@ export function deriveOrganizerNextStep(input: {
         stageId: active.id,
       };
     }
-    const currentRound = active.currentRound ?? tournament.currentRound ?? 0;
+    const currentRound = organizerStageSummary(active, matches).round ?? active.currentRound ?? 0;
     const totalRounds = active.totalRounds ?? active.plannedRounds ?? tournament.totalRounds ?? 0;
     if (active.format === "swiss" && currentRound > 0 && currentRound < totalRounds) {
       return {
@@ -135,11 +137,12 @@ export function deriveOrganizerNextStep(input: {
         ? `Serwer sprawdzi wyniki i kwalifikację. Przed rozpoczęciem etapu „${next.name}” trzeba potwierdzić jego gotowość.`
         : "Serwer sprawdzi wyniki i warunki zakończenia etapu.",
       actionLabel: capabilities.canManageLifecycle ? "Zakończ etap" : undefined,
-      actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
+      actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages&stage=${active.id}&action=complete` : undefined,
       stageId: active.id,
     };
   }
 
+  if (input.transitionStep) return input.transitionStep;
   const planned = stages.find((stage) => stage.status === "planned");
   if (planned) {
     const hasCompletedPredecessor = stages.some(
@@ -156,18 +159,17 @@ export function deriveOrganizerNextStep(input: {
         stageId: planned.id,
       };
     }
-    const estimate = estimateStageMatches(planned);
     const mayAct = hasCompletedPredecessor
       ? capabilities.canManageLifecycle
       : capabilities.canStartTournament;
     return {
       kind: hasCompletedPredecessor ? "next_stage" : "planned_stage",
       title: planned.name,
-      description: `${formatLabels[planned.format] ?? planned.format} · ${planned.participantCount} uczestników${estimate === undefined ? "" : ` · ${estimate} meczów`}.`,
+      description: `${formatLabels[planned.format] ?? planned.format} · Gotowy. Skład i konfiguracja potwierdzone przez serwer.`,
       actionLabel: mayAct
         ? "Rozpocznij etap"
         : undefined,
-      actionHref: mayAct ? `/tournaments/${tournament.id}?tab=stages` : undefined,
+      actionHref: mayAct ? `/tournaments/${tournament.id}?tab=stages&stage=${planned.id}&action=start` : undefined,
       stageId: planned.id,
     };
   }

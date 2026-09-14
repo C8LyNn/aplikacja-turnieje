@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetTournamentStageQueryKey,
   getGetTournamentStageBasketsQueryKey,
   getGetTournamentStageReadinessQueryKey,
   getGetDoubleEliminationStageQueryKey,
+  getGetStageSeedingCeremonyQueryKey,
   getListTournamentStagesQueryKey,
   getPreviewStageQualificationQueryKey,
   type Match,
@@ -24,12 +25,14 @@ import {
   usePreviewStageQualification,
   useStartTournamentStage,
   useStartTournament,
+  useGetStageSeedingCeremony,
 } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { StageQualificationRouting } from "@/components/stage-qualification-routing";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-editor";
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
+import { organizerStageSummary } from "@/lib/organizer-stage-summary";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { stageReadinessMessages, stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
 import {
@@ -64,6 +67,7 @@ import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import {
   isSequentialCeremonyReady,
   stageHasRandomCeremony,
+  stageRequiresSequentialCeremony,
 } from "@/lib/seeding-ceremony-view";
 
 interface TournamentStagesPanelProps {
@@ -246,11 +250,11 @@ export function ParticipantTable({
                   <td className="px-3 py-2 text-center">
                     {qualified ? (
                       <Badge className="bg-green-500/15 text-green-600">
-                        Awans
+                        {participant.status === "winner" ? "Zwycięzca" : "Awans"}
                       </Badge>
                     ) : (
                       <span className="text-xs text-muted-foreground">
-                        {participant.status}
+                        {{ active: "Aktywny", eliminated: "Wyeliminowany", pending: "Oczekuje", qualified: "Awans", winner: "Zwycięzca" }[participant.status]}
                       </span>
                     )}
                   </td>
@@ -355,15 +359,19 @@ export function PlannedStageParticipants({
   stagePosition,
   participants,
   entrySeedingPolicy,
+  readyParticipantCount,
 }: {
   stagePosition: number;
   participants: StageParticipant[];
   entrySeedingPolicy?: string | null;
+  readyParticipantCount?: number;
 }) {
   if (participants.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        {stagePosition === 1
+        {readyParticipantCount !== undefined
+          ? `Skład gotowy według serwera: ${readyParticipantCount} uczestników. Lista uczestników etapu zostanie zapisana przy rozpoczęciu.`
+          : stagePosition === 1
           ? "Uczestnicy pierwszego etapu pochodzą z listy graczy turnieju. Dodaj graczy, aby pojawili się tutaj."
           : "Uczestnicy pojawią się po kwalifikacji z poprzedniego etapu."}
       </p>
@@ -524,9 +532,16 @@ export function TournamentStagesPanel({
   gameConfig,
 }: TournamentStagesPanelProps) {
   const queryClient = useQueryClient();
+  const search = useSearch();
+  const [location, navigate] = useLocation();
+  const searchParams = new URLSearchParams(search);
+  const requestedStageId = Number(searchParams.get("stage")) || undefined;
+  const requestedAction = searchParams.get("action");
   const [selectedStageId, setSelectedStageId] = useState<number>();
+  useEffect(() => { if (requestedStageId && !requestedAction) setSelectedStageId(requestedStageId); }, [requestedStageId, requestedAction]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [startConfirmOpen, setStartConfirmOpen] = useState(false);
+  const [actionStageId, setActionStageId] = useState<number>();
   const [actionSuccess, setActionSuccess] = useState<string>();
   const mutationLock = useRef(false);
   const [actionError, setActionError] = useState<string>();
@@ -580,12 +595,13 @@ export function TournamentStagesPanel({
     if (selectedStageId && stages.some((stage) => stage.id === selectedStageId))
       return;
     const preferred =
+      stages.find((stage) => !requestedAction && stage.id === requestedStageId) ??
       stages.find((stage) => stage.status === "active") ??
       stages.find((stage) => stage.id === activeStageId) ??
       [...stages].reverse().find((stage) => stage.status === "completed") ??
       stages[0];
     setSelectedStageId(preferred.id);
-  }, [activeStageId, selectedStageId, stages]);
+  }, [activeStageId, requestedAction, requestedStageId, selectedStageId, stages]);
 
   const detailQuery = useGetTournamentStage(
     tournamentId,
@@ -603,6 +619,16 @@ export function TournamentStagesPanel({
     },
   );
   const selected = stages.find((stage) => stage.id === selectedStageId);
+  const actionStage = stages.find((stage) => stage.id === actionStageId);
+  const actionReadiness = useGetTournamentStageReadiness(tournamentId, actionStageId ?? 0, {
+    query: { queryKey: getGetTournamentStageReadinessQueryKey(tournamentId, actionStageId ?? 0), enabled: startConfirmOpen && actionStage?.status === "planned", retry: false, refetchInterval: 5000 },
+  });
+  const actionCeremony = useGetStageSeedingCeremony(tournamentId, actionStageId ?? 0, {
+    query: { queryKey: getGetStageSeedingCeremonyQueryKey(tournamentId, actionStageId ?? 0), enabled: startConfirmOpen && !!actionStage && stageRequiresSequentialCeremony(actionStage), retry: false },
+  });
+  const actionDoubleElimination = useGetDoubleEliminationStage(tournamentId, actionStageId ?? 0, {
+    query: { queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, actionStageId ?? 0), enabled: confirmOpen && actionStage?.format === "double_elimination", retry: false },
+  });
   const readinessQuery = useGetTournamentStageReadiness(
     tournamentId,
     selectedStageId ?? 0,
@@ -620,18 +646,18 @@ export function TournamentStagesPanel({
   );
   const previewQuery = usePreviewStageQualification(
     tournamentId,
-    selectedStageId ?? 0,
+    actionStageId ?? 0,
     {
       query: {
         enabled:
-          !!selectedStageId &&
+          !!actionStageId &&
           confirmOpen &&
-          selected?.status === "active" &&
-          selected.format !== "double_elimination",
+          actionStage?.status === "active" &&
+          actionStage.format !== "double_elimination",
         retry: false,
         queryKey: getPreviewStageQualificationQueryKey(
           tournamentId,
-          selectedStageId ?? 0,
+          actionStageId ?? 0,
         ),
       },
     },
@@ -692,11 +718,38 @@ export function TournamentStagesPanel({
       readinessQuery.isFetching,
     )?.ready === true;
   const pending = completeMutation.isPending || startMutation.isPending || firstStartMutation.isPending || qualificationPending;
+  const openLifecycleAction = useCallback((action: "start" | "complete", target: TournamentStage) => {
+    if (!canManage || pending || mutationLock.current) return;
+    if (target.status !== (action === "start" ? "planned" : "active")) return;
+    setActionStageId(target.id);
+    setActionError(undefined);
+    setStartConfirmOpen(action === "start");
+    setConfirmOpen(action === "complete");
+  }, [canManage, pending]);
+  useEffect(() => {
+    if ((requestedAction !== "start" && requestedAction !== "complete") || !requestedStageId || !stagesQuery.data) return;
+    const target = stages.find(stage => stage.id === requestedStageId);
+    if (target) openLifecycleAction(requestedAction, target);
+    // Consume the action, so the same CTA can be used again after cancellation.
+    // Selection remains navigation state, never the trigger or target of an action.
+    const params = new URLSearchParams(search);
+    params.delete("action");
+    params.delete("stage");
+    navigate(`${location}?${params}`, { replace: true });
+  }, [search, requestedAction, requestedStageId, stagesQuery.data, stages, openLifecycleAction, location, navigate]);
   const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
     : !readinessQuery.data.ready ? readinessQuery.data.message
     : !ceremonyReady ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
+  const actionStartBlockedReason = actionReadiness.isError || actionCeremony.isError
+    ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
+    : actionReadiness.isFetching || !actionReadiness.data || actionCeremony.isFetching
+    ? "Sprawdzanie gotowości etapu…"
+    : !actionReadiness.data.ready ? actionReadiness.data.message
+    : actionStage && !isSequentialCeremonyReady(actionStage, actionCeremony.data?.ceremony ?? null)
+    ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
+  const mayStartAction = canManage && actionStage?.status === "planned" && actionReadiness.data?.ready === true;
 
   const refresh = async () => {
     await invalidateTournamentDependentQueries(queryClient, tournamentId);
@@ -704,25 +757,25 @@ export function TournamentStagesPanel({
   };
 
   const complete = () => {
-    if (!canManage || !selected || selected.status !== "active" || mutationLock.current ||
-      (selected.format === "double_elimination" ? doubleEliminationQuery.isFetching || doubleEliminationQuery.isError || !doubleEliminationQuery.data?.completed
+    if (!canManage || !actionStage || actionStage.status !== "active" || pending || mutationLock.current ||
+      (actionStage.format === "double_elimination" ? actionDoubleElimination.isFetching || actionDoubleElimination.isError || !actionDoubleElimination.data?.completed
         : previewQuery.isFetching || previewQuery.isError || !previewQuery.data)) return;
     mutationLock.current = true;
     completeMutation.mutate(
-      { id: tournamentId, stageId: selected.id },
+      { id: tournamentId, stageId: actionStage.id },
       {
         onSuccess: () => {
-          setActionSuccess(`Etap „${selected.name}” zakończony. Sprawdź kwalifikację i gotowość kolejnego etapu.`);
+          setActionSuccess(`Etap „${actionStage.name}” zakończony.${stages.some(stage => stage.position > actionStage.position) ? " Sprawdź kwalifikację i gotowość kolejnego etapu." : " Plan nie zawiera kolejnego etapu."}`);
         },
       },
     );
   };
   const start = () => {
-    if (!canManage || !selected || !mayStart || startBlockedReason || mutationLock.current) return;
+    if (!canManage || !actionStage || !mayStartAction || actionStartBlockedReason || pending || mutationLock.current) return;
     mutationLock.current = true;
-    const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${selected.name}” rozpoczęty.`); };
-    if (tournamentStatus === "draft" && selected.position === 1) firstStartMutation.mutate({ id: tournamentId }, { onSuccess });
-    else startMutation.mutate({ id: tournamentId, stageId: selected.id }, { onSuccess });
+    const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${actionStage.name}” rozpoczęty.`); };
+    if (tournamentStatus === "draft" && actionStage.position === 1) firstStartMutation.mutate({ id: tournamentId }, { onSuccess });
+    else startMutation.mutate({ id: tournamentId, stageId: actionStage.id }, { onSuccess });
   };
 
   if (stagesQuery.isLoading)
@@ -814,17 +867,15 @@ export function TournamentStagesPanel({
                 <p className="mt-1 text-sm text-muted-foreground">
                   {STAGE_FORMAT_LABELS[selected.format]} · BO{selected.bestOf} ·{" "}
                   {selected.status === "planned" ? readinessQuery.data?.participantCount ?? "—" : detailQuery.data.participants.length} uczestników
-                  {selected.plannedRounds
-                    ? ` · ${selected.plannedRounds} rund`
-                    : ""}
+                  {` · ${organizerStageSummary(selected, matches).roundLabel}`}
                 </p>
               </div>
               <StageActionBar
                 canManage={canManage}
                 stage={selected}
                 mayStart={mayStart}
-                onComplete={() => { setActionError(undefined); setConfirmOpen(true); }}
-                onStart={() => { setActionError(undefined); setStartConfirmOpen(true); }}
+                onComplete={() => openLifecycleAction("complete", selected)}
+                onStart={() => openLifecycleAction("start", selected)}
                 pending={pending}
                 startBlockedReason={startBlockedReason}
               />
@@ -880,6 +931,7 @@ export function TournamentStagesPanel({
                   stagePosition={selected.position}
                   participants={detailQuery.data.participants}
                   entrySeedingPolicy={selected.entrySeedingPolicy}
+                  readyParticipantCount={readinessQuery.data?.ready ? readinessQuery.data.participantCount : undefined}
                 />
               </CardContent>
             </Card>
@@ -966,7 +1018,7 @@ export function TournamentStagesPanel({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Zakończyć etap „{selected?.name}”?</DialogTitle>
+            <DialogTitle>Zakończyć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>
               Ranking zostanie obliczony i zamrożony. {explicitBasketAuthority ? "Kwalifikację do koszyków trzeba następnie zatwierdzić i przekazać uczestników." : "System zapisze kwalifikantów zgodnie z konfiguracją."} Następny etap rozpoczyna się osobno, po sprawdzeniu gotowości. Cofnięcie wyniku może być zablokowane po rozpoczęciu kolejnego etapu.
             </DialogDescription>
@@ -985,9 +1037,9 @@ export function TournamentStagesPanel({
             </div>
           )}
           {previewQuery.data && <PreviewList preview={previewQuery.data} />}
-          {selected?.format === "double_elimination" && doubleEliminationQuery.data && (
+          {actionStage?.format === "double_elimination" && actionDoubleElimination.data && (
             <p className="text-sm text-muted-foreground">
-              {doubleEliminationQuery.data.completed
+              {actionDoubleElimination.data.completed
                 ? `Zwycięzca został wyłoniony. Serwer sprawdzi i zamknie ten etap.`
                 : "Najpierw rozegraj Grand Final (oraz reset, jeśli będzie wymagany)."}
             </p>
@@ -1001,9 +1053,9 @@ export function TournamentStagesPanel({
               onClick={complete}
               disabled={
                 pending ||
-                selected?.status !== "active" ||
-                (selected?.format === "double_elimination"
-                  ? doubleEliminationQuery.isFetching || doubleEliminationQuery.isError || doubleEliminationQuery.data?.completed !== true
+                actionStage?.status !== "active" ||
+                (actionStage?.format === "double_elimination"
+                  ? actionDoubleElimination.isFetching || actionDoubleElimination.isError || actionDoubleElimination.data?.completed !== true
                   : previewQuery.isFetching || previewQuery.isError || !previewQuery.data)
               }
             >
@@ -1015,14 +1067,20 @@ export function TournamentStagesPanel({
       </Dialog>
       <Dialog open={startConfirmOpen} onOpenChange={open => { if (!pending) setStartConfirmOpen(open); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rozpocząć etap „{selected?.name}”?</DialogTitle>
+          <DialogHeader><DialogTitle>Rozpocząć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>System utrwali skład uczestników i przygotuje mecze tego etapu. Po rozpoczęciu zmiana składu i rozstawienia będzie ograniczona.</DialogDescription>
           </DialogHeader>
-          {startBlockedReason && <p className="text-sm">{startBlockedReason}</p>}
+          {actionStartBlockedReason && <p className="text-sm">{actionStartBlockedReason}</p>}
+          {(actionReadiness.isError || actionCeremony.isError) && (
+            <Button variant="outline" disabled={pending || actionReadiness.isFetching || actionCeremony.isFetching} onClick={() => {
+              void actionReadiness.refetch();
+              if (actionStage && stageRequiresSequentialCeremony(actionStage)) void actionCeremony.refetch();
+            }}>Ponów sprawdzenie gotowości</Button>
+          )}
           {actionError && <p className="text-sm text-destructive">{actionError}</p>}
           <DialogFooter>
             <Button variant="outline" disabled={pending} onClick={() => setStartConfirmOpen(false)}>Anuluj</Button>
-            <Button disabled={pending || !mayStart || !!startBlockedReason} onClick={start}>{pending ? "Uruchamianie…" : "Potwierdź rozpoczęcie etapu"}</Button>
+            <Button disabled={pending || !mayStartAction || !!actionStartBlockedReason} onClick={start}>{pending ? "Uruchamianie…" : "Potwierdź rozpoczęcie etapu"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

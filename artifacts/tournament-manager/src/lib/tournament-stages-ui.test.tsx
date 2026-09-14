@@ -31,6 +31,8 @@ import {
   singleEliminationAdvancingOptions,
   singleEliminationStageMetrics,
   synchronizeStageParticipantFlow,
+  PLAYER_STATUS_LABELS,
+  TOURNAMENT_STATUS_LABELS,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
@@ -46,6 +48,14 @@ import {
   clearTournamentAuthHeaders,
   synchronizeTournamentAuthHeaders,
 } from "./tournament-auth-hydration";
+
+test("uses operator-facing labels for tournament statuses", () => {
+  assert.equal(TOURNAMENT_STATUS_LABELS.draft, "Szkic");
+  assert.equal(TOURNAMENT_STATUS_LABELS.active, "Aktywny");
+  assert.equal(TOURNAMENT_STATUS_LABELS.completed, "Zakończony");
+  assert.equal(PLAYER_STATUS_LABELS.qualified, "Zakwalifikowany");
+  assert.equal(PLAYER_STATUS_LABELS.eliminated, "Wyeliminowany");
+});
 
 test("wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu", () => {
   assert.equal(organizerCredentialScreen(null, true), "loading");

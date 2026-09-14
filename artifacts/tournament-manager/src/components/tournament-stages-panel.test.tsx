@@ -7,6 +7,9 @@ import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { TournamentStagesPanel } from "./tournament-stages-panel";
+import { OrganizerNextStep } from "./organizer-next-step";
+import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import type { Match, TournamentStage, StageStartReadiness } from "@workspace/api-client-react";
 
 const originalFetch = globalThis.fetch;
 const clients = new Set<QueryClient>();
@@ -28,6 +31,8 @@ function setup(options: {
   basket?: boolean;
   draft?: boolean;
   canManage?: boolean;
+  path?: string;
+  nextStep?: boolean;
   intercept?: (path: string, init?: RequestInit) => Promise<Response | undefined>;
 }) {
   globalThis.fetch = async (input, init) => {
@@ -45,8 +50,18 @@ function setup(options: {
   };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   clients.add(client);
-  const location = memoryLocation({ path: "/tournaments/1?tab=stages" });
-  render(<QueryClientProvider client={client}><Router hook={location.hook}>
+  const location = memoryLocation({ path: options.path ?? "/tournaments/1?tab=stages" });
+  const matches = options.stages.filter(stage => stage.status === "active").map(stage => ({
+    id: stage.id, stageId: stage.id, status: "completed", round: 1,
+  })) as Match[];
+  const step = deriveOrganizerNextStep({
+    tournament: { id: 1, status: options.draft ? "draft" : "active", currentRound: 1, totalRounds: 1 },
+    stages: options.stages as unknown as TournamentStage[], matches, surface: "details",
+    capabilities: { canManageLifecycle: true, canStartTournament: true } as Parameters<typeof deriveOrganizerNextStep>[0]["capabilities"],
+    plannedStageReadiness: (options.readiness ?? ready()) as StageStartReadiness,
+  });
+  render(<QueryClientProvider client={client}><Router hook={location.hook} searchHook={location.searchHook}>
+    {options.nextStep && <OrganizerNextStep step={step} />}
     <TournamentStagesPanel tournamentId={1} tournamentStatus={options.draft ? "draft" : "active"} matches={[]} canManage={options.canManage ?? true} />
   </Router></QueryClientProvider>);
   return userEvent.setup();
@@ -54,6 +69,150 @@ function setup(options: {
 async function selectFinals(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole("button", { name: /Etap 2.*Finały/ }));
 }
+
+for (const source of ["upper", "lower"] as const) {
+  for (const scenario of ["first start", "next start", "complete"] as const) {
+    test(`${source} CTA: ${scenario} uses the target stage confirmation and locks write plus refetch`, async () => {
+      const completing = scenario === "complete";
+      const next = scenario === "next start";
+      const targetId = next ? 2 : 1;
+      const stages = next ? [stage(1, "completed"), stage(2)] : [stage(1, completing ? "active" : "planned")];
+      let writes = 0;
+      let saved = false;
+      let refreshing = false;
+      let releaseWrite!: () => void;
+      let releaseRead!: () => void;
+      const writeBarrier = new Promise<void>(resolve => { releaseWrite = resolve; });
+      const readBarrier = new Promise<void>(resolve => { releaseRead = resolve; });
+      const endpoint = completing ? "/api/tournaments/1/stages/1/complete"
+        : next ? "/api/tournaments/1/stages/2/start" : "/api/tournaments/1/start";
+      const user = setup({ stages, draft: !completing && !next, nextStep: true, intercept: async (path, init) => {
+        if (init?.method === "POST") {
+          assert.equal(path, endpoint);
+          writes++;
+          await writeBarrier;
+          stages[targetId - 1] = stage(targetId, completing ? "completed" : "active");
+          saved = true;
+          return json(stages[targetId - 1]);
+        }
+        if (saved && path.endsWith("/stages")) {
+          refreshing = true;
+          await readBarrier;
+        }
+        return undefined;
+      } });
+      await screen.findByRole("heading", { name: "Eliminacje" });
+      if (source === "lower" && next) await selectFinals(user);
+      const label = completing ? "Zakończ etap" : "Rozpocznij etap";
+      const button = await screen.findByRole(source === "upper" ? "link" : "button", { name: label });
+      await waitFor(() => assert.equal(button.matches(":disabled"), false));
+      await user.click(button);
+      const dialog = await screen.findByRole("dialog");
+      assert.match(within(dialog).getByRole("heading").textContent ?? "", next ? /Finały/ : /Eliminacje/);
+      if (source === "upper" && next) {
+        assert.ok(document.querySelector('[aria-label="Przebieg etapów turnieju"]')?.textContent?.includes("Eliminacje"));
+        // Opening an action must not select its target as an intermediate trigger.
+        assert.equal(document.querySelector('button[aria-pressed="true"]')?.textContent?.includes("Eliminacje"), true);
+      }
+      const confirm = within(dialog).getByRole("button", { name: completing ? "Potwierdź zakończenie etapu" : "Potwierdź rozpoczęcie etapu" });
+      await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+      await user.dblClick(confirm);
+      assert.equal(writes, 1);
+      assert.ok(confirm.matches(":disabled"));
+      releaseWrite();
+      await waitFor(() => assert.equal(refreshing, true));
+      if (!completing) assert.ok(confirm.matches(":disabled"));
+      else assert.equal(screen.queryByRole("dialog"), null);
+      releaseRead();
+      await screen.findByText(`Etap „${next ? "Finały" : "Eliminacje"}” ${completing ? "zakończony. Plan nie zawiera kolejnego etapu." : "rozpoczęty."}`);
+      await waitFor(() => assert.equal(screen.queryByRole("dialog"), null));
+      assert.equal(writes, 1);
+    });
+  }
+}
+
+test("upper start CTA can reopen after cancellation with its target already selected", async () => {
+  const user = setup({ stages: [stage(1, "completed"), stage(2)], nextStep: true });
+  await selectFinals(user);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await user.click(screen.getByRole("link", { name: "Rozpocznij etap" }));
+    const dialog = await screen.findByRole("dialog");
+    assert.match(within(dialog).getByRole("heading").textContent ?? "", /Finały/);
+    await user.click(within(dialog).getByRole("button", { name: "Anuluj" }));
+    await waitFor(() => assert.equal(screen.queryByRole("dialog"), null));
+  }
+});
+
+test("upper completion previews and completes the active stage while another stage stays selected", async () => {
+  const stages = [stage(1, "active"), stage(2)];
+  const previews: string[] = [];
+  const user = setup({ stages, nextStep: true, intercept: async path => {
+    if (path.endsWith("/qualification-preview")) previews.push(path);
+    if (path.endsWith("/complete")) {
+      assert.equal(path, "/api/tournaments/1/stages/1/complete");
+      stages[0] = stage(1, "completed");
+      return json(stages[0]);
+    }
+    return undefined;
+  } });
+  await selectFinals(user);
+  await user.click(screen.getByRole("link", { name: "Zakończ etap" }));
+  const dialog = await screen.findByRole("dialog");
+  assert.match(within(dialog).getByRole("heading").textContent ?? "", /Eliminacje/);
+  assert.equal(document.querySelector('button[aria-pressed="true"]')?.textContent?.includes("Finały"), true);
+  const confirm = within(dialog).getByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  await user.click(confirm);
+  await screen.findByText(/Etap „Eliminacje” zakończony/);
+  assert.deepEqual(previews, ["/api/tournaments/1/stages/1/qualification-preview"]);
+});
+
+test("upper start conflict refreshes its explicit target and blocks retry with stale readiness", async () => {
+  const readiness = ready();
+  let reads = 0;
+  let writes = 0;
+  const user = setup({ stages: [stage(1, "completed"), stage(2)], nextStep: true, readiness, intercept: async path => {
+    if (path === "/api/tournaments/1/stages/2/readiness") reads++;
+    if (path.endsWith("/start")) {
+      assert.equal(path, "/api/tournaments/1/stages/2/start");
+      writes++;
+      Object.assign(readiness, ready(false));
+      return json({ code: "STAGE_PARTICIPANTS_INCONSISTENT", error: "Skład etapu zmienił się w innym oknie." }, 409);
+    }
+    return undefined;
+  } });
+  await screen.findByRole("heading", { name: "Eliminacje" });
+  await user.click(screen.getByRole("link", { name: "Rozpocznij etap" }));
+  const dialog = await screen.findByRole("dialog");
+  const confirm = within(dialog).getByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  await user.click(confirm);
+  await within(dialog).findByText(/Skład etapu zmienił się/);
+  await waitFor(() => assert.equal(within(dialog).getByRole("button", { name: "Anuluj" }).matches(":disabled"), false));
+  assert.ok(confirm.matches(":disabled"));
+  assert.ok(reads >= 2);
+  assert.equal(writes, 1);
+  assert.equal(screen.queryByText("Etap „Finały” rozpoczęty."), null);
+});
+
+test("upper start reads the target ceremony instead of the selected stage ceremony", async () => {
+  let writes = 0;
+  const stages = [stage(1, "completed"), { ...stage(2), entrySeedingPolicy: "random", randomRevealOrder: "sequential" }];
+  const user = setup({ stages, nextStep: true, intercept: async (path, init) => {
+    if (init?.method === "POST") writes++;
+    if (path.includes("seeding-ceremony")) {
+      assert.ok(path.includes("/stages/2/"));
+      return json({ ceremony: null });
+    }
+    return undefined;
+  } });
+  await screen.findByRole("heading", { name: "Eliminacje" });
+  await user.click(screen.getByRole("link", { name: "Rozpocznij etap" }));
+  const dialog = await screen.findByRole("dialog");
+  await within(dialog).findByText("Dokończ ceremonię losowania przed rozpoczęciem etapu.");
+  assert.ok(within(dialog).getByRole("button", { name: "Potwierdź rozpoczęcie etapu" }).matches(":disabled"));
+  assert.equal(writes, 0);
+});
 
 function qualificationFlow(options: {
   initial?: "missing" | "pending" | "approved";
@@ -329,6 +488,43 @@ test("start conflict refreshes readiness and retains an actionable error without
   assert.equal(screen.queryByText("Etap „Finały” rozpoczęty.") === null, true);
   await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Anuluj" }));
   await screen.findByText("Brakujące seedy: 3, 4.");
+});
+
+test("next-step start intent opens the same confirmation for the first ready stage", async () => {
+  const stages = [stage(1)];
+  let writes = 0;
+  const user = setup({ draft: true, stages, path: "/tournaments/1?tab=stages&stage=1&action=start", intercept: async (path, init) => {
+    if (path.endsWith("/start") && init?.method === "POST") {
+      writes++;
+      stages[0] = stage(1, "active");
+      return json(stages[0]);
+    }
+    return undefined;
+  } });
+  const confirm = await screen.findByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  await user.click(confirm);
+  await screen.findByText("Etap „Eliminacje” rozpoczęty.");
+  assert.equal(writes, 1);
+});
+
+test("next-step start intent targets the ready second stage even when the first is selected", async () => {
+  const stages = [stage(1, "completed"), stage(2)];
+  let writes = 0;
+  const user = setup({ stages, path: "/tournaments/1?tab=stages&stage=2&action=start", intercept: async (path, init) => {
+    if (path.endsWith("/start") && init?.method === "POST") {
+      writes++;
+      stages[1] = stage(2, "active");
+      return json(stages[1]);
+    }
+    return undefined;
+  } });
+  const confirm = await screen.findByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  assert.match(screen.getByRole("dialog").textContent ?? "", /Finały/);
+  await user.dblClick(confirm);
+  await screen.findByText("Etap „Finały” rozpoczęty.");
+  assert.equal(writes, 1);
 });
 
 test("completion explains consequences, prevents double submit and reveals pending qualification", async () => {
