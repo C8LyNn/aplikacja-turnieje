@@ -308,6 +308,7 @@ function sendBasketRouteExecutionError(
   ]);
   const conflict = new Set<BasketRouteExecutionErrorCode>([
     "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED",
+    "STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED",
     "STAGE_BASKET_ROUTE_SOURCE_OUTPUT_INCOMPLETE",
     "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED",
     "STAGE_BASKET_ROUTE_PARTICIPANT_CONFLICT",
@@ -331,6 +332,7 @@ function sendQualificationProposalError(
     "STAGE_BASKET_QUALIFICATION_FORMAT_NOT_SUPPORTED",
     "STAGE_BASKET_QUALIFICATION_ALREADY_APPROVED",
     "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE",
+    "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE",
     "RANKING_INCONSISTENT",
   ]);
   res
@@ -1468,12 +1470,21 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       ) {
         throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
       }
+      if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
+        throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
+      }
+      const existingMatches = await tx
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(eq(matchesTable.stageId, stage.id))
+        .for("update");
+      if (existingMatches.length > 0) {
+        throw new Error("MATCHES_ALREADY_EXIST");
+      }
       const stagePlayers = memberships.map((membership) => ({
         ...playersById.get(membership.playerId)!,
         seed: membership.stageSeed,
       }));
-
-      await tx.delete(matchesTable).where(eq(matchesTable.stageId, stage.id));
 
       const bestOf = stage.bestOf;
       let generatedMatches: (typeof matchesTable.$inferInsert)[];
@@ -1593,10 +1604,13 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       STAGE_FORMAT_NOT_SUPPORTED: "Tournament stage format is not supported by this operation",
       NOT_ENOUGH_PLAYERS: "Need at least 2 players to start",
       STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
+      MATCHES_ALREADY_EXIST: "Tournament stage already contains matches",
       STAGE_BASKET_CONFIGURATION_INVALID: "Tournament stage basket configuration is invalid",
     };
     const status = code === "TOURNAMENT_NOT_FOUND"
       ? 404
+      : code === "MATCHES_ALREADY_EXIST"
+        ? 409
       : code === "STAGE_BASKET_CONFIGURATION_INVALID"
         ? 422
         : 400;
@@ -2218,6 +2232,7 @@ function sendRevertMatchError(
     "STAGE_ALREADY_ADVANCED",
     "CONCURRENT_MODIFICATION",
     "SYSTEM_BYE_REVERT_BLOCKED",
+    "STAGE_QUALIFICATION_ALREADY_COMMITTED",
   ]);
   const status = notFoundCodes.has(error.code)
     ? 404

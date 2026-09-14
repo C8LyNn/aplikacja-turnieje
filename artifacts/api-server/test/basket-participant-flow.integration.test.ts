@@ -219,8 +219,9 @@ test("conflicting direct and routed inputs block readiness and leave no partial 
   const endpoint = `/api/tournaments/${f.id}/stages/${f.target}`;
   const readiness = await request(app).get(`${endpoint}/readiness`).set(f.headers).expect(200);
   assert.equal(readiness.body.ready, false);
+  assert.equal(readiness.body.reasonCode, "STAGE_BASKET_CONFIGURATION_INVALID");
   const started = await request(app).post(`${endpoint}/start`).set(f.headers).expect(422);
-  assert.equal(started.body.code, "STAGE_PARTICIPANTS_INCONSISTENT");
+  assert.equal(started.body.code, "STAGE_BASKET_CONFIGURATION_INVALID");
   const members = await database.pool.query("SELECT id FROM stage_participants WHERE stage_id=$1", [f.target]);
   assert.equal(members.rows.length, 0);
 });

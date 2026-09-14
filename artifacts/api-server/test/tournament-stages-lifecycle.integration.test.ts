@@ -22,6 +22,7 @@ interface DatabaseModule {
   stageParticipantsTable: typeof import("@workspace/db").stageParticipantsTable;
   playersTable: typeof import("@workspace/db").playersTable;
   matchesTable: typeof import("@workspace/db").matchesTable;
+  qualificationProposalsTable: typeof import("@workspace/db").qualificationProposalsTable;
 }
 
 interface PlanFixture {
@@ -615,6 +616,34 @@ describe("Tournament stages lifecycle", () => {
       () => revertMatch({ matchId: matchIds[0] }),
       (error: unknown) => error instanceof RevertMatchError && error.code === "STAGE_ALREADY_ADVANCED",
     );
+  });
+
+  test("blocks result correction after qualification is approved", async () => {
+    const { fixture, matchIds } = await prepareCompletedSource("round_robin");
+    const now = new Date();
+    await database.db.insert(database.qualificationProposalsTable).values({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.sourceStageId,
+      revision: 1,
+      status: "approved",
+      rankingFingerprint: "approved-before-correction",
+      createdAt: now,
+      approvedAt: now,
+      approvedByActorType: "organizer",
+      approvedByActorNick: "organizer",
+    });
+
+    await assert.rejects(
+      revertMatch({ matchId: matchIds[0] }),
+      (error: unknown) =>
+        error instanceof RevertMatchError &&
+        error.code === "STAGE_QUALIFICATION_ALREADY_COMMITTED",
+    );
+    const state = await database.pool.query(
+      "SELECT status, result_type FROM matches WHERE id = $1",
+      [matchIds[0]],
+    );
+    assert.deepEqual(state.rows[0], { status: "completed", result_type: "played" });
   });
 
   test("completing the last stage completes the tournament", async () => {

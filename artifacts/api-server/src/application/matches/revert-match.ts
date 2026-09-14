@@ -4,8 +4,10 @@ import {
   db,
   matchesTable,
   playersTable,
+  qualificationProposalsTable,
   resultHistoryTable,
   stageParticipantsTable,
+  stageBasketRouteExecutionsTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
@@ -30,6 +32,7 @@ export type RevertMatchErrorCode =
   | "DOWNSTREAM_BLOCKED"
   | "STAGE_ALREADY_ADVANCED"
   | "SYSTEM_BYE_REVERT_BLOCKED"
+  | "STAGE_QUALIFICATION_ALREADY_COMMITTED"
   | "CONCURRENT_MODIFICATION"
   | "TOURNAMENT_MISMATCH"
   | "PARTICIPANT_TOURNAMENT_MISMATCH"
@@ -49,6 +52,8 @@ const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   DOWNSTREAM_BLOCKED: "Kolejny mecz lub runda blokuje cofnięcie wyniku.",
   STAGE_ALREADY_ADVANCED: "Nie można cofnąć wyniku po uruchomieniu następnego etapu.",
   SYSTEM_BYE_REVERT_BLOCKED: "Systemowego bye nie można cofnąć ręcznie.",
+  STAGE_QUALIFICATION_ALREADY_COMMITTED:
+    "Nie można cofnąć wyniku po zatwierdzeniu kwalifikacji lub wykonaniu routingu etapu.",
   CONCURRENT_MODIFICATION: "Stan meczu zmienił się podczas cofania wyniku.",
   TOURNAMENT_MISMATCH: "Mecz nie należy do wskazanego turnieju.",
   PARTICIPANT_TOURNAMENT_MISMATCH: "Uczestnicy nie należą do turnieju meczu.",
@@ -230,6 +235,35 @@ export async function revertMatch(
       (candidate) => candidate.position > stage.position && candidate.status !== "planned",
     );
     if (startedLaterStage) throw new RevertMatchError("STAGE_ALREADY_ADVANCED");
+
+    // Once qualification is approved or any route from this stage is
+    // materialised, downstream participant selection is immutable. Reverting
+    // a result at this point would reopen the stage while leaving the approved
+    // fingerprint/output and routed arrivals stale.
+    const [approvedQualification] = await tx
+      .select({ id: qualificationProposalsTable.id })
+      .from(qualificationProposalsTable)
+      .where(
+        and(
+          eq(qualificationProposalsTable.tournamentId, tournament.id),
+          eq(qualificationProposalsTable.stageId, stage.id),
+          eq(qualificationProposalsTable.status, "approved"),
+        ),
+      )
+      .for("update");
+    const [materializedRoute] = await tx
+      .select({ id: stageBasketRouteExecutionsTable.id })
+      .from(stageBasketRouteExecutionsTable)
+      .where(
+        and(
+          eq(stageBasketRouteExecutionsTable.tournamentId, tournament.id),
+          eq(stageBasketRouteExecutionsTable.sourceStageId, stage.id),
+        ),
+      )
+      .for("update");
+    if (approvedQualification || materializedRoute) {
+      throw new RevertMatchError("STAGE_QUALIFICATION_ALREADY_COMMITTED");
+    }
     const doubleEliminationRuntime = stage.format === "double_elimination"
       ? await lockDoubleEliminationRuntime(tx, tournament.id, stage)
       : null;
