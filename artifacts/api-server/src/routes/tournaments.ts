@@ -2676,7 +2676,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
         "TOURNAMENT_NOT_FOUND",
         "PARTICIPANT_NOT_FOUND",
       ]);
-      const status = error.code === "MATCH_ALREADY_FINALIZED"
+      const status = error.code === "MATCH_ALREADY_FINALIZED" || error.code === "CONCURRENT_MODIFICATION"
         ? 409
         : notFoundCodes.has(error.code)
           ? 404

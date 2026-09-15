@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -84,7 +85,7 @@ async function completePendingRound(
     await request(app)
       .post(`/api/matches/${match.id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
   }
 }
@@ -382,7 +383,7 @@ describe("Swiss generation policy", () => {
     await request(app)
       .post(`/api/matches/${pending[1].id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, pending[1].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
     const blocked = await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/generate-round`)

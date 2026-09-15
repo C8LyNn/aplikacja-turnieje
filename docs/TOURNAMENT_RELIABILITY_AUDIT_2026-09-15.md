@@ -1,5 +1,19 @@
 # Audyt poprawności i niezawodności — 15.09.2026
 
+## Aktualizacja po P3.1a + P3.1b
+
+Pierwotny P0 starego formularza był rzeczywistym blockerem: po zamianie stron przez drugiego operatora można było zapisać niewłaściwego zwycięzcę. Ten konkretny blocker został zamknięty przez backend P3.1a i frontend P3.1b. Poprawki reliability sprzed P3.1 są zapisane w commicie `8a00f7c`.
+
+Backend używa `matches.revision` i wymaga `expectedRevision` przy complete dla played, walkover i no-contest. Pod lockiem odrzuca nieaktualną wersję jako `409 CONCURRENT_MODIFICATION`, przed zapisem wyniku, historii i downstream. Host i edytor DE wysyłają wersję przypisaną do draftu; polling jej nie podmienia. Konflikt nie powoduje automatycznego retry ani sukcesu i wymaga świadomego rozpoczęcia nowej edycji.
+
+Manual browser QA dwóch operatorów: **PASS**, potwierdzony przez użytkownika. Po swapie stary formularz został odrzucony; błędny winner nie został zapisany. Po świadomym rozpoczęciu świeżej edycji zapis przeszedł, a turniej zakończył się poprawnie. Nie oznacza to wykonania wszystkich pozostałych scenariuszy manualnych z historycznego raportu.
+
+Backlog UX: odrzucenie starego draftu po konflikcie powinno być bardziej widoczne / wyeksponowane. Bez zmiany tego zachowania w obecnej finalizacji.
+
+## Historyczny raport sprzed P3.1
+
+Cała poniższa część dokumentu zachowuje stan pierwotnego audytu, w tym ówczesny otwarty blocker, TODO, wyniki runnerów i ograniczenia. Sformułowania „obecnie”, „pozostaje” oraz „niezacommitowane” w tej części odnoszą się do momentu **przed P3.1**, a nie do aktualnego stanu ochrony zapisu wyniku opisanego powyżej.
+
 Branch: `codex/organizer-host-training`. Punkt wyjścia: czysty working tree, HEAD `5bfada2749c396456eb78a287914b9c288c25bef`. Zmiany audytu pozostają niezacommitowane. Bez pushu.
 
 ## Wniosek

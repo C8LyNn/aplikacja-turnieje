@@ -456,7 +456,7 @@ test("zachowuje komunikat kwalifikacyjny dla późniejszego planowanego etapu", 
 
 test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   const first: Match = {
-    id: 1,
+    id: 1, revision: 1,
     tournamentId: 1,
     stageId: 10,
     round: 1,

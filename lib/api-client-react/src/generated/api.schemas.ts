@@ -1653,6 +1653,8 @@ export const MatchStatus = {
 
 export interface Match {
   id: number;
+  /** @minimum 1 */
+  revision: number;
   tournamentId: number;
   stageId: number;
   /** @nullable */
@@ -1720,15 +1722,21 @@ export interface MatchUpdate {
 }
 
 export type MatchResult = {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'played';
   score1: number;
   score2: number;
 } | {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'walkover';
   winnerId: number;
   /** @nullable */
   reason?: string | null;
 } | {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'no_contest';
   /** @nullable */
   reason?: string | null;

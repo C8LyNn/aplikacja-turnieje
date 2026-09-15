@@ -86,7 +86,7 @@ const readiness = (ready: boolean, message = ready ? "Gotowy." : "Brak składu."
 });
 
 const match = (id: number, status: Match["status"], overrides: Partial<Match> = {}): Match => ({
-  id,
+  id, revision: 1,
   tournamentId: 41,
   stageId: 11,
   round: 1,

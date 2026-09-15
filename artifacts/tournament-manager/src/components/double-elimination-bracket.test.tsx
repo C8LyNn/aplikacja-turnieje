@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { getGetDoubleEliminationStageQueryKey, type DoubleEliminationStageState } from "@workspace/api-client-react";
+import { getGetDoubleEliminationStageQueryKey, getListMatchesQueryKey, type Match, type DoubleEliminationStageState } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "./double-elimination-bracket";
 
 const originalFetch = globalThis.fetch;
@@ -35,7 +35,8 @@ const state: DoubleEliminationStageState = {
 };
 
 test("renders all Double Elimination brackets read-only for viewers", () => {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  clients.add(queryClient);
   render(
     <QueryClientProvider client={queryClient}>
       <DoubleEliminationBracket tournamentId={1} stageId={2} state={state} />
@@ -48,12 +49,25 @@ test("renders all Double Elimination brackets read-only for viewers", () => {
   assert.ok(screen.getAllByText("Grand Final Reset").length >= 1);
   assert.equal(screen.queryByRole("button", { name: /Resetuj etap/ }), null);
   assert.equal(screen.queryByRole("button", { name: /Ustaw|Wygrywa/ }), null);
-  queryClient.clear();
 });
 
-function renderManagement(current: () => DoubleEliminationStageState) {
+function canonicalMatch(): Match {
+  return { id: 101, revision: 7, tournamentId: 1, stageId: 2, round: 1, matchNumber: 1, bestOf: 3, status: "pending",
+    player1Id: 11, player2Id: 12, player1Name: "Alpha", player2Name: "Bravo", score1: 0, score2: 0 };
+}
+function renderManagement(current: () => DoubleEliminationStageState, canonical: () => Match = () => {
+  const graph = current().matches[0];
+  return { ...canonicalMatch(), status: graph.status === "completed" ? "completed" as const : "pending" as const,
+    score1: graph.score1, score2: graph.score2 };
+}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   clients.add(client);
+  const mutationFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith("/tournaments/1/matches")) return new Response(JSON.stringify([canonical()]), { headers: { "content-type": "application/json" } });
+    return mutationFetch(input, init);
+  };
+  client.setQueryData(getListMatchesQueryKey(1), [canonical()]);
   function Management() {
     const query = useQuery({ queryKey: getGetDoubleEliminationStageQueryKey(1, 2), queryFn: async () => current(), initialData: current() });
     return <DoubleEliminationBracket tournamentId={1} stageId={2} state={query.data} canManage />;
@@ -62,13 +76,75 @@ function renderManagement(current: () => DoubleEliminationStageState) {
   return userEvent.setup();
 }
 
+test("DE freezes canonical revision, rejects stale played without retry, and requires a fresh draft", async () => {
+  let canonical = canonicalMatch();
+  let current = { ...state, matches: [{ ...state.matches[0], status: "ready" as const, score1: null, score2: null }] };
+  const writes: Record<string, unknown>[] = [];
+  globalThis.fetch = async (_input, init) => {
+    writes.push(JSON.parse(String(init?.body)));
+    if (writes.length === 1) {
+      canonical = { ...canonical, revision: 8, player1Id: 12, player2Id: 11, player1Name: "Bravo", player2Name: "Alpha" };
+      return new Response(JSON.stringify({ code: "CONCURRENT_MODIFICATION" }), { status: 409, headers: { "content-type": "application/json" } });
+    }
+    return new Response("{}", { headers: { "content-type": "application/json" } });
+  };
+  const user = renderManagement(() => current, () => canonical);
+  clients.forEach(client => client.setDefaultOptions({ ...client.getDefaultOptions(), mutations: { retry: 2, gcTime: 0 } }));
+  const input = screen.getByRole("spinbutton", { name: "Wynik 1 — Upper 1" });
+  await user.clear(input); await user.type(input, "2");
+  // Unrelated graph polling must not replace canonical revision 7 with stage revision 99.
+  current = { ...current, revision: 99 };
+  await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByRole("alert");
+  await screen.findByText(/Nieaktualny draft: Alpha – Bravo, 2:0/);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0], { resultType: "played", expectedRevision: 7, score1: 2, score2: 0 });
+  assert.match(screen.getByRole("alert").textContent ?? "", /Mecz zmienił się od czasu rozpoczęcia edycji/);
+  assert.equal(screen.queryByText("Wynik zapisany. Stan drabinki został odświeżony."), null);
+  await waitFor(() => assert.ok(input.matches(":disabled")));
+  assert.equal((input as HTMLInputElement).value, "0"); // no remapping of Alpha's score to Bravo
+  await waitFor(() => assert.ok(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }).matches(":enabled")));
+  await user.click(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }));
+  await user.clear(input); await user.type(input, "2");
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByText("Wynik zapisany. Stan drabinki został odświeżony.");
+  assert.equal(writes.length, 2);
+  assert.equal(writes[1].expectedRevision, 8);
+});
+
+test("DE polling cannot rebase a canonical draft after an ABA change", async () => {
+  let canonical = canonicalMatch();
+  const current = { ...state, matches: [{ ...state.matches[0], status: "ready" as const }] };
+  const user = renderManagement(() => current, () => canonical);
+  const input = screen.getByRole("spinbutton", { name: "Wynik 1 — Upper 1" });
+  await user.clear(input); await user.type(input, "2");
+  canonical = { ...canonical, revision: 9 };
+  await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
+  await waitFor(() => assert.ok(input.matches(":disabled")));
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"));
+  assert.ok(screen.getByText(/Nieaktualny draft: Alpha – Bravo, 2:0/));
+});
+
+test("DE does not transfer a draft to a replacement canonical match with the same bracket key", async () => {
+  let canonical = canonicalMatch();
+  let current = { ...state, matches: [{ ...state.matches[0], status: "ready" as const }] };
+  const user = renderManagement(() => current, () => canonical);
+  const input = screen.getByRole("spinbutton", { name: "Wynik 1 — Upper 1" });
+  await user.clear(input); await user.type(input, "2");
+  canonical = { ...canonical, id: 102, revision: 1 };
+  current = { ...current, matches: [{ ...current.matches[0], matchId: 102 }] };
+  await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
+  await waitFor(() => assert.equal((input as HTMLInputElement).value, "0"));
+});
+
 test("DE score form preserves input on failure, blocks double submit, and shows refreshed success", async () => {
   let current: DoubleEliminationStageState = { ...state, matches: [{ ...state.matches[0], status: "ready", score1: null, score2: null }] };
   let writes = 0;
   let finish: (response: Response) => void = () => {};
   globalThis.fetch = async (_input, init) => {
     writes++;
-    assert.deepEqual(JSON.parse(String(init?.body)), { resultType: "played", score1: 2, score2: 1 });
+    assert.deepEqual(JSON.parse(String(init?.body)), { resultType: "played", expectedRevision: 7, score1: 2, score2: 1 });
     return new Promise<Response>(resolve => { finish = resolve; });
   };
   const user = renderManagement(() => current);

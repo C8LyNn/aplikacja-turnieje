@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetDoubleEliminationStageQueryKey,
@@ -6,6 +6,8 @@ import {
   type DoubleEliminationParticipant,
   type DoubleEliminationStageState,
   useCompleteMatch,
+  useListMatches,
+  getListMatchesQueryKey,
   useResetDoubleEliminationStage,
   useRevertMatch,
 } from "@workspace/api-client-react";
@@ -14,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
 import { matchOperationError } from "@/lib/match-operation-feedback";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
@@ -40,6 +43,7 @@ function ScoreForm({
   onComplete,
   onRevert,
   playerNames,
+  onBegin,
 }: {
   match: DoubleEliminationMatch;
   pending: boolean;
@@ -48,6 +52,7 @@ function ScoreForm({
   onComplete: () => void;
   onRevert: () => void;
   playerNames: string;
+  onBegin: () => void;
 }) {
   const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
   return (
@@ -67,6 +72,7 @@ function ScoreForm({
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <Input
             aria-label={`Wynik 1 — ${match.name}`}
+            onFocus={onBegin}
             type="number"
             min={0}
             max={winsRequired}
@@ -76,6 +82,7 @@ function ScoreForm({
           />
           <Input
             aria-label={`Wynik 2 — ${match.name}`}
+            onFocus={onBegin}
             type="number"
             min={0}
             max={winsRequired}
@@ -120,9 +127,12 @@ export function DoubleEliminationBracket({
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
-  const [scores, setScores] = useState<Record<string, [number, number]>>({});
+  const [scores, setScores] = useState<Record<number, [number, number]>>({});
   const [finalsPos, setFinalsPos] = useState<"upper" | "between">(finalsPositionProp ?? "upper");
 
+  const canonical = useListMatches(tournamentId, { query: { queryKey: getListMatchesQueryKey(tournamentId), enabled: canManage, refetchInterval: 5000 } });
+  const resultDrafts = useMatchResultDrafts();
+  const completeLock = useRef(false);
   const feedback = {
     onMutate: () => { setError(undefined); setSuccess(undefined); },
     onSuccess: () => refresh(),
@@ -132,7 +142,14 @@ export function DoubleEliminationBracket({
       if (failure.conflict) await refresh();
     },
   };
-  const complete = useCompleteMatch({ mutation: feedback });
+  const complete = useCompleteMatch({ mutation: {
+    ...feedback, retry: false,
+    onError: async (reason, variables) => {
+      if (matchOperationError(reason).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
+      await feedback.onError(reason);
+    },
+    onSettled: () => { completeLock.current = false; },
+  } });
   const revert = useRevertMatch({ mutation: feedback });
   const reset = useResetDoubleEliminationStage({ mutation: feedback });
 
@@ -152,14 +169,19 @@ export function DoubleEliminationBracket({
   };
 
   const completeCanonicalMatch = (match: DoubleEliminationMatch) => {
-    if (match.matchId == null || pending) return;
-    const [score1, score2] = scores[match.matchKey] ?? [0, 0];
+    if (match.matchId == null || pending || completeLock.current || canonical.isError) return;
+    const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+    if (!current || resultDrafts.isStale(current)) return;
+    const draft = resultDrafts.capture(current);
+    completeLock.current = true;
+    const [score1, score2] = scores[match.matchId!] ?? [draft.score1 ?? 0, draft.score2 ?? 0];
     setError(undefined);
     complete.mutate(
-      { id: match.matchId, data: { resultType: "played", score1, score2 } },
+      { id: match.matchId, data: { resultType: "played", expectedRevision: draft.revision, score1, score2 } },
       {
         onSuccess: () => {
-          setScores(cur => { const n = { ...cur }; delete n[match.matchKey]; return n; });
+          resultDrafts.discard(match.matchId!);
+          setScores(cur => { const n = { ...cur }; delete n[match.matchId!]; return n; });
           setSuccess("Wynik zapisany. Stan drabinki został odświeżony.");
         },
       },
@@ -180,7 +202,8 @@ export function DoubleEliminationBracket({
       { id: match.matchId },
       {
         onSuccess: () => {
-          setScores(current => { const next = { ...current }; delete next[match.matchKey]; return next; });
+          resultDrafts.discard(match.matchId!);
+          setScores(current => { const next = { ...current }; delete next[match.matchId!]; return next; });
           setSuccess("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
         },
       },
@@ -197,7 +220,7 @@ export function DoubleEliminationBracket({
     reset.mutate(
       { id: tournamentId, stageId, data: { expectedRevision: state.revision } },
       {
-        onSuccess: () => { setScores({}); setSuccess("Stan drabinki został odświeżony."); },
+        onSuccess: () => { Object.values(resultDrafts.drafts).forEach(match => resultDrafts.discard(match.id)); setScores({}); setSuccess("Stan drabinki został odświeżony."); },
       },
     );
   };
@@ -251,6 +274,7 @@ export function DoubleEliminationBracket({
           {error}
         </div>
       )}
+      {canManage && canonical.isError && <div role="alert">Nie udało się pobrać aktualnych meczów. <Button onClick={() => void canonical.refetch()}>Spróbuj ponownie</Button></div>}
       {pending && <p role="status" className="text-sm">Zapisywanie i odświeżanie drabinki…</p>}
       {success && <p role="status" className="text-sm text-primary">{success}</p>}
 
@@ -283,18 +307,35 @@ export function DoubleEliminationBracket({
             Zarządzanie wynikami
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {actionableMatches.map(match => (
-              <ScoreForm
-                key={match.matchKey}
-                match={match}
-                playerNames={match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")}
-                pending={pending}
-                scores={scores[match.matchKey] ?? [0, 0]}
-                onScores={s => setScores(cur => ({ ...cur, [match.matchKey]: s }))}
-                onComplete={() => completeCanonicalMatch(match)}
-                onRevert={() => revertCanonicalMatch(match)}
-              />
-            ))}
+            {actionableMatches.map(match => {
+              const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+              const draft = current && resultDrafts.drafts[current.id];
+              const stale = current && resultDrafts.isStale(current);
+              // Canonical participants, scores and revision come from the same response.
+              const editing = current ? { ...match, bestOf: current.bestOf, score1: current.score1 ?? null, score2: current.score2 ?? null,
+                status: current.status === "completed" ? "completed" as const
+                  : current.status === "pending" || current.status === "in_progress" ? "ready" as const : "blocked" as const,
+              } : match;
+              return <div key={match.matchKey}>
+                <ScoreForm
+                  match={editing}
+                  playerNames={current ? `${current.player1Name} – ${current.player2Name}` : match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")}
+                  pending={pending || !current || canonical.isError || !!stale}
+                  scores={stale ? [current?.score1 ?? 0, current?.score2 ?? 0] : scores[match.matchId!] ?? [current?.score1 ?? 0, current?.score2 ?? 0]}
+                  onBegin={() => { if (current) resultDrafts.capture(current); }}
+                  onScores={s => { if (current && !stale) { resultDrafts.capture(current); setScores(cur => ({ ...cur, [current.id]: s })); } }}
+                  onComplete={() => completeCanonicalMatch(match)}
+                  onRevert={() => revertCanonicalMatch(match)}
+                />
+                {stale && <div role="status" className="text-sm">
+                  <p>Nieaktualny draft: {draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}. Sprawdź aktualny mecz przed nową edycją.</p>
+                  <Button disabled={pending || canonical.isError} onClick={() => {
+                    resultDrafts.discard(current.id);
+                    setScores(previous => { const next = { ...previous }; delete next[match.matchId!]; return next; });
+                  }}>Odrzuć wynik roboczy</Button>
+                </div>}
+              </div>;
+            })}
           </div>
         </div>
       )}

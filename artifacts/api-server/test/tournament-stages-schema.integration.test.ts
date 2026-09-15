@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -383,7 +384,7 @@ describe("single-stage compatibility lifecycle", () => {
     await request(app)
       .post(`/api/matches/${match.id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 2, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 2, score2: 0 }) })
       .expect(200);
 
     let [state] = await rows<{
@@ -467,7 +468,7 @@ describe("single-stage compatibility lifecycle", () => {
       await request(app)
         .post(`/api/matches/${match.id}/complete`)
         .set(fixture.organizerHeaders)
-        .send({ resultType: "played", score1: 2, score2: 0 })
+        .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 2, score2: 0 }) })
         .expect(200);
     }
 

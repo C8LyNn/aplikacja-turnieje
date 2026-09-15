@@ -110,6 +110,9 @@ const PRESERVE_STARTED_MEMBERSHIPS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0027_preserve_started_stage_memberships.sql",
   import.meta.url,
 );
+const MATCH_REVISION_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0028_match_revision.sql", import.meta.url,
+);
 const MIGRATION_RUNNER_TRANSACTION_BLOCK =
   /^-- migration-runner-strip-begin\r?\n[\s\S]*?^-- migration-runner-strip-end\r?\n?/gm;
 const STANDALONE_TRANSACTION_BOUNDARY = /^(?:BEGIN|COMMIT);\r?\n?/gm;
@@ -400,6 +403,11 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(preserveStartedMembershipsSql);
       await pool.query(preserveStartedMembershipsSql);
+      const matchRevisionSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(MATCH_REVISION_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(matchRevisionSql);
+      await pool.query(matchRevisionSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

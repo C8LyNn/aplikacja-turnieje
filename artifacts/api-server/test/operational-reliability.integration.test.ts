@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -47,7 +48,7 @@ async function tournament(format: string, count: number, multi = false) {
   const stages = (await request(app).get(`/api/tournaments/${id}/stages`).expect(200)).body;
   await request(app).post(`/api/tournaments/${id}/start`).set(auth).expect(200);
   const matches = async () => (await request(app).get(`/api/tournaments/${id}/matches`).expect(200)).body as Array<{
-    id: number; stageId: number; player1Id: number; player2Id: number; status: string; bestOf: number;
+    id: number; revision: number; stageId: number; player1Id: number; player2Id: number; status: string; bestOf: number;
     score1: number | null; score2: number | null; winnerId: number | null;
   }>;
   return { id, auth, playerIds, stageId: stages[0].id as number, matches };
@@ -65,8 +66,8 @@ for (const resultType of ["played", "no_contest"] as const) {
       const p1 = fixture.playerIds.indexOf(match.player1Id);
       const p2 = fixture.playerIds.indexOf(match.player2Id);
       const firstWins = (p1 + 1) % 3 === p2; // a three-way 1:0 cycle
-      await request(app).post(`/api/matches/${match.id}/complete`).set(fixture.auth).send(resultType === "played"
-        ? { resultType, score1: firstWins ? 1 : 0, score2: firstWins ? 0 : 1 } : { resultType }).expect(200);
+      await request(app).post(`/api/matches/${match.id}/complete`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, match.id), ...(resultType === "played"
+        ? { resultType, score1: firstWins ? 1 : 0, score2: firstWins ? 0 : 1 } : { resultType }) }).expect(200);
     }
     const read = async () => (await request(app).get(`/api/tournaments/${fixture.id}`).expect(200)).body;
     const final = await read();
@@ -83,7 +84,7 @@ for (const resultType of ["played", "no_contest"] as const) {
     assert.equal(stats.topPlayers[0].id, final.winnerId);
     // Automatic completion closes the stage, so the stage-state guard wins on retry.
     const retry = await request(app).post(`/api/matches/${matches[2].id}/complete`).set(fixture.auth)
-      .send({ resultType: "played", score1: 1, score2: 0 }).expect(422);
+      .send({ expectedRevision: await matchRevision(database, matches[2].id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(422);
     assert.equal(retry.body.code, "MATCH_STATE_NOT_COMPLETABLE");
     assert.equal((await read()).winnerId, final.winnerId);
   });
@@ -97,14 +98,14 @@ test("DE advancing an independent match preserves another match's LIVE state, BO
   await request(app).patch(`/api/matches/${a.id}`).set(fixture.auth).send({ status: "in_progress" }).expect(200);
   const before = (await fixture.matches()).find(match => match.id === a.id)!;
   await request(app).post(`/api/matches/${b.id}/complete`).set(fixture.auth)
-    .send({ resultType: "played", score1: 1, score2: 0 }).expect(200);
+    .send({ expectedRevision: await matchRevision(database, b.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   const after = (await fixture.matches()).find(match => match.id === a.id)!;
   assert.equal(after.status, "in_progress");
   assert.equal(after.bestOf, 3);
   assert.equal(after.player1Id, before.player1Id);
   assert.equal(after.player2Id, before.player2Id);
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
-    .send({ resultType: "played", score1: 2, score2: 0 }).expect(200);
+    .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 2, score2: 0 }) }).expect(200);
   const state = (await request(app).get(`/api/tournaments/${fixture.id}/stages/${fixture.stageId}/double-elimination`).expect(200)).body;
   const publicMatch = state.matches.find((match: { matchId: number }) => match.matchId === a.id);
   assert.equal(publicMatch.slots[0], String(before.player1Id));
@@ -119,7 +120,7 @@ test("DE public score stays attached to the correct participant after a side swa
   const [a] = await fixture.matches();
   await request(app).post(`/api/matches/${a.id}/swap-players`).set(fixture.auth).expect(200);
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
-    .send({ resultType: "played", score1: 1, score2: 0 }).expect(200);
+    .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   const state = (await request(app).get(`/api/tournaments/${fixture.id}/stages/${fixture.stageId}/double-elimination`).expect(200)).body;
   const publicMatch = state.matches.find((match: { matchId: number }) => match.matchId === a.id);
   assert.equal(publicMatch.slots[0], String(a.player2Id));
@@ -131,7 +132,7 @@ test("multi-stage SE can revert a legal first-stage result without eliminating a
   const fixture = await tournament("single_elimination", 4, true);
   const [a] = await fixture.matches();
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
-    .send({ resultType: "played", score1: 1, score2: 0 }).expect(200);
+    .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   const loser = await database.pool.query("SELECT status FROM players WHERE id=$1", [a.player2Id]);
   assert.equal(loser.rows[0].status, "active");
   await request(app).post(`/api/matches/${a.id}/revert`).set(fixture.auth).expect(200);
@@ -142,7 +143,7 @@ test("multi-stage SE can revert a legal first-stage result without eliminating a
   const member = await database.pool.query("SELECT status FROM stage_participants WHERE stage_id=$1 AND player_id=$2", [fixture.stageId, a.player2Id]);
   assert.equal(member.rows[0].status, "active");
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
-    .send({ resultType: "played", score1: 0, score2: 1 }).expect(200);
+    .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 0, score2: 1 }) }).expect(200);
   assert.equal((await fixture.matches()).find(match => match.id === a.id)!.winnerId, a.player2Id);
 });
 
@@ -156,7 +157,7 @@ test("reopening a completed DE stage removes frozen final ranks and the global w
     if (!ready) break;
     lastMatchId = ready.matchId;
     await request(app).post(`/api/matches/${lastMatchId}/complete`).set(fixture.auth)
-      .send({ resultType: "played", score1: 1, score2: 0 }).expect(200);
+      .send({ expectedRevision: await matchRevision(database, lastMatchId), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   }
   await request(app).post(`${url}/complete`).set(fixture.auth).send({}).expect(200);
   const closed = (await request(app).get(`/api/tournaments/${fixture.id}`).expect(200)).body;
@@ -171,4 +172,45 @@ test("reopening a completed DE stage removes frozen final ranks and the global w
   assert.ok(members.rows.every(row => row.final_rank == null));
   const players = await database.pool.query("SELECT status FROM players WHERE tournament_id=$1", [fixture.id]);
   assert.ok(players.rows.every(row => row.status === "active"));
+});
+
+test("stale operator score is rejected after another operator swaps the match sides", async () => {
+  const fixture = await tournament("double_elimination", 4);
+  const [observedByA] = await fixture.matches();
+  const payloadA = { resultType: "played", score1: 1, score2: 0, expectedRevision: observedByA.revision };
+  const swapped = await request(app).post(`/api/matches/${observedByA.id}/swap-players`).set(fixture.auth).expect(200);
+  const snapshot = async () => {
+    const tables = ["matches", "stage_participants", "result_history", "action_log", "tournament_stages"];
+    return Promise.all([
+      ...tables.map(async table => (await database.pool.query(
+        `SELECT * FROM ${table} WHERE tournament_id=$1 ORDER BY id`, [fixture.id])).rows),
+      database.pool.query("SELECT * FROM tournament_routing_executions WHERE plan_id IN (SELECT id FROM tournament_routing_plans WHERE tournament_id=$1) ORDER BY plan_id, stage_key", [fixture.id]).then(result => result.rows),
+      database.pool.query("SELECT * FROM tournaments WHERE id=$1", [fixture.id]).then(result => result.rows),
+    ]);
+  };
+  const before = await snapshot();
+  const staleSave = await request(app).post(`/api/matches/${observedByA.id}/complete`).set(fixture.auth)
+    .send(payloadA);
+  assert.equal(staleSave.status, 409);
+  assert.equal(staleSave.body.code, "CONCURRENT_MODIFICATION");
+  assert.equal(swapped.body.revision, observedByA.revision + 1);
+  assert.deepEqual(await snapshot(), before);
+});
+
+test("DE reset invalidates an old form even when it restores the original ready pair", async () => {
+  const fixture = await tournament("double_elimination", 4);
+  const [a] = await fixture.matches();
+  await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
+    .send({ resultType: "played", score1: 1, score2: 0, expectedRevision: a.revision }).expect(200);
+  const stagePath = `/api/tournaments/${fixture.id}/stages/${fixture.stageId}/double-elimination`;
+  const state = (await request(app).get(stagePath).expect(200)).body;
+  await request(app).post(`${stagePath}/reset`).set(fixture.auth).send({ expectedRevision: state.revision }).expect(200);
+  const reopened = (await fixture.matches()).find(match => match.id === a.id)!;
+  assert.equal(reopened.player1Id, a.player1Id);
+  assert.equal(reopened.player2Id, a.player2Id);
+  assert.ok(reopened.revision > a.revision);
+  const stale = await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
+    .send({ resultType: "played", score1: 1, score2: 0, expectedRevision: a.revision }).expect(409);
+  assert.equal(stale.body.code, "CONCURRENT_MODIFICATION");
+  assert.deepEqual((await fixture.matches()).find(match => match.id === a.id), reopened);
 });

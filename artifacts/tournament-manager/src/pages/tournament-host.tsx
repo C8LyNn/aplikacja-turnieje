@@ -53,6 +53,7 @@ import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { getDeadlockEffectiveStageBans } from "@workspace/game-catalog";
 import { PLAYER_STATUS_LABELS, STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
+import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
 import { matchOperationError, MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string };
@@ -159,7 +160,16 @@ export default function TournamentHost() {
   };
   const updateMatch = useUpdateMatch({ mutation: mutationFeedback });
   const updateTournament = useUpdateTournament({ mutation: mutationFeedback });
-  const completeMatch = useCompleteMatch({ mutation: mutationFeedback });
+  const resultDrafts = useMatchResultDrafts();
+  const completeLock = useRef(false);
+  const completeMatch = useCompleteMatch({ mutation: {
+    ...mutationFeedback, retry: false,
+    onError: async (error, variables) => {
+      if (matchOperationError(error).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
+      await mutationFeedback.onError(error);
+    },
+    onSettled: () => { completeLock.current = false; },
+  } });
   const revertMatch = useRevertMatch({ mutation: mutationFeedback });
   const generateNextRound = useGenerateNextRound({ mutation: mutationFeedback });
   const undoLastAction = useUndoLastAction({ mutation: mutationFeedback });
@@ -377,6 +387,8 @@ export default function TournamentHost() {
     setSelectedMatchId(matchId);
     const max = Math.ceil(bo / 2);
     const match = matches?.find((entry) => entry.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
     const cur = getS(matchId, player, player === 1 ? match?.score1 : match?.score2);
     const next = Math.max(0, Math.min(max, cur + delta));
     setScores((prev) => ({
@@ -440,13 +452,6 @@ export default function TournamentHost() {
     updateMatch.mutate({ id: matchId, data: { bestOf: bo } }, {
       onSuccess: () => {
         toast({ title: "Format meczu zapisany", description: `Mecz będzie rozgrywany jako BO${bo}.` });
-        setScores((prev) => {
-          const e = prev[matchId];
-          if (!e) return prev;
-          const max = Math.ceil(bo / 2);
-          const refreshed = queryClient.getQueryData<typeof matches>(getListMatchesQueryKey(id))?.find(match => match.id === matchId);
-          return { ...prev, [matchId]: { s1: Math.min(e.s1, max), s2: Math.min(e.s2, max), baseline: refreshed ? scoreBaseline(refreshed) : e.baseline } };
-        });
       },
     });
   };
@@ -487,6 +492,9 @@ export default function TournamentHost() {
 
   const handleWalkover = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const match = matches?.find(candidate => candidate.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
     setWalkoverConfirm(matchId);
     setRevertConfirm(null);
     setCancelConfirm(null);
@@ -497,12 +505,17 @@ export default function TournamentHost() {
 
   const doWalkover = (matchId: number, winner: 1 | 2) => {
     if (!capabilities.canWriteTournamentResults) return;
-    const match = matches?.find((candidate) => candidate.id === matchId);
+    if (completeLock.current) return;
+    const current = matches?.find(candidate => candidate.id === matchId);
+    const match = resultDrafts.drafts[matchId];
+    if (!match || !current || resultDrafts.isStale(current)) return;
     const winnerId = winner === 1 ? match?.player1Id : match?.player2Id;
     if (!winnerId) return;
+    completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    completeMatch.mutate({ id: matchId, data: { resultType: "walkover", winnerId, reason: resultReason.trim() || null } }, {
+    completeMatch.mutate({ id: matchId, data: { resultType: "walkover", expectedRevision: match.revision, winnerId, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
         setWalkoverConfirm(null);
         setResultReason("");
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
@@ -514,6 +527,9 @@ export default function TournamentHost() {
 
   const handleNoContest = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const match = matches?.find(candidate => candidate.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
     setNoContestConfirm(matchId);
     setWalkoverConfirm(null);
     setResultReason("");
@@ -521,9 +537,15 @@ export default function TournamentHost() {
 
   const doNoContest = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const match = matches?.find(candidate => candidate.id === matchId);
+    const draft = resultDrafts.drafts[matchId];
+    if (!match || !draft || resultDrafts.isStale(match) || completeLock.current) return;
+    completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", reason: resultReason.trim() || null } }, {
+    completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", expectedRevision: draft.revision, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
+        setScores(prev => { const next = { ...prev }; delete next[matchId]; return next; });
         setNoContestConfirm(null);
         setResultReason("");
         toast({ title: "Mecz zakończony jako no contest" });
@@ -590,15 +612,19 @@ export default function TournamentHost() {
       });
       return;
     }
-    doComplete(matchId, s1, s2);
+    if (resultDrafts.isStale(match)) return;
+    const draft = resultDrafts.capture(match);
+    doComplete(matchId, s1, s2, draft.revision);
   };
 
-  const doComplete = (matchId: number, score1: number, score2: number) => {
-    if (!capabilities.canWriteTournamentResults || completeMatch.isPending) return;
+  const doComplete = (matchId: number, score1: number, score2: number, expectedRevision: number) => {
+    if (!capabilities.canWriteTournamentResults || completeMatch.isPending || completeLock.current) return;
+    completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    completeMatch.mutate({ id: matchId, data: { resultType: "played", score1, score2 } }, {
+    completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2 } }, {
       onSuccess: () => {
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
+        resultDrafts.discard(matchId);
         toast({ title: "Wynik zapisany!" });
         if (mayAdvance()) setSelectedMatchId(null);
       },
@@ -609,6 +635,7 @@ export default function TournamentHost() {
     if (!capabilities.canWriteTournamentResults) return;
     revertMatch.mutate({ id: matchId }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
         setRevertConfirm(null);
         setScores((prev) => { const next = { ...prev }; delete next[matchId]; return next; });
         setSelectedMatchId(matchId);
@@ -880,12 +907,12 @@ export default function TournamentHost() {
 
     const bo = focusedMatch.bestOf ?? 1;
     const maxScore = Math.ceil(bo / 2);
-    const s1 = focusedMatch.status === "completed" ? focusedMatch.score1 ?? 0 : getS(focusedMatch.id, 1, focusedMatch.score1);
-    const s2 = focusedMatch.status === "completed" ? focusedMatch.score2 ?? 0 : getS(focusedMatch.id, 2, focusedMatch.score2);
+    const staleDraft = resultDrafts.isStale(focusedMatch) || (!!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch));
+    const s1 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score1 ?? 0 : getS(focusedMatch.id, 1, focusedMatch.score1);
+    const s2 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score2 ?? 0 : getS(focusedMatch.id, 2, focusedMatch.score2);
     const isFeatured = tournament?.featuredMatchId === focusedMatch.id;
     const isLive = focusedMatch.status === "in_progress";
     const isDone = focusedMatch.status === "completed";
-    const staleDraft = !!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch);
     const isPostponed = focusedMatch.status === "postponed";
     const isCancelled = focusedMatch.status === "cancelled";
     const isShowingCancel = cancelConfirm === focusedMatch.id;
@@ -999,6 +1026,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, -1, bo)}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
                   aria-label={`Zmniejsz wynik: ${focusedMatch.player1Name}`}
                   disabled={!capabilities.canWriteTournamentResults || s1 <= 0 || isDone || staleDraft}
                 >
@@ -1016,6 +1044,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, 1, bo)}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
                   aria-label={`Zwiększ wynik: ${focusedMatch.player1Name}`}
                   disabled={!capabilities.canWriteTournamentResults || s1 >= maxScore || isDone || staleDraft}
                 >
@@ -1060,6 +1089,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, -1, bo)}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
                   aria-label={`Zmniejsz wynik: ${focusedMatch.player2Name}`}
                   disabled={!capabilities.canWriteTournamentResults || s2 <= 0 || isDone || staleDraft}
                 >
@@ -1077,6 +1107,7 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, 1, bo)}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
                   aria-label={`Zwiększ wynik: ${focusedMatch.player2Name}`}
                   disabled={!capabilities.canWriteTournamentResults || s2 >= maxScore || isDone || staleDraft}
                 >
@@ -1230,7 +1261,7 @@ export default function TournamentHost() {
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 1)}
-                  disabled={completeMatch.isPending}
+                  disabled={completeMatch.isPending || staleDraft}
                 >
                   ✓ {focusedMatch.player1Name ?? "Zawodnik A"} wygrał
                 </Button>
@@ -1238,7 +1269,7 @@ export default function TournamentHost() {
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 2)}
-                  disabled={completeMatch.isPending}
+                  disabled={completeMatch.isPending || staleDraft}
                 >
                   ✓ {focusedMatch.player2Name ?? "Zawodnik B"} wygrał
                 </Button>
@@ -1260,7 +1291,7 @@ export default function TournamentHost() {
               />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>
-                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending}>
+                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending || staleDraft}>
                   Zapisz no contest
                 </Button>
               </div>
@@ -1336,7 +1367,7 @@ export default function TournamentHost() {
                     variant="outline"
                     className="text-blue-400/70 hover:text-blue-400 hover:border-blue-400/50"
                     onClick={() => handleWalkover(focusedMatch.id)}
-                    disabled={completeMatch.isPending}
+                    disabled={completeMatch.isPending || staleDraft}
                     title="Walkover — jeden zawodnik nie pojawił się"
                   >
                     W.O.
@@ -1347,7 +1378,7 @@ export default function TournamentHost() {
                     variant="outline"
                     className="text-orange-400/70 hover:text-orange-400 hover:border-orange-400/50"
                     onClick={() => handleNoContest(focusedMatch.id)}
-                    disabled={completeMatch.isPending}
+                    disabled={completeMatch.isPending || staleDraft}
                   >
                     No contest
                   </Button>
@@ -1397,8 +1428,10 @@ export default function TournamentHost() {
             </p>
           )}
           {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
-          {staleDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id].s1}:{scores[focusedMatch.id].s2}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem.</p>}
-          {scores[focusedMatch.id] && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
+          {staleDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
+          {(scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
+            resultDrafts.discard(focusedMatch.id);
+            setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
             setScores((prev) => { const next = { ...prev }; delete next[focusedMatch.id]; return next; });
           }}>Odrzuć wynik roboczy</Button>}
         </div>

@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -1156,10 +1157,10 @@ describe("security and tournament integrity regressions", () => {
     await runSupportRevocationRace({
       tournamentId: completeTournament.id,
       support: completeSupport,
-      mutate: () => request(app)
+      mutate: async () => request(app)
         .post(`/api/matches/${completeMatch.rows[0].id}/complete`)
         .set(completeSupport)
-        .send({ resultType: "played", score1: 1, score2: 0 })
+        .send({ expectedRevision: await matchRevision(database, completeMatch.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
         .then((response) => response),
     });
     const afterComplete = await database.pool.query<{ status: string }>(
@@ -1182,7 +1183,7 @@ describe("security and tournament integrity regressions", () => {
     await request(app)
       .post(`/api/matches/${revertMatchRow.rows[0].id}/complete`)
       .set(organizerHeaders(revertTournament.id))
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, revertMatchRow.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
     const revertSupport = await supportHeaders(revertTournament.id);
     await runSupportRevocationRace({

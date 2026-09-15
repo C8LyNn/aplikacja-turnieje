@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 /**
  * Integration tests for single-stage tournament seeding.
  *
@@ -742,7 +743,7 @@ describe("DE capacity: actual < maxPlayers across all seeding methods", () => {
     const res = await request(app)
       .post(`/api/matches/${matchId}/complete`)
       .set(headers)
-      .send({ resultType: "walkover", winnerId })
+      .send({ expectedRevision: await matchRevision(database, matchId), ...({ resultType: "walkover", winnerId }) })
       .expect(200);
     assert.equal(res.body.status, "completed");
     return { matchId, winnerId, loserId };

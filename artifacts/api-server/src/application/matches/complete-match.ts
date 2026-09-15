@@ -28,6 +28,8 @@ export type CompleteMatchErrorCode =
   | "TOURNAMENT_NOT_FOUND"
   | "PARTICIPANT_NOT_FOUND"
   | "MATCH_ALREADY_FINALIZED"
+  | "CONCURRENT_MODIFICATION"
+  | "INVALID_MATCH_REVISION"
   | "MATCH_STATE_NOT_COMPLETABLE"
   | "PARTICIPANTS_REQUIRED"
   | "PARTICIPANTS_NOT_DISTINCT"
@@ -42,6 +44,8 @@ const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
   TOURNAMENT_NOT_FOUND: "Turniej meczu nie istnieje.",
   PARTICIPANT_NOT_FOUND: "Nie znaleziono wymaganego uczestnika meczu.",
   MATCH_ALREADY_FINALIZED: "Mecz został już rozstrzygnięty.",
+  CONCURRENT_MODIFICATION: "Stan meczu zmienił się. Pobierz aktualny mecz przed ponownym zapisem.",
+  INVALID_MATCH_REVISION: "Zapis wymaga poprawnej wersji odczytanego meczu.",
   MATCH_STATE_NOT_COMPLETABLE: "Meczu w tym stanie nie można zakończyć.",
   PARTICIPANTS_REQUIRED: "Do tej operacji wymaganych jest dwóch uczestników.",
   PARTICIPANTS_NOT_DISTINCT: "Uczestnicy meczu muszą być różnymi graczami.",
@@ -69,6 +73,7 @@ export class CompleteMatchError extends Error {
 
 interface CompleteMatchBaseInput {
   matchId: number;
+  expectedRevision: number;
   actor?: TournamentMutationActor;
 }
 
@@ -173,6 +178,9 @@ export async function completeMatch(
   input: CompleteMatchInput,
   testHooks: CompleteMatchTestHooks = {},
 ): Promise<typeof matchesTable.$inferSelect> {
+  if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) {
+    throw new CompleteMatchError("INVALID_MATCH_REVISION");
+  }
   return db.transaction(async (tx) => {
     const [matchReference] = await tx
       .select({
@@ -201,7 +209,7 @@ export async function completeMatch(
         ),
       )
       .for("update");
-    if (!stage || stage.status !== "active") {
+    if (!stage) {
       throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
     }
     const tournamentStages = await tx
@@ -221,6 +229,11 @@ export async function completeMatch(
       .where(eq(matchesTable.id, input.matchId))
       .for("update");
     if (!match) throw new CompleteMatchError("MATCH_NOT_FOUND");
+    // Check before interpreting sides/scores and before any transactional write.
+    if (match.revision !== input.expectedRevision) {
+      throw new CompleteMatchError("CONCURRENT_MODIFICATION");
+    }
+    if (stage.status !== "active") throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
     if (match.status === "completed") throw new CompleteMatchError("MATCH_ALREADY_FINALIZED");
     if (match.status === "cancelled") throw new CompleteMatchError("MATCH_STATE_NOT_COMPLETABLE");
     if (match.player1Id == null || match.player2Id == null) {
