@@ -4,6 +4,7 @@ import {
   db,
   matchGamePicksTable,
   matchesTable,
+  playersTable,
   stageParticipantsTable,
   tournamentRoutingExecutionsTable,
   tournamentStagesTable,
@@ -103,6 +104,11 @@ export async function reconcileDoubleEliminationMatches(
         if (existing.status === "completed") {
           throw new Error("DOUBLE_ELIMINATION_CANONICAL_MATCH_INCONSISTENT");
         }
+        // Routing may reevaluate every ready pair after an unrelated result.
+        // Preserve operator state (including swapped sides) while the pair is unchanged.
+        const samePair = (existing.player1Id === player1Id && existing.player2Id === player2Id)
+          || (existing.player1Id === player2Id && existing.player2Id === player1Id);
+        if (samePair) continue;
         const [updated] = await tx
           .update(matchesTable)
           .set({
@@ -319,6 +325,21 @@ export async function revertDoubleEliminationCanonicalMatch(
   await syncParticipantStatuses(tx, input.stage.id, next);
 
   if (input.stage.status === "completed") {
+    await tx.update(stageParticipantsTable).set({
+      finalRank: null,
+      groupRank: null,
+      qualificationRank: null,
+      nextStageSeed: null,
+      qualifiedAt: null,
+    }).where(eq(stageParticipantsTable.stageId, input.stage.id));
+    // Completion marks the terminal roster globally; reopening invalidates those final statuses.
+    const playerIds = next.participants.map(participant => Number(participant.participantKey));
+    if (playerIds.length > 0) {
+      await tx.update(playersTable).set({ status: "active" }).where(and(
+        eq(playersTable.tournamentId, input.tournament.id),
+        inArray(playersTable.id, playerIds),
+      ));
+    }
     await tx.update(tournamentStagesTable).set({
       status: "active",
       winnerId: null,

@@ -219,6 +219,9 @@ export default function TournamentAudience() {
   usePresentationTheme(presentationSettings);
 
   // --- Derived data ---
+  const winnerName = tournament?.winnerId == null ? undefined
+    : players?.find(player => player.id === tournament.winnerId)?.name
+      ?? standings?.find(standing => standing.playerId === tournament.winnerId)?.playerName;
   const featuredMatch = tournament?.featuredMatchId
     ? matches?.find((m) => m.id === tournament.featuredMatchId)
     : null;
@@ -540,10 +543,10 @@ export default function TournamentAudience() {
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
               <Trophy className="w-20 h-20 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,200,0,0.4)]" />
               <h2 className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-tight">Turniej zakończony!</h2>
-              {standings?.[0] && (
+              {winnerName && (
                 <div className="mt-2 text-xl text-white/60">
                   Zwycięzca:{" "}
-                  <span className="text-white font-black text-2xl">{standings[0].playerName}</span>
+                  <span className="text-white font-black text-2xl">{winnerName}</span>
                 </div>
               )}
               <Badge className="mt-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-sm px-4 py-1">

@@ -470,15 +470,16 @@ export async function completeMatch(
         .where(eq(matchesTable.stageId, match.stageId));
       if (allMatches.length > 0 && allMatches.every((candidate) => candidate.status === "completed")) {
         const stagePlayerIds = await tx
-          .select({ playerId: stageParticipantsTable.playerId })
+          .select({ playerId: stageParticipantsTable.playerId, stageSeed: stageParticipantsTable.stageSeed })
           .from(stageParticipantsTable)
           .where(eq(stageParticipantsTable.stageId, match.stageId));
         const tournamentPlayers = await tx
           .select()
           .from(playersTable)
           .where(inArray(playersTable.id, stagePlayerIds.map(({ playerId }) => playerId)));
+        const seedByPlayerId = new Map(stagePlayerIds.map(member => [member.playerId, member.stageSeed]));
         const [winner] = calculateMatchRecordStandings(
-          tournamentPlayers,
+          tournamentPlayers.map(player => ({ ...player, seed: seedByPlayerId.get(player.id)! })),
           allMatches,
           "round_robin",
         );

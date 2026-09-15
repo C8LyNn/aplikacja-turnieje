@@ -590,11 +590,25 @@ function generateSwissRound(
 
 // ========== STANDINGS ==========
 
-function calculateStandings(
+async function calculateStandings(
   players: (typeof playersTable.$inferSelect)[],
   matches: (typeof matchesTable.$inferSelect)[],
   tournament: typeof tournamentsTable.$inferSelect,
 ) {
+  const stages = await db.select().from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id)).limit(2);
+  const stage = stages.length === 1 ? stages[0] : undefined;
+  if (stage && stage.status !== "planned" && (stage.format === "round_robin" || stage.format === "swiss")) {
+    const members = await db.select({ playerId: stageParticipantsTable.playerId, stageSeed: stageParticipantsTable.stageSeed })
+      .from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId, stage.id));
+    const seeds = new Map(members.map(member => [member.playerId, member.stageSeed]));
+    // A stage's frozen seeding, not registration order, resolves ranking ties.
+    return calculateMatchRecordStandings(
+      players.filter(player => seeds.has(player.id)).map(player => ({ ...player, seed: seeds.get(player.id)! })),
+      matches.filter(match => match.stageId === stage.id),
+      stage.format,
+    );
+  }
   return calculateMatchRecordStandings(players, matches, tournament.format);
 }
 
@@ -1850,7 +1864,7 @@ router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
   const pendingMatches = matches.filter((m) => m.status === "pending" || m.status === "postponed").length;
   const inProgressMatches = matches.filter((m) => m.status === "in_progress").length;
 
-  const topPlayers = calculateStandings(players, matches, tournament)
+  const topPlayers = (await calculateStandings(players, matches, tournament))
     .slice(0, 5)
     .map((standing) => ({
       id: standing.playerId,
@@ -1895,7 +1909,7 @@ router.get("/tournaments/:id/standings", async (req, res): Promise<void> => {
     .from(matchesTable)
     .where(eq(matchesTable.tournamentId, params.data.id));
 
-  const standings = calculateStandings(players, matches, tournament);
+  const standings = await calculateStandings(players, matches, tournament);
   res.json(standings);
 });
 

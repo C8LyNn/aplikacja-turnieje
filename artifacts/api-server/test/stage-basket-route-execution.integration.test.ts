@@ -313,6 +313,29 @@ async function approveProposal(fix: RouteFixture): Promise<void> {
 
 describe("Phase 3 — Basket Route Execution", () => {
 
+  test("concurrent approval and concurrent routing persist one output and one arrival per qualifier", async () => {
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    const proposalPath = `/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/basket-qualification-proposal`;
+    await request(app).post(proposalPath).set(fix.organizerHeaders).expect(200);
+    const approvals = await Promise.all([1, 2].map(() =>
+      request(app).post(`${proposalPath}/approve`).set(fix.organizerHeaders).expect(200)));
+    assert.equal(approvals[0].body.revision, approvals[1].body.revision);
+    const path = `/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/baskets/${fix.outputBasketId}/route/execute`;
+    const routes = await Promise.all([1, 2].map(() => request(app).post(path).set(fix.organizerHeaders).expect(200)));
+    assert.equal(routes[0].body.executionId, routes[1].body.executionId);
+    const executions = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_executions WHERE route_id=$1", [fix.routeId]);
+    assert.equal(executions.rows[0].count, 1);
+    const entries = await database.pool.query<{ player_id: number }>(
+      "SELECT player_id FROM stage_basket_route_entries WHERE target_stage_id=$1 ORDER BY player_id", [fix.targetStageId]);
+    assert.deepEqual(entries.rows.map(row => row.player_id), [fix.playerIds[0], fix.playerIds[2]].sort((a, b) => a - b));
+    const output = await request(app).get(`/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/basket-qualification-output`)
+      .set(fix.organizerHeaders).expect(200);
+    assert.equal(output.body.entries.length, 2);
+    const retry = await request(app).post(path).set(fix.organizerHeaders).expect(200);
+    assert.equal(retry.body.executionId, routes[0].body.executionId);
+  });
+
   // §21.1 Happy path
   test("executeBasketRoute — happy path returns execution with entries", async () => {
     const fix = await buildRouteFixture({ qualifierCount: 2 });

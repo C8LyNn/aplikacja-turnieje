@@ -102,6 +102,29 @@ function renderAudience(fetchImpl: typeof fetch, refetchInterval?: number) {
 
 // ── tests ──────────────────────────────────────────────────────────────────────
 
+test("completed Audience names the persisted winner, not the aggregate standings leader", async () => {
+  const qc = renderAudience(async (input) => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) {
+      return jsonResponse({ ...tournamentPayload(), status: "completed", winnerId: 2 });
+    }
+    if (url.endsWith("/standings")) return jsonResponse([
+      { playerId: 1, playerName: "Earlier stage leader", rank: 1, matchWins: 5 },
+      { playerId: 2, playerName: "Final champion", rank: 2, matchWins: 3 },
+    ]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  const assertWinner = () => {
+    const summary = screen.getByText("Turniej zakończony!").parentElement!;
+    assert.match(summary.textContent!, /Zwycięzca: Final champion/);
+    assert.doesNotMatch(summary.textContent!, /Earlier stage leader/);
+  };
+  await waitFor(assertWinner, { timeout: 3000 });
+  await act(async () => { await qc.refetchQueries(); });
+  assertWinner();
+});
+
 describe("TournamentAudience — password gate regression", () => {
 
   test("private_online without viewer session shows password gate", async () => {

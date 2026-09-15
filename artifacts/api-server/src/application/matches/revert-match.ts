@@ -293,7 +293,7 @@ export async function revertMatch(
       throw new RevertMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
     const stageParticipants = await tx
-      .select({ playerId: stageParticipantsTable.playerId })
+      .select({ playerId: stageParticipantsTable.playerId, status: stageParticipantsTable.status })
       .from(stageParticipantsTable)
       .where(
         and(
@@ -309,7 +309,9 @@ export async function revertMatch(
     if (
       stage.format === "single_elimination" &&
       result.loserId != null &&
-      participants.find((player) => player.id === result.loserId)?.status !== "eliminated"
+      (isSingleStageTournament
+        ? participants.find((player) => player.id === result.loserId)?.status
+        : stageParticipants.find((member) => member.playerId === result.loserId)?.status) !== "eliminated"
     ) {
       throw new RevertMatchError("RESULT_INCONSISTENT");
     }
