@@ -14,6 +14,89 @@ const originalFetch = globalThis.fetch;
 const clients = new Set<QueryClient>();
 
 const staleMessage = "Mecz zmienił się od czasu rozpoczęcia edycji. Sprawdź aktualnych zawodników i wynik przed ponownym zapisem.";
+
+for (const winnerId of [2, null]) {
+  test(`Host completed tournament has one summary and secondary correction (winner=${winnerId})`, async () => {
+    const user = await renderOperationalHost({
+      matches: [{ ...hostMatch(1), status: "completed", resultType: "played", score1: 2 }],
+      stages: [hostStage(2, "completed")],
+      intercept: async path => path === "/api/tournaments/1" ? jsonResponse({
+        id: 1, name: "Turniej szkoleniowy", status: "completed", format: "swiss", activeStageId: null,
+        winnerId, hasOrganizerPassword: true, resultModelVersion: "series_v1", visibility: "public_online",
+      }) : undefined,
+    });
+    const summary = await screen.findByRole("region", { name: "Podsumowanie turnieju" });
+    await within(summary).findByText("Wszystkie etapy są zakończone.");
+    assert.equal(screen.getAllByText("Turniej zakończony").length, 1);
+    assert.equal(screen.queryByText("🏆 Turniej zakończony!"), null);
+    assert.equal(screen.queryByRole("region", { name: "Stan prowadzenia" }), null);
+    assert.equal(screen.queryByText("Następny krok"), null);
+    assert.equal(screen.queryByRole("button", { name: /Rozpocznij etap|Zakończ etap|Generuj.*rund/ }), null);
+    assert.equal(!!within(summary).queryByText("Mistrz: Gracz A1"), winnerId !== null);
+    assert.ok(within(summary).getByRole("link", { name: "Widok widzów" }));
+    await user.click(within(summary).getByRole("link", { name: "Wszystkie mecze i wyniki" }));
+    const correction = await screen.findByRole("button", { name: "Popraw wynik: Gracz A1 – Gracz B1" });
+    assert.ok(!correction.classList.contains("bg-primary"));
+    await user.click(correction);
+    assert.ok(await screen.findByRole("dialog"));
+  });
+}
+
+test("Host prioritizes start before editing and save once the operator edits the result", async () => {
+  const user = await renderOperationalHost({ matches: [hostMatch(1)] });
+  const start = await screen.findByRole("button", { name: "Rozpocznij mecz" });
+  assert.ok(screen.getByRole("region", { name: "Stan prowadzenia" }));
+  assert.equal(screen.queryByRole("region", { name: "Podsumowanie turnieju" }), null);
+  assert.ok(start.classList.contains("bg-primary"));
+  assert.ok(!screen.getByRole("button", { name: "Zapisz wynik" }).classList.contains("bg-primary"));
+  await user.click(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }));
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).classList.contains("bg-primary"));
+  assert.ok(!screen.getByRole("button", { name: "Rozpocznij mecz" }).classList.contains("bg-primary"));
+});
+
+test("Host LIVE match prioritizes saving; completed match shows its result and secondary correction", async () => {
+  const matches = [hostMatch(1, 2, "in_progress")];
+  await renderOperationalHost({ matches });
+  assert.ok((await screen.findByRole("button", { name: "Zapisz wynik" })).classList.contains("bg-primary"));
+  assert.equal(screen.queryByRole("button", { name: "Rozpocznij mecz" }), null);
+  act(() => screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }).focus());
+  matches[0] = { ...matches[0], status: "completed", resultType: "played", score1: 2 };
+  await refreshHost();
+  await screen.findByText(/Wynik zapisany: 2:0/);
+  assert.equal(screen.queryByRole("button", { name: "Zapisz wynik" }), null);
+  assert.ok(!screen.getByRole("button", { name: "Popraw wynik" }).classList.contains("bg-primary"));
+});
+
+test("Host groups rare actions in a menu and preserves destructive cancellation confirmation", async () => {
+  let cancellations = 0;
+  const user = await renderOperationalHost({ matches: [hostMatch(1)], stages: [hostStage(2, "active", "round_robin")], intercept: async path => {
+    if (path.endsWith("/cancel")) { cancellations++; return jsonResponse({}); }
+    return undefined;
+  } });
+  const more = await screen.findByRole("button", { name: "Więcej akcji" });
+  assert.ok(!more.classList.contains("bg-primary"));
+  assert.equal(screen.queryByRole("menuitem", { name: "Walkower (W.O.)" }), null);
+  await user.click(more);
+  for (const name of ["Walkower (W.O.)", "Brak rozstrzygnięcia (no contest)", "Zamień strony", "Przełóż"]) assert.ok(screen.getByRole("menuitem", { name }));
+  const cancel = screen.getByRole("menuitem", { name: "Anuluj mecz" });
+  assert.ok(cancel.classList.contains("text-destructive"));
+  await user.click(cancel);
+  assert.ok(screen.getByText("Anulować mecz?"));
+  assert.equal(cancellations, 0, "opening the existing confirmation must not cancel the match");
+  assert.ok(screen.getByRole("button", { name: "Anuluj mecz" }).classList.contains("bg-destructive"));
+  await user.click(screen.getByRole("button", { name: "Nie anuluj" }));
+  assert.equal(cancellations, 0);
+});
+
+for (const [format, allowed] of [["round_robin", true], ["swiss", true], ["group_stage", true], ["single_elimination", false], ["double_elimination", false]] as const) {
+  test(`Host no-contest visibility follows the focused ${format} stage, not the tournament format`, async () => {
+    const user = await renderOperationalHost({ matches: [hostMatch(1)], stages: [hostStage(1, "completed", "round_robin"), hostStage(2, "active", format)] });
+    await user.click(await screen.findByRole("button", { name: "Więcej akcji" }));
+    assert.equal(!!screen.queryByRole("menuitem", { name: "Brak rozstrzygnięcia (no contest)" }), allowed);
+    assert.ok(screen.getByRole("menuitem", { name: "Walkower (W.O.)" }));
+  });
+}
+
 for (const resultType of ["played", "walkover", "no_contest"] as const) {
   test(`Host ${resultType}: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft`, async () => {
     const matches = [{ ...hostMatch(1), revision: 12 }];
@@ -24,7 +107,7 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
     }
     const requests: Record<string, unknown>[] = [];
     let reads = 0;
-    const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+    const user = await renderOperationalHost({ matches, stages: [hostStage(2, "active", "round_robin")], intercept: async (path, init) => {
       if (path.endsWith("/matches")) reads++;
       if (!path.endsWith("/complete")) return undefined;
       requests.push(JSON.parse(String(init?.body)));
@@ -44,11 +127,13 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
       await user.click(plus); await user.click(plus);
       await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
     } else if (resultType === "walkover") {
-      await user.click(screen.getByRole("button", { name: /W\.O\./ }));
+      await user.click(screen.getByRole("button", { name: "Więcej akcji" }));
+      await user.click(screen.getByRole("menuitem", { name: "Walkower (W.O.)" }));
       await user.click(screen.getByRole("button", { name: /Gracz A1 wygrał/ }));
     } else {
-      await user.click(screen.getByRole("button", { name: "No contest" }));
-      await user.click(screen.getByRole("button", { name: "Zapisz no contest" }));
+      await user.click(screen.getByRole("button", { name: "Więcej akcji" }));
+      await user.click(screen.getByRole("menuitem", { name: "Brak rozstrzygnięcia (no contest)" }));
+      await user.click(screen.getByRole("button", { name: "Zapisz brak rozstrzygnięcia" }));
     }
     await waitFor(() => assert.match(screen.getByRole("alert").textContent ?? "", /Mecz zmienił się od czasu rozpoczęcia edycji/));
     await waitFor(() => assert.ok(reads >= 2));
@@ -61,8 +146,27 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
     assert.equal(screen.queryByText("Wynik zapisany!"), null);
     assert.equal(toastTitle, "Operacja nie powiodła się");
     assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz B1" }).matches(":disabled"));
-    assert.ok(screen.getByText(/Draft dotyczy: Gracz A1 – Gracz B1/));
-    await user.click(screen.getByRole("button", { name: "Odrzuć wynik roboczy" }));
+    assert.equal(screen.queryByRole("button", { name: "Więcej akcji" }), null);
+    assert.equal(screen.queryByRole("button", { name: "Rozpocznij mecz" }), null);
+    assert.equal(screen.queryByRole("button", { name: /wygrał/ }), null);
+    assert.equal(screen.queryByRole("button", { name: "Zapisz brak rozstrzygnięcia" }), null);
+    assert.ok(screen.getByRole("button", { name: "BO3" }).matches(":disabled"));
+    const conflict = screen.getByRole("region", { name: "Konflikt zapisu wyniku" });
+    assert.match(conflict.textContent ?? "", /nie został zapisany/);
+    assert.match(conflict.textContent ?? "", /Aktualny mecz został odświeżony/);
+    assert.match(conflict.textContent ?? "", /Gracz B1 – Gracz A1 · BO3 · Oczekuje/);
+    assert.match(conflict.textContent ?? "", /Nieaktualny draft.*Gracz A1 – Gracz B1/);
+    if (resultType === "played") {
+      assert.match(conflict.textContent ?? "", /2:0/);
+      const save = screen.getByRole("button", { name: "Zapisz wynik" });
+      assert.ok(save.matches(":disabled"));
+      await user.click(save);
+      assert.equal(requests.length, 1);
+    }
+    await user.click(within(conflict).getByRole("button", { name: "Odrzuć stary draft i rozpocznij nową edycję" }));
+    assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
+    assert.equal(screen.queryByRole("alert"), null);
+    assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"), "old score must not enter the fresh form");
     const freshPlus = screen.getByRole("button", { name: "Zwiększ wynik: Gracz B1" });
     await user.click(freshPlus); await user.click(freshPlus);
     await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
@@ -72,6 +176,28 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
     assert.equal(toastTitle, "Wynik zapisany!");
   });
 }
+
+test("Host recovery captures the current revision immediately, before the next score interaction", async () => {
+  const matches = [{ ...hostMatch(1), revision: 12 }];
+  let writes = 0;
+  const user = await renderOperationalHost({ matches, intercept: async path => {
+    if (!path.endsWith("/complete")) return undefined;
+    writes++;
+    matches[0] = { ...matches[0], revision: 13 };
+    return new Response(JSON.stringify({ code: "CONCURRENT_MODIFICATION" }), { status: 409, headers: { "content-type": "application/json" } });
+  } });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  const recovery = await screen.findByRole("button", { name: "Odrzuć stary draft i rozpocznij nową edycję" });
+  await waitFor(() => assert.ok(!recovery.matches(":disabled")));
+  await user.click(recovery);
+  assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
+  matches[0] = { ...matches[0], revision: 14 };
+  await refreshHost();
+  await waitFor(() => assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }).matches(":disabled"), "polling cannot silently rebase the draft created by recovery"));
+  assert.equal(writes, 1);
+});
 
 test("Host polling of a revision-only change cannot rebase an open draft, including ABA", async () => {
   const matches = [{ ...hostMatch(1), revision: 4 }];
@@ -342,9 +468,9 @@ test("host header shows the forced Deadlock hero", async () => {
   queryClient.clear();
 });
 
-function hostStage(id = 2, status = "active") {
+function hostStage(id = 2, status = "active", format = "single_elimination") {
   return { id, tournamentId: 1, position: id, name: id === 2 ? "Finały szkoleniowe" : "Eliminacje",
-    format: "single_elimination", status, participantCount: 4, bestOf: 3, currentRound: 1, totalRounds: 2 };
+    format, status, participantCount: 4, bestOf: 3, currentRound: 1, totalRounds: 2 };
 }
 
 function hostMatch(id: number, stageId: number | null = 2, status = "pending") {
@@ -557,7 +683,7 @@ test("Host advances from a completed no-contest match after the refreshed state"
   const matches = [hostMatch(1)];
   let saved = false;
   let refreshedMatchReads = 0;
-  const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+  const user = await renderOperationalHost({ matches, stages: [hostStage(2, "active", "round_robin")], intercept: async (path, init) => {
     if (path === "/api/tournaments/1/matches" && saved) refreshedMatchReads++;
     if (path === "/api/matches/1/complete" && init?.method === "POST") {
       assert.equal(JSON.parse(String(init.body)).resultType, "no_contest");
@@ -567,16 +693,16 @@ test("Host advances from a completed no-contest match after the refreshed state"
     }
     return undefined;
   } });
-  await user.click(await screen.findByRole("button", { name: "No contest" }));
-  await user.click(screen.getByRole("button", { name: "Zapisz no contest" }));
-  // The active stage is Single Elimination, even though the tournament's legacy
-  // format is Swiss. Its last completed match leads to stage completion.
+  await user.click(await screen.findByRole("button", { name: "Więcej akcji" }));
+  await user.click(screen.getByRole("menuitem", { name: "Brak rozstrzygnięcia (no contest)" }));
+  await user.click(screen.getByRole("button", { name: "Zapisz brak rozstrzygnięcia" }));
+  // RR allows no-contest; its last completed match leads to stage completion.
   const nextStep = await screen.findByRole("region", { name: "Sprawdź zakończenie etapu" });
   assert.equal(within(nextStep).getByRole("link", { name: "Zakończ etap" }).getAttribute("href"), "/tournaments/1?tab=stages&stage=2&action=complete");
   await waitFor(() => {
     assert.equal(screen.queryByText(/Zapisywanie i odświeżanie stanu/), null);
     assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A1" }), null);
-    assert.equal(screen.queryByRole("button", { name: "Zapisz no contest" }), null);
+    assert.equal(screen.queryByRole("button", { name: "Zapisz brak rozstrzygnięcia" }), null);
   });
   assert.ok(refreshedMatchReads > 0, "The operational state must come from the refreshed match list");
   const summary = screen.getByRole("region", { name: "Stan prowadzenia" });
@@ -586,7 +712,7 @@ test("Host advances from a completed no-contest match after the refreshed state"
   }
   assert.equal(screen.queryByRole("button", { name: /Gracz A1 vs Gracz B1/ }), null);
   assert.equal(screen.queryByRole("button", { name: /Wygeneruj rundę/ }), null);
-  assert.equal(screen.queryByText("No contest — bez zwycięzcy"), null);
+  assert.equal(screen.queryByText("Brak rozstrzygnięcia — bez zwycięzcy"), null);
 });
 
 test("Host distinguishes a failed match load from an empty queue and can retry", async () => {

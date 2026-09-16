@@ -22,6 +22,7 @@ export function useMatchResultDrafts() {
     setConflicts(previous => { const next = { ...previous }; delete next[id]; return next; });
   };
   return { drafts, capture, discard,
+    hasConflict: (id: number) => !!conflicts[id],
     markConflict: (id: number) => setConflicts(previous => ({ ...previous, [id]: true })),
     isStale: (match: Match) => !!conflicts[match.id] ||
       (!!drafts[match.id] && drafts[match.id].revision !== match.revision),

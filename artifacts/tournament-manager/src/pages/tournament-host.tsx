@@ -18,6 +18,7 @@ import {
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -883,6 +884,12 @@ export default function TournamentHost() {
     return { id: stageId, name: stage?.name ?? (stageId === null ? "Mecze bez przypisanego etapu" : `Etap ${stageId}`), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
   }).sort((a, b) => a.position - b.position);
   const canGenerateRound = nextStep?.kind === "swiss_round";
+  const tournamentCompleted = tournament.status === "completed";
+  const winnerMatch = tournament.winnerId == null ? undefined : matches?.find(match =>
+    match.player1Id === tournament.winnerId || match.player2Id === tournament.winnerId);
+  const championName = tournament.winnerId == null ? undefined
+    : standings?.find(standing => standing.playerId === tournament.winnerId)?.playerName
+      ?? (winnerMatch?.player1Id === tournament.winnerId ? winnerMatch?.player1Name : winnerMatch?.player2Name);
 
   const handleNextMatch = () => {
     const idx = queueMatches.findIndex((m) => m.id === focusedMatchId);
@@ -893,13 +900,12 @@ export default function TournamentHost() {
   // --- Active match panel ---
   const renderActiveMatchPanel = () => {
     if (!focusedMatch || focusedMatch.resultType === "bye") {
+      if (tournamentCompleted) return null;
       return (
         <div className="bg-card border rounded-xl p-6 text-center text-muted-foreground">
           {canGenerateRound
             ? "Runda zakończona — wygeneruj kolejną rundę Swiss powyżej."
-            : tournament.status === "completed"
-              ? "🏆 Turniej zakończony!"
-              : activeStage ? "Brak meczów gotowych do rozegrania. Sprawdź stan etapu i oczekujące pary."
+            : activeStage ? "Brak meczów gotowych do rozegrania. Sprawdź stan etapu i oczekujące pary."
                 : "Przygotuj najbliższy etap w zakładce Etapy. Po jego rozpoczęciu pojawi się tutaj kolejka meczów."}
         </div>
       );
@@ -908,6 +914,10 @@ export default function TournamentHost() {
     const bo = focusedMatch.bestOf ?? 1;
     const maxScore = Math.ceil(bo / 2);
     const staleDraft = resultDrafts.isStale(focusedMatch) || (!!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch));
+    const conflictedDraft = resultDrafts.hasConflict(focusedMatch.id);
+    const originalMatch = resultDrafts.drafts[focusedMatch.id];
+    const editingResult = focusedMatch.status === "in_progress" || !!originalMatch || !!scores[focusedMatch.id];
+    const allowsNoContest = !!focusedStage && ["round_robin", "swiss", "group_stage"].includes(focusedStage.format);
     const s1 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score1 ?? 0 : getS(focusedMatch.id, 1, focusedMatch.score1);
     const s2 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score2 ?? 0 : getS(focusedMatch.id, 2, focusedMatch.score2);
     const isFeatured = tournament?.featuredMatchId === focusedMatch.id;
@@ -930,7 +940,9 @@ export default function TournamentHost() {
 
     return (
       <div onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`rounded-xl border-2 overflow-hidden transition-colors ${
-        isCancelled
+        conflictedDraft
+          ? "border-orange-500/60"
+          : isCancelled
           ? "border-destructive/30 opacity-80"
           : isLive
             ? "border-secondary/60 shadow-[0_0_40px_rgba(0,200,255,0.07)]"
@@ -971,7 +983,7 @@ export default function TournamentHost() {
                 <button
                   key={n}
                   onClick={() => handleChangeBestOf(focusedMatch.id, n)}
-                  disabled={focusedMatch.status !== "pending"}
+                  disabled={focusedMatch.status !== "pending" || conflictedDraft}
                   className={`text-xs px-2.5 py-1 rounded transition-colors font-medium ${
                     bo === n
                       ? "bg-primary text-primary-foreground"
@@ -988,6 +1000,7 @@ export default function TournamentHost() {
               size="sm"
               className={`h-8 w-8 p-0 ${isFeatured ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}
               onClick={() => handleSetFeatured(focusedMatch.id)}
+              disabled={conflictedDraft}
               title={isFeatured ? "Usuń z ekranu widzów" : "Pokaż na ekranie widzów"}
             >
               <Star className={`w-4 h-4 ${isFeatured ? "fill-yellow-400" : ""}`} />
@@ -998,6 +1011,25 @@ export default function TournamentHost() {
 
         {/* Score area */}
         <div className="p-4 md:p-5">
+          {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
+            <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
+            <p className="text-sm">Twój draft pochodzi ze starej wersji meczu. Przed kolejnym zapisem sprawdź aktualnych zawodników i rozpocznij nową edycję.</p>
+            <div className="rounded-md border bg-background p-3 text-sm">
+              <p className="font-semibold">Aktualny stan meczu</p>
+              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · BO{bo} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
+              <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">Nieaktualny draft (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
+            <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? "Odświeżanie aktualnego meczu…" : "Aktualny mecz został odświeżony. Stary wynik nie zostanie przeniesiony do nowej edycji."}</p>
+            <Button className="h-auto whitespace-normal text-left" disabled={hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess} onClick={() => {
+              if (hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess) return;
+              resultDrafts.discard(focusedMatch.id);
+              resultDrafts.capture(focusedMatch);
+              setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
+              setScores(previous => { const next = { ...previous }; delete next[focusedMatch.id]; return next; });
+              setActionError(previous => previous?.code === "CONCURRENT_MODIFICATION" ? null : previous);
+            }}>Odrzuć stary draft i rozpocznij nową edycję</Button>
+          </section>}
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
@@ -1196,7 +1228,7 @@ export default function TournamentHost() {
           )}
 
           {/* Cancel confirm */}
-          {capabilities.canUseLegacyMatchTools && isShowingCancel && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingCancel && (
             <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="font-semibold text-destructive text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Anulować mecz?
@@ -1218,7 +1250,7 @@ export default function TournamentHost() {
           )}
 
           {/* Swap players confirm */}
-          {capabilities.canUseLegacyMatchTools && isShowingSwap && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingSwap && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="font-semibold text-orange-400 text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Zamienić zawodników stronami?
@@ -1240,10 +1272,10 @@ export default function TournamentHost() {
           )}
 
           {/* Walkover confirm */}
-          {capabilities.canWriteTournamentResults && isShowingWalkover && (
+          {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingWalkover && (
             <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="font-semibold text-blue-400 text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Walkover — kto wygrał?
+                <AlertTriangle className="w-4 h-4" /> Walkower — kto wygrał?
               </p>
               <p className="text-sm text-muted-foreground mb-3">
                 Wybierz zawodnika, który <strong>wygrał</strong> (drugi nie pojawił się).
@@ -1277,9 +1309,9 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {capabilities.canWriteTournamentResults && isShowingNoContest && (
+          {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingNoContest && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <p className="font-semibold text-orange-400 text-sm mb-1">No contest — bez zwycięzcy</p>
+              <p className="font-semibold text-orange-400 text-sm mb-1">Brak rozstrzygnięcia — bez zwycięzcy</p>
               <p className="text-sm text-muted-foreground mb-3">
                 Mecz zostanie zakończony bez wpływu na bilans meczów i gier. Ta decyzja nie jest dostępna w eliminacjach.
               </p>
@@ -1292,14 +1324,14 @@ export default function TournamentHost() {
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>
                 <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending || staleDraft}>
-                  Zapisz no contest
+                  Zapisz brak rozstrzygnięcia
                 </Button>
               </div>
             </div>
           )}
 
           {/* Restore cancelled action */}
-          {capabilities.canUseLegacyMatchTools && isCancelled && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
               <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
               <Button
@@ -1313,114 +1345,48 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {/* Action bar */}
+          {/* Action bar: result workflow first; exceptional operations stay in the menu. */}
           {!isShowingCancel && !isShowingSwap && !isShowingWalkover && !isShowingNoContest && !isCancelled && (
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
-                {/* Start — for pending/postponed */}
-                {capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSetInProgress(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
+                {!conflictedDraft && capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
+                  <Button variant={editingResult ? "outline" : "default"} onClick={() => handleSetInProgress(focusedMatch.id)} disabled={updateMatch.isPending}>
                     <Play className="w-4 h-4 mr-2" /> Rozpocznij mecz
                   </Button>
                 )}
-                {/* Swap players — for non-completed, both players assigned */}
-                {capabilities.canUseLegacyMatchTools && !isDone && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => handleSwapPlayers(focusedMatch.id)}
-                    disabled={swapMatchPlayers.isPending}
-                    title="Zamień zawodnika A i B stronami"
-                  >
-                    <ArrowLeftRight className="w-4 h-4 mr-2" /> Zamień strony
-                  </Button>
-                )}
-                {/* Postpone — for pending/in_progress (not done, not already postponed) */}
-                {capabilities.canUseLegacyMatchTools && !isDone && !isPostponed && (
-                  <Button
-                    variant="outline"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => handlePostpone(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
-                    <Clock className="w-4 h-4 mr-2" /> Przełóż
-                  </Button>
-                )}
-                {/* Restore — for postponed matches */}
-                {capabilities.canUseLegacyMatchTools && isPostponed && (
-                  <Button
-                    variant="outline"
-                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
-                    onClick={() => handleRestore(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
-                    <SkipForward className="w-4 h-4 mr-2" /> Przywróć
-                  </Button>
-                )}
-                {/* Walkover — for non-completed, non-cancelled, both players present */}
-                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-blue-400/70 hover:text-blue-400 hover:border-blue-400/50"
-                    onClick={() => handleWalkover(focusedMatch.id)}
-                    disabled={completeMatch.isPending || staleDraft}
-                    title="Walkover — jeden zawodnik nie pojawił się"
-                  >
-                    W.O.
-                  </Button>
-                )}
-                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && tournament.format !== "single_elimination" && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-orange-400/70 hover:text-orange-400 hover:border-orange-400/50"
-                    onClick={() => handleNoContest(focusedMatch.id)}
-                    disabled={completeMatch.isPending || staleDraft}
-                  >
-                    No contest
-                  </Button>
-                )}
-                {/* Cancel — for non-completed, non-cancelled */}
-                {capabilities.canUseLegacyMatchTools && !isDone && (
-                  <Button
-                    variant="outline"
-                    className="text-destructive/60 hover:text-destructive hover:border-destructive/50"
-                    onClick={() => handleCancel(focusedMatch.id)}
-                    disabled={cancelMatch.isPending}
-                    title="Anuluj ten mecz"
-                  >
-                    <Ban className="w-4 h-4 mr-2" /> Anuluj mecz
-                  </Button>
+                {!conflictedDraft && !isDone && (capabilities.canUseLegacyMatchTools || capabilities.canWriteTournamentResults) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button variant="outline" disabled={hostPending}>Więcej akcji</Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {capabilities.canWriteTournamentResults && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && <>
+                        <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleWalkover(focusedMatch.id)}>Walkower (W.O.)</DropdownMenuItem>
+                        {allowsNoContest && <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleNoContest(focusedMatch.id)}>Brak rozstrzygnięcia (no contest)</DropdownMenuItem>}
+                      </>}
+                      {capabilities.canUseLegacyMatchTools && <>
+                        {focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> Zamień strony</DropdownMenuItem>}
+                        {!isPostponed
+                          ? <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handlePostpone(focusedMatch.id)}><Clock /> Przełóż</DropdownMenuItem>
+                          : <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handleRestore(focusedMatch.id)}><SkipForward /> Przywróć</DropdownMenuItem>}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={cancelMatch.isPending} onSelect={() => handleCancel(focusedMatch.id)}><Ban /> Anuluj mecz</DropdownMenuItem>
+                      </>}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
-
               <div className="flex gap-2">
-                {capabilities.canWriteTournamentResults && isDone && (
-                  <Button
-                    variant="outline"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() => openCorrection(focusedMatch.id)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik
-                  </Button>
+                {!conflictedDraft && capabilities.canWriteTournamentResults && isDone && (
+                  <Button variant="outline" onClick={() => openCorrection(focusedMatch.id)}><RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik</Button>
                 )}
                 {capabilities.canWriteTournamentResults && !isDone && !isPostponed && (
-                  <Button
-                    size="default"
-                    className="bg-primary hover:bg-primary/90 font-semibold px-6"
-                    onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}
-                    disabled={completeMatch.isPending || !isCompleteSeries || staleDraft}
-                  >
+                  <Button variant={editingResult && !conflictedDraft ? "default" : "outline"} className="font-semibold px-6" onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)} disabled={completeMatch.isPending || !isCompleteSeries || staleDraft}>
                     <CheckCircle2 className="w-4 h-4 mr-2" /> Zapisz wynik
                   </Button>
                 )}
               </div>
             </div>
           )}
-          {!isDone && !isCancelled && (
+          {!isDone && !isCancelled && !conflictedDraft && (
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
                 ? "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
@@ -1428,8 +1394,8 @@ export default function TournamentHost() {
             </p>
           )}
           {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
-          {staleDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
-          {(scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
+          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
+          {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
             resultDrafts.discard(focusedMatch.id);
             setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
             setScores((prev) => { const next = { ...prev }; delete next[focusedMatch.id]; return next; });
@@ -1477,7 +1443,16 @@ export default function TournamentHost() {
           />
         )}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
-        <section aria-label="Stan prowadzenia" className="rounded-xl border border-primary/30 bg-card p-4">
+        {tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="rounded-xl border border-primary/30 bg-card p-4">
+          <h2 className="text-xl font-semibold">Turniej zakończony</h2>
+          {championName && <p className="mt-2 text-lg font-semibold">Mistrz: {championName}</p>}
+          {!dataLoading && !dataError && !!stages?.length && stages.every(stage => stage.status === "completed") &&
+            <p className="mt-1 text-sm text-muted-foreground">Wszystkie etapy są zakończone.</p>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/host?tab=wyniki`}>Wszystkie mecze i wyniki</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/audience`}>Widok widzów</Link></Button>
+          </div>
+        </section> : <section aria-label="Stan prowadzenia" className="rounded-xl border border-primary/30 bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -1504,7 +1479,7 @@ export default function TournamentHost() {
           </dl>}
           {!dataLoading && !dataError && activeStage && (operationalMatches?.length ?? 0) > queueMatches.length + completedMatches.length &&
             <p className="mt-3 text-xs text-muted-foreground">Pozostałe mecze oczekują na pełną parę, zostały przełożone lub anulowane.</p>}
-        </section>
+        </section>}
         {dataLoading && !dataError && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Pobieranie stanu etapu i meczów…</p>}
         {dataError && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-semibold">Nie udało się odświeżyć stanu prowadzenia.</p>
@@ -1518,7 +1493,7 @@ export default function TournamentHost() {
         {hostPending && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
-        {nextStep && !dataLoading && !dataError && (
+        {nextStep && !tournamentCompleted && !dataLoading && !dataError && (
           <OrganizerNextStep
             step={nextStep}
             onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
