@@ -718,6 +718,7 @@ export function TournamentStagesPanel({
       readinessQuery.isFetching,
     )?.ready === true;
   const pending = completeMutation.isPending || startMutation.isPending || firstStartMutation.isPending || qualificationPending;
+  const allStagesCompleted = tournamentStatus === "completed" || (stages.length > 0 && stages.every(stage => stage.status === "completed"));
   const openLifecycleAction = useCallback((action: "start" | "complete", target: TournamentStage) => {
     if (!canManage || pending || mutationLock.current) return;
     if (target.status !== (action === "start" ? "planned" : "active")) return;
@@ -808,7 +809,7 @@ export function TournamentStagesPanel({
         <p className="mt-1 text-sm text-muted-foreground">
           Wybierz etap, aby zobaczyć jego uczestników, ranking, grupy i mecze.
         </p>
-        <p className="mt-2 font-medium text-primary">{stages.some(stage => stage.status === "active")
+        <p className="mt-2 font-medium text-primary">{allStagesCompleted ? "Wszystkie etapy są zakończone. Przeglądasz historię turnieju." : stages.some(stage => stage.status === "active")
           ? `Aktywny etap: ${stages.find(stage => stage.status === "active")?.name}` : "Brak aktywnego etapu"}</p>
       </div>
       {explicitBasketAuthority && (
@@ -837,7 +838,7 @@ export function TournamentStagesPanel({
         </div>
       )}
       {actionSuccess && <p role="status" className="rounded-lg border border-primary/30 p-3 text-sm text-primary">{actionSuccess}</p>}
-      {pending && <p role="status" className="text-sm">{completeMutation.isPending ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…"}</p>}
+      {pending && <p role="status" className="text-sm">{qualificationPending ? "Zapisywanie i odświeżanie stanu…" : completeMutation.isPending ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…"}</p>}
       {detailQuery.isLoading && (
         <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -993,7 +994,7 @@ export function TournamentStagesPanel({
           )}
           {selected.status === "completed" && (
             <div className="rounded-lg border bg-card p-4 space-y-2" aria-label="Dalsze kroki po etapie">
-              {explicitBasketAuthority && canManage && basketConfigurationQuery.data ? <StageQualificationRouting
+              {allStagesCompleted ? <p className="text-sm">Ranking i mecze etapu pozostają dostępne do przeglądania.</p> : explicitBasketAuthority && canManage && basketConfigurationQuery.data ? <StageQualificationRouting
                 tournamentId={tournamentId} stage={selected} stages={stages} configuration={basketConfigurationQuery.data}
                 participants={detailQuery.data.participants} onPendingChange={setQualificationPending}
                 onSelectStage={id => { if (!pending) { setSelectedStageId(id); setActionError(undefined); setActionSuccess(undefined); setCeremonyState(null); } }}

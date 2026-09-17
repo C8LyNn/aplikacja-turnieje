@@ -47,6 +47,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
   const client = useQueryClient();
   const lock = useRef(false);
   const [pending, setPending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState("Zapisywanie i odświeżanie stanu…");
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [confirmation, setConfirmation] = useState<string>();
@@ -81,9 +82,10 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
     ]);
   }
 
-  async function run(operation: (() => Promise<unknown>) | null, message: string, confirmed?: () => boolean) {
+  async function run(operation: (() => Promise<unknown>) | null, message: string, confirmed?: () => boolean, progress = "Zapisywanie i odświeżanie stanu…") {
     if (lock.current) return;
     lock.current = true;
+    setPendingMessage(progress);
     setPending(true); onPendingChange(true); setError(undefined); setSuccess(undefined);
     let saved = false;
     try {
@@ -121,7 +123,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
     <p className="text-sm">Stan kwalifikacji{routes.length > 0 && " i routingu"} według serwera.</p>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     {success && <p role="status" className="text-sm">{success}</p>}
-    {pending && <p role="status" className="text-sm">Trwa operacja i odświeżanie stanu…</p>}
+    {pending && <p role="status" className="text-sm">{pendingMessage}</p>}
     {proposal.isPending ? <p>Sprawdzanie propozycji kwalifikacji…</p> : missing ? <>
       <p>Nie przygotowano jeszcze propozycji kwalifikacji.</p>
       <Button disabled={pending || proposal.isFetching} onClick={() => void run(() => generate.mutateAsync({ id: tournamentId, stageId: stage.id }), "Propozycja kwalifikacji przygotowana. Sprawdź uczestników przed zatwierdzeniem.")}>Przygotuj propozycję kwalifikacji</Button>
@@ -148,7 +150,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
         <p className="text-sm">{stage.name}: {basketName(route.sourceBasketId)} → {target ? stageName(target.stageId) : "Etap docelowy"}: {basketName(route.targetBasketId)}</p>
         {query.isPending ? <p>Sprawdzanie routingu…</p> : query.isError ? <p role="alert">Nie udało się sprawdzić routingu. {stageLifecycleError(query.error)}</p> : query.data?.materialized ? <p>Routing wykonany. Przekazano uczestników: {query.data.routedPlayerCount}.</p> : query.data?.sourceOutputApproved ? <>
           <p>Kwalifikacja zatwierdzona. Następny krok: wykonaj routing.</p>
-          <Button disabled={pending || query.isFetching} onClick={() => void run(() => execute.mutateAsync({ id: tournamentId, stageId: stage.id, basketId: route.sourceBasketId }), "Routing wykonany. Gotowość etapu docelowego została sprawdzona.", () => client.getQueryData<BasketRouteStatus>(routeOptions[index].queryKey)?.materialized === true)}>Wykonaj routing: {basketName(route.sourceBasketId)}</Button>
+          <Button disabled={pending || query.isFetching} onClick={() => void run(() => execute.mutateAsync({ id: tournamentId, stageId: stage.id, basketId: route.sourceBasketId }), "Routing wykonany. Gotowość etapu docelowego została sprawdzona.", () => client.getQueryData<BasketRouteStatus>(routeOptions[index].queryKey)?.materialized === true, "Przekazywanie uczestników i odświeżanie stanu…")}>Wykonaj routing: {basketName(route.sourceBasketId)}</Button>
         </> : <p>Routing oczekuje na zatwierdzenie kwalifikacji.</p>}
       </div>;
     })}
@@ -168,7 +170,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
         <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setConfirmation(undefined)}>Anuluj</Button>
           <Button disabled={!canApprove || confirmation !== revision} onClick={() => {
             if (!canApprove || confirmation !== revision) return;
-            void run(() => approve.mutateAsync({ id: tournamentId, stageId: stage.id }), "Kwalifikacja zatwierdzona.", () => client.getQueryData<QualificationProposal>(proposalKey)?.status === "approved");
+            void run(() => approve.mutateAsync({ id: tournamentId, stageId: stage.id }), "Kwalifikacja zatwierdzona.", () => client.getQueryData<QualificationProposal>(proposalKey)?.status === "approved", "Zatwierdzanie zakwalifikowanych i odświeżanie stanu…");
           }}>{pending ? "Zatwierdzanie i odświeżanie…" : "Potwierdź kwalifikację"}</Button>
         </DialogFooter>
       </DialogContent>

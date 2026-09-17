@@ -30,6 +30,7 @@ function setup(options: {
   readiness?: ReturnType<typeof ready>;
   basket?: boolean;
   draft?: boolean;
+  completed?: boolean;
   canManage?: boolean;
   path?: string;
   nextStep?: boolean;
@@ -62,12 +63,27 @@ function setup(options: {
   });
   render(<QueryClientProvider client={client}><Router hook={location.hook} searchHook={location.searchHook}>
     {options.nextStep && <OrganizerNextStep step={step} />}
-    <TournamentStagesPanel tournamentId={1} tournamentStatus={options.draft ? "draft" : "active"} matches={[]} canManage={options.canManage ?? true} />
+    <TournamentStagesPanel tournamentId={1} tournamentStatus={options.completed ? "completed" : options.draft ? "draft" : "active"} matches={[]} canManage={options.canManage ?? true} />
   </Router></QueryClientProvider>);
   return userEvent.setup();
 }
 async function selectFinals(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole("button", { name: /Etap 2.*Finały/ }));
+}
+
+for (const completed of [false, true]) {
+  for (const basket of [false, true]) {
+    test(`historical stage has no next-stage instructions when all stages ended (tournamentCompleted=${completed}, baskets=${basket})`, async () => {
+      setup({ completed, basket, stages: [stage(1, "completed"), stage(2, "completed")], path: "/tournaments/1?tab=stages&stage=1" });
+      await screen.findByRole("heading", { name: "Eliminacje" });
+      assert.ok(screen.getByText("Wszystkie etapy są zakończone. Przeglądasz historię turnieju."));
+      assert.equal(screen.queryByText("Brak aktywnego etapu"), null);
+      assert.equal(screen.queryByText(/Wybierz kolejny planowany etap/), null);
+      assert.equal(screen.queryByRole("button", { name: /Rozpocznij etap|Zatwierdź kwalifikację|Wykonaj routing/ }), null);
+      assert.ok(screen.getByRole("heading", { name: "Zamrożony ranking" }));
+      assert.ok(screen.getByRole("heading", { name: "Mecze etapu" }));
+    });
+  }
 }
 
 for (const source of ["upper", "lower"] as const) {
@@ -119,8 +135,11 @@ for (const source of ["upper", "lower"] as const) {
       await user.dblClick(confirm);
       assert.equal(writes, 1);
       assert.ok(confirm.matches(":disabled"));
+      const pendingText = completing ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…";
+      assert.ok(screen.getByText(pendingText));
       releaseWrite();
       await waitFor(() => assert.equal(refreshing, true));
+      assert.ok(screen.getByText(pendingText));
       if (!completing) assert.ok(confirm.matches(":disabled"));
       else assert.equal(screen.queryByRole("dialog"), null);
       releaseRead();
@@ -287,12 +306,15 @@ for (const operation of ["approve", "route"] as const) {
     const button = await screen.findByRole("button", { name: operation === "approve" ? "Potwierdź kwalifikację" : /Wykonaj routing:/ });
     await user.dblClick(button);
     assert.equal(writes, 1); assert.ok(button.matches(":disabled"));
+    const pendingText = operation === "approve" ? "Zatwierdzanie zakwalifikowanych i odświeżanie stanu…" : "Przekazywanie uczestników i odświeżanie stanu…";
+    assert.ok(screen.getByText(pendingText));
+    assert.equal(screen.queryByText("Uruchamianie etapu i odświeżanie danych…"), null);
     releaseWrite();
     await waitFor(() => assert.equal(refreshStarted, true));
-    await screen.findByText("Trwa operacja i odświeżanie stanu…");
+    await screen.findByText(pendingText);
     assert.ok(screen.getByRole("button", { name: operation === "approve" ? "Zatwierdzanie i odświeżanie…" : "Ponów sprawdzenie stanu" }).matches(":disabled"));
     releaseRead();
-    await waitFor(() => assert.equal(screen.queryByText("Trwa operacja i odświeżanie stanu…") === null, true));
+    await waitFor(() => assert.equal(screen.queryByText(pendingText) === null, true));
     assert.equal(writes, 1);
     assert.equal(screen.queryByRole("alert") === null, true);
   });
@@ -306,7 +328,7 @@ for (const operation of ["approve", "route"] as const) {
     if (operation === "approve") await user.click(await screen.findByRole("button", { name: "Zatwierdź kwalifikację" }));
     await user.click(await screen.findByRole("button", { name: operation === "approve" ? "Potwierdź kwalifikację" : /Wykonaj routing:/ }));
     await screen.findByText(/Operacja odrzucona/);
-    await waitFor(() => assert.equal(screen.queryByText("Trwa operacja i odświeżanie stanu…") === null, true));
+    await waitFor(() => assert.equal(screen.queryByText("Zapisywanie i odświeżanie stanu…") === null, true));
     assert.ok(failed && state.reads.proposal >= 2 && state.reads.route >= 2 && state.reads.readiness >= 2);
     assert.equal(screen.queryByText("Routing wykonany. Gotowość etapu docelowego została sprawdzona.") === null, true);
     if (operation === "approve") assert.equal(screen.queryByText("Kwalifikacja zatwierdzona.") === null, true);
