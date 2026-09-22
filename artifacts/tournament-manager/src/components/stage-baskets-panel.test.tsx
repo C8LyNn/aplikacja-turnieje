@@ -16,10 +16,64 @@ import {
   toggleParticipantInBasket,
 } from "./stage-baskets-panel";
 import type { StageBasket } from "@workspace/api-client-react";
+import { configurationProblemMessage, configurationErrorFeedback } from "@/lib/stage-configuration-feedback";
+import { stageReadinessMessages } from "@/lib/stage-lifecycle-feedback";
+import type { StageStartReadiness } from "@workspace/api-client-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const originalFetch = globalThis.fetch;
+
+const validationCases = [
+  { name: "participant count mismatch", code: "STAGE_PARTICIPANTS_INCONSISTENT", message: "Nieprawidłowa liczba uczestników.", context: { stageId: 2, expected: 16, actual: 14 }, pattern: /Finały:.*16.*14.*Sprawdź przypisania/ },
+  { name: "invalid routing", code: "STAGE_BASKET_ROUTE_NOT_FORWARD", message: "Route must point forward.", context: { sourceStageId: 2, targetStageId: 1 }, pattern: /Finały → Eliminacje:.*późniejszych etapów.*Popraw połączenie/ },
+  { name: "missing participant", code: "STAGE_BASKET_PARTICIPANT_NOT_FOUND", message: "Participant not found.", context: { stageId: 2, participantId: 99 }, pattern: /Finały:.*#99.*Sprawdź listę zawodników/ },
+  { name: "quota counts in backend message", code: "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT", message: "Total qualifier quota (16) exceeds stage participant count (14).", context: { stageId: 2 }, pattern: /Finały:.*Popraw liczbę przechodzących.*16.*14/ },
+];
+
+for (const scenario of validationCases) test(`save exposes API validation details for ${scenario.name} and preserves draft`, async () => {
+  const user = userEvent.setup();
+  const base = makeFetch({ "stage-baskets": () => basketsExplicit, "/stages": () => stagesTwoStages, "/players": () => players });
+  renderPanel(async (input, init) => init?.method === "PUT"
+    ? new Response(JSON.stringify({ code: "STAGE_BASKET_CONFIGURATION_INVALID", error: "Konfiguracja nieprawidłowa.", problems: [scenario] }), { status: 422, headers: { "content-type": "application/json" } })
+    : base(input, init));
+  await user.click(await screen.findByTestId("enter-advanced-btn"));
+  await user.click(screen.getByTestId("save-baskets-btn"));
+  const error = await screen.findByTestId("baskets-api-error");
+  assert.match(error.textContent ?? "", scenario.pattern);
+  assert.ok(screen.getByTestId("save-baskets-btn"));
+  assert.equal(screen.queryByText("Nie udało się zapisać konfiguracji koszyków. Spróbuj ponownie."), null);
+  const readiness = { ready: false, reasonCode: "STAGE_BASKET_CONFIGURATION_INVALID", message: "Konfiguracja koszyków etapów jest niespójna.", missingSeeds: [], basketValidation: { valid: false, problems: [scenario] } } as unknown as StageStartReadiness;
+  assert.ok(stageReadinessMessages(readiness, { stages: stagesTwoStages }).includes(configurationProblemMessage(scenario, { stages: stagesTwoStages })));
+});
+
+for (const status of [500, 0]) test(`save uses connection feedback for unexpected server/network error (${status})`, async () => {
+  const user = userEvent.setup();
+  const base = makeFetch({ "stage-baskets": () => basketsExplicit, "/stages": () => stagesTwoStages, "/players": () => players });
+  renderPanel(async (input, init) => {
+    if (init?.method !== "PUT") return base(input, init);
+    if (!status) throw new TypeError("Failed to fetch");
+    return new Response(JSON.stringify({ error: "internal server trace", problems: validationCases }), { status, headers: { "content-type": "application/json" } });
+  });
+  await user.click(await screen.findByTestId("enter-advanced-btn"));
+  await user.click(screen.getByTestId("save-baskets-btn"));
+  assert.match((await screen.findByTestId("baskets-api-error")).textContent ?? "", /Nie udało się połączyć z serwerem. Spróbuj ponownie./);
+  assert.equal(screen.queryByText(/internal server trace/), null);
+});
+
+test("readiness participant mismatch includes server counts and stage name without estimating arrivals", () => {
+  const readiness = { ready: false, reasonCode: "STAGE_PARTICIPANTS_INCONSISTENT", message: "Niespójny skład.", participantCount: 14, requiredParticipantCount: 16, missingSeeds: [], basketValidation: { valid: true, problems: [] } } as unknown as StageStartReadiness;
+  assert.match(stageReadinessMessages(readiness, { stages: stagesTwoStages, stageId: 2 }).join(" "), /Finały:.*16.*14.*Sprawdź przypisania/);
+});
+
+test("validation keeps details objects, expected/actual and unknown backend reasons", () => {
+  const feedback = configurationErrorFeedback({ status: 422, data: { code: "STAGE_PARTICIPANTS_INCONSISTENT", error: "Nieprawidłowa obsada.", details: { stageId: 2, expected: 16, actual: 14 } } });
+  assert.equal(feedback.message, "Nieprawidłowa obsada.");
+  assert.match(configurationProblemMessage(feedback.problems[0], { stages: stagesTwoStages }), /Finały:.*16.*14/);
+  const unknown = { code: "NEW_VALIDATION_CODE", message: "Zmień wskazane ustawienie etapu.", context: { stageId: 2 } };
+  const details = configurationErrorFeedback({ status: 422, data: { details: [unknown] } });
+  assert.match(configurationProblemMessage(details.problems[0], { stages: stagesTwoStages }), /Finały: Zmień wskazane ustawienie etapu/);
+});
 const queryClients = new Set<QueryClient>();
 
 afterEach(() => {

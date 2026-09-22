@@ -1011,7 +1011,7 @@ export default function TournamentHost() {
 
         {/* Score area */}
         <div className="p-4 md:p-5">
-          {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
+          {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
             <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
             <p className="text-sm">Twój draft pochodzi ze starej wersji meczu. Przed kolejnym zapisem sprawdź aktualnych zawodników i rozpocznij nową edycję.</p>
             <div className="rounded-md border bg-background p-3 text-sm">
@@ -1407,9 +1407,9 @@ export default function TournamentHost() {
 
   return (
     <Layout colorPreset={presentationSettings.colorPreset || undefined}>
-      <div className="flex flex-col gap-4 max-w-6xl mx-auto">
+      <div className="organizer-workspace flex flex-col gap-4 mx-auto">
         {/* Top bar */}
-        <div className="flex flex-wrap items-center gap-3 border-b pb-3">
+        <div className="organizer-header flex flex-wrap items-center gap-3 border-b pb-3">
           <Button variant="ghost" size="icon" asChild>
             <Link href={`/tournaments/${id}`} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
@@ -1443,7 +1443,7 @@ export default function TournamentHost() {
           />
         )}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
-        {tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="rounded-xl border border-primary/30 bg-card p-4">
+        {tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
           <h2 className="text-xl font-semibold">Turniej zakończony</h2>
           {championName && <p className="mt-2 text-lg font-semibold">Mistrz: {championName}</p>}
           {!dataLoading && !dataError && !!stages?.length && stages.every(stage => stage.status === "completed") &&
@@ -1452,7 +1452,7 @@ export default function TournamentHost() {
             <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/host?tab=wyniki`}>Wszystkie mecze i wyniki</Link></Button>
             <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/audience`}>Widok widzów</Link></Button>
           </div>
-        </section> : <section aria-label="Stan prowadzenia" className="rounded-xl border border-primary/30 bg-card p-4">
+        </section> : <section aria-label="Stan prowadzenia" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -1481,16 +1481,16 @@ export default function TournamentHost() {
             <p className="mt-3 text-xs text-muted-foreground">Pozostałe mecze oczekują na pełną parę, zostały przełożone lub anulowane.</p>}
         </section>}
         {dataLoading && !dataError && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Pobieranie stanu etapu i meczów…</p>}
-        {dataError && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+        {dataError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-semibold">Nie udało się odświeżyć stanu prowadzenia.</p>
           <p className="mt-1 text-sm text-muted-foreground">Dane mogą być nieaktualne. Operacje są wstrzymane do ponownego pobrania etapu i meczów.</p>
           <Button variant="outline" size="sm" className="mt-3" disabled={isFetchingTournament || stagesQuery.isFetching || matchesQuery.isFetching} onClick={() => void Promise.all([refetchTournament(), stagesQuery.refetch(), matchesQuery.refetch()])}><RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie</Button>
         </div>}
-        {actionError && <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+        {actionError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-semibold">Operacja nie powiodła się</p><p className="mt-1 text-sm">{actionError.message}</p>
           {actionError.code && <p className="mt-2 text-xs text-muted-foreground">Kod diagnostyczny: {actionError.code}</p>}
         </div>}
-        {hostPending && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
+        {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
         {nextStep && !tournamentCompleted && !dataLoading && !dataError && (

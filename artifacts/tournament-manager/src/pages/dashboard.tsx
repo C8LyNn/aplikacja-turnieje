@@ -210,13 +210,13 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-center gap-3 flex-wrap">
+      <div className="organizer-workspace flex flex-col gap-6">
+        <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-primary">Turnieje</h1>
             <p className="text-muted-foreground">Zarządzaj rozgrywkami, drabinkami i wynikami.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="organizer-header-actions flex gap-2">
             <Button
               variant="outline"
               onClick={() => setShowRestoreDialog(true)}

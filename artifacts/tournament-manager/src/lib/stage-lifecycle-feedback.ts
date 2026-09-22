@@ -1,12 +1,15 @@
 import type { StageStartReadiness } from "@workspace/api-client-react";
 import { getApiErrorMessage } from "./tournament-stages-ui";
+import { configurationProblemMessage, type ConfigurationContext } from "./stage-configuration-feedback";
 
-export function stageReadinessMessages(readiness: StageStartReadiness): string[] {
+export function stageReadinessMessages(readiness: StageStartReadiness, context: ConfigurationContext = {}): string[] {
   if (readiness.ready) return [];
   return [...new Set([
-    readiness.message,
+    readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT"
+      ? configurationProblemMessage({ code: readiness.reasonCode, message: readiness.message, expected: readiness.requiredParticipantCount, actual: readiness.participantCount }, context)
+      : readiness.message,
     ...(readiness.missingSeeds.length ? [`Brakujące seedy: ${readiness.missingSeeds.join(", ")}.`] : []),
-    ...readiness.basketValidation.problems.map(problem => problem.message),
+    ...readiness.basketValidation.problems.map(problem => configurationProblemMessage(problem, context)),
   ].filter(Boolean))];
 }
 

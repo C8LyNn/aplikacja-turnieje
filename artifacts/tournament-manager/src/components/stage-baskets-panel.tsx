@@ -1,3 +1,4 @@
+import { configurationErrorFeedback, configurationProblemMessage, type ConfigurationProblem } from "@/lib/stage-configuration-feedback";
 import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,7 +22,6 @@ import {
   type StageBasketRoute,
   type TournamentStage,
   type Player,
-  type StageBasketProblem,
 } from "@workspace/api-client-react";
 import {
   deriveStageBasketFlowCounts,
@@ -136,53 +136,6 @@ function newRouteId(sourceBasketId: string, targetBasketId: string): string {
   return raw.slice(0, 100);
 }
 
-// ─── error code → Polish message ─────────────────────────────────────────────
-
-const PROBLEM_CODE_MESSAGES: Record<string, string> = {
-  STAGE_BASKET_STAGE_NOT_FOUND:              "Etap powiązany z koszykiem nie istnieje.",
-  STAGE_BASKET_ID_INVALID:                   "ID koszyka jest nieprawidłowe.",
-  STAGE_BASKET_ID_DUPLICATE:                 "Zduplikowane ID koszyka.",
-  STAGE_INPUT_BASKET_COUNT_INVALID:          "Nieprawidłowa liczba koszyków wejściowych (wymagany min. 1, max. 4).",
-  STAGE_OUTPUT_BASKET_COUNT_INVALID:         "Nieprawidłowa liczba koszyków wyjściowych (wymagany min. 1, max. 4).",
-  STAGE_BASKET_ORDINAL_DUPLICATE:            "Zduplikowany numer koszyka. Usuń jeden z kolidujących koszyków i spróbuj ponownie.",
-  STAGE_BASKET_ORDINAL_INVALID:              "Numer koszyka (ordinal) poza zakresem 1–4.",
-  STAGE_BASKET_ORDER_DUPLICATE:              "Zduplikowana kolejność wyświetlania koszyka.",
-  STAGE_BASKET_ORDER_INVALID:                "Kolejność koszyka poza zakresem 1–4.",
-  STAGE_BASKET_COLOR_ID_INVALID:             "Nieprawidłowy identyfikator koloru koszyka.",
-  STAGE_BASKET_PARTICIPANT_NOT_FOUND:        "Uczestnik przypisany do koszyka nie istnieje w turnieju.",
-  STAGE_OUTPUT_BASKET_PARTICIPANTS_NOT_ALLOWED: "Do koszyków wyjściowych nie można przypisywać uczestników.",
-  STAGE_BASKET_PARTICIPANT_DUPLICATE:        "Uczestnik jest przypisany do więcej niż jednego koszyka lub etapu.",
-  STAGE_BASKET_ROUTE_ID_INVALID:             "ID połączenia jest nieprawidłowe.",
-  STAGE_BASKET_ROUTE_ID_DUPLICATE:           "Zduplikowane ID połączenia.",
-  STAGE_BASKET_ROUTE_SOURCE_NOT_FOUND:       "Źródłowy koszyk połączenia nie istnieje.",
-  STAGE_BASKET_ROUTE_TARGET_NOT_FOUND:       "Docelowy koszyk połączenia nie istnieje.",
-  STAGE_BASKET_ROUTE_SOURCE_NOT_OUTPUT:      "Źródło połączenia musi być koszykiem wyjściowym.",
-  STAGE_BASKET_ROUTE_TARGET_NOT_INPUT:       "Cel połączenia musi być koszykiem wejściowym.",
-  STAGE_BASKET_ROUTE_OUTPUT_REUSED:          "Koszyk wyjściowy ma już przypisane połączenie — każde wyjście może mieć tylko jedną trasę.",
-  STAGE_BASKET_ROUTE_NOT_FORWARD:            "Połączenia mogą prowadzić wyłącznie do późniejszych etapów.",
-  STAGE_BASKET_ROUTE_CYCLE:                  "Konfiguracja połączeń tworzy cykl.",
-  STAGE_INPUT_BASKET_QUALIFIER_COUNT_NOT_ALLOWED:       "Koszyki wejściowe nie mogą mieć ustawionej liczby kwalifikujących graczy.",
-  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_REQUIRED:         "Każdy koszyk wyjściowy musi mieć ustawioną liczbę przechodzących graczy.",
-  STAGE_OUTPUT_BASKET_QUALIFIER_COUNT_INVALID:          "Liczba przechodzących graczy musi być dodatnią liczbą całkowitą.",
-  STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT:  "Suma przechodzących graczy przekracza liczbę uczestników etapu.",
-  STAGE_DERIVED_PARTICIPANT_COUNT_INVALID:              "Etap musi mieć co najmniej dwóch uczestników wynikających z wejść i tras.",
-};
-
-const CONFIG_ERROR_MESSAGES: Record<string, string> = {
-  TOURNAMENT_NOT_FOUND:                "Turniej nie został znaleziony.",
-  STAGE_BASKET_CONFIGURATION_IMMUTABLE: "Konfiguracja koszyków jest zablokowana — turniej już się rozpoczął.",
-  STAGE_BASKET_CONFIGURATION_INVALID:  "Konfiguracja koszyków zawiera błędy. Sprawdź szczegóły poniżej.",
-  STAGE_BASKET_ID_REASSIGNED:          "ID koszyka zostało ponownie użyte po wcześniejszym usunięciu. Odśwież stronę i spróbuj ponownie.",
-};
-
-function translateConfigError(code: string | undefined, fallback: string): string {
-  return (code && CONFIG_ERROR_MESSAGES[code]) ? CONFIG_ERROR_MESSAGES[code] : fallback;
-}
-
-function translateProblem(p: StageBasketProblem): string {
-  return PROBLEM_CODE_MESSAGES[p.code] ?? p.message;
-}
-
 // ─── BasketCard ──────────────────────────────────────────────────────────────
 
 interface BasketCardProps {
@@ -241,7 +194,7 @@ export function BasketCard({
 
   return (
     <div
-      className={`rounded-md border px-3 py-2 text-sm space-y-1 ${color.bg} ${color.border} ${borderExtra} transition-all`}
+      className={`organizer-basket rounded-md border px-3 py-2 text-sm space-y-2 ${color.bg} ${color.border} ${borderExtra} transition-all`}
       data-testid={`basket-${basket.id}`}
       onClick={handleCardClick}
     >
@@ -439,11 +392,11 @@ export function StageBlock({
 
   return (
     <div
-      className="rounded-lg border bg-card min-w-[280px] max-w-xs flex flex-col shrink-0"
+      className="organizer-flow-stage rounded-lg border bg-card flex flex-col shrink-0"
       data-testid={`stage-block-${stage.id}`}
     >
       {/* Stage header */}
-      <div className="px-3 py-2 border-b bg-muted/30 rounded-t-lg">
+      <div className="organizer-flow-stage-header border-b bg-muted/30 rounded-t-lg">
         <div className="font-semibold text-sm">{stage.name}</div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-muted-foreground">{formatLabel}</span>
@@ -452,7 +405,7 @@ export function StageBlock({
         </div>
         {explicitAuthority && (
           <div
-            className="mt-1 text-[11px] text-muted-foreground"
+            className="mt-2 text-xs text-muted-foreground"
             data-testid={`stage-flow-summary-${stage.id}`}
           >
             Bezpośrednio: {flowCounts?.directParticipantCount ?? 0} · Z tras: {flowCounts?.incomingRouteQuota ?? 0} · Razem: {participantCount}
@@ -461,7 +414,7 @@ export function StageBlock({
       </div>
 
       {/* Baskets body */}
-      <div className="px-3 py-2 grid grid-cols-2 gap-2 flex-1">
+      <div className="organizer-flow-stage-body grid grid-cols-2 flex-1">
         {/* Inputs */}
         <div className="space-y-1.5">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wejścia</div>
@@ -599,7 +552,7 @@ export function RouteConnector({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-1 self-center shrink-0 px-1" data-testid="route-connector">
+    <div className="organizer-route-summary flex flex-col items-center justify-center gap-2 self-center shrink-0" data-testid="route-connector">
       {relevant.map((route) => {
         const src = basketById.get(route.sourceBasketId);
         const tgt = basketById.get(route.targetBasketId);
@@ -698,7 +651,7 @@ function AddRoutePanel({
         <div>
           <label className="text-xs text-muted-foreground block mb-0.5">Koszyk wyjściowy (źródło)</label>
           <select
-            className="w-full text-xs rounded border border-border bg-card px-2 py-1.5"
+            className="min-h-9 w-full text-sm rounded-md border border-border bg-card px-2 py-1.5"
             value={sourceId}
             onChange={(e) => { setSourceId(e.target.value); setTargetId(""); }}
           >
@@ -716,7 +669,7 @@ function AddRoutePanel({
         <div>
           <label className="text-xs text-muted-foreground block mb-0.5">Koszyk wejściowy (cel)</label>
           <select
-            className="w-full text-xs rounded border border-border bg-card px-2 py-1.5"
+            className="min-h-9 w-full text-sm rounded-md border border-border bg-card px-2 py-1.5"
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
             disabled={validTargets.length === 0}
@@ -772,7 +725,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
   const [advancedMode, setAdvancedMode] = useState(false);
   const [draft, setDraft] = useState<{ baskets: StageBasket[]; routes: StageBasketRoute[] } | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [apiProblems, setApiProblems] = useState<StageBasketProblem[]>([]);
+  const [apiProblems, setApiProblems] = useState<ConfigurationProblem[]>([]);
   const [addingRoute, setAddingRoute] = useState(false);
   const [routeSourceId, setRouteSourceId] = useState<string | null>(null);
 
@@ -965,10 +918,9 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       setAdvancedMode(false);
       setDraft(null);
     } catch (e: unknown) {
-      const body = (e as { response?: { data?: { error?: string; code?: string; problems?: StageBasketProblem[] } } })?.response?.data;
-      const polishMessage = translateConfigError(body?.code, body?.error ?? "Nie udało się zapisać konfiguracji koszyków. Spróbuj ponownie.");
-      setApiError(polishMessage);
-      setApiProblems(body?.problems ?? []);
+      const feedback = configurationErrorFeedback(e);
+      setApiError(feedback.message);
+      setApiProblems(feedback.problems);
     }
   }
 
@@ -1040,7 +992,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       {apiError && (
         <div
           role="alert"
-          className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-1"
+          className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive space-y-1"
           data-testid="baskets-api-error"
         >
           <div className="flex items-center gap-1.5 font-medium">
@@ -1050,7 +1002,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           {apiProblems.length > 0 && (
             <ul className="list-disc list-inside text-xs space-y-0.5 text-destructive/80">
               {apiProblems.map((p, i) => (
-                <li key={i}>{translateProblem(p)}</li>
+                <li key={i}>{configurationProblemMessage(p, { stages, baskets: active?.baskets, routes: active?.routes })}</li>
               ))}
             </ul>
           )}
@@ -1058,10 +1010,10 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="organizer-section-heading flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h3 className="font-semibold">Mapa przepływu uczestników</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-1">
             Konfiguracja podziału uczestników pomiędzy etapami turnieju.
           </p>
         </div>
@@ -1105,7 +1057,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
       {stages.length > 0 && (
         <div
-          className="overflow-x-auto pb-2"
+          className="organizer-flow-map overflow-x-auto pb-2"
           style={{ scrollbarWidth: "thin" }}
           data-testid="baskets-map"
         >
@@ -1176,14 +1128,14 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
       {/* Validation problems from API response */}
       {!advancedMode && basketConfig.validation && !basketConfig.validation.valid && (
-        <div role="alert" className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm" data-testid="baskets-validation-warning">
+        <div role="alert" className="organizer-notice rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm" data-testid="baskets-validation-warning">
           <div className="flex items-center gap-1.5 text-yellow-400 font-medium mb-1">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             Konfiguracja koszyków jest nieprawidłowa
           </div>
           <ul className="list-disc list-inside text-xs text-yellow-300/80 space-y-0.5">
             {basketConfig.validation.problems.map((p, i) => (
-              <li key={i}>{translateProblem(p)}</li>
+              <li key={i}>{configurationProblemMessage(p, { stages, baskets: active?.baskets, routes: active?.routes })}</li>
             ))}
           </ul>
         </div>

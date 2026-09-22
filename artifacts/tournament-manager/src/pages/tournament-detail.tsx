@@ -600,10 +600,10 @@ export default function TournamentDetail() {
 
   return (
     <Layout colorPreset={presentationSettings.colorPreset || undefined}>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="organizer-workspace flex flex-col gap-6">
+        <div className="organizer-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
                 className={tournament.status === "active" ? "bg-secondary text-secondary-foreground hover:bg-secondary" :
@@ -620,7 +620,7 @@ export default function TournamentDetail() {
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="organizer-header-actions flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => setShowChecklist((v) => !v)}
@@ -854,7 +854,7 @@ export default function TournamentDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="stages" className="pt-6">
+          <TabsContent value="stages" className="pt-2">
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -866,7 +866,7 @@ export default function TournamentDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="baskets" className="pt-6">
+          <TabsContent value="baskets" className="pt-2">
             <StageBasketsPanel
               tournamentId={id}
               tournamentStatus={tournament.status}

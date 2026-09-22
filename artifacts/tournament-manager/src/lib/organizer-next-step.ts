@@ -153,7 +153,7 @@ export function deriveOrganizerNextStep(input: {
       return {
         kind: "stage_preparation",
         title: "Etap wymaga przygotowania",
-        description: readiness ? stageReadinessMessages(readiness).join(" ") : "Trwa sprawdzanie składu i konfiguracji etapu.",
+        description: readiness ? stageReadinessMessages(readiness, { stages, stageId: planned.id }).join(" ") : "Trwa sprawdzanie składu i konfiguracji etapu.",
         actionLabel: capabilities.canManageLifecycle ? "Sprawdź gotowość etapu" : undefined,
         actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
         stageId: planned.id,

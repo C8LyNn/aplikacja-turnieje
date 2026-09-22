@@ -161,7 +161,7 @@ export function TournamentOrganizerNavigation({
   const more = organizerMoreItems(tournamentId, capabilities);
   const moreActive = more.some((item) => item.area === active);
   return (
-    <nav aria-label="Nawigacja organizatora turnieju" className="rounded-lg border bg-card">
+    <nav aria-label="Nawigacja organizatora turnieju" className="organizer-navigation rounded-lg border bg-card">
       <div className="flex items-stretch overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
         {main.map((item) => (
           <Link

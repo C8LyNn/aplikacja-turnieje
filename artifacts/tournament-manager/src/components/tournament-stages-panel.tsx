@@ -129,7 +129,7 @@ export function StageNavigation({
 }) {
   return (
     <div
-      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+      className="organizer-stage-navigation grid gap-3"
       aria-label="Etapy turnieju"
     >
       {stages.map((stage) => {
@@ -140,7 +140,7 @@ export function StageNavigation({
             key={stage.id}
             onClick={() => onSelect(stage.id)}
             aria-pressed={selected}
-            className={`rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            className={`organizer-stage-card rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               selected
                 ? "border-primary bg-primary/10"
                 : "border-border bg-card hover:bg-muted/50"
@@ -151,6 +151,7 @@ export function StageNavigation({
                 Etap {stage.position}
               </span>
               <Badge
+                data-stage-status={stage.status}
                 variant={stage.status === "active" ? "default" : "secondary"}
               >
                 {STAGE_STATUS_LABELS[stage.status]}
@@ -741,13 +742,13 @@ export function TournamentStagesPanel({
   const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
-    : !readinessQuery.data.ready ? readinessQuery.data.message
+    : !readinessQuery.data.ready ? stageReadinessMessages(readinessQuery.data, { stages, stageId: selected?.id }).join(" ")
     : !ceremonyReady ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
   const actionStartBlockedReason = actionReadiness.isError || actionCeremony.isError
     ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : actionReadiness.isFetching || !actionReadiness.data || actionCeremony.isFetching
     ? "Sprawdzanie gotowości etapu…"
-    : !actionReadiness.data.ready ? actionReadiness.data.message
+    : !actionReadiness.data.ready ? stageReadinessMessages(actionReadiness.data, { stages, stageId: actionStage?.id }).join(" ")
     : actionStage && !isSequentialCeremonyReady(actionStage, actionCeremony.data?.ceremony ?? null)
     ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
   const mayStartAction = canManage && actionStage?.status === "planned" && actionReadiness.data?.ready === true;
@@ -804,7 +805,7 @@ export function TournamentStagesPanel({
       className={`space-y-5 ${audience ? "w-full max-w-5xl" : ""}`}
       aria-label="Przebieg etapów turnieju"
     >
-      <div>
+      <div className="organizer-section-heading">
         <h2 className="text-xl font-bold">Etapy turnieju</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Wybierz etap, aby zobaczyć jego uczestników, ranking, grupy i mecze.
@@ -814,7 +815,7 @@ export function TournamentStagesPanel({
       </div>
       {explicitBasketAuthority && (
         <div
-          className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm text-muted-foreground flex items-center gap-2"
+          className="rounded-lg border border-border bg-muted/20 px-4 py-2.5 text-sm text-muted-foreground flex items-center gap-2"
           data-testid="stages-explicit-basket-authority"
         >
           <Info className="h-4 w-4 shrink-0" />
@@ -833,12 +834,12 @@ export function TournamentStagesPanel({
         }}
       />
       {actionError && (
-        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+        <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {actionError}
         </div>
       )}
-      {actionSuccess && <p role="status" className="rounded-lg border border-primary/30 p-3 text-sm text-primary">{actionSuccess}</p>}
-      {pending && <p role="status" className="text-sm">{qualificationPending ? "Zapisywanie i odświeżanie stanu…" : completeMutation.isPending ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…"}</p>}
+      {actionSuccess && <p role="status" className="organizer-notice organizer-notice--success rounded-lg border border-primary/30 p-3 text-sm text-primary">{actionSuccess}</p>}
+      {pending && <p role="status" className="organizer-notice organizer-notice--pending text-sm">{qualificationPending ? "Zapisywanie i odświeżanie stanu…" : completeMutation.isPending ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…"}</p>}
       {detailQuery.isLoading && (
         <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -853,7 +854,7 @@ export function TournamentStagesPanel({
       )}
       {selected && detailQuery.data && !detailQuery.isError && (
         <>
-          <Card>
+          <Card className="organizer-stage-detail">
             <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -883,13 +884,13 @@ export function TournamentStagesPanel({
             </CardContent>
           </Card>
 
-          {selected.status === "planned" && <div aria-label="Gotowość etapu" className="rounded-lg border bg-card p-4 space-y-2">
+          {selected.status === "planned" && <div aria-label="Gotowość etapu" className="organizer-readiness rounded-lg border bg-card p-4 space-y-2">
             <h4 className="font-semibold">{startBlockedReason ? "Etap wymaga przygotowania" : "Gotowy do rozpoczęcia"}</h4>
             {readinessQuery.isError ? <><p>Nie udało się sprawdzić gotowości etapu.</p><Button variant="outline" onClick={() => void readinessQuery.refetch()}>Ponów sprawdzenie</Button></>
               : !readinessQuery.data ? <p role="status">Sprawdzanie gotowości etapu…</p>
               : <>
                 <p className="text-sm text-muted-foreground">Uczestnicy według serwera: {readinessQuery.data.participantCount} / {readinessQuery.data.requiredParticipantCount} wymaganych.</p>
-                {!readinessQuery.data.ready && <ul className="list-disc pl-5 text-sm space-y-1">{stageReadinessMessages(readinessQuery.data).map(message => <li key={message}>{message}</li>)}</ul>}
+                {!readinessQuery.data.ready && <ul className="list-disc pl-5 text-sm space-y-1">{stageReadinessMessages(readinessQuery.data, { stages, stageId: selected.id, baskets: basketConfigurationQuery.data?.baskets, routes: basketConfigurationQuery.data?.routes }).map(message => <li key={message}>{message}</li>)}</ul>}
                 {!ceremonyReady && <p className="text-sm">Dokończ ceremonię losowania przed rozpoczęciem etapu.</p>}
                 {!readinessQuery.data.ready && <p className="text-xs text-muted-foreground">Kod diagnostyczny: {readinessQuery.data.reasonCode}</p>}
                 {(readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&
@@ -1017,7 +1018,7 @@ export function TournamentStagesPanel({
           setActionError(undefined);
         }}
       >
-        <DialogContent>
+        <DialogContent className="organizer-dialog">
           <DialogHeader>
             <DialogTitle>Zakończyć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>
@@ -1067,7 +1068,7 @@ export function TournamentStagesPanel({
         </DialogContent>
       </Dialog>
       <Dialog open={startConfirmOpen} onOpenChange={open => { if (!pending) setStartConfirmOpen(open); }}>
-        <DialogContent>
+        <DialogContent className="organizer-dialog">
           <DialogHeader><DialogTitle>Rozpocząć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>System utrwali skład uczestników i przygotuje mecze tego etapu. Po rozpoczęciu zmiana składu i rozstawienia będzie ograniczona.</DialogDescription>
           </DialogHeader>
