@@ -21,6 +21,10 @@ export function OrganizerNextStep({
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">Następny krok</p>
           <h2 id="organizer-next-step-title" className="mt-1 font-semibold">{step.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+          {step.readinessFeedback && <>
+            <p className="mt-1 text-sm font-medium tabular-nums">{step.readinessFeedback.counts}</p>
+            <p className="mt-1 text-sm">{step.readinessFeedback.action}</p>
+          </>}
         </div>
         {action && step.actionHref && !onAction && (
           <Button asChild className="organizer-next-action shrink-0">

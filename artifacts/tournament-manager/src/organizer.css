@@ -113,8 +113,7 @@
 }
 .organizer-basket input[type="number"] { min-height: 2rem; font-size: .875rem; }
 .organizer-basket input[type="checkbox"] { accent-color: hsl(var(--primary)); }
-.organizer-route-summary { max-width: 16rem; padding-inline: .75rem; line-height: 1.5; }
-.organizer-route-summary > div { flex-wrap: wrap; }
+.organizer-route-summary { width: 16rem; padding-inline: .75rem; line-height: 1.5; overflow-wrap: anywhere; }
 
 .organizer-qualification table { font-variant-numeric: tabular-nums; }
 .organizer-qualification th {

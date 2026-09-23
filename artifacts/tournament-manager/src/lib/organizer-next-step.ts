@@ -5,7 +5,7 @@ import type {
   TournamentStage,
 } from "@workspace/api-client-react";
 import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
-import { stageReadinessMessages } from "./stage-lifecycle-feedback";
+import { stageReadinessFeedback } from "./stage-lifecycle-feedback";
 import { organizerStageSummary } from "./organizer-stage-summary";
 
 export type OrganizerSurface = "details" | "conducting";
@@ -25,6 +25,7 @@ export interface OrganizerNextStepModel {
   kind: OrganizerNextStepKind;
   title: string;
   description: string;
+  readinessFeedback?: ReturnType<typeof stageReadinessFeedback>;
   actionLabel?: string;
   actionHref?: string;
   stageId?: number;
@@ -150,10 +151,12 @@ export function deriveOrganizerNextStep(input: {
     );
     const readiness = input.plannedStageReadiness;
     if (!readiness?.ready) {
+      const feedback = readiness ? stageReadinessFeedback(readiness, planned.name) : undefined;
       return {
         kind: "stage_preparation",
         title: "Etap wymaga przygotowania",
-        description: readiness ? stageReadinessMessages(readiness, { stages, stageId: planned.id }).join(" ") : "Trwa sprawdzanie składu i konfiguracji etapu.",
+        description: feedback?.summary ?? "Trwa sprawdzanie składu i konfiguracji etapu.",
+        readinessFeedback: feedback,
         actionLabel: capabilities.canManageLifecycle ? "Sprawdź gotowość etapu" : undefined,
         actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
         stageId: planned.id,

@@ -458,7 +458,47 @@ test("planned stage displays backend blockers, counts and an existing resolution
   assert.ok(screen.getByRole("button", { name: "Rozpocznij etap" }).matches(":disabled"));
   assert.ok(screen.getByText("Brakuje przekazania uczestników z koszyka A."));
   assert.ok(screen.getByRole("link", { name: "Sprawdź seedy graczy" }));
-  assert.match(screen.getByText(/Uczestnicy według serwera/).textContent ?? "", /2 \/ 4/);
+  assert.ok(screen.getByText("Oczekiwano: 4 · Aktualnie: 2"));
+});
+
+test("readiness separates a short stage summary and actions from complete diagnostics", async () => {
+  const readiness = ready(false);
+  readiness.message = "Pełna diagnoza serwera: uczestnicy pochodzą z niekompletnego wejścia.";
+  readiness.basketValidation = { valid: false, problems: [{ message: "Sprawdź dodatkowe przypisanie w koszyku A." }] };
+  const user = setup({ stages: [stage(1, "completed"), stage(2)], readiness, nextStep: true });
+  await selectFinals(user);
+  const panel = screen.getByLabelText("Gotowość etapu");
+  await within(panel).findByText("Oczekiwano: 4 · Aktualnie: 2");
+  assert.ok(within(panel).getByText("Finały: Liczba uczestników nie odpowiada wymaganiom etapu."));
+  const details = within(panel).getByRole("region", { name: "Szczegóły diagnostyczne" });
+  assert.ok(within(details).getByText(readiness.message));
+  assert.ok(within(details).getByText("Sprawdź dodatkowe przypisanie w koszyku A."));
+  assert.ok(within(details).getByText("Brakujące seedy: 3, 4."));
+  assert.ok(within(details).getByText("Kod diagnostyczny: STAGE_PARTICIPANTS_INCONSISTENT"));
+  for (const name of ["Sprawdź seedy graczy", "Sprawdź koszyki i dopływ uczestników"]) {
+    const link = within(panel).getByRole("link", { name });
+    assert.ok(link.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING);
+  }
+  const next = screen.getByRole("region", { name: "Etap wymaga przygotowania" });
+  assert.ok(within(next).getByText("Oczekiwano: 4 · Aktualnie: 2"));
+  assert.equal(within(next).queryByText(readiness.message), null);
+  assert.equal(screen.getAllByText(readiness.message).length, 1);
+});
+
+test("basket readiness retains full backend diagnostics below the repair guidance", async () => {
+  const readiness = ready(false);
+  readiness.reasonCode = "STAGE_BASKET_CONFIGURATION_INVALID";
+  readiness.message = "Konfiguracja koszyków etapów jest niespójna.";
+  readiness.basketValidation = { valid: false, problems: [{ message: "Etap Finały: źródła dostarczają 2 zamiast 4 uczestników." }] };
+  const user = setup({ stages: [stage(1, "completed"), stage(2)], readiness });
+  await selectFinals(user);
+  const panel = screen.getByLabelText("Gotowość etapu");
+  await within(panel).findByText("Finały: Konfiguracja koszyków zawiera błędy.");
+  assert.ok(within(panel).getByText("Oczekiwano: 4 · Aktualnie: 2"));
+  assert.ok(within(panel).getByRole("link", { name: "Sprawdź koszyki i dopływ uczestników" }));
+  const details = within(panel).getByRole("region", { name: "Szczegóły diagnostyczne" });
+  assert.ok(within(details).getByText(readiness.basketValidation.problems[0].message));
+  assert.ok(within(details).getByText(readiness.message));
 });
 
 test("start locks double submit through request and refetch, then presents the active stage", async () => {

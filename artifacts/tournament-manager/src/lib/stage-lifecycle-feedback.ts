@@ -2,14 +2,36 @@ import type { StageStartReadiness } from "@workspace/api-client-react";
 import { getApiErrorMessage } from "./tournament-stages-ui";
 import { configurationProblemMessage, type ConfigurationContext } from "./stage-configuration-feedback";
 
+/** Presentation only: readiness and counts remain authoritative server values. */
+export function stageReadinessFeedback(readiness: StageStartReadiness, stageName: string) {
+  const messages: Record<string, [string, string]> = {
+    STAGE_PARTICIPANTS_INCONSISTENT: ["Skład lub seedy etapu są niespójne.", "Sprawdź przypisania uczestników i seedy etapu."],
+    STAGE_BASKET_CONFIGURATION_INVALID: ["Konfiguracja koszyków zawiera błędy.", "Sprawdź koszyki i dopływ uczestników."],
+    QUALIFICATION_CONFIGURATION_INVALID: ["Konfiguracja kwalifikacji jest nieprawidłowa.", "Sprawdź ustawienia kwalifikacji i koszyki etapu."],
+    PREVIOUS_STAGE_NOT_COMPLETED: ["Poprzedni etap nie został zakończony.", "Sprawdź zakończenie poprzedniego etapu."],
+  };
+  let [reason, action] = messages[readiness.reasonCode] ?? [readiness.message, "Sprawdź szczegóły gotowości etapu."];
+  if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.requiredParticipantCount !== readiness.participantCount) {
+    reason = "Liczba uczestników nie odpowiada wymaganiom etapu.";
+    action = "Sprawdź przypisania i dopływ uczestników do etapu.";
+  }
+  return {
+    summary: `${stageName}: ${reason}`,
+    action,
+    counts: `Oczekiwano: ${readiness.requiredParticipantCount} · Aktualnie: ${readiness.participantCount}`,
+  };
+}
+
 export function stageReadinessMessages(readiness: StageStartReadiness, context: ConfigurationContext = {}): string[] {
   if (readiness.ready) return [];
   return [...new Set([
     readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT"
       ? configurationProblemMessage({ code: readiness.reasonCode, message: readiness.message, expected: readiness.requiredParticipantCount, actual: readiness.participantCount }, context)
       : readiness.message,
+    readiness.message,
     ...(readiness.missingSeeds.length ? [`Brakujące seedy: ${readiness.missingSeeds.join(", ")}.`] : []),
     ...readiness.basketValidation.problems.map(problem => configurationProblemMessage(problem, context)),
+    ...readiness.basketValidation.problems.map(problem => problem.message),
   ].filter(Boolean))];
 }
 

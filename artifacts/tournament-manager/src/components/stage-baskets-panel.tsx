@@ -545,20 +545,21 @@ export function RouteConnector({
 
   if (relevant.length === 0) {
     return (
-      <div className="flex items-center self-center text-muted-foreground/40 shrink-0 px-1">
-        <ArrowRight className="w-5 h-5" />
+      <div className="self-center shrink-0 px-3 text-xs text-muted-foreground">
+        Brak połączeń
       </div>
     );
   }
 
   return (
-    <div className="organizer-route-summary flex flex-col items-center justify-center gap-2 self-center shrink-0" data-testid="route-connector">
+    <div className="organizer-route-summary flex flex-col justify-center gap-2 self-center shrink-0" role="list" aria-label="Połączenia między etapami" data-testid="route-connector">
       {relevant.map((route) => {
         const src = basketById.get(route.sourceBasketId);
         const tgt = basketById.get(route.targetBasketId);
         const srcLabel = src ? basketLabel(src.type, src.ordinal) : route.sourceBasketId;
         const tgtBasketLabel = tgt ? basketLabel(tgt.type, tgt.ordinal) : route.targetBasketId;
         const srcColor = getColorStyle(src?.colorId ?? null);
+        const tgtColor = getColorStyle(tgt?.colorId ?? null);
 
         // Detect skip-stage route: target stage is not the immediately adjacent one
         const srcStage = src ? stageById.get(src.stageId) : undefined;
@@ -571,17 +572,25 @@ export function RouteConnector({
           : tgtBasketLabel;
 
         return (
-          <div key={route.id} className="flex items-center gap-1 text-xs" data-testid={`route-${route.id}`}>
-            <span className={`font-medium ${srcColor.text}`}>{srcLabel}</span>
-            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground" data-testid={`route-target-${route.id}`}>{displayTgtLabel}</span>
+          <div key={route.id} role="listitem" aria-label={`${srcStage?.name ?? "Źródło"}: ${srcLabel} → ${tgtStage?.name ?? "Cel"}: ${tgtBasketLabel}`} className="rounded-lg border border-border bg-card p-2 text-sm" data-testid={`route-${route.id}`}>
+            <div className="grid grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-center gap-1">
+              <div className={`min-w-0 rounded border p-1.5 ${srcColor.bg} ${srcColor.border}`}>
+                <span className="block text-xs text-muted-foreground break-words">{srcStage?.name ?? "Źródło"}</span>
+                <span className="block font-medium break-words">{srcLabel}</span>
+              </div>
+              <ArrowRight aria-hidden="true" className="h-6 w-6 text-foreground" />
+              <div className={`min-w-0 rounded border p-1.5 ${tgtColor.bg} ${tgtColor.border}`} data-testid={`route-target-${route.id}`}>
+                <span className="block text-xs text-muted-foreground break-words">{tgtStage?.name ?? "Cel"}</span>
+                <span className="block font-medium break-words">{tgtBasketLabel}</span>
+              </div>
+            </div>
             {isAdvanced && !isLocked && (
               <button
-                className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                className="mt-1 ml-auto flex min-h-6 items-center gap-1 rounded px-1 text-xs text-muted-foreground hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring transition-colors"
                 onClick={() => onRemoveRoute?.(route.id)}
                 aria-label={`Usuń połączenie ${srcLabel} → ${displayTgtLabel}`}
               >
-                <X className="w-3 h-3" />
+                <X aria-hidden="true" className="w-3 h-3" /> Usuń połączenie
               </button>
             )}
           </div>
@@ -946,7 +955,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
   const routesForDisplay = active?.routes ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-4">
       {/* Locked banner */}
       {isLocked && (
         <div
@@ -1057,7 +1066,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
       {stages.length > 0 && (
         <div
-          className="organizer-flow-map overflow-x-auto pb-2"
+          className="organizer-flow-map min-w-0 max-w-full overflow-x-auto pb-2"
           style={{ scrollbarWidth: "thin" }}
           data-testid="baskets-map"
         >

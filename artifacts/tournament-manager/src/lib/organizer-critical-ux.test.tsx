@@ -253,6 +253,18 @@ test("planned stage with backend readiness gets one organizer start CTA", () => 
   assert.equal(model.actionLabel, "Rozpocznij etap");
 });
 
+test("preparation next-step keeps stage and zero counts visible without repeating diagnostics", () => {
+  const state = { ...readiness(false), participantCount: 0, requiredParticipantCount: 16, message: "Szczegółowa diagnoza brakujących przypisań." };
+  const model = nextStep({ stages: [stage({ name: "Finał" })], matches: [], readiness: state });
+  const html = renderToStaticMarkup(<OrganizerNextStep step={model} onAction={() => undefined} />);
+  const element = document.createElement("div");
+  element.innerHTML = html;
+  assert.match(element.textContent ?? "", /Finał: Liczba uczestników nie odpowiada wymaganiom etapu/);
+  assert.match(element.textContent ?? "", /Oczekiwano: 16 · Aktualnie: 0/);
+  assert.doesNotMatch(element.textContent ?? "", /Szczegółowa diagnoza/);
+  assert.equal(element.querySelector("button")?.textContent, "Sprawdź gotowość etapu");
+});
+
 test("ready to roster mutation to pending refetch hides CTA until not-ready arrives", () => {
   const ready = readiness(true);
   assert.equal(nextStep({ stages: [stage()], matches: [], readiness: ready }).actionLabel, "Rozpocznij etap");

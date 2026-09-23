@@ -34,7 +34,7 @@ import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-edito
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import { organizerStageSummary } from "@/lib/organizer-stage-summary";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
-import { stageReadinessMessages, stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
+import { stageReadinessFeedback, stageReadinessMessages, stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
 import {
   CheckCircle2,
   Circle,
@@ -750,9 +750,11 @@ export function TournamentStagesPanel({
     navigate(`${location}?${params}`, { replace: true });
   }, [search, requestedAction, requestedStageId, stagesQuery.data, stages, openLifecycleAction, location, navigate]);
   const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
+  const readinessFeedback = selected && readinessQuery.data
+    ? stageReadinessFeedback(readinessQuery.data, selected.name) : undefined;
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
-    : !readinessQuery.data.ready ? stageReadinessMessages(readinessQuery.data, { stages, stageId: selected?.id }).join(" ")
+    : !readinessQuery.data.ready ? stageReadinessFeedback(readinessQuery.data, selected?.name ?? "Etap").summary
     : !ceremonyReady ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
   const actionStartBlockedReason = actionReadiness.isError || actionCeremony.isError
     ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
@@ -899,15 +901,20 @@ export function TournamentStagesPanel({
             {readinessQuery.isError ? <><p>Nie udało się sprawdzić gotowości etapu.</p><Button variant="outline" onClick={() => void readinessQuery.refetch()}>Ponów sprawdzenie</Button></>
               : !readinessQuery.data ? <p role="status">Sprawdzanie gotowości etapu…</p>
               : <>
-                <p className="text-sm text-muted-foreground">Uczestnicy według serwera: {readinessQuery.data.participantCount} / {readinessQuery.data.requiredParticipantCount} wymaganych.</p>
-                {!readinessQuery.data.ready && <ul className="list-disc pl-5 text-sm space-y-1">{stageReadinessMessages(readinessQuery.data, { stages, stageId: selected.id, baskets: basketConfigurationQuery.data?.baskets, routes: basketConfigurationQuery.data?.routes }).map(message => <li key={message}>{message}</li>)}</ul>}
+                {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.summary}</p>}
+                <p className="text-sm font-medium tabular-nums">{readinessFeedback?.counts}</p>
+                {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.action}</p>}
                 {!ceremonyReady && <p className="text-sm">Dokończ ceremonię losowania przed rozpoczęciem etapu.</p>}
-                {!readinessQuery.data.ready && <p className="text-xs text-muted-foreground">Kod diagnostyczny: {readinessQuery.data.reasonCode}</p>}
                 {(readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&
                   <Button variant="outline" asChild><a href={stageHasRandomCeremony(selected) ? `#stage-ceremony-${selected.id}` : `/tournaments/${tournamentId}?tab=players`}>{stageHasRandomCeremony(selected) ? "Przejdź do losowania" : "Sprawdź seedy graczy"}</a></Button>}
                 {(!readinessQuery.data.basketValidation.valid || readinessQuery.data.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" || readinessQuery.data.reasonCode === "QUALIFICATION_CONFIGURATION_INVALID") &&
                   <Button variant="outline" asChild><Link href={`/tournaments/${tournamentId}?tab=baskets`}>Sprawdź koszyki i dopływ uczestników</Link></Button>}
                 {readinessQuery.data.reasonCode === "PREVIOUS_STAGE_NOT_COMPLETED" && <p className="text-sm">Wybierz poprzedni etap na liście i sprawdź jego zakończenie.</p>}
+                {!readinessQuery.data.ready && <section aria-label="Szczegóły diagnostyczne" className="pt-3 space-y-2">
+                  <h5 className="text-sm font-semibold">Szczegóły diagnostyczne</h5>
+                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">{stageReadinessMessages(readinessQuery.data, { stages, stageId: selected.id, baskets: basketConfigurationQuery.data?.baskets, routes: basketConfigurationQuery.data?.routes }).map(message => <li key={message}>{message}</li>)}</ul>
+                  <p className="text-xs text-muted-foreground">Kod diagnostyczny: {readinessQuery.data.reasonCode}</p>
+                </section>}
               </>}
           </div>}
 
