@@ -15,6 +15,44 @@ const clients = new Set<QueryClient>();
 
 const staleMessage = "Mecz zmienił się od czasu rozpoczęcia edycji. Sprawdź aktualnych zawodników i wynik przed ponownym zapisem.";
 
+for (const resultCount of [0, 1, 2, 3, 8]) {
+  test(`Host adapts a 24-match queue to ${resultCount} recent results without changing selection or order`, async () => {
+    const matches = [
+      ...Array.from({ length: 24 }, (_, i) => hostMatch(i + 1)),
+      ...Array.from({ length: resultCount }, (_, i) => ({
+        ...hostMatch(i + 25, 2, "completed"), resultType: "played" as const, score1: 2,
+      })),
+    ];
+    const user = await renderOperationalHost({ matches });
+    const queue = await screen.findByRole("region", { name: "Mecze bieżącego etapu" });
+    const list = within(queue).getByRole("list");
+    const rows = within(list).getAllByRole("listitem");
+    assert.equal(rows.length, 24);
+    rows.forEach((row, i) => assert.ok(within(row).getByRole("button", { name: new RegExp(`Gracz A${i + 1} vs Gracz B${i + 1}(?: |$)`) })));
+    assert.equal(queue.parentElement?.classList.contains("xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"), resultCount >= 3);
+    assert.equal(list.classList.contains("xl:grid-cols-2"), resultCount < 3);
+    const results = screen.getByRole("region", { name: "Ostatnie wyniki" });
+    if (resultCount === 0) assert.ok(within(results).getByText("Brak zakończonych meczów"));
+    assert.equal(within(results).queryAllByRole("button", { name: /^Popraw wynik:/ }).length, Math.min(resultCount, 6));
+    await user.click(within(rows[5]).getByRole("button", { name: /Gracz A6 vs Gracz B6/ }));
+    assert.ok(within(rows[5]).getByText("Wybrany"));
+    assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A6" }));
+  });
+}
+
+test("Host preserves the selected match when refreshed results enable the sidebar", async () => {
+  const matches = Array.from({ length: 24 }, (_, i) => hostMatch(i + 1));
+  const user = await renderOperationalHost({ matches });
+  const queue = await screen.findByRole("region", { name: "Mecze bieżącego etapu" });
+  await user.click(within(queue).getByRole("button", { name: /Gracz A6 vs Gracz B6/ }));
+  for (let i = 0; i < 3; i++) matches[i] = { ...matches[i], status: "completed", resultType: "played", score1: 2 };
+  await refreshHost();
+  await waitFor(() => assert.equal(within(queue).getAllByRole("listitem").length, 21));
+  assert.ok(queue.parentElement?.classList.contains("xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"));
+  assert.ok(within(queue).getByRole("button", { name: /Gracz A6 vs Gracz B6.*Wybrany/ }));
+  assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A6" }));
+});
+
 for (const winnerId of [2, null]) {
   test(`Host completed tournament has one summary and secondary correction (winner=${winnerId})`, async () => {
     const user = await renderOperationalHost({

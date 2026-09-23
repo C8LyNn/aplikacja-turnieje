@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
@@ -49,6 +49,23 @@ function deState(stageId: number): DoubleEliminationStageState {
 async function refresh(client: QueryClient, suffix?: string) {
   await act(async () => { await client.refetchQueries({ predicate: query => !suffix || String(query.queryKey[0]).endsWith(suffix) }); });
 }
+
+test("public bracket keeps readable scale across refetch and fit never magnifies a small bracket", async () => {
+  const { state, client } = mount("bracket");
+  await screen.findAllByText("Etap2 Alpha");
+  assert.equal(screen.getByTitle("Dopasuj do ekranu").textContent, "100%");
+  const canvas = screen.getByLabelText("Drabinka eliminacyjna").parentElement!.parentElement!;
+  for (const width of [1920, 1366, 1024]) {
+    Object.defineProperties(canvas, { clientWidth: { configurable: true, value: width }, clientHeight: { configurable: true, value: 700 } });
+    fireEvent.click(screen.getByTitle("Dopasuj do ekranu (Fit)"));
+    assert.equal(screen.getByTitle("Dopasuj do ekranu").textContent, "100%");
+  }
+  fireEvent.click(screen.getByTitle("Przybliżenie (+)"));
+  assert.equal(screen.getByTitle("Dopasuj do ekranu").textContent, "110%");
+  state.matches[1].score1 = 2;
+  await refresh(client, "/bracket");
+  assert.equal(screen.getByTitle("Dopasuj do ekranu").textContent, "110%", "polling must not reset manual zoom or fit against content height");
+});
 
 for (const view of Object.keys(views) as (keyof typeof views)[]) {
   test(`${view}: completed RR history is excluded from the active final`, async () => {

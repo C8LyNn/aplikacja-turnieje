@@ -349,17 +349,17 @@ export default function TournamentAudience() {
       }}
     >
       {/* ── TOP BAR ── */}
-      <header className="flex-none flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/8 bg-background/80 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <header className="flex-none flex flex-wrap items-center justify-between gap-x-4 gap-y-2 min-w-0 px-4 sm:px-6 py-3 border-b border-white/8 bg-background/80 backdrop-blur-sm z-10">
+        <div className="flex flex-1 basis-80 items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
-          <h1 className="font-bold text-sm sm:text-base truncate">{tournament?.name ?? "Ładowanie…"}</h1>
+          <h1 className="min-w-0 flex-1 font-bold text-sm sm:text-base truncate" title={tournament?.name}>{tournament?.name ?? "Ładowanie…"}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           {tournament?.status && (
             <Badge
-              className={`text-[10px] font-bold tracking-wider px-2 ${
+              className={`shrink-0 text-[10px] font-bold tracking-wider px-2 ${
                 tournament.status === "active"
                   ? "bg-green-500/20 text-green-400 border-green-500/30"
                   : tournament.status === "completed"
@@ -371,33 +371,33 @@ export default function TournamentAudience() {
             </Badge>
           )}
           {tournament?.currentRound && tournament?.totalRounds && (
-            <span className="text-xs text-white/40 font-mono hidden sm:block">
+            <span className="shrink-0 text-xs text-white/40 font-mono hidden sm:block">
               R{tournament.currentRound}/{tournament.totalRounds}
             </span>
           )}
           {(organizerToken || supportSession || (!!id && getMgmtFlag(id))) && (
             <Link
               href={`/tournaments/${id}`}
-              className="ml-1 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+              className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
               title="Wróć do panelu zarządzania tym turniejem"
             >
               <Settings2 className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Panel organizatora</span>
+              <span>Panel organizatora</span>
             </Link>
           )}
           <RoleHomeLink
             fallbackHref="/fan"
             fallbackLabel="Wróć do turniejów"
-            className="ml-1 text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
+            className="shrink-0 whitespace-nowrap text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
           />
         </div>
       </header>
 
       <nav
         aria-label="Sekcje publicznego widoku turnieju"
-        className="flex-none border-b border-white/8 bg-card/80 px-4 sm:px-6"
+        className="min-w-0 max-w-full flex-none border-b border-white/8 bg-card/80 px-4 sm:px-6"
       >
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
+        <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
           {AUDIENCE_SECTIONS.map((section) => {
             const isActive = activeSection === section.id;
             const href = section.id === "live"
@@ -800,28 +800,28 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
       {matches.length === 0 ? (
         <EmptyAudienceSection>Brak meczów do wyświetlenia.</EmptyAudienceSection>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {matches.map((match) => {
             const showsScore = match.score1 != null || match.score2 != null;
             return (
-              <article key={match.id} className="rounded-xl border border-white/8 bg-card px-4 py-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <article key={match.id} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
+                <div className="min-w-0 text-xs">
                   <span className="font-mono text-white/35">Runda {match.round} · Mecz {match.matchNumber}</span>
-                  <div className="flex items-center gap-2">
-                    {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
-                    <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
-                      {MATCH_STATUS_LABELS[match.status] ?? match.status}
-                    </span>
-                  </div>
                 </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
-                  <span className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
+                <div className="flex flex-wrap items-center justify-end gap-2 text-xs md:col-start-3 md:row-start-1">
+                  {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
+                    {MATCH_STATUS_LABELS[match.status] ?? match.status}
+                  </span>
+                </div>
+                <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:gap-3">
+                  <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
                     {match.player1Name || "TBD"}
                   </span>
-                  <span className="min-w-14 rounded-md bg-black/20 px-3 py-1 text-center font-mono font-bold tabular-nums text-white">
+                  <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white">
                     {showsScore ? `${match.score1 ?? 0}:${match.score2 ?? 0}` : "vs"}
                   </span>
-                  <span className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
+                  <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
                     {match.player2Name || "TBD"}
                   </span>
                 </div>

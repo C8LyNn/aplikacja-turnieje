@@ -13,7 +13,7 @@ import {
   useGetDoubleEliminationStage,
   useListTournamentStages,
 } from "@workspace/api-client-react";
-import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
+import { BracketView, layoutBracket } from "@/components/bracket-view";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
@@ -107,6 +107,10 @@ export default function TournamentBracket() {
 
   const isSwiss = publicStage?.format === "swiss";
   const isRoundRobin = publicStage?.format === "round_robin";
+  const isSingleElimination = publicStage?.format === "single_elimination";
+  useEffect(() => {
+    setZoom(isSingleElimination ? 1 : 0.75);
+  }, [isSingleElimination, publicStage?.id]);
 
   const { data: swissStandings } = useGetTournamentStandings(id, {
     query: {
@@ -149,22 +153,16 @@ export default function TournamentBracket() {
   }, [history]);
 
   const fitZoom = useCallback(() => {
-    if (!canvasRef.current || !bracket?.rounds?.length || isSwiss || isRoundRobin) return;
-    const r1Matches = bracket.rounds[0]?.matches?.length ?? 1;
-    const { width: natW, height: natH } = bracketNaturalSize(
-      bracket.rounds.length,
-      r1Matches
-    );
+    if (!canvasRef.current || !bracket?.rounds?.length || !isSingleElimination) return;
+    const { width: natW, height: natH } = layoutBracket(bracket);
     const canvas = canvasRef.current;
-    const availW = canvas.clientWidth - 64;
-    const availH = canvas.clientHeight - 64;
-    const z = clampZoom(Math.min(availW / natW, availH / natH));
+    const availW = canvas.clientWidth - 32;
+    const availH = canvas.clientHeight - 32;
+    const z = clampZoom(Math.min(1, availW / natW, availH / natH));
     setZoom(z);
-  }, [bracket, isSwiss, isRoundRobin]);
-
-  useEffect(() => {
-    if (bracket) fitZoom();
-  }, [bracket, fitZoom]);
+  }, [bracket, isSingleElimination]);
+  // Keep readable 100% cards by default; fit is an explicit action, not a
+  // polling effect that can magnify an auto-height canvas or shrink the text.
 
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
@@ -182,7 +180,7 @@ export default function TournamentBracket() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={presentationSettings.colorPreset || undefined}>
+    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden`} data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <a
@@ -278,7 +276,7 @@ export default function TournamentBracket() {
       {/* Bracket / Swiss canvas */}
       <div
         ref={canvasRef}
-        className="flex-1 overflow-auto"
+        className="flex-1 min-h-0 min-w-0 w-full overflow-auto"
         style={{
           backgroundImage:
             "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
@@ -339,16 +337,10 @@ export default function TournamentBracket() {
               </div>
             </div>
           ) : (
-            <div className="p-8 inline-block" style={{ minWidth: "100%", minHeight: "100%" }}>
-              <div
-                style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "top left",
-                  display: "inline-block",
-                }}
-              >
+            <div className="p-4 min-w-0">
                 <BracketView
                   bracket={bracket}
+                  scale={zoom}
                   format={publicStage.format}
                   forcedHeroId={
                     tournament.gameConfig?.gameId === "deadlock"
@@ -357,7 +349,6 @@ export default function TournamentBracket() {
                   }
                   matchPicksMap={isDeadlock ? matchPicksMap : undefined}
                 />
-              </div>
             </div>
           )
         ) : (

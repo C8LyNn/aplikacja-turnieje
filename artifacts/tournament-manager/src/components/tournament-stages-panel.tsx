@@ -181,13 +181,13 @@ export function StageNavigation({
 function RecordCells({ record }: { record: PlayerRecord }) {
   return (
     <>
-      <td className="px-3 py-2 text-center font-mono">
+      <td className="px-2 py-2 text-center font-mono tabular-nums 2xl:px-3">
         {record.wins}-{record.losses}
       </td>
-      <td className="px-3 py-2 text-center font-mono">
+      <td className="px-2 py-2 text-center font-mono tabular-nums 2xl:px-3">
         {record.gameWins}:{record.gameLosses}
       </td>
-      <td className="px-3 py-2 text-center font-mono">
+      <td className="px-2 py-2 text-center font-mono tabular-nums 2xl:px-3">
         {record.gameDiff > 0 ? "+" : ""}
         {record.gameDiff}
       </td>
@@ -215,18 +215,26 @@ export function ParticipantTable({
     );
   });
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      {title && <h4 className="border-b px-4 py-3 font-semibold">{title}</h4>}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-sm">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-lg border bg-card">
+      {title && <h4 className="break-words border-b px-4 py-3 font-semibold">{title}</h4>}
+      <div className="max-w-full overflow-x-auto">
+        <table className="w-full min-w-[32rem] table-fixed text-sm" aria-label={title ?? "Ranking etapu"}>
+          <colgroup>
+            <col className="w-16" />
+            <col />
+            <col className="w-20" />
+            <col className="w-16" />
+            <col className="w-14" />
+            <col className="w-32" />
+          </colgroup>
           <thead className="bg-muted/50 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-center">Miejsce</th>
-              <th className="px-3 py-2 text-left">Gracz</th>
-              <th className="px-3 py-2 text-center">Mecze W-P</th>
-              <th className="px-3 py-2 text-center">Gry</th>
-              <th className="px-3 py-2 text-center">+/-</th>
-              <th className="px-3 py-2 text-center">Status</th>
+              <th className="px-2 py-2 text-center 2xl:px-3">Miejsce</th>
+              <th className="px-2 py-2 text-left 2xl:px-3">Gracz</th>
+              <th className="px-2 py-2 text-center 2xl:px-3">Mecze W-P</th>
+              <th className="px-2 py-2 text-center 2xl:px-3">Gry</th>
+              <th className="px-2 py-2 text-center 2xl:px-3">+/-</th>
+              <th className="px-2 py-2 text-center 2xl:px-3">Status</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -239,22 +247,24 @@ export function ParticipantTable({
                 participant.status === "winner";
               return (
                 <tr key={participant.id}>
-                  <td className="px-3 py-2 text-center font-mono font-semibold">
+                  <td className="px-2 py-2 text-center font-mono font-semibold tabular-nums 2xl:px-3">
                     {rank ?? "—"}
                   </td>
-                  <td className="px-3 py-2 font-medium">
-                    {participant.playerName}
+                  <td className="px-2 py-2 font-medium 2xl:px-3">
+                    <span className="block truncate" title={participant.playerName}>
+                      {participant.playerName}
+                    </span>
                   </td>
                   <RecordCells
                     record={getPlayerRecord(matches, participant.playerId)}
                   />
-                  <td className="px-3 py-2 text-center">
+                  <td className="px-2 py-2 text-center 2xl:px-3">
                     {qualified ? (
-                      <Badge className="bg-green-500/15 text-green-600">
+                      <Badge className="max-w-full whitespace-normal break-words px-1.5 bg-green-500/15 text-green-600">
                         {participant.status === "winner" ? "Zwycięzca" : "Awans"}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="break-words text-xs text-muted-foreground">
                         {{ active: "Aktywny", eliminated: "Wyeliminowany", pending: "Oczekuje", qualified: "Awans", winner: "Zwycięzca" }[participant.status]}
                       </span>
                     )}
@@ -317,7 +327,7 @@ export function StageGroupTables({
 }) {
   return (
     <div
-      className="grid gap-5 xl:grid-cols-2"
+      className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,36rem),1fr))] gap-5"
       aria-label={`${details.groups.length} grup etapu`}
     >
       {details.groups.map((group) => {
@@ -330,7 +340,7 @@ export function StageGroupTables({
         return (
           <section
             key={group.id}
-            className="space-y-3"
+            className="min-w-0 space-y-3"
             aria-label={`Grupa ${group.groupKey}`}
           >
             <ParticipantTable

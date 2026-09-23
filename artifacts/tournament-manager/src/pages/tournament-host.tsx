@@ -879,6 +879,7 @@ export default function TournamentHost() {
   const queueMatches = [...actionableMatches].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
   const pendingQueue = queueMatches.filter((match) => match.status === "pending");
   const completedMatches = operationalMatches?.filter((m) => m.status === "completed") || [];
+  const showResultsSidebar = queueMatches.length > 0 && completedMatches.length >= 3;
   const matchStageGroups = Array.from(new Set(matches?.map(match => match.stageId ?? null))).map(stageId => {
     const stage = stages?.find(entry => entry.id === stageId);
     return { id: stageId, name: stage?.name ?? (stageId === null ? "Mecze bez przypisanego etapu" : `Etap ${stageId}`), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
@@ -1562,9 +1563,9 @@ export default function TournamentHost() {
 
             {/* Queue + recent results */}
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
                 {/* Kolejne mecze */}
-                <div>
+                <section aria-label="Mecze bieżącego etapu" className="min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold">
                       Mecze bieżącego etapu ({queueMatches.length})
@@ -1575,17 +1576,17 @@ export default function TournamentHost() {
                       </Button>
                     )}
                   </div>
-                  <div className="bg-card border rounded-lg overflow-hidden divide-y divide-border">
-                    {queueMatches.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
-                    ) : (
-                      queueMatches.map((m) => (
-                        <div
+                  {queueMatches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
+                  ) : (
+                    <ol className={`grid grid-cols-1 gap-1.5 ${showResultsSidebar ? "" : "xl:grid-cols-2"}`}>
+                      {queueMatches.map((m) => (
+                        <li
                           key={m.id}
-                          className={`flex items-center gap-1 pr-1 ${
+                          className={`flex min-w-0 items-center gap-1 rounded-lg border border-l-[3px] pr-1 ${
                             m.id === focusedMatchId
-                              ? "bg-primary/10 border-l-[3px] border-primary"
-                              : "border-l-[3px] border-transparent"
+                              ? "bg-primary/10 border-primary"
+                              : "bg-card border-border"
                           }`}
                         >
                           {/* Reorder arrows */}
@@ -1608,7 +1609,7 @@ export default function TournamentHost() {
                             </button>
                           </div>}
                           <button
-                            className="flex-1 text-left px-2 py-2.5 flex items-center gap-3 hover:bg-muted/20 transition-colors min-w-0"
+                            className="flex-1 text-left px-2 py-2 flex items-center gap-2 hover:bg-muted/20 transition-colors min-w-0"
                             onClick={() => setSelectedMatchId(m.id)}
                           >
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -1628,7 +1629,7 @@ export default function TournamentHost() {
                               </div>
                             </div>
                             {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums">{m.score1 ?? 0}:{m.score2 ?? 0}</span>}
-                            {m.status === "pending" && <span className="text-xs text-muted-foreground">Oczekuje</span>}
+                            {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
                             {m.status === "in_progress" && (
                               <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
                                 LIVE
@@ -1641,34 +1642,34 @@ export default function TournamentHost() {
                           {/* Set as current button for non-focused matches */}
                           {capabilities.canUseLegacyMatchTools && m.id !== focusedMatchId && m.status !== "in_progress" && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-7 text-[10px] px-2 shrink-0 text-muted-foreground hover:text-primary"
+                              className="h-7 px-2 shrink-0 text-primary"
                               onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}
                               title="Ustaw jako aktualny i rozpocznij"
                             >
-                              <Play className="w-2.5 h-2.5" />
+                              <Play className="w-3.5 h-3.5" />
                             </Button>
                           )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
 
                 {/* Ostatnie wyniki */}
-                <div>
+                <section aria-label="Ostatnie wyniki" className="min-w-0">
                   <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Ostatnie wyniki</h3>
-                  <div className="bg-card border rounded-lg overflow-hidden divide-y divide-border">
-                    {completedMatches.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak zakończonych meczów</p>
-                    ) : (
-                      completedMatches.slice(-6).reverse().map((m) => (
-                        <div key={m.id} className="px-3 py-2.5">
+                  {completedMatches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Brak zakończonych meczów</p>
+                  ) : (
+                    <div className={`grid grid-cols-1 gap-2 ${showResultsSidebar ? "" : "md:grid-cols-2"}`}>
+                      {completedMatches.slice(-6).reverse().map((m) => (
+                        <div key={m.id} className="min-w-0 bg-card border rounded-lg px-3 py-2.5">
                           {m.resultType === "bye" ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <Badge variant="outline" className="text-[10px] px-1.5 shrink-0">R{m.round}</Badge>
-                              <span className="text-sm text-muted-foreground">{m.player1Name} — bye</span>
+                              <span className="truncate text-sm text-muted-foreground">{m.player1Name} — bye</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 min-w-0">
@@ -1698,10 +1699,10 @@ export default function TournamentHost() {
                           )}
                           {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
 

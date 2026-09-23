@@ -474,7 +474,7 @@ test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   assert.equal(grouped.stageGroupId, 30);
 });
 
-for (const count of [2, 5] as const) {
+for (const count of [1, 2, 5] as const) {
   test(`renderuje widok ${count} grup`, () => {
     const stageId = 10;
     const keys = Array.from({ length: count }, (_, index) =>
@@ -503,12 +503,34 @@ for (const count of [2, 5] as const) {
       ranking: participants,
       qualifiers: participants.filter((entry) => entry.status === "qualified"),
     };
+    participants[0].playerName = "BardzoDługaNazwaDrużynyBezSpacji".repeat(5);
     const html = renderToStaticMarkup(
       <StageGroupTables details={details} matches={[]} />,
     );
     assert.match(html, new RegExp(`${count} grup etapu`));
     for (const entry of groups)
       assert.match(html, new RegExp(`Grupa ${entry.groupKey}`));
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    assert.ok(container.firstElementChild?.classList.contains("grid-cols-[repeat(auto-fit,minmax(min(100%,36rem),1fr))]"), "group columns must fit the container, including the narrower Audience panel");
+    const tables = container.querySelectorAll("table");
+    assert.equal(tables.length, count);
+    tables.forEach((table, index) => {
+      assert.ok(table.classList.contains("table-fixed"), "long names cannot expand numeric/status columns");
+      assert.ok(table.parentElement?.classList.contains("overflow-x-auto"), "very narrow screens retain local scrolling");
+      assert.equal(table.querySelectorAll("col").length, 6);
+      assert.equal(table.querySelectorAll("thead th").length, 6, "no statistics/status columns disappear");
+      const rows = table.querySelectorAll("tbody tr");
+      assert.equal(rows.length, 4);
+      rows.forEach((row, rank) => {
+        assert.equal(row.children[0].textContent, String(rank + 1));
+        const name = row.children[1].firstElementChild!;
+        assert.equal(name.textContent, participants[index * 4 + rank].playerName);
+        assert.equal(name.getAttribute("title"), name.textContent);
+        assert.ok(name.classList.contains("truncate"));
+        assert.equal(row.children[5].textContent, rank < 2 ? "Awans" : "Wyeliminowany");
+      });
+    });
   });
 }
 
