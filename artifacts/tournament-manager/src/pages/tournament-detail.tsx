@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { useRoute, useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -131,9 +132,10 @@ export default function TournamentDetail() {
   const { data: stats } = useGetTournamentStats(id, {
     query: { enabled: !!id && readOk, queryKey: getGetTournamentStatsQueryKey(id) },
   });
-  const { data: players } = useListPlayers(id, {
+  const playersQuery = useListPlayers(id, {
     query: { enabled: !!id && readOk, queryKey: getListPlayersQueryKey(id) },
   });
+  const { data: players } = playersQuery;
   const { data: matches } = useListMatches(id, {
     query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
@@ -879,7 +881,7 @@ export default function TournamentDetail() {
               <div className="md:col-span-2 space-y-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Zawodnicy ({players?.length ?? 0})</CardTitle>
+                    <CardTitle>Zawodnicy ({players?.length ?? "—"})</CardTitle>
                     {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
                         <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
@@ -1051,6 +1053,7 @@ export default function TournamentDetail() {
                     </div>
                   )}
                   <CardContent className="pt-4">
+                    <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
                     {players?.length ? (
                       <div className="space-y-2">
                         {players.map((p) => (
@@ -1210,6 +1213,7 @@ export default function TournamentDetail() {
                           : "Brak graczy w tym turnieju."}
                       </div>
                     )}
+                  </ReadQueryState>
                   </CardContent>
                 </Card>
               </div>

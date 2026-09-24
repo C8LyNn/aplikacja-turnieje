@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { useRoute, Link, useSearchParams } from "wouter";
 import {
   useGetTournament,
@@ -126,9 +127,11 @@ export default function TournamentAudience() {
     };
   }, [id, isSupportChecking, organizerToken, supportSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: tournament, error: tournamentError, refetch: refetchTournament } = useGetTournament(id, {
+  const tournamentQuery = useGetTournament(id, {
     query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 5000, staleTime: 4500, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false },
   });
+
+  const { data: tournament, error: tournamentError, refetch: refetchTournament } = tournamentQuery;
 
   // Phase-offset enabling: stagger initial fetches after tournament loads to avoid
   // request bursts that can trigger 429s. Each phase introduces a 600 ms gap.
@@ -146,16 +149,19 @@ export default function TournamentAudience() {
   }, [!!tournament]);
 
   // Staggered co-prime intervals: matches=6s, stages=7s, bracket=9s, standings=11s, players=13s
-  const { data: matches } = useListMatches(id, {
+  const matchesQuery = useListMatches(id, {
     query: { enabled: !!id && fetchPhase >= 1, queryKey: getListMatchesQueryKey(id), refetchInterval: 6000, staleTime: 5500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
-  const { data: standings } = useGetTournamentStandings(id, {
+  const { data: matches } = matchesQuery;
+  const standingsQuery = useGetTournamentStandings(id, {
     query: { enabled: !!id && fetchPhase >= 3, queryKey: getGetTournamentStandingsQueryKey(id), refetchInterval: 11000, staleTime: 10500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
-  const { data: players } = useListPlayers(id, {
+  const { data: standings } = standingsQuery;
+  const playersQuery = useListPlayers(id, {
     query: { enabled: !!id && fetchPhase >= 4, queryKey: getListPlayersQueryKey(id), refetchInterval: 13000, staleTime: 12500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
-  const { data: tournamentBracket } = useGetTournamentBracket(id, {
+  const { data: players } = playersQuery;
+  const bracketQuery = useGetTournamentBracket(id, {
     query: {
       enabled: !!id && fetchPhase >= 2 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
@@ -165,7 +171,8 @@ export default function TournamentAudience() {
       refetchOnReconnect: false,
     },
   });
-  const { data: stages } = useListTournamentStages(id, {
+  const { data: tournamentBracket } = bracketQuery;
+  const stagesQuery = useListTournamentStages(id, {
     query: {
       enabled: !!id && fetchPhase >= 1,
       queryKey: getListTournamentStagesQueryKey(id),
@@ -175,6 +182,7 @@ export default function TournamentAudience() {
       refetchOnReconnect: false,
     },
   });
+  const { data: stages } = stagesQuery;
   const publicStage = selectPublicStage(stages, tournament?.activeStageId);
   const bracket = publicStageBracket(tournamentBracket, publicStage);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -198,7 +206,8 @@ export default function TournamentAudience() {
     },
   );
 
-  const rawAccessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
+  const accessError = tournamentError as { status?: number; data?: { code?: string } } | null;
+  const rawAccessDeniedCode = accessError?.status === 401 || accessError?.status === 403 ? accessError.data?.code : undefined;
 
   // Latch the access-denied code so that background refetches (which temporarily
   // clear tournamentError while the HTTP request is in-flight) do not cause the
@@ -306,6 +315,10 @@ export default function TournamentAudience() {
       </div>
     );
   }
+
+  if (!tournament) return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
+    <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentError as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+  </div>;
 
   const nextMatches = matches
     ?.filter(
@@ -424,7 +437,11 @@ export default function TournamentAudience() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-6 pb-8 gap-6">
 
+        <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
         {activeSection === "live" && <>
+        <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów.">
+        <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji." />
+        <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy." />
 
         {/* ══ FEATURED / LIVE MATCH ══ */}
         {heroMatch ? (
@@ -680,6 +697,7 @@ export default function TournamentAudience() {
             {FORMAT_LABELS[tournament.format] ?? tournament.format}
           </p>
         )}
+        </ReadQueryState>
         </>}
 
         {activeSection === "stages" && tournament && (
@@ -692,19 +710,22 @@ export default function TournamentAudience() {
             audience
           />
         )}
-        {activeSection === "matches" && <PublicMatchesSection matches={matches ?? []} />}
-        {activeSection === "standings" && <PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} />}
+        {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów."><PublicMatchesSection matches={matches ?? []} /></ReadQueryState>}
+        {activeSection === "standings" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} /></ReadQueryState>}
         {activeSection === "players" && (
+          <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
+          <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk graczy…" errorMessage="Nie udało się pobrać statystyk graczy." />
           <PublicPlayersSection
             players={players ?? []}
-            standings={standings ?? []}
+            standings={standings}
             playerBansMap={isDeadlock ? audienceBansMap : undefined}
             isDeadlock={isDeadlock}
             bansPerPlayer={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5}
           />
+          </ReadQueryState>
         )}
-        {activeSection === "bracket" &&
-          (!publicStage ? (
+        {activeSection === "bracket" && <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+          {!publicStage ? (
             <AudienceSectionShell title="Drabinka" description={stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}><EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection></AudienceSectionShell>
           ) : marvelStage ? (
             <AudienceSectionShell
@@ -723,25 +744,14 @@ export default function TournamentAudience() {
               title="Drabinka"
               description={publicStageLabel(publicStage)}
             >
-              {doubleEliminationQuery.data ? (
-                <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
-                  <DoubleEliminationBracket
-                    tournamentId={id}
-                    stageId={doubleEliminationStage.id}
-                    state={doubleEliminationQuery.data}
-                    showDropLines={showDropLines}
-                  />
-                </div>
-              ) : doubleEliminationQuery.isPending ? (
-                <EmptyAudienceSection>Ładowanie drabinki Double Elimination…</EmptyAudienceSection>
-              ) : (
-                <div className="space-y-3 rounded-xl border border-red-500/30 bg-red-500/5 p-5 text-sm text-red-300">
-                  <p>Nie udało się pobrać drabinki Double Elimination.</p>
-                  <Button type="button" variant="outline" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
-                </div>
-              )}
+              <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+                {doubleEliminationQuery.data && <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
+                  <DoubleEliminationBracket tournamentId={id} stageId={doubleEliminationStage.id} state={doubleEliminationQuery.data} showDropLines={showDropLines} />
+                </div>}
+              </ReadQueryState>
             </AudienceSectionShell>
           ) : (
+            <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
             <PublicBracketSection
               bracket={bracket}
               stageLabel={publicStageLabel(publicStage)}
@@ -757,8 +767,9 @@ export default function TournamentAudience() {
               matchPicksMap={isDeadlock ? audienceMatchPicksMap : undefined}
               standings={stages?.length === 1 ? standings : undefined}
             />
-          )
-        )}
+            </ReadQueryState>
+          )}
+        </ReadQueryState>}
       </main>
     </div>
   );
@@ -907,7 +918,7 @@ function PublicPlayersSection({
   bansPerPlayer = 5,
 }: {
   players: Player[];
-  standings: Standing[];
+  standings: Standing[] | undefined;
   playerBansMap?: Map<number, string[]>;
   isDeadlock?: boolean;
   bansPerPlayer?: number;
@@ -919,7 +930,7 @@ function PublicPlayersSection({
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {players.map((player) => {
-            const standing = standings.find((entry) => entry.playerId === player.id);
+            const standing = standings?.find((entry) => entry.playerId === player.id);
             const bans = playerBansMap?.get(player.id) ?? [];
             return (
               <article key={player.id} className="rounded-xl border border-white/8 bg-card p-4">
@@ -930,12 +941,12 @@ function PublicPlayersSection({
                   </div>
                   {player.seed != null && <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/40">#{player.seed}</span>}
                 </div>
-                <dl className="mt-4 grid grid-cols-4 gap-2 border-t border-white/6 pt-3 text-center">
+                {standings !== undefined && <dl className="mt-4 grid grid-cols-4 gap-2 border-t border-white/6 pt-3 text-center">
                   <PlayerStat label="Mecze" value={standing?.matchesPlayed ?? 0} />
                   <PlayerStat label="W" value={standing?.matchWins ?? 0} />
                   <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
                   <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
-                </dl>
+                </dl>}
                 {isDeadlock && bansPerPlayer > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/6">
                     {bans.length > 0 ? (

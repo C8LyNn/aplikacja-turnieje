@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { useState, useEffect, useCallback } from "react";
 import { setActiveOrganizerToken } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
@@ -43,9 +44,11 @@ export function SecurityPanel({
   const { getOrgToken, storeOrgToken } = useAuth();
   const token = getOrgToken(tournamentId) ?? "";
 
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState<Session[]>();
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>();
+  const [loading, setLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState<unknown>(null);
+  const [auditError, setAuditError] = useState<unknown>(null);
   const [newPassword, setNewPassword] = useState("");
   const [showNewPw, setShowNewPw] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
@@ -65,15 +68,19 @@ export function SecurityPanel({
   const refresh = useCallback(async () => {
     if (!token) return;
     setLoading(true);
-    try {
-      const [s, l] = await Promise.all([
-        apiGetSupportSessions(tournamentId, token),
-        apiGetAuditLog(tournamentId, token),
-      ]);
-      setSessions(s);
-      setAuditLog(l);
-    } catch {}
-    finally { setLoading(false); }
+    const [sessionResult, auditResult] = await Promise.allSettled([
+      apiGetSupportSessions(tournamentId, token),
+      apiGetAuditLog(tournamentId, token),
+    ]);
+    if (sessionResult.status === "fulfilled") {
+      setSessions(sessionResult.value);
+      setSessionsError(null);
+    } else setSessionsError(sessionResult.reason);
+    if (auditResult.status === "fulfilled") {
+      setAuditLog(auditResult.value);
+      setAuditError(null);
+    } else setAuditError(auditResult.reason);
+    setLoading(false);
   }, [tournamentId, token]);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -193,23 +200,24 @@ export function SecurityPanel({
           onClick={() => setTab("sessions")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "sessions" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Aktywne sesje wsparcia ({sessions.length})</span>
+          <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Aktywne sesje wsparcia ({sessions?.length ?? "—"})</span>
         </button>
         <button
           onClick={() => setTab("log")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "log" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" />Logi działań ({auditLog.length})</span>
+          <span className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" />Logi działań ({auditLog?.length ?? "—"})</span>
         </button>
       </div>
 
       {tab === "sessions" && (
         <div className="space-y-4">
-          {sessions.length === 0 ? (
+          <ReadQueryState query={{ data: sessions, error: sessionsError, isFetching: loading, refetch: refresh }} loadingMessage="Ładowanie sesji wsparcia…" errorMessage="Nie udało się pobrać sesji wsparcia.">
+          {sessions?.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Brak aktywnych sesji wsparcia.</p>
           ) : (
             <div className="space-y-2">
-              {sessions.map((s) => (
+              {sessions?.map((s) => (
                 <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50">
                   <div>
                     <span className="font-medium text-sm">{s.nick}</span>
@@ -227,6 +235,8 @@ export function SecurityPanel({
               ))}
             </div>
           )}
+
+          </ReadQueryState>
 
           <div className="border border-border rounded-lg p-4 space-y-3 bg-destructive/5 border-destructive/20">
             <div className="flex items-center gap-2">
@@ -271,10 +281,11 @@ export function SecurityPanel({
 
       {tab === "log" && (
         <div className="space-y-1 max-h-96 overflow-y-auto">
-          {auditLog.length === 0 ? (
+          <ReadQueryState query={{ data: auditLog, error: auditError, isFetching: loading, refetch: refresh }} loadingMessage="Ładowanie logów działań…" errorMessage="Nie udało się pobrać logów działań.">
+          {auditLog?.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Brak logów działań.</p>
           ) : (
-            auditLog.map((l) => (
+            auditLog?.map((l) => (
               <div key={l.id} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 text-sm">
                 <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded mt-0.5 ${
                   l.actorType === "organizer" ? "bg-primary/20 text-primary" : "bg-green-500/20 text-green-400"
@@ -292,6 +303,7 @@ export function SecurityPanel({
               </div>
             ))
           )}
+          </ReadQueryState>
         </div>
       )}
     </div>

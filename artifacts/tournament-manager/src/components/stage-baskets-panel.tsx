@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { configurationErrorFeedback, configurationProblemMessage, type ConfigurationProblem } from "@/lib/stage-configuration-feedback";
 import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -725,9 +726,12 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
   const isLocked = tournamentStatus !== "draft";
   const canEdit = !!orgToken && !isLocked;
 
-  const { data: basketConfig, isLoading, error } = useGetTournamentStageBaskets(tournamentId);
-  const { data: stagesRaw } = useListTournamentStages(tournamentId);
-  const { data: players } = useListPlayers(tournamentId);
+  const basketsQuery = useGetTournamentStageBaskets(tournamentId);
+  const { data: basketConfig } = basketsQuery;
+  const stagesQuery = useListTournamentStages(tournamentId);
+  const { data: stagesRaw } = stagesQuery;
+  const playersQuery = useListPlayers(tournamentId);
+  const { data: players } = playersQuery;
 
   const update = useUpdateTournamentStageBaskets();
 
@@ -935,26 +939,12 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
   // ─ Render ──────────────────────────────────────────────────────────────────
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-        Ładowanie konfiguracji koszyków…
-      </div>
-    );
-  }
-
-  if (error || !basketConfig) {
-    return (
-      <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
-        <AlertTriangle className="w-4 h-4 shrink-0" />
-        Nie udało się załadować konfiguracji koszyków.
-      </div>
-    );
-  }
-
   const routesForDisplay = active?.routes ?? [];
 
   return (
+    <ReadQueryState query={basketsQuery} loadingMessage="Ładowanie konfiguracji koszyków…" errorMessage="Nie udało się pobrać konfiguracji koszyków.">
+    <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+    <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
     <div className="min-w-0 max-w-full space-y-4">
       {/* Locked banner */}
       {isLocked && (
@@ -970,7 +960,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       )}
 
       {/* Info for legacy baskets */}
-      {basketConfig.legacyDefaulted && !advancedMode && (
+      {basketConfig?.legacyDefaulted && !advancedMode && (
         <div className="rounded-lg border border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-sm text-muted-foreground">
           <Info className="w-4 h-4 shrink-0" />
           Domyślna konfiguracja koszyków — wygenerowana automatycznie. Przed startem możesz ją dostosować w trybie zaawansowanym.
@@ -1136,7 +1126,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       )}
 
       {/* Validation problems from API response */}
-      {!advancedMode && basketConfig.validation && !basketConfig.validation.valid && (
+      {!advancedMode && basketConfig?.validation && !basketConfig.validation.valid && (
         <div role="alert" className="organizer-notice rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm" data-testid="baskets-validation-warning">
           <div className="flex items-center gap-1.5 text-yellow-400 font-medium mb-1">
             <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -1150,5 +1140,8 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         </div>
       )}
     </div>
+    </ReadQueryState>
+    </ReadQueryState>
+    </ReadQueryState>
   );
 }

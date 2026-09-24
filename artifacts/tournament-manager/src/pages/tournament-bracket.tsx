@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { useRoute } from "wouter";
 import {
   useGetTournament,
@@ -39,9 +40,10 @@ export default function TournamentBracket() {
   const [, params] = useRoute("/tournaments/:id/bracket");
   const id = params?.id ? parseInt(params.id, 10) : 0;
 
-  const { data: tournament } = useGetTournament(id, {
+  const tournamentQuery = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 10000 },
   });
+  const { data: tournament } = tournamentQuery;
 
   // Phase-offset enabling: stagger initial fetches after tournament loads so
   // bracket, standings/history, and stages don't all fire in the same render.
@@ -55,7 +57,7 @@ export default function TournamentBracket() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!tournament]);
 
-  const { data: tournamentBracket } = useGetTournamentBracket(id, {
+  const bracketQuery = useGetTournamentBracket(id, {
     query: {
       enabled: !!id && fetchPhase >= 1 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
@@ -65,7 +67,8 @@ export default function TournamentBracket() {
       refetchOnReconnect: false,
     },
   });
-  const { data: stages } = useListTournamentStages(id, {
+  const { data: tournamentBracket } = bracketQuery;
+  const stagesQuery = useListTournamentStages(id, {
     query: {
       enabled: !!id && fetchPhase >= 1,
       queryKey: getListTournamentStagesQueryKey(id),
@@ -75,6 +78,7 @@ export default function TournamentBracket() {
       refetchOnReconnect: false,
     },
   });
+  const { data: stages } = stagesQuery;
   const publicStage = selectPublicStage(stages, tournament?.activeStageId);
   const bracket = useMemo(() => publicStageBracket(tournamentBracket, publicStage), [tournamentBracket, publicStage]);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -172,11 +176,9 @@ export default function TournamentBracket() {
   };
 
   if (!tournament) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center animate-pulse">
-        <Trophy className="w-16 h-16 text-muted-foreground opacity-20" />
-      </div>
-    );
+    return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+    </div>;
   }
 
   return (
@@ -284,6 +286,8 @@ export default function TournamentBracket() {
         }}
         onWheel={handleWheel}
       >
+        <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
+        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
         {tournament.status === "draft" ? (
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
             Turniej jeszcze nie wystartował.
@@ -297,23 +301,15 @@ export default function TournamentBracket() {
               stageId={marvelStage.id}
             />
           </div>
-        ) : doubleEliminationStage && doubleEliminationQuery.data ? (
-          <div className="p-8">
-            <DoubleEliminationBracket
-              tournamentId={id}
-              stageId={doubleEliminationStage.id}
-              state={doubleEliminationQuery.data}
-              showDropLines={showDropLines}
-            />
-          </div>
-        ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
-          <div className="flex h-full items-center justify-center p-8 text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
-        ) : doubleEliminationStage && doubleEliminationQuery.error ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-destructive">
-            <p>Nie udało się pobrać drabinki Double Elimination.</p>
-            <Button type="button" variant="outline" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
-          </div>
-        ) : bracket ? (
+        ) : doubleEliminationStage ? (
+          <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+            {doubleEliminationQuery.data && <div className="p-8">
+              <DoubleEliminationBracket tournamentId={id} stageId={doubleEliminationStage.id} state={doubleEliminationQuery.data} showDropLines={showDropLines} />
+            </div>}
+          </ReadQueryState>
+        ) : (
+          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+          {bracket && (
           isSwiss ? (
             <div className="p-6 md:p-8 min-h-full">
               <SwissRoundsView
@@ -350,12 +346,10 @@ export default function TournamentBracket() {
                   matchPicksMap={isDeadlock ? matchPicksMap : undefined}
                 />
             </div>
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono animate-pulse">
-            Ładowanie drabinki…
-          </div>
+          ))}
+          </ReadQueryState>
         )}
+        </ReadQueryState>
       </div>
     </div>
   );

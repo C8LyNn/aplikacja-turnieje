@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 /**
  * /tournaments/:id/projector
  *
@@ -94,7 +95,7 @@ export default function TournamentProjector() {
     setActiveViewerToken(null);
   }, []);
 
-  const { data: tournament } = useGetTournament(id, {
+  const tournamentQuery = useGetTournament(id, {
     query: {
       enabled: !!id,
       queryKey: getGetTournamentQueryKey(id),
@@ -102,14 +103,16 @@ export default function TournamentProjector() {
       retry: false,
     },
   });
+  const { data: tournament } = tournamentQuery;
 
-  const { data: stages } = useListTournamentStages(id, {
+  const stagesQuery = useListTournamentStages(id, {
     query: {
       enabled: !!id && !!tournament,
       queryKey: getListTournamentStagesQueryKey(id),
       refetchInterval: 10000,
     },
   });
+  const { data: stages } = stagesQuery;
 
   const publicStage = selectPublicStage(stages, tournament?.activeStageId);
   const deStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -177,19 +180,15 @@ export default function TournamentProjector() {
     containerStyle.transformOrigin = "top left";
   }
 
-  if (!tournament || !stages) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center" style={transparent ? {} : { background: presetStyle.background as string }}>
-        <div className="flex flex-col items-center gap-3 text-muted-foreground animate-pulse">
-          <Trophy className="w-12 h-12 opacity-20" />
-          <p className="text-sm font-mono">Ładowanie…</p>
-        </div>
-      </div>
-    );
+  if (!tournament) {
+    return <div className="min-h-dvh text-foreground flex items-center justify-center p-4" style={transparent ? {} : { background: presetStyle.background as string }}>
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+    </div>;
   }
 
   return (
     <div style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
       {/* Optional tournament header */}
       {!hideHeader && (
         <div
@@ -221,31 +220,31 @@ export default function TournamentProjector() {
           ...(forceAspect ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),
         }}
       >
+        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
         {!publicStage ? (
           <p className="py-20 text-center text-muted-foreground">Brak rozpoczętego etapu.</p>
         ) : marvelStage ? (
           <MarvelEliminationStage tournamentId={id} stageId={marvelStage.id} />
-        ) : deStage && deState ? (
-          <DEBracketCanvas
-            matches={deState.matches}
-            participants={participants}
-            finalsPosition={finalsPosition}
-            compact={compact}
-            connectorColor={connectorColor}
-            connectorWidth={connectorWidth}
-            showDropLines={showDropLines}
-          />
         ) : deStage ? (
-          <p className="py-20 text-center text-muted-foreground">{deQuery.isError ? "Nie udało się pobrać drabinki Double Elimination." : "Ładowanie drabinki Double Elimination…"}</p>
-        ) : bracket ? (
-          publicStage.format === "round_robin" ? <RoundRobinView bracket={bracket} hideStandings />
-          : publicStage.format === "swiss" ? <SwissRoundsView bracket={bracket} currentRound={publicStage.currentRound} totalRounds={publicStage.totalRounds} />
-          : <BracketView bracket={bracket} format={publicStage.format} />
+          <ReadQueryState query={deQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+            {deState && <DEBracketCanvas
+              matches={deState.matches}
+              participants={participants}
+              finalsPosition={finalsPosition}
+              compact={compact}
+              connectorColor={connectorColor}
+              connectorWidth={connectorWidth}
+              showDropLines={showDropLines}
+            />}
+          </ReadQueryState>
         ) : (
-          <div className="flex items-center justify-center py-20 text-muted-foreground/40 font-mono text-sm">
-            {bracketQuery.isError ? "Nie udało się pobrać drabinki." : "Ładowanie drabinki…"}
-          </div>
+          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+            {bracket && (publicStage.format === "round_robin" ? <RoundRobinView bracket={bracket} hideStandings />
+              : publicStage.format === "swiss" ? <SwissRoundsView bracket={bracket} currentRound={publicStage.currentRound} totalRounds={publicStage.totalRounds} />
+              : <BracketView bracket={bracket} format={publicStage.format} />)}
+          </ReadQueryState>
         )}
+        </ReadQueryState>
       </div>
     </div>
   );
