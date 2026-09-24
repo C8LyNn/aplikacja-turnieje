@@ -1,25 +1,33 @@
-import { Code2, Construction } from "lucide-react";
-import { RoleSelectionLink } from "@/components/app-navigation";
+﻿import { RoleSelectionLink } from "@/components/app-navigation";
+import { DrawLabExtracted } from "./developer/draw-lab/DrawLabExtracted";
 
 export default function DeveloperPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground dark px-4">
-      <div className="text-center max-w-md">
-        <div className="flex justify-center mb-4">
-          <div className="relative">
-            <Code2 className="w-16 h-16 text-purple-500 opacity-80" />
-            <Construction className="w-6 h-6 text-yellow-400 absolute -bottom-1 -right-1" />
+    <div className="min-h-screen bg-background text-foreground dark">
+      <header className="border-b border-border px-6 py-4">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Draw Lab</h1>
+            <p className="text-sm text-muted-foreground">
+              Izolowane środowisko testowe mechanizmów losowania
+            </p>
           </div>
+
+          <RoleSelectionLink />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Panel Developera</h1>
-        <p className="text-muted-foreground mb-2">
-          Ta sekcja jest w przygotowaniu.
-        </p>
-        <p className="text-sm text-muted-foreground mb-8">
-          Funkcje dla developerów (diagnostyka, konfiguracja systemu, narzędzia administracyjne) zostaną dodane w przyszłej wersji.
-        </p>
-        <RoleSelectionLink />
-      </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-[1600px] p-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Karty v8 — extracted test</h2>
+          <p className="text-sm text-muted-foreground">
+            Rozdzielona wersja testowa: HTML + CSS + JavaScript.
+          </p>
+        </div>
+
+        <DrawLabExtracted />
+      </main>
     </div>
   );
 }
+
