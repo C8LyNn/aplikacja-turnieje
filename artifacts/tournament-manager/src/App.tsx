@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import DeveloperPage from "@/pages/developer";
+import CameraChatOverlay from "@/pages/developer/obs-lab/CameraChatOverlay";
 import FanView from "@/pages/fan-view";
 import SupportEntry from "@/pages/support-entry";
 import CreateTournament from "@/pages/create-tournament";
@@ -31,6 +32,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/developer/overlay/camera-chat" component={CameraChatOverlay} />
       <Route path="/developer" component={DeveloperPage} />
       <Route path="/fan" component={FanView} />
       <Route path="/support" component={SupportEntry} />
