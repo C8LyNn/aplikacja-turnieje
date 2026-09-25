@@ -7,6 +7,7 @@ import { JSDOM } from "jsdom";
 import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget } from "./CameraChatWidget";
 import { StreamElementsSetup } from "./StreamElementsSetup";
+import { generateStreamElementsWidget } from "./stream-elements-widget";
 import { DEFAULT_CAMERA_CHAT_CONFIG, cameraChatConfigFromSearch, cameraChatConfigToSearch, getCameraChatSize } from "./camera-chat-settings";
 
 afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
@@ -60,13 +61,101 @@ test("public overlay is transparent, handles parent bridge safely and restores d
   document.body.style.background = "";
 });
 
-test("StreamElements snippet targets only the public HTTPS overlay origin", () => {
-  const { container } = render(<StreamElementsSetup overlayUrl="https://tournament.example/developer/overlay/camera-chat?layout=right" width={845} height={360} />);
+test("StreamElements snippets are standalone and do not load the app or embed a frame", () => {
+  const { container } = render(<StreamElementsSetup config={DEFAULT_CAMERA_CHAT_CONFIG} width={845} height={360} />);
   const snippets = Array.from(container.querySelectorAll("code"), node => node.textContent ?? "");
-  assert.match(snippets[0], /https:\/\/tournament\.example\/developer\/overlay\/camera-chat/);
-  assert.match(snippets[0], /source=streamelements/);
-  assert.doesNotMatch(snippets.join(""), /localhost|token=|secret=/);
-  assert.doesNotMatch(snippets[2], /"\*"/);
+  assert.equal(snippets.length, 3);
+  assert.match(snippets[0], /id="se-chat-messages"/);
+  assert.match(snippets[1], /width: 845px/);
+  assert.match(snippets[2], /onEventReceived/);
+  assert.doesNotMatch(snippets.join(""), /iframe|https?:\/\/|replit|postMessage|token=|secret=/i);
+});
+
+test("native StreamElements widget preserves layout and styling settings", () => {
+  for (const layout of ["right", "below", "overlay"] as const) {
+    const config = {
+      ...DEFAULT_CAMERA_CHAT_CONFIG,
+      layout,
+      aspectRatio: "4:3" as const,
+      cameraWidth: 800,
+      chatWidth: 45,
+      belowHeight: 240,
+      maxMessages: 3,
+      fontSize: "large" as const,
+      density: "relaxed" as const,
+      panelOpacity: 40,
+      radius: 30,
+      gap: 18,
+      innerPadding: 20,
+      chatAnchor: "top" as const,
+      overlayPosition: "top-left" as const,
+      overlayInset: 24,
+      fitChatHeight: false,
+      showAvatars: true,
+      showBorders: true,
+      messageBackground: true,
+      fadeOldMessages: true,
+      animateMessages: true,
+    };
+    const { css, js } = generateStreamElementsWidget(config);
+    const size = getCameraChatSize(config);
+    assert.match(css, new RegExp(`width: ${size.width}px`));
+    assert.match(css, new RegExp(`height: ${size.height}px`));
+    assert.match(css, /height: 600px/);
+    assert.match(css, layout === "overlay" ? /gap: 0px/ : /gap: 18px/);
+    assert.match(css, /padding: 20px/);
+    assert.match(css, /font-size: 16px/);
+    assert.match(css, /background: rgba\(2, 6, 23, 0.4\)/);
+    assert.match(css, /border-radius: 30px/);
+    assert.match(css, /border: 1px solid/);
+    assert.match(css, /background: rgba\(255,255,255,.055\)/);
+    assert.match(css, /animation: se-chat-in/);
+    assert.match(js, /"maxMessages":3/);
+    assert.match(js, /"showAvatars":true/);
+    assert.match(js, /"fadeOldMessages":true/);
+    if (layout === "right") {
+      assert.match(css, /width: 360px/);
+      assert.match(css, /align-items: flex-start/);
+    } else if (layout === "below") {
+      assert.match(css, /height: 240px/);
+      assert.match(css, /flex-direction: column/);
+    } else {
+      assert.match(css, /width: 45%/);
+      assert.match(css, /top: 24px/);
+      assert.match(css, /left: 24px/);
+      assert.match(css, /max-height: 552px/);
+    }
+  }
+});
+
+test("native StreamElements events render safe text and remove moderated messages", () => {
+  const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 2, showAvatars: true };
+  const snippets = generateStreamElementsWidget(config);
+  const dom = new JSDOM(`<!doctype html><html><head><style>${snippets.css}</style></head><body>${snippets.html}</body></html>`, {
+    runScripts: "outside-only",
+  });
+  try {
+    dom.window.eval(snippets.js);
+    const send = (listener: string, data: Record<string, unknown>) => {
+      dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", {
+        detail: { listener, event: { data } },
+      }));
+    };
+    send("message", { text: "<img src=x onerror=alert(1)>", displayName: "One", msgId: "1", userId: "u" });
+    assert.match(dom.window.document.body.textContent ?? "", /<img src=x onerror=alert\(1\)>/);
+    assert.equal(dom.window.document.querySelector("img"), null);
+    assert.equal(dom.window.document.querySelectorAll(".se-avatar").length, 1);
+    send("message", { text: "Two", nick: "Two", msgId: "2", userId: "v" });
+    send("message", { text: "Three", nick: "Three", msgId: "3", userId: "u" });
+    assert.equal(dom.window.document.querySelectorAll(".se-message").length, 2);
+    assert.ok(!dom.window.document.body.textContent?.includes("onerror"));
+    send("delete-message", { msgId: "2" });
+    assert.ok(!dom.window.document.body.textContent?.includes("Two"));
+    send("delete-messages", { userId: "u" });
+    assert.equal(dom.window.document.querySelectorAll(".se-message").length, 0);
+  } finally {
+    dom.window.close();
+  }
 });
 
 test("Draw Lab renders participant names as text, not executable HTML", async () => {

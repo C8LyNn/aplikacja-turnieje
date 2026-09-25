@@ -2,15 +2,17 @@
   useMemo,
   useState,
 } from "react";
+import type { CameraChatConfig } from "./camera-chat-settings";
+import { generateStreamElementsWidget } from "./stream-elements-widget";
 
 type Props = {
-  overlayUrl: string;
+  config: CameraChatConfig;
   width: number;
   height: number;
 };
 
 export function StreamElementsSetup({
-  overlayUrl,
+  config,
   width,
   height,
 }: Props) {
@@ -24,125 +26,8 @@ export function StreamElementsSetup({
     null
   >(null);
 
-  const streamElementsUrl =
-    useMemo(() => {
-      const url =
-        new URL(overlayUrl);
-
-      url.searchParams.set(
-        "source",
-        "streamelements",
-      );
-
-      return url.toString();
-    }, [overlayUrl]);
-
-  const htmlCode =
-    useMemo(
-      () =>
-`<div id="camera-chat-host">
-  <iframe
-    id="camera-chat-frame"
-    src="${streamElementsUrl.replace(
-      /&/g,
-      "&amp;",
-    )}"
-    allowtransparency="true"
-  ></iframe>
-</div>`,
-      [streamElementsUrl],
-    );
-
-  const cssCode = `html,
-body,
-#camera-chat-host {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  background: transparent;
-}
-
-#camera-chat-frame {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-}`;
-
-  const jsCode = `const frame =
-  document.getElementById(
-    "camera-chat-frame"
-  );
-
-function sendToOverlay(
-  type,
-  payload
-) {
-  if (
-    !frame ||
-    !frame.contentWindow
-  ) {
-    return;
-  }
-
-  frame.contentWindow.postMessage(
-    {
-      source: "camera-chat-se",
-      type,
-      payload
-    },
-    ${JSON.stringify(new URL(streamElementsUrl).origin)}
-  );
-}
-
-window.addEventListener(
-  "onEventReceived",
-  function (obj) {
-    const listener =
-      obj.detail.listener;
-
-    const event =
-      obj.detail.event || {};
-
-    if (
-      listener === "message"
-    ) {
-      sendToOverlay(
-        "message",
-        event.data || event
-      );
-
-      return;
-    }
-
-    if (
-      listener ===
-      "delete-message"
-    ) {
-      sendToOverlay(
-        "delete-message",
-        event.data || event
-      );
-
-      return;
-    }
-
-    if (
-      listener ===
-      "delete-messages"
-    ) {
-      sendToOverlay(
-        "delete-messages",
-        event.data || event
-      );
-    }
-  }
-);`;
+  const { html: htmlCode, css: cssCode, js: jsCode } =
+    useMemo(() => generateStreamElementsWidget(config), [config]);
 
   async function copy(
     value: string,
@@ -176,8 +61,9 @@ window.addEventListener(
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         Utwórz w StreamElements osobny
         Custom Widget i wklej poniższe
-        trzy fragmenty do odpowiednich
-        zakładek.
+        trzy fragmenty do zakładek HTML,
+        CSS i JS. Chat działa bez iframe
+        i bez strony Replit.
       </p>
 
       <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">

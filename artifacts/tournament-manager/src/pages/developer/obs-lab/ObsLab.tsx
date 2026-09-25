@@ -1050,7 +1050,7 @@ export function ObsLab() {
           </section>
 
           <StreamElementsSetup
-            overlayUrl={overlayUrl}
+              config={config}
             width={size.width}
             height={size.height}
           />
