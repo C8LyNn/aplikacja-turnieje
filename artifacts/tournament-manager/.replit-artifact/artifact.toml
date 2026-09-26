@@ -23,6 +23,14 @@ publicDir = "artifacts/tournament-manager/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
+from = "/dev/animated-effects"
+to = "/dev/animated-effects/index.html"
+
+[[services.production.rewrites]]
+from = "/dev/animated-effects/"
+to = "/dev/animated-effects/index.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 
