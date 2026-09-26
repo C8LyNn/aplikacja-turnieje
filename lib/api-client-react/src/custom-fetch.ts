@@ -354,7 +354,10 @@ export async function customFetch<T = unknown>(
   options: CustomFetchOptions = {},
 ): Promise<T> {
   input = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
+  // Generated API operations return JSON (or no body), not arbitrary server
+  // content. In particular, a dev-server HTML fallback must reject the query
+  // instead of entering its typed cache as a successful string response.
+  const { responseType = "json", headers: headersInit, ...init } = options;
 
   const method = resolveMethod(input, init.method);
 

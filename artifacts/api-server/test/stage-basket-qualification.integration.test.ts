@@ -705,6 +705,25 @@ describe("Phase 2 — Qualification Proposals", () => {
     );
   });
 
+  test("Approve blocks a live stage in basket-authoritative flow", async () => {
+    const fix = await buildSwissFixture({ qualifierCount: 2 });
+    const generate = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.stageId}/basket-qualification-proposal`)
+      .set(fix.organizerHeaders);
+    assert.equal(generate.status, 200, JSON.stringify(generate.body));
+
+    await database.db
+      .update(database.tournamentsTable)
+      .set({ basketFlowAuthorityVersion: 1 })
+      .where(eq(database.tournamentsTable.id, fix.tournamentId));
+
+    const approve = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.stageId}/basket-qualification-proposal/approve`)
+      .set(fix.organizerHeaders);
+    assert.equal(approve.status, 409, JSON.stringify(approve.body));
+    assert.equal(approve.body.code, "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE");
+  });
+
   // ── Generate blocked after approval ───────────────────────────────────────
 
   test("Generate fails with ALREADY_APPROVED when a proposal is already approved", async () => {

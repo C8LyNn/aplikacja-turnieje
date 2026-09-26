@@ -71,6 +71,7 @@ describe("generated tournament format contract", () => {
     test(`CreateTournamentBody accepts ${format}`, () => {
       const parsed = CreateTournamentBody.safeParse({
         name: `Contract ${format}`,
+        organizerPassword: "contract-password",
         format,
       });
       assert.equal(parsed.success, true);

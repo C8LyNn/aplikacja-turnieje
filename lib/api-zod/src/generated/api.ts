@@ -93,9 +93,7 @@ export const ListTournamentsResponse = zod.array(ListTournamentsResponseItem)
  */
 
 
-export const createTournamentBodyOrganizerPasswordOneMax = 0;
-
-export const createTournamentBodyOrganizerPasswordTwoMin = 8;
+export const createTournamentBodyOrganizerPasswordMin = 8;
 
 export const createTournamentBodySupportPasswordMin = 8;
 
@@ -145,7 +143,7 @@ export const CreateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
-  "organizerPassword": zod.union([zod.string().max(createTournamentBodyOrganizerPasswordOneMax),zod.string().min(createTournamentBodyOrganizerPasswordTwoMin)]).optional().describe('Optional password. Empty means no password; a non-empty value must contain at least 8 characters.'),
+  "organizerPassword": zod.string().min(createTournamentBodyOrganizerPasswordMin).describe('Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.'),
   "supportPassword": zod.string().min(createTournamentBodySupportPasswordMin).optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().min(createTournamentBodyViewerPasswordMin).optional().describe('Password for viewer access; required when visibility=private_online.'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),
@@ -2037,6 +2035,7 @@ export const getTournamentBracketResponseTournamentGameConfigTwoConfigKillLimitD
 export const getTournamentBracketResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
 
 
+
 export const GetTournamentBracketResponse = zod.object({
   "tournament": zod.object({
   "id": zod.number(),
@@ -2090,6 +2089,7 @@ export const GetTournamentBracketResponse = zod.object({
   "round": zod.number(),
   "matches": zod.array(zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3077,8 +3077,10 @@ export const ListMatchesParams = zod.object({
 
 
 
+
 export const ListMatchesResponseItem = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3112,8 +3114,10 @@ export const GetMatchParams = zod.object({
 
 
 
+
 export const GetMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3155,8 +3159,10 @@ export const UpdateMatchBody = zod.object({
 
 
 
+
 export const UpdateMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3186,15 +3192,23 @@ export const CompleteMatchParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
+
+
 export const CompleteMatchBody = zod.union([zod.object({
+  "expectedRevision": zod.number().min(1),
   "resultType": zod.literal("played"),
   "score1": zod.number(),
   "score2": zod.number()
 }),zod.object({
+  "expectedRevision": zod.number().min(1),
   "resultType": zod.literal("walkover"),
   "winnerId": zod.number(),
   "reason": zod.string().nullish()
 }),zod.object({
+  "expectedRevision": zod.number().min(1),
   "resultType": zod.literal("no_contest"),
   "reason": zod.string().nullish()
 })])
@@ -3202,8 +3216,10 @@ export const CompleteMatchBody = zod.union([zod.object({
 
 
 
+
 export const CompleteMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3243,8 +3259,10 @@ export const CancelMatchBody = zod.object({
 
 
 
+
 export const CancelMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3280,8 +3298,10 @@ export const RestoreCancelledMatchParams = zod.object({
 
 
 
+
 export const RestoreCancelledMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3317,8 +3337,10 @@ export const SwapMatchPlayersParams = zod.object({
 
 
 
+
 export const SwapMatchPlayersResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3358,8 +3380,10 @@ export const ReorderMatchesBody = zod.object({
 
 
 
+
 export const ReorderMatchesResponseItem = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),
@@ -3396,8 +3420,10 @@ export const RevertMatchParams = zod.object({
 
 
 
+
 export const RevertMatchResponse = zod.object({
   "id": zod.number(),
+  "revision": zod.number().min(1),
   "tournamentId": zod.number(),
   "stageId": zod.number(),
   "stageGroupId": zod.number().nullish(),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetDoubleEliminationStageQueryKey,
@@ -6,6 +6,8 @@ import {
   type DoubleEliminationParticipant,
   type DoubleEliminationStageState,
   useCompleteMatch,
+  useListMatches,
+  getListMatchesQueryKey,
   useResetDoubleEliminationStage,
   useRevertMatch,
 } from "@workspace/api-client-react";
@@ -14,7 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
+import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
+import { matchOperationError } from "@/lib/match-operation-feedback";
+import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
 
 interface DoubleEliminationBracketProps {
@@ -38,6 +42,8 @@ function ScoreForm({
   onScores,
   onComplete,
   onRevert,
+  playerNames,
+  onBegin,
 }: {
   match: DoubleEliminationMatch;
   pending: boolean;
@@ -45,10 +51,13 @@ function ScoreForm({
   onScores: (s: [number, number]) => void;
   onComplete: () => void;
   onRevert: () => void;
+  playerNames: string;
+  onBegin: () => void;
 }) {
   const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
   return (
     <div className="rounded-lg border bg-card p-3 space-y-2">
+      <p className="text-sm font-semibold">{playerNames}</p>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="font-medium">{match.name}</span>
         {match.status === "completed" ? (
@@ -63,24 +72,31 @@ function ScoreForm({
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <Input
             aria-label={`Wynik 1 — ${match.name}`}
+            onFocus={onBegin}
             type="number"
             min={0}
             max={winsRequired}
             value={scores[0]}
+            disabled={pending}
             onChange={e => onScores([Number(e.target.value), scores[1]])}
           />
           <Input
             aria-label={`Wynik 2 — ${match.name}`}
+            onFocus={onBegin}
             type="number"
             min={0}
             max={winsRequired}
             value={scores[1]}
+            disabled={pending}
             onChange={e => onScores([scores[0], Number(e.target.value)])}
           />
           <Button type="button" size="sm" disabled={pending} onClick={onComplete}>
-            Zapisz
+            Zapisz wynik
           </Button>
         </div>
+      )}
+      {match.status === "completed" && match.matchId != null && (
+        <p className="text-sm font-mono">Zapisany wynik: {match.score1}:{match.score2}</p>
       )}
       {match.status === "completed" && match.matchId != null && (
         <Button
@@ -110,12 +126,32 @@ export function DoubleEliminationBracket({
 }: DoubleEliminationBracketProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
-  const [scores, setScores] = useState<Record<string, [number, number]>>({});
+  const [success, setSuccess] = useState<string>();
+  const [scores, setScores] = useState<Record<number, [number, number]>>({});
   const [finalsPos, setFinalsPos] = useState<"upper" | "between">(finalsPositionProp ?? "upper");
 
-  const complete = useCompleteMatch();
-  const revert = useRevertMatch();
-  const reset = useResetDoubleEliminationStage();
+  const canonical = useListMatches(tournamentId, { query: { queryKey: getListMatchesQueryKey(tournamentId), enabled: canManage, refetchInterval: 5000 } });
+  const resultDrafts = useMatchResultDrafts();
+  const completeLock = useRef(false);
+  const feedback = {
+    onMutate: () => { setError(undefined); setSuccess(undefined); },
+    onSuccess: () => refresh(),
+    onError: async (reason: unknown) => {
+      const failure = matchOperationError(reason);
+      setError(`${failure.message}${failure.code ? ` Kod diagnostyczny: ${failure.code}` : ""}`);
+      if (failure.conflict) await refresh();
+    },
+  };
+  const complete = useCompleteMatch({ mutation: {
+    ...feedback, retry: false,
+    onError: async (reason, variables) => {
+      if (matchOperationError(reason).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
+      await feedback.onError(reason);
+    },
+    onSettled: () => { completeLock.current = false; },
+  } });
+  const revert = useRevertMatch({ mutation: feedback });
+  const reset = useResetDoubleEliminationStage({ mutation: feedback });
 
   const participants = useMemo(
     () => new Map<string, DoubleEliminationParticipant>(
@@ -126,43 +162,50 @@ export function DoubleEliminationBracket({
   const pending = complete.isPending || revert.isPending || reset.isPending;
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({
+    await Promise.all([invalidateTournamentDependentQueries(queryClient, tournamentId), queryClient.invalidateQueries({
       queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, stageId),
-    });
+    }, { throwOnError: true })]);
     onChanged?.();
   };
 
   const completeCanonicalMatch = (match: DoubleEliminationMatch) => {
-    if (match.matchId == null) return;
-    const [score1, score2] = scores[match.matchKey] ?? [0, 0];
+    if (match.matchId == null || pending || completeLock.current || canonical.isError) return;
+    const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+    if (!current || resultDrafts.isStale(current)) return;
+    const draft = resultDrafts.capture(current);
+    completeLock.current = true;
+    const [score1, score2] = scores[match.matchId!] ?? [draft.score1 ?? 0, draft.score2 ?? 0];
     setError(undefined);
     complete.mutate(
-      { id: match.matchId, data: { resultType: "played", score1, score2 } },
+      { id: match.matchId, data: { resultType: "played", expectedRevision: draft.revision, score1, score2 } },
       {
         onSuccess: () => {
-          setScores(cur => { const n = { ...cur }; delete n[match.matchKey]; return n; });
-          void refresh();
+          resultDrafts.discard(match.matchId!);
+          setScores(cur => { const n = { ...cur }; delete n[match.matchId!]; return n; });
+          setSuccess("Wynik zapisany. Stan drabinki został odświeżony.");
         },
-        onError: reason => setError(getApiErrorMessage(reason)),
       },
     );
   };
 
   const revertCanonicalMatch = (match: DoubleEliminationMatch) => {
-    if (match.matchId == null) return;
+    if (match.matchId == null || pending) return;
     if (
-      match.downstreamResultCount > 0 &&
       !window.confirm(
-        `Cofnięcie zmieni dalszą drabinkę i unieważni ${match.downstreamResultCount} późniejszych wyników. ` +
-        "Wyniki i game-picki tych meczów zostaną cofnięte. Kontynuować?",
+        `Cofnąć wynik meczu ${match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")} (${match.score1}:${match.score2})? ` +
+        (match.downstreamResultCount > 0 ? `Zostanie unieważnionych ${match.downstreamResultCount} późniejszych wyników i powiązane wybory postaci. ` : "Ranking i awans zostaną przeliczone. ") +
+        "Następnie wpiszesz i zapiszesz poprawny wynik.",
       )
     ) return;
     setError(undefined);
     revert.mutate(
       { id: match.matchId },
       {
-        onSuccess: () => void refresh(),
-        onError: reason => setError(getApiErrorMessage(reason)),
+        onSuccess: () => {
+          resultDrafts.discard(match.matchId!);
+          setScores(current => { const next = { ...current }; delete next[match.matchId!]; return next; });
+          setSuccess("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
+        },
       },
     );
   };
@@ -177,8 +220,7 @@ export function DoubleEliminationBracket({
     reset.mutate(
       { id: tournamentId, stageId, data: { expectedRevision: state.revision } },
       {
-        onSuccess: () => void refresh(),
-        onError: reason => setError(getApiErrorMessage(reason)),
+        onSuccess: () => { Object.values(resultDrafts.drafts).forEach(match => resultDrafts.discard(match.id)); setScores({}); setSuccess("Stan drabinki został odświeżony."); },
       },
     );
   };
@@ -228,10 +270,13 @@ export function DoubleEliminationBracket({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {error}
         </div>
       )}
+      {canManage && canonical.isError && <div role="alert">Nie udało się pobrać aktualnych meczów. <Button onClick={() => void canonical.refetch()}>Spróbuj ponownie</Button></div>}
+      {pending && <p role="status" className="text-sm">Zapisywanie i odświeżanie drabinki…</p>}
+      {success && <p role="status" className="text-sm text-primary">{success}</p>}
 
       {champion && (
         <Card className="border-primary/50 bg-primary/5">
@@ -262,17 +307,35 @@ export function DoubleEliminationBracket({
             Zarządzanie wynikami
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {actionableMatches.map(match => (
-              <ScoreForm
-                key={match.matchKey}
-                match={match}
-                pending={pending}
-                scores={scores[match.matchKey] ?? [0, 0]}
-                onScores={s => setScores(cur => ({ ...cur, [match.matchKey]: s }))}
-                onComplete={() => completeCanonicalMatch(match)}
-                onRevert={() => revertCanonicalMatch(match)}
-              />
-            ))}
+            {actionableMatches.map(match => {
+              const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+              const draft = current && resultDrafts.drafts[current.id];
+              const stale = current && resultDrafts.isStale(current);
+              // Canonical participants, scores and revision come from the same response.
+              const editing = current ? { ...match, bestOf: current.bestOf, score1: current.score1 ?? null, score2: current.score2 ?? null,
+                status: current.status === "completed" ? "completed" as const
+                  : current.status === "pending" || current.status === "in_progress" ? "ready" as const : "blocked" as const,
+              } : match;
+              return <div key={match.matchKey}>
+                <ScoreForm
+                  match={editing}
+                  playerNames={current ? `${current.player1Name} – ${current.player2Name}` : match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")}
+                  pending={pending || !current || canonical.isError || !!stale}
+                  scores={stale ? [current?.score1 ?? 0, current?.score2 ?? 0] : scores[match.matchId!] ?? [current?.score1 ?? 0, current?.score2 ?? 0]}
+                  onBegin={() => { if (current) resultDrafts.capture(current); }}
+                  onScores={s => { if (current && !stale) { resultDrafts.capture(current); setScores(cur => ({ ...cur, [current.id]: s })); } }}
+                  onComplete={() => completeCanonicalMatch(match)}
+                  onRevert={() => revertCanonicalMatch(match)}
+                />
+                {stale && <div role="status" className="text-sm">
+                  <p>Nieaktualny draft: {draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}. Sprawdź aktualny mecz przed nową edycją.</p>
+                  <Button disabled={pending || canonical.isError} onClick={() => {
+                    resultDrafts.discard(current.id);
+                    setScores(previous => { const next = { ...previous }; delete next[match.matchId!]; return next; });
+                  }}>Odrzuć wynik roboczy</Button>
+                </div>}
+              </div>;
+            })}
           </div>
         </div>
       )}

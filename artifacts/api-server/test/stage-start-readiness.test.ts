@@ -110,6 +110,14 @@ test("reports a valid planned stage as ready", () => {
   assert.deepEqual(result.basketValidation, { valid: true, problems: [] });
 });
 
+test("explicit basket authority delegates default single-stage starts to the lifecycle", () => {
+  for (const format of ["single_elimination", "swiss", "round_robin", "group_stage"] as const) {
+    const stages = [{ format, entrySeedingPolicy: "preserve" }];
+    assert.equal(shouldUseStageLifecycleForLegacyTournamentStart(stages, null, 1), true);
+    assert.equal(shouldUseStageLifecycleForLegacyTournamentStart(stages, null, 0), false);
+  }
+});
+
 test("blocks start with the stable basket validation reason", () => {
   const result = evaluateStageStartReadiness(changed((value) => {
     value.basketValidation = {

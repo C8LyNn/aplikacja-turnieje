@@ -1,5 +1,4 @@
 import { Bracket, Match } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
 import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
 import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
@@ -7,40 +6,53 @@ import { PickIcon } from "@/components/deadlock-bans-display";
 
 // Layout constants — card heights must match actual rendered sizes
 const CARD_W = 200;
-const CARD_H = 72; // header(18) + player×2(27×2)
+const CARD_H = 64; // header + two compact player rows, including borders
 const R1_GAP = 8;
-const UNIT = CARD_H + R1_GAP; // 72 — base vertical rhythm
+const UNIT = CARD_H + R1_GAP;
 const COL_GAP = 48; // matches gap-12 between round columns
 const HEADER_H = 24; // fixed header above each round column
 
-/** Round column gap between consecutive matches at round index ri */
-function matchGap(ri: number) {
-  return Math.pow(2, ri) * UNIT - CARD_H;
+const PADDING = 16;
+
+export function bracketNaturalSize(totalRounds: number, r1Matches: number, hasWinner = false) {
+  const columns = totalRounds + Number(hasWinner);
+  return {
+    width: columns * CARD_W + Math.max(0, columns - 1) * COL_GAP + PADDING * 2,
+    height: HEADER_H + r1Matches * CARD_H + Math.max(0, r1Matches - 1) * R1_GAP + PADDING * 2,
+  };
 }
 
-/** Padding-top of the matches sub-div so first match aligns correctly */
-function matchPaddingTop(ri: number) {
-  return ((Math.pow(2, ri) - 1) * UNIT) / 2;
-}
-
-/** Distance from center of even match to center of odd match (for SVG span) */
-function pairSpan(ri: number) {
-  return Math.pow(2, ri) * UNIT;
-}
-
-export function bracketNaturalSize(totalRounds: number, r1Matches: number) {
-  const width =
-    totalRounds * CARD_W +
-    (totalRounds - 1) * COL_GAP +
-    COL_GAP +
-    CARD_W + // winner column
-    64; // px-4 on each side
-  const height =
-    HEADER_H +
-    r1Matches * CARD_H +
-    (r1Matches - 1) * R1_GAP +
-    64; // pt/pb
-  return { width, height };
+/** Presentation only: retain server order and center each target on its sources. */
+export function layoutBracket(bracket: Bracket) {
+  type PositionedMatch = { match: Match; x: number; y: number };
+  const columns: PositionedMatch[][] = [];
+  const connections: { source: PositionedMatch; target: PositionedMatch }[] = [];
+  for (const [ri, round] of bracket.rounds.entries()) {
+    const previous = columns[ri - 1] ?? [];
+    const column: PositionedMatch[] = [];
+    for (const [mi, match] of round.matches.entries()) {
+      const linked = previous.filter(source => source.match.nextMatchId === match.id);
+      // Older read models omit links; keep their existing adjacent-pair layout.
+      const sources = linked.length ? linked : previous.slice(mi * 2, mi * 2 + 2)
+        .filter(source => source.match.nextMatchId == null);
+      const center = sources.length
+        ? sources.reduce((sum, source) => sum + source.y + CARD_H / 2, 0) / sources.length
+        : PADDING + HEADER_H + mi * UNIT + CARD_H / 2;
+      const y = Math.max(center - CARD_H / 2, column.length ? column[column.length - 1].y + UNIT : PADDING + HEADER_H);
+      const target = { match, x: PADDING + ri * (CARD_W + COL_GAP), y };
+      column.push(target);
+      for (const source of sources) connections.push({ source, target });
+    }
+    columns.push(column);
+  }
+  const size = bracketNaturalSize(bracket.rounds.length, 0, !!bracket.winner);
+  const final = columns.at(-1)?.[0];
+  return {
+    columns, connections,
+    width: size.width,
+    height: Math.max(PADDING + HEADER_H, ...columns.flat().map(node => node.y + CARD_H)) + PADDING,
+    winner: bracket.winner && final ? { x: PADDING + columns.length * (CARD_W + COL_GAP), y: final.y } : undefined,
+  };
 }
 
 function roundLabel(round: number, total: number, format?: string): string {
@@ -57,6 +69,8 @@ export type MatchPickSummary = { p1HeroId?: string | null; p2HeroId?: string | n
 
 interface BracketViewProps {
   bracket: Bracket;
+  /** Explicit public-view zoom. Its scroll footprint follows the rendered size. */
+  scale?: number;
   format?: string;
   forcedHeroId?: DeadlockHeroId;
   /**
@@ -72,7 +86,7 @@ interface BracketViewProps {
   playerBansMap?: Map<number, string[]>;
 }
 
-export function BracketView({ bracket, format, forcedHeroId, matchPicksMap }: BracketViewProps) {
+export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scale = 1 }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -82,96 +96,40 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap }: Br
   }
 
   const totalRounds = bracket.rounds.length;
+  const layout = layoutBracket(bracket);
 
   return (
-    <div
-      className="flex pb-8 pt-4 px-4 select-none"
-      style={{ alignItems: "flex-start", gap: COL_GAP }}
-    >
-      {bracket.rounds.map((round, ri) => {
-        const gap = matchGap(ri);
-        const pt = matchPaddingTop(ri);
-        const ps = pairSpan(ri);
-
-        return (
-          <div key={round.round} className="flex flex-col shrink-0" style={{ width: CARD_W }}>
-            {/* Round header */}
-            <div
-              className="text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wider shrink-0"
-              style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
-            >
+    <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain select-none" aria-label="Drabinka eliminacyjna" tabIndex={0}>
+      <div className="relative overflow-hidden" style={{ width: layout.width * scale, height: layout.height * scale }}>
+        <div className="absolute left-0 top-0" style={{ width: layout.width, height: layout.height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+          <svg aria-hidden="true" className="absolute inset-0 pointer-events-none" width={layout.width} height={layout.height}>
+            {layout.connections.map(({ source, target }) => <path key={source.match.id}
+              data-source-match={source.match.id} data-target-match={target.match.id}
+              d={`M ${source.x + CARD_W} ${source.y + CARD_H / 2} H ${source.x + CARD_W + COL_GAP / 2} V ${target.y + CARD_H / 2} H ${target.x}`}
+              fill="none" stroke="hsl(var(--border))" strokeWidth={1} />)}
+            {layout.winner && <path d={`M ${layout.winner.x - COL_GAP} ${layout.winner.y + CARD_H / 2} H ${layout.winner.x}`}
+              fill="none" stroke="hsl(var(--border))" strokeWidth={1} />}
+          </svg>
+          {bracket.rounds.map((round, ri) => <div key={round.round}>
+            <div className="absolute text-center font-bold text-[10px] text-muted-foreground uppercase tracking-wider"
+              style={{ left: PADDING + ri * (CARD_W + COL_GAP), top: PADDING, width: CARD_W, height: HEADER_H, lineHeight: `${HEADER_H}px` }}>
               {roundLabel(round.round, totalRounds, format)}
             </div>
-
-            {/* Matches sub-column */}
-            <div
-              className="flex flex-col"
-              style={{ paddingTop: pt, gap }}
-            >
-              {round.matches.map((match, mi) => (
-                <div
-                  key={match.id}
-                  className="relative shrink-0"
-                  style={{ height: CARD_H }}
-                >
-                  <MatchBox
-                    match={match}
-                    forcedHeroId={forcedHeroId}
-                    matchPicksMap={matchPicksMap}
-                  />
-
-                  {/* Connector to next round — only from even-indexed matches */}
-                  {ri < totalRounds - 1 && mi % 2 === 0 && (
-                    <svg
-                      className="absolute pointer-events-none"
-                      style={{
-                        left: CARD_W,
-                        top: CARD_H / 2,
-                        width: COL_GAP,
-                        height: ps,
-                        overflow: "visible",
-                      }}
-                    >
-                      <line x1={0} y1={0} x2={COL_GAP / 2} y2={0}
-                        stroke="hsl(var(--border))" strokeWidth={1} />
-                      <line x1={COL_GAP / 2} y1={0} x2={COL_GAP / 2} y2={ps}
-                        stroke="hsl(var(--border))" strokeWidth={1} />
-                      <line x1={0} y1={ps} x2={COL_GAP / 2} y2={ps}
-                        stroke="hsl(var(--border))" strokeWidth={1} />
-                      <line x1={COL_GAP / 2} y1={ps / 2} x2={COL_GAP} y2={ps / 2}
-                        stroke="hsl(var(--border))" strokeWidth={1} />
-                    </svg>
-                  )}
-                </div>
-              ))}
+            {layout.columns[ri].map(({ match, x, y }) => <div key={match.id} data-match-id={match.id} className="absolute" style={{ left: x, top: y, width: CARD_W, height: CARD_H }}>
+              <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />
+            </div>)}
+          </div>)}
+          {bracket.winner && layout.winner && <>
+            <div className="absolute text-center font-bold text-[10px] text-primary uppercase tracking-wider"
+              style={{ left: layout.winner.x, top: PADDING, width: CARD_W, height: HEADER_H, lineHeight: `${HEADER_H}px` }}>Zwycięzca</div>
+            <div aria-label="Zwycięzca drabinki" style={{ left: layout.winner.x, top: layout.winner.y, width: CARD_W, height: CARD_H }}
+              className="absolute border-2 border-primary rounded-lg bg-primary/10 shadow-[0_0_20px_rgba(0,200,255,0.15)] flex flex-col items-center justify-center gap-1 px-2">
+              <Trophy className="w-4 h-4 text-primary shrink-0" />
+              <span title={bracket.winner.name} className="max-w-full line-clamp-2 font-bold text-xs text-primary text-center leading-tight break-all">{bracket.winner.name}</span>
             </div>
-          </div>
-        );
-      })}
-
-      {/* Winner column */}
-      {bracket.winner && (
-        <div className="flex flex-col shrink-0" style={{ width: CARD_W }}>
-          <div
-            className="text-center font-bold text-[10px] text-primary uppercase tracking-wider"
-            style={{ height: HEADER_H, lineHeight: `${HEADER_H}px` }}
-          >
-            Zwycięzca
-          </div>
-          <div
-            style={{
-              marginTop: matchPaddingTop(totalRounds),
-              height: CARD_H,
-            }}
-            className="border-2 border-primary rounded-lg bg-primary/10 shadow-[0_0_20px_rgba(0,200,255,0.15)] flex flex-col items-center justify-center gap-1 px-2"
-          >
-            <Trophy className="w-4 h-4 text-primary shrink-0" />
-            <span className="font-bold text-xs text-primary text-center leading-tight break-all">
-              {bracket.winner.name}
-            </span>
-          </div>
+          </>}
         </div>
-      )}
+      </div>
     </div>
   );
 }

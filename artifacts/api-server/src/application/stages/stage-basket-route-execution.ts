@@ -40,6 +40,7 @@ export type BasketRouteExecutionErrorCode =
   | "STAGE_NOT_FOUND"
   | "ROUTE_NOT_FOUND"
   | "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED"
+  | "STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED"
   | "STAGE_BASKET_ROUTE_SOURCE_OUTPUT_INCOMPLETE"
   | "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED"
   | "STAGE_BASKET_ROUTE_PARTICIPANT_CONFLICT"
@@ -228,6 +229,7 @@ export async function executeBasketRoute(
     .where(
       and(
         eq(stageBasketRoutesTable.tournamentId, tournamentId),
+        eq(stageBasketRoutesTable.sourceStageId, sourceStageId),
         eq(stageBasketRoutesTable.sourceBasketId, sourceBasketId),
       ),
     );
@@ -235,8 +237,30 @@ export async function executeBasketRoute(
 
   // ── 2. Transactional execution ─────────────────────────────────────────────
   return db.transaction(async (tx) => {
-    // Re-validate actor under transaction.
-    await revalidateTournamentMutationActor(tx, tournament, actor);
+    // Lock the tournament before the route. Stage start and match completion
+    // use the same lock order, so routing cannot race a stage transition.
+    const [lockedTournament] = await tx
+      .select()
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, tournamentId))
+      .for("update");
+    if (!lockedTournament) throw new BasketRouteExecutionError("TOURNAMENT_NOT_FOUND");
+    await revalidateTournamentMutationActor(tx, lockedTournament, actor);
+
+    const [lockedSourceStage] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(
+        and(
+          eq(tournamentStagesTable.tournamentId, tournamentId),
+          eq(tournamentStagesTable.id, sourceStageId),
+        ),
+      )
+      .for("update");
+    if (!lockedSourceStage) throw new BasketRouteExecutionError("STAGE_NOT_FOUND");
+    if (lockedTournament.basketFlowAuthorityVersion === 1 && lockedSourceStage.status !== "completed") {
+      throw new BasketRouteExecutionError("STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED");
+    }
 
     // Lock the route row to prevent concurrent double execution.
     const [lockedRoute] = await tx
@@ -321,8 +345,12 @@ export async function executeBasketRoute(
           eq(tournamentStagesTable.tournamentId, tournamentId),
           eq(tournamentStagesTable.id, route.targetStageId),
         ),
-      );
-    if (targetStage && (targetStage.status === "active" || targetStage.status === "completed")) {
+      )
+      .for("update");
+    if (!targetStage) {
+      throw new BasketRouteExecutionError("STAGE_NOT_FOUND");
+    }
+    if (targetStage.status === "active" || targetStage.status === "completed") {
       throw new BasketRouteExecutionError(
         "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED",
       );
@@ -446,6 +474,7 @@ export async function getBasketRouteStatus(
     .where(
       and(
         eq(stageBasketRoutesTable.tournamentId, tournamentId),
+        eq(stageBasketRoutesTable.sourceStageId, sourceStageId),
         eq(stageBasketRoutesTable.sourceBasketId, sourceBasketId),
       ),
     );

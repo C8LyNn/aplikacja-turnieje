@@ -24,7 +24,6 @@ import {
   withTournamentMutationLock,
 } from "../access-policy";
 import {
-  normalizeOrganizerPassword,
   organizerPasswordInputError,
   ORGANIZER_PASSWORD_TOO_SHORT_CODE,
 } from "../validation/organizer-password";
@@ -309,6 +308,7 @@ function sendBasketRouteExecutionError(
   ]);
   const conflict = new Set<BasketRouteExecutionErrorCode>([
     "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED",
+    "STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED",
     "STAGE_BASKET_ROUTE_SOURCE_OUTPUT_INCOMPLETE",
     "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED",
     "STAGE_BASKET_ROUTE_PARTICIPANT_CONFLICT",
@@ -332,6 +332,7 @@ function sendQualificationProposalError(
     "STAGE_BASKET_QUALIFICATION_FORMAT_NOT_SUPPORTED",
     "STAGE_BASKET_QUALIFICATION_ALREADY_APPROVED",
     "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE",
+    "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE",
     "RANKING_INCONSISTENT",
   ]);
   res
@@ -589,11 +590,25 @@ function generateSwissRound(
 
 // ========== STANDINGS ==========
 
-function calculateStandings(
+async function calculateStandings(
   players: (typeof playersTable.$inferSelect)[],
   matches: (typeof matchesTable.$inferSelect)[],
   tournament: typeof tournamentsTable.$inferSelect,
 ) {
+  const stages = await db.select().from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id)).limit(2);
+  const stage = stages.length === 1 ? stages[0] : undefined;
+  if (stage && stage.status !== "planned" && (stage.format === "round_robin" || stage.format === "swiss")) {
+    const members = await db.select({ playerId: stageParticipantsTable.playerId, stageSeed: stageParticipantsTable.stageSeed })
+      .from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId, stage.id));
+    const seeds = new Map(members.map(member => [member.playerId, member.stageSeed]));
+    // A stage's frozen seeding, not registration order, resolves ranking ties.
+    return calculateMatchRecordStandings(
+      players.filter(player => seeds.has(player.id)).map(player => ({ ...player, seed: seeds.get(player.id)! })),
+      matches.filter(match => match.stageId === stage.id),
+      stage.format,
+    );
+  }
   return calculateMatchRecordStandings(players, matches, tournament.format);
 }
 
@@ -673,9 +688,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const requestBody = req.body?.organizerPassword === ""
-    ? { ...req.body, organizerPassword: undefined }
-    : req.body;
+  const requestBody = req.body;
   const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
@@ -712,9 +725,8 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
-  if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
+  insertValues.organizerPasswordHash = await hashPassword(rawOrganizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {
@@ -1395,6 +1407,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   if (shouldUseStageLifecycleForLegacyTournamentStart(
     stages,
     startGameConfig?.gameId ?? null,
+    tournament.basketFlowAuthorityVersion,
   )) {
     try {
       await startStage({
@@ -1471,12 +1484,21 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       ) {
         throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
       }
+      if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
+        throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
+      }
+      const existingMatches = await tx
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(eq(matchesTable.stageId, stage.id))
+        .for("update");
+      if (existingMatches.length > 0) {
+        throw new Error("MATCHES_ALREADY_EXIST");
+      }
       const stagePlayers = memberships.map((membership) => ({
         ...playersById.get(membership.playerId)!,
         seed: membership.stageSeed,
       }));
-
-      await tx.delete(matchesTable).where(eq(matchesTable.stageId, stage.id));
 
       const bestOf = stage.bestOf;
       let generatedMatches: (typeof matchesTable.$inferInsert)[];
@@ -1596,10 +1618,13 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       STAGE_FORMAT_NOT_SUPPORTED: "Tournament stage format is not supported by this operation",
       NOT_ENOUGH_PLAYERS: "Need at least 2 players to start",
       STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
+      MATCHES_ALREADY_EXIST: "Tournament stage already contains matches",
       STAGE_BASKET_CONFIGURATION_INVALID: "Tournament stage basket configuration is invalid",
     };
     const status = code === "TOURNAMENT_NOT_FOUND"
       ? 404
+      : code === "MATCHES_ALREADY_EXIST"
+        ? 409
       : code === "STAGE_BASKET_CONFIGURATION_INVALID"
         ? 422
         : 400;
@@ -1839,7 +1864,7 @@ router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
   const pendingMatches = matches.filter((m) => m.status === "pending" || m.status === "postponed").length;
   const inProgressMatches = matches.filter((m) => m.status === "in_progress").length;
 
-  const topPlayers = calculateStandings(players, matches, tournament)
+  const topPlayers = (await calculateStandings(players, matches, tournament))
     .slice(0, 5)
     .map((standing) => ({
       id: standing.playerId,
@@ -1884,7 +1909,7 @@ router.get("/tournaments/:id/standings", async (req, res): Promise<void> => {
     .from(matchesTable)
     .where(eq(matchesTable.tournamentId, params.data.id));
 
-  const standings = calculateStandings(players, matches, tournament);
+  const standings = await calculateStandings(players, matches, tournament);
   res.json(standings);
 });
 
@@ -2221,6 +2246,7 @@ function sendRevertMatchError(
     "STAGE_ALREADY_ADVANCED",
     "CONCURRENT_MODIFICATION",
     "SYSTEM_BYE_REVERT_BLOCKED",
+    "STAGE_QUALIFICATION_ALREADY_COMMITTED",
   ]);
   const status = notFoundCodes.has(error.code)
     ? 404
@@ -2650,7 +2676,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
         "TOURNAMENT_NOT_FOUND",
         "PARTICIPANT_NOT_FOUND",
       ]);
-      const status = error.code === "MATCH_ALREADY_FINALIZED"
+      const status = error.code === "MATCH_ALREADY_FINALIZED" || error.code === "CONCURRENT_MODIFICATION"
         ? 409
         : notFoundCodes.has(error.code)
           ? 404

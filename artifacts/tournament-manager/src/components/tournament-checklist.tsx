@@ -86,7 +86,7 @@ export function TournamentChecklist({ open, onClose, tournamentId, tournamentNam
             <span className={done === total ? "text-green-400 font-medium" : ""}>
               {done}/{total} ({pct}%)
             </span>
-            {done === total && <span className="text-green-400 font-medium"> — Gotowy do startu! 🏆</span>}
+            {done === total && <span className="text-green-400 font-medium"> — Lista sprawdzona. Gotowość etapu sprawdź w Etapach.</span>}
           </DialogDescription>
         </DialogHeader>
 

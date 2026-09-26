@@ -44,7 +44,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { data: tournaments, isLoading } = useListTournaments();
+  const { data: tournaments, isLoading, isError, isFetching, refetch } = useListTournaments();
   const deleteTournament = useDeleteTournament();
   const createTournament = useCreateTournament();
   const importPlayers = useImportPlayers();
@@ -210,13 +210,13 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-center gap-3 flex-wrap">
+      <div className="organizer-workspace flex flex-col gap-6">
+        <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-primary">Turnieje</h1>
             <p className="text-muted-foreground">Zarządzaj rozgrywkami, drabinkami i wynikami.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="organizer-header-actions flex gap-2">
             <Button
               variant="outline"
               onClick={() => setShowRestoreDialog(true)}
@@ -403,6 +403,14 @@ export default function Dashboard() {
                 <CardContent className="h-20" />
               </Card>
             ))}
+          </div>
+        ) : isError ? (
+          <div role="alert" className="rounded-lg border p-4">
+            <p>Nie udało się pobrać listy turniejów.</p>
+            <p className="text-sm text-muted-foreground">Sprawdź połączenie z API i spróbuj ponownie.</p>
+            <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => void refetch()}>
+              Spróbuj ponownie
+            </Button>
           </div>
         ) : !tournaments || tournaments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card/50">

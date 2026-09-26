@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { afterEach, test, describe } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
@@ -71,7 +71,7 @@ function tournamentPayload(gameConfig?: unknown) {
 }
 
 /** Mount TournamentAudience at /tournaments/1/audience with a controlled QueryClient */
-function renderAudience(fetchImpl: typeof fetch, refetchInterval?: number) {
+function renderAudience(fetchImpl: typeof fetch, refetchInterval?: number, section = "live") {
   const qc = new QueryClient({
     defaultOptions: {
       queries: {
@@ -86,11 +86,11 @@ function renderAudience(fetchImpl: typeof fetch, refetchInterval?: number) {
     },
   });
   queryClients.add(qc);
-  const location = memoryLocation({ path: "/tournaments/1/audience" });
+  const location = memoryLocation({ path: `/tournaments/1/audience?section=${section}` });
   globalThis.fetch = fetchImpl;
   render(
     <QueryClientProvider client={qc}>
-      <Router hook={location.hook}>
+      <Router hook={location.hook} searchHook={location.searchHook}>
         <AuthProvider>
           <TournamentAudience />
         </AuthProvider>
@@ -101,6 +101,88 @@ function renderAudience(fetchImpl: typeof fetch, refetchInterval?: number) {
 }
 
 // ── tests ──────────────────────────────────────────────────────────────────────
+
+test("public match rows stay compact without changing order, scores or statuses", async () => {
+  const variants = [
+    { status: "pending", resultType: null, score1: null, score2: null, label: "Oczekuje", score: "vs" },
+    { status: "in_progress", resultType: null, score1: 1, score2: 0, label: "W trakcie", score: "1:0" },
+    { status: "completed", resultType: "played", score1: 2, score2: 1, label: "Zakończony", score: "2:1" },
+    { status: "completed", resultType: "walkover", score1: null, score2: null, label: "Zakończony", score: "vs" },
+    { status: "completed", resultType: "no_contest", score1: null, score2: null, label: "Zakończony", score: "vs" },
+  ];
+  const matches = variants.map((variant, i) => ({ ...variant, id: i + 1, revision: 1, tournamentId: 1,
+    round: 1, matchNumber: 5 - i, bestOf: 3, player1Id: i * 2 + 1, player2Id: i * 2 + 2,
+    player1Name: `DługaNazwaZawodnika${i}`.repeat(5), player2Name: `Rywal ${i}`, winnerId: i === 2 || i === 3 ? i * 2 + 1 : null }));
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse(tournamentPayload());
+    if (url.endsWith("/matches")) return jsonResponse(matches);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  }, undefined, "matches");
+  const section = await screen.findByRole("region", { name: "Mecze" });
+  await waitFor(() => assert.equal(within(section).getAllByRole("article").length, 5));
+  within(section).getAllByRole("article").forEach((row, i) => {
+    assert.ok(row.classList.contains("md:grid-cols-[8rem_minmax(0,1fr)_auto]"));
+    assert.ok(row.classList.contains("py-2.5"));
+    assert.ok(within(row).getByText(`Runda 1 · Mecz ${5 - i}`));
+    assert.ok(within(row).getByText(variants[i].label));
+    assert.ok(within(row).getByText(variants[i].score));
+    assert.ok(within(row).getByText("BO3"));
+    const player = within(row).getByText(matches[i].player1Name);
+    assert.equal(player.getAttribute("title"), matches[i].player1Name);
+    assert.ok(player.classList.contains("truncate"));
+    assert.equal(player.classList.contains("text-cyan-300"), i === 2 || i === 3);
+  });
+});
+
+test("public header can wrap its actions and keeps all navigation links with a long tournament name", async () => {
+  window.localStorage.setItem("tm_role", "organizer");
+  window.sessionStorage.setItem("tm_org_1", "test-organizer-token");
+  const name = "BardzoDługaNazwaTurnieju".repeat(12);
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({ ...tournamentPayload(), name });
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  const heading = await screen.findByRole("heading", { name, level: 1 });
+  const header = screen.getByRole("banner");
+  assert.ok(header.classList.contains("flex-wrap"));
+  assert.ok(heading.classList.contains("min-w-0"));
+  assert.equal(heading.getAttribute("title"), name);
+  const panel = within(header).getByRole("link", { name: "Panel organizatora" });
+  assert.equal(panel.getAttribute("href"), "/tournaments/1");
+  assert.ok(panel.parentElement?.classList.contains("flex-wrap"));
+  assert.ok(within(header).getByRole("link", { name: "Wróć do dashboardu" }));
+  const nav = screen.getByRole("navigation", { name: "Sekcje publicznego widoku turnieju" });
+  assert.equal(within(nav).getAllByRole("link").length, 6);
+  assert.ok(nav.firstElementChild?.classList.contains("overflow-x-auto"));
+  assert.ok(nav.classList.contains("min-w-0"));
+});
+
+test("completed Audience names the persisted winner, not the aggregate standings leader", async () => {
+  const qc = renderAudience(async (input) => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) {
+      return jsonResponse({ ...tournamentPayload(), status: "completed", winnerId: 2 });
+    }
+    if (url.endsWith("/standings")) return jsonResponse([
+      { playerId: 1, playerName: "Earlier stage leader", rank: 1, matchWins: 5 },
+      { playerId: 2, playerName: "Final champion", rank: 2, matchWins: 3 },
+    ]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  const assertWinner = () => {
+    const summary = screen.getByText("Turniej zakończony!").parentElement!;
+    assert.match(summary.textContent!, /Zwycięzca: Final champion/);
+    assert.doesNotMatch(summary.textContent!, /Earlier stage leader/);
+  };
+  await waitFor(assertWinner, { timeout: 3000 });
+  await act(async () => { await qc.refetchQueries(); });
+  assertWinner();
+});
 
 describe("TournamentAudience — password gate regression", () => {
 

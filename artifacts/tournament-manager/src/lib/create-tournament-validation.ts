@@ -5,7 +5,7 @@ export function tournamentNameError(value: string): string | null {
 }
 
 export function organizerPasswordRemaining(value: string): number {
-  if (value.length === 0 || value.length >= ORGANIZER_PASSWORD_MIN_LENGTH) return 0;
+  if (value.length >= ORGANIZER_PASSWORD_MIN_LENGTH) return 0;
   return ORGANIZER_PASSWORD_MIN_LENGTH - value.length;
 }
 

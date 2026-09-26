@@ -814,6 +814,7 @@ export const matchesTable = pgTable(
   "matches",
   {
     id: serial("id").primaryKey(),
+    revision: integer("revision").notNull().default(1),
     tournamentId: integer("tournament_id")
       .notNull()
       .references(() => tournamentsTable.id, { onDelete: "cascade" }),
@@ -845,6 +846,7 @@ export const matchesTable = pgTable(
       table.round,
       table.matchNumber,
     ),
+    check("matches_revision_positive", sql`${table.revision} > 0`),
     unique("matches_id_stage_id_unique").on(table.id, table.stageId),
     unique("matches_tournament_stage_id_id_unique").on(
       table.tournamentId,

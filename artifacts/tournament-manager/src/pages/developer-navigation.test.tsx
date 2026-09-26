@@ -1,9 +1,37 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { registerHooks } from "node:module";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { Router } from "wouter";
-import DeveloperPage from "./developer";
+
+// Node's test runner does not transform Vite's ?raw imports or CSS dependencies
+// used by the other Developer Lab views. Keep those imports available without
+// changing the production components being tested.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier.endsWith("?raw") || specifier.endsWith(".css")) {
+      return { url: new URL(specifier, context.parentURL).href, shortCircuit: true };
+    }
+    return nextResolve(specifier, context);
+  },
+  load(url, context, nextLoad) {
+    if (url.endsWith("?raw")) {
+      return {
+        format: "module",
+        source: `export default ${JSON.stringify(readFileSync(new URL(url), "utf8"))};`,
+        shortCircuit: true,
+      };
+    }
+    if (url.endsWith(".css")) {
+      return { format: "module", source: "", shortCircuit: true };
+    }
+    return nextLoad(url, context);
+  },
+});
+
+const { default: DeveloperPage } = await import("./developer");
 
 afterEach(cleanup);
 
@@ -12,4 +40,6 @@ test("DEV tools link opens the bundled Animated Effects editor at its stable pat
   const link = screen.getByRole("link", { name: /Animated Effects.*Efekty streamowe/i });
   assert.equal(link.getAttribute("href"), "/dev/animated-effects/");
   assert.ok(screen.getByText("DEV / NARZĘDZIA"));
+  assert.equal(screen.getByRole("link", { name: /Eksperymentalne systemy losowania/i }).getAttribute("href"), "#draw-systems");
+  assert.equal(screen.getByRole("link", { name: /OBS \/ Stream Add-ons/i }).getAttribute("href"), "#obs-lab");
 });

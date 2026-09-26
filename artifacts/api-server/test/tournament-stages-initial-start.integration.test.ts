@@ -372,4 +372,80 @@ describe("initial Tournament Stages start", () => {
       2,
     );
   });
+
+  test("does not delete pre-existing matches when compatibility start is retried", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        organizerPassword: "integration-organizer-password",
+        name: `Initial stale-match guard ${randomUUID()}`,
+        format: "round_robin",
+        defaultBestOf: 1,
+      })
+      .expect(201);
+    const tournamentId = created.body.id as number;
+    const organizerHeaders = { "x-organizer-token": created.body.organizerToken as string };
+    const playerIds = await addPlayers(tournamentId, 2);
+    const [stage] = await database.db
+      .select({ id: database.tournamentStagesTable.id })
+      .from(database.tournamentStagesTable)
+      .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
+    const [staleMatch] = await database.db
+      .insert(database.matchesTable)
+      .values({
+        tournamentId,
+        stageId: stage.id,
+        round: 1,
+        matchNumber: 1,
+        player1Id: playerIds[0],
+        player2Id: playerIds[1],
+        status: "pending",
+      })
+      .returning({ id: database.matchesTable.id });
+
+    const response = await request(app)
+      .post(`/api/tournaments/${tournamentId}/start`)
+      .set(organizerHeaders);
+    assert.equal(response.status, 409, response.text);
+    assert.equal(response.body.code, "MATCHES_ALREADY_EXIST");
+    const remaining = await database.db
+      .select({ id: database.matchesTable.id })
+      .from(database.matchesTable)
+      .where(eq(database.matchesTable.stageId, stage.id));
+    assert.deepEqual(remaining, [staleMatch]);
+  });
+
+  test("rejects a non-contiguous compatibility-stage seed assignment", async () => {
+    const created = await request(app)
+      .post("/api/tournaments")
+      .send({
+        organizerPassword: "integration-organizer-password",
+        name: `Initial seed invariant ${randomUUID()}`,
+        format: "round_robin",
+        defaultBestOf: 1,
+      })
+      .expect(201);
+    const tournamentId = created.body.id as number;
+    const organizerHeaders = { "x-organizer-token": created.body.organizerToken as string };
+    await addPlayers(tournamentId, 2);
+    const [stage] = await database.db
+      .select({ id: database.tournamentStagesTable.id })
+      .from(database.tournamentStagesTable)
+      .where(eq(database.tournamentStagesTable.tournamentId, tournamentId));
+    await database.pool.query(
+      "UPDATE stage_participants SET stage_seed = 3 WHERE stage_id = $1 AND stage_seed = 1",
+      [stage.id],
+    );
+
+    const response = await request(app)
+      .post(`/api/tournaments/${tournamentId}/start`)
+      .set(organizerHeaders);
+    assert.equal(response.status, 400, response.text);
+    assert.equal(response.body.code, "STAGE_PARTICIPANTS_INCONSISTENT");
+    const matchCount = await database.pool.query<{ count: number }>(
+      "SELECT count(*)::int AS count FROM matches WHERE stage_id = $1",
+      [stage.id],
+    );
+    assert.equal(matchCount.rows[0].count, 0);
+  });
 });

@@ -156,7 +156,7 @@ test("bracket match shows a compact forced-hero icon", () => {
         rounds: [{
           round: 1,
           matches: [{
-            id: 1,
+            id: 1, revision: 1,
             tournamentId: 1,
             stageId: 1,
             round: 1,

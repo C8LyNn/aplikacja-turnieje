@@ -937,8 +937,11 @@ export interface TournamentInput {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  /** Optional password. Empty means no password; a non-empty value must contain at least 8 characters. */
-  organizerPassword?: string;
+  /**
+     * Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.
+     * @minLength 8
+     */
+  organizerPassword: string;
   /**
      * Optional password for support staff access
      * @minLength 8
@@ -1650,6 +1653,8 @@ export const MatchStatus = {
 
 export interface Match {
   id: number;
+  /** @minimum 1 */
+  revision: number;
   tournamentId: number;
   stageId: number;
   /** @nullable */
@@ -1717,15 +1722,21 @@ export interface MatchUpdate {
 }
 
 export type MatchResult = {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'played';
   score1: number;
   score2: number;
 } | {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'walkover';
   winnerId: number;
   /** @nullable */
   reason?: string | null;
 } | {
+  /** @minimum 1 */
+  expectedRevision: number;
   resultType: 'no_contest';
   /** @nullable */
   reason?: string | null;

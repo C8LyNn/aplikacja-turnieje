@@ -1,0 +1,76 @@
+﻿.obs-range {
+  width: 100%;
+  height: 28px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Chrome / Opera / Edge */
+.obs-range::-webkit-slider-runnable-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(30 41 59);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  overflow: hidden;
+}
+
+.obs-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+
+  width: 17px;
+  height: 17px;
+
+  margin-top: -6px;
+
+  border-radius: 50%;
+  border: 3px solid rgb(56 189 248);
+
+  background: rgb(224 242 254);
+
+  box-shadow:
+    -410px 0 0 400px rgb(14 165 233);
+}
+
+.obs-range:hover::-webkit-slider-thumb {
+  background: white;
+  border-color: rgb(125 211 252);
+}
+
+.obs-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    -410px 0 0 400px rgb(14 165 233),
+    0 0 0 5px rgba(56, 189, 248, 0.2);
+}
+
+/* Firefox */
+.obs-range::-moz-range-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(30 41 59);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.obs-range::-moz-range-progress {
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(14 165 233);
+}
+
+.obs-range::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+
+  border-radius: 50%;
+  border: 3px solid rgb(56 189 248);
+
+  background: rgb(224 242 254);
+}
+
+.obs-range:hover::-moz-range-thumb {
+  background: white;
+  border-color: rgb(125 211 252);
+}

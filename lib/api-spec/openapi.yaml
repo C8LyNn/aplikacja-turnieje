@@ -2450,7 +2450,7 @@ components:
 
     TournamentInput:
       type: object
-      required: [name, format]
+      required: [name, format, organizerPassword]
       properties:
         name:
           type: string
@@ -2468,12 +2468,9 @@ components:
           type: integer
           minimum: 1
         organizerPassword:
-          description: Optional password. Empty means no password; a non-empty value must contain at least 8 characters.
-          oneOf:
-            - type: string
-              maxLength: 0
-            - type: string
-              minLength: 8
+          type: string
+          minLength: 8
+          description: Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.
         supportPassword:
           type: string
           minLength: 8
@@ -3176,10 +3173,13 @@ components:
 
     Match:
       type: object
-      required: [id, tournamentId, stageId, round, matchNumber, bestOf, status]
+      required: [id, revision, tournamentId, stageId, round, matchNumber, bestOf, status]
       properties:
         id:
           type: integer
+        revision:
+          type: integer
+          minimum: 1
         tournamentId:
           type: integer
         stageId:
@@ -3259,8 +3259,11 @@ components:
       oneOf:
         - type: object
           additionalProperties: false
-          required: [resultType, score1, score2]
+          required: [resultType, score1, score2, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: played
@@ -3270,8 +3273,11 @@ components:
               type: integer
         - type: object
           additionalProperties: false
-          required: [resultType, winnerId]
+          required: [resultType, winnerId, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: walkover
@@ -3281,8 +3287,11 @@ components:
               type: ["string", "null"]
         - type: object
           additionalProperties: false
-          required: [resultType]
+          required: [resultType, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: no_contest

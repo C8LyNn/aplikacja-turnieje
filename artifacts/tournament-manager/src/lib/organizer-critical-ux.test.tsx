@@ -86,7 +86,7 @@ const readiness = (ready: boolean, message = ready ? "Gotowy." : "Brak składu."
 });
 
 const match = (id: number, status: Match["status"], overrides: Partial<Match> = {}): Match => ({
-  id,
+  id, revision: 1,
   tournamentId: 41,
   stageId: 11,
   round: 1,
@@ -127,8 +127,8 @@ function nextStep(input: {
   });
 }
 
-test("optional organizer password accepts 0 and >=8, and rejects 1-7", () => {
-  for (const [length, accepted] of [[0, true], [1, false], [7, false], [8, true], [20, true]] as const) {
+test("required organizer password accepts >=8 and rejects 0-7", () => {
+  for (const [length, accepted] of [[0, false], [1, false], [7, false], [8, true], [20, true]] as const) {
     const value = "x".repeat(length);
     assert.equal(organizerPasswordError(value) == null, accepted, `length ${length}`);
   }
@@ -244,13 +244,25 @@ test("More exposes only areas backed by each credential", () => {
 test("planned stage without proven readiness has no start CTA", () => {
   const model = nextStep({ stages: [stage()], matches: [], readiness: readiness(false) });
   assert.equal(model.kind, "stage_preparation");
-  assert.equal(model.actionLabel, undefined);
+  assert.equal(model.actionLabel, "Sprawdź gotowość etapu");
 });
 
 test("planned stage with backend readiness gets one organizer start CTA", () => {
   const model = nextStep({ tournament: tournament("draft"), stages: [stage()], matches: [], readiness: readiness(true) });
   assert.equal(model.kind, "planned_stage");
   assert.equal(model.actionLabel, "Rozpocznij etap");
+});
+
+test("preparation next-step keeps stage and zero counts visible without repeating diagnostics", () => {
+  const state = { ...readiness(false), participantCount: 0, requiredParticipantCount: 16, message: "Szczegółowa diagnoza brakujących przypisań." };
+  const model = nextStep({ stages: [stage({ name: "Finał" })], matches: [], readiness: state });
+  const html = renderToStaticMarkup(<OrganizerNextStep step={model} onAction={() => undefined} />);
+  const element = document.createElement("div");
+  element.innerHTML = html;
+  assert.match(element.textContent ?? "", /Finał: Liczba uczestników nie odpowiada wymaganiom etapu/);
+  assert.match(element.textContent ?? "", /Oczekiwano: 16 · Aktualnie: 0/);
+  assert.doesNotMatch(element.textContent ?? "", /Szczegółowa diagnoza/);
+  assert.equal(element.querySelector("button")?.textContent, "Sprawdź gotowość etapu");
 });
 
 test("ready to roster mutation to pending refetch hides CTA until not-ready arrives", () => {
@@ -262,7 +274,7 @@ test("ready to roster mutation to pending refetch hides CTA until not-ready arri
       matches: [],
       readiness: availableStageStartReadiness(ready, true),
     }).actionLabel,
-    undefined,
+    "Sprawdź gotowość etapu",
   );
   assert.equal(
     nextStep({
@@ -270,7 +282,7 @@ test("ready to roster mutation to pending refetch hides CTA until not-ready arri
       matches: [],
       readiness: availableStageStartReadiness(readiness(false), false),
     }).actionLabel,
-    undefined,
+    "Sprawdź gotowość etapu",
   );
 });
 
