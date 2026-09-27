@@ -33,13 +33,25 @@ registerHooks({
 
 const { default: DeveloperPage } = await import("./developer");
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.history.replaceState(null, "", window.location.pathname);
+});
 
-test("DEV tools link opens the bundled Animated Effects editor at its stable path", () => {
+test("Developer Hub keeps OBS Lab without a duplicate Animated Effects card", () => {
   render(<Router><DeveloperPage /></Router>);
-  const link = screen.getByRole("link", { name: /Animated Effects.*Efekty streamowe/i });
-  assert.equal(link.getAttribute("href"), "/dev/animated-effects/");
   assert.ok(screen.getByText("DEV / NARZĘDZIA"));
-  assert.equal(screen.getByRole("link", { name: /Eksperymentalne systemy losowania/i }).getAttribute("href"), "#draw-systems");
-  assert.equal(screen.getByRole("link", { name: /OBS \/ Stream Add-ons/i }).getAttribute("href"), "#obs-lab");
+  assert.equal(
+    screen.getByRole("link", { name: /OBS \/ Stream Add-ons/i }).getAttribute("href"),
+    "#obs-lab",
+  );
+  assert.equal(screen.queryByRole("link", { name: /Animated Effects/i }), null);
+});
+
+test("OBS Lab opens Animated Effects at its stable path", () => {
+  window.location.hash = "#obs-lab";
+  render(<Router><DeveloperPage /></Router>);
+  const link = screen.getByRole("link", { name: /Animated Effects/i });
+  assert.equal(link.getAttribute("href"), "/dev/animated-effects/");
+  assert.ok(screen.getByText("Otwórz edytor →"));
 });

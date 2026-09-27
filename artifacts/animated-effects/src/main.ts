@@ -1,5 +1,17 @@
 import "./style.css";
 
+import {
+  installPack08UiQa,
+} from "./pack08/uiQa";
+
+import {
+  installPack06,
+} from "./pack06/install";
+
+import {
+  installPack06Polish02,
+} from "./pack06/polish02";
+
 import type {
   EffectInstance,
 } from "./core/types";
@@ -541,6 +553,14 @@ function renderEffectLibrary(): void {
         const searchable = [
           definition.name,
           definition.id,
+          definition.category,
+          ...definition.tags,
+          ...getEffectVariants(
+            definition.id,
+          ).map(
+            (variant) =>
+              variant.name,
+          ),
         ]
           .join(" ")
           .toLocaleLowerCase("pl");
@@ -965,6 +985,7 @@ function renderStatus(): void {
 }
 
 function renderEditor(): void {
+  renderEffectLibrary();
   renderPreview();
   renderLayers();
   renderStatus();
@@ -1186,3 +1207,7 @@ document
 addEffect(
   "rainfall",
 );
+
+installPack06();
+installPack06Polish02();
+installPack08UiQa();

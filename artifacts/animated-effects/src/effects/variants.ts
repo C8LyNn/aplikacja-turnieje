@@ -2,6 +2,20 @@ import type {
   EffectSettings,
 } from "../core/types";
 
+import {
+  pack06EffectVariantCatalog,
+} from "./modules/pack06Variants";
+
+import {
+  pack06ExtraVariantCatalog,
+} from "./modules/pack06ExtraVariants";
+import {
+  pack07OverdriveVariantCatalog,
+} from "./modules/pack07OverdriveVariants";
+import {
+  pack08VariantCatalog,
+} from "./modules/pack08Variants";
+
 export interface EffectVariant {
   id: string;
   name: string;
@@ -2287,7 +2301,7 @@ export const effectVariantCatalog: Record<
 export function getEffectVariants(
   effectId: string,
 ): EffectVariant[] {
-  return effectVariantCatalog[effectId] ?? [];
+  return pack08VariantCatalog[effectId] ?? pack07OverdriveVariantCatalog[effectId] ?? pack06ExtraVariantCatalog[effectId] ?? pack06EffectVariantCatalog[effectId] ?? effectVariantCatalog[effectId] ?? [];
 }
 
 export function findMatchingEffectVariant(

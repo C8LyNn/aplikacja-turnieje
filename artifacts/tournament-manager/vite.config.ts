@@ -4,6 +4,43 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+function normalizeBasePath(
+  rawValue: string | undefined,
+  fallback = "/",
+): string {
+  let value =
+    rawValue?.trim() ||
+    fallback;
+
+  value =
+    value.replace(
+      /\\/g,
+      "/",
+    );
+
+  // Git for Windows / MSYS can rewrite "/foo/" into
+  // "C:/Program Files/Git/foo/". Recover the intended URL path.
+  value =
+    value.replace(
+      /^[A-Za-z]:\/Program Files\/Git(?=\/|$)/i,
+      "",
+    );
+
+  if (!value) {
+    value = "/";
+  }
+
+  if (!value.startsWith("/")) {
+    value = "/" + value;
+  }
+
+  if (!value.endsWith("/")) {
+    value += "/";
+  }
+
+  return value;
+}
+
 const rawPort = process.env.PORT;
 const isBuildCommand = process.argv.includes("build");
 
@@ -19,13 +56,7 @@ if (rawPort && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH ?? (isBuildCommand ? "/" : undefined);
-
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+const basePath = normalizeBasePath(process.env.BASE_PATH, "/");
 
 export default defineConfig({
   base: basePath,

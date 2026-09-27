@@ -8,22 +8,44 @@ const workspaceDir = path.resolve(packageDir, "../..");
 const stagingDir = path.join(workspaceDir, ".cache", "animated-effects-for-tournament");
 const publicDir = path.join(packageDir, "public", "dev", "animated-effects");
 
-// Use a dedicated output directory so a workspace-wide build of Animated Effects
-// cannot race with this build or change the files that the tournament app copies.
 await rm(stagingDir, { recursive: true, force: true });
-const build = spawnSync(
-  "pnpm",
-  [
-    "--filter", "animated-effects", "run", "build",
-    "--base", "/dev/animated-effects/",
-    "--outDir", stagingDir, "--emptyOutDir",
-  ],
-  { cwd: workspaceDir, stdio: "inherit" },
-);
-if (build.error) throw build.error;
-if (build.status !== 0) {
-  throw new Error(`Animated Effects build failed (${build.status ?? build.signal}).`);
+
+const pnpmExecPath = process.env.npm_execpath;
+
+if (!pnpmExecPath) {
+  throw new Error("npm_execpath is unavailable; cannot launch pnpm safely.");
 }
+
+const build = spawnSync(
+  process.execPath,
+  [
+    pnpmExecPath,
+    "--filter",
+    "animated-effects",
+    "run",
+    "build",
+    "--outDir",
+    stagingDir,
+    "--emptyOutDir",
+  ],
+  {
+    cwd: workspaceDir,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      ANIMATED_EFFECTS_EMBEDDED: "1",
+    },
+  },
+);
+
+if (build.error) throw build.error;
+
+if (build.status !== 0) {
+  throw new Error(
+    `Animated Effects build failed (${build.status ?? build.signal}).`,
+  );
+}
+
 await stat(path.join(stagingDir, "index.html"));
 await rm(publicDir, { recursive: true, force: true });
 await mkdir(path.dirname(publicDir), { recursive: true });

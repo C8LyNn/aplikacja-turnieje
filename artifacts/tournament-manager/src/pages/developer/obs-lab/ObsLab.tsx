@@ -233,20 +233,29 @@ export function ObsLab() {
             </div>
           </button>
 
-          <div className="min-h-[230px] rounded-2xl border border-border bg-card/40 p-5">
-            <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/50 text-xs font-black text-muted-foreground">
-              FX
+          <a
+            href="/dev/animated-effects/"
+            className="group min-h-[230px] rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-500/10 via-card to-card p-5 text-left transition hover:-translate-y-0.5 hover:border-violet-400/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid h-11 min-w-11 place-items-center rounded-xl border border-violet-500/20 bg-violet-500/10 px-2 text-xs font-black text-violet-300">
+                FX
+              </div>
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-bold text-emerald-400">
+                Aktywne
+              </span>
             </div>
 
-            <h3 className="mt-5 text-lg font-bold">
-              Animated Effects
-            </h3>
+            <h3 className="mt-5 text-lg font-bold">Animated Effects</h3>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-              Kolejne efekty i animacje
-              streamowe.
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">
+              Edytor animowanych efektów streamowych i eksportu do StreamElements.
             </p>
-          </div>
+
+            <div className="mt-5 border-t border-border/70 pt-4 text-xs font-bold text-violet-300">
+              Otwórz edytor →
+            </div>
+          </a>
 
           <div className="min-h-[230px] rounded-2xl border border-border bg-card/40 p-5">
             <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/50 text-xs font-black text-muted-foreground">

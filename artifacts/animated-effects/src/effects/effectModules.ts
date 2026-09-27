@@ -6437,22 +6437,48 @@ const meteorShowerCss = `
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,0),
-    rgba(255,255,255,.95) 20%,
-    rgba(125, 215, 255, .9) 45%,
-    rgba(95, 120, 255, .15) 100%
+    transparent 0%,
+    rgba(95,120,255,.08) 24%,
+    rgba(125,215,255,.46) 64%,
+    rgba(235,250,255,.92) 88%,
+    #fff 100%
   );
   box-shadow:
-    0 0 10px rgba(155, 225, 255, .4),
-    0 0 24px rgba(110, 150, 255, .2);
-  transform-origin: left center;
+    0 0 10px rgba(155,225,255,.42),
+    0 0 24px rgba(110,150,255,.22);
+  transform-origin: center;
   animation: ae-meteor var(--ae-meteor-duration, 3.2s) linear infinite;
   will-change: transform, opacity;
 }
+.ae-meteor::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  box-shadow:
+    0 0 8px rgba(255,255,255,.95),
+    0 0 18px rgba(120,220,255,.72);
+}
 @keyframes ae-meteor {
-  from { transform: translate(-18vw, -18vh) rotate(-28deg); opacity: 0; }
-  10% { opacity: 1; }
-  to { transform: translate(118vw, 118vh) rotate(-28deg); opacity: 0; }
+  0% {
+    transform:
+      translate3d(-28vw,-34vh,0)
+      rotate(38deg);
+    opacity: 0;
+  }
+  8% { opacity: 1; }
+  88% { opacity: .95; }
+  100% {
+    transform:
+      translate3d(118vw,108vh,0)
+      rotate(38deg);
+    opacity: 0;
+  }
 }
 `.trim();
 
@@ -6815,8 +6841,8 @@ const meteorShower: EffectModule = {
     for (let i = 0; i < count; i++) {
       const meteor = document.createElement("span");
       meteor.className = "ae-meteor";
-      meteor.style.left = `${random() * 36}%`;
-      meteor.style.top = `${random() * 36}%`;
+      meteor.style.left = `${-12 + random() * 78}%`;
+      meteor.style.top = `${-18 + random() * 24}%`;
       meteor.style.setProperty("--ae-meteor-size", `${70 + random() * 180}px`);
       meteor.style.setProperty("--ae-meteor-duration", `${(1.8 + random() * 3) / speed}s`);
       meteor.style.animationDelay = `${-random() * 4}s`;
@@ -6833,8 +6859,8 @@ function aeRenderMeteorShower(effect, root) {
   for (let i = 0; i < count; i++) {
     const meteor = document.createElement("span");
     meteor.className = "ae-meteor";
-    meteor.style.left = random() * 36 + "%";
-    meteor.style.top = random() * 36 + "%";
+    meteor.style.left = (-12 + random() * 78) + "%";
+    meteor.style.top = (-18 + random() * 24) + "%";
     meteor.style.setProperty("--ae-meteor-size", (70 + random() * 180) + "px");
     meteor.style.setProperty("--ae-meteor-duration", ((1.8 + random() * 3) / speed) + "s");
     meteor.style.animationDelay = (-random() * 4) + "s";

@@ -60,7 +60,7 @@ const densityField: RangeField = {
   key: "density",
   label: "G\u0119sto\u015B\u0107",
   min: 10,
-  max: 100,
+  max: 400,
   suffix: "%",
 };
 
@@ -68,7 +68,7 @@ const speedField: RangeField = {
   key: "speed",
   label: "Pr\u0119dko\u015B\u0107",
   min: 20,
-  max: 300,
+  max: 400,
   suffix: "%",
 };
 
