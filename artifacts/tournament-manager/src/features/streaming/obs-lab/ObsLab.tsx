@@ -127,7 +127,7 @@ export function ObsLab() {
         </button>
 
         <a
-          href="/stream/animated-effects/"
+          href="/stream/animated-effects/index.html"
           className="group relative min-h-[205px] overflow-hidden rounded-2xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-fuchsia-500/45 hover:shadow-lg hover:shadow-black/10"
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent" />
