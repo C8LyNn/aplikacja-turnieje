@@ -1,1 +1,3858 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prototyp wheel — plik do podmiany</title><style>body{margin:0;background:#0b0d10;color:#e6e8eb;font:16px system-ui;display:grid;place-items:center;min-height:100vh}.box{max-width:700px;padding:32px;border:1px dashed #555;border-radius:16px;text-align:center}code{color:#93c5fd}</style></head><body><div class="box"><h1>Prototyp: wheel</h1><p>Slot jest gotowy. Podmień ten plik na właściwy prototyp HTML bez przepisywania go do Reacta.</p><p><code>html-prototypes/randomizers/wheel/index.html</code></p></div></body></html>
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TDS 1.0 — Koło losowania v19 · 2–128</title>
+<style>
+:root{
+  --bg:#101114;
+  --panel:#191b1f;
+  --panel2:#22252b;
+  --panel3:#2a2e35;
+  --text:#f4f5f7;
+  --muted:#9da3ad;
+  --accent:#b979ff;
+  --accent2:#9556dc;
+  --success:#5dd071;
+  --border:#343942;
+  --line:#626a77;
+  --glow:rgba(185,121,255,.38);
+  --danger:#ff6675;
+  --hub:#0d0f12;
+}
+
+body[data-theme="ocean"]{
+  --bg:#07151c;--panel:#0c2029;--panel2:#12303b;--panel3:#173b48;
+  --text:#effcff;--muted:#9bc3ce;--accent:#36c4ff;--accent2:#148fc7;
+  --success:#64e7b6;--border:#245263;--line:#53889a;--glow:rgba(54,196,255,.37);--hub:#061319;
+}
+body[data-theme="ember"]{
+  --bg:#160b08;--panel:#24110d;--panel2:#351812;--panel3:#442018;
+  --text:#fff5ef;--muted:#d5a493;--accent:#ff7b3f;--accent2:#df521b;
+  --success:#ffd166;--border:#613126;--line:#8d5b4e;--glow:rgba(255,123,63,.38);--hub:#150907;
+}
+body[data-theme="emerald"]{
+  --bg:#07130f;--panel:#0d2119;--panel2:#153126;--panel3:#1a3c2f;
+  --text:#effff8;--muted:#9bc8b1;--accent:#54d99f;--accent2:#2bac77;
+  --success:#c4f26f;--border:#295847;--line:#52836e;--glow:rgba(84,217,159,.37);--hub:#06110d;
+}
+body[data-theme="mono"]{
+  --bg:#0d0d0e;--panel:#171719;--panel2:#232326;--panel3:#2d2d31;
+  --text:#f5f5f5;--muted:#aaaab0;--accent:#f1f1f2;--accent2:#c6c6cc;
+  --success:#ddff6a;--border:#3c3c42;--line:#74747e;--glow:rgba(255,255,255,.20);--hub:#0a0a0b;
+}
+body[data-theme="casino"]{
+  --bg:#120f06;--panel:#211b0b;--panel2:#30270f;--panel3:#3e3214;
+  --text:#fff7d6;--muted:#c9b779;--accent:#f7c948;--accent2:#d7a91d;
+  --success:#58d68d;--border:#65531e;--line:#9c8335;--glow:rgba(247,201,72,.39);--hub:#0d0b05;
+}
+body[data-theme="cyber"]{
+  --bg:#080710;--panel:#111023;--panel2:#191734;--panel3:#242044;
+  --text:#f8f5ff;--muted:#aaa1d0;--accent:#ff3df2;--accent2:#b929e8;
+  --success:#38f5d0;--border:#4a3d72;--line:#7d69a6;--glow:rgba(255,61,242,.38);--hub:#070611;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  min-height:100vh;
+  font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 50% -12%,var(--glow),transparent 34%),
+    var(--bg);
+  transition:background .35s ease,color .25s ease;
+  padding:20px;
+}
+button,select,input{font:inherit}
+.page{width:min(1540px,100%);margin:0 auto}
+.hero{text-align:center;margin:5px 0 22px}
+.hero h1{margin:0;color:var(--accent);font-size:clamp(2rem,4vw,3rem);line-height:1.05}
+.hero p{margin:9px 0 0;color:var(--muted)}
+.layout{
+  display:grid;
+  grid-template-columns:minmax(430px,.9fr) minmax(690px,1.35fr);
+  gap:20px;
+  align-items:start;
+}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:0 14px 34px rgba(0,0,0,.33);
+  padding:20px;
+  min-width:0;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px
+}
+.panel-head h2{font-size:1.08rem;margin:0}
+.toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.badge{
+  border:1px solid var(--border);background:var(--panel2);color:var(--muted);
+  border-radius:999px;padding:5px 9px;font-size:.78rem;white-space:nowrap
+}
+select{
+  min-height:38px;border-radius:9px;border:1px solid var(--border);
+  background:var(--panel2);color:var(--text);padding:0 30px 0 9px;font-size:.82rem;outline:none
+}
+button{
+  min-height:42px;border:0;border-radius:10px;padding:9px 16px;
+  background:var(--accent);color:#fff;font-weight:800;cursor:pointer;
+  transition:background .15s ease,transform .15s ease,opacity .15s ease
+}
+button:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+button:active:not(:disabled){transform:none}
+button.secondary{background:#343941}
+button.secondary:hover:not(:disabled){background:#444b55}
+button.ghost{background:var(--panel2);border:1px solid var(--border);color:var(--text)}
+button.danger{background:#61313a}
+button:disabled{opacity:.43;cursor:not-allowed}
+
+
+
+.tds-standard-bar{
+  display:flex;justify-content:space-between;gap:10px;align-items:center;
+  border:1px solid var(--border);background:var(--panel2);
+  border-radius:11px;padding:8px 10px;margin-bottom:10px;
+  font-size:.74rem;color:var(--muted)
+}
+.tds-standard-bar strong{color:var(--text)}
+.tds-standard-badge{
+  border:1px solid var(--border);background:var(--panel3);
+  border-radius:999px;padding:4px 8px;font-weight:900;color:var(--accent)
+}
+
+/* UX POLISH */
+.quick-config{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:9px;
+  width:100%;
+  margin:0 0 10px;
+}
+.quick-card{
+  border:1px solid var(--border);
+  background:var(--panel2);
+  border-radius:11px;
+  padding:10px;
+  min-width:0;
+}
+.quick-card.wide{grid-column:1/-1}
+.quick-title{
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-bottom:7px;
+}
+.quick-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.quick-row input[type="number"]{
+  width:80px;
+  min-height:38px;
+  border:1px solid var(--border);
+  background:var(--panel3);
+  color:var(--text);
+  border-radius:9px;
+  padding:7px 9px;
+  font:inherit;
+}
+.quick-row select{flex:1;min-width:150px}
+.quick-help{font-size:.7rem;color:var(--muted);margin-top:6px;line-height:1.35}
+
+.draw-dashboard{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  width:100%;
+  margin:10px 0 2px;
+}
+.draw-stat{
+  border:1px solid var(--border);
+  background:var(--panel2);
+  border-radius:10px;
+  padding:8px 9px;
+  text-align:center;
+}
+.draw-stat b{display:block;font-size:1rem}
+.draw-stat span{display:block;color:var(--muted);font-size:.68rem;margin-top:2px}
+.draw-progress{
+  grid-column:1/-1;
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#0d1015;
+}
+.draw-progress > span{
+  display:block;
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--accent),var(--success));
+  transition:width .3s ease;
+}
+.draw-state{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:.75rem;
+}
+
+.bracket-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:0 0 11px;
+}
+.bracket-actions .left,.bracket-actions .right{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.bracket-actions button{min-height:36px;padding:7px 10px;font-size:.76rem}
+
+.saved-note{
+  min-height:1.2em;
+  font-size:.72rem;
+  color:var(--muted);
+}
+
+body.presentation-mode{padding:8px}
+body.presentation-mode .hero{display:none}
+body.presentation-mode .quick-config,
+body.presentation-mode .lab-panel,
+body.presentation-mode #effectsPanel,
+body.presentation-mode #effectsToggle{display:none!important}
+body.presentation-mode .page{max-width:1500px}
+body.presentation-mode .panel{padding:14px}
+body.presentation-mode .wheel-wrap{width:min(560px,88vw)}
+
+body.draw-running .quick-config{opacity:.62}
+body.draw-running .quick-config button,
+body.draw-running .quick-config input,
+body.draw-running .quick-config select{pointer-events:none}
+
+@media(max-width:640px){
+  .quick-config{grid-template-columns:1fr}
+  .quick-card.wide{grid-column:auto}
+  .draw-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .draw-stat:nth-child(3){grid-column:1/-1}
+}
+
+/* WHEEL */
+.wheel-area{display:grid;place-items:center;min-height:0}
+.wheel-wrap{
+  position:relative;width:min(505px,88vw);aspect-ratio:1;margin:3px auto 10px;
+  cursor:grab;user-select:none;touch-action:none;
+  --glowPower:.65;--linePower:.45;--hubPower:.55;--blurPx:0px;--rgbPx:0px;
+  --shakePx:3px;
+}
+.wheel-wrap.dragging{cursor:grabbing}
+.wheel-layer,.trail-ghost{
+  position:absolute;inset:0;width:100%;height:100%;transform-origin:50% 50%;
+  will-change:transform,filter,opacity;
+}
+.trail-ghost{pointer-events:none;opacity:0;z-index:0}
+#wheel{z-index:2;filter:drop-shadow(0 11px 18px rgba(0,0,0,.33))}
+.wheel-overlay{
+  position:absolute;inset:0;border-radius:50%;z-index:3;pointer-events:none;
+}
+.hub{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:70px;height:70px;border-radius:50%;z-index:6;
+  background:var(--hub);border:5px solid rgba(255,255,255,.9);
+  display:grid;place-items:center;font-size:.7rem;font-weight:900;letter-spacing:.12em;color:#adb3bd;
+  pointer-events:none
+}
+.pointer{
+  position:absolute;left:50%;top:-7px;z-index:9;transform:translateX(-50%);
+  transform-origin:50% 0;pointer-events:none;
+}
+.wheel-wrap[data-pointer="triangle"] .pointer{
+  width:0;height:0;border-left:17px solid transparent;border-right:17px solid transparent;border-top:35px solid #fff;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))
+}
+.wheel-wrap[data-pointer="needle"] .pointer{
+  width:8px;height:48px;border-radius:5px;background:#fff;box-shadow:0 0 9px var(--glow)
+}
+.wheel-wrap[data-pointer="laser"] .pointer{
+  width:3px;height:58px;background:var(--accent);box-shadow:0 0 12px 3px var(--glow)
+}
+.wheel-wrap[data-pointer="mechanical"] .pointer{
+  width:15px;height:52px;border-radius:5px 5px 12px 12px;background:linear-gradient(#eee,#8d949d);
+  border:2px solid #fff;box-shadow:0 4px 8px rgba(0,0,0,.5)
+}
+.wheel-wrap[data-pointer="spotlight"] .pointer{
+  width:34px;height:70px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.92),rgba(255,255,255,0));
+  clip-path:polygon(44% 0,56% 0,100% 100%,0 100%);opacity:.75
+}
+.pointer.tick{animation:pointerTick var(--pointerTickMs,95ms) ease}
+@keyframes pointerTick{
+  0%,100%{rotate:0deg}
+  45%{rotate:var(--pointerKick,7deg)}
+}
+
+/* wheel surface types */
+.wheel-wrap[data-wheel-style="flat"] .wheel-overlay{background:transparent}
+.wheel-wrap[data-wheel-style="metal"] .wheel-overlay{
+  background:
+    radial-gradient(circle at 35% 25%,rgba(255,255,255,.22),transparent 18%),
+    radial-gradient(circle,transparent 58%,rgba(255,255,255,.18) 59%,rgba(0,0,0,.38) 72%,rgba(255,255,255,.13) 78%,transparent 80%);
+  mix-blend-mode:screen
+}
+.wheel-wrap[data-wheel-style="glass"] .wheel-overlay{
+  background:linear-gradient(135deg,rgba(255,255,255,.22),transparent 35%,rgba(255,255,255,.05) 52%,transparent 70%);
+  box-shadow:inset 0 0 32px rgba(255,255,255,.12)
+}
+.wheel-wrap[data-wheel-style="neon"] .wheel-overlay{
+  box-shadow:inset 0 0 28px var(--glow),0 0 26px var(--glow)
+}
+.wheel-wrap[data-wheel-style="broadcast"] .wheel-overlay{
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.14) 47%,transparent 60%);
+  animation:broadcastSweep 3.2s linear infinite
+}
+@keyframes broadcastSweep{to{rotate:360deg}}
+
+/* speed lines */
+.speed-lines{
+  position:absolute;inset:-5px;border-radius:50%;z-index:4;pointer-events:none;opacity:0;
+  background:repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 8deg,
+    color-mix(in srgb,var(--accent) 72%,transparent) 8deg 9deg,
+    transparent 9deg 18deg
+  );
+  -webkit-mask:radial-gradient(circle,transparent 0 57%,#000 72% 100%);
+  mask:radial-gradient(circle,transparent 0 57%,#000 72% 100%);
+}
+.wheel-wrap.spinning.fx-lines .speed-lines{
+  opacity:var(--linesOpacity,.3);animation:speedSpin var(--linesSpeed,.8s) linear infinite
+}
+@keyframes speedSpin{to{rotate:360deg}}
+
+/* glow/hub */
+.wheel-wrap::before{
+  content:"";position:absolute;inset:-8px;border-radius:50%;z-index:1;pointer-events:none;
+  border:2px solid transparent
+}
+.wheel-wrap.spinning.fx-glow::before{
+  border-color:var(--accent);
+  box-shadow:0 0 var(--glowNear,23px) var(--glowSpread,6px) var(--glow),
+             0 0 var(--glowFar,50px) var(--glowFarSpread,9px) color-mix(in srgb,var(--glow) 70%,transparent);
+  animation:ringPulse var(--glowSpeed,.9s) ease-in-out infinite alternate
+}
+@keyframes ringPulse{from{scale:1;opacity:.65}to{scale:1.018;opacity:1}}
+.wheel-wrap.spinning.fx-hub .hub{
+  box-shadow:0 0 var(--hubBlur,26px) var(--hubSpread,6px) var(--glow);
+  animation:hubPulse var(--hubSpeed,.68s) ease-in-out infinite alternate
+}
+@keyframes hubPulse{from{scale:1}to{scale:1.07}}
+
+/* momentum ring */
+.momentum-ring{
+  position:absolute;inset:-13px;border-radius:50%;z-index:5;pointer-events:none;opacity:0;
+  background:conic-gradient(var(--accent) 0deg var(--momentumAngle,0deg),transparent var(--momentumAngle,0deg) 360deg);
+  -webkit-mask:radial-gradient(circle,transparent 0 92%,#000 93% 100%);
+  mask:radial-gradient(circle,transparent 0 92%,#000 93% 100%);
+  filter:drop-shadow(0 0 5px var(--glow))
+}
+.wheel-wrap.fx-momentum .momentum-ring{opacity:var(--momentumOpacity,.65)}
+
+/* winner / removal / zoom */
+.segment-group{transition:opacity .35s ease,filter .35s ease}
+.segment-group.winner{filter:drop-shadow(0 0 var(--winnerGlow,14px) #fff)}
+.segment-group.loser{opacity:var(--loserOpacity,.42)}
+.segment-group.removing{
+  transform-box:view-box;
+  transform-origin:300px 300px;
+  translate:var(--removeX,0px) var(--removeY,0px);
+  scale:var(--removeScale,1.05);
+  opacity:0;
+  transition:translate var(--removeMs,520ms) cubic-bezier(.2,.8,.2,1),
+             scale var(--removeMs,520ms) ease,
+             opacity var(--removeMs,520ms) ease
+}
+.wheel-wrap.winner-zoom #wheel{scale:var(--winnerScale,1.04);transition:scale .45s cubic-bezier(.2,.9,.2,1)}
+.wheel-wrap.haptic #wheel{animation:hapticBump var(--hapticMs,65ms) ease}
+@keyframes hapticBump{0%,100%{translate:0 0}45%{translate:var(--hapticPx,2px) 0}}
+.wheel-wrap.winner-shake{animation:winnerShake .42s ease}
+@keyframes winnerShake{
+  0%,100%{translate:0 0}18%{translate:calc(var(--shakePx) * -1) 0}
+  36%{translate:var(--shakePx) 1px}54%{translate:calc(var(--shakePx) * -.65) -1px}
+  72%{translate:calc(var(--shakePx) * .45) 0}
+}
+
+/* controls */
+.controls{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px}
+.result{
+  min-height:2em;margin-top:14px;text-align:center;color:var(--success);
+  font-size:1.28rem;font-weight:900
+}
+.result.waiting{color:var(--muted);font-weight:500}
+.meta-row{display:flex;justify-content:center;gap:13px;flex-wrap:wrap;color:var(--muted);font-size:.86rem;margin-top:7px}
+.gesture-meter{
+  width:min(390px,88%);height:8px;border-radius:999px;background:var(--panel3);
+  overflow:hidden;margin:8px auto 0;border:1px solid var(--border)
+}
+.gesture-meter > span{
+  display:block;width:0;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent),var(--success));
+  transition:width .06s linear
+}
+
+/* effect studio */
+.effects-panel{
+  width:100%;margin-top:13px;padding:13px;border:1px solid var(--border);border-radius:13px;
+  background:color-mix(in srgb,var(--panel2) 84%,transparent);text-align:left
+}
+.effects-panel.hidden{display:none}
+.effects-head{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.effects-head strong{font-size:.92rem}
+.effects-head .presets{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.effects-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.effect-row{
+  background:var(--panel3);border:1px solid var(--border);border-radius:10px;padding:9px;min-width:0
+}
+.effect-row label{display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:700;cursor:pointer}
+.effect-row input[type="checkbox"]{accent-color:var(--accent);width:16px;height:16px}
+.range-line{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:7px;align-items:center;margin-top:7px}
+.range-line input[type="range"]{width:100%;accent-color:var(--accent)}
+.range-line output{font-size:.72rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.select-line{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px}
+.select-line select{width:100%;min-height:34px;font-size:.76rem}
+.effects-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.fx-section-title{
+  grid-column:1/-1;color:var(--muted);font-size:.73rem;font-weight:900;letter-spacing:.09em;
+  text-transform:uppercase;margin-top:4px
+}
+
+/* diagnostics */
+.diagnostics{
+  width:100%;margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:10px;
+  background:#0b0c0e;color:#b7f7c5;font-family:Consolas,monospace;font-size:.74rem;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 10px
+}
+.diagnostics.hidden{display:none}
+.diag-item span{color:#83908a}
+
+/* bracket */
+.bracket-scroller{
+  overflow:auto;
+  padding:2px 2px 8px;
+  max-height:min(76vh,860px);
+  scrollbar-gutter:stable both-edges;
+}
+.bracket-stage{position:relative;min-width:820px;min-height:360px}
+#connectorSvg{position:absolute;inset:0;width:100%;height:100%;z-index:0;overflow:visible;pointer-events:none}
+.round{position:absolute;top:0;height:100%;width:220px;z-index:2}
+.round-title{
+  position:absolute;top:4px;left:0;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+  color:#b1b6bf;font-weight:900;white-space:nowrap
+}
+.match{
+  position:absolute;width:100%;background:var(--panel2);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden
+}
+.slot{
+  min-height:38px;display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);
+  color:var(--muted);transition:background .22s ease,color .22s ease,transform .22s ease;
+  font-size:.82rem;line-height:1.18;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.slot.bye{
+  color:#9aa0aa;
+  background:rgba(255,255,255,.025);
+  font-style:italic;
+}
+.slot .slot-index{
+  opacity:.55;
+  font-size:.68rem;
+  margin-right:6px;
+  min-width:22px;
+}
+.bracket-stage.compact .slot{min-height:31px;padding:5px 8px;font-size:.75rem}
+.bracket-stage.compact .match{border-radius:8px}
+.bracket-stage.ultra-compact .slot{min-height:27px;padding:4px 7px;font-size:.69rem}
+.bracket-stage.ultra-compact .round-title{font-size:.66rem}
+
+.slot:last-child{border-bottom:0}
+.slot.filled{color:var(--text);font-weight:800;background:rgba(185,121,255,.07)}
+.slot.target{outline:2px solid var(--accent);outline-offset:-2px;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.slot.just-filled{animation:slotPop .52s ease;background:color-mix(in srgb,var(--success) 18%,transparent)}
+@keyframes slotPop{0%{transform:scale(.96)}55%{transform:scale(1.035)}100%{transform:scale(1)}}
+.placeholder{color:#808692;font-style:italic;font-weight:500}
+.order{border-top:1px solid var(--border);margin-top:12px;padding-top:14px}
+.order-label{font-size:.84rem;color:var(--muted);margin-bottom:8px}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);background:var(--panel3);border-radius:999px;padding:5px 9px;font-size:.8rem}
+
+
+.wheel-number-legend{
+  width:100%;
+  margin-top:8px;
+  border:1px solid var(--border);
+  background:var(--panel2);
+  border-radius:10px;
+  overflow:hidden;
+}
+.wheel-number-legend summary{
+  cursor:pointer;
+  padding:8px 10px;
+  color:var(--muted);
+  font-size:.76rem;
+  font-weight:800;
+}
+.wheel-number-grid{
+  max-height:180px;
+  overflow:auto;
+  padding:0 9px 9px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:4px 10px;
+}
+.wheel-number-item{
+  min-width:0;
+  font-size:.72rem;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.wheel-number-item b{
+  display:inline-block;
+  min-width:25px;
+  color:var(--accent);
+}
+@media(max-width:560px){
+  .wheel-number-grid{grid-template-columns:1fr}
+}
+
+
+
+.format-summary{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-top:8px;
+}
+.format-summary-item{
+  border:1px solid var(--border);
+  background:var(--panel3);
+  border-radius:9px;
+  padding:8px 9px;
+  min-width:0;
+}
+.format-summary-item b{display:block;font-size:.88rem}
+.format-summary-item span{display:block;color:var(--muted);font-size:.68rem;margin-top:2px}
+.structural-lock-note{
+  display:none;
+  margin-top:7px;
+  color:#ffe59a;
+  font-size:.71rem;
+}
+.structural-lock-note.visible{display:block}
+.reset-armed{
+  background:#9a5a24!important;
+  box-shadow:0 0 0 2px rgba(245,158,11,.2) inset;
+}
+.completion-panel{
+  display:none;
+  margin-top:12px;
+  border:1px solid rgba(88,214,141,.32);
+  background:rgba(88,214,141,.07);
+  border-radius:12px;
+  padding:11px 12px;
+}
+.completion-panel.visible{display:block}
+.completion-panel strong{color:var(--success)}
+.completion-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.completion-actions button{min-height:36px;padding:7px 10px;font-size:.76rem}
+@media(max-width:620px){
+  .format-summary{grid-template-columns:1fr}
+}
+
+/* formaty grupowe i szwajcarskie */
+.bracket-stage.format-groups,
+.bracket-stage.format-swiss{
+  display:grid;
+  position:relative;
+  align-content:start;
+  gap:12px;
+  padding:4px;
+  min-width:760px;
+  height:auto!important;
+  min-height:360px;
+}
+.bracket-stage.format-groups{
+  grid-template-columns:repeat(var(--format-cols,4),minmax(170px,1fr));
+}
+.bracket-stage.format-swiss{
+  grid-template-columns:repeat(var(--format-cols,3),minmax(220px,1fr));
+}
+.bracket-stage.format-groups #connectorSvg,
+.bracket-stage.format-swiss #connectorSvg{display:none}
+.format-card{
+  position:relative;
+  border:1px solid var(--border);
+  background:var(--panel2);
+  border-radius:12px;
+  overflow:hidden;
+  min-width:0;
+}
+.format-card-head{
+  padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  font-size:.78rem;
+  font-weight:900;
+}
+.format-card-head span{color:var(--muted);font-weight:700}
+.format-card .slot{
+  min-height:36px;
+  font-size:.78rem;
+}
+.format-card .slot.target{
+  position:relative;
+  z-index:1;
+}
+.format-note{
+  grid-column:1/-1;
+  border:1px solid var(--border);
+  background:rgba(124,156,255,.06);
+  border-radius:10px;
+  padding:9px 11px;
+  color:var(--muted);
+  font-size:.76rem;
+  line-height:1.4;
+}
+.swiss-match-label{
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  padding:6px 9px 4px;
+}
+@media(max-width:760px){
+  .bracket-stage.format-groups,
+  .bracket-stage.format-swiss{
+    --format-cols:2!important;
+  }
+}
+
+/* floating fx */
+#fxLayer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:99999}
+.spark{
+  position:absolute;width:8px;height:12px;border-radius:3px;opacity:1;
+  animation:sparkFly var(--sparkMs,950ms) cubic-bezier(.18,.72,.2,1) forwards;
+  box-shadow:0 0 8px rgba(255,255,255,.18)
+}
+@keyframes sparkFly{
+  0%{transform:translate(-50%,-50%) translate(0,0) rotate(0deg) scale(1);opacity:1}
+  100%{transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.55);opacity:0}
+}
+.pointer-spark{
+  position:fixed;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 8px var(--accent);
+  animation:pointerSpark .35s ease-out forwards
+}
+@keyframes pointerSpark{
+  to{translate:var(--sx) var(--sy);opacity:0;scale:.25}
+}
+.flying-team{
+  position:fixed;z-index:9999;pointer-events:none;background:var(--accent);color:#fff;border-radius:10px;
+  padding:10px 14px;font-weight:900;box-shadow:0 14px 30px rgba(0,0,0,.42);white-space:nowrap
+}
+.jackpot{
+  position:fixed;z-index:100000;pointer-events:none;left:50%;top:48%;
+  translate:-50% -50%;text-align:center;color:#fff;font-weight:1000;letter-spacing:.03em;
+  text-shadow:0 0 18px var(--glow),0 5px 15px rgba(0,0,0,.7);
+  animation:jackpotPop var(--jackpotMs,1100ms) cubic-bezier(.15,.85,.2,1) forwards
+}
+@keyframes jackpotPop{
+  0%{opacity:0;scale:.45;filter:blur(5px)}
+  25%{opacity:1;scale:1.15;filter:blur(0)}
+  65%{opacity:1;scale:1}
+  100%{opacity:0;scale:1.35;translate:-50% -65%}
+}
+.winner-flash{animation:winnerFlash .8s ease}
+@keyframes winnerFlash{
+  0%,100%{box-shadow:0 14px 34px rgba(0,0,0,.33)}
+  30%{box-shadow:0 0 0 999px color-mix(in srgb,var(--accent) var(--winnerFlashPct,14%),transparent),
+                 0 14px 34px rgba(0,0,0,.33)}
+}
+
+
+/* TEST LAB */
+.lab-panel{
+  width:100%;margin-top:13px;border:1px solid var(--border);border-radius:13px;
+  background:color-mix(in srgb,var(--panel2) 84%,transparent);overflow:hidden
+}
+.lab-panel summary{
+  cursor:pointer;list-style:none;padding:12px 14px;font-weight:900;font-size:.92rem;
+  display:flex;align-items:center;justify-content:space-between;gap:10px
+}
+.lab-panel summary::-webkit-details-marker{display:none}
+.lab-panel summary::after{content:"▾";color:var(--muted)}
+.lab-panel:not([open]) summary::after{content:"▸"}
+.lab-body{padding:0 14px 14px}
+.lab-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lab-card{
+  background:var(--panel3);border:1px solid var(--border);border-radius:11px;padding:11px;min-width:0
+}
+.lab-card.wide{grid-column:1/-1}
+.lab-title{font-size:.8rem;font-weight:900;margin-bottom:8px}
+.lab-help{font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.35}
+.lab-card textarea,.lab-card input[type="text"]{
+  width:100%;border:1px solid var(--border);border-radius:8px;background:var(--panel2);
+  color:var(--text);padding:8px 9px;font:inherit;font-size:.78rem;outline:none
+}
+.lab-card textarea{resize:vertical;min-height:92px}
+.inline-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.inline-actions button{min-height:36px;padding:7px 10px;font-size:.76rem}
+
+.physics-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px
+}
+.physics-item{min-width:0}
+.physics-item label{
+  display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.72rem;margin-bottom:4px
+}
+.physics-item input[type="range"]{width:100%;accent-color:var(--accent)}
+
+.speed-chart-wrap{
+  position:relative;height:150px;border:1px solid var(--border);border-radius:9px;
+  background:#0b0c0e;overflow:hidden
+}
+#speedChart{width:100%;height:100%;display:block}
+.chart-label{
+  position:absolute;left:8px;top:6px;color:#9cab9f;font:11px Consolas,monospace;pointer-events:none
+}
+
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.compare-card{
+  border:1px solid var(--border);border-radius:10px;background:var(--panel2);padding:9px;text-align:center
+}
+.compare-card select{width:100%;margin-bottom:7px}
+.compare-wheel{
+  display:block;width:min(210px,100%);aspect-ratio:1;margin:0 auto;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))
+}
+.compare-result{min-height:1.4em;color:var(--muted);font-size:.73rem;margin-top:4px}
+
+.seed-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}
+.seed-row button{min-height:38px;padding:7px 10px;font-size:.76rem}
+
+.replay-note{font-size:.71rem;color:var(--muted);margin-top:6px}
+
+.reflow-old{
+  position:absolute;inset:0;width:100%;height:100%;z-index:7;pointer-events:none;
+  transform-origin:50% 50%;
+}
+#wheel.reflow-new{z-index:8}
+
+@media(max-width:650px){
+  .lab-grid,.physics-grid,.compare-grid{grid-template-columns:1fr}
+  .lab-card.wide{grid-column:auto}
+}
+
+@media(max-width:1120px){
+  .layout{grid-template-columns:1fr}
+  #wheelPanel{max-width:720px;margin:0 auto;width:100%}
+}
+@media(max-width:650px){
+  body{padding:11px}.panel{padding:13px}.effects-grid{grid-template-columns:1fr}
+  .diagnostics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .wheel-wrap{width:91vw}
+}
+@media(prefers-reduced-motion:reduce){
+  button{transition:none}.slot.just-filled{animation:none}
+}
+</style>
+</head>
+<body data-theme="">
+<div id="fxLayer" aria-hidden="true"></div>
+
+<main class="page">
+  <header class="hero">
+    <h1>Losowanie Turnieju — Effects Lab</h1>
+    <p>Koło, fizyka, skórki i efekty są generowane programowo — bez zewnętrznych grafik.</p>
+  </header>
+
+  <div class="layout">
+    <section class="panel" id="wheelPanel">
+      <div class="panel-head">
+        <h2>Koło losowania</h2>
+        <div class="toolbar">
+          <span id="remainingBadge" class="badge">Pozostało: 8</span>
+
+          <select id="themeSelect" aria-label="Kolorystyka">
+            <option value="violet">Neon Violet</option>
+            <option value="ocean">Ocean</option>
+            <option value="ember">Ember</option>
+            <option value="emerald">Emerald</option>
+            <option value="mono">Mono</option>
+            <option value="casino">Casino</option>
+            <option value="cyber">Cyber</option>
+          </select>
+
+          <select id="wheelStyleSelect" aria-label="Styl koła">
+            <option value="flat">Flat</option>
+            <option value="metal">Metal</option>
+            <option value="glass">Glass</option>
+            <option value="neon">Neon</option>
+            <option value="broadcast">Broadcast</option>
+          </select>
+
+          <select id="pointerSelect" aria-label="Wskaźnik">
+            <option value="triangle">Trójkąt</option>
+            <option value="mechanical">Mechaniczny</option>
+            <option value="needle">Igła</option>
+            <option value="laser">Laser</option>
+            <option value="spotlight">Spotlight</option>
+          </select>
+
+          <button id="effectsToggle" class="ghost" type="button" aria-expanded="true">Efekty ▲</button>
+        </div>
+      </div>
+
+      <div class="tds-standard-bar">
+        <span><strong>Wspólna konfiguracja turnieju</strong> · mechanizm: Koło</span>
+        <span class="tds-standard-badge">TDS 1.0</span>
+      </div>
+
+      <div class="quick-config">
+        <div class="quick-card">
+          <div class="quick-title">Liczba uczestników</div>
+          <div class="quick-row">
+            <input id="quickTeamCount" data-tds-setting="participantCount" type="number" min="2" max="128" value="8" aria-label="Liczba uczestników">
+            <button id="generateTeamsBtn" class="ghost" type="button">Team 1…N</button>
+          </div>
+          <div class="quick-help">Szybko generuje 2–128 uczestników. Własne nazwy nadal możesz wkleić w ustawieniach zaawansowanych.</div>
+        </div>
+
+        <div class="quick-card wide">
+          <div class="quick-title">Format turnieju</div>
+          <div class="quick-row">
+            <select id="drawFormatSelect" data-tds-setting="format" aria-label="Format losowania">
+              <option value="elimination" selected>Single Elimination — drabinka</option>
+              <option value="groups">Grupy</option>
+              <option value="swiss">Szwajcarski — pary rundy 1</option>
+            </select>
+
+            <label id="groupCountWrap" class="quick-row" style="display:none">
+              <span class="small">Liczba grup</span>
+              <input id="groupCountInput" data-tds-setting="groupCount" type="number" min="2" max="16" value="4" aria-label="Liczba grup">
+            </label>
+          </div>
+          <div class="quick-row" style="margin-top:8px">
+            <label class="quick-row">
+              <span class="small">Tempo</span>
+              <select id="drawSpeedSelect" data-tds-setting="pace" aria-label="Tempo losowania">
+                <option value="auto" selected>Auto — zależne od liczby graczy</option>
+                <option value="show">Pokazowe</option>
+                <option value="fast">Szybkie</option>
+                <option value="turbo">Turbo</option>
+              </select>
+            </label>
+            <button id="autoGroupsBtn" class="ghost" type="button" style="display:none">Dobierz grupy</button>
+          </div>
+
+          <div class="format-summary">
+            <div class="format-summary-item"><b id="formatMetricA">—</b><span id="formatMetricALabel">Format</span></div>
+            <div class="format-summary-item"><b id="formatMetricB">—</b><span id="formatMetricBLabel">Układ</span></div>
+            <div class="format-summary-item"><b id="formatMetricC">—</b><span id="formatMetricCLabel">Tempo</span></div>
+          </div>
+          <div id="structuralLockNote" class="structural-lock-note">Format, uczestnicy i seed są zablokowane po pierwszym losowaniu. Użyj „Nowe losowanie”, aby je zmienić.</div>
+
+          <div id="formatHelp" class="quick-help">
+            Losowanie obsadza pozycje w drabince. Przy liczbie niebędącej potęgą 2 wolne losy BYE są rozkładane w pierwszej rundzie.
+          </div>
+        </div>
+
+        <div class="quick-card">
+          <div class="quick-title">Seed losowania</div>
+          <div class="quick-row">
+            <input id="quickSeedInput" data-tds-setting="seed" type="text" value="" placeholder="opcjonalny seed" style="flex:1;min-width:150px">
+            <button id="quickRandomSeedBtn" class="ghost" type="button">Losowy</button>
+          </div>
+          <div class="quick-help">Ten sam seed + ten sam stan wejściowy pozwala powtórzyć kolejność losowania.</div>
+        </div>
+
+        <div class="quick-card">
+          <div class="quick-title">Mechanika losowania · Koło</div>
+          <div class="quick-row">
+            <select id="quickStyleSelect" aria-label="Gotowy styl prezentacji">
+              <option value="sport" selected>Sport — czytelny</option>
+              <option value="broadcast">Broadcast — transmisja</option>
+              <option value="casino">Casino — mocniejsze efekty</option>
+              <option value="cyber">Cyber — neon</option>
+              <option value="minimal">Minimal — spokojny</option>
+            </select>
+            <button id="applyQuickStyleBtn" class="ghost" type="button">Ustaw</button>
+          </div>
+          <div class="quick-help">Ustawia wygląd i charakter animacji. Nie zmienia formatu ani wyników.</div>
+        </div>
+
+        <div class="quick-card wide">
+          <div class="quick-row" style="justify-content:space-between">
+            <div>
+              <strong id="configSummary">8 uczestników · 8 miejsc</strong>
+              <div class="quick-help" id="configHint">Gotowe do losowania.</div>
+            </div>
+            <div class="quick-row">
+              <button id="presentationBtn" data-tds-action="presentation" class="ghost" type="button">Tryb prezentacji</button>
+              <button id="scrollBracketBtn" class="ghost" type="button">Do układu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wheel-area">
+        <div id="wheelWrap" data-tds-engine-root="wheel" class="wheel-wrap fx-glow fx-lines fx-hub fx-momentum" data-pointer="triangle" data-wheel-style="flat">
+          <svg id="trail2" class="trail-ghost" viewBox="0 0 600 600" aria-hidden="true"></svg>
+          <svg id="trail1" class="trail-ghost" viewBox="0 0 600 600" aria-hidden="true"></svg>
+          <svg id="wheel" class="wheel-layer" viewBox="0 0 600 600" role="img" aria-label="Koło losowania"></svg>
+          <div class="wheel-overlay"></div>
+          <div class="speed-lines"></div>
+          <div class="momentum-ring"></div>
+          <div id="pointer" class="pointer"></div>
+          <div class="hub">DRAW</div>
+        </div>
+
+        <div class="controls">
+          <button id="spinBtn" data-tds-action="start" type="button">Losuj pierwszego</button>
+          <button id="demoBtn" class="secondary" type="button">Losuj automatycznie</button>
+          <button id="resetBtn" data-tds-action="reset" class="secondary" type="button">Nowe losowanie</button>
+        </div>
+
+        <div class="draw-dashboard">
+          <div class="draw-stat"><b id="dashRemaining">8</b><span>POZOSTAŁO</span></div>
+          <div class="draw-stat"><b id="dashDrawn">0</b><span>WYLOSOWANO</span></div>
+          <div class="draw-stat"><b id="dashNext">1</b><span>NASTĘPNE MIEJSCE</span></div>
+          <div class="draw-progress"><span id="drawProgressFill"></span></div>
+          <div class="draw-state">
+            <span id="drawStateText">Gotowe do startu</span>
+            <span id="autoStateText">Tryb ręczny</span>
+          </div>
+        </div>
+
+        <details id="wheelLegendPanel" class="wheel-number-legend" hidden>
+          <summary>Legenda numerów na kole</summary>
+          <div id="wheelLegendGrid" class="wheel-number-grid"></div>
+        </details>
+
+        <div class="meta-row">
+          <span>Możesz też chwycić koło myszką i „rzucić” je. Słaby ruch tylko je przestawia.</span>
+        </div>
+        <div class="gesture-meter"><span id="gestureFill"></span></div>
+        <div class="meta-row">
+          <span id="throwStrength">Siła rzutu: —</span>
+        </div>
+
+
+        <details class="lab-panel">
+          <summary>Zaawansowane / Test Lab — uczestnicy, seed, replay, fizyka i A/B</summary>
+          <div class="lab-body">
+            <div class="lab-grid">
+
+              <div class="lab-card">
+                <div class="lab-title">Edytor uczestników</div>
+                <textarea id="participantsInput" data-tds-setting="participants" aria-label="Lista uczestników">Team 1
+Team 2
+Team 3
+Team 4
+Team 5
+Team 6
+Team 7
+Team 8</textarea>
+                <div class="inline-actions">
+                  <button id="applyParticipants" class="ghost" type="button">Zastosuj listę</button>
+                </div>
+                <div id="participantsStatus" class="lab-help">2–128 nazw, po jednej w wierszu. Zastosowanie listy resetuje losowanie.</div>
+              </div>
+
+              <div class="lab-card">
+                <div class="lab-title">Seed i replay</div>
+                <div class="seed-row">
+                  <input id="seedInput" type="text" value="TEST-123" aria-label="Seed losowania" />
+                  <button id="applySeed" class="ghost" type="button">Ustaw seed</button>
+                </div>
+                <div class="inline-actions">
+                  <button id="replayBtn" class="ghost" type="button" disabled>Replay ostatniego</button>
+                  <button id="randomSeedBtn" class="ghost" type="button">Nowy seed</button>
+                </div>
+                <div id="seedStatus" class="lab-help">Ten sam seed + ten sam stan puli = ta sama kolejność wyników.</div>
+                <div class="replay-note">Replay odtwarza samą animację ostatniego losowania i nie zmienia drabinki.</div>
+              </div>
+
+              <div class="lab-card wide">
+                <div class="lab-title">Edytor fizyki</div>
+                <div class="physics-grid">
+                  <div class="physics-item">
+                    <label><span>Masa / bezwładność</span><b id="physicsMassOut">1.00×</b></label>
+                    <input id="physicsMass" type="range" min="50" max="180" value="100">
+                  </div>
+                  <div class="physics-item">
+                    <label><span>Opór aerodynamiczny</span><b id="physicsDragOut">0.35</b></label>
+                    <input id="physicsDrag" type="range" min="0" max="100" value="35">
+                  </div>
+                  <div class="physics-item">
+                    <label><span>Hamowanie końcowe</span><b id="physicsBrakeOut">0.45</b></label>
+                    <input id="physicsBrake" type="range" min="0" max="100" value="45">
+                  </div>
+                  <div class="physics-item">
+                    <label><span>Maks. prędkość</span><b id="physicsMaxSpeedOut">1800°/s</b></label>
+                    <input id="physicsMaxSpeed" type="range" min="700" max="3000" step="50" value="1800">
+                  </div>
+                </div>
+                <div class="lab-help">Parametry wpływają na liczbę obrotów, czas lotu i odczucie ręcznego „flicka”.</div>
+              </div>
+
+              <div class="lab-card wide">
+                <div class="lab-title">Wykres prędkości w czasie</div>
+                <div class="speed-chart-wrap">
+                  <canvas id="speedChart" width="720" height="150"></canvas>
+                  <div class="chart-label">°/s</div>
+                </div>
+                <div class="lab-help">Wykres jest czyszczony przy każdym nowym losowaniu i pokazuje faktyczną prędkość animacji.</div>
+              </div>
+
+              <div class="lab-card wide">
+                <div class="lab-title">Porównanie A/B — ten sam wynik, różne ustawienia</div>
+                <div class="compare-grid">
+                  <div class="compare-card">
+                    <select id="comparePresetA">
+                      <option value="minimal">A: Minimal</option>
+                      <option value="sport" selected>A: Sport</option>
+                      <option value="tv">A: TV</option>
+                      <option value="arcade">A: Arcade</option>
+                      <option value="overdrive">A: Overdrive</option>
+                    </select>
+                    <svg id="compareWheelA" class="compare-wheel" viewBox="0 0 220 220" aria-label="Koło A"></svg>
+                    <div id="compareResultA" class="compare-result">Gotowe</div>
+                  </div>
+                  <div class="compare-card">
+                    <select id="comparePresetB">
+                      <option value="minimal">B: Minimal</option>
+                      <option value="sport">B: Sport</option>
+                      <option value="tv" selected>B: TV</option>
+                      <option value="arcade">B: Arcade</option>
+                      <option value="overdrive">B: Overdrive</option>
+                    </select>
+                    <svg id="compareWheelB" class="compare-wheel" viewBox="0 0 220 220" aria-label="Koło B"></svg>
+                    <div id="compareResultB" class="compare-result">Gotowe</div>
+                  </div>
+                </div>
+                <div class="inline-actions">
+                  <button id="runCompareBtn" class="ghost" type="button">Uruchom porównanie A/B</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </details>
+
+        <section id="effectsPanel" class="effects-panel" aria-label="Studio efektów">
+          <div class="effects-head">
+            <strong>Studio efektów</strong>
+            <div class="presets">
+              <select id="presetSelect" aria-label="Preset efektów">
+                <option value="minimal">Minimal</option>
+                <option value="sport" selected>Sport</option>
+                <option value="tv">TV / Broadcast</option>
+                <option value="arcade">Arcade</option>
+                <option value="overdrive">Overdrive</option>
+              </select>
+              <select id="packSelect" aria-label="Pakiet stylu">
+                <option value="manual">Pakiet: ręczny</option>
+                <option value="casino">Casino Show</option>
+                <option value="cyber">Cyber Arena</option>
+                <option value="broadcast">TV Draw</option>
+                <option value="minimal">Minimal Pro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="effects-grid">
+            <div class="fx-section-title">Ruch i fizyka</div>
+
+            <div class="effect-row">
+              <label>Model zwalniania</label>
+              <div class="select-line">
+                <select id="motionProfile">
+                  <option value="physics">Fizyczny</option>
+                  <option value="broadcast">Telewizyjny</option>
+                  <option value="arcade">Arcade</option>
+                  <option value="dramatic">Dramatyczny</option>
+                  <option value="hard">Krótki / twardy</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxInertiaEnabled" type="checkbox" checked> Bezwładność</label>
+              <div class="range-line"><input id="fxInertiaIntensity" type="range" min="0" max="100" value="68"><output>68%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxFrictionEnabled" type="checkbox" checked> Tarcie</label>
+              <div class="range-line"><input id="fxFrictionIntensity" type="range" min="0" max="100" value="42"><output>42%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxMiniStopEnabled" type="checkbox"> Fałszywe mini-zatrzymanie</label>
+              <div class="range-line"><input id="fxMiniStopIntensity" type="range" min="0" max="100" value="45"><output>45%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxSlowmoEnabled" type="checkbox" checked> Slow motion na końcu</label>
+              <div class="range-line"><input id="fxSlowmoIntensity" type="range" min="0" max="100" value="38"><output>38%</output></div>
+            </div>
+
+            <div class="fx-section-title">Ruch koła</div>
+
+            <div class="effect-row">
+              <label><input id="fxGlowEnabled" type="checkbox" checked> Poświata koła</label>
+              <div class="range-line"><input id="fxGlowIntensity" type="range" min="0" max="100" value="65"><output>65%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxLinesEnabled" type="checkbox" checked> Linie prędkości</label>
+              <div class="range-line"><input id="fxLinesIntensity" type="range" min="0" max="100" value="45"><output>45%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxTrailEnabled" type="checkbox" checked> Smuga / afterimage</label>
+              <div class="range-line"><input id="fxTrailIntensity" type="range" min="0" max="100" value="35"><output>35%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxBlurEnabled" type="checkbox"> Motion blur</label>
+              <div class="range-line"><input id="fxBlurIntensity" type="range" min="0" max="100" value="18"><output>18%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxRgbEnabled" type="checkbox"> RGB split</label>
+              <div class="range-line"><input id="fxRgbIntensity" type="range" min="0" max="100" value="18"><output>18%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxMomentumEnabled" type="checkbox" checked> Pierścień momentum</label>
+              <div class="range-line"><input id="fxMomentumIntensity" type="range" min="0" max="100" value="60"><output>60%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxHubEnabled" type="checkbox" checked> Puls środka</label>
+              <div class="range-line"><input id="fxHubIntensity" type="range" min="0" max="100" value="55"><output>55%</output></div>
+            </div>
+
+            <div class="fx-section-title">Wskaźnik i sprzężenie</div>
+
+            <div class="effect-row">
+              <label><input id="fxPointerEnabled" type="checkbox" checked> Sprężysty klik wskaźnika</label>
+              <div class="range-line"><input id="fxPointerIntensity" type="range" min="0" max="100" value="72"><output>72%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxSparksEnabled" type="checkbox"> Iskry przy wskaźniku</label>
+              <div class="range-line"><input id="fxSparksIntensity" type="range" min="0" max="100" value="35"><output>35%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxHapticEnabled" type="checkbox" checked> Wizualne „haptic”</label>
+              <div class="range-line"><input id="fxHapticIntensity" type="range" min="0" max="100" value="28"><output>28%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxSoundEnabled" type="checkbox" checked> Klikanie sektorów</label>
+              <div class="range-line"><input id="fxSoundIntensity" type="range" min="0" max="100" value="34"><output>34%</output></div>
+              <div class="select-line">
+                <select id="soundType">
+                  <option value="soft">Soft</option>
+                  <option value="metal">Metal</option>
+                  <option value="digital">Digital</option>
+                  <option value="click">Click</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxTensionEnabled" type="checkbox"> Ton napięcia</label>
+              <div class="range-line"><input id="fxTensionIntensity" type="range" min="0" max="100" value="18"><output>18%</output></div>
+            </div>
+
+            <div class="fx-section-title">Wynik</div>
+
+            <div class="effect-row">
+              <label><input id="fxHighlightEnabled" type="checkbox" checked> Podświetlenie zwycięzcy</label>
+              <div class="range-line"><input id="fxHighlightIntensity" type="range" min="0" max="100" value="70"><output>70%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxDimEnabled" type="checkbox" checked> Wygaszanie przegranych</label>
+              <div class="range-line"><input id="fxDimIntensity" type="range" min="0" max="100" value="55"><output>55%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxZoomEnabled" type="checkbox" checked> Zoom zwycięzcy</label>
+              <div class="range-line"><input id="fxZoomIntensity" type="range" min="0" max="100" value="35"><output>35%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxRemoveEnabled" type="checkbox" checked> Wysunięcie sektora</label>
+              <div class="range-line"><input id="fxRemoveIntensity" type="range" min="0" max="100" value="55"><output>55%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxReflowEnabled" type="checkbox" checked> Płynne domykanie luki</label>
+              <div class="range-line"><input id="fxReflowIntensity" type="range" min="0" max="100" value="65"><output>65%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxFlyEnabled" type="checkbox" checked> Lot do drabinki</label>
+              <div class="range-line"><input id="fxFlyIntensity" type="range" min="0" max="100" value="62"><output>62%</output></div>
+              <div class="select-line">
+                <select id="flyStyle">
+                  <option value="arc">Łuk Béziera</option>
+                  <option value="linear">Linia prosta</option>
+                  <option value="bounce">Sprężysty</option>
+                  <option value="beam">Smuga światła</option>
+                  <option value="teleport">Teleport</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxConfettiEnabled" type="checkbox" checked> Konfetti</label>
+              <div class="range-line"><input id="fxConfettiIntensity" type="range" min="0" max="100" value="58"><output>58%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxFlashEnabled" type="checkbox" checked> Błysk zwycięzcy</label>
+              <div class="range-line"><input id="fxFlashIntensity" type="range" min="0" max="100" value="40"><output>40%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxShakeEnabled" type="checkbox"> Wstrząs ekranu</label>
+              <div class="range-line"><input id="fxShakeIntensity" type="range" min="0" max="100" value="28"><output>28%</output></div>
+            </div>
+
+            <div class="effect-row">
+              <label><input id="fxJackpotEnabled" type="checkbox"> Efekt „Jackpot”</label>
+              <div class="range-line"><input id="fxJackpotIntensity" type="range" min="0" max="100" value="55"><output>55%</output></div>
+            </div>
+
+            <div class="fx-section-title">Narzędzia testowe</div>
+
+            <div class="effect-row">
+              <label><input id="fxDiagnosticsEnabled" type="checkbox"> Diagnostyka (RPM/FPS)</label>
+              <div class="select-line">
+                <select id="demoDelay">
+                  <option value="600">Demo: szybkie</option>
+                  <option value="1200" selected>Demo: normalne</option>
+                  <option value="2200">Demo: wolne</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="effects-actions">
+            <button id="fxAllOn" class="ghost" type="button">Włącz wszystko</button>
+            <button id="fxAllOff" class="ghost" type="button">Wyłącz wszystko</button>
+            <button id="fxDefaults" class="ghost" type="button">Domyślne</button>
+          </div>
+        </section>
+
+        <div id="diagnostics" class="diagnostics hidden">
+          <div class="diag-item"><span>Prędkość:</span> <b id="diagSpeed">0°/s</b></div>
+          <div class="diag-item"><span>RPM:</span> <b id="diagRpm">0</b></div>
+          <div class="diag-item"><span>FPS:</span> <b id="diagFps">0</b></div>
+          <div class="diag-item"><span>Obrót:</span> <b id="diagRotation">0°</b></div>
+          <div class="diag-item"><span>Profil:</span> <b id="diagProfile">—</b></div>
+          <div class="diag-item"><span>Cel:</span> <b id="diagTarget">—</b></div>
+        </div>
+
+        <div id="result" class="result waiting" aria-live="polite">Kliknij „Losuj”, aby rozpocząć.</div>
+        <div class="meta-row">
+          <span id="nextSlotText"></span>
+          <span id="drawCountText"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="bracketTitle">Drabinka</h2>
+        <span id="bracketParticipantBadge" class="badge">8 uczestników</span>
+      </div>
+
+      <div class="bracket-actions">
+        <div class="left">
+          <span id="formatBadge" class="badge">Single Elimination</span>
+          <span id="saveStatus" class="saved-note">Wyniki zapisują się automatycznie.</span>
+        </div>
+        <div class="right">
+          <button id="copyResultsBtn" data-tds-action="copy" class="ghost" type="button">Kopiuj</button>
+          <button id="saveCsvBtn" data-tds-action="csv" class="ghost" type="button">CSV</button>
+          <button id="saveJsonBtn" data-tds-action="json" class="ghost" type="button">JSON</button>
+        </div>
+      </div>
+
+      <div class="bracket-scroller">
+        <div id="bracketStage" class="bracket-stage">
+          <svg id="connectorSvg" aria-hidden="true"></svg>
+        </div>
+      </div>
+
+      <div id="completionPanel" class="completion-panel">
+        <strong id="completionTitle">Losowanie zakończone.</strong>
+        <div id="completionText" class="quick-help" style="margin-top:4px"></div>
+        <div class="completion-actions">
+          <button id="completionCopyBtn" class="ghost" type="button">Kopiuj wyniki</button>
+          <button id="completionCsvBtn" class="ghost" type="button">CSV</button>
+          <button id="completionJsonBtn" class="ghost" type="button">JSON</button>
+        </div>
+      </div>
+
+      <div class="order">
+        <div class="order-label">Kolejność losowania i przydział:</div>
+        <div id="drawOrder" class="chips"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(global){
+  "use strict";
+
+  const VERSION = "TDS-1.0";
+  const LIMITS = Object.freeze({
+    participantsMin: 2,
+    participantsMax: 128,
+    groupsMin: 2,
+    groupsMax: 16
+  });
+
+  const FORMATS = Object.freeze({
+    elimination: "elimination",
+    groups: "groups",
+    swiss: "swiss"
+  });
+
+  const PACES = Object.freeze(["auto","show","fast","turbo"]);
+
+  function clamp(value,min,max){
+    return Math.max(min,Math.min(max,value));
+  }
+
+  function nextPowerOfTwo(n){
+    let p=1;
+    while(p<n)p*=2;
+    return Math.max(2,Math.min(128,p));
+  }
+
+  function normalizeConfig(input){
+    const participantCount=clamp(
+      Number(input?.participantCount)||8,
+      LIMITS.participantsMin,
+      LIMITS.participantsMax
+    );
+    const format=Object.values(FORMATS).includes(input?.format)
+      ? input.format
+      : FORMATS.elimination;
+    const groupCount=clamp(
+      Number(input?.groupCount)||4,
+      LIMITS.groupsMin,
+      Math.min(LIMITS.groupsMax,participantCount)
+    );
+    const pace=PACES.includes(input?.pace)?input.pace:"auto";
+    const seed=String(input?.seed||"").trim();
+
+    return {participantCount,format,groupCount,pace,seed};
+  }
+
+  function groupName(index){
+    return index<26?String.fromCharCode(65+index):`G${index+1}`;
+  }
+
+  function chooseByePositions(size,participants){
+    const byes=size-participants;
+    const matchCount=size/2;
+    const result=new Set();
+    if(byes<=0)return result;
+
+    for(let i=0;i<byes;i++){
+      let matchIndex=Math.floor((i+.5)*matchCount/byes);
+      matchIndex=Math.max(0,Math.min(matchCount-1,matchIndex));
+      let probe=0;
+
+      while(probe<matchCount){
+        const m=(matchIndex+probe)%matchCount;
+        const top=m*2,bottom=top+1;
+        if(!result.has(top)&&!result.has(bottom)){
+          result.add(i%2===0?top:bottom);
+          break;
+        }
+        probe++;
+      }
+    }
+    return result;
+  }
+
+  function eliminationMeta(participantCount){
+    const size=nextPowerOfTwo(participantCount);
+    const byes=chooseByePositions(size,participantCount);
+    const positions=[];
+    for(let i=0;i<size;i++){
+      if(!byes.has(i))positions.push(i+1);
+    }
+    return {
+      bracketSize:size,
+      byeCount:byes.size,
+      byePositions:[...byes].map(v=>v+1),
+      participantPositions:positions
+    };
+  }
+
+  function buildAssignmentPlan(input){
+    const config=normalizeConfig(input);
+    const plan=[];
+
+    if(config.format===FORMATS.groups){
+      for(let i=0;i<config.participantCount;i++){
+        const group=i%config.groupCount;
+        const position=Math.floor(i/config.groupCount)+1;
+        plan.push({
+          drawIndex:i,
+          drawOrder:i+1,
+          format:FORMATS.groups,
+          group,
+          groupName:groupName(group),
+          groupPosition:position,
+          label:`Grupa ${groupName(group)} · miejsce ${position}`
+        });
+      }
+      return plan;
+    }
+
+    if(config.format===FORMATS.swiss){
+      for(let i=0;i<config.participantCount;i++){
+        const pairing=Math.floor(i/2)+1;
+        const side=i%2===0?"A":"B";
+        plan.push({
+          drawIndex:i,
+          drawOrder:i+1,
+          format:FORMATS.swiss,
+          round:1,
+          pairing,
+          side,
+          label:`Para ${pairing} · ${side}`
+        });
+      }
+      return plan;
+    }
+
+    const meta=eliminationMeta(config.participantCount);
+    for(let i=0;i<config.participantCount;i++){
+      const bracketPosition=meta.participantPositions[i];
+      plan.push({
+        drawIndex:i,
+        drawOrder:i+1,
+        format:FORMATS.elimination,
+        bracketSize:meta.bracketSize,
+        bracketPosition,
+        label:`Pozycja drabinki ${bracketPosition}`
+      });
+    }
+    return plan;
+  }
+
+  function formatMeta(input){
+    const config=normalizeConfig(input);
+
+    if(config.format===FORMATS.groups){
+      const minSize=Math.floor(config.participantCount/config.groupCount);
+      const maxSize=Math.ceil(config.participantCount/config.groupCount);
+      return {
+        format:config.format,
+        groupCount:config.groupCount,
+        minGroupSize:minSize,
+        maxGroupSize:maxSize
+      };
+    }
+
+    if(config.format===FORMATS.swiss){
+      return {
+        format:config.format,
+        round:1,
+        pairCount:Math.ceil(config.participantCount/2),
+        byeCount:config.participantCount%2
+      };
+    }
+
+    return {format:config.format,...eliminationMeta(config.participantCount)};
+  }
+
+  function participantId(index){
+    return `P${String(index+1).padStart(3,"0")}`;
+  }
+
+  function buildResultEnvelope({
+    engineId,
+    engineVersion,
+    config,
+    participants,
+    order,
+    engineData={}
+  }){
+    const normalized=normalizeConfig({
+      ...config,
+      participantCount:participants.length
+    });
+    const plan=buildAssignmentPlan(normalized);
+
+    const participantRecords=participants.map((name,index)=>({
+      id:participantId(index),
+      index,
+      name
+    }));
+
+    const nameToUnusedIndices=new Map();
+    participantRecords.forEach((p)=>{
+      if(!nameToUnusedIndices.has(p.name))nameToUnusedIndices.set(p.name,[]);
+      nameToUnusedIndices.get(p.name).push(p.index);
+    });
+
+    const standardizedOrder=(order||[]).map((item,index)=>{
+      const name=typeof item==="string"?item:item.name;
+      let participantIndex=Number.isInteger(item?.participantIndex)
+        ? item.participantIndex
+        : null;
+
+      if(participantIndex===null){
+        const queue=nameToUnusedIndices.get(name)||[];
+        participantIndex=queue.length?queue.shift():index;
+      }
+
+      return {
+        drawOrder:index+1,
+        participantId:participantId(participantIndex),
+        participantIndex,
+        name,
+        assignment:plan[index]||null,
+        engineDetail:typeof item==="object"&&item?.engineDetail
+          ? item.engineDetail
+          : null
+      };
+    });
+
+    return {
+      schemaVersion:VERSION,
+      generatedAt:new Date().toISOString(),
+      engine:{
+        id:String(engineId||"unknown"),
+        version:String(engineVersion||"1")
+      },
+      tournament:{
+        ...normalized,
+        meta:formatMeta(normalized)
+      },
+      participants:participantRecords,
+      results:{
+        complete:standardizedOrder.length===participants.length,
+        completedCount:standardizedOrder.length,
+        totalCount:participants.length,
+        order:standardizedOrder
+      },
+      engineData
+    };
+  }
+
+  function resultRows(snapshot){
+    return snapshot.results.order.map(item=>[
+      item.drawOrder,
+      item.participantId,
+      item.name,
+      snapshot.tournament.format,
+      item.assignment?.label||"",
+      snapshot.engine.id,
+      item.engineDetail||""
+    ]);
+  }
+
+  function toCsv(snapshot){
+    const rows=[
+      ["Kolejność","ID","Uczestnik","Format","Przydział","Mechanizm","Dane mechaniki"],
+      ...resultRows(snapshot)
+    ];
+    return "\ufeff"+rows.map(row=>
+      row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")
+    ).join("\n");
+  }
+
+  global.TournamentDrawStandard=Object.freeze({
+    VERSION,
+    LIMITS,
+    FORMATS,
+    PACES,
+    normalizeConfig,
+    nextPowerOfTwo,
+    chooseByePositions,
+    eliminationMeta,
+    buildAssignmentPlan,
+    formatMeta,
+    participantId,
+    buildResultEnvelope,
+    toCsv
+  });
+})(typeof window!=="undefined"?window:globalThis);
+
+
+(() => {
+  const TDS=window.TournamentDrawStandard;
+  const ENGINE_ID="wheel";
+  const ENGINE_VERSION="19";
+  let initialTeams=["Team 1","Team 2","Team 3","Team 4","Team 5","Team 6","Team 7","Team 8"];
+
+  const themePalettes={
+    violet:["#7C3AED","#DC2626","#059669","#F59E0B","#2563EB","#DB2777","#65A30D","#0891B2"],
+    ocean:["#0369A1","#14B8A6","#F97316","#8B5CF6","#84CC16","#E11D48","#0EA5E9","#EAB308"],
+    ember:["#DC2626","#F59E0B","#7C3AED","#059669","#2563EB","#DB2777","#84CC16","#06B6D4"],
+    emerald:["#059669","#2563EB","#F59E0B","#DC2626","#7C3AED","#0EA5E9","#EAB308","#DB2777"],
+    mono:["#F4F4F5","#71717A","#D4D4D8","#3F3F46","#A1A1AA","#52525B","#E4E4E7","#27272A"],
+    casino:["#B91C1C","#D4AF37","#064E3B","#111827","#7C2D12","#B45309","#14532D","#78350F"],
+    cyber:["#FF2BD6","#22D3EE","#A3E635","#7C3AED","#F97316","#0EA5E9","#EF4444","#14B8A6"]
+  };
+
+  const NS="http://www.w3.org/2000/svg";
+  const quickTeamCount=document.getElementById("quickTeamCount");
+  const generateTeamsBtn=document.getElementById("generateTeamsBtn");
+  const drawFormatSelect=document.getElementById("drawFormatSelect");
+  const drawSpeedSelect=document.getElementById("drawSpeedSelect");
+  const autoGroupsBtn=document.getElementById("autoGroupsBtn");
+  const formatMetricA=document.getElementById("formatMetricA");
+  const formatMetricALabel=document.getElementById("formatMetricALabel");
+  const formatMetricB=document.getElementById("formatMetricB");
+  const formatMetricBLabel=document.getElementById("formatMetricBLabel");
+  const formatMetricC=document.getElementById("formatMetricC");
+  const formatMetricCLabel=document.getElementById("formatMetricCLabel");
+  const structuralLockNote=document.getElementById("structuralLockNote");
+
+  const groupCountInput=document.getElementById("groupCountInput");
+  const groupCountWrap=document.getElementById("groupCountWrap");
+  const formatHelp=document.getElementById("formatHelp");
+  const formatBadge=document.getElementById("formatBadge");
+  const quickSeedInput=document.getElementById("quickSeedInput");
+  const quickRandomSeedBtn=document.getElementById("quickRandomSeedBtn");
+  const quickStyleSelect=document.getElementById("quickStyleSelect");
+  const applyQuickStyleBtn=document.getElementById("applyQuickStyleBtn");
+  const presentationBtn=document.getElementById("presentationBtn");
+  const scrollBracketBtn=document.getElementById("scrollBracketBtn");
+  const configSummary=document.getElementById("configSummary");
+  const configHint=document.getElementById("configHint");
+  const dashRemaining=document.getElementById("dashRemaining");
+  const dashDrawn=document.getElementById("dashDrawn");
+  const dashNext=document.getElementById("dashNext");
+  const drawProgressFill=document.getElementById("drawProgressFill");
+  const drawStateText=document.getElementById("drawStateText");
+  const autoStateText=document.getElementById("autoStateText");
+  const bracketParticipantBadge=document.getElementById("bracketParticipantBadge");
+  const copyResultsBtn=document.getElementById("copyResultsBtn");
+  const saveCsvBtn=document.getElementById("saveCsvBtn");
+  const saveJsonBtn=document.getElementById("saveJsonBtn");
+  const saveStatus=document.getElementById("saveStatus");
+  const completionPanel=document.getElementById("completionPanel");
+  const completionTitle=document.getElementById("completionTitle");
+  const completionText=document.getElementById("completionText");
+  const completionCopyBtn=document.getElementById("completionCopyBtn");
+  const completionCsvBtn=document.getElementById("completionCsvBtn");
+  const completionJsonBtn=document.getElementById("completionJsonBtn");
+
+  const wheel=document.getElementById("wheel");
+  const trail1=document.getElementById("trail1");
+  const trail2=document.getElementById("trail2");
+  const wheelWrap=document.getElementById("wheelWrap");
+  const wheelPanel=document.getElementById("wheelPanel");
+  const pointer=document.getElementById("pointer");
+  const spinBtn=document.getElementById("spinBtn");
+  const demoBtn=document.getElementById("demoBtn");
+  const resetBtn=document.getElementById("resetBtn");
+  const result=document.getElementById("result");
+  const gestureFill=document.getElementById("gestureFill");
+  const throwStrength=document.getElementById("throwStrength");
+  const remainingBadge=document.getElementById("remainingBadge");
+  const nextSlotText=document.getElementById("nextSlotText");
+  const drawCountText=document.getElementById("drawCountText");
+  const drawOrder=document.getElementById("drawOrder");
+  let bracketSlots=[];
+  const bracketStage=document.getElementById("bracketStage");
+  const bracketTitle=document.getElementById("bracketTitle");
+  const wheelLegendPanel=document.getElementById("wheelLegendPanel");
+  const wheelLegendGrid=document.getElementById("wheelLegendGrid");
+  const fxLayer=document.getElementById("fxLayer");
+
+  const themeSelect=document.getElementById("themeSelect");
+  const wheelStyleSelect=document.getElementById("wheelStyleSelect");
+  const pointerSelect=document.getElementById("pointerSelect");
+  const presetSelect=document.getElementById("presetSelect");
+  const packSelect=document.getElementById("packSelect");
+  const effectsToggle=document.getElementById("effectsToggle");
+  const effectsPanel=document.getElementById("effectsPanel");
+  const motionProfile=document.getElementById("motionProfile");
+  const soundType=document.getElementById("soundType");
+  const flyStyle=document.getElementById("flyStyle");
+  const diagnostics=document.getElementById("diagnostics");
+  const demoDelay=document.getElementById("demoDelay");
+
+  const participantsInput=document.getElementById("participantsInput");
+  const applyParticipants=document.getElementById("applyParticipants");
+  const participantsStatus=document.getElementById("participantsStatus");
+  const seedInput=document.getElementById("seedInput");
+  const applySeed=document.getElementById("applySeed");
+  const randomSeedBtn=document.getElementById("randomSeedBtn");
+  const replayBtn=document.getElementById("replayBtn");
+  const seedStatus=document.getElementById("seedStatus");
+  const physicsMass=document.getElementById("physicsMass");
+  const physicsDrag=document.getElementById("physicsDrag");
+  const physicsBrake=document.getElementById("physicsBrake");
+  const physicsMaxSpeed=document.getElementById("physicsMaxSpeed");
+  const physicsMassOut=document.getElementById("physicsMassOut");
+  const physicsDragOut=document.getElementById("physicsDragOut");
+  const physicsBrakeOut=document.getElementById("physicsBrakeOut");
+  const physicsMaxSpeedOut=document.getElementById("physicsMaxSpeedOut");
+  const speedChart=document.getElementById("speedChart");
+  const speedCtx=speedChart.getContext("2d");
+  const compareWheelA=document.getElementById("compareWheelA");
+  const compareWheelB=document.getElementById("compareWheelB");
+  const comparePresetA=document.getElementById("comparePresetA");
+  const comparePresetB=document.getElementById("comparePresetB");
+  const compareResultA=document.getElementById("compareResultA");
+  const compareResultB=document.getElementById("compareResultB");
+  const runCompareBtn=document.getElementById("runCompareBtn");
+
+
+  const diagSpeed=document.getElementById("diagSpeed");
+  const diagRpm=document.getElementById("diagRpm");
+  const diagFps=document.getElementById("diagFps");
+  const diagRotation=document.getElementById("diagRotation");
+  const diagProfile=document.getElementById("diagProfile");
+  const diagTarget=document.getElementById("diagTarget");
+
+  const cx=300,cy=300,radius=282;
+  let teams=[],drawn=[],rotation=0,spinning=false,dragging=false,raf=null;
+  let bracketSize=8,bracketRoundCount=3,byeCount=0;
+  let drawFormat="elimination";
+  let resetArmedUntil=0;
+  let activeGroupCount=4;
+  let dragPointerId=null,lastPointerAngle=0,lastMoveTime=0,totalDrag=0,motionHistory=[],lastMotionTime=0;
+  let liveDegPerSec=0,lastFrameTime=0,lastFrameAngle=0,lastTickBucket=null,fps=0,fpsCounter=0,fpsStamp=performance.now();
+  let demoActive=false,demoTimer=null,targetWinnerIndex=null,segmentGroups=[];
+  let audioCtx=null,tensionOsc=null,tensionGain=null;
+
+  let seedState=0,lastReplay=null,pendingReplay=null,replaying=false;
+  let speedSamples=[],chartStartTime=0;
+
+
+  let activeTheme="violet";
+  let palette=themePalettes[activeTheme];
+
+  const fxDefaults={
+    inertia:{enabled:true,intensity:68},
+    friction:{enabled:true,intensity:42},
+    miniStop:{enabled:false,intensity:45},
+    slowmo:{enabled:true,intensity:38},
+    glow:{enabled:true,intensity:65},
+    lines:{enabled:true,intensity:45},
+    trail:{enabled:true,intensity:35},
+    blur:{enabled:false,intensity:18},
+    rgb:{enabled:false,intensity:18},
+    momentum:{enabled:true,intensity:60},
+    hub:{enabled:true,intensity:55},
+    pointer:{enabled:true,intensity:72},
+    sparks:{enabled:false,intensity:35},
+    haptic:{enabled:true,intensity:28},
+    sound:{enabled:true,intensity:34},
+    tension:{enabled:false,intensity:18},
+    highlight:{enabled:true,intensity:70},
+    dim:{enabled:true,intensity:55},
+    zoom:{enabled:true,intensity:35},
+    remove:{enabled:true,intensity:55},
+    reflow:{enabled:true,intensity:65},
+    fly:{enabled:true,intensity:62},
+    confetti:{enabled:true,intensity:58},
+    flash:{enabled:true,intensity:40},
+    shake:{enabled:false,intensity:28},
+    jackpot:{enabled:false,intensity:55},
+    diagnostics:{enabled:false,intensity:0}
+  };
+  const fx=JSON.parse(JSON.stringify(fxDefaults));
+
+  const fxControlMap={
+    inertia:["fxInertiaEnabled","fxInertiaIntensity"],
+    friction:["fxFrictionEnabled","fxFrictionIntensity"],
+    miniStop:["fxMiniStopEnabled","fxMiniStopIntensity"],
+    slowmo:["fxSlowmoEnabled","fxSlowmoIntensity"],
+    glow:["fxGlowEnabled","fxGlowIntensity"],
+    lines:["fxLinesEnabled","fxLinesIntensity"],
+    trail:["fxTrailEnabled","fxTrailIntensity"],
+    blur:["fxBlurEnabled","fxBlurIntensity"],
+    rgb:["fxRgbEnabled","fxRgbIntensity"],
+    momentum:["fxMomentumEnabled","fxMomentumIntensity"],
+    hub:["fxHubEnabled","fxHubIntensity"],
+    pointer:["fxPointerEnabled","fxPointerIntensity"],
+    sparks:["fxSparksEnabled","fxSparksIntensity"],
+    haptic:["fxHapticEnabled","fxHapticIntensity"],
+    sound:["fxSoundEnabled","fxSoundIntensity"],
+    tension:["fxTensionEnabled","fxTensionIntensity"],
+    highlight:["fxHighlightEnabled","fxHighlightIntensity"],
+    dim:["fxDimEnabled","fxDimIntensity"],
+    zoom:["fxZoomEnabled","fxZoomIntensity"],
+    remove:["fxRemoveEnabled","fxRemoveIntensity"],
+    reflow:["fxReflowEnabled","fxReflowIntensity"],
+    fly:["fxFlyEnabled","fxFlyIntensity"],
+    confetti:["fxConfettiEnabled","fxConfettiIntensity"],
+    flash:["fxFlashEnabled","fxFlashIntensity"],
+    shake:["fxShakeEnabled","fxShakeIntensity"],
+    jackpot:["fxJackpotEnabled","fxJackpotIntensity"],
+    diagnostics:["fxDiagnosticsEnabled",null]
+  };
+
+  const presets={
+    minimal:{
+      glow:20,lines:0,trail:0,blur:0,rgb:0,momentum:0,hub:15,pointer:30,sparks:0,haptic:10,sound:18,
+      tension:0,highlight:45,dim:30,zoom:18,remove:25,reflow:30,fly:35,confetti:0,flash:12,shake:0,jackpot:0,
+      miniStop:0,slowmo:20,inertia:55,friction:55
+    },
+    sport:{
+      glow:65,lines:45,trail:35,blur:0,rgb:0,momentum:60,hub:55,pointer:72,sparks:0,haptic:28,sound:34,
+      tension:0,highlight:70,dim:55,zoom:35,remove:55,reflow:65,fly:62,confetti:58,flash:40,shake:0,jackpot:0,
+      miniStop:0,slowmo:38,inertia:68,friction:42
+    },
+    tv:{
+      glow:48,lines:22,trail:15,blur:8,rgb:0,momentum:35,hub:40,pointer:50,sparks:0,haptic:12,sound:24,
+      tension:14,highlight:85,dim:65,zoom:52,remove:45,reflow:55,fly:55,confetti:35,flash:55,shake:0,jackpot:45,
+      miniStop:58,slowmo:72,inertia:62,friction:48
+    },
+    arcade:{
+      glow:88,lines:82,trail:72,blur:32,rgb:42,momentum:90,hub:78,pointer:86,sparks:55,haptic:55,sound:60,
+      tension:22,highlight:90,dim:70,zoom:58,remove:75,reflow:82,fly:82,confetti:86,flash:72,shake:35,jackpot:70,
+      miniStop:20,slowmo:32,inertia:80,friction:28
+    },
+    overdrive:{
+      glow:100,lines:100,trail:100,blur:55,rgb:70,momentum:100,hub:100,pointer:100,sparks:100,haptic:85,sound:78,
+      tension:45,highlight:100,dim:85,zoom:80,remove:100,reflow:100,fly:100,confetti:100,flash:100,shake:70,jackpot:100,
+      miniStop:35,slowmo:55,inertia:92,friction:18
+    }
+  };
+
+  function setSetupLocked(locked){
+    const structuralLocked=locked || drawn.length>0;
+
+    const structuralControls=[
+      quickTeamCount,generateTeamsBtn,
+      participantsInput,applyParticipants,
+      seedInput,quickSeedInput,applySeed,randomSeedBtn,quickRandomSeedBtn,
+      drawFormatSelect,groupCountInput,autoGroupsBtn
+    ].filter(Boolean);
+
+    const visualControls=[
+      quickStyleSelect,applyQuickStyleBtn,
+      themeSelect,wheelStyleSelect,pointerSelect,
+      presetSelect,packSelect,drawSpeedSelect
+    ].filter(Boolean);
+
+    structuralControls.forEach(el=>el.disabled=structuralLocked);
+    visualControls.forEach(el=>el.disabled=locked);
+
+    structuralLockNote.classList.toggle("visible",drawn.length>0);
+    document.body.classList.toggle("draw-running",locked);
+  }
+
+
+  function updateUxState(){
+    const total=initialTeams.length;
+    const complete=drawn.length;
+    const remaining=teams.length;
+    const next=Math.min(complete+1,total);
+    const format=getDrawFormat();
+
+    quickTeamCount.value=total;
+
+    if(format==="groups"){
+      const groups=getGroupCount(total);
+      const minSize=Math.floor(total/groups);
+      const maxSize=Math.ceil(total/groups);
+      configSummary.textContent=minSize===maxSize
+        ? `${total} uczestników · ${groups} grup po ${minSize}`
+        : `${total} uczestników · ${groups} grup po ${minSize}–${maxSize}`;
+      configHint.textContent=spinning
+        ?"Losowanie w toku — ustawienia są chwilowo zablokowane."
+        :complete>=total
+          ?"Podział na grupy zakończony."
+          :"Grupy są zapełniane rotacyjnie, aby pozostały możliwie równe.";
+    }else if(format==="swiss"){
+      const pairs=Math.ceil(total/2);
+      configSummary.textContent=`${total} uczestników · Swiss · ${pairs} par rundy 1`;
+      configHint.textContent=spinning
+        ?"Losowanie w toku — ustawienia są chwilowo zablokowane."
+        :complete>=total
+          ?"Pary rundy 1 są gotowe."
+          :"Kolejne rundy szwajcarskie zależą od wyników rundy 1.";
+    }else{
+      const size=nextPowerOfTwo(total);
+      const byes=size-total;
+      configSummary.textContent=byes
+        ? `${total} uczestników · drabinka ${size} · ${byes} BYE`
+        : `${total} uczestników · drabinka ${size}`;
+      configHint.textContent=spinning
+        ?"Losowanie w toku — ustawienia są chwilowo zablokowane."
+        : complete>=total
+          ?"Losowanie zakończone. Wyniki są gotowe do eksportu."
+          : byes
+            ? `Dowolna liczba działa: ${byes} wolnych losów jest rozłożonych po pierwszej rundzie.`
+            :"Gotowe. Wynik jest ustalany przed animacją koła.";
+    }
+
+    dashRemaining.textContent=String(remaining);
+    dashDrawn.textContent=String(complete);
+    dashNext.textContent=complete>=total?"—":String(next);
+    drawProgressFill.style.width=`${total?complete/total*100:0}%`;
+
+    if(spinning) drawStateText.textContent="Koło się obraca…";
+    else if(complete>=total) drawStateText.textContent="Losowanie zakończone";
+    else drawStateText.textContent=`Następny przydział: ${next}/${total}`;
+
+    autoStateText.textContent=demoActive?"Automatyczne losowanie: ON":"Tryb ręczny";
+
+    if(format==="groups"){
+      formatBadge.textContent=`Grupy · ${getGroupCount(total)}`;
+      bracketParticipantBadge.textContent=`${total} uczestników`;
+    }else if(format==="swiss"){
+      formatBadge.textContent="Swiss · runda 1";
+      bracketParticipantBadge.textContent=total%2
+        ? `${Math.ceil(total/2)} par · 1 BYE`
+        : `${total/2} par`;
+    }else{
+      formatBadge.textContent="Single Elimination";
+      bracketParticipantBadge.textContent=byeCount
+        ? `${bracketSize} miejsc · ${byeCount} BYE`
+        : `${bracketSize} miejsc`;
+    }
+
+    const hasResults=drawn.length>0;
+    copyResultsBtn.disabled=!hasResults;
+    saveCsvBtn.disabled=!hasResults;
+    saveJsonBtn.disabled=!hasResults;
+
+    if(!spinning)setSetupLocked(false);
+    updateFormatHelp();
+  }
+
+
+  function generateQuickTeams(){
+    const count=Math.max(2,Math.min(128,Number(quickTeamCount.value)||8));
+    participantsInput.value=Array.from({length:count},(_,i)=>`Team ${i+1}`).join("\n");
+    participantsStatus.textContent=`Wygenerowano i zastosowano ${count} uczestników.`;
+    participantsStatus.style.color="var(--muted)";
+
+    initialTeams=Array.from({length:count},(_,i)=>`Team ${i+1}`);
+    participantsInput.value=initialTeams.join("\n");
+    reset();
+    renderCompareWheel(compareWheelA,teams);
+    renderCompareWheel(compareWheelB,teams);
+  }
+
+  function applyQuickStyle(){
+    const name=quickStyleSelect.value;
+    if(name==="sport"){
+      packSelect.value="manual";
+      themeSelect.value="violet";
+      wheelStyleSelect.value="flat";
+      pointerSelect.value="triangle";
+      presetSelect.value="sport";
+      motionProfile.value="physics";
+      soundType.value="soft";
+      flyStyle.value="arc";
+      applyTheme("violet");
+      applyPreset("sport");
+      wheelWrap.dataset.wheelStyle="flat";
+      wheelWrap.dataset.pointer="triangle";
+    }else{
+      packSelect.value=name;
+      applyPack(name);
+    }
+  }
+
+  function getStandardConfig(){
+    return TDS.normalizeConfig({
+      participantCount:initialTeams.length,
+      format:getDrawFormat(),
+      groupCount:getGroupCount(initialTeams.length),
+      pace:drawSpeedSelect.value,
+      seed:seedInput.value.trim()
+    });
+  }
+
+  function buildResultsSnapshot(){
+    const config=getStandardConfig();
+    return TDS.buildResultEnvelope({
+      engineId:ENGINE_ID,
+      engineVersion:ENGINE_VERSION,
+      config,
+      participants:[...initialTeams],
+      order:drawn.map((name,index)=>({
+        name,
+        participantIndex:initialTeams.indexOf(name),
+        engineDetail:"wheel-selection"
+      })),
+      engineData:{
+        wheel:{
+          theme:themeSelect.value,
+          wheelStyle:wheelStyleSelect.value,
+          pointer:pointerSelect.value,
+          motionProfile:motionProfile.value,
+          flyStyle:flyStyle.value,
+          soundType:soundType.value
+        }
+      }
+    });
+  }
+
+  function persistResults(){
+    try{
+      localStorage.setItem("tds:v1:last:wheel",JSON.stringify(buildResultsSnapshot()));
+      saveStatus.textContent=drawn.length
+        ? `Zapisano ${drawn.length}/${initialTeams.length} wyników lokalnie.`
+        :"Wyniki zapisują się automatycznie.";
+    }catch(_){}
+  }
+
+  function downloadTextFile(filename,content,type){
+    const blob=new Blob([content],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),250);
+  }
+
+  async function copyResults(){
+    const lines=drawn.map((name,i)=>{
+      const destination=destinationLabelForDraw(i);
+      return `${i+1}. ${name}${destination?` → ${destination}`:""}`;
+    });
+    try{
+      await navigator.clipboard.writeText(lines.join("\n"));
+      saveStatus.textContent="Skopiowano wyniki losowania.";
+    }catch(_){
+      saveStatus.textContent="Nie udało się użyć schowka — użyj CSV lub JSON.";
+    }
+  }
+
+
+  function saveResultsCsv(){
+    downloadTextFile(
+      "wyniki-losowania-tds.csv",
+      TDS.toCsv(buildResultsSnapshot()),
+      "text/csv;charset=utf-8"
+    );
+  }
+
+
+  function saveResultsJson(){
+    downloadTextFile(
+      "wyniki-losowania-kolo.json",
+      JSON.stringify(buildResultsSnapshot(),null,2),
+      "application/json;charset=utf-8"
+    );
+  }
+
+  function polar(x,y,r,deg){
+    const a=(deg-90)*Math.PI/180;
+    return {x:x+r*Math.cos(a),y:y+r*Math.sin(a)};
+  }
+
+  function wedgePath(x,y,r,a0,a1){
+    const p0=polar(x,y,r,a1),p1=polar(x,y,r,a0);
+    const large=a1-a0>180?1:0;
+    return `M ${x} ${y} L ${p0.x} ${p0.y} A ${r} ${r} 0 ${large} 0 ${p1.x} ${p1.y} Z`;
+  }
+
+  function hashString(str){
+    let h=2166136261>>>0;
+    for(let i=0;i<str.length;i++){
+      h^=str.charCodeAt(i);
+      h=Math.imul(h,16777619);
+    }
+    return h>>>0;
+  }
+
+  function syncQuickSeedFromAdvanced(){
+    if(quickSeedInput)quickSeedInput.value=seedInput.value;
+  }
+
+  function syncAdvancedSeedFromQuick(){
+    seedInput.value=quickSeedInput.value.trim();
+  }
+
+  function resetSeedState(){
+    syncQuickSeedFromAdvanced();
+    const seed=(seedInput?.value||"").trim();
+    seedState=hashString(seed||String(Date.now()));
+    seedStatus.textContent=seed
+      ? `Aktywny seed: ${seed}`
+      : "Seed pusty — używany jest generator niedeterministyczny.";
+  }
+
+  function seededRandom(){
+    seedState=(seedState+0x6D2B79F5)>>>0;
+    let t=seedState;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^(t>>>7),t|61);
+    return ((t^(t>>>14))>>>0)/4294967296;
+  }
+
+  function secureIndex(max){
+    if(max<=1)return 0;
+    const seed=(seedInput?.value||"").trim();
+    if(seed)return Math.floor(seededRandom()*max);
+
+    if(window.crypto?.getRandomValues){
+      const limit=Math.floor(0x100000000/max)*max;
+      const a=new Uint32Array(1);
+      do{crypto.getRandomValues(a)}while(a[0]>=limit);
+      return a[0]%max;
+    }
+    return Math.floor(Math.random()*max);
+  }
+
+  function getPhysics(){
+    return{
+      mass:Number(physicsMass.value)/100,
+      drag:Number(physicsDrag.value)/100,
+      brake:Number(physicsBrake.value)/100,
+      maxSpeed:Number(physicsMaxSpeed.value)
+    };
+  }
+
+  function updatePhysicsLabels(){
+    const p=getPhysics();
+    physicsMassOut.textContent=`${p.mass.toFixed(2)}×`;
+    physicsDragOut.textContent=p.drag.toFixed(2);
+    physicsBrakeOut.textContent=p.brake.toFixed(2);
+    physicsMaxSpeedOut.textContent=`${p.maxSpeed}°/s`;
+  }
+
+  function clearSpeedChart(){
+    speedSamples=[];
+    chartStartTime=performance.now();
+    drawSpeedChart();
+  }
+
+  function pushSpeedSample(now,speed){
+    const t=(now-chartStartTime)/1000;
+    speedSamples.push({t,s:Math.abs(speed)});
+    if(speedSamples.length>600)speedSamples.shift();
+    drawSpeedChart();
+  }
+
+  function drawSpeedChart(){
+    const cssW=Math.max(320,speedChart.clientWidth||720);
+    const cssH=Math.max(120,speedChart.clientHeight||150);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const W=Math.round(cssW*dpr),H=Math.round(cssH*dpr);
+    if(speedChart.width!==W||speedChart.height!==H){speedChart.width=W;speedChart.height=H}
+
+    speedCtx.setTransform(dpr,0,0,dpr,0,0);
+    speedCtx.clearRect(0,0,cssW,cssH);
+    speedCtx.fillStyle="#0b0c0e";speedCtx.fillRect(0,0,cssW,cssH);
+
+    speedCtx.strokeStyle="#29312c";speedCtx.lineWidth=1;
+    for(let i=1;i<4;i++){
+      const y=cssH*i/4;
+      speedCtx.beginPath();speedCtx.moveTo(0,y);speedCtx.lineTo(cssW,y);speedCtx.stroke();
+    }
+
+    if(speedSamples.length<2)return;
+
+    const maxT=Math.max(1,speedSamples[speedSamples.length-1].t);
+    const configuredMax=getPhysics().maxSpeed;
+    const maxS=Math.max(configuredMax,...speedSamples.map(v=>v.s),600);
+
+    const accent=getComputedStyle(document.body).getPropertyValue("--accent").trim()||"#b979ff";
+    speedCtx.strokeStyle=accent;speedCtx.lineWidth=2;speedCtx.beginPath();
+    speedSamples.forEach((v,i)=>{
+      const x=(v.t/maxT)*(cssW-12)+6;
+      const y=cssH-8-(v.s/maxS)*(cssH-18);
+      if(i===0)speedCtx.moveTo(x,y);else speedCtx.lineTo(x,y);
+    });
+    speedCtx.stroke();
+
+    speedCtx.fillStyle="#9cab9f";speedCtx.font="10px Consolas";
+    speedCtx.fillText(`${Math.round(maxS)}°/s`,6,12);
+    speedCtx.fillText(`${maxT.toFixed(1)} s`,Math.max(6,cssW-52),cssH-5);
+  }
+
+  function renderCompareWheel(svg,names){
+    svg.innerHTML="";
+    const c=110,r=98,step=360/names.length;
+    names.forEach((name,i)=>{
+      const p=document.createElementNS(NS,"path");
+      const a0=i*step,a1=(i+1)*step;
+      const P0=polar(c,c,r,a1),P1=polar(c,c,r,a0),large=a1-a0>180?1:0;
+      p.setAttribute("d",`M ${c} ${c} L ${P0.x} ${P0.y} A ${r} ${r} 0 ${large} 0 ${P1.x} ${P1.y} Z`);
+      p.setAttribute("fill",palette[i%palette.length]);p.setAttribute("stroke","#fff");p.setAttribute("stroke-width","1.5");
+      svg.appendChild(p);
+
+      if(names.length<=12){
+        const pos=polar(c,c,r*.64,i*step+step/2);
+        const t=document.createElementNS(NS,"text");
+        t.setAttribute("x",pos.x);t.setAttribute("y",pos.y);t.setAttribute("text-anchor","middle");
+        t.setAttribute("dominant-baseline","middle");t.setAttribute("font-size","10");t.setAttribute("font-weight","900");
+        t.setAttribute("fill","#fff");t.setAttribute("paint-order","stroke");t.setAttribute("stroke","#000");t.setAttribute("stroke-width","3");
+        t.textContent=name.length>10?name.slice(0,9)+"…":name;svg.appendChild(t);
+      }
+    });
+    const hub=document.createElementNS(NS,"circle");hub.setAttribute("cx",c);hub.setAttribute("cy",c);hub.setAttribute("r","15");
+    hub.setAttribute("fill","#101114");hub.setAttribute("stroke","#fff");hub.setAttribute("stroke-width","2");svg.appendChild(hub);
+    svg.style.transformOrigin="50% 50%";svg.style.transform="rotate(0deg)";
+  }
+
+  function compareMotion(name){
+    const map={
+      minimal:{turns:4,duration:2300,easing:"cubic-bezier(.18,.75,.3,1)"},
+      sport:{turns:7,duration:3600,easing:"cubic-bezier(.12,.72,.18,1)"},
+      tv:{turns:8,duration:4700,easing:"cubic-bezier(.25,.1,.18,1)"},
+      arcade:{turns:11,duration:3100,easing:"cubic-bezier(.05,.8,.15,1)"},
+      overdrive:{turns:15,duration:4200,easing:"cubic-bezier(.02,.86,.08,1)"}
+    };
+    return map[name]||map.sport;
+  }
+
+  function runComparison(){
+    if(spinning||replaying||!teams.length)return;
+    renderCompareWheel(compareWheelA,teams);renderCompareWheel(compareWheelB,teams);
+
+    const seed=(seedInput.value||"AB-DEMO").trim();
+    const winner=hashString(seed+"|AB|"+teams.join("|"))%teams.length;
+    const step=360/teams.length,center=winner*step+step/2;
+    const wanted=mod360(360-center);
+    const A=compareMotion(comparePresetA.value),B=compareMotion(comparePresetB.value);
+
+    compareResultA.textContent=`Cel: ${teams[winner]}`;
+    compareResultB.textContent=`Cel: ${teams[winner]}`;
+
+    [compareWheelA,compareWheelB].forEach(w=>{w.getAnimations?.().forEach(a=>a.cancel());w.style.transform="rotate(0deg)"});
+    const targetA=A.turns*360+wanted,targetB=B.turns*360+wanted;
+
+    if(compareWheelA.animate){
+      compareWheelA.animate(
+        [{transform:"rotate(0deg)"},{transform:`rotate(${targetA}deg)`}],
+        {duration:A.duration,easing:A.easing,fill:"forwards"}
+      );
+      compareWheelB.animate(
+        [{transform:"rotate(0deg)"},{transform:`rotate(${targetB}deg)`}],
+        {duration:B.duration,easing:B.easing,fill:"forwards"}
+      );
+    }else{
+      compareWheelA.style.transition=`transform ${A.duration}ms ease-out`;
+      compareWheelB.style.transition=`transform ${B.duration}ms ease-out`;
+      requestAnimationFrame(()=>{compareWheelA.style.transform=`rotate(${targetA}deg)`;compareWheelB.style.transform=`rotate(${targetB}deg)`});
+    }
+  }
+
+  function mod360(v){return((v%360)+360)%360}
+
+  function applyTheme(name){
+    activeTheme=themePalettes[name]?name:"violet";
+    palette=themePalettes[activeTheme];
+    document.body.dataset.theme=activeTheme==="violet"?"":activeTheme;
+    const saved=rotation;
+    buildWheel();
+    rotation=saved;
+    setWheelAngle(rotation);
+  }
+
+  function nextPowerOfTwo(n){
+    let p=1;
+    while(p<n)p*=2;
+    return Math.max(2,Math.min(128,p));
+  }
+
+  function roundTitle(roundIndex,totalRounds){
+    const remaining=totalRounds-roundIndex;
+    if(remaining===1)return "Finał";
+    if(remaining===2)return "Półfinały";
+    if(remaining===3)return "Ćwierćfinały";
+    if(remaining===4)return "1/8 finału";
+    if(remaining===5)return "1/16 finału";
+    if(remaining===6)return "1/32 finału";
+    return `Runda ${roundIndex+1}`;
+  }
+
+  function chooseByePositions(size,participants){
+    const byes=size-participants;
+    const matchCount=size/2;
+    const result=new Set();
+    if(byes<=0)return result;
+
+    // Rozkładamy wolne losy możliwie równomiernie po pierwszej rundzie.
+    for(let i=0;i<byes;i++){
+      let matchIndex=Math.floor((i+.5)*matchCount/byes);
+      matchIndex=Math.max(0,Math.min(matchCount-1,matchIndex));
+
+      // Jeden BYE na mecz; przy remisie szukamy najbliższego wolnego meczu.
+      let probe=0;
+      while(probe<matchCount){
+        const m=(matchIndex+probe)%matchCount;
+        const top=m*2;
+        const bottom=top+1;
+        if(!result.has(top)&&!result.has(bottom)){
+          result.add(i%2===0?top:bottom);
+          break;
+        }
+        probe++;
+      }
+    }
+    return result;
+  }
+
+  function getDrawSpeedScale(){
+    const mode=drawSpeedSelect?.value||"auto";
+    const total=initialTeams.length;
+
+    if(mode==="show")return 1.08;
+    if(mode==="fast")return .62;
+    if(mode==="turbo")return .36;
+
+    if(total>80)return .34;
+    if(total>48)return .44;
+    if(total>24)return .58;
+    if(total>12)return .78;
+    return 1;
+  }
+
+  function getEffectiveDemoDelay(){
+    const base=Number(demoDelay.value)||900;
+    const scale=getDrawSpeedScale();
+    return Math.max(120,Math.round(base*Math.max(.28,scale)));
+  }
+
+  function speedLabel(){
+    const mode=drawSpeedSelect?.value||"auto";
+    if(mode==="show")return "Pokazowe";
+    if(mode==="fast")return "Szybkie";
+    if(mode==="turbo")return "Turbo";
+    const total=initialTeams.length;
+    if(total>80)return "Auto · Turbo";
+    if(total>48)return "Auto · bardzo szybkie";
+    if(total>24)return "Auto · szybkie";
+    if(total>12)return "Auto · średnie";
+    return "Auto · pokazowe";
+  }
+
+  function getDrawFormat(){
+    return drawFormatSelect?.value || "elimination";
+  }
+
+  function suggestGroupCount(total=initialTeams.length){
+    if(total<=8)return 2;
+    // Cel: najczęściej 4–6 uczestników na grupę, bez przekraczania 32 grup.
+    const targetSize=total>72?6:total>36?5:4;
+    return Math.max(2,Math.min(16,Math.ceil(total/targetSize)));
+  }
+
+  function getGroupCount(total=initialTeams.length){
+    const requested=Math.max(2,Math.min(16,Number(groupCountInput?.value)||4));
+    return Math.min(requested,Math.max(2,total));
+  }
+
+  function groupName(index){
+    if(index<26)return String.fromCharCode(65+index);
+    return `G${index+1}`;
+  }
+
+  function clearFormatStage(){
+    bracketSlots=[];
+    bracketStage.classList.remove("format-groups","format-swiss","compact","ultra-compact");
+    bracketStage.style.removeProperty("--format-cols");
+    bracketStage.style.display="";
+    bracketStage.style.width="";
+    bracketStage.style.height="";
+    bracketStage.style.minWidth="";
+    bracketStage.style.minHeight="";
+    bracketStage.innerHTML='<svg id="connectorSvg" aria-hidden="true"></svg>';
+  }
+
+  function buildGroups(totalParticipants){
+    clearFormatStage();
+    drawFormat="groups";
+    activeGroupCount=getGroupCount(totalParticipants);
+    groupCountInput.value=activeGroupCount;
+
+    bracketStage.classList.add("format-groups");
+    const cols=activeGroupCount<=4?activeGroupCount:activeGroupCount<=8?4:activeGroupCount<=16?5:6;
+    bracketStage.style.setProperty("--format-cols",String(cols));
+    bracketStage.style.minWidth=`${Math.max(760,cols*190)}px`;
+
+    const slotsByDraw=new Array(totalParticipants);
+    const groupCards=[];
+
+    for(let g=0;g<activeGroupCount;g++){
+      const card=document.createElement("div");
+      card.className="format-card";
+      card.dataset.group=String(g);
+
+      const countForGroup=Math.floor(totalParticipants/activeGroupCount)+(g<totalParticipants%activeGroupCount?1:0);
+      card.innerHTML=`
+        <div class="format-card-head">
+          <strong>Grupa ${groupName(g)}</strong>
+          <span>0/${countForGroup}</span>
+        </div>
+        <div class="format-card-body"></div>
+      `;
+      bracketStage.appendChild(card);
+      groupCards.push(card);
+    }
+
+    // Kolejność losowania idzie rotacyjnie A, B, C... dzięki temu grupy
+    // są automatycznie możliwie równe.
+    for(let i=0;i<totalParticipants;i++){
+      const g=i%activeGroupCount;
+      const pos=Math.floor(i/activeGroupCount)+1;
+      const body=groupCards[g].querySelector(".format-card-body");
+      const slot=document.createElement("div");
+      slot.className="slot";
+      slot.dataset.slot=String(i);
+      slot.dataset.group=String(g);
+      slot.dataset.groupPosition=String(pos);
+      slot.dataset.destination=`Grupa ${groupName(g)} · miejsce ${pos}`;
+      slot.textContent=`Miejsce ${pos}`;
+      body.appendChild(slot);
+      slotsByDraw[i]=slot;
+    }
+
+    bracketSlots=slotsByDraw;
+    bracketTitle.textContent=`Grupy — ${totalParticipants} uczestników`;
+    formatBadge.textContent=`${activeGroupCount} grup`;
+    bracketParticipantBadge.textContent=`${totalParticipants} uczestników`;
+    requestAnimationFrame(drawBracketLines);
+  }
+
+  function buildSwiss(totalParticipants){
+    clearFormatStage();
+    drawFormat="swiss";
+    bracketStage.classList.add("format-swiss");
+
+    const pairCount=Math.ceil(totalParticipants/2);
+    const cols=pairCount<=6?2:pairCount<=18?3:4;
+    bracketStage.style.setProperty("--format-cols",String(cols));
+    bracketStage.style.minWidth=`${Math.max(760,cols*250)}px`;
+
+    const note=document.createElement("div");
+    note.className="format-note";
+    note.textContent=totalParticipants%2
+      ?"Losowanie ustawia pary rundy 1 systemu szwajcarskiego. Przy nieparzystej liczbie uczestników ostatnia para zawiera BYE. Kolejne rundy zależą od wyników."
+      :"Losowanie ustawia pary rundy 1 systemu szwajcarskiego. Kolejne rundy powinny być tworzone na podstawie wyników i punktacji.";
+    bracketStage.appendChild(note);
+
+    bracketSlots=new Array(totalParticipants);
+
+    for(let p=0;p<pairCount;p++){
+      const card=document.createElement("div");
+      card.className="format-card";
+      card.dataset.pairing=String(p+1);
+
+      const head=document.createElement("div");
+      head.className="format-card-head";
+      head.innerHTML=`<strong>Para ${p+1}</strong><span>Runda 1</span>`;
+      card.appendChild(head);
+
+      const label=document.createElement("div");
+      label.className="swiss-match-label";
+      label.textContent=`Stół ${p+1}`;
+      card.appendChild(label);
+
+      for(let side=0;side<2;side++){
+        const drawIndex=p*2+side;
+        const slot=document.createElement("div");
+        slot.className="slot";
+
+        if(drawIndex<totalParticipants){
+          slot.dataset.slot=String(drawIndex);
+          slot.dataset.pairing=String(p+1);
+          slot.dataset.side=side===0?"A":"B";
+          slot.dataset.destination=`Para ${p+1} · ${side===0?"A":"B"}`;
+          slot.textContent=side===0?"Gracz A":"Gracz B";
+          bracketSlots[drawIndex]=slot;
+        }else{
+          slot.classList.add("bye","placeholder");
+          slot.textContent="BYE / wolny los";
+        }
+
+        card.appendChild(slot);
+      }
+
+      bracketStage.appendChild(card);
+    }
+
+    bracketTitle.textContent=`Szwajcarski — runda 1 · ${totalParticipants} uczestników`;
+    formatBadge.textContent="Swiss · runda 1";
+    bracketParticipantBadge.textContent=totalParticipants%2
+      ? `${pairCount} par · 1 BYE`
+      : `${pairCount} par`;
+    requestAnimationFrame(drawBracketLines);
+  }
+
+  function buildDestination(totalParticipants){
+    drawFormat=getDrawFormat();
+    if(drawFormat==="groups")buildGroups(totalParticipants);
+    else if(drawFormat==="swiss")buildSwiss(totalParticipants);
+    else buildBracket(totalParticipants);
+    updateFormatHelp();
+  }
+
+  function updateFormatHelp(){
+    const format=getDrawFormat();
+    const total=Math.max(2,Number(quickTeamCount.value)||initialTeams.length||8);
+    groupCountWrap.style.display=format==="groups"?"flex":"none";
+    autoGroupsBtn.style.display=format==="groups"?"inline-flex":"none";
+
+    if(format==="groups"){
+      const groups=getGroupCount(total);
+      const minSize=Math.floor(total/groups);
+      const maxSize=Math.ceil(total/groups);
+
+      formatHelp.textContent=
+        `Losowanie rozdziela uczestników rotacyjnie do ${groups} grup, więc grupy różnią się liczebnością maksymalnie o 1 osobę.`;
+
+      formatMetricA.textContent=`${groups}`;
+      formatMetricALabel.textContent="grup";
+      formatMetricB.textContent=minSize===maxSize?`${minSize}`:`${minSize}–${maxSize}`;
+      formatMetricBLabel.textContent="osób / grupa";
+    }else if(format==="swiss"){
+      const pairs=Math.ceil(total/2);
+      formatHelp.textContent=
+        "Losowanie tworzy pary wyłącznie rundy 1. Kolejne rundy systemu szwajcarskiego muszą zależeć od wyników i punktacji.";
+
+      formatMetricA.textContent=`${pairs}`;
+      formatMetricALabel.textContent="par w rundzie 1";
+      formatMetricB.textContent=total%2?"1 BYE":"bez BYE";
+      formatMetricBLabel.textContent="wolny los";
+    }else{
+      const size=nextPowerOfTwo(total);
+      const byes=size-total;
+      formatHelp.textContent=byes
+        ? `Drabinka ${size}: ${byes} wolnych losów BYE zostanie rozłożonych w pierwszej rundzie.`
+        :"Losowanie obsadza pozycje pełnej drabinki eliminacyjnej.";
+
+      formatMetricA.textContent=`${size}`;
+      formatMetricALabel.textContent="miejsc w drabince";
+      formatMetricB.textContent=`${byes}`;
+      formatMetricBLabel.textContent="BYE";
+    }
+
+    formatMetricC.textContent=speedLabel();
+    formatMetricCLabel.textContent="tempo losowania";
+  }
+
+
+  function buildBracket(totalParticipants){
+    clearFormatStage();
+    drawFormat="elimination";
+    bracketSize=nextPowerOfTwo(totalParticipants);
+    bracketRoundCount=Math.log2(bracketSize);
+    byeCount=bracketSize-totalParticipants;
+    // Po przebudowie drabinki wszystkie linie pobierają aktualny SVG przez getConnectorSvg().
+
+    const firstMatches=bracketSize/2;
+    const compact=totalParticipants>16;
+    const ultra=totalParticipants>32;
+    bracketStage.classList.toggle("compact",compact);
+    bracketStage.classList.toggle("ultra-compact",ultra);
+
+    const matchHeight=ultra?56:(compact?66:82);
+    const firstGap=ultra?66:(compact?78:108);
+    const topPad=36;
+    const roundWidth=ultra?176:(compact?194:220);
+    const roundGap=ultra?70:(compact?82:110);
+    const stageWidth=Math.max(820,bracketRoundCount*(roundWidth+roundGap)-roundGap+20);
+    const stageHeight=Math.max(360,topPad+firstMatches*firstGap+24);
+
+    bracketStage.style.width=`${stageWidth}px`;
+    bracketStage.style.height=`${stageHeight}px`;
+    bracketStage.style.minWidth=`${stageWidth}px`;
+    bracketStage.style.minHeight=`${stageHeight}px`;
+
+    const byePositions=chooseByePositions(bracketSize,totalParticipants);
+    const centersByRound=[];
+    let participantOrder=0;
+
+    for(let round=0;round<bracketRoundCount;round++){
+      const matchCount=bracketSize/(2**(round+1));
+      const roundEl=document.createElement("div");
+      roundEl.className="round dynamic-round";
+      roundEl.dataset.round=String(round);
+      roundEl.style.left=`${round*(roundWidth+roundGap)}px`;
+      roundEl.style.width=`${roundWidth}px`;
+
+      const title=document.createElement("div");
+      title.className="round-title";
+      title.textContent=roundTitle(round,bracketRoundCount);
+      roundEl.appendChild(title);
+
+      centersByRound[round]=[];
+
+      for(let m=0;m<matchCount;m++){
+        let center;
+        if(round===0){
+          center=topPad+m*firstGap+matchHeight/2;
+        }else{
+          const prevA=centersByRound[round-1][m*2];
+          const prevB=centersByRound[round-1][m*2+1];
+          center=(prevA+prevB)/2;
+        }
+        centersByRound[round].push(center);
+
+        const match=document.createElement("div");
+        const matchId=`r${round+1}m${m+1}`;
+        match.className="match";
+        match.dataset.match=matchId;
+        if(round<bracketRoundCount-1){
+          match.dataset.next=`r${round+2}m${Math.floor(m/2)+1}`;
+        }
+        match.style.top=`${center-matchHeight/2}px`;
+        match.style.height=`${matchHeight}px`;
+
+        for(let s=0;s<2;s++){
+          const slot=document.createElement("div");
+          slot.className="slot";
+
+          if(round===0){
+            const bracketPos=m*2+s;
+            slot.dataset.bracketPosition=String(bracketPos+1);
+
+            if(byePositions.has(bracketPos)){
+              slot.classList.add("bye","placeholder");
+              slot.innerHTML=`<span class="slot-index">${bracketPos+1}</span>BYE / wolny los`;
+            }else{
+              slot.dataset.slot=String(participantOrder);
+              slot.innerHTML=`<span class="slot-index">${bracketPos+1}</span>Miejsce ${participantOrder+1}`;
+              bracketSlots.push(slot);
+              participantOrder++;
+            }
+          }else{
+            const prevRound=round;
+            const prevMatchIndex=m*2+s+1;
+            slot.classList.add("placeholder");
+            slot.textContent=`Zwycięzca R${prevRound}M${prevMatchIndex}`;
+          }
+
+          match.appendChild(slot);
+        }
+
+        roundEl.appendChild(match);
+      }
+
+      bracketStage.appendChild(roundEl);
+    }
+
+    bracketTitle.textContent=`Single Elimination — ${totalParticipants} uczestników`;
+    formatBadge.textContent="Single Elimination";
+    bracketParticipantBadge.textContent=byeCount
+      ? `${bracketSize} miejsc · ${byeCount} BYE`
+      : `${bracketSize} miejsc`;
+
+    requestAnimationFrame(drawBracketLines);
+  }
+
+  function getConnectorSvg(){
+    return bracketStage.querySelector("#connectorSvg");
+  }
+
+  function updateWheelLegend(){
+    const numbered=teams.length>20;
+    wheelLegendPanel.hidden=!numbered;
+    wheelLegendGrid.innerHTML="";
+    if(!numbered)return;
+
+    teams.forEach((name,i)=>{
+      const item=document.createElement("div");
+      item.className="wheel-number-item";
+      item.innerHTML=`<b>${i+1}</b>${name}`;
+      wheelLegendGrid.appendChild(item);
+    });
+  }
+
+  function assignmentForDraw(drawIndex){
+    const slot=bracketSlots[drawIndex];
+    if(!slot)return null;
+
+    if(drawFormat==="groups"){
+      return {
+        format:"groups",
+        group:Number(slot.dataset.group),
+        groupName:groupName(Number(slot.dataset.group)),
+        groupPosition:Number(slot.dataset.groupPosition),
+        label:slot.dataset.destination
+      };
+    }
+
+    if(drawFormat==="swiss"){
+      return {
+        format:"swiss",
+        pairing:Number(slot.dataset.pairing),
+        side:slot.dataset.side,
+        label:slot.dataset.destination
+      };
+    }
+
+    return {
+      format:"elimination",
+      bracketPosition:Number(slot.dataset.bracketPosition||drawIndex+1),
+      label:`Pozycja ${Number(slot.dataset.bracketPosition||drawIndex+1)}`
+    };
+  }
+
+  function bracketPositionForDraw(drawIndex){
+    return assignmentForDraw(drawIndex)?.bracketPosition ?? null;
+  }
+
+  function destinationLabelForDraw(drawIndex){
+    return assignmentForDraw(drawIndex)?.label || "";
+  }
+
+  function scrollBracketSlotIntoView(slot){
+    if(!slot)return;
+    const scroller=slot.closest(".bracket-scroller");
+    if(!scroller)return;
+
+    const sr=scroller.getBoundingClientRect();
+    const tr=slot.getBoundingClientRect();
+    const desiredTop=scroller.scrollTop+(tr.top-sr.top)-sr.height*.42;
+    const desiredLeft=scroller.scrollLeft+(tr.left-sr.left)-Math.max(18,sr.width*.08);
+
+    scroller.scrollTo({
+      top:Math.max(0,desiredTop),
+      left:Math.max(0,desiredLeft),
+      behavior:"smooth"
+    });
+  }
+
+  function buildWheel(){
+    wheel.innerHTML="";
+    segmentGroups=[];
+
+    if(!teams.length){
+      const c=document.createElementNS(NS,"circle");
+      c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",radius);
+      c.setAttribute("fill","#22252b");c.setAttribute("stroke","#59606b");c.setAttribute("stroke-width","6");
+      wheel.appendChild(c);
+      const t=document.createElementNS(NS,"text");
+      t.setAttribute("x",cx);t.setAttribute("y",cy);t.setAttribute("text-anchor","middle");
+      t.setAttribute("dominant-baseline","middle");t.setAttribute("fill","#a8adb6");
+      t.setAttribute("font-size","29");t.setAttribute("font-weight","900");t.textContent="Losowanie zakończone";
+      wheel.appendChild(t);
+    }else{
+      const step=360/teams.length;
+
+      if(teams.length===1){
+        const g=document.createElementNS(NS,"g");
+        g.classList.add("segment-group");g.dataset.index="0";
+        const c=document.createElementNS(NS,"circle");
+        c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",radius);
+        c.setAttribute("fill",palette[0]);c.setAttribute("stroke","#fff");c.setAttribute("stroke-width","6");
+        g.appendChild(c);wheel.appendChild(g);segmentGroups.push(g);
+      }else{
+        teams.forEach((_,i)=>{
+          const g=document.createElementNS(NS,"g");
+          g.classList.add("segment-group");g.dataset.index=String(i);
+          const p=document.createElementNS(NS,"path");
+          p.setAttribute("d",wedgePath(cx,cy,radius,i*step,(i+1)*step));
+          p.setAttribute("fill",palette[i%palette.length]);
+          p.setAttribute("stroke","rgba(255,255,255,.72)");
+          p.setAttribute("stroke-width",teams.length>64?".7":teams.length>32?"1.2":teams.length>20?"1.8":"3");
+          g.appendChild(p);wheel.appendChild(g);segmentGroups.push(g);
+        });
+      }
+
+      teams.forEach((team,i)=>{
+        const step=360/teams.length;
+        const mid=i*step+step/2;
+        const many=teams.length>20;
+        const veryMany=teams.length>32;
+        const extreme=teams.length>64;
+        const labelRadius=extreme?radius*.77:veryMany?radius*.73:(many?radius*.69:radius*.65);
+        const pos=polar(cx,cy,labelRadius,mid);
+        const label=many
+          ? String(i+1)
+          : (team.length>18?team.slice(0,17)+"…":team);
+
+        const text=document.createElementNS(NS,"text");
+        text.setAttribute("x",pos.x);text.setAttribute("y",pos.y);
+        text.setAttribute("text-anchor","middle");text.setAttribute("dominant-baseline","middle");
+        text.setAttribute("fill","#fff");
+        text.setAttribute("font-size",extreme?"6.5":veryMany?"9":many?"13":teams.length>=12?"15":teams.length>=8?"20":"25");
+        text.setAttribute("font-weight","900");text.setAttribute("paint-order","stroke");
+        text.setAttribute("stroke","rgba(0,0,0,.68)");
+        text.setAttribute("stroke-width",veryMany?"3":many?"4":"6");
+        text.setAttribute("stroke-linejoin","round");
+        if(many){
+          let rot=mid;
+          if(rot>90&&rot<270)rot+=180;
+          text.setAttribute("transform",`rotate(${rot} ${pos.x} ${pos.y})`);
+        }
+        text.textContent=label;
+
+        const title=document.createElementNS(NS,"title");
+        title.textContent=`${i+1}. ${team}`;
+        segmentGroups[i]?.appendChild(title);
+        segmentGroups[i]?.appendChild(text);
+      });
+
+      const outline=document.createElementNS(NS,"circle");
+      outline.setAttribute("cx",cx);outline.setAttribute("cy",cy);outline.setAttribute("r",radius);
+      outline.setAttribute("fill","none");outline.setAttribute("stroke","#fff");outline.setAttribute("stroke-width","6");
+      wheel.appendChild(outline);
+    }
+
+    updateWheelLegend();
+    trail1.innerHTML=wheel.innerHTML;
+    trail2.innerHTML=wheel.innerHTML;
+    trail1.style.opacity="0";trail2.style.opacity="0";
+  }
+
+  function targetRotation(index,direction=1,turns=6){
+    const step=360/teams.length;
+    const center=index*step+step/2;
+    const current=mod360(rotation);
+    const wanted=mod360(360-center);
+
+    if(direction>=0){
+      const delta=mod360(wanted-current);
+      return rotation+turns*360+delta;
+    }
+    const delta=mod360(current-wanted);
+    return rotation-turns*360-delta;
+  }
+
+  function baseProfile(t){
+    const p=motionProfile.value;
+    if(p==="arcade")return 1-Math.pow(1-t,3);
+    if(p==="hard")return t===1?1:1-Math.pow(2,-10*t);
+    if(p==="broadcast")return t<.5?8*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    if(p==="dramatic")return 1-Math.pow(1-t,6);
+
+    const friction=fx.friction.enabled?fx.friction.intensity/100:.4;
+    const k=3.5+friction*5;
+    return (1-Math.exp(-k*t))/(1-Math.exp(-k));
+  }
+
+  function remapTime(t){
+    let u=t;
+
+    if(fx.miniStop.enabled){
+      const power=fx.miniStop.intensity/100;
+      const a=.64,b=.79;
+      const slow=.05+(1-power)*.55;
+      if(u>=a&&u<b)u=a+(u-a)*slow;
+      else if(u>=b){
+        const atB=a+(b-a)*slow;
+        u=atB+(u-b)/(1-b)*(1-atB);
+      }
+    }
+
+    if(fx.slowmo.enabled){
+      const power=fx.slowmo.intensity/100;
+      const exponent=1+3.2*power;
+      u=1-Math.pow(1-u,exponent);
+    }
+
+    return Math.min(1,Math.max(0,u));
+  }
+
+  function progressAt(t){return baseProfile(remapTime(t))}
+
+  function setWheelAngle(angle){
+    wheel.style.transform=`rotate(${angle}deg)`;
+    updateTrail(angle);
+    updateSpeedFx();
+  }
+
+  function updateTrail(angle){
+    if(!fx.trail.enabled||(!spinning&&!dragging)){
+      trail1.style.opacity="0";trail2.style.opacity="0";return;
+    }
+    const p=fx.trail.intensity/100;
+    const dir=liveDegPerSec>=0?1:-1;
+    const lag1=3+18*p,lag2=8+36*p;
+    trail1.style.transform=`rotate(${angle-dir*lag1}deg)`;
+    trail2.style.transform=`rotate(${angle-dir*lag2}deg)`;
+    trail1.style.opacity=String(.05+.22*p);
+    trail2.style.opacity=String(.02+.13*p);
+  }
+
+  function updateSpeedFx(){
+    const speed=Math.min(Math.abs(liveDegPerSec),1800);
+    const n=speed/1800;
+
+    const blur=fx.blur.enabled?(fx.blur.intensity/100)*4.2*n:0;
+    const rgb=fx.rgb.enabled?(fx.rgb.intensity/100)*8*n:0;
+
+    let filter="drop-shadow(0 11px 18px rgba(0,0,0,.33))";
+    if(blur>.05)filter+=` blur(${blur.toFixed(2)}px)`;
+    if(rgb>.05){
+      filter+=` drop-shadow(${rgb.toFixed(1)}px 0 0 rgba(255,40,80,.32))`;
+      filter+=` drop-shadow(${-rgb.toFixed(1)}px 0 0 rgba(0,220,255,.28))`;
+    }
+    wheel.style.filter=filter;
+
+    const ring=wheelWrap.querySelector(".momentum-ring");
+    if(fx.momentum.enabled){
+      const power=fx.momentum.intensity/100;
+      ring.style.setProperty("--momentumAngle",`${Math.round(360*Math.min(n*(.35+.9*power),1))}deg`);
+      ring.style.setProperty("--momentumOpacity",String(.12+.75*power));
+    }else{
+      ring.style.setProperty("--momentumOpacity","0");
+    }
+
+    if(fx.tension.enabled)updateTensionTone(n);
+    updateDiagnostics();
+  }
+
+  function updateDiagnostics(){
+    if(!fx.diagnostics.enabled)return;
+    diagSpeed.textContent=`${Math.round(liveDegPerSec)}°/s`;
+    diagRpm.textContent=(Math.abs(liveDegPerSec)/6).toFixed(1);
+    diagFps.textContent=String(fps);
+    diagRotation.textContent=`${Math.round(mod360(rotation))}°`;
+    diagProfile.textContent=motionProfile.options[motionProfile.selectedIndex].text;
+    diagTarget.textContent=targetWinnerIndex===null?"—":teams[targetWinnerIndex]??"—";
+  }
+
+  function ensureAudio(){
+    if(!audioCtx){
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(!Ctx)return null;
+      audioCtx=new Ctx();
+    }
+    if(audioCtx.state==="suspended")audioCtx.resume();
+    return audioCtx;
+  }
+
+  function tickSound(){
+    if(!fx.sound.enabled)return;
+    const ctx=ensureAudio();if(!ctx)return;
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    const power=fx.sound.intensity/100;
+    const speedN=Math.min(Math.abs(liveDegPerSec)/1600,1);
+    const type=soundType.value;
+    osc.type=type==="metal"?"square":type==="digital"?"sawtooth":"triangle";
+    const base=type==="click"?420:type==="metal"?680:type==="digital"?780:520;
+    osc.frequency.value=base+speedN*(type==="metal"?480:300);
+    gain.gain.setValueAtTime(.0001,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.004+.05*power,ctx.currentTime+.002);
+    gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+(type==="metal"?.065:.04));
+    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.08);
+  }
+
+  function startTensionTone(){
+    if(!fx.tension.enabled)return;
+    const ctx=ensureAudio();if(!ctx)return;
+    stopTensionTone();
+    tensionOsc=ctx.createOscillator();tensionGain=ctx.createGain();
+    tensionOsc.type="sine";tensionOsc.frequency.value=90;
+    tensionGain.gain.value=.0001;
+    tensionOsc.connect(tensionGain);tensionGain.connect(ctx.destination);tensionOsc.start();
+  }
+
+  function updateTensionTone(speedN){
+    if(!tensionOsc||!tensionGain)return;
+    const p=fx.tension.intensity/100;
+    const ctx=audioCtx;
+    tensionOsc.frequency.setTargetAtTime(90+240*(1-speedN)+100*p,ctx.currentTime,.03);
+    tensionGain.gain.setTargetAtTime(.002+.025*p,ctx.currentTime,.04);
+  }
+
+  function stopTensionTone(){
+    if(!tensionOsc)return;
+    try{
+      const ctx=audioCtx;
+      tensionGain.gain.setTargetAtTime(.0001,ctx.currentTime,.03);
+      tensionOsc.stop(ctx.currentTime+.12);
+    }catch{}
+    tensionOsc=null;tensionGain=null;
+  }
+
+  function pointerSpark(){
+    if(!fx.sparks.enabled)return;
+    const power=fx.sparks.intensity/100;
+    const count=Math.round(1+4*power);
+    const rect=pointer.getBoundingClientRect();
+    const x=rect.left+rect.width/2,y=rect.top+Math.max(8,rect.height*.7);
+    for(let i=0;i<count;i++){
+      const s=document.createElement("i");s.className="pointer-spark";
+      s.style.left=`${x}px`;s.style.top=`${y}px`;
+      s.style.setProperty("--sx",`${(Math.random()-.5)*(18+55*power)}px`);
+      s.style.setProperty("--sy",`${10+Math.random()*(20+45*power)}px`);
+      fxLayer.appendChild(s);setTimeout(()=>s.remove(),430);
+    }
+  }
+
+  function feedbackTick(){
+    if(fx.pointer.enabled){
+      const p=fx.pointer.intensity/100;
+      pointer.style.setProperty("--pointerKick",`${(2+12*p).toFixed(1)}deg`);
+      pointer.style.setProperty("--pointerTickMs",`${Math.round(55+105*p)}ms`);
+      pointer.classList.remove("tick");void pointer.offsetWidth;pointer.classList.add("tick");
+    }
+
+    if(fx.haptic.enabled){
+      const p=fx.haptic.intensity/100;
+      wheelWrap.style.setProperty("--hapticPx",`${(1+5*p).toFixed(1)}px`);
+      wheelWrap.style.setProperty("--hapticMs",`${Math.round(45+70*p)}ms`);
+      wheelWrap.classList.remove("haptic");void wheelWrap.offsetWidth;wheelWrap.classList.add("haptic");
+    }
+
+    tickSound();pointerSpark();
+  }
+
+  function maybeTick(angle){
+    if(!teams.length)return;
+    const step=360/teams.length;
+    const bucket=Math.floor(mod360(angle)/step);
+    if(bucket!==lastTickBucket){lastTickBucket=bucket;feedbackTick()}
+  }
+
+  function animateWheel(to,duration,done){
+    if(raf)cancelAnimationFrame(raf);
+    const from=rotation,start=performance.now();
+    lastFrameTime=start;lastFrameAngle=from;lastTickBucket=null;
+    clearSpeedChart();
+    spinning=true;wheelWrap.classList.add("spinning");
+    startTensionTone();
+
+    function frame(now){
+      const raw=Math.min((now-start)/duration,1);
+      const p=progressAt(raw);
+      const v=from+(to-from)*p;
+      const dt=Math.max(now-lastFrameTime,1);
+      liveDegPerSec=(v-lastFrameAngle)/dt*1000;
+      const phys=getPhysics();
+      liveDegPerSec=Math.max(-phys.maxSpeed,Math.min(phys.maxSpeed,liveDegPerSec));
+      rotation=v;
+      setWheelAngle(v);maybeTick(v);pushSpeedSample(now,liveDegPerSec);
+
+      fpsCounter++;
+      if(now-fpsStamp>=500){
+        fps=Math.round(fpsCounter*1000/(now-fpsStamp));
+        fpsCounter=0;fpsStamp=now;
+      }
+
+      lastFrameTime=now;lastFrameAngle=v;
+
+      if(raw<1)raf=requestAnimationFrame(frame);
+      else{
+        rotation=to;setWheelAngle(to);liveDegPerSec=0;raf=null;
+        wheelWrap.classList.remove("spinning");stopTensionTone();
+        trail1.style.opacity="0";trail2.style.opacity="0";
+        done();
+      }
+    }
+    raf=requestAnimationFrame(frame);
+  }
+
+  function applyWinnerVisual(index){
+    segmentGroups.forEach((g,i)=>{
+      g.classList.remove("winner","loser");
+      if(i===index&&fx.highlight.enabled){
+        const p=fx.highlight.intensity/100;
+        g.classList.add("winner");g.style.setProperty("--winnerGlow",`${(5+23*p).toFixed(1)}px`);
+      }else if(i!==index&&fx.dim.enabled){
+        const p=fx.dim.intensity/100;
+        g.classList.add("loser");g.style.setProperty("--loserOpacity",String(1-.82*p));
+      }
+    });
+
+    if(fx.zoom.enabled){
+      const p=fx.zoom.intensity/100;
+      wheelWrap.style.setProperty("--winnerScale",String(1+.10*p));
+      wheelWrap.classList.add("winner-zoom");
+    }
+
+    if(fx.flash.enabled){
+      wheelPanel.style.setProperty("--winnerFlashPct",`${Math.round(4+25*fx.flash.intensity/100)}%`);
+      wheelPanel.classList.remove("winner-flash");void wheelPanel.offsetWidth;wheelPanel.classList.add("winner-flash");
+    }
+
+    if(fx.shake.enabled){
+      wheelWrap.style.setProperty("--shakePx",`${(1+9*fx.shake.intensity/100).toFixed(1)}px`);
+      wheelWrap.classList.remove("winner-shake");void wheelWrap.offsetWidth;wheelWrap.classList.add("winner-shake");
+      setTimeout(()=>wheelWrap.classList.remove("winner-shake"),500);
+    }
+  }
+
+  function celebrate(){
+    if(!fx.confetti.enabled)return;
+    const rect=wheelWrap.getBoundingClientRect();
+    const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+    const p=fx.confetti.intensity/100;
+    const count=Math.round(8+90*p);
+
+    for(let i=0;i<count;i++){
+      const s=document.createElement("i");s.className="spark";
+      const a=Math.PI*2*i/count+(Math.random()-.5)*.35;
+      const dist=60+Math.random()*(80+240*p);
+      const size=5+Math.random()*(4+8*p);
+      s.style.left=`${x}px`;s.style.top=`${y}px`;s.style.background=palette[i%palette.length];
+      s.style.width=`${size}px`;s.style.height=`${size*(1.2+Math.random()*.6)}px`;
+      s.style.setProperty("--dx",`${Math.cos(a)*dist}px`);
+      s.style.setProperty("--dy",`${Math.sin(a)*dist-(50+Math.random()*70)}px`);
+      s.style.setProperty("--rot",`${Math.round(Math.random()*900-450)}deg`);
+      s.style.setProperty("--sparkMs",`${Math.round(720+500*p)}ms`);
+      fxLayer.appendChild(s);setTimeout(()=>s.remove(),1400);
+    }
+  }
+
+  function jackpot(team){
+    if(!fx.jackpot.enabled)return;
+    const p=fx.jackpot.intensity/100;
+    const j=document.createElement("div");j.className="jackpot";
+    j.innerHTML=`<div style="font-size:${(1.3+1.6*p).toFixed(2)}rem;color:var(--accent)">WYLOSOWANO</div>
+                 <div style="font-size:${(2.0+2.4*p).toFixed(2)}rem">${team}</div>`;
+    j.style.setProperty("--jackpotMs",`${Math.round(800+700*p)}ms`);
+    fxLayer.appendChild(j);setTimeout(()=>j.remove(),1700);
+  }
+
+  function animateRemoval(index,done){
+    if(!fx.remove.enabled||!segmentGroups[index]){done();return}
+    const p=fx.remove.intensity/100;
+    const step=360/teams.length;
+    const mid=index*step+step/2+rotation;
+    const a=(mid-90)*Math.PI/180;
+    const dist=15+65*p;
+    const g=segmentGroups[index];
+    g.style.setProperty("--removeX",`${Math.cos(a)*dist}px`);
+    g.style.setProperty("--removeY",`${Math.sin(a)*dist}px`);
+    g.style.setProperty("--removeScale",String(1+.10*p));
+    g.style.setProperty("--removeMs",`${Math.round(300+420*p)}ms`);
+    g.classList.add("removing");
+    setTimeout(done,330+420*p);
+  }
+
+  function flyTeamToSlot(team,slot,done){
+    if(!fx.fly.enabled||!slot||matchMedia("(prefers-reduced-motion: reduce)").matches){done();return}
+    const p=fx.fly.intensity/100;
+    const a=wheelWrap.getBoundingClientRect(),b=slot.getBoundingClientRect();
+    const sx=a.left+a.width/2,sy=a.top+a.height/2,ex=b.left+b.width/2,ey=b.top+b.height/2;
+    const ghost=document.createElement("div");ghost.className="flying-team";ghost.textContent=team;
+    ghost.style.left=`${sx}px`;ghost.style.top=`${sy}px`;ghost.style.translate="-50% -50%";
+    fxLayer.appendChild(ghost);
+
+    const ms=Math.max(260,Math.round((1050-520*p)*getDrawSpeedScale()));
+    const style=flyStyle.value;
+    let keyframes;
+
+    if(style==="teleport"){
+      keyframes=[
+        {left:`${sx}px`,top:`${sy}px`,opacity:1,scale:1,filter:"blur(0)"},
+        {left:`${sx}px`,top:`${sy}px`,opacity:0,scale:.2,filter:"blur(8px)",offset:.42},
+        {left:`${ex}px`,top:`${ey}px`,opacity:0,scale:1.8,filter:"blur(8px)",offset:.58},
+        {left:`${ex}px`,top:`${ey}px`,opacity:1,scale:.8,filter:"blur(0)"}
+      ];
+    }else if(style==="bounce"){
+      keyframes=[
+        {left:`${sx}px`,top:`${sy}px`,scale:1},
+        {left:`${(sx+ex)/2}px`,top:`${Math.min(sy,ey)-100-100*p}px`,scale:1.18,offset:.58},
+        {left:`${ex}px`,top:`${ey}px`,scale:.72}
+      ];
+    }else if(style==="beam"){
+      ghost.style.boxShadow=`0 0 ${18+35*p}px ${5+15*p}px var(--glow)`;
+      keyframes=[
+        {left:`${sx}px`,top:`${sy}px`,opacity:1,scale:1},
+        {left:`${ex}px`,top:`${ey}px`,opacity:.15,scale:.55}
+      ];
+    }else if(style==="linear"){
+      keyframes=[
+        {left:`${sx}px`,top:`${sy}px`,scale:1},
+        {left:`${ex}px`,top:`${ey}px`,scale:.72}
+      ];
+    }else{
+      keyframes=[
+        {left:`${sx}px`,top:`${sy}px`,scale:1},
+        {left:`${sx+(ex-sx)*.42}px`,top:`${Math.min(sy,ey)-70-90*p}px`,scale:1.08,offset:.48},
+        {left:`${ex}px`,top:`${ey}px`,scale:.72}
+      ];
+    }
+
+    if(ghost.animate){
+      const anim=ghost.animate(keyframes,{duration:ms,easing:"cubic-bezier(.2,.8,.2,1)",fill:"forwards"});
+      anim.onfinish=()=>{ghost.remove();done()};
+    }else{
+      ghost.style.transition=`left ${ms}ms ease,top ${ms}ms ease,opacity ${ms}ms ease,scale ${ms}ms ease`;
+      requestAnimationFrame(()=>{ghost.style.left=`${ex}px`;ghost.style.top=`${ey}px`;ghost.style.opacity=".2";ghost.style.scale=".72"});
+      setTimeout(()=>{ghost.remove();done()},ms+40);
+    }
+  }
+
+  function placeInBracket(team){
+    const drawIndex=drawn.length;
+    const slot=bracketSlots[drawIndex];
+    const destination=assignmentForDraw(drawIndex);
+    drawn.push(team);
+
+    if(slot){
+      slot.textContent=team;
+      slot.title=destination?.label||"";
+      slot.classList.remove("target","placeholder");
+      slot.classList.add("filled","just-filled");
+      setTimeout(()=>slot.classList.remove("just-filled"),620);
+
+      if(drawFormat==="groups"){
+        const card=slot.closest(".format-card");
+        const g=Number(slot.dataset.group);
+        const groupFilled=drawn.slice(0).filter((_,i)=>assignmentForDraw(i)?.group===g).length;
+        const totalInGroup=card?.querySelectorAll("[data-slot]").length||0;
+        const counter=card?.querySelector(".format-card-head span");
+        if(counter)counter.textContent=`${groupFilled}/${totalInGroup}`;
+      }
+    }
+
+    const chip=document.createElement("span");
+    chip.className="chip";
+    chip.textContent=destination?.label
+      ? `${drawn.length}. ${team} → ${destination.label}`
+      : `${drawn.length}. ${team}`;
+    drawOrder.appendChild(chip);
+    persistResults();
+    updateUxState();
+  }
+
+  function updateCompletionPanel(){
+    const complete=drawn.length>=initialTeams.length && initialTeams.length>0;
+    completionPanel.classList.toggle("visible",complete);
+    if(!complete)return;
+
+    if(drawFormat==="groups"){
+      completionTitle.textContent="Podział na grupy zakończony.";
+      const sizes=[];
+      for(let g=0;g<activeGroupCount;g++){
+        const count=drawn.filter((_,i)=>assignmentForDraw(i)?.group===g).length;
+        sizes.push(`${groupName(g)}: ${count}`);
+      }
+      completionText.textContent=`${activeGroupCount} grup · ${sizes.join(" · ")}`;
+    }else if(drawFormat==="swiss"){
+      completionTitle.textContent="Pary rundy 1 są gotowe.";
+      completionText.textContent=initialTeams.length%2
+        ? `${Math.ceil(initialTeams.length/2)} par, w tym 1 wolny los BYE. Kolejna runda powinna powstać dopiero po wynikach.`
+        : `${initialTeams.length/2} pełnych par rundy 1. Kolejna runda powinna powstać dopiero po wynikach.`;
+    }else{
+      completionTitle.textContent="Obsada drabinki jest gotowa.";
+      completionText.textContent=byeCount
+        ? `Drabinka ${bracketSize} miejsc · ${byeCount} BYE · ${initialTeams.length} uczestników.`
+        : `Pełna drabinka ${bracketSize} miejsc.`;
+    }
+  }
+
+  function markNextTarget(){
+    bracketSlots.forEach(s=>s.classList.remove("target"));
+    const next=bracketSlots[drawn.length];
+    next?.classList.add("target");
+  }
+
+
+  function smoothReflow(removeIndex,done){
+    const oldVisual=wheel.cloneNode(true);
+    oldVisual.removeAttribute("id");
+    oldVisual.classList.add("reflow-old");
+    oldVisual.style.transform=wheel.style.transform;
+    wheelWrap.appendChild(oldVisual);
+
+    teams.splice(removeIndex,1);
+    targetWinnerIndex=null;
+    rotation=0;
+    wheelWrap.classList.remove("winner-zoom");
+
+    buildWheel();setWheelAngle(0);
+    wheel.classList.add("reflow-new");
+
+    if(!fx.reflow.enabled||matchMedia("(prefers-reduced-motion: reduce)").matches){
+      oldVisual.remove();wheel.classList.remove("reflow-new");done();return;
+    }
+
+    const p=fx.reflow.intensity/100;
+    const ms=Math.round(260+620*p);
+    wheel.style.opacity="0";
+    wheel.style.scale=String(.93+.04*(1-p));
+
+    const oldAnim=oldVisual.animate
+      ? oldVisual.animate(
+          [{opacity:1,scale:1},{opacity:0,scale:1+.07*p}],
+          {duration:ms,easing:"cubic-bezier(.2,.75,.2,1)",fill:"forwards"}
+        )
+      : null;
+
+    if(wheel.animate){
+      const newAnim=wheel.animate(
+        [{opacity:0,scale:.92+.04*(1-p)},{opacity:1,scale:1}],
+        {duration:ms,easing:"cubic-bezier(.2,.85,.2,1)",fill:"forwards"}
+      );
+      newAnim.onfinish=()=>{
+        wheel.style.opacity="";wheel.style.scale="";
+        oldVisual.remove();wheel.classList.remove("reflow-new");done();
+      };
+    }else{
+      wheel.style.transition=`opacity ${ms}ms ease,scale ${ms}ms ease`;
+      requestAnimationFrame(()=>{wheel.style.opacity="1";wheel.style.scale="1"});
+      setTimeout(()=>{
+        wheel.style.transition="";wheel.style.opacity="";wheel.style.scale="";
+        oldVisual.remove();wheel.classList.remove("reflow-new");done();
+      },ms+40);
+    }
+  }
+
+  function replayLast(){
+    if(!lastReplay||spinning||replaying)return;
+    replaying=true;
+    spinBtn.disabled=true;replayBtn.disabled=true;
+
+    const liveTeams=[...teams];
+    const liveRotation=rotation;
+    const liveResult=result.textContent;
+    const liveWaiting=result.classList.contains("waiting");
+
+    teams=[...lastReplay.teamsBefore];
+    rotation=lastReplay.fromRotation;
+    buildWheel();setWheelAngle(rotation);
+    result.textContent=`Replay: ${lastReplay.team}`;
+    result.classList.add("waiting");
+    targetWinnerIndex=lastReplay.winnerIndex;
+
+    animateWheel(lastReplay.target,Math.max(420,lastReplay.duration*.72*getDrawSpeedScale()),()=>{
+      applyWinnerVisual(lastReplay.winnerIndex);
+      result.textContent=`Replay wyniku: ${lastReplay.team}`;
+      result.classList.remove("waiting");
+
+      setTimeout(()=>{
+        teams=liveTeams;
+        rotation=liveRotation;
+        targetWinnerIndex=null;
+        buildWheel();setWheelAngle(rotation);
+        result.textContent=liveResult;
+        result.classList.toggle("waiting",liveWaiting);
+        replaying=false;
+        replayBtn.disabled=false;
+        spinBtn.disabled=!teams.length;
+      },750);
+    });
+  }
+
+  function finishWinner(index){
+    targetWinnerIndex=index;
+    const team=teams[index];
+    if(pendingReplay){
+      lastReplay={...pendingReplay,team};
+      replayBtn.disabled=false;
+      pendingReplay=null;
+    }
+    result.textContent=`Wylosowano: ${team}`;result.classList.remove("waiting");
+    applyWinnerVisual(index);celebrate();jackpot(team);
+
+    const slot=bracketSlots[drawn.length];
+    scrollBracketSlotIntoView(slot);
+    const wait=Math.max(90,Math.round((fx.highlight.enabled?520:260)*getDrawSpeedScale()));
+
+    setTimeout(()=>{
+      animateRemoval(index,()=>{
+        flyTeamToSlot(team,slot,()=>{
+          placeInBracket(team);
+          smoothReflow(index,()=>{
+            updateMeta();markNextTarget();drawBracketLines();
+            spinning=false;spinBtn.disabled=!teams.length;
+            spinBtn.textContent=teams.length?"Losuj kolejnego":"Losowanie zakończone";
+            setSetupLocked(false);
+            updateUxState();
+
+            if(demoActive&&teams.length){
+              clearTimeout(demoTimer);
+              demoTimer=setTimeout(()=>spin(),getEffectiveDemoDelay());
+            }else if(!teams.length){
+              demoActive=false;demoBtn.textContent="Losuj automatycznie";
+            }
+          });
+        });
+      });
+    },wait);
+  }
+
+  function computeTurnsForButton(){
+    const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
+    const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
+    const p=getPhysics();
+    return Math.max(3,Math.min(24,Math.round(
+      4+7*inertia+5*(1-friction)+5*(p.mass-1)-4*p.drag
+    )));
+  }
+
+  function spin(){
+    if(spinning||replaying||!teams.length)return;
+    ensureAudio();
+    spinning=true;spinBtn.disabled=true;
+    setSetupLocked(true);
+    result.textContent="Trwa losowanie…";result.classList.add("waiting");
+    updateUxState();
+
+    const startRotation=rotation;
+    const teamsBefore=[...teams];
+    const i=secureIndex(teams.length);targetWinnerIndex=i;
+    const turns=computeTurnsForButton();
+    const target=targetRotation(i,1,turns);
+    const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
+    const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
+    const p=getPhysics();
+    const speedScale=getDrawSpeedScale();
+    const duration=matchMedia("(prefers-reduced-motion: reduce)").matches?320:
+      Math.max(520,Math.round(
+        (2600+3000*inertia+1300*(1-friction))*p.mass*(1+.45*p.drag)*(1+.35*p.brake)*speedScale
+      ));
+
+    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration,team:teams[i]};
+    animateWheel(target,duration,()=>finishWinner(i));
+  }
+
+  function pointerAngle(e){
+    const r=wheelWrap.getBoundingClientRect();
+    return Math.atan2(e.clientY-(r.top+r.height/2),e.clientX-(r.left+r.width/2))*180/Math.PI;
+  }
+
+  function shortestDelta(a,b){
+    let d=b-a;while(d>180)d-=360;while(d<-180)d+=360;return d;
+  }
+
+  function beginDrag(e){
+    if(spinning||!teams.length)return;
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    ensureAudio();
+    dragging=true;dragPointerId=e.pointerId;wheelWrap.classList.add("dragging");
+    wheelWrap.setPointerCapture?.(e.pointerId);
+    lastPointerAngle=pointerAngle(e);lastMoveTime=performance.now();totalDrag=0;motionHistory=[];lastMotionTime=lastMoveTime;
+    motionHistory.push({t:lastMotionTime,rot:rotation});
+    gestureFill.style.width="0%";
+    throwStrength.textContent="Siła rzutu: mierzona…";
+  }
+
+  function moveDrag(e){
+    if(!dragging||e.pointerId!==dragPointerId)return;
+    const now=performance.now(),a=pointerAngle(e),delta=shortestDelta(lastPointerAngle,a),dt=Math.max(now-lastMoveTime,1);
+    rotation+=delta;totalDrag+=delta;liveDegPerSec=delta/dt*1000;setWheelAngle(rotation);maybeTick(rotation);
+    lastMotionTime=now;motionHistory.push({t:now,rot:rotation});
+    while(motionHistory.length>2&&motionHistory[0].t<now-160)motionHistory.shift();
+    if(motionHistory.length>=2){
+      const first=motionHistory[0],last=motionHistory[motionHistory.length-1];
+      liveDegPerSec=(last.rot-first.rot)/Math.max(last.t-first.t,1)*1000;
+    }
+    const pct=Math.round(Math.min(Math.abs(liveDegPerSec)/1100,1)*100);
+    gestureFill.style.width=`${pct}%`;throwStrength.textContent=`Siła rzutu: ${pct}%`;
+    lastPointerAngle=a;lastMoveTime=now;
+  }
+
+  function endDrag(e){
+    if(!dragging||e.pointerId!==dragPointerId)return;
+    dragging=false;wheelWrap.classList.remove("dragging");
+    try{wheelWrap.releasePointerCapture?.(e.pointerId)}catch{}
+
+    const now=performance.now(),idle=Math.max(0,now-lastMotionTime);
+    const decay=idle<=70?1:Math.max(0,1-(idle-70)/280);
+    const release=liveDegPerSec*decay;
+    const speed=Math.abs(release),distance=Math.abs(totalDrag);
+    const minDistance=28,minSpeed=170;
+
+    if(distance<minDistance||speed<minSpeed){
+      liveDegPerSec=0;gestureFill.style.width="0%";
+      const pct=Math.round(Math.min(speed/1100,1)*100);
+      throwStrength.textContent=`Siła rzutu: ${pct}% • poniżej progu`;
+      result.textContent="Koło przesunięte — ruch był za mały lub za wolny, więc losowanie nie wystartowało.";
+      result.classList.add("waiting");return;
+    }
+
+    spinning=true;spinBtn.disabled=true;
+    const startRotation=rotation;
+    const teamsBefore=[...teams];
+    const i=secureIndex(teams.length);targetWinnerIndex=i;
+    const dir=Math.sign(release||totalDrag||1);
+    const p=getPhysics();
+    const speedNormBase=Math.max(700,p.maxSpeed);
+    const n=Math.min(speed/speedNormBase,1);
+    const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
+    const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
+    const turns=Math.max(3,Math.min(26,Math.round(
+      2+15*Math.pow(n,.78)+7*inertia-4*friction+5*(p.mass-1)-4*p.drag
+    )));
+    const target=targetRotation(i,dir,turns);
+    throwStrength.textContent=`Siła rzutu: ${Math.round(n*100)}% • ${turns} obrotów`;
+    result.textContent=n>.72?"Mocny rzut — koło wiruje bardzo szybko…":n>.35?"Średni rzut — koło wiruje…":"Rzut zaakceptowany…";
+    result.classList.add("waiting");
+    const duration=matchMedia("(prefers-reduced-motion: reduce)").matches?450:
+      Math.round((1700+4100*Math.pow(n,.62)+1600*inertia-850*friction)*p.mass*(1+.4*p.drag)*(1+.3*p.brake));
+
+    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration,team:teams[i]};
+    animateWheel(target,duration,()=>finishWinner(i));
+  }
+
+  function updateMeta(){
+    const total=initialTeams.length;
+    remainingBadge.textContent=`Pozostało: ${teams.length}`;
+    nextSlotText.textContent=teams.length
+      ?`Następny przydział: ${drawn.length+1}/${total}`
+      :"Wszystkie przydziały gotowe";
+    drawCountText.textContent=`Wylosowano: ${drawn.length}/${total}`;
+    updateUxState();
+  }
+
+  function drawBracketLines(){
+    const svg=getConnectorSvg();
+    if(!svg)return;
+    if(drawFormat!=="elimination"){
+      svg.innerHTML="";
+      return;
+    }
+
+    const r=bracketStage.getBoundingClientRect();
+    svg.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`);
+    svg.innerHTML="";
+
+    bracketStage.querySelectorAll(".match[data-next]").forEach(from=>{
+      const to=bracketStage.querySelector(`[data-match="${from.dataset.next}"]`);
+      if(!to)return;
+
+      const A=from.getBoundingClientRect();
+      const B=to.getBoundingClientRect();
+      const x1=A.right-r.left;
+      const y1=A.top+A.height/2-r.top;
+      const x2=B.left-r.left;
+      const y2=B.top+B.height/2-r.top;
+      const mid=x1+(x2-x1)*.52;
+
+      const p=document.createElementNS(NS,"path");
+      p.setAttribute("d",`M ${x1} ${y1} H ${mid} V ${y2} H ${x2}`);
+      p.setAttribute("fill","none");
+      p.setAttribute("stroke","var(--line)");
+      p.setAttribute("stroke-width","1.5");
+      p.setAttribute("vector-effect","non-scaling-stroke");
+      svg.appendChild(p);
+    });
+  }
+
+
+  function refreshFxUi(){
+    for(const [name,[checkId,rangeId]] of Object.entries(fxControlMap)){
+      const check=document.getElementById(checkId);if(!check)continue;
+      check.checked=!!fx[name].enabled;
+      if(rangeId){
+        const range=document.getElementById(rangeId);range.value=fx[name].intensity;range.disabled=!check.checked;
+        const out=range.parentElement.querySelector("output");if(out)out.value=`${fx[name].intensity}%`;
+      }
+    }
+    diagnostics.classList.toggle("hidden",!fx.diagnostics.enabled);
+    syncFxClasses();
+  }
+
+  function syncFxClasses(){
+    wheelWrap.classList.toggle("fx-glow",fx.glow.enabled);
+    wheelWrap.classList.toggle("fx-lines",fx.lines.enabled);
+    wheelWrap.classList.toggle("fx-hub",fx.hub.enabled);
+    wheelWrap.classList.toggle("fx-momentum",fx.momentum.enabled);
+
+    const gp=fx.glow.intensity/100,hp=fx.hub.intensity/100;
+    wheelWrap.style.setProperty("--glowNear",`${10+22*gp}px`);
+    wheelWrap.style.setProperty("--glowSpread",`${2+7*gp}px`);
+    wheelWrap.style.setProperty("--glowFar",`${25+48*gp}px`);
+    wheelWrap.style.setProperty("--glowFarSpread",`${4+10*gp}px`);
+    wheelWrap.style.setProperty("--glowSpeed",`${1.25-.55*gp}s`);
+    wheelWrap.style.setProperty("--linesOpacity",String(.04+.62*fx.lines.intensity/100));
+    wheelWrap.style.setProperty("--linesSpeed",`${1.25-.88*fx.lines.intensity/100}s`);
+    wheelWrap.style.setProperty("--hubBlur",`${12+28*hp}px`);
+    wheelWrap.style.setProperty("--hubSpread",`${2+7*hp}px`);
+    wheelWrap.style.setProperty("--hubSpeed",`${.9-.35*hp}s`);
+  }
+
+  function wireFxControls(){
+    for(const [name,[checkId,rangeId]] of Object.entries(fxControlMap)){
+      const check=document.getElementById(checkId);if(!check)continue;
+      check.addEventListener("change",()=>{
+        fx[name].enabled=check.checked;
+        if(rangeId)document.getElementById(rangeId).disabled=!check.checked;
+        diagnostics.classList.toggle("hidden",!fx.diagnostics.enabled);
+        if(name==="tension"&&!fx.tension.enabled)stopTensionTone();
+        syncFxClasses();
+      });
+      if(rangeId){
+        const range=document.getElementById(rangeId);
+        range.addEventListener("input",()=>{
+          fx[name].intensity=Number(range.value);
+          const out=range.parentElement.querySelector("output");if(out)out.value=`${range.value}%`;
+          syncFxClasses();
+        });
+      }
+    }
+  }
+
+  function applyPreset(name){
+    const p=presets[name];if(!p)return;
+    Object.entries(p).forEach(([k,v])=>{
+      if(!(k in fx))return;
+      fx[k].intensity=v;
+      fx[k].enabled=v>0;
+    });
+    refreshFxUi();
+  }
+
+  function applyPack(name){
+    if(name==="casino"){
+      themeSelect.value="casino";wheelStyleSelect.value="metal";pointerSelect.value="mechanical";
+      presetSelect.value="tv";motionProfile.value="dramatic";soundType.value="metal";flyStyle.value="arc";
+      applyTheme("casino");applyPreset("tv");
+    }else if(name==="cyber"){
+      themeSelect.value="cyber";wheelStyleSelect.value="neon";pointerSelect.value="laser";
+      presetSelect.value="arcade";motionProfile.value="arcade";soundType.value="digital";flyStyle.value="beam";
+      applyTheme("cyber");applyPreset("arcade");
+    }else if(name==="broadcast"){
+      themeSelect.value="ocean";wheelStyleSelect.value="broadcast";pointerSelect.value="needle";
+      presetSelect.value="tv";motionProfile.value="broadcast";soundType.value="soft";flyStyle.value="arc";
+      applyTheme("ocean");applyPreset("tv");
+    }else if(name==="minimal"){
+      themeSelect.value="mono";wheelStyleSelect.value="flat";pointerSelect.value="triangle";
+      presetSelect.value="minimal";motionProfile.value="physics";soundType.value="soft";flyStyle.value="linear";
+      applyTheme("mono");applyPreset("minimal");
+    }
+    wheelWrap.dataset.wheelStyle=wheelStyleSelect.value;
+    wheelWrap.dataset.pointer=pointerSelect.value;
+  }
+
+  function requestReset(){
+    if(spinning||replaying)return;
+
+    if(drawn.length>0 && performance.now()>resetArmedUntil){
+      resetArmedUntil=performance.now()+3200;
+      resetBtn.textContent="Kliknij ponownie — wyczyść wyniki";
+      resetBtn.classList.add("reset-armed");
+      result.textContent="Nowe losowanie wyczyści aktualne wyniki. Kliknij przycisk ponownie, aby potwierdzić.";
+      result.classList.add("waiting");
+
+      setTimeout(()=>{
+        if(performance.now()>resetArmedUntil){
+          resetBtn.textContent="Nowe losowanie";
+          resetBtn.classList.remove("reset-armed");
+        }
+      },3300);
+      return;
+    }
+
+    resetArmedUntil=0;
+    resetBtn.textContent="Nowe losowanie";
+    resetBtn.classList.remove("reset-armed");
+    reset();
+  }
+
+  function reset(){
+    resetArmedUntil=0;
+    resetBtn.textContent="Nowe losowanie";
+    resetBtn.classList.remove("reset-armed");
+    if(raf)cancelAnimationFrame(raf);raf=null;stopTensionTone();
+    clearTimeout(demoTimer);demoActive=false;demoBtn.textContent="Losuj automatycznie";
+    teams=[...initialTeams];drawn=[];rotation=0;spinning=false;dragging=false;liveDegPerSec=0;targetWinnerIndex=null;
+    pendingReplay=null;lastReplay=null;replaying=false;replayBtn.disabled=true;resetSeedState();clearSpeedChart();
+    drawOrder.innerHTML="";
+    completionPanel.classList.remove("visible");
+    buildDestination(initialTeams.length);
+    result.textContent="Kliknij „Losuj”, aby rozpocząć.";result.classList.add("waiting");
+    throwStrength.textContent="Siła rzutu: —";gestureFill.style.width="0%";
+    spinBtn.disabled=false;spinBtn.textContent="Losuj pierwszego";
+    wheelWrap.classList.remove("spinning","dragging","winner-zoom","winner-shake","haptic");
+    setSetupLocked(false);
+    buildWheel();setWheelAngle(0);updateMeta();markNextTarget();requestAnimationFrame(drawBracketLines);
+    persistResults();
+    updateUxState();
+  }
+
+  /* listeners */
+  wheelWrap.addEventListener("pointerdown",beginDrag);
+  wheelWrap.addEventListener("pointermove",moveDrag);
+  wheelWrap.addEventListener("pointerup",endDrag);
+  wheelWrap.addEventListener("pointercancel",endDrag);
+
+  applyParticipants.addEventListener("click",()=>{
+    if(spinning||replaying)return;
+    const names=participantsInput.value
+      .split(/\r?\n/)
+      .map(v=>v.trim())
+      .filter(Boolean);
+
+    const unique=[...new Set(names)];
+    if(unique.length<2||unique.length>128){
+      participantsStatus.textContent="Potrzebne są 2–128 niepustych, unikalnych nazw.";
+      participantsStatus.style.color="var(--danger)";
+      return;
+    }
+
+    initialTeams=unique;
+    quickTeamCount.value=unique.length;
+    participantsInput.value=unique.join("\n");
+    participantsStatus.textContent=`Zastosowano ${unique.length} uczestników. Losowanie zresetowane.`;
+    participantsStatus.style.color="var(--success)";
+    reset();
+    renderCompareWheel(compareWheelA,teams);renderCompareWheel(compareWheelB,teams);
+  });
+
+  applySeed.addEventListener("click",()=>{
+    syncQuickSeedFromAdvanced();
+    resetSeedState();
+    reset();
+  });
+
+  randomSeedBtn.addEventListener("click",()=>{
+    const n=window.crypto?.getRandomValues
+      ? Array.from(crypto.getRandomValues(new Uint32Array(2))).map(v=>v.toString(36)).join("-")
+      : Math.random().toString(36).slice(2,12);
+    seedInput.value=`SEED-${n.toUpperCase()}`;
+    syncQuickSeedFromAdvanced();
+    resetSeedState();
+    reset();
+  });
+
+  replayBtn.addEventListener("click",replayLast);
+  runCompareBtn.addEventListener("click",runComparison);
+
+  [physicsMass,physicsDrag,physicsBrake,physicsMaxSpeed].forEach(el=>{
+    el.addEventListener("input",()=>{updatePhysicsLabels();drawSpeedChart()});
+  });
+
+  generateTeamsBtn.addEventListener("click",generateQuickTeams);
+  quickTeamCount.addEventListener("change",()=>{
+    quickTeamCount.value=Math.max(2,Math.min(128,Number(quickTeamCount.value)||8));
+    configHint.textContent="Kliknij „Team 1…N”, aby wygenerować i zastosować listę.";
+    updateFormatHelp();
+  });
+  autoGroupsBtn.addEventListener("click",()=>{
+    if(drawn.length||spinning||replaying)return;
+    groupCountInput.value=suggestGroupCount(Number(quickTeamCount.value)||initialTeams.length);
+    updateFormatHelp();
+    reset();
+  });
+
+  drawSpeedSelect.addEventListener("change",()=>{
+    updateFormatHelp();
+    updateUxState();
+  });
+
+  drawFormatSelect.addEventListener("change",()=>{
+    if(spinning||replaying)return;
+    updateFormatHelp();
+    reset();
+  });
+
+  groupCountInput.addEventListener("change",()=>{
+    groupCountInput.value=Math.max(2,Math.min(16,Number(groupCountInput.value)||4));
+    if(getDrawFormat()==="groups"&&!spinning&&!replaying)reset();
+    else updateFormatHelp();
+  });
+
+  quickSeedInput.addEventListener("change",()=>{
+    if(drawn.length||spinning||replaying){
+      syncQuickSeedFromAdvanced();
+      return;
+    }
+    syncAdvancedSeedFromQuick();
+    resetSeedState();
+    reset();
+  });
+
+  quickRandomSeedBtn.addEventListener("click",()=>{
+    if(drawn.length||spinning||replaying)return;
+    randomSeedBtn.click();
+    syncQuickSeedFromAdvanced();
+  });
+
+  applyQuickStyleBtn.addEventListener("click",applyQuickStyle);
+
+  presentationBtn.addEventListener("click",()=>{
+    const on=document.body.classList.toggle("presentation-mode");
+    presentationBtn.textContent=on?"Pokaż ustawienia":"Tryb prezentacji";
+    requestAnimationFrame(drawBracketLines);
+  });
+
+  scrollBracketBtn.addEventListener("click",()=>{
+    bracketStage.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+
+  completionCopyBtn.addEventListener("click",copyResults);
+  completionCsvBtn.addEventListener("click",saveResultsCsv);
+  completionJsonBtn.addEventListener("click",saveResultsJson);
+
+  copyResultsBtn.addEventListener("click",copyResults);
+  saveCsvBtn.addEventListener("click",saveResultsCsv);
+  saveJsonBtn.addEventListener("click",saveResultsJson);
+
+  spinBtn.addEventListener("click",spin);
+  resetBtn.addEventListener("click",requestReset);
+
+  demoBtn.addEventListener("click",()=>{
+    demoActive=!demoActive;
+    demoBtn.textContent=demoActive?"Zatrzymaj automat":"Losuj automatycznie";
+    autoStateText.textContent=demoActive?"Automatyczne losowanie: ON":"Tryb ręczny";
+    if(demoActive&&!spinning&&teams.length)spin();
+    else if(!demoActive)clearTimeout(demoTimer);
+    updateUxState();
+  });
+
+  themeSelect.addEventListener("change",()=>{packSelect.value="manual";applyTheme(themeSelect.value)});
+  wheelStyleSelect.addEventListener("change",()=>{packSelect.value="manual";wheelWrap.dataset.wheelStyle=wheelStyleSelect.value});
+  pointerSelect.addEventListener("change",()=>{packSelect.value="manual";wheelWrap.dataset.pointer=pointerSelect.value});
+  presetSelect.addEventListener("change",()=>applyPreset(presetSelect.value));
+  packSelect.addEventListener("change",()=>applyPack(packSelect.value));
+
+  effectsToggle.addEventListener("click",()=>{
+    const hidden=effectsPanel.classList.toggle("hidden");
+    effectsToggle.textContent=hidden?"Efekty ⚙":"Efekty ▲";
+    effectsToggle.setAttribute("aria-expanded",String(!hidden));
+  });
+
+  document.getElementById("fxAllOn").addEventListener("click",()=>{
+    Object.values(fx).forEach(v=>v.enabled=true);refreshFxUi();
+  });
+  document.getElementById("fxAllOff").addEventListener("click",()=>{
+    Object.values(fx).forEach(v=>v.enabled=false);stopTensionTone();refreshFxUi();
+  });
+  document.getElementById("fxDefaults").addEventListener("click",()=>{
+    Object.keys(fxDefaults).forEach(k=>{fx[k].enabled=fxDefaults[k].enabled;fx[k].intensity=fxDefaults[k].intensity});
+    presetSelect.value="sport";refreshFxUi();
+  });
+
+  window.addEventListener("resize",()=>{
+    requestAnimationFrame(drawBracketLines);
+    requestAnimationFrame(drawSpeedChart);
+  });
+
+  wireFxControls();
+  refreshFxUi();
+  updatePhysicsLabels();
+  resetSeedState();
+  wheelWrap.dataset.pointer=pointerSelect.value;
+  wheelWrap.dataset.wheelStyle=wheelStyleSelect.value;
+  updateFormatHelp();
+  reset();
+  updateUxState();
+  persistResults();
+  renderCompareWheel(compareWheelA,teams);
+  renderCompareWheel(compareWheelB,teams);
+  drawSpeedChart();
+})();
+</script>
+</body>
+</html>
