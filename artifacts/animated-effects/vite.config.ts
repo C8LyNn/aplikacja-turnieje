@@ -6,6 +6,6 @@ export default defineConfig({
   // is created inside Node/Vite and cannot be rewritten to Program Files/Git.
   base:
     process.env.ANIMATED_EFFECTS_EMBEDDED === "1"
-      ? "/dev/animated-effects/"
+      ? "/stream/animated-effects/"
       : "/",
 });

@@ -538,7 +538,7 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" variant="primary" onClick={save} disabled={busy}><Save className="h-4 w-4" /> Zapisz</ToolButton>
           </ToolToolbar>
 
-          <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz."><ToolSegmented<Perspective> value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} /><div className="mt-6">{renderPerspectiveEditor()}</div></ToolPanel>
+          <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz."><ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} /><div className="mt-6">{renderPerspectiveEditor()}</div></ToolPanel>
           <ToolDisclosure title="Pozostałe tagi" description="Szczegóły używane głównie do filtrowania.">{renderFacet("detail")}</ToolDisclosure>
           <ToolDisclosure title="Podgląd rekordu" description="To, co później zobaczy użytkownik katalogu.">
             <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">

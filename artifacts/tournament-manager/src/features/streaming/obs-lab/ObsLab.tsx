@@ -287,7 +287,7 @@ export function ObsLab() {
         <ToolButton type="button" onClick={() => setOpenChatLab(false)}>
           <ArrowLeft className="h-4 w-4" /> Narzędzia OBS
         </ToolButton>
-        <ToolSegmented<CameraChatLayout> value={config.layout} options={LAYOUT_OPTIONS} onChange={(layout) => patchConfig({ layout })} />
+        <ToolSegmented value={config.layout} options={LAYOUT_OPTIONS} onChange={(layout) => patchConfig({ layout })} />
       </ToolToolbar>
 
       <ToolWorkspace sidebar={controls} sidebarWidth="350px">
