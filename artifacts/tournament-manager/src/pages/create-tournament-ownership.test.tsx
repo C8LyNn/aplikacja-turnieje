@@ -184,11 +184,11 @@ describe("route guard blocks non-organizer roles from /tournaments/new", () => {
     });
   });
 
-  test("developer is redirected to /developer and no form renders", async () => {
+  test("developer is redirected to / and no form renders", async () => {
     const { location } = renderPage(<CreateTournament />, "/tournaments/new", "developer", emptyTournamentsFetch);
     assert.equal(document.querySelector("form"), null, "must not render form for developer");
     await waitFor(() => {
-      assert.ok(location.history.includes("/developer"), `expected /developer in history, got ${JSON.stringify(location.history)}`);
+      assert.ok(location.history.includes("/"), `expected / in history, got ${JSON.stringify(location.history)}`);
     });
   });
 

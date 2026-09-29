@@ -78,10 +78,10 @@ app.innerHTML = `
   <main class="ae-app-shell">
     <header class="ae-app-header">
       <div class="ae-brand">
-        <div class="ae-brand-mark">DEV</div>
+        <div class="ae-brand-mark">OBS</div>
 
         <div class="ae-brand-copy">
-          <span class="ae-dev-context">DEV / NARZ\u0118DZIA</span>
+          <span class="ae-dev-context">OBS / STREAM</span>
           <h1>Animated Effects</h1>
         </div>
       </div>
@@ -99,6 +99,7 @@ app.innerHTML = `
       </div>
 
       <div class="ae-header-actions">
+        <a href="../../stream" class="ae-button ae-button-secondary ae-back-link">← OBS / Stream</a>
         <button
           id="clear-preview"
           class="ae-button ae-button-secondary"

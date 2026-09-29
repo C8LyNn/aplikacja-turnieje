@@ -7,7 +7,7 @@ const ROLE_HOME: Record<Role, { href: string; label: string }> = {
   organizer: { href: "/dashboard", label: "Wróć do dashboardu" },
   support: { href: "/support", label: "Wróć do turniejów" },
   fan: { href: "/fan", label: "Wróć do turniejów" },
-  developer: { href: "/developer", label: "Wróć do panelu developera" },
+
 };
 
 const navigationFocus =
@@ -64,11 +64,11 @@ export function RoleHomeLink({
 export function RoleSelectionLink({ className = "" }: { className?: string }) {
   return (
     <Link
-      href="/"
+      href="/tournaments"
       className={`inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationFocus} ${className}`}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-      <span>Zmień rolę</span>
+      <span>Zmień rolę turniejową</span>
     </Link>
   );
 }

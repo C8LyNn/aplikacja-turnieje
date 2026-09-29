@@ -4,7 +4,7 @@ import {
   type OrganizerCredentialState,
 } from "@workspace/api-client-react";
 
-export type Role = "developer" | "organizer" | "support" | "fan";
+export type Role = "organizer" | "support" | "fan";
 
 const ROLE_KEY = "tm_role";
 const ORG_TOKEN_KEY = (id: number) => `tm_org_${id}`;
@@ -27,7 +27,10 @@ function clearMgmtFlag(tournamentId: number): void {
 
 export function getStoredRole(): Role | null {
   try {
-    return (localStorage.getItem(ROLE_KEY) as Role) || null;
+    const value = localStorage.getItem(ROLE_KEY);
+    return value === "organizer" || value === "support" || value === "fan"
+      ? value
+      : null;
   } catch {
     return null;
   }

@@ -159,7 +159,7 @@ test("native StreamElements events render safe text and remove moderated message
 });
 
 test("Draw Lab renders participant names as text, not executable HTML", async () => {
-  const base = new URL("../draw-lab/engines/cards/", import.meta.url);
+  const base = new URL("../../randomizers/draw-lab/engines/cards/", import.meta.url);
   const dom = new JSDOM(readFileSync(new URL("cards-host.html", base), "utf8"), { url: "https://tournament.example/developer", runScripts: "outside-only", pretendToBeVisual: true });
   try {
     dom.window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -176,7 +176,7 @@ test("Draw Lab renders participant names as text, not executable HTML", async ()
 });
 
 test("Draw Lab observers settle instead of perpetually updating each other", async () => {
-  const base = new URL("../draw-lab/engines/cards/", import.meta.url);
+  const base = new URL("../../randomizers/draw-lab/engines/cards/", import.meta.url);
   const dom = new JSDOM(readFileSync(new URL("cards-host.html", base), "utf8"), { url: "https://tournament.example/developer", runScripts: "outside-only" });
   const frames = new Map<number, FrameRequestCallback>();
   let frameId = 0;

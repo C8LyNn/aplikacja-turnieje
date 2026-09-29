@@ -1,98 +1,98 @@
-import { useLocation } from "wouter";
-import { useAuth } from "@/context/auth-context";
-import type { Role } from "@/lib/auth";
-import { Trophy, Code2, UserCog, Users, Eye } from "lucide-react";
+import {
+  BookOpen,
+  Dices,
+  Gamepad2,
+  Radio,
+  Shapes,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+import { ProjectCard } from "@/components/portfolio-ui";
+import { Link } from "wouter";
 
-const ROLES: {
-  id: Role;
-  label: string;
-  desc: string;
-  icon: React.ReactNode;
-  cardHover: string;
-  iconHover: string;
-}[] = [
+const MODULES = [
   {
-    id: "developer",
-    label: "Developer",
-    desc: "Zarządzanie aplikacją i konfiguracja systemu.",
-    icon: <Code2 className="w-11 h-11" />,
-    cardHover: "hover:border-purple-500/60 hover:bg-purple-500/10",
-    iconHover: "group-hover:text-purple-400",
+    code: "TURN",
+    title: "Turnieje",
+    description: "Organizacja i obsługa turniejów.",
+    href: "/tournaments",
+    icon: Trophy,
+    accent: "primary" as const,
   },
   {
-    id: "organizer",
-    label: "Organizator turnieju",
-    desc: "Pełne zarządzanie turniejem, graczami i drabinką. Wymaga hasła organizatora.",
-    icon: <UserCog className="w-11 h-11" />,
-    cardHover: "hover:border-primary/60 hover:bg-primary/10",
-    iconHover: "group-hover:text-primary",
+    code: "GAME",
+    title: "Minigry",
+    description: "Grywalne prototypy i eksperymenty.",
+    href: "/minigames",
+    icon: Gamepad2,
+    accent: "emerald" as const,
   },
   {
-    id: "support",
-    label: "Wsparcie organizatora",
-    desc: "Wprowadzanie wyników i obsługa meczów. Wymaga hasła wsparcia i nicka.",
-    icon: <Users className="w-11 h-11" />,
-    cardHover: "hover:border-green-500/60 hover:bg-green-500/10",
-    iconHover: "group-hover:text-green-400",
+    code: "DRAW",
+    title: "Losowania",
+    description: "Narzędzia i prototypy losowań.",
+    href: "/randomizers",
+    icon: Dices,
+    accent: "blue" as const,
   },
   {
-    id: "fan",
-    label: "Kibic turnieju",
-    desc: "Widok publiczny — drabinka i wyniki na żywo. Bez edycji.",
-    icon: <Eye className="w-11 h-11" />,
-    cardHover: "hover:border-orange-500/60 hover:bg-orange-500/10",
-    iconHover: "group-hover:text-orange-400",
+    code: "OBS",
+    title: "OBS / Stream",
+    description: "Overlaye i narzędzia transmisyjne.",
+    href: "/stream",
+    icon: Radio,
+    accent: "fuchsia" as const,
   },
-];
+  {
+    code: "LUDO",
+    title: "Ludologia",
+    description: "Klasyfikacja gier i wypowiedzi.",
+    href: "/ludology",
+    icon: Shapes,
+    accent: "amber" as const,
+  },
+  {
+    code: "RES",
+    title: "Projekty badawcze",
+    description: "Bazy i narzędzia badawcze.",
+    href: "/research",
+    icon: BookOpen,
+    accent: "cyan" as const,
+  },
+  {
+    code: "META",
+    title: "Meta Lab",
+    description: "Analiza mety i kompozycji drużyn.",
+    href: "/meta-lab",
+    icon: Sparkles,
+    accent: "rose" as const,
+  },
+] as const;
 
 export default function Landing() {
-  const { role, setRole } = useAuth();
-  const [, navigate] = useLocation();
-
-  function handleSelect(r: Role) {
-    setRole(r);
-    if (r === "developer") navigate("/developer");
-    else if (r === "organizer") navigate("/dashboard");
-    else if (r === "support") navigate("/support");
-    else navigate("/fan");
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground dark px-4 py-12">
-      <div className="flex items-center gap-3 mb-3">
-        <Trophy className="w-10 h-10 text-primary" />
-        <span className="text-4xl font-bold tracking-tight text-primary">
-          TM_SYS
-        </span>
-      </div>
-      <p className="text-muted-foreground text-base mb-10 text-center max-w-sm">
-        System zarządzania turniejami. Wybierz swoją rolę, aby kontynuować.
-      </p>
+    <div className="min-h-screen bg-background px-4 py-8 text-foreground dark sm:py-12">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-7">
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">PROJECTS</div>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Projekty</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Wybierz obszar.</p>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-        {ROLES.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            onClick={() => handleSelect(r.id)}
-            className={`group relative cursor-pointer text-left border border-border rounded-xl p-6 bg-card transition-all duration-200 ${r.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {MODULES.map((module) => (
+            <ProjectCard key={module.href} {...module} />
+          ))}
+
+          <Link
+            href="/sf"
+            aria-label="SF"
+            className="group relative flex min-h-[205px] items-center justify-center overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/10"
           >
-            <div
-              className={`pointer-events-none mb-5 text-muted-foreground transition-colors ${r.iconHover}`}
-            >
-              {r.icon}
-            </div>
-            <h3 className="text-[20px] font-semibold mb-1 leading-snug">{r.label}</h3>
-            <p className="text-[14px] text-muted-foreground leading-relaxed">
-              {r.desc}
-            </p>
-            {role === r.id && (
-              <span className="pointer-events-none absolute top-3 right-3 text-xs font-semibold text-primary bg-primary/15 px-2 py-0.5 rounded-full">
-                aktywna
-              </span>
-            )}
-          </button>
-        ))}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-transparent to-transparent" />
+            <span className="relative text-3xl font-black tracking-[0.22em] text-foreground">SF</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

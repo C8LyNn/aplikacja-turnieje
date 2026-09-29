@@ -1,0 +1,18 @@
+{
+  "pack": "Animated Effects Pack 06",
+  "installedAt": "2026-09-27T12:49:23.145Z",
+  "backup": ".ae-pack-backup\\pack-06-2026-09-27_12-49-23-131",
+  "features": [
+    "16 new effects (49 -> 65)",
+    "4 variants for every Pack 06 effect",
+    "quick - / N× / + library controls",
+    "favorites / scene filter / sorting / tag+variant search",
+    "duplicate / rename / lock / multi-solo / drag reorder",
+    "Undo / Redo + slider history batching",
+    "seed controls + reroll all",
+    "scene JSON save/load + recovery autosave",
+    "8 scene presets",
+    "preview pause + performance estimate",
+    "PNG and GIF export"
+  ]
+}

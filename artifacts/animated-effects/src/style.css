@@ -8619,3 +8619,12 @@ body {
 }
 
 /* === AE_LIBRARY_INTERACTION_PACK_22_CSS_END === */
+
+/* site-modules-v0.9 */
+.ae-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}

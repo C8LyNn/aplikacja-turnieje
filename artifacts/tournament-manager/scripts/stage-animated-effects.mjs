@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceDir = path.resolve(packageDir, "../..");
 const stagingDir = path.join(workspaceDir, ".cache", "animated-effects-for-tournament");
-const publicDir = path.join(packageDir, "public", "dev", "animated-effects");
+const publicDir = path.join(packageDir, "public", "stream", "animated-effects");
+const legacyPublicDir = path.join(packageDir, "public", "dev", "animated-effects");
 
 await rm(stagingDir, { recursive: true, force: true });
 
