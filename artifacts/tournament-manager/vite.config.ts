@@ -68,10 +68,10 @@ export default defineConfig({
       name: "animated-effects-index",
       configureServer(server) {
         server.middlewares.use((request, _response, next) => {
-          if (request.url && /^\/dev\/animated-effects\/?(?:\?.*)?$/.test(request.url)) {
+          if (request.url && /^\/stream\/animated-effects\/?(?:\?.*)?$/.test(request.url)) {
             request.url = request.url.replace(
-              /^\/dev\/animated-effects\/?/,
-              "/dev/animated-effects/index.html",
+              /^\/stream\/animated-effects\/?/,
+              "/stream/animated-effects/index.html",
             );
           }
           next();

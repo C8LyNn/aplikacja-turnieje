@@ -48,6 +48,7 @@ if (build.status !== 0) {
 }
 
 await stat(path.join(stagingDir, "index.html"));
+await rm(legacyPublicDir, { recursive: true, force: true });
 await rm(publicDir, { recursive: true, force: true });
 await mkdir(path.dirname(publicDir), { recursive: true });
 await cp(stagingDir, publicDir, { recursive: true });
