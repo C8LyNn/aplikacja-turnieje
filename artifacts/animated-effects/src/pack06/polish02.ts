@@ -239,8 +239,10 @@ function polishCards(): void {
           );
 
         if (current) {
-          current.scrollTop =
-            value;
+          /* AE_LIBRARY_INTERACTION_PACK_22:
+       visual anchoring is handled by main.ts after the final DOM update.
+    */
+    void value;
         }
       },
     );

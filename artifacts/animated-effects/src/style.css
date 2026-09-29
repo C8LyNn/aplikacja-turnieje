@@ -6423,3 +6423,2199 @@ body {
 }
 
 /* === AE_PACK_08_FULL_QA_END === */
+
+/* === AE_PACK_09_MEGA_START === */
+.ae-pack09-character-panel{margin-bottom:10px;padding:13px;border:1px solid rgba(72,211,255,.24);border-radius:13px;background:linear-gradient(145deg,rgba(66,208,255,.075),rgba(124,92,255,.055))}.ae-pack09-character-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:11px}.ae-pack09-character-heading>div{display:grid;gap:3px;min-width:0}.ae-pack09-character-heading strong{color:#75e2ff;font-size:11px}.ae-pack09-character-heading span{color:#8293ab;font-size:9px}.ae-pack09-custom-badge{padding:4px 7px;border:1px solid rgba(116,220,255,.25);border-radius:999px;color:#99ebff!important;background:rgba(81,205,255,.08)}.ae-pack09-character-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:12px}.ae-pack09-character-presets button{min-height:34px;padding:0 9px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(255,255,255,.025);color:#c2cee0;font-size:9px;font-weight:700;cursor:pointer}.ae-pack09-character-presets button:hover{border-color:rgba(99,216,255,.34);color:#fff;background:rgba(83,204,255,.07)}.ae-pack09-character-fields{display:grid;gap:13px}.ae-pack09-character-field{display:grid;gap:8px}.ae-pack09-character-label{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.ae-pack09-character-label>span{display:grid;gap:3px;min-width:0}.ae-pack09-character-label strong{color:#edf5ff;font-size:10px}.ae-pack09-character-label small{color:#75869f;font-size:8px;line-height:1.35}.ae-pack09-character-label output{min-width:54px;padding:4px 7px;border:1px solid rgba(255,255,255,.07);border-radius:7px;background:rgba(0,0,0,.14);color:#8ce7ff;font-size:9px;text-align:right}.ae-pack09-character-field input[type=range]{width:100%;accent-color:#54d3ff}.ae-pack09-character-help{margin:12px 0 0;color:#718299;font-size:8.5px;line-height:1.5}
+.ae-inspector-content{padding-bottom:30px!important}.inspector-title,.inspector-color-panel,.inspector-variant-panel,.inspector-group,.ae-pack06-inspector,.ae-pack09-character-panel{box-shadow:0 1px 0 rgba(255,255,255,.018),inset 0 1px 0 rgba(255,255,255,.012)!important}.inspector-group-toggle:hover{background:rgba(255,255,255,.018)}#inspector input[type=range]{height:24px;cursor:ew-resize}.ae-effect-library{padding-right:8px!important}.ae-effect-card{gap:6px;min-height:68px}.ae-effect-card-main{min-width:0}.ae-effect-card-main strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ae-effect-card.is-previewing{border-color:rgba(81,210,255,.72)!important;box-shadow:inset 3px 0 0 #4dd9ff,0 0 0 1px rgba(77,217,255,.08)!important}.ae-app-header{min-height:62px}.ae-header-actions{gap:7px!important}.ae-header-actions>button,.ae-header-actions>details>summary{min-height:38px;border-radius:9px!important}.ae-effect-library,.ae-layer-list,.ae-inspector-content,.ae-media-export{overscroll-behavior:contain!important;scrollbar-width:thin;scrollbar-color:rgba(126,145,178,.58) rgba(255,255,255,.02)}.ae-media-dialog{border-color:rgba(124,155,205,.22)!important;box-shadow:0 24px 80px rgba(0,0,0,.52)!important}.ae-media-grid input:focus,.ae-media-grid select:focus,.ae-media-section input:focus,.ae-media-section select:focus{outline:none;border-color:rgba(83,211,255,.55);box-shadow:0 0 0 3px rgba(83,211,255,.08)}.ae-batch-export{position:relative}.ae-batch-export::before{content:"QA";position:absolute;right:12px;top:12px;padding:3px 7px;border:1px solid rgba(89,214,255,.2);border-radius:999px;color:#79ddff;font-size:8px;font-weight:800;background:rgba(69,197,255,.06)}
+@media(max-width:1260px){.ae-editor-grid{grid-template-columns:minmax(270px,300px) minmax(390px,1fr) minmax(300px,330px)!important}.ae-pack09-character-label{align-items:center}}@media(max-width:1080px){.ae-editor-grid{grid-template-columns:minmax(250px,280px) minmax(360px,1fr) minmax(280px,310px)!important}.ae-header-status{display:none!important}.ae-app-brand span{display:none}}
+/* === AE_PACK_09_MEGA_END === */
+
+/* === AE_UI_POLISH_PACK_10_START === */
+
+/*
+  Pack 10 is UI-only.
+  No effect renderer, preset or animation logic is changed here.
+*/
+
+/* ---------- Library cards: name first, controls second ---------- */
+
+.ae-effect-card[data-pack06="1"] {
+  display: grid !important;
+  grid-template-columns:
+    28px
+    minmax(0, 1fr) !important;
+  grid-template-areas:
+    "favorite preview"
+    "actions actions" !important;
+  align-items: center !important;
+  gap: 6px 8px !important;
+  min-height: 82px !important;
+  padding: 9px 10px 8px !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  > .ae-pack06-favorite {
+  grid-area: favorite;
+  align-self: start;
+  justify-self: center;
+  margin-top: 3px !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  > .ae-effect-card-preview {
+  grid-area: preview;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-main {
+  width: 100%;
+  min-width: 0;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-main > strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+  min-height: 17px;
+  white-space: normal !important;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.2;
+  font-size: 11px;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-subline {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px 6px !important;
+  min-width: 0;
+  margin-top: 4px;
+}
+
+.ae-effect-card[data-pack06="1"]
+  > .ae-pack06-card-actions {
+  grid-area: actions;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 1px 0 0 !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-pack06-card-actions
+  button {
+  min-width: 38px !important;
+  height: 34px !important;
+  padding: 0 8px !important;
+  border-radius: 8px !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-pack06-count {
+  min-width: 46px !important;
+  font-variant-numeric:
+    tabular-nums;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-add-icon {
+  margin: 0 !important;
+}
+
+.ae-effect-card.is-on-scene {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(73, 205, 255, .055),
+      rgba(124, 92, 255, .025)
+    ) !important;
+}
+
+.ae-effect-card.is-on-scene::after {
+  content: "";
+  position: absolute;
+  inset:
+    6px
+    auto
+    6px
+    0;
+  width: 2px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      #55d9ff,
+      #8f72ff
+    );
+  opacity: .85;
+}
+
+.ae-pack06-scene-badge {
+  white-space: nowrap;
+}
+
+/* ---------- Library toolbar: less vertical waste ---------- */
+
+.ae-sidebar-heading {
+  padding-bottom: 8px !important;
+}
+
+.ae-effect-filters {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr) !important;
+  gap: 7px !important;
+}
+
+.ae-effect-filters
+  .ae-search-wrap,
+.ae-effect-filters
+  .ae-category-select {
+  min-height: 38px !important;
+}
+
+.ae-pack06-library-tools {
+  gap: 7px !important;
+  margin-top: 7px !important;
+}
+
+.ae-pack06-library-tools
+  select {
+  min-width: 0 !important;
+  height: 36px !important;
+  padding-left: 9px !important;
+  padding-right: 25px !important;
+  font-size: 9px !important;
+}
+
+.ae-library-usage-hint {
+  min-height: 30px !important;
+  margin-top: 7px !important;
+  padding: 6px 8px !important;
+  gap: 7px !important;
+  font-size: 8.5px !important;
+}
+
+.ae-library-usage-hint
+  span {
+  white-space: normal !important;
+}
+
+/* ---------- Inspector hierarchy ---------- */
+
+.ae-inspector-content {
+  padding:
+    10px
+    14px
+    32px
+    12px !important;
+  overscroll-behavior:
+    contain !important;
+}
+
+.ae-inspector-content
+  > * {
+  flex: 0 0 auto;
+}
+
+.inspector-title,
+.inspector-variant-panel,
+.inspector-color-panel,
+.inspector-group,
+.ae-pack06-inspector,
+.ae-pack09-character-panel {
+  margin-bottom: 9px !important;
+  border-radius: 12px !important;
+}
+
+.inspector-title {
+  padding: 12px !important;
+}
+
+.inspector-title-copy
+  strong {
+  font-size: 12px !important;
+  line-height: 1.25;
+}
+
+.inspector-title-copy
+  span {
+  margin-top: 4px !important;
+  font-size: 9px !important;
+}
+
+.inspector-variant-panel,
+.inspector-color-panel,
+.inspector-group,
+.ae-pack06-inspector,
+.ae-pack09-character-panel {
+  padding: 12px !important;
+}
+
+/* Prevent titles from visually colliding with the border/accent line. */
+.ae-pack06-inspector {
+  padding-top: 13px !important;
+}
+
+.ae-pack06-inspector-title,
+.inspector-variant-heading,
+.inspector-color-heading,
+.ae-pack09-character-heading {
+  min-height: 34px;
+  padding:
+    0
+    1px
+    2px !important;
+  margin-bottom: 9px !important;
+}
+
+.ae-pack06-inspector-title
+  strong,
+.inspector-variant-heading
+  strong,
+.inspector-color-heading
+  strong,
+.inspector-group-heading
+  strong,
+.ae-pack09-character-heading
+  strong {
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+}
+
+.ae-pack06-inspector-title
+  span,
+.inspector-variant-heading
+  span,
+.inspector-color-heading
+  span,
+.inspector-group-heading
+  span,
+.inspector-variant-description,
+.inspector-color-help,
+.ae-pack09-character-heading
+  span,
+.ae-pack09-character-help {
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+  color: #8b9bb3 !important;
+}
+
+/* Character is intentionally the most recognizable editing block. */
+.ae-pack09-character-panel {
+  border-color:
+    rgba(
+      83,
+      211,
+      255,
+      .32
+    ) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(71, 207, 255, .09),
+      rgba(126, 91, 255, .065)
+    ) !important;
+  box-shadow:
+    inset
+      3px
+      0
+      0
+      rgba(
+        83,
+        211,
+        255,
+        .72
+      ),
+    0
+      8px
+      22px
+      rgba(
+        0,
+        0,
+        0,
+        .1
+      ) !important;
+}
+
+.ae-pack09-character-heading
+  strong {
+  color:
+    #7ce4ff !important;
+}
+
+.ae-pack09-character-presets {
+  gap: 6px !important;
+}
+
+.ae-pack09-character-presets
+  button {
+  min-height: 35px !important;
+  font-size: 9px !important;
+}
+
+.ae-pack09-character-fields {
+  gap: 12px !important;
+}
+
+.ae-pack09-character-label
+  small {
+  font-size: 8.5px !important;
+  line-height: 1.4 !important;
+}
+
+/* Basic fields should scan quickly. */
+.inspector-group-toggle {
+  min-height: 48px !important;
+  padding: 10px 11px !important;
+}
+
+.inspector-group-fields {
+  gap: 13px !important;
+  padding-top: 11px !important;
+}
+
+.inspector-label {
+  gap: 8px !important;
+  font-size: 9.5px !important;
+}
+
+.inspector-field-tools {
+  gap: 5px !important;
+}
+
+.inspector-field
+  output,
+.ae-pack06-inspector
+  output {
+  min-width: 52px !important;
+  font-variant-numeric:
+    tabular-nums;
+}
+
+.inspector-field-reset {
+  min-height: 30px !important;
+}
+
+#inspector
+  input[type="range"] {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* ---------- Color controls: smaller footprint ---------- */
+
+.inspector-color-main {
+  gap: 7px !important;
+}
+
+.inspector-color-picker {
+  min-height: 39px !important;
+}
+
+.inspector-color-swatches {
+  gap: 6px !important;
+  margin-top: 8px !important;
+}
+
+.inspector-color-swatch {
+  min-height: 31px !important;
+}
+
+.inspector-color-help {
+  margin-top: 8px !important;
+}
+
+/* ---------- Header: survive smaller widths ---------- */
+
+.ae-app-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 62px !important;
+  padding:
+    9px
+    14px !important;
+}
+
+.ae-brand {
+  flex:
+    0
+    0
+    auto;
+  min-width: 165px;
+}
+
+.ae-header-status {
+  flex:
+    1
+    1
+    220px;
+  min-width: 0;
+}
+
+.ae-header-actions,
+.ae-pack06-header-actions {
+  flex:
+    0
+    1
+    auto;
+  min-width: 0 !important;
+}
+
+.ae-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+.ae-header-actions
+  > *,
+.ae-pack06-header-group
+  > * {
+  flex:
+    0
+    0
+    auto;
+}
+
+.ae-header-actions
+  button,
+.ae-header-actions
+  summary {
+  min-height: 38px !important;
+  white-space: nowrap;
+}
+
+.ae-polish02-menu-panel {
+  z-index: 80 !important;
+}
+
+/* ---------- Editor columns ---------- */
+
+@media (min-width: 1451px) {
+  .ae-editor-grid {
+    grid-template-columns:
+      minmax(
+        290px,
+        325px
+      )
+      minmax(
+        0,
+        1fr
+      )
+      minmax(
+        330px,
+        365px
+      ) !important;
+  }
+}
+
+.ae-left-panel,
+.ae-inspector-panel,
+.ae-stage-panel {
+  min-width: 0 !important;
+}
+
+.ae-preview-shell {
+  padding:
+    10px
+    12px
+    12px !important;
+}
+
+#preview-host {
+  max-width: 100% !important;
+  max-height:
+    calc(
+      var(
+        --ae-ui10-vh,
+        100vh
+      ) -
+      165px
+    ) !important;
+}
+
+/* ---------- Scrollbars need breathing room ---------- */
+
+.ae-effect-library {
+  padding-right: 10px !important;
+}
+
+.ae-layer-list {
+  padding-right: 10px !important;
+}
+
+.ae-inspector-content {
+  scrollbar-gutter:
+    stable;
+}
+
+.ae-effect-library,
+.ae-layer-list,
+.ae-inspector-content {
+  scrollbar-width:
+    thin;
+  scrollbar-color:
+    rgba(
+      122,
+      144,
+      176,
+      .6
+    )
+    transparent;
+}
+
+/* ---------- Compact response points ---------- */
+
+@media (max-width: 1500px) {
+  .ae-header-status {
+    display: none !important;
+  }
+
+  .ae-app-header {
+    align-items: flex-start !important;
+  }
+
+  .ae-header-actions {
+    flex:
+      1
+      1
+      auto;
+  }
+
+  .ae-editor-grid {
+    grid-template-columns:
+      minmax(
+        275px,
+        305px
+      )
+      minmax(
+        0,
+        1fr
+      )
+      minmax(
+        315px,
+        345px
+      ) !important;
+  }
+}
+
+@media (max-width: 1260px) {
+  .ae-brand {
+    min-width: 140px;
+  }
+
+  .ae-brand-copy
+    .ae-dev-context {
+    display: none !important;
+  }
+
+  .ae-app-header {
+    min-height: 70px !important;
+  }
+
+  .ae-editor-grid {
+    grid-template-columns:
+      minmax(
+        255px,
+        285px
+      )
+      minmax(
+        0,
+        1fr
+      )
+      minmax(
+        295px,
+        320px
+      ) !important;
+  }
+
+  .ae-effect-card[data-pack06="1"] {
+    grid-template-columns:
+      24px
+      minmax(
+        0,
+        1fr
+      ) !important;
+    padding:
+      8px
+      8px
+      7px !important;
+  }
+
+  .ae-effect-card[data-pack06="1"]
+    > .ae-pack06-card-actions {
+    justify-content:
+      stretch !important;
+  }
+
+  .ae-effect-card[data-pack06="1"]
+    .ae-pack06-card-actions
+    button {
+    flex:
+      1
+      1
+      0 !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .ae-app-header {
+    flex-wrap: wrap !important;
+  }
+
+  .ae-brand {
+    flex:
+      1
+      1
+      auto;
+  }
+
+  .ae-header-actions {
+    flex:
+      1
+      1
+      100%;
+    justify-content:
+      flex-start !important;
+  }
+
+  .ae-header-actions
+    > button,
+  .ae-header-actions
+    > details {
+    flex:
+      1
+      1
+      auto;
+  }
+
+  .ae-editor-grid {
+    grid-template-columns:
+      minmax(
+        245px,
+        270px
+      )
+      minmax(
+        340px,
+        1fr
+      )
+      minmax(
+        280px,
+        300px
+      ) !important;
+  }
+}
+
+/* === AE_UI_POLISH_PACK_10_END === */
+
+/* === AE_UI_POLISH_PACK_11_COMPACT_START === */
+
+/*
+  Pack 11: compact UI follow-up.
+  Scope: library density, filters, inspector spacing, microtext and states.
+  No renderer/effect logic changes.
+*/
+
+/* -------------------------------------------------------
+   1. Library cards: compact when inactive, expanded only
+      when the effect is already on scene.
+   ------------------------------------------------------- */
+
+.ae-effect-card[data-pack06="1"]:not(.is-on-scene) {
+  grid-template-columns:
+    28px
+    minmax(0, 1fr)
+    auto !important;
+  grid-template-areas:
+    "favorite preview actions" !important;
+  min-height: 66px !important;
+  padding:
+    8px
+    9px !important;
+  gap:
+    6px
+    7px !important;
+}
+
+.ae-effect-card[data-pack06="1"]:not(.is-on-scene)
+  > .ae-pack06-favorite {
+  align-self: center !important;
+  margin-top: 0 !important;
+}
+
+.ae-effect-card[data-pack06="1"]:not(.is-on-scene)
+  > .ae-pack06-card-actions {
+  align-self: center !important;
+  justify-self: end !important;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.ae-effect-card[data-pack06="1"]:not(.is-on-scene)
+  .ae-pack06-card-actions
+  button {
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+}
+
+.ae-effect-card[data-pack06="1"].is-on-scene {
+  grid-template-columns:
+    28px
+    minmax(0, 1fr) !important;
+  grid-template-areas:
+    "favorite preview"
+    "actions actions" !important;
+  min-height: 80px !important;
+}
+
+.ae-effect-card[data-pack06="1"].is-on-scene
+  > .ae-pack06-card-actions {
+  justify-content: flex-end !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-main > strong {
+  font-size: 11.5px !important;
+  line-height: 1.22 !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-subline {
+  margin-top: 3px !important;
+  row-gap: 3px !important;
+}
+
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-card-subline,
+.ae-effect-card[data-pack06="1"]
+  .ae-effect-category {
+  font-size: 8.5px !important;
+}
+
+/* Distinguish hover / preview / active more clearly. */
+
+.ae-effect-card:not(.is-on-scene):hover {
+  border-color:
+    rgba(
+      89,
+      204,
+      255,
+      .32
+    ) !important;
+}
+
+.ae-effect-card.is-previewing:not(.is-on-scene) {
+  border-color:
+    rgba(
+      81,
+      218,
+      255,
+      .85
+    ) !important;
+  box-shadow:
+    inset
+      3px
+      0
+      0
+      #51d9ff,
+    0
+      0
+      0
+      1px
+      rgba(
+        81,
+        218,
+        255,
+        .08
+      ) !important;
+}
+
+.ae-effect-card.is-on-scene {
+  border-color:
+    rgba(
+      141,
+      105,
+      255,
+      .42
+    ) !important;
+}
+
+.ae-effect-card.is-on-scene.is-previewing {
+  border-color:
+    rgba(
+      92,
+      220,
+      255,
+      .78
+    ) !important;
+}
+
+/* -------------------------------------------------------
+   2. Filters: regain vertical space.
+   ------------------------------------------------------- */
+
+.ae-sidebar-heading {
+  padding-top: 10px !important;
+  padding-bottom: 6px !important;
+}
+
+.ae-effect-filters {
+  gap: 6px !important;
+}
+
+.ae-effect-filters
+  .ae-search-wrap {
+  min-height: 36px !important;
+}
+
+.ae-effect-filters
+  .ae-search-wrap input {
+  min-height: 36px !important;
+  font-size: 10px !important;
+}
+
+.ae-effect-filters
+  .ae-category-select {
+  min-height: 36px !important;
+  font-size: 9.5px !important;
+}
+
+/* Pack06 gives us view + sort. Keep them on a single row. */
+.ae-pack06-library-tools {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+}
+
+.ae-pack06-library-tools
+  select {
+  width: 100% !important;
+  height: 34px !important;
+  min-width: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 22px !important;
+  font-size: 9px !important;
+}
+
+.ae-library-usage-hint {
+  min-height: 26px !important;
+  margin-top: 6px !important;
+  padding:
+    4px
+    7px !important;
+  font-size: 8px !important;
+  line-height: 1.25 !important;
+}
+
+.ae-library-usage-hint
+  span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+}
+
+/* -------------------------------------------------------
+   3. Inspector: same hierarchy, less vertical inflation.
+   ------------------------------------------------------- */
+
+.ae-inspector-content {
+  padding:
+    8px
+    14px
+    28px
+    11px !important;
+}
+
+.inspector-title,
+.inspector-variant-panel,
+.inspector-color-panel,
+.inspector-group,
+.ae-pack06-inspector,
+.ae-pack09-character-panel {
+  margin-bottom: 7px !important;
+}
+
+.inspector-title {
+  padding: 10px 11px !important;
+}
+
+.inspector-variant-panel,
+.inspector-color-panel,
+.inspector-group,
+.ae-pack06-inspector,
+.ae-pack09-character-panel {
+  padding: 10px 11px !important;
+}
+
+.inspector-group-toggle {
+  min-height: 42px !important;
+  padding:
+    8px
+    9px !important;
+}
+
+.inspector-group-fields {
+  gap: 9px !important;
+  padding-top: 8px !important;
+}
+
+.inspector-field {
+  gap: 6px !important;
+}
+
+.inspector-label {
+  gap: 6px !important;
+  font-size: 10px !important;
+}
+
+.inspector-field-tools {
+  gap: 4px !important;
+}
+
+.inspector-field
+  output,
+.ae-pack06-inspector
+  output {
+  min-width: 50px !important;
+  min-height: 29px !important;
+  padding:
+    4px
+    6px !important;
+}
+
+.inspector-field-reset {
+  min-height: 29px !important;
+  padding:
+    4px
+    7px !important;
+}
+
+#inspector
+  input[type="range"] {
+  height: 20px !important;
+}
+
+/* Headings and helper copy: slightly larger, still compact. */
+
+.inspector-title-copy span,
+.inspector-variant-description,
+.inspector-color-help,
+.inspector-group-heading span,
+.ae-pack06-inspector-title span,
+.ae-pack09-character-heading span,
+.ae-pack09-character-help {
+  font-size: 9.5px !important;
+  line-height: 1.4 !important;
+}
+
+.inspector-title-copy strong,
+.inspector-variant-heading strong,
+.inspector-color-heading strong,
+.inspector-group-heading strong,
+.ae-pack06-inspector-title strong,
+.ae-pack09-character-heading strong {
+  font-size: 11px !important;
+}
+
+/* Character remains visually important but no longer oversized. */
+
+.ae-pack09-character-panel {
+  padding:
+    10px
+    11px !important;
+}
+
+.ae-pack09-character-heading {
+  min-height: 30px !important;
+  margin-bottom: 7px !important;
+}
+
+.ae-pack09-character-presets {
+  gap: 5px !important;
+  margin-bottom: 9px !important;
+}
+
+.ae-pack09-character-presets
+  button {
+  min-height: 32px !important;
+  padding:
+    0
+    7px !important;
+  font-size: 8.8px !important;
+}
+
+.ae-pack09-character-fields {
+  gap: 9px !important;
+}
+
+.ae-pack09-character-field {
+  gap: 6px !important;
+}
+
+.ae-pack09-character-label
+  small {
+  font-size: 8.8px !important;
+}
+
+.ae-pack09-character-help {
+  margin-top: 8px !important;
+}
+
+/* Randomness panel: prevent heading from touching the accent/border. */
+
+.ae-pack06-inspector {
+  padding-top: 11px !important;
+}
+
+.ae-pack06-inspector-title {
+  min-height: 29px !important;
+  margin-bottom: 7px !important;
+}
+
+/* -------------------------------------------------------
+   4. Color panel: less height, same usability.
+   ------------------------------------------------------- */
+
+.inspector-color-main {
+  gap: 6px !important;
+}
+
+.inspector-color-picker {
+  min-height: 36px !important;
+}
+
+.inspector-color-swatches {
+  gap: 5px !important;
+  margin-top: 6px !important;
+}
+
+.inspector-color-swatch {
+  min-height: 28px !important;
+}
+
+.inspector-color-help {
+  margin-top: 6px !important;
+}
+
+/* -------------------------------------------------------
+   5. Header and preview: compact, but no clipping.
+   ------------------------------------------------------- */
+
+.ae-app-header {
+  min-height: 58px !important;
+  padding:
+    7px
+    12px !important;
+}
+
+.ae-header-actions {
+  gap: 5px !important;
+}
+
+.ae-header-actions
+  button,
+.ae-header-actions
+  summary {
+  min-height: 35px !important;
+}
+
+.ae-preview-shell {
+  padding:
+    8px
+    10px
+    10px !important;
+}
+
+#preview-host {
+  max-height:
+    calc(
+      var(
+        --ae-ui10-vh,
+        100vh
+      ) -
+      145px
+    ) !important;
+}
+
+/* -------------------------------------------------------
+   6. Narrow widths: preserve compactness without crushing.
+   ------------------------------------------------------- */
+
+@media (max-width: 1260px) {
+  .ae-effect-card[data-pack06="1"]:not(.is-on-scene) {
+    grid-template-columns:
+      24px
+      minmax(0, 1fr)
+      auto !important;
+    min-height: 62px !important;
+  }
+
+  .ae-effect-card[data-pack06="1"]:not(.is-on-scene)
+    .ae-pack06-card-actions
+    button {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+  }
+
+  .ae-pack06-library-tools {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .ae-library-usage-hint {
+    display: none !important;
+  }
+
+  .ae-pack09-character-presets {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr) !important;
+  }
+}
+
+/* === AE_UI_POLISH_PACK_11_COMPACT_END === */
+
+/* === AE_UI_POLISH_PACK_12_STRUCTURAL_START === */
+
+/*
+  Pack 12: structural UI correction after Pack 10/11.
+  This intentionally targets the real Pack06 DOM structure instead
+  of relying on layout guesses.
+*/
+
+/* -------------------------------------------------------
+   Library filters: search + category, then one real row
+   containing View + Sort.
+   ------------------------------------------------------- */
+
+#effects-sidebar .ae-effect-filters {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+  padding:
+    0
+    10px
+    7px !important;
+}
+
+#effects-sidebar
+  .ae-effect-filters
+  > .ae-search-wrap,
+#effects-sidebar
+  .ae-effect-filters
+  > #effect-category {
+  grid-column:
+    auto !important;
+  width: 100% !important;
+}
+
+#effects-sidebar
+  .ae-pack12-library-tools {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+#effects-sidebar
+  .ae-pack12-library-tools
+  .ae-category-select {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  padding:
+    0
+    24px
+    0
+    8px !important;
+  font-size: 9px !important;
+  text-overflow: ellipsis;
+}
+
+#effects-sidebar
+  .ae-search-wrap {
+  height: 35px !important;
+  min-height: 35px !important;
+}
+
+#effects-sidebar
+  #effect-category {
+  height: 35px !important;
+  min-height: 35px !important;
+  font-size: 9.5px !important;
+}
+
+/* -------------------------------------------------------
+   Library cards: use explicit Pack12 state attributes.
+   Inactive = one compact row.
+   Active = metadata row + dedicated instance controls.
+   ------------------------------------------------------- */
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"] {
+  position: relative;
+  width: 100% !important;
+  overflow: hidden;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  > .ae-pack06-favorite {
+  grid-area: favorite !important;
+  align-self: center !important;
+  justify-self: center !important;
+  margin: 0 !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  > .ae-effect-card-preview {
+  grid-area: preview !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  > .ae-pack12-card-actions {
+  grid-area: actions !important;
+}
+
+/* Inactive card. */
+#effect-library
+  .ae-effect-card[data-pack12-card="1"][data-pack12-active="0"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr)
+    38px !important;
+  grid-template-rows:
+    minmax(44px, auto) !important;
+  grid-template-areas:
+    "favorite preview actions" !important;
+  align-items: center !important;
+  min-height: 60px !important;
+  padding:
+    7px
+    8px !important;
+  gap: 6px !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-active="0"]
+  > .ae-pack12-card-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  min-width: 38px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-active="0"]
+  > .ae-pack12-card-actions
+  > .ae-add-icon {
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Active card. */
+#effect-library
+  .ae-effect-card[data-pack12-card="1"][data-pack12-active="1"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr) !important;
+  grid-template-areas:
+    "favorite preview"
+    "actions actions" !important;
+  align-items: center !important;
+  min-height: 78px !important;
+  padding:
+    7px
+    8px !important;
+  gap:
+    5px
+    7px !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-active="1"]
+  > .ae-pack12-card-actions {
+  display: grid !important;
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    ) !important;
+  align-items: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding:
+    0
+    0
+    1px
+    32px !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-active="1"]
+  > .ae-pack12-card-actions
+  > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 31px !important;
+  min-height: 31px !important;
+  margin: 0 !important;
+  padding:
+    0
+    6px !important;
+}
+
+/* Name always wins over decorative metadata. */
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  .ae-effect-card-main {
+  width: 100%;
+  min-width: 0;
+  gap: 3px !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  .ae-effect-card-main
+  > strong {
+  display: block !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  .ae-effect-card-subline {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  min-width: 0;
+  gap: 4px !important;
+  margin-top: 2px !important;
+  overflow: hidden;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  .ae-effect-card-subline
+  > * {
+  flex:
+    0
+    0
+    auto;
+}
+
+#effect-library
+  .ae-effect-card[data-pack12-card="1"]
+  .ae-effect-card-subline
+  > small {
+  overflow: hidden;
+  max-width: 90px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------
+   Library vertical density.
+   ------------------------------------------------------- */
+
+.ae-library-usage-hint {
+  margin:
+    0
+    10px
+    6px !important;
+  padding:
+    4px
+    7px !important;
+  min-height: 25px !important;
+  font-size: 8px !important;
+}
+
+.ae-effect-library {
+  gap: 5px !important;
+  padding:
+    0
+    9px
+    12px !important;
+}
+
+/* -------------------------------------------------------
+   Inspector: Pack08 still had a 15px field margin which
+   kept Basic visibly too tall. Override the real cause.
+   ------------------------------------------------------- */
+
+.ae-inspector-content
+  .inspector-field {
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.ae-inspector-content
+  .inspector-field:last-child {
+  margin-bottom: 0 !important;
+}
+
+.ae-inspector-content
+  .inspector-group-fields {
+  gap: 7px !important;
+  padding:
+    5px
+    10px
+    8px !important;
+}
+
+.ae-inspector-content
+  .inspector-label {
+  min-height: 24px !important;
+}
+
+.ae-inspector-content
+  .inspector-group-toggle {
+  min-height: 40px !important;
+  padding:
+    7px
+    9px !important;
+}
+
+.ae-inspector-content
+  .inspector-variant-panel,
+.ae-inspector-content
+  .inspector-color-panel,
+.ae-inspector-content
+  .ae-pack06-inspector,
+.ae-inspector-content
+  .ae-pack09-character-panel {
+  padding:
+    9px
+    10px !important;
+}
+
+/* Keep helper text readable after compression. */
+.ae-inspector-content
+  .inspector-variant-description,
+.ae-inspector-content
+  .inspector-color-help,
+.ae-inspector-content
+  .inspector-group-heading
+  span,
+.ae-inspector-content
+  .ae-pack06-inspector-title
+  span,
+.ae-inspector-content
+  .ae-pack09-character-heading
+  span,
+.ae-inspector-content
+  .ae-pack09-character-help {
+  font-size: 9.5px !important;
+  line-height: 1.38 !important;
+}
+
+/* -------------------------------------------------------
+   Narrow widths.
+   ------------------------------------------------------- */
+
+@media (max-width: 1260px) {
+  #effect-library
+    .ae-effect-card[data-pack12-active="0"] {
+    grid-template-columns:
+      24px
+      minmax(0, 1fr)
+      34px !important;
+    min-height: 57px !important;
+  }
+
+  #effect-library
+    .ae-effect-card[data-pack12-active="0"]
+    > .ae-pack12-card-actions {
+    width: 34px !important;
+    min-width: 34px !important;
+  }
+
+  #effect-library
+    .ae-effect-card[data-pack12-active="0"]
+    .ae-add-icon {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+  }
+}
+
+/* === AE_UI_POLISH_PACK_12_STRUCTURAL_END === */
+
+/* === AE_UI_POLISH_PACK_13_RUNTIME_STRUCTURE_START === */
+
+/*
+  Pack 13 fixes the two remaining layout problems at runtime:
+  1) View + Sort are physically moved into one DOM row.
+  2) Inactive-card + is physically moved out of the Pack06
+     action wrapper into a real right-side card column.
+*/
+
+/* Filters --------------------------------------------------- */
+
+#effects-sidebar
+  .ae-effect-filters {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+}
+
+#effects-sidebar
+  .ae-effect-filters
+  > .ae-search-wrap,
+#effects-sidebar
+  .ae-effect-filters
+  > #effect-category,
+#effects-sidebar
+  .ae-effect-filters
+  > .ae-pack13-filter-row {
+  width: 100% !important;
+  min-width: 0 !important;
+  grid-column:
+    1 / -1 !important;
+}
+
+#effects-sidebar
+  .ae-pack13-filter-row {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+  align-items: center;
+}
+
+#effects-sidebar
+  .ae-pack13-filter-row
+  > select {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  padding:
+    0
+    24px
+    0
+    8px !important;
+  font-size: 8.8px !important;
+  text-overflow: ellipsis;
+}
+
+/* Inactive cards ------------------------------------------- */
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"][data-pack13-active="0"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr)
+    36px !important;
+  grid-template-rows:
+    minmax(42px, auto) !important;
+  grid-template-areas:
+    "favorite preview add" !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 58px !important;
+  padding:
+    6px
+    8px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="0"]
+  > .ae-pack06-favorite {
+  grid-area:
+    favorite !important;
+  align-self: center !important;
+  justify-self: center !important;
+  margin: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="0"]
+  > .ae-effect-card-preview {
+  grid-area:
+    preview !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  align-self: stretch !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="0"]
+  > .ae-add-icon {
+  grid-area:
+    add !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Active cards --------------------------------------------- */
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"][data-pack13-active="1"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr) !important;
+  grid-template-rows:
+    auto
+    auto !important;
+  grid-template-areas:
+    "favorite preview"
+    "actions actions" !important;
+  align-items: center !important;
+  gap:
+    5px
+    7px !important;
+  min-height: 76px !important;
+  padding:
+    6px
+    8px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="1"]
+  > .ae-pack06-favorite {
+  grid-area:
+    favorite !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="1"]
+  > .ae-effect-card-preview {
+  grid-area:
+    preview !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="1"]
+  > .ae-pack13-card-actions {
+  grid-area:
+    actions !important;
+  display: grid !important;
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    ) !important;
+  gap: 5px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin:
+    0
+    0
+    0
+    32px !important;
+  padding: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-active="1"]
+  > .ae-pack13-card-actions
+  > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding:
+    0
+    5px !important;
+}
+
+/* Card content --------------------------------------------- */
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"]
+  .ae-effect-card-main {
+  min-width: 0 !important;
+  width: 100% !important;
+  gap: 2px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"]
+  .ae-effect-card-main
+  > strong {
+  display: block !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"]
+  .ae-effect-card-subline {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  margin-top: 2px !important;
+  overflow: hidden;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack13-card="1"]
+  .ae-effect-card-subline
+  > small {
+  overflow: hidden;
+  max-width: 86px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Reduce leftover vertical waste from historical packs. */
+
+#effect-library.ae-effect-library {
+  gap: 5px !important;
+  padding:
+    0
+    8px
+    10px !important;
+}
+
+#effects-sidebar
+  .ae-library-usage-hint {
+  margin:
+    0
+    9px
+    5px !important;
+  min-height: 24px !important;
+  padding:
+    4px
+    6px !important;
+}
+
+/* Inspector: final compact pass ---------------------------- */
+
+#inspector.ae-inspector-content
+  .inspector-group-fields {
+  gap: 6px !important;
+  padding:
+    4px
+    9px
+    7px !important;
+}
+
+#inspector.ae-inspector-content
+  .inspector-field {
+  gap: 5px !important;
+  margin-bottom: 6px !important;
+}
+
+#inspector.ae-inspector-content
+  .inspector-field:last-child {
+  margin-bottom: 0 !important;
+}
+
+#inspector.ae-inspector-content
+  .inspector-label {
+  min-height: 22px !important;
+}
+
+#inspector.ae-inspector-content
+  input[type="range"] {
+  margin:
+    1px
+    0
+    0 !important;
+}
+
+@media (max-width: 1260px) {
+  #effects-sidebar
+    .ae-pack13-filter-row {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr) !important;
+  }
+
+  #effect-library
+    > .ae-effect-card[data-pack13-active="0"] {
+    grid-template-columns:
+      24px
+      minmax(0, 1fr)
+      32px !important;
+    min-height: 55px !important;
+  }
+
+  #effect-library
+    > .ae-effect-card[data-pack13-active="0"]
+    > .ae-add-icon {
+    width: 31px !important;
+    min-width: 31px !important;
+    height: 31px !important;
+  }
+}
+
+/* === AE_UI_POLISH_PACK_13_RUNTIME_STRUCTURE_END === */
+
+/* === AE_UI_STABILITY_PACK_14_NATIVE_START === */
+
+/*
+  Pack 14 removes the runtime DOM-repair observer and makes Pack06
+  generate the final library structure directly.
+*/
+
+/* Native View + Sort row */
+#effects-sidebar
+  .ae-pack14-library-tools {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr) !important;
+  gap: 6px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+#effects-sidebar
+  .ae-pack14-library-tools
+  > select {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  padding:
+    0
+    24px
+    0
+    8px !important;
+  font-size: 9px !important;
+}
+
+/* Inactive cards are one true row. */
+#effect-library
+  > .ae-effect-card[data-pack14-active="0"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr)
+    36px !important;
+  grid-template-areas:
+    "favorite preview add" !important;
+  grid-template-rows:
+    minmax(42px, auto) !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 58px !important;
+  height: auto !important;
+  padding:
+    6px
+    8px !important;
+  overflow: hidden !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="0"]
+  > .ae-pack06-favorite {
+  grid-area:
+    favorite !important;
+  align-self: center !important;
+  justify-self: center !important;
+  margin: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="0"]
+  > .ae-effect-card-preview {
+  grid-area:
+    preview !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="0"]
+  > .ae-add-icon {
+  grid-area:
+    add !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Active cards have a deliberate second control row. */
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"] {
+  display: grid !important;
+  grid-template-columns:
+    26px
+    minmax(0, 1fr) !important;
+  grid-template-areas:
+    "favorite preview"
+    "actions actions" !important;
+  grid-template-rows:
+    auto
+    32px !important;
+  align-items: center !important;
+  gap:
+    5px
+    7px !important;
+  min-height: 84px !important;
+  height: auto !important;
+  padding:
+    6px
+    8px
+    7px !important;
+  overflow: hidden !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-pack06-favorite {
+  grid-area:
+    favorite !important;
+  align-self: center !important;
+  justify-self: center !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-effect-card-preview {
+  grid-area:
+    preview !important;
+  min-width: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-pack14-card-actions {
+  grid-area:
+    actions !important;
+  display: grid !important;
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    ) !important;
+  gap: 5px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 31px !important;
+  margin:
+    0
+    0
+    0
+    32px !important;
+  padding: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-pack14-card-actions
+  > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 31px !important;
+  min-height: 31px !important;
+  margin: 0 !important;
+  padding:
+    0
+    5px !important;
+}
+
+/* Keep card content readable. */
+#effect-library
+  > .ae-effect-card[data-pack14-card="1"]
+  .ae-effect-card-main {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-card="1"]
+  .ae-effect-card-main
+  > strong {
+  display: block !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-card="1"]
+  .ae-effect-card-subline {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* === AE_UI_STABILITY_PACK_14_NATIVE_END === */
+
+/* === AE_UI_PACK_15_ACTIVE_CARD_FIX_START === */
+
+/*
+  Pack 15: tiny visual-only follow-up.
+  Fixes the cramped active effect card after Pack 14.
+  No JS, renderer, observer or effect logic changes.
+*/
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"] {
+  min-height: 90px !important;
+  grid-template-rows:
+    minmax(42px, auto)
+    34px !important;
+  row-gap: 7px !important;
+  padding:
+    7px
+    8px
+    9px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-pack14-card-actions {
+  height: 34px !important;
+  margin:
+    0
+    0
+    0
+    28px !important;
+  gap: 6px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  > .ae-pack14-card-actions
+  > button {
+  height: 34px !important;
+  min-height: 34px !important;
+  border-radius: 8px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  .ae-effect-card-preview {
+  align-self: center !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  .ae-effect-card-subline {
+  margin-top: 3px !important;
+}
+
+#effect-library
+  > .ae-effect-card[data-pack14-active="1"]
+  .ae-pack06-count {
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keep the active card clear of the library scrollbar. */
+#effect-library.ae-effect-library {
+  padding-right: 12px !important;
+}
+
+/* Slightly improve button centering on narrower widths. */
+@media (max-width: 1260px) {
+  #effect-library
+    > .ae-effect-card[data-pack14-active="1"] {
+    min-height: 88px !important;
+    padding-bottom: 8px !important;
+  }
+
+  #effect-library
+    > .ae-effect-card[data-pack14-active="1"]
+    > .ae-pack14-card-actions {
+    margin-left: 25px !important;
+  }
+}
+
+/* === AE_UI_PACK_15_ACTIVE_CARD_FIX_END === */
+
+/* === AE_LIBRARY_INTERACTION_PACK_22_CSS_START === */
+
+/*
+  Keep library width stable WITHOUT changing its layout model.
+  Active cards keep the native two-row layout from the UI packs.
+*/
+#effect-library {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-anchor: none !important;
+}
+
+#effect-library > .ae-effect-card {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-anchor: none !important;
+}
+
+#effect-library > .ae-effect-card > .ae-effect-card-preview {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* === AE_LIBRARY_INTERACTION_PACK_22_CSS_END === */

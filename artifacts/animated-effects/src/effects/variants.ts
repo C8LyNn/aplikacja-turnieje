@@ -15,6 +15,9 @@ import {
 import {
   pack08VariantCatalog,
 } from "./modules/pack08Variants";
+import {
+  pack09VariantCatalog,
+} from "./modules/pack09Variants";
 
 export interface EffectVariant {
   id: string;
@@ -2301,7 +2304,7 @@ export const effectVariantCatalog: Record<
 export function getEffectVariants(
   effectId: string,
 ): EffectVariant[] {
-  return pack08VariantCatalog[effectId] ?? pack07OverdriveVariantCatalog[effectId] ?? pack06ExtraVariantCatalog[effectId] ?? pack06EffectVariantCatalog[effectId] ?? effectVariantCatalog[effectId] ?? [];
+  return pack09VariantCatalog[effectId] ?? pack08VariantCatalog[effectId] ?? pack07OverdriveVariantCatalog[effectId] ?? pack06ExtraVariantCatalog[effectId] ?? pack06EffectVariantCatalog[effectId] ?? effectVariantCatalog[effectId] ?? [];
 }
 
 export function findMatchingEffectVariant(

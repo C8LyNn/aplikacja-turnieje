@@ -30,60 +30,601 @@ function cardDefinition(card:HTMLElement){
   return name?getAllEffectDefinitions().find((definition)=>definition.name===name):undefined;
 }
 
+
+/* PACK16_ACTIVE_CARD_HARD_FIX */
+function applyPack16CardLayout(
+  card: HTMLElement,
+  active: boolean,
+): void {
+  card.style.setProperty(
+    "display",
+    "grid",
+    "important",
+  );
+
+  card.style.setProperty(
+    "height",
+    "auto",
+    "important",
+  );
+
+  card.style.setProperty(
+    "overflow",
+    "hidden",
+    "important",
+  );
+
+  card.style.setProperty(
+    "align-items",
+    "center",
+    "important",
+  );
+
+  card.style.setProperty(
+    "box-sizing",
+    "border-box",
+    "important",
+  );
+
+  if (active) {
+    card.style.setProperty(
+      "grid-template-columns",
+      "26px minmax(0, 1fr)",
+      "important",
+    );
+
+    card.style.setProperty(
+      "grid-template-areas",
+      '"favorite preview" "actions actions"',
+      "important",
+    );
+
+    card.style.setProperty(
+      "grid-template-rows",
+      "minmax(42px, auto) 36px",
+      "important",
+    );
+
+    card.style.setProperty(
+      "min-height",
+      "98px",
+      "important",
+    );
+
+    card.style.setProperty(
+      "padding",
+      "7px 8px 10px",
+      "important",
+    );
+
+    card.style.setProperty(
+      "column-gap",
+      "7px",
+      "important",
+    );
+
+    card.style.setProperty(
+      "row-gap",
+      "8px",
+      "important",
+    );
+
+    return;
+  }
+
+  card.style.setProperty(
+    "grid-template-columns",
+    "26px minmax(0, 1fr) 36px",
+    "important",
+  );
+
+  card.style.setProperty(
+    "grid-template-areas",
+    '"favorite preview add"',
+    "important",
+  );
+
+  card.style.setProperty(
+    "grid-template-rows",
+    "minmax(42px, auto)",
+    "important",
+  );
+
+  card.style.setProperty(
+    "min-height",
+    "58px",
+    "important",
+  );
+
+  card.style.setProperty(
+    "padding",
+    "6px 8px",
+    "important",
+  );
+
+  card.style.setProperty(
+    "gap",
+    "6px",
+    "important",
+  );
+}
+
+function applyPack16ActionsLayout(
+  actions: HTMLElement,
+): void {
+  actions.style.setProperty(
+    "display",
+    "grid",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "grid-template-columns",
+    "repeat(3, minmax(0, 1fr))",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "grid-area",
+    "actions",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "height",
+    "36px",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "min-height",
+    "36px",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "margin",
+    "0 0 0 28px",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "padding",
+    "0",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "gap",
+    "6px",
+    "important",
+  );
+
+  actions.style.setProperty(
+    "align-self",
+    "end",
+    "important",
+  );
+
+  actions
+    .querySelectorAll<HTMLElement>(
+      "button",
+    )
+    .forEach(
+      (button) => {
+        button.style.setProperty(
+          "height",
+          "34px",
+          "important",
+        );
+
+        button.style.setProperty(
+          "min-height",
+          "34px",
+          "important",
+        );
+
+        button.style.setProperty(
+          "width",
+          "100%",
+          "important",
+        );
+
+        button.style.setProperty(
+          "min-width",
+          "0",
+          "important",
+        );
+
+        button.style.setProperty(
+          "margin",
+          "0",
+          "important",
+        );
+
+        button.style.setProperty(
+          "padding",
+          "0 6px",
+          "important",
+        );
+      },
+    );
+}
+
 function decorateLibrary():void{
-  const library=document.querySelector<HTMLElement>("#effect-library"); if(!library)return;
-  const state=getEditorState();
-  const mode=document.querySelector<HTMLSelectElement>("#pack06-library-mode")?.value??"all";
-  const sort=document.querySelector<HTMLSelectElement>("#pack06-library-sort")?.value??"name";
-  const cards=Array.from(library.querySelectorAll<HTMLElement>(".ae-effect-card"));
+  const library=
+    document.querySelector<HTMLElement>(
+      "#effect-library",
+    );
+
+  if(!library)return;
+
+  const state=
+    getEditorState();
+
+  const mode=
+    document.querySelector<HTMLSelectElement>(
+      "#pack06-library-mode",
+    )?.value??"all";
+
+  const sort=
+    document.querySelector<HTMLSelectElement>(
+      "#pack06-library-sort",
+    )?.value??"name";
+
+  const cards=
+    Array.from(
+      library.querySelectorAll<HTMLElement>(
+        ".ae-effect-card",
+      ),
+    );
+
   for(const card of cards){
-    if(card.dataset.pack06==="1")continue;
-    const definition=cardDefinition(card); if(!definition)continue;
-    card.dataset.pack06="1"; card.dataset.effectId=definition.id;
-    const instances=state.effects.filter((effect)=>effect.effectId===definition.id);
-    const latest=instances.at(-1)??null;
-    const latestUnlocked=[...instances].reverse().find((effect)=>!effect.locked)??null;
-    card.classList.toggle("is-on-scene",instances.length>0);
+    const definition=
+      cardDefinition(card);
 
-    const star=document.createElement("button"); star.type="button"; star.className="ae-pack06-favorite";
-    star.textContent=favorites.has(definition.id)?"★":"☆"; star.title="Ulubione";
-    star.addEventListener("click",()=>{favorites.has(definition.id)?favorites.delete(definition.id):favorites.add(definition.id);writeJson(FAVORITES_KEY,[...favorites]);refresh()});
-    card.prepend(star);
+    if(!definition)continue;
 
-    if(instances.length>0){
-      const sub=card.querySelector(".ae-effect-card-subline");
-      if(sub){const badge=document.createElement("span");badge.className="ae-pack06-scene-badge";badge.textContent="NA SCENIE";sub.appendChild(badge)}
+    card.dataset.pack06="1";
+    card.dataset.effectId=definition.id;
+
+    const instances=
+      state.effects.filter(
+        (effect)=>
+          effect.effectId===definition.id,
+      );
+
+    const latest=
+      instances.at(-1)??null;
+
+    const latestUnlocked=
+      [...instances]
+        .reverse()
+        .find(
+          (effect)=>
+            !effect.locked,
+        )??null;
+
+    const active=
+      instances.length>0;
+
+    card.classList.toggle(
+      "is-on-scene",
+      active,
+    );
+
+    card.dataset.pack13Card="1";
+    card.dataset.pack13Active=
+      active?"1":"0";
+    card.dataset.pack14Card="1";
+    card.dataset.pack14Active=
+      active?"1":"0";
+    applyPack16CardLayout(
+      card,
+      active,
+    );
+
+    /*
+      Rebuild only Pack06 decorations.
+      Keep the original preview/add buttons created by main.ts,
+      so their own event handlers stay intact.
+    */
+    const add=
+      card.querySelector<HTMLButtonElement>(
+        ".ae-add-icon",
+      );
+
+    if(
+      add &&
+      add.parentElement!==card
+    ){
+      card.appendChild(add);
     }
 
-    const add=card.querySelector<HTMLButtonElement>(".ae-add-icon");
-    if(add){
-      const actions=document.createElement("div");actions.className="ae-pack06-card-actions";
-      if(instances.length>0){
-        const minus=document.createElement("button");minus.type="button";minus.className="ae-pack06-minus";minus.textContent="−";
-        minus.disabled=!latestUnlocked;minus.title=latestUnlocked?"Usuń ostatnią niezablokowaną instancję":"Wszystkie instancje są zablokowane";
-        minus.addEventListener("click",()=>{if(latestUnlocked)removeEffect(latestUnlocked.instanceId)});
-        const count=document.createElement("button");count.type="button";count.className="ae-pack06-count";count.textContent=`${instances.length}×`;count.title="Pokaż w Warstwach";
-        count.addEventListener("click",()=>{if(!latest)return;selectEffect(latest.instanceId);document.querySelector<HTMLButtonElement>('[data-sidebar-tab="layers"]')?.click();setTimeout(()=>document.querySelector<HTMLElement>(`[data-pack06-instance-id="${latest.instanceId}"]`)?.scrollIntoView({block:"nearest"}),0)});
-        actions.append(minus,count);
+    card
+      .querySelector(
+        ":scope > .ae-pack06-favorite",
+      )
+      ?.remove();
+
+    card
+      .querySelector(
+        ":scope > .ae-pack06-card-actions",
+      )
+      ?.remove();
+
+    card
+      .querySelector(
+        ".ae-pack06-scene-badge",
+      )
+      ?.remove();
+
+    const star=
+      document.createElement(
+        "button",
+      );
+
+    star.type="button";
+    star.className=
+      "ae-pack06-favorite";
+    star.textContent=
+      favorites.has(definition.id)
+        ?"★"
+        :"☆";
+    star.title="Ulubione";
+
+    star.addEventListener(
+      "click",
+      ()=>{
+        favorites.has(definition.id)
+          ?favorites.delete(definition.id)
+          :favorites.add(definition.id);
+
+        writeJson(
+          FAVORITES_KEY,
+          [...favorites],
+        );
+
+        refresh();
+      },
+    );
+
+    card.prepend(star);
+
+    if(active){
+      const sub=
+        card.querySelector(
+          ".ae-effect-card-subline",
+        );
+
+      if(sub){
+        const badge=
+          document.createElement(
+            "span",
+          );
+
+        badge.className=
+          "ae-pack06-scene-badge";
+        badge.textContent=
+          "NA SCENIE";
+
+        sub.appendChild(badge);
       }
-      add.addEventListener("click",()=>track(definition.id),{capture:true}); actions.appendChild(add);card.appendChild(actions);
+    }
+
+    if(add){
+      if(
+        add.dataset.pack14Track!=="1"
+      ){
+        add.dataset.pack14Track="1";
+
+        add.addEventListener(
+          "click",
+          ()=>{
+            track(definition.id);
+          },
+          {
+            capture:true,
+          },
+        );
+      }
+
+      if(active){
+        const actions=
+          document.createElement(
+            "div",
+          );
+
+        actions.className=
+          "ae-pack06-card-actions ae-pack14-card-actions";
+
+        const minus=
+          document.createElement(
+            "button",
+          );
+
+        minus.type="button";
+        minus.className=
+          "ae-pack06-minus";
+        minus.textContent="−";
+        minus.disabled=
+          !latestUnlocked;
+        minus.title=
+          latestUnlocked
+            ?"Usuń ostatnią niezablokowaną instancję"
+            :"Wszystkie instancje są zablokowane";
+
+        minus.addEventListener(
+          "click",
+          ()=>{
+            if(latestUnlocked){
+              removeEffect(
+                latestUnlocked.instanceId,
+              );
+            }
+          },
+        );
+
+        const count=
+          document.createElement(
+            "button",
+          );
+
+        count.type="button";
+        count.className=
+          "ae-pack06-count";
+        count.textContent=
+          `${instances.length}×`;
+        count.title=
+          "Pokaż w Warstwach";
+
+        count.addEventListener(
+          "click",
+          ()=>{
+            if(!latest)return;
+
+            selectEffect(
+              latest.instanceId,
+            );
+
+            document
+              .querySelector<HTMLButtonElement>(
+                '[data-sidebar-tab="layers"]',
+              )
+              ?.click();
+
+            setTimeout(
+              ()=>{
+                document
+                  .querySelector<HTMLElement>(
+                    `[data-pack06-instance-id="${latest.instanceId}"]`,
+                  )
+                  ?.scrollIntoView(
+                    {
+                      block:"nearest",
+                    },
+                  );
+              },
+              0,
+            );
+          },
+        );
+
+        actions.append(
+          minus,
+          count,
+          add,
+        );
+
+        applyPack16ActionsLayout(
+          actions,
+        );
+
+        card.appendChild(
+          actions,
+        );
+      }else if(
+        add.parentElement!==card
+      ){
+        card.appendChild(add);
+      }
     }
   }
 
-  const decorated=Array.from(library.querySelectorAll<HTMLElement>(".ae-effect-card[data-effect-id]"));
-  for(const card of decorated){const id=card.dataset.effectId??"";const count=state.effects.filter((effect)=>effect.effectId===id).length;card.hidden=(mode==="favorites"&&!favorites.has(id))||(mode==="scene"&&count===0)}
-  decorated.sort((a,b)=>{
-    const aId=a.dataset.effectId??"",bId=b.dataset.effectId??"";const ad=getEffectDefinition(aId),bd=getEffectDefinition(bId);if(!ad||!bd)return 0;
-    switch(sort){
-      case"used":return(usage[bId]??0)-(usage[aId]??0);
-      case"recent":return(recent[bId]??0)-(recent[aId]??0);
-      case"light":return ad.performanceCost-bd.performanceCost;
-      case"heavy":return bd.performanceCost-ad.performanceCost;
-      case"category":return ad.category.localeCompare(bd.category)||ad.name.localeCompare(bd.name);
-      default:return ad.name.localeCompare(bd.name);
-    }
-  });
-  decorated.forEach((card)=>library.appendChild(card));
+  const decorated=
+    Array.from(
+      library.querySelectorAll<HTMLElement>(
+        ".ae-effect-card[data-effect-id]",
+      ),
+    );
+
+  for(const card of decorated){
+    const id=
+      card.dataset.effectId??"";
+
+    const count=
+      state.effects.filter(
+        (effect)=>
+          effect.effectId===id,
+      ).length;
+
+    card.hidden=
+      (
+        mode==="favorites" &&
+        !favorites.has(id)
+      ) ||
+      (
+        mode==="scene" &&
+        count===0
+      );
+  }
+
+  decorated.sort(
+    (a,b)=>{
+      const aId=
+        a.dataset.effectId??"";
+
+      const bId=
+        b.dataset.effectId??"";
+
+      const ad=
+        getEffectDefinition(aId);
+
+      const bd=
+        getEffectDefinition(bId);
+
+      if(!ad||!bd)return 0;
+
+      switch(sort){
+        case"used":
+          return(
+            (usage[bId]??0)-
+            (usage[aId]??0)
+          );
+
+        case"recent":
+          return(
+            (recent[bId]??0)-
+            (recent[aId]??0)
+          );
+
+        case"light":
+          return(
+            ad.performanceCost-
+            bd.performanceCost
+          );
+
+        case"heavy":
+          return(
+            bd.performanceCost-
+            ad.performanceCost
+          );
+
+        case"category":
+          return(
+            ad.category.localeCompare(
+              bd.category,
+            ) ||
+            ad.name.localeCompare(
+              bd.name,
+            )
+          );
+
+        default:
+          return(
+            ad.name.localeCompare(
+              bd.name,
+            )
+          );
+      }
+    },
+  );
+
+  decorated.forEach(
+    (card)=>{
+      library.appendChild(card);
+    },
+  );
 }
 
 function decorateLayers():void{
@@ -164,10 +705,94 @@ function addHeaderUi():void{
 }
 
 function addLibraryUi():void{
-  const filters=document.querySelector(".ae-effect-filters");if(!filters||document.querySelector("#pack06-library-mode"))return;
-  const mode=document.createElement("select");mode.id="pack06-library-mode";mode.className="ae-category-select";mode.innerHTML='<option value="all">Wszystkie</option><option value="favorites">★ Ulubione</option><option value="scene">● Na scenie</option>';
-  const sort=document.createElement("select");sort.id="pack06-library-sort";sort.className="ae-category-select";sort.innerHTML='<option value="name">Nazwa</option><option value="category">Kategoria</option><option value="used">Najczęściej używane</option><option value="recent">Ostatnio używane</option><option value="light">Najlżejsze</option><option value="heavy">Najcięższe</option>';
-  mode.addEventListener("change",refresh);sort.addEventListener("change",refresh);filters.append(mode,sort);
+  const filters=
+    document.querySelector<HTMLElement>(
+      ".ae-effect-filters",
+    );
+
+  if(!filters)return;
+
+  let row=
+    filters.querySelector<HTMLElement>(
+      ":scope > .ae-pack14-library-tools",
+    );
+
+  if(!row){
+    row=
+      document.createElement(
+        "div",
+      );
+
+    row.className=
+      "ae-pack06-library-tools ae-pack14-library-tools";
+
+    filters.appendChild(row);
+  }
+
+  let mode=
+    document.querySelector<HTMLSelectElement>(
+      "#pack06-library-mode",
+    );
+
+  if(!mode){
+    mode=
+      document.createElement(
+        "select",
+      );
+
+    mode.id=
+      "pack06-library-mode";
+    mode.className=
+      "ae-category-select";
+
+    mode.innerHTML=
+      '<option value="all">Widok: Wszystkie</option>'+
+      '<option value="favorites">Widok: ★ Ulubione</option>'+
+      '<option value="scene">Widok: ● Na scenie</option>';
+
+    mode.addEventListener(
+      "change",
+      refresh,
+    );
+  }
+
+  let sort=
+    document.querySelector<HTMLSelectElement>(
+      "#pack06-library-sort",
+    );
+
+  if(!sort){
+    sort=
+      document.createElement(
+        "select",
+      );
+
+    sort.id=
+      "pack06-library-sort";
+    sort.className=
+      "ae-category-select";
+
+    sort.innerHTML=
+      '<option value="name">Sortuj: Nazwa</option>'+
+      '<option value="category">Sortuj: Kategoria</option>'+
+      '<option value="used">Sortuj: Najczęściej używane</option>'+
+      '<option value="recent">Sortuj: Ostatnio używane</option>'+
+      '<option value="light">Sortuj: Najlżejsze</option>'+
+      '<option value="heavy">Sortuj: Najcięższe</option>';
+
+    sort.addEventListener(
+      "change",
+      refresh,
+    );
+  }
+
+  if(mode.parentElement!==row){
+    row.appendChild(mode);
+  }
+
+  if(sort.parentElement!==row){
+    row.appendChild(sort);
+  }
 }
 
 function addFileInput():void{

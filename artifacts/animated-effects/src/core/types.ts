@@ -23,6 +23,11 @@ export interface BackgroundSettings {
   contrast: number; noise: number; vignette: number;
 }
 
+export interface EffectCustomControl {
+  key: string; label: string; description?: string;
+  min: number; max: number; step?: number; defaultValue: number; suffix?: string;
+}
+
 export interface EffectCapabilities {
   opacity: boolean; position: boolean; scale: boolean; rotation: boolean;
   blur: boolean; brightness: boolean; hue: boolean; density: boolean;
@@ -35,12 +40,14 @@ export interface EffectSettings {
   blur: number; brightness: number; hue: number; color?: string; colorize?: boolean;
   density: number; blendMode: BlendMode; area: EffectArea; zIndex: number;
   speed: number; intensity: number;
+  custom?: Record<string, number>;
 }
 
 export interface EffectDefinition {
   id: EffectId; name: string; description: string; category: EffectCategory;
   tags: string[]; defaultSettings: EffectSettings; capabilities: EffectCapabilities;
   performanceCost: 1 | 2 | 3 | 4 | 5; requiresJavaScript: boolean;
+  customControls?: EffectCustomControl[];
 }
 
 export interface EffectInstance {

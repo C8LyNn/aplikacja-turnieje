@@ -3,6 +3,18 @@ import "./style.css";
 import {
   installPack08UiQa,
 } from "./pack08/uiQa";
+import {
+  installPack09Customization,
+} from "./pack09/customization";
+
+import {
+  installPack09UiPolish,
+} from "./pack09/uiPolish";
+
+import {
+  applyPack09UiPolishStable,
+  installPack09UiPolishStable,
+} from "./pack09/uiPolishStable";
 
 import {
   installPack06,
@@ -430,7 +442,7 @@ function clearTemporaryPreview(): void {
 
   temporaryPreviewEffect = null;
 
-  renderEffectLibrary();
+  syncTemporaryPreviewUi();
   renderPreview();
 }
 
@@ -528,7 +540,185 @@ function renderCategoryOptions(): void {
     selectedCategory;
 }
 
+/* AE_LIBRARY_INTERACTION_PACK_22 */
+
+type EffectLibraryVisualAnchor = {
+  effectId: string;
+  topOffset: number;
+  scrollTop: number;
+};
+
+function captureEffectLibraryVisualAnchor():
+  EffectLibraryVisualAnchor | null {
+  const libraryRect =
+    effectLibrary.getBoundingClientRect();
+
+  const cards =
+    Array.from(
+      effectLibrary.querySelectorAll<HTMLElement>(
+        ":scope > .ae-effect-card[data-effect-id]",
+      ),
+    ).filter(
+      (card) =>
+        !card.hidden &&
+        getComputedStyle(card).display !== "none",
+    );
+
+  const anchor =
+    cards.find(
+      (card) =>
+        card.getBoundingClientRect().bottom >
+        libraryRect.top + 1,
+    );
+
+  if (!anchor) {
+    return null;
+  }
+
+  const effectId =
+    anchor.dataset.effectId;
+
+  if (!effectId) {
+    return null;
+  }
+
+  return {
+    effectId,
+    topOffset:
+      anchor.getBoundingClientRect().top -
+      libraryRect.top,
+    scrollTop:
+      effectLibrary.scrollTop,
+  };
+}
+
+function restoreEffectLibraryVisualAnchor(
+  anchor: EffectLibraryVisualAnchor | null,
+): void {
+  if (!anchor) {
+    return;
+  }
+
+  const libraryRect =
+    effectLibrary.getBoundingClientRect();
+
+  const card =
+    Array.from(
+      effectLibrary.querySelectorAll<HTMLElement>(
+        ":scope > .ae-effect-card[data-effect-id]",
+      ),
+    ).find(
+      (candidate) =>
+        candidate.dataset.effectId ===
+        anchor.effectId,
+    );
+
+  if (!card) {
+    effectLibrary.scrollTop =
+      anchor.scrollTop;
+    return;
+  }
+
+  const currentOffset =
+    card.getBoundingClientRect().top -
+    libraryRect.top;
+
+  const delta =
+    currentOffset -
+    anchor.topOffset;
+
+  if (
+    Number.isFinite(delta) &&
+    Math.abs(delta) > 0.25
+  ) {
+    effectLibrary.scrollTop +=
+      delta;
+  }
+}
+
+function scheduleEffectLibraryVisualAnchorRestore(
+  anchor: EffectLibraryVisualAnchor | null,
+): void {
+  if (!anchor) {
+    return;
+  }
+
+  /*
+    Pack06 decoration runs in a microtask and cosmetic polish may run
+    on the following animation frame. Restore after both have settled.
+  */
+  requestAnimationFrame(
+    () => {
+      requestAnimationFrame(
+        () => {
+          restoreEffectLibraryVisualAnchor(
+            anchor,
+          );
+        },
+      );
+    },
+  );
+}
+
+function syncTemporaryPreviewUi(): void {
+  Array.from(
+    effectLibrary.querySelectorAll<HTMLElement>(
+      ":scope > .ae-effect-card[data-effect-id]",
+    ),
+  ).forEach(
+    (card) => {
+      const effectId =
+        card.dataset.effectId;
+
+      if (!effectId) {
+        return;
+      }
+
+      const isPreviewing =
+        temporaryPreviewEffect
+          ?.effectId ===
+        effectId;
+
+      card.classList.toggle(
+        "is-previewing",
+        isPreviewing,
+      );
+
+      const button =
+        card.querySelector<HTMLButtonElement>(
+          ".ae-effect-card-preview",
+        );
+
+      if (!button) {
+        return;
+      }
+
+      button.setAttribute(
+        "aria-pressed",
+        String(isPreviewing),
+      );
+
+      const definition =
+        getEffectDefinition(
+          effectId,
+        );
+
+      if (definition) {
+        button.setAttribute(
+          "aria-label",
+          isPreviewing
+            ? `Wyłącz tymczasowy podgląd ${definition.name}`
+            : `Podejrzyj tymczasowo ${definition.name}`,
+        );
+      }
+    },
+  );
+}
+
 function renderEffectLibrary(): void {
+  const visualAnchor =
+    captureEffectLibraryVisualAnchor();
+
   const normalizedQuery =
     searchQuery
       .trim()
@@ -598,6 +788,9 @@ function renderEffectLibrary(): void {
 
       card.dataset.category =
         definition.category;
+
+      card.dataset.effectId =
+        definition.id;
 
       const isPreviewing =
         temporaryPreviewEffect
@@ -708,7 +901,7 @@ function renderEffectLibrary(): void {
                     definition.id,
                   );
 
-            renderEffectLibrary();
+            syncTemporaryPreviewUi();
             renderPreview();
           },
         );
@@ -723,7 +916,7 @@ function renderEffectLibrary(): void {
             temporaryPreviewEffect =
               null;
 
-            renderEffectLibrary();
+            syncTemporaryPreviewUi();
 
             addEffect(
               definition.id,
@@ -735,6 +928,9 @@ function renderEffectLibrary(): void {
         card,
       );
     },
+  );
+  scheduleEffectLibraryVisualAnchorRestore(
+    visualAnchor,
   );
 }
 
@@ -985,7 +1181,7 @@ function renderStatus(): void {
 }
 
 function renderEditor(): void {
-  renderEffectLibrary();
+  syncTemporaryPreviewUi();
   renderPreview();
   renderLayers();
   renderStatus();
@@ -994,6 +1190,8 @@ function renderEditor(): void {
     renderInspector(
       inspector,
     );
+
+    applyPack09UiPolishStable();
   }
 }
 
@@ -1186,7 +1384,6 @@ document
       temporaryPreviewEffect =
         null;
 
-      renderEffectLibrary();
       clearEffects();
     },
   );
@@ -1209,5 +1406,36 @@ addEffect(
 );
 
 installPack06();
-installPack06Polish02();
-installPack08UiQa();
+/* AE_STABLE_UI_POLISH_PACK_20 */
+installPack09UiPolishStable();
+
+/* AE_DIAGNOSTIC_ISOLATION_PACK_18
+   Temporary diagnostic isolation:
+   keep imports referenced, but disable DOM-polish/customization modules
+   that can observe or rewrite the editor DOM.
+*/
+const AE_DIAGNOSTIC_ENABLE_PACK06_POLISH02 = true;
+const AE_DIAGNOSTIC_ENABLE_PACK08_UI_QA = true;
+const AE_DIAGNOSTIC_ENABLE_PACK09_CUSTOMIZATION = true;
+const AE_DIAGNOSTIC_ENABLE_PACK09_UI_POLISH = false;
+
+if (AE_DIAGNOSTIC_ENABLE_PACK06_POLISH02) {
+  installPack06Polish02();
+}
+
+if (AE_DIAGNOSTIC_ENABLE_PACK08_UI_QA) {
+  installPack08UiQa();
+}
+
+if (AE_DIAGNOSTIC_ENABLE_PACK09_CUSTOMIZATION) {
+  installPack09Customization();
+}
+
+if (AE_DIAGNOSTIC_ENABLE_PACK09_UI_POLISH) {
+  installPack09UiPolish();
+}
+
+console.warn(
+  "[AE diagnostic] Pack 18 isolation active: " +
+  "Pack06Polish02, Pack08UiQa, Pack09Customization and Pack09UiPolish are disabled.",
+);

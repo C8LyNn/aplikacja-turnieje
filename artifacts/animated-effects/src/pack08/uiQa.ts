@@ -173,10 +173,37 @@ export function installPack08UiQa():
     );
 
   if (inspector) {
+    /* PACK17_OBSERVER_STABILITY_FIX */
+    let rangeScanQueued = false;
+
     const observer =
       new MutationObserver(
         () => {
-          scanRanges();
+          if (rangeScanQueued) {
+            return;
+          }
+
+          rangeScanQueued = true;
+
+          requestAnimationFrame(
+            () => {
+              observer.disconnect();
+
+              try {
+                scanRanges();
+              } finally {
+                rangeScanQueued = false;
+
+                observer.observe(
+                  inspector,
+                  {
+                    childList: true,
+                    subtree: true,
+                  },
+                );
+              }
+            },
+          );
         },
       );
 

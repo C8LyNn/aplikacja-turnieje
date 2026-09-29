@@ -176,7 +176,7 @@ html,body{width:${width}px!important;height:${height}px!important;${
     iframe.remove();
 
     throw new Error(
-      "Nie udaĹ‚o siÄ™ utworzyÄ‡ renderera eksportu.",
+      "Nie udało się utworzyÄ‡ renderera eksportu.",
     );
   }
 
@@ -663,7 +663,7 @@ async function exportPng(
                   )
                 : reject(
                     new Error(
-                      "Nie udaĹ‚o siÄ™ zakodowaÄ‡ PNG.",
+                      "Nie udało się zakodowaÄ‡ PNG.",
                     ),
                   ),
             "image/png",
@@ -677,7 +677,7 @@ async function exportPng(
 
     setStatus(
       dialog,
-      `PNG gotowy Â· ${(blob.size / 1024 / 1024).toFixed(1)} MB`,
+      `PNG gotowy · ${(blob.size / 1024 / 1024).toFixed(1)} MB`,
       100,
     );
   } finally {
@@ -789,7 +789,7 @@ async function exportGif(
       ) => {
         setStatus(
           dialog,
-          `GIF Â· klatka ${frame} / ${total}`,
+          `GIF · klatka ${frame} / ${total}`,
           frame /
             total *
             100,
@@ -851,7 +851,7 @@ async function exportGif(
 
   setStatus(
     dialog,
-    `GIF gotowy Â· ${(blob.size / 1024 / 1024).toFixed(1)} MB`,
+    `GIF gotowy · ${(blob.size / 1024 / 1024).toFixed(1)} MB`,
     100,
   );
 }
@@ -1022,7 +1022,7 @@ async function exportAllGifs(
   ) {
     setBatchStatus(
       dialog,
-      "Brak efektĂłw dla wybranego filtra.",
+      "Brak efektów dla wybranego filtra.",
       0,
     );
 
@@ -1109,7 +1109,7 @@ async function exportAllGifs(
 
       setBatchStatus(
         dialog,
-        `GIF ${effectIndex + 1} / ${definitions.length} Â· ${definition.name}`,
+        `GIF ${effectIndex + 1} / ${definitions.length} · ${definition.name}`,
         effectBase *
           94,
       );
@@ -1135,7 +1135,7 @@ async function exportAllGifs(
 
             setBatchStatus(
               dialog,
-              `${definition.name} Â· klatka ${frame} / ${total}`,
+              `${definition.name} · klatka ${frame} / ${total}`,
               (
                 effectBase +
                 effectShare *
@@ -1224,7 +1224,7 @@ async function exportAllGifs(
         (metadata) => {
           setBatchStatus(
             dialog,
-            `Pakowanie ZIP Â· ${Math.round(metadata.percent)}%`,
+            `Pakowanie ZIP · ${Math.round(metadata.percent)}%`,
             95 +
               metadata.percent *
                 .05,
@@ -1239,7 +1239,7 @@ async function exportAllGifs(
 
     setBatchStatus(
       dialog,
-      `Gotowe Â· ${definitions.length} GIF Â· ${(archive.size / 1024 / 1024).toFixed(1)} MB ZIP`,
+      `Gotowe · ${definitions.length} GIF · ${(archive.size / 1024 / 1024).toFixed(1)} MB ZIP`,
       100,
     );
   } finally {
@@ -1279,12 +1279,12 @@ function createDialog():
     "export-dialog ae-media-dialog";
 
   dialog.innerHTML =
-    `<div class="export-header"><div><strong>PNG / GIF</strong><span>Render sceny bez interfejsu edytora</span></div><button type="button" data-media-close>Ă—</button></div>
+    `<div class="export-header"><div><strong>PNG / GIF</strong><span>Render sceny bez interfejsu edytora</span></div><button type="button" data-media-close>×</button></div>
   <div class="ae-media-export">
     <div class="ae-media-grid">
-      <label>SzerokoĹ›Ä‡<input type="number" min="240" max="1920" value="1280" data-media-width></label>
-      <label>WysokoĹ›Ä‡<input type="number" min="240" max="1080" value="720" data-media-height></label>
-      <label>TĹ‚o<select data-media-background><option value="black">Czarne</option><option value="custom">WĹ‚asny kolor</option><option value="transparent">Przezroczyste</option></select></label>
+      <label>Szerokość<input type="number" min="240" max="1920" value="1280" data-media-width></label>
+      <label>Wysokość<input type="number" min="240" max="1080" value="720" data-media-height></label>
+      <label>Tło<select data-media-background><option value="black">Czarne</option><option value="custom">WĹ‚asny kolor</option><option value="transparent">Przezroczyste</option></select></label>
       <label>Kolor<input type="color" value="#080b12" data-media-color></label>
     </div>
 
@@ -1312,17 +1312,17 @@ function createDialog():
     </section>
 
     <section class="ae-media-section ae-batch-export">
-      <h3>Batch GIF Â· wszystkie efekty</h3>
+      <h3>Batch GIF · wszystkie efekty</h3>
       <p class="ae-batch-note">
         KaĹĽdy efekt jest renderowany osobno na czystej scenie ze staĹ‚ym seedem i trafia do jednego ZIP-a.
-        DomyĹ›lnie 10 s Â· 640Ă—360 Â· 12 FPS. Przy caĹ‚ej bibliotece operacja moĹĽe potrwaÄ‡ dĹ‚ugo.
+        DomyĹ›lnie 10 s · 640×360 · 12 FPS. Przy caĹ‚ej bibliotece operacja moĹĽe potrwaÄ‡ dĹ‚ugo.
       </p>
 
       <div class="ae-media-grid">
-        <label>SzerokoĹ›Ä‡<input type="number" min="320" max="1280" value="640" data-batch-width></label>
-        <label>WysokoĹ›Ä‡<input type="number" min="180" max="720" value="360" data-batch-height></label>
+        <label>Szerokość<input type="number" min="320" max="1920" value="640" data-batch-width></label>
+        <label>Wysokość<input type="number" min="180" max="1080" value="360" data-batch-height></label>
         <label>DĹ‚ugoĹ›Ä‡ GIF (s)<input type="number" min="1" max="30" step="1" value="10" data-batch-seconds></label>
-        <label>FPS<input type="number" min="5" max="20" value="12" data-batch-fps></label>
+        <label>FPS<input type="number" min="5" max="30" value="12" data-batch-fps></label>
         <label>JakoĹ›Ä‡<select data-batch-quality><option value="low">Niska / szybciej</option><option value="medium" selected>Ĺšrednia</option><option value="high">Wysoka / wolniej</option></select></label>
         <label>Zakres<select data-batch-category><option value="all">Wszystkie efekty</option>${categories.map((category) => `<option value="${category}">${category}</option>`).join("")}</select></label>
       </div>
@@ -1333,7 +1333,7 @@ function createDialog():
       </div>
 
       <progress max="100" value="0" data-batch-progress></progress>
-      <div data-batch-status>Gotowe Â· ${definitions.length} efektĂłw dostÄ™pnych.</div>
+      <div data-batch-status>Gotowe · ${definitions.length} efektów dostÄ™pnych.</div>
     </section>
   </div>`;
 

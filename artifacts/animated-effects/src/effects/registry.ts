@@ -21,6 +21,9 @@ import {
 import {
   pack08EffectModules,
 } from "./modules/pack08Expansion";
+import {
+  pack09MegaEffectModules,
+} from "./modules/pack09Mega";
 
 const registeredEffectModules:
   EffectModule[] = [
@@ -29,6 +32,7 @@ const registeredEffectModules:
     ...pack06ExtraEffectModules,
   ...pack07OverdriveEffectModules,
     ...pack08EffectModules,
+    ...pack09MegaEffectModules,
   ];
 
 const allEffectModules:
