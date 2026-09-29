@@ -66,11 +66,13 @@ export function ObsLab() {
 
   const overlayUrl =
     useMemo(() => {
-      const basePath =
-        import.meta.env.BASE_URL.replace(
-          /\/$/,
-          "",
-        );
+    const basePath =
+  (
+    import.meta.env?.BASE_URL ?? "/"
+      ).replace(
+    /\/$/,
+    "",
+  );
 
       const path =
         `${basePath}/developer/overlay/camera-chat`;
