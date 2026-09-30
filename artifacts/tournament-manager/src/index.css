@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./organizer.css";
+@import "./experimental-tournaments.css";
 @plugin "@tailwindcss/typography";
 
 @font-face {

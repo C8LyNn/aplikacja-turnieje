@@ -1,8 +1,9 @@
 import React from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrganizerNextStepModel } from "@/lib/organizer-next-step";
+import { isExperimentalTournamentPath, tournamentModeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 export function OrganizerNextStep({
   step,
@@ -13,7 +14,12 @@ export function OrganizerNextStep({
   onAction?: () => void;
   pending?: boolean;
 }) {
-  const action = step.actionLabel && (onAction || step.actionHref);
+  const [location] = useLocation();
+  const experimental = isExperimentalTournamentPath(location);
+  const actionHref = step.actionHref
+    ? tournamentModeHref(step.actionHref, experimental)
+    : undefined;
+  const action = step.actionLabel && (onAction || actionHref);
   return (
     <section aria-labelledby="organizer-next-step-title" className="organizer-next-step rounded-lg border border-primary/30 bg-primary/5 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -26,9 +32,9 @@ export function OrganizerNextStep({
             <p className="mt-1 text-sm">{step.readinessFeedback.action}</p>
           </>}
         </div>
-        {action && step.actionHref && !onAction && (
+        {action && actionHref && !onAction && (
           <Button asChild className="organizer-next-action shrink-0">
-            <Link href={step.actionHref}>{step.actionLabel}<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link href={actionHref}>{step.actionLabel}<ArrowRight className="ml-2 h-4 w-4" /></Link>
           </Button>
         )}
         {action && onAction && (

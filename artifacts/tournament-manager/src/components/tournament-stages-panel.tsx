@@ -63,6 +63,7 @@ import {
 } from "@/lib/tournament-stages-ui";
 import { SeedingCeremony } from "@/components/seeding-ceremony";
 import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
+import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import {
   isSequentialCeremonyReady,
@@ -545,6 +546,7 @@ export function TournamentStagesPanel({
   const queryClient = useQueryClient();
   const search = useSearch();
   const [location, navigate] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
   const searchParams = new URLSearchParams(search);
   const requestedStageId = Number(searchParams.get("stage")) || undefined;
   const requestedAction = searchParams.get("action");
@@ -794,20 +796,20 @@ export function TournamentStagesPanel({
 
   if (stagesQuery.isLoading)
     return (
-      <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+      <div className="read-query-state read-query-state--loading flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Ładowanie etapów…
       </div>
     );
   if (stagesQuery.error)
     return (
-      <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+      <div role="alert" className="read-query-state read-query-state--error rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
         Nie udało się pobrać etapów. <Button variant="outline" onClick={() => void stagesQuery.refetch()}>Spróbuj ponownie</Button>
       </div>
     );
   if (stages.length === 0)
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+      <div className="organizer-empty-state rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
         Ten turniej nie ma jeszcze skonfigurowanych etapów.
       </div>
     );
@@ -853,13 +855,13 @@ export function TournamentStagesPanel({
       {actionSuccess && <p role="status" className="organizer-notice organizer-notice--success rounded-lg border border-primary/30 p-3 text-sm text-primary">{actionSuccess}</p>}
       {pending && <p role="status" className="organizer-notice organizer-notice--pending text-sm">{qualificationPending ? "Zapisywanie i odświeżanie stanu…" : completeMutation.isPending ? "Kończenie etapu i odświeżanie danych…" : "Uruchamianie etapu i odświeżanie danych…"}</p>}
       {detailQuery.isLoading && (
-        <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+        <div className="read-query-state read-query-state--loading flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Ładowanie danych etapu…
         </div>
       )}
       {detailQuery.error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+        <div className="read-query-state read-query-state--error rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
           Nie udało się pobrać danych etapu.{" "}
           <Button variant="outline" onClick={() => void detailQuery.refetch()}>Ponów pobranie etapu</Button>
         </div>
@@ -906,9 +908,9 @@ export function TournamentStagesPanel({
                 {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.action}</p>}
                 {!ceremonyReady && <p className="text-sm">Dokończ ceremonię losowania przed rozpoczęciem etapu.</p>}
                 {(readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&
-                  <Button variant="outline" asChild><a href={stageHasRandomCeremony(selected) ? `#stage-ceremony-${selected.id}` : `/tournaments/${tournamentId}?tab=players`}>{stageHasRandomCeremony(selected) ? "Przejdź do losowania" : "Sprawdź seedy graczy"}</a></Button>}
+                  <Button variant="outline" asChild><a href={stageHasRandomCeremony(selected) ? `#stage-ceremony-${selected.id}` : tournamentHref(tournamentId, isExperimental, "?tab=players")}>{stageHasRandomCeremony(selected) ? "Przejdź do losowania" : "Sprawdź seedy graczy"}</a></Button>}
                 {(!readinessQuery.data.basketValidation.valid || readinessQuery.data.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" || readinessQuery.data.reasonCode === "QUALIFICATION_CONFIGURATION_INVALID") &&
-                  <Button variant="outline" asChild><Link href={`/tournaments/${tournamentId}?tab=baskets`}>Sprawdź koszyki i dopływ uczestników</Link></Button>}
+                  <Button variant="outline" asChild><Link href={tournamentHref(tournamentId, isExperimental, "?tab=baskets")}>Sprawdź koszyki i dopływ uczestników</Link></Button>}
                 {readinessQuery.data.reasonCode === "PREVIOUS_STAGE_NOT_COMPLETED" && <p className="text-sm">Wybierz poprzedni etap na liście i sprawdź jego zakończenie.</p>}
                 {!readinessQuery.data.ready && <section aria-label="Szczegóły diagnostyczne" className="pt-3 space-y-2">
                   <h5 className="text-sm font-semibold">Szczegóły diagnostyczne</h5>
@@ -964,12 +966,12 @@ export function TournamentStagesPanel({
             />
           ) : selected.format === "double_elimination" ? (
             doubleEliminationQuery.isLoading ? (
-              <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+              <div className="read-query-state read-query-state--loading flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Ładowanie drabinki podwójnej eliminacji…
               </div>
             ) : doubleEliminationQuery.error ? (
-              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+              <div className="read-query-state read-query-state--error rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
                 Nie udało się pobrać drabinki. {getApiErrorMessage(doubleEliminationQuery.error)}
               </div>
             ) : doubleEliminationQuery.data ? (

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -37,8 +38,7 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
 
 export default function TournamentBracket() {
-  const [, params] = useRoute("/tournaments/:id/bracket");
-  const id = params?.id ? parseInt(params.id, 10) : 0;
+  const { id, isExperimental } = useTournamentRoute("bracket");
 
   const tournamentQuery = useGetTournament(id, {
     query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 10000 },
@@ -182,11 +182,11 @@ export default function TournamentBracket() {
   }
 
   return (
-    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden`} data-theme={presentationSettings.colorPreset || undefined}>
+    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view" : ""}`} data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <a
-          href={`/tournaments/${id}`}
+          href={tournamentHref(id, isExperimental)}
           className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors"
         >
           ← Wróć do turnieju

@@ -1,5 +1,5 @@
 import { ReadQueryState } from "@/components/read-query-state";
-import { useRoute, Link, useSearchParams } from "wouter";
+import { Link, useSearchParams } from "wouter";
 import {
   useGetTournament,
   useListMatches,
@@ -47,6 +47,7 @@ import {
   usePresentationTheme,
   resolvePresentationSettings,
 } from "@/lib/presentation-theme";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -96,11 +97,10 @@ function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "
 }
 
 export default function TournamentAudience() {
-  const [, params] = useRoute("/tournaments/:id/audience");
+  const { id, isExperimental } = useTournamentRoute("audience");
   const [searchParams] = useSearchParams();
   // show-drops=0 in the URL hides UB→LB loser-drop connector lines (default: visible)
   const showDropLines = searchParams.get("show-drops") !== "0";
-  const id = params?.id ? parseInt(params.id, 10) : 0;
   const { getOrgToken, getSupSession, getViewerTok, storeViewerToken } = useAuth();
   const [showViewerModal, setShowViewerModal] = useState(false);
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
@@ -353,7 +353,7 @@ export default function TournamentAudience() {
 
   return (
     <div
-      className="min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden"
+      className={`min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden ${isExperimental ? "experimental-tournament-public" : ""}`}
       data-theme={presentationSettings.colorPreset || undefined}
       style={{
         backgroundImage:
@@ -366,7 +366,7 @@ export default function TournamentAudience() {
         <div className="flex flex-1 basis-80 items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
           <span className="text-white/20 hidden sm:block">·</span>
-          <h1 className="min-w-0 flex-1 font-bold text-sm sm:text-base truncate" title={tournament?.name}>{tournament?.name ?? "Ładowanie…"}</h1>
+          <h1 className={isExperimental ? "min-w-0 flex-1 break-words font-bold text-sm sm:text-base" : "min-w-0 flex-1 font-bold text-sm sm:text-base truncate"} title={tournament?.name}>{tournament?.name ?? "Ładowanie…"}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
@@ -390,7 +390,7 @@ export default function TournamentAudience() {
           )}
           {(organizerToken || supportSession || (!!id && getMgmtFlag(id))) && (
             <Link
-              href={`/tournaments/${id}`}
+              href={tournamentHref(id, isExperimental)}
               className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
               title="Wróć do panelu zarządzania tym turniejem"
             >
@@ -414,8 +414,8 @@ export default function TournamentAudience() {
           {AUDIENCE_SECTIONS.map((section) => {
             const isActive = activeSection === section.id;
             const href = section.id === "live"
-              ? `/tournaments/${id}/audience`
-              : `/tournaments/${id}/audience?section=${section.id}`;
+              ? tournamentHref(id, isExperimental, "/audience")
+              : tournamentHref(id, isExperimental, `/audience?section=${section.id}`);
             return (
               <Link
                 key={section.id}

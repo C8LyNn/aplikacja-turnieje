@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Info, KeyRound, Shuffle, Users } from "lucide-react";
+import { CheckCircle2, CircleAlert, Info, KeyRound, ListChecks, Shuffle, Trophy, Users } from "lucide-react";
 import {
   setActiveOrganizerToken,
   useCreateTournament,
@@ -9,7 +9,7 @@ import {
 import { ExperimentalOrganizerGuard } from "@/features/experimental-tournaments/experimental-organizer-guard";
 import { ExperimentalTournamentShell } from "@/features/experimental-tournaments/experimental-tournament-shell";
 import { PasswordField } from "@/components/password-field";
-import { ToolNotice, ToolPanel, ToolSection } from "@/components/tool-ui";
+import { ToolDisclosure, ToolNotice, ToolPanel, ToolSection } from "@/components/tool-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,13 @@ const VISIBILITY_LABELS: Record<Visibility, string> = {
   public_online: "Publiczny online",
   private_online: "Prywatny online",
   private_offline: "Prywatny offline",
+};
+
+const FORMAT_SHORT_LABELS: Record<ExperimentalFormat, string> = {
+  single_elimination: "Single Elimination",
+  double_elimination: "Double Elimination",
+  swiss: "Swiss",
+  round_robin: "Round Robin",
 };
 
 function readDraft(): DraftState {
@@ -180,8 +187,6 @@ function ExperimentalCreateForm() {
     randomRevealOrder,
   ]);
 
-  const formatInfo = FORMAT_INFO[format];
-
   const parseOptionalInteger = (value: string): number | undefined => {
     if (!value.trim()) return undefined;
     const parsed = Number(value);
@@ -219,6 +224,31 @@ function ExperimentalCreateForm() {
       : null;
 
   const bestOf = (Number.parseInt(defaultBestOf, 10) || 1) as 1 | 3 | 5 | 7;
+
+  const readinessItems = [
+    { label: "Nazwa", ready: !tournamentNameError(name), detail: name.trim() || "Wpisz nazwę turnieju" },
+    { label: "Format", ready: true, detail: FORMAT_SHORT_LABELS[format] },
+    {
+      label: "Hasło organizatora",
+      ready: !organizerPasswordError(organizerPassword),
+      detail: organizerPassword
+        ? organizerPasswordError(organizerPassword) ? "Hasło wymaga poprawy" : "Gotowe"
+        : "Ustaw hasło",
+    },
+    {
+      label: "Serwer",
+      ready: apiStatus === "ready",
+      detail: apiStatus === "ready" ? "Połączono" : apiStatus === "checking" ? "Sprawdzanie…" : "Niedostępny",
+    },
+  ];
+
+  const readyCount = readinessItems.filter((item) => item.ready).length;
+  const isFormReady =
+    readyCount === readinessItems.length &&
+    !maxPlayersError &&
+    !swissRoundsError &&
+    !supportPasswordError &&
+    !viewerPasswordError;
 
   const handleReset = () => {
     setName("");
@@ -327,7 +357,7 @@ function ExperimentalCreateForm() {
           window.sessionStorage.removeItem(DRAFT_KEY);
           storeOrgToken(id, organizerToken);
           setActiveOrganizerToken(organizerToken);
-          navigate(`/tournaments/${id}`);
+          navigate(`/experimental/tournaments/${id}`);
         },
         onError: (error) => {
           submitInFlightRef.current = false;
@@ -398,26 +428,33 @@ function ExperimentalCreateForm() {
                 description="Sposób rozgrywania meczów i podstawowe limity."
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="experimental-tournament-format">Format</Label>
-                    <Select
-                      value={format}
-                      onValueChange={(value) => setFormat(value as ExperimentalFormat)}
-                    >
-                      <SelectTrigger id="experimental-tournament-format">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(FORMAT_INFO).map(([value, info]) => (
-                          <SelectItem key={value} value={value}>
-                            {info.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      {formatInfo.description}
-                    </p>
+                  <div className="space-y-3 sm:col-span-2">
+                    <Label>Format</Label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {(Object.entries(FORMAT_INFO) as [ExperimentalFormat, (typeof FORMAT_INFO)[ExperimentalFormat]][]).map(
+                        ([value, info]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setFormat(value)}
+                            aria-pressed={format === value}
+                            className={`rounded-xl border p-3 text-left transition ${
+                              format === value
+                                ? "border-primary/60 bg-primary/5 shadow-sm"
+                                : "border-border bg-background/25 hover:border-primary/30 hover:bg-muted/30"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold">{info.label}</div>
+                                <p className="mt-1 text-xs leading-5 text-muted-foreground">{info.description}</p>
+                              </div>
+                              {format === value && <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
+                            </div>
+                          </button>
+                        ),
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -639,31 +676,42 @@ function ExperimentalCreateForm() {
                     onBlur={() => setOrganizerPasswordTouched(true)}
                   />
 
-                  <PasswordField
-                    id="experimental-support-password"
-                    label="Hasło wsparcia"
-                    value={supportPassword}
-                    onChange={setSupportPassword}
-                    visible={showSupportPassword}
-                    onToggle={() => setShowSupportPassword((value) => !value)}
-                    inputRef={supportPasswordInputRef}
-                    minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                    error={showValidation ? supportPasswordError ?? undefined : undefined}
-                  />
-
-                  {visibility === "private_online" && (
-                    <PasswordField
-                      id="experimental-viewer-password"
-                      label="Hasło widza *"
-                      value={viewerPassword}
-                      onChange={setViewerPassword}
-                      visible={showViewerPassword}
-                      onToggle={() => setShowViewerPassword((value) => !value)}
-                      inputRef={viewerPasswordInputRef}
-                      minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                      error={showValidation ? viewerPasswordError ?? undefined : undefined}
-                    />
-                  )}
+                  <ToolDisclosure
+                    title="Dodatkowe hasła"
+                    description={
+                      visibility === "private_online"
+                        ? "Hasło widza jest wymagane dla trybu prywatnego."
+                        : "Opcjonalne ustawienia wsparcia i widzów."
+                    }
+                    open={visibility === "private_online"}
+                  >
+                    <div className="grid gap-4">
+                      <PasswordField
+                        id="experimental-support-password"
+                        label="Hasło wsparcia"
+                        value={supportPassword}
+                        onChange={setSupportPassword}
+                        visible={showSupportPassword}
+                        onToggle={() => setShowSupportPassword((value) => !value)}
+                        inputRef={supportPasswordInputRef}
+                        minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
+                        error={showValidation ? supportPasswordError ?? undefined : undefined}
+                      />
+                      {visibility === "private_online" && (
+                        <PasswordField
+                          id="experimental-viewer-password"
+                          label="Hasło widza *"
+                          value={viewerPassword}
+                          onChange={setViewerPassword}
+                          visible={showViewerPassword}
+                          onToggle={() => setShowViewerPassword((value) => !value)}
+                          inputRef={viewerPasswordInputRef}
+                          minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
+                          error={showValidation ? viewerPasswordError ?? undefined : undefined}
+                        />
+                      )}
+                    </div>
+                  </ToolDisclosure>
                 </div>
               </ToolSection>
 
@@ -687,6 +735,7 @@ function ExperimentalCreateForm() {
                   disabled={createTournament.isPending || apiStatus !== "ready"}
                   title={apiStatus !== "ready" ? "Serwer turniejowy musi być dostępny." : undefined}
                 >
+                  <Trophy className="h-4 w-4" />
                   {createTournament.isPending
                     ? "Tworzenie…"
                     : apiStatus === "checking"
@@ -703,7 +752,14 @@ function ExperimentalCreateForm() {
             <ToolPanel
               title="Podsumowanie"
               description="Konfiguracja, z którą utworzysz turniej."
-              actions={<Badge variant="outline">experimental</Badge>}
+              actions={
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">experimental</Badge>
+                  <Badge variant={isFormReady ? "default" : "outline"}>
+                    {isFormReady ? "gotowe" : "do uzupełnienia"}
+                  </Badge>
+                </div>
+              }
             >
               <dl className="grid gap-4 text-sm">
                 <div>
@@ -719,7 +775,7 @@ function ExperimentalCreateForm() {
                   <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Format
                   </dt>
-                  <dd className="mt-1 font-semibold">{formatInfo.label}</dd>
+                  <dd className="mt-1 font-semibold">{FORMAT_INFO[format].label}</dd>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -765,41 +821,39 @@ function ExperimentalCreateForm() {
             </ToolPanel>
 
             <ToolPanel
-              title="Połączenie z serwerem"
-              actions={
-                <Badge variant="outline">
-                  {apiStatus === "ready"
-                    ? "gotowe"
-                    : apiStatus === "checking"
-                      ? "sprawdzanie"
-                      : "niedostępne"}
-                </Badge>
-              }
+              title="Gotowość"
+              description="Najważniejsze warunki przed utworzeniem turnieju."
+              actions={<Badge variant="outline">{readyCount}/{readinessItems.length}</Badge>}
             >
-              <div className="space-y-3 text-sm">
-                <p
-                  aria-live="polite"
-                  className={apiStatus === "ready" ? "text-muted-foreground" : "text-foreground"}
-                >
-                  {apiStatus === "ready"
-                    ? "API i baza danych odpowiadają. Możesz utworzyć turniej."
-                    : apiStatus === "checking"
-                      ? "Sprawdzam połączenie z API i bazą danych…"
-                      : "API albo baza danych są niedostępne. Lokalnie uruchom również serwer API na porcie 8080."}
-                </p>
+              <div className="space-y-2">
+                {readinessItems.map((item) => (
+                  <div key={item.label} className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-background/25 px-3 py-2.5">
+                    {item.ready
+                      ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+                      : <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{item.label}</div>
+                      <div className="mt-0.5 truncate text-xs text-muted-foreground">{item.detail}</div>
+                    </div>
+                  </div>
+                ))}
                 {apiStatus === "unavailable" && (
-                  <Button type="button" variant="outline" size="sm" onClick={() => void checkApiHealth()}>
-                    Sprawdź ponownie
+                  <Button type="button" variant="outline" size="sm" onClick={() => void checkApiHealth()} className="mt-2 w-full">
+                    Sprawdź połączenie ponownie
                   </Button>
                 )}
               </div>
             </ToolPanel>
 
-            <ToolPanel title="Po utworzeniu">
+            <ToolPanel
+              title="Po utworzeniu"
+              description="Po utworzeniu pozostajesz w nowym, eksperymentalnym interfejsie turnieju."
+              actions={<ListChecks className="h-4 w-4 text-primary" />}
+            >
               <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-3">
                   <Users className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <p>Przejdziesz do istniejącego panelu zarządzania i dodasz uczestników.</p>
+                  <p>Przejdziesz do eksperymentalnego panelu zarządzania i dodasz uczestników.</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

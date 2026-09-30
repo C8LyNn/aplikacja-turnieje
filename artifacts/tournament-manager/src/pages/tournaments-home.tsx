@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
-import { ArrowLeft, Eye, UserCog, Users } from "lucide-react";
+import { ArrowLeft, Eye, FlaskConical, UserCog, Users } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import type { Role } from "@/lib/auth";
+import { isExperimentalTournamentPath, tournamentRoleHomeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const TOURNAMENT_ROLES: {
   id: Role;
@@ -43,16 +44,21 @@ const TOURNAMENT_ROLES: {
 
 export default function TournamentsHome() {
   const { role, setRole } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
 
   function selectRole(item: (typeof TOURNAMENT_ROLES)[number]) {
     setRole(item.id);
-    navigate(item.href);
+    navigate(
+      isExperimental
+        ? tournamentRoleHomeHref(item.id, true)
+        : item.href,
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-12 text-foreground dark">
-      <div className="mx-auto max-w-4xl">
+    <div className={`min-h-screen bg-background px-4 py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry" : ""}`}>
+      <div className={`mx-auto max-w-4xl ${isExperimental ? "experimental-entry-inner" : ""}`}>
         <button
           type="button"
           onClick={() => navigate("/")}
@@ -62,10 +68,22 @@ export default function TournamentsHome() {
           Wszystkie kategorie
         </button>
 
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-primary">Turnieje</h1>
+        <div className={`mb-10 text-center ${isExperimental ? "experimental-entry-hero p-6 sm:p-8" : ""}`}>
+          {isExperimental && (
+            <div className="mb-3 flex justify-center">
+              <span className="experimental-mode-badge">
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
+                Experimental
+              </span>
+            </div>
+          )}
+          <h1 className="text-4xl font-bold tracking-tight text-primary">
+            {isExperimental ? "Turnieje — nowy interfejs" : "Turnieje"}
+          </h1>
           <p className="mt-3 text-base text-muted-foreground">
-            Wybierz sposób wejścia do modułu turniejowego.
+            {isExperimental
+              ? "Wybierz rolę. Cała dalsza ścieżka pozostanie w równoległym interfejsie Experimental."
+              : "Wybierz sposób wejścia do modułu turniejowego."}
           </p>
         </div>
 
@@ -75,7 +93,7 @@ export default function TournamentsHome() {
               key={item.id}
               type="button"
               onClick={() => selectRole(item)}
-              className={`group relative min-h-56 rounded-xl border border-border bg-card p-6 text-left transition-all duration-200 ${item.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+              className={`group relative min-h-56 rounded-xl border border-border bg-card p-6 text-left transition-all duration-200 ${item.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isExperimental ? "experimental-entry-card" : ""}`}
             >
               <div className={`mb-6 text-muted-foreground transition-colors ${item.iconHover}`}>
                 {item.icon}

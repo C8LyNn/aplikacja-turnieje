@@ -1,5 +1,5 @@
 import { ReadQueryState } from "@/components/read-query-state";
-import { useRoute, useSearch, Link } from "wouter";
+import { useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -57,6 +57,11 @@ import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
+import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
+import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
+import { ExperimentalTournamentOverview } from "@/features/experimental-tournaments/experimental-tournament-overview";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -67,15 +72,17 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 export default function TournamentDetail() {
-  const [, params] = useRoute("/tournaments/:id");
+  const { id, isExperimental } = useTournamentRoute("detail");
   const search = useSearch();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession, removeOrgToken, removeSupSession, getViewerTok, storeViewerToken, removeViewerToken } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
   const [showViewerModal, setShowViewerModal] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [playerStatusFilter, setPlayerStatusFilter] = useState<ExperimentalPlayerStatusFilter>("all");
+  const [playerSort, setPlayerSort] = useState<ExperimentalPlayerSort>("seed");
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
 
   // Keep module-level API client headers in sync with sessionStorage tokens.
@@ -129,13 +136,30 @@ export default function TournamentDetail() {
     isAuthenticated ||
     (visibility === "private_online" && !!viewerToken);
 
-  const { data: stats } = useGetTournamentStats(id, {
+  const statsQuery = useGetTournamentStats(id, {
     query: { enabled: !!id && readOk, queryKey: getGetTournamentStatsQueryKey(id) },
   });
+  const { data: stats } = statsQuery;
   const playersQuery = useListPlayers(id, {
     query: { enabled: !!id && readOk, queryKey: getListPlayersQueryKey(id) },
   });
   const { data: players } = playersQuery;
+  const displayedPlayers = useMemo(() => {
+    const list = [...(players ?? [])];
+    if (!isExperimental) return list;
+    const needle = playerSearch.trim().toLocaleLowerCase("pl-PL");
+    const filtered = list.filter((player) => {
+      const matchesStatus = playerStatusFilter === "all" || player.status === playerStatusFilter;
+      const haystack = [player.name, player.teamName, player.rank, player.country].filter(Boolean).join(" ").toLocaleLowerCase("pl-PL");
+      return matchesStatus && (!needle || haystack.includes(needle));
+    });
+    filtered.sort((a, b) => {
+      if (playerSort === "name") return a.name.localeCompare(b.name, "pl");
+      if (playerSort === "status") return String(a.status ?? "").localeCompare(String(b.status ?? ""), "pl") || a.name.localeCompare(b.name, "pl");
+      return (a.seed ?? Number.MAX_SAFE_INTEGER) - (b.seed ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name, "pl");
+    });
+    return filtered;
+  }, [isExperimental, playerSearch, playerSort, playerStatusFilter, players]);
   const { data: matches } = useListMatches(id, {
     query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
@@ -376,7 +400,7 @@ export default function TournamentDetail() {
           description: `Turniej „${result.tournament.name}" — ${result.playersImported} graczy, ${result.matchesImported} meczów.`,
         });
         // Navigate to the new tournament
-        window.location.href = `/tournaments/${result.tournament.id}`;
+        window.location.href = tournamentHref(result.tournament.id, isExperimental);
       },
       onError: (e: any) => {
         setImportPending(false);
@@ -633,25 +657,42 @@ export default function TournamentDetail() {
             {tournament.status !== "draft" && (
               <>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/host`}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/audience`}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/bracket`}><ExternalLink className="w-4 h-4 mr-2" /> Projektor</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> Projektor</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        <TournamentChecklist
-          open={showChecklist && !!id}
+        {isExperimental && (
+          <ExperimentalTournamentContextBar
+            tournamentId={id}
+            tournamentName={tournament.name}
+            currentLabel="Panel turnieju"
+          />
+        )}
+
+        {isExperimental ? (
+          <ExperimentalTournamentChecklist
+            open={showChecklist && !!id}
+            onClose={() => setShowChecklist(false)}
+            tournamentId={id ?? 0}
+            tournamentName={tournament?.name}
+          />
+        ) : (
+          <TournamentChecklist
+            open={showChecklist && !!id}
           onClose={() => setShowChecklist(false)}
           tournamentId={id ?? 0}
           tournamentName={tournament?.name}
-        />
+          />
+        )}
 
         {managementRole && (
           <TournamentOrganizerNavigation tournamentId={id} active={activeArea} capabilities={capabilities} />
@@ -790,6 +831,23 @@ export default function TournamentDetail() {
         {readOk && <Tabs value={activeDetailTab} className="w-full">
 
           <TabsContent value="overview" className="pt-6">
+            {isExperimental ? (
+              <ExperimentalTournamentOverview
+                tournamentId={id}
+                status={tournament.status}
+                formatLabel={FORMAT_LABELS[tournament.format] ?? tournament.format}
+                maxPlayers={tournament.maxPlayers}
+                stageName={operation.stage?.name}
+                roundLabel={operation.summary.roundLabel}
+                bestOf={operation.stage?.bestOf ?? tournament.defaultBestOf}
+                stats={stats}
+                statsLoading={statsQuery.isLoading}
+                statsError={statsQuery.isError}
+                onRetryStats={() => void statsQuery.refetch()}
+                nextStep={nextStep}
+              />
+            ) : (
+              <>
             {stats && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
@@ -854,9 +912,11 @@ export default function TournamentDetail() {
                 </CardContent>
               </Card>
             )}
+              </>
+            )}
           </TabsContent>
 
-          <TabsContent value="stages" className="pt-2">
+          <TabsContent value="stages" className={isExperimental ? "pt-2 experimental-stages-surface" : "pt-2"}>
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -868,7 +928,7 @@ export default function TournamentDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="baskets" className="pt-2">
+          <TabsContent value="baskets" className={isExperimental ? "pt-2 experimental-baskets-surface" : "pt-2"}>
             <StageBasketsPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -876,8 +936,9 @@ export default function TournamentDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="players" className="pt-6">
-            <div className="grid md:grid-cols-3 gap-6">
+          <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
+            {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
+            <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -1055,8 +1116,9 @@ export default function TournamentDetail() {
                   <CardContent className="pt-4">
                     <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
                     {players?.length ? (
-                      <div className="space-y-2">
-                        {players.map((p) => (
+                      <div className={isExperimental ? "experimental-player-list space-y-2" : "space-y-2"}>
+                        {isExperimental && displayedPlayers.length === 0 && <div className="organizer-empty-state border border-dashed p-6 text-center text-sm text-muted-foreground">Brak graczy pasujących do wyszukiwania lub filtra.</div>}
+                        {(isExperimental ? displayedPlayers : players).map((p) => (
                           capabilities.canManageParticipants && editingPlayerId === p.id ? (
                             // Inline edit form
                             <div key={p.id} className="border border-primary/40 rounded bg-background p-3 space-y-2">
@@ -1093,7 +1155,7 @@ export default function TournamentDetail() {
                             </div>
                           ) : (
                             // Normal player row
-                            <div key={p.id} className="flex flex-col border rounded bg-background">
+                            <div key={p.id} className={`flex flex-col border rounded bg-background ${isExperimental ? "experimental-player-row" : ""}`}>
                               {/* Main info + actions row */}
                               <div className="flex justify-between items-center p-3">
                                 <div>
@@ -1207,7 +1269,7 @@ export default function TournamentDetail() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className={isExperimental ? "organizer-empty-state border border-dashed text-center py-8 text-muted-foreground" : "text-center py-8 text-muted-foreground"}>
                         {capabilities.canManageParticipants
                           ? "Brak graczy. Dodaj ręcznie lub importuj CSV."
                           : "Brak graczy w tym turnieju."}

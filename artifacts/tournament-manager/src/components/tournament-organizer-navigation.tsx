@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
+import { isExperimentalTournamentPath, tournamentModeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 export type OrganizerArea =
   | "conducting"
@@ -86,11 +87,19 @@ export function useLegacyMatchesRedirect(
   search: string,
   capabilities: OrganizerCapabilities,
 ): void {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   useEffect(() => {
     const target = legacyMatchesRedirectTarget(tournamentId, search, capabilities);
-    if (target) navigate(target, { replace: true });
-  }, [capabilities, navigate, search, tournamentId]);
+    if (target) {
+      navigate(
+        tournamentModeHref(
+          target,
+          isExperimentalTournamentPath(location),
+        ),
+        { replace: true },
+      );
+    }
+  }, [capabilities, location, navigate, search, tournamentId]);
 }
 
 export function organizerAreaForDetailTab(tab: OrganizerDetailTab): OrganizerArea {
@@ -152,13 +161,21 @@ export function TournamentOrganizerNavigation({
   active: OrganizerArea;
   capabilities: OrganizerCapabilities;
 }) {
+  const [location] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
   const mainActiveRef = useRef<HTMLAnchorElement>(null);
   const moreActiveRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     (moreActiveRef.current ?? mainActiveRef.current)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active]);
-  const main = organizerNavigationItems(tournamentId);
-  const more = organizerMoreItems(tournamentId, capabilities);
+  const main = organizerNavigationItems(tournamentId).map((item) => ({
+    ...item,
+    href: tournamentModeHref(item.href, isExperimental),
+  }));
+  const more = organizerMoreItems(tournamentId, capabilities).map((item) => ({
+    ...item,
+    href: tournamentModeHref(item.href, isExperimental),
+  }));
   const moreActive = more.some((item) => item.area === active);
   return (
     <nav aria-label="Nawigacja organizatora turnieju" className="organizer-navigation rounded-lg border bg-card">

@@ -98,6 +98,7 @@ test("organizer sees a functional Experimental create form", async () => {
   assert.ok(screen.getByLabelText("Maks. graczy"));
   assert.ok(screen.getByLabelText("Hasło organizatora *"));
   assert.ok(screen.getByLabelText("Metoda seedowania"));
+  assert.ok(screen.getByRole("button", { name: /Drabinka eliminacyjna/ }));
 
   const submit = await screen.findByRole("button", { name: "Utwórz turniej" });
   await waitFor(() => assert.equal(submit.hasAttribute("disabled"), false));
@@ -153,8 +154,8 @@ test("default registration-order create reuses the existing endpoint without a s
   await waitFor(() => {
     assert.equal(window.sessionStorage.getItem(`tm_org_${TOURNAMENT_ID}`), ORG_TOKEN);
     assert.ok(
-      location.history.some((item) => item.includes(`/tournaments/${TOURNAMENT_ID}`)),
-      `expected navigation to /tournaments/${TOURNAMENT_ID}; history=${JSON.stringify(location.history)}`,
+      location.history.some((item) => item.includes(`/experimental/tournaments/${TOURNAMENT_ID}`)),
+      `expected navigation to /experimental/tournaments/${TOURNAMENT_ID}; history=${JSON.stringify(location.history)}`,
     );
   });
 });
@@ -255,7 +256,7 @@ test("API health failure disables create and offers retry", async () => {
   await screen.findByRole("heading", { name: "Nowy turniej" });
   const disabled = await screen.findByRole("button", { name: "Serwer niedostępny" });
   assert.equal(disabled.hasAttribute("disabled"), true);
-  assert.ok(screen.getByRole("button", { name: "Sprawdź ponownie" }));
+  assert.ok(screen.getByRole("button", { name: "Sprawdź połączenie ponownie" }));
 });
 
 test("optional support password shorter than eight characters is rejected locally", async () => {

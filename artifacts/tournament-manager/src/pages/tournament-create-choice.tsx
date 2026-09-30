@@ -13,7 +13,7 @@ export default function TournamentCreateChoice() {
         <ModuleHeader
           code="TURN"
           title="Utwórz turniej"
-          description="Wybierz interfejs tworzenia. Obie wersje prowadzą do tego samego systemu turniejowego."
+          description="Wybierz wersję kreatora. Stabilna pozostaje bez zmian, a Experimental rozwijamy niezależnie na tym samym backendzie."
           accent="primary"
           backHref="/dashboard"
           backLabel="Wróć do dashboardu"
@@ -34,11 +34,11 @@ export default function TournamentCreateChoice() {
           <ProjectCard
             code="TURN EXP"
             title="Nowa wersja"
-            description="Nowy, prostszy interfejs tworzenia podstawowych formatów turnieju. Jest rozwijany równolegle."
+            description="Pełna równoległa ścieżka: role, dashboard, tworzenie, zarządzanie, prowadzenie, widok widza i drabinka w nowym standardzie UI."
             href="/experimental/tournaments/new"
             icon={FlaskConical}
             accent="primary"
-            status="experimental"
+            status="experimental · Pack 02 audited"
             actionLabel="Otwórz nową wersję →"
           />
         </div>

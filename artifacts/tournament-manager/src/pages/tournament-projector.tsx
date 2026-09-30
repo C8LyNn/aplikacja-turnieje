@@ -19,7 +19,7 @@ import { ReadQueryState } from "@/components/read-query-state";
  *   aspect        = 169 → force 16:9 container (1920×1080 viewport)
  */
 
-import { useRoute, useSearch } from "wouter";
+import { useSearch } from "wouter";
 import {
   useGetTournament,
   useGetDoubleEliminationStage,
@@ -42,6 +42,7 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
@@ -67,9 +68,8 @@ const PRESETS: Record<string, React.CSSProperties & { "--connector-color"?: stri
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TournamentProjector() {
-  const [, params] = useRoute("/tournaments/:id/projector");
+  const { id } = useTournamentRoute("projector");
   const search = useSearch();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
 
   // Parse URL params
   const sp = useMemo(() => new URLSearchParams(search), [search]);

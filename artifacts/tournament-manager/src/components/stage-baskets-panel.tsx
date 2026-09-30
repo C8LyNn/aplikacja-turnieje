@@ -1049,7 +1049,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
 
       {/* Horizontal stage map */}
       {stages.length === 0 && (
-        <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
+        <div className="organizer-empty-state flex items-center justify-center border border-dashed py-12 text-muted-foreground text-sm">
           Brak etapów — dodaj etapy do turnieju, aby skonfigurować koszyki.
         </div>
       )}

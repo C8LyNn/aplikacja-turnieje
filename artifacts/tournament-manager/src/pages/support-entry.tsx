@@ -6,8 +6,9 @@ import { apiSupportLogin } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Lock, User, Trophy } from "lucide-react";
+import { FlaskConical, Users, Lock, User, Trophy } from "lucide-react";
 import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
+import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -18,7 +19,8 @@ const FORMAT_LABELS: Record<string, string> = {
 export default function SupportEntry() {
   const { data: tournaments } = useListTournaments();
   const { storeSupSession } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [password, setPassword] = useState("");
@@ -36,7 +38,7 @@ export default function SupportEntry() {
     try {
       const { sessionToken, nick: confirmedNick } = await apiSupportLogin(selectedId, password, nick);
       storeSupSession(selectedId, sessionToken, confirmedNick);
-      navigate(`/tournaments/${selectedId}/host`);
+      navigate(tournamentHref(selectedId, isExperimental, "/host"));
     } catch (err: any) {
       setError(err.message ?? "Błąd logowania");
     } finally {
@@ -45,15 +47,23 @@ export default function SupportEntry() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground dark flex flex-col">
+    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry" : ""}`}>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <AppLogoLink fallbackHref="/support" className="text-xl" />
+          <div className="flex items-center gap-3">
+            <AppLogoLink fallbackHref={isExperimental ? "/experimental/tournaments/support" : "/support"} className="text-xl" />
+            {isExperimental && (
+              <span className="experimental-mode-badge">
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
+                Experimental
+              </span>
+            )}
+          </div>
           <RoleSelectionLink />
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-lg">
+      <main id={isExperimental ? "experimental-main" : undefined} className="flex-1 container mx-auto px-4 py-8 max-w-lg">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-5 h-5 text-green-400" />

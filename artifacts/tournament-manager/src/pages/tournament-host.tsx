@@ -1,4 +1,4 @@
-import { useRoute, useSearch, useLocation, Link } from "wouter";
+import { useSearch, useLocation, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -56,16 +56,19 @@ import { getDeadlockEffectiveStageBans } from "@workspace/game-catalog";
 import { PLAYER_STATUS_LABELS, STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
 import { matchOperationError, MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
+import { ExperimentalHostCommandCenter } from "@/features/experimental-tournaments/experimental-host-command-center";
+import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments/experimental-host-focus-toggle";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string };
 const scoreBaseline = (match: { player1Id?: number | null; player2Id?: number | null; score1?: number | null; score2?: number | null; bestOf?: number | null; status: string }) =>
   JSON.stringify([match.player1Id, match.player2Id, match.score1, match.score2, match.bestOf, match.status === "completed" || match.status === "cancelled" ? match.status : "open"]);
 
 export default function TournamentHost() {
-  const [, params] = useRoute("/tournaments/:id/host");
+  const { id, isExperimental } = useTournamentRoute("host");
   const search = useSearch();
   const [, navigate] = useLocation();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const {
@@ -640,7 +643,7 @@ export default function TournamentHost() {
         setRevertConfirm(null);
         setScores((prev) => { const next = { ...prev }; delete next[matchId]; return next; });
         setSelectedMatchId(matchId);
-        navigate(`/tournaments/${id}/host`);
+        navigate(tournamentHref(id, isExperimental, "/host"));
         toast({ title: "Wynik cofnięty", description: "Wpisz poprawny wynik wybranego meczu i zapisz go." });
       },
     });
@@ -686,7 +689,7 @@ export default function TournamentHost() {
               <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
             </Button>
             <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
             </Button>
           </div>
         </div>
@@ -733,7 +736,7 @@ export default function TournamentHost() {
                 </Button>
               )}
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
               </Button>
             </div>
           </div>
@@ -775,7 +778,7 @@ export default function TournamentHost() {
               Ten historyczny turniej nie ma skonfigurowanego hasła organizatora ani kodu prowadzącego. Brak poświadczeń nie daje dostępu do mutacji.
             </p>
             <Button variant="outline" asChild>
-              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
             </Button>
           </div>
         </div>
@@ -840,7 +843,7 @@ export default function TournamentHost() {
                 {legacyUpgradePending ? "Aktualizowanie…" : "Ustaw hasło i przejdź do panelu"}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
               </Button>
             </div>
           </div>
@@ -860,7 +863,7 @@ export default function TournamentHost() {
               Zaloguj się jako organizator albo użyj aktywnej sesji wsparcia.
             </p>
             <Button variant="outline" asChild>
-              <Link href={`/tournaments/${id}`}>
+              <Link href={tournamentHref(id, isExperimental)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju
               </Link>
             </Button>
@@ -940,7 +943,7 @@ export default function TournamentHost() {
         : "N/C";
 
     return (
-      <div onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`rounded-xl border-2 overflow-hidden transition-colors ${
+      <div onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
         conflictedDraft
           ? "border-orange-500/60"
           : isCancelled
@@ -1412,7 +1415,7 @@ export default function TournamentHost() {
         {/* Top bar */}
         <div className="organizer-header flex flex-wrap items-center gap-3 border-b pb-3">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={`/tournaments/${id}`} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
+            <Link href={tournamentHref(id, isExperimental)} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold flex items-center gap-2">
@@ -1426,15 +1429,24 @@ export default function TournamentHost() {
               <ForcedHeroBadge gameConfig={tournament.gameConfig} compact />
             </div>
           </div>
+          {isExperimental && <ExperimentalHostFocusToggle />}
           {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
             <Share2 className="w-4 h-4 mr-1" /> Udostępnij
           </Button>}
           <Button variant="outline" size="sm" asChild className="shrink-0">
-            <Link href={`/tournaments/${id}/audience`}>
+            <Link href={tournamentHref(id, isExperimental, "/audience")}>
               <Monitor className="w-4 h-4 mr-1" /> Widok widzów
             </Link>
           </Button>
         </div>
+
+        {isExperimental && (
+          <ExperimentalTournamentContextBar
+            tournamentId={id}
+            tournamentName={tournament.name}
+            currentLabel="Prowadzenie"
+          />
+        )}
 
         {managementRole && (
           <TournamentOrganizerNavigation
@@ -1444,14 +1456,31 @@ export default function TournamentHost() {
           />
         )}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
-        {tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
+        {isExperimental ? (
+          <ExperimentalHostCommandCenter
+            tournamentId={id}
+            stageName={activeStage?.name ?? plannedStage?.name ?? tournament.name}
+            formatLabel={activeStage ? STAGE_FORMAT_LABELS[activeStage.format] : undefined}
+            roundLabel={operation.summary.roundLabel}
+            liveCount={operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0}
+            readyCount={pendingQueue.length}
+            completedCount={completedMatches.length}
+            otherCount={Math.max(0, (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length)}
+            totalCount={operationalMatches?.length ?? 0}
+            nextStepTitle={nextStep?.title}
+            championName={championName}
+            isCompleted={tournamentCompleted}
+            dataLoading={dataLoading}
+            dataError={dataError}
+          />
+        ) : tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
           <h2 className="text-xl font-semibold">Turniej zakończony</h2>
           {championName && <p className="mt-2 text-lg font-semibold">Mistrz: {championName}</p>}
           {!dataLoading && !dataError && !!stages?.length && stages.every(stage => stage.status === "completed") &&
             <p className="mt-1 text-sm text-muted-foreground">Wszystkie etapy są zakończone.</p>}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/host?tab=wyniki`}>Wszystkie mecze i wyniki</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/audience`}>Widok widzów</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/audience")}>Widok widzów</Link></Button>
           </div>
         </section> : <section aria-label="Stan prowadzenia" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1466,8 +1495,8 @@ export default function TournamentHost() {
               </p>}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}/host?tab=wyniki`}>Wszystkie mecze i wyniki</Link></Button>
-              <Button variant="outline" size="sm" asChild><Link href={`/tournaments/${id}?tab=stages`}>Sprawdź etapy</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "?tab=stages")}>Sprawdź etapy</Link></Button>
             </div>
           </div>
           {!dataLoading && !dataError && activeStage && <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-4">
@@ -1563,7 +1592,7 @@ export default function TournamentHost() {
 
             {/* Queue + recent results */}
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
-              <div className={`grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
+              <div className={`${isExperimental ? "experimental-host-secondary" : ""} grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
                 {/* Kolejne mecze */}
                 <section aria-label="Mecze bieżącego etapu" className="min-w-0">
                   <div className="flex items-center justify-between mb-2">
@@ -1799,7 +1828,7 @@ export default function TournamentHost() {
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
-                          : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(`/tournaments/${id}/host`); }}>Pokaż mecz</Button>}
+                          : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(tournamentHref(id, isExperimental, "/host")); }}>Pokaż mecz</Button>}
                       </div>
                     ))}
                   </div>
@@ -2069,14 +2098,14 @@ export default function TournamentHost() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={`${window.location.origin}/tournaments/${id}`}
+                  value={`${window.location.origin}${tournamentHref(id, isExperimental)}`}
                   className="text-xs font-mono bg-muted/40"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}`, "viewer")}
+                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental)}`, "viewer")}
                 >
                   {copiedKey === "viewer" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>
@@ -2088,14 +2117,14 @@ export default function TournamentHost() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={`${window.location.origin}/tournaments/${id}/host`}
+                  value={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`}
                   className="text-xs font-mono bg-muted/40"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}/host`, "host")}
+                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`, "host")}
                 >
                   {copiedKey === "host" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>

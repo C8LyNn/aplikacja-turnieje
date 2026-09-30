@@ -125,7 +125,17 @@ function Router() {
       <Route path="/fan" component={FanView} />
       <Route path="/support" component={SupportEntry} />
       <Route path="/tournaments/create" component={TournamentCreateChoice} />
+      <Route path="/experimental/tournaments/create" component={CreateTournamentExperimental} />
       <Route path="/experimental/tournaments/new" component={CreateTournamentExperimental} />
+      <Route path="/experimental/tournaments/dashboard" component={Dashboard} />
+      <Route path="/experimental/tournaments/support" component={SupportEntry} />
+      <Route path="/experimental/tournaments/fan" component={FanView} />
+      <Route path="/experimental/tournaments/:id/bracket" component={TournamentBracket} />
+      <Route path="/experimental/tournaments/:id/host" component={TournamentHost} />
+      <Route path="/experimental/tournaments/:id/audience" component={TournamentAudience} />
+      <Route path="/experimental/tournaments/:id/projector" component={TournamentProjector} />
+      <Route path="/experimental/tournaments/:id" component={TournamentDetail} />
+      <Route path="/experimental/tournaments" component={TournamentsHome} />
       <Route path="/tournaments/new" component={CreateTournament} />
       <Route path="/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/tournaments/:id/host" component={TournamentHost} />
