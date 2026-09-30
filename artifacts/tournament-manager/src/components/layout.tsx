@@ -37,7 +37,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
                 <Link href="/dashboard" className={`px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors ${location === "/dashboard" ? "text-foreground bg-muted/30" : ""}`}>
                   Dashboard
                 </Link>
-                <Link href="/tournaments/new" className="flex items-center gap-1.5 px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors">
+                <Link href="/tournaments/create" className="flex items-center gap-1.5 px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors">
                   <PlusCircle className="w-4 h-4" />
                   Nowy turniej
                 </Link>

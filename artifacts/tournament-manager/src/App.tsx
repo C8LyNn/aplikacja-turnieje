@@ -9,6 +9,8 @@ import Dashboard from "@/pages/dashboard";
 import FanView from "@/pages/fan-view";
 import SupportEntry from "@/pages/support-entry";
 import CreateTournament from "@/pages/create-tournament";
+import TournamentCreateChoice from "@/pages/tournament-create-choice";
+import CreateTournamentExperimental from "@/pages/experimental/tournaments/create-tournament-experimental";
 import TournamentDetail from "@/pages/tournament-detail";
 import TournamentBracket from "@/pages/tournament-bracket";
 import TournamentHost from "@/pages/tournament-host";
@@ -122,6 +124,8 @@ function Router() {
 
       <Route path="/fan" component={FanView} />
       <Route path="/support" component={SupportEntry} />
+      <Route path="/tournaments/create" component={TournamentCreateChoice} />
+      <Route path="/experimental/tournaments/new" component={CreateTournamentExperimental} />
       <Route path="/tournaments/new" component={CreateTournament} />
       <Route path="/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/tournaments/:id/host" component={TournamentHost} />
