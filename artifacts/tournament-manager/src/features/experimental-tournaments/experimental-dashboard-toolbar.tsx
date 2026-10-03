@@ -28,6 +28,7 @@ export function ExperimentalDashboardToolbar({
   return (
     <section
       aria-label="Filtrowanie turniejów"
+      data-exp-status-filter={status}
       className="experimental-dashboard-toolbar rounded-xl border border-border/80 bg-card/50 p-3"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">

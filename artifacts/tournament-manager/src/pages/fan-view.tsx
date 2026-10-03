@@ -25,7 +25,7 @@ export default function FanView() {
   const visible = tournaments?.filter((t) => t.status === "active" || t.status === "completed") ?? [];
 
   return (
-    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry" : ""}`}>
+    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry experimental-fan-entry" : ""}`}>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ export default function FanView() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {visible.map((t) => (
               <Link key={t.id} href={tournamentHref(t.id, isExperimental, "/audience")}>
-                <div className="rounded-xl border border-border bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer group p-5 flex flex-col gap-3">
+                <div data-exp-tournament-status={isExperimental ? t.status : undefined} className={`rounded-xl border border-border bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer group p-5 flex flex-col gap-3 ${isExperimental ? "experimental-fan-card" : ""}`}>
                   <div className="flex justify-between items-start gap-2">
                     <h3 className="font-bold text-base line-clamp-2 group-hover:text-orange-400 transition-colors">{t.name}</h3>
                     <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${

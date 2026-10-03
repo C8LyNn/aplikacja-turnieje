@@ -19,7 +19,7 @@ export default function TournamentCreateChoice() {
           backLabel="Wróć do dashboardu"
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="experimental-create-choice-grid grid gap-4 md:grid-cols-2">
           <ProjectCard
             code="TURN STABLE"
             title="Stabilna wersja"

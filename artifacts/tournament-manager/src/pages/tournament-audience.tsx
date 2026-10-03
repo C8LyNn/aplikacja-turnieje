@@ -466,7 +466,7 @@ export default function TournamentAudience() {
             </div>
 
             {/* Hero card */}
-            <div className={`bg-card/80 border rounded-2xl overflow-hidden transition-all duration-500 ${heroCardBorder}`}>
+            <div data-exp-match-state={heroMatch.status} className={`experimental-audience-hero bg-card/80 border rounded-2xl overflow-hidden transition-all duration-500 ${heroCardBorder}`}>
               {/* Match meta */}
               <div className="flex items-center justify-center gap-3 py-3 border-b border-white/6">
                 <span className="text-[11px] text-white/35 uppercase tracking-widest font-mono">
@@ -664,7 +664,7 @@ export default function TournamentAudience() {
               <Panel title={`Runda ${tournament?.currentRound} — przebieg`} className="lg:col-span-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {currentRoundMatches.map((m) => (
-                    <div key={m.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                    <div key={m.id} data-exp-match-state={m.status} className={`experimental-audience-match-row flex items-center gap-2 px-3 py-2 rounded-lg border ${
                       m.status === "in_progress"
                         ? "border-cyan-500/30 bg-cyan-500/5"
                         : m.status === "completed"
@@ -787,7 +787,7 @@ function AudienceSectionShell({
   children: React.ReactNode;
 }) {
   return (
-    <section className="w-full max-w-5xl" aria-label={title}>
+    <section className="experimental-audience-section-shell w-full max-w-5xl" aria-label={title}>
       <div className="mb-5">
         <h2 className="text-2xl font-bold text-white">{title}</h2>
         <p className="mt-1 text-sm text-white/45">{description}</p>
@@ -799,7 +799,7 @@ function AudienceSectionShell({
 
 function EmptyAudienceSection({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-white/15 bg-white/3 px-6 py-14 text-center text-sm text-white/40">
+    <div className="experimental-audience-empty-state rounded-xl border border-dashed border-white/15 bg-white/3 px-6 py-14 text-center text-sm text-white/40">
       {children}
     </div>
   );
@@ -815,7 +815,7 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
           {matches.map((match) => {
             const showsScore = match.score1 != null || match.score2 != null;
             return (
-              <article key={match.id} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
+              <article key={match.id} data-exp-match-state={match.status} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
                 <div className="min-w-0 text-xs">
                   <span className="font-mono text-white/35">Runda {match.round} · Mecz {match.matchNumber}</span>
                 </div>
@@ -856,7 +856,7 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
       ) : format === "single_elimination" ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {standings.map((standing) => (
-            <div key={standing.playerId} className="rounded-xl border border-white/8 bg-card p-4">
+            <div key={standing.playerId} className="experimental-public-standing-card rounded-xl border border-white/8 bg-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold text-white">{standing.playerName}</div>
@@ -933,7 +933,7 @@ function PublicPlayersSection({
             const standing = standings?.find((entry) => entry.playerId === player.id);
             const bans = playerBansMap?.get(player.id) ?? [];
             return (
-              <article key={player.id} className="rounded-xl border border-white/8 bg-card p-4">
+              <article key={player.id} className="experimental-public-player-card rounded-xl border border-white/8 bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="truncate font-semibold text-white">{player.name}</h3>
@@ -1000,7 +1000,7 @@ function PublicBracketSection({
       {!bracket ? (
         <EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-white/8 bg-card p-4 text-foreground">
+        <div className="experimental-public-bracket-surface overflow-x-auto rounded-xl border border-white/8 bg-card p-4 text-foreground">
           {format === "swiss" ? (
             <SwissRoundsView bracket={bracket} currentRound={currentRound} totalRounds={totalRounds} standings={standings} />
           ) : format === "round_robin" ? (
@@ -1030,7 +1030,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <div className={`bg-card/80 border border-white/8 rounded-xl p-4 ${className}`}>
+    <div data-exp-panel-title={title} className={`experimental-audience-panel bg-card/80 border border-white/8 rounded-xl p-4 ${className}`}>
       <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold mb-3">{title}</h3>
       {children}
     </div>

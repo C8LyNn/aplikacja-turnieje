@@ -6,7 +6,7 @@ export type ExperimentalPlayerSort = "seed" | "name" | "status";
 
 export function ExperimentalPlayerToolbar({ query, onQueryChange, status, onStatusChange, sort, onSortChange, total, visible }: { query: string; onQueryChange: (value: string) => void; status: ExperimentalPlayerStatusFilter; onStatusChange: (value: ExperimentalPlayerStatusFilter) => void; sort: ExperimentalPlayerSort; onSortChange: (value: ExperimentalPlayerSort) => void; total: number; visible: number; }) {
   return (
-    <section aria-label="Filtrowanie listy graczy" className="experimental-player-toolbar rounded-xl border border-border/80 bg-card/50 p-3">
+    <section aria-label="Filtrowanie listy graczy" data-exp-status-filter={status} data-exp-sort={sort} className="experimental-player-toolbar rounded-xl border border-border/80 bg-card/50 p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Szukaj gracza</span>

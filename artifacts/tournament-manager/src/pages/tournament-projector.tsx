@@ -68,7 +68,7 @@ const PRESETS: Record<string, React.CSSProperties & { "--connector-color"?: stri
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TournamentProjector() {
-  const { id } = useTournamentRoute("projector");
+  const { id, isExperimental } = useTournamentRoute("projector");
   const search = useSearch();
 
   // Parse URL params
@@ -187,12 +187,12 @@ export default function TournamentProjector() {
   }
 
   return (
-    <div style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
+    <div className={isExperimental ? "experimental-projector-view" : undefined} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-exp-preset={isExperimental ? preset : undefined} style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
       <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
       {/* Optional tournament header */}
       {!hideHeader && (
         <div
-          className="flex flex-col items-center justify-center gap-1 border-b border-white/10"
+          className="experimental-projector-header flex flex-col items-center justify-center gap-1 border-b border-white/10"
           style={{ padding: `${Math.round(padding * 0.6)}px ${padding}px` }}
         >
           <h1
@@ -215,6 +215,7 @@ export default function TournamentProjector() {
 
       {/* Bracket canvas */}
       <div
+        className="experimental-projector-canvas"
         style={{
           padding,
           ...(forceAspect ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),

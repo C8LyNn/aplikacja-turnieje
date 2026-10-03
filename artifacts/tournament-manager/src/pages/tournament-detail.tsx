@@ -1155,7 +1155,7 @@ export default function TournamentDetail() {
                             </div>
                           ) : (
                             // Normal player row
-                            <div key={p.id} className={`flex flex-col border rounded bg-background ${isExperimental ? "experimental-player-row" : ""}`}>
+                            <div key={p.id} data-exp-player-status={isExperimental ? p.status ?? "unknown" : undefined} className={`flex flex-col border rounded bg-background ${isExperimental ? "experimental-player-row" : ""}`}>
                               {/* Main info + actions row */}
                               <div className="flex justify-between items-center p-3">
                                 <div>

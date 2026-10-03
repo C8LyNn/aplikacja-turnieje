@@ -6,7 +6,7 @@ import {
   ProjectCard,
 } from "@/components/portfolio-ui";
 
-const EMPTY_SLOTS = Array.from({ length: 5 }, (_, index) => index + 1);
+const EMPTY_SLOTS = Array.from({ length: 4 }, (_, index) => index + 1);
 
 export default function MinigamesPage() {
   return (
@@ -26,7 +26,14 @@ export default function MinigamesPage() {
           href="/minigames/evolution"
           icon={Gamepad2}
           accent="emerald"
-          status="HTML"
+        />
+        <ProjectCard
+          code="PROTO 02"
+          title="Core Clash"
+          description="Taktyczna gra fizyczna z taliami, specjalnymi kulkami i wieloma archetypami."
+          href="/minigames/core-clash"
+          icon={Gamepad2}
+          accent="emerald"
         />
         {EMPTY_SLOTS.map((slot) => (
           <EmptyProjectCard key={slot} label="Kolejna minigra" />

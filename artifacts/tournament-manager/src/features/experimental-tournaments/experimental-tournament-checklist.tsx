@@ -46,7 +46,7 @@ export function ExperimentalTournamentChecklist({ open, onClose, tournamentId, t
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
-      <DialogContent className="flex max-h-[86vh] max-w-xl flex-col gap-0 p-0">
+      <DialogContent className="experimental-checklist-dialog flex max-h-[86vh] max-w-xl flex-col gap-0 p-0">
         <DialogHeader className="shrink-0 border-b px-5 pb-3 pt-5">
           <DialogTitle className="flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -61,8 +61,8 @@ export function ExperimentalTournamentChecklist({ open, onClose, tournamentId, t
           {ITEMS.map((item) => {
             const active = checked.has(item.id);
             return (
-              <button key={item.id} type="button" aria-pressed={active} onClick={() => toggle(item.id)}
-                className={`flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${active ? "border-primary/30 bg-primary/5" : "border-border bg-card hover:bg-muted/30"}`}>
+              <button key={item.id} type="button" aria-pressed={active} data-exp-checked={active ? "true" : "false"} onClick={() => toggle(item.id)}
+                className={`experimental-checklist-item flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${active ? "border-primary/30 bg-primary/5" : "border-border bg-card hover:bg-muted/30"}`}>
                 {active ? <CheckSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" /> : <Square className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
                 <span className="min-w-0">
                   <span className={`block text-sm font-semibold ${active ? "text-muted-foreground line-through" : ""}`}>{item.label}</span>

@@ -47,7 +47,7 @@ export default function SupportEntry() {
   }
 
   return (
-    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry" : ""}`}>
+    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry experimental-support-entry" : ""}`}>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -85,7 +85,7 @@ export default function SupportEntry() {
               <button
                 key={t.id}
                 onClick={() => setSelectedId(t.id)}
-                className="w-full text-left border border-border rounded-xl p-4 bg-card hover:border-green-500/50 hover:bg-green-500/5 transition-all"
+                className={`w-full text-left border border-border rounded-xl p-4 bg-card hover:border-green-500/50 hover:bg-green-500/5 transition-all ${isExperimental ? "experimental-support-tournament-card" : ""}`}
               >
                 <div className="font-semibold">{t.name}</div>
                 <div className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format] ?? t.format}</div>
@@ -93,7 +93,7 @@ export default function SupportEntry() {
             ))}
           </div>
         ) : (
-          <div className="border border-border rounded-xl p-6 bg-card space-y-5">
+          <div className={`border border-border rounded-xl p-6 bg-card space-y-5 ${isExperimental ? "experimental-support-login-panel" : ""}`}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-bold">{tournaments?.find((t) => t.id === selectedId)?.name}</div>

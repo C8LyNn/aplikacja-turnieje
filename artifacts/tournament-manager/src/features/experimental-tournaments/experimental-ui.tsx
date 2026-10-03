@@ -2,6 +2,8 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 
+export type ExperimentalTone = "neutral" | "primary" | "info" | "success" | "warning" | "danger" | "live";
+
 export function ExperimentalSectionHeader({
   eyebrow,
   title,
@@ -38,14 +40,16 @@ export function ExperimentalMetricCard({
   value,
   meta,
   icon: Icon,
+  tone = "neutral",
 }: {
   label: string;
   value: ReactNode;
   meta?: ReactNode;
   icon?: LucideIcon;
+  tone?: ExperimentalTone;
 }) {
   return (
-    <div className="experimental-metric-card rounded-xl border border-border/80 bg-card/55 p-4">
+    <div data-exp-tone={tone} className="experimental-metric-card rounded-xl border border-border/80 bg-card/55 p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
           {label}
@@ -63,7 +67,7 @@ export function ExperimentalStatusPill({
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "active" | "success" | "danger";
+  tone?: ExperimentalTone | "active";
 }) {
   const toneClass =
     tone === "active"
@@ -76,6 +80,7 @@ export function ExperimentalStatusPill({
 
   return (
     <span
+      data-exp-tone={tone === "active" ? "primary" : tone}
       className={`inline-flex min-h-6 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${toneClass}`}
     >
       {children}
@@ -94,10 +99,11 @@ export function ExperimentalStatePanel({
   description: string;
   icon?: LucideIcon;
   action?: ReactNode;
-  tone?: "neutral" | "danger";
+  tone?: ExperimentalTone;
 }) {
   return (
     <section
+      data-exp-tone={tone}
       role={tone === "danger" ? "alert" : undefined}
       className={`rounded-xl border p-5 ${
         tone === "danger"
@@ -126,14 +132,17 @@ export function ExperimentalQuickLink({
   label,
   description,
   icon: Icon,
+  tone = "neutral",
 }: {
   href: string;
   label: string;
   description: string;
   icon: LucideIcon;
+  tone?: ExperimentalTone;
 }) {
   return (
     <Link
+      data-exp-tone={tone}
       href={href}
       className="experimental-quick-link group flex min-h-24 items-start gap-3 rounded-xl border border-border/80 bg-background/35 p-3.5 transition hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >

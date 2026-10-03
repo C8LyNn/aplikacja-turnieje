@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+﻿import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,8 +18,10 @@ import TournamentAudience from "@/pages/tournament-audience";
 import TournamentProjector from "@/pages/tournament-projector";
 import HelpPage from "@/pages/help";
 import TournamentsHome from "@/pages/tournaments-home";
+import TournamentInterfaceChoice from "@/pages/tournament-interface-choice";
 import MinigamesPage from "@/pages/minigames";
 import EvolutionPrototypePage from "@/pages/evolution-prototype";
+import CoreClashPrototypePage from "@/pages/core-clash-prototype";
 import RandomizersPage from "@/pages/randomizers";
 import RandomizerProperPage from "@/pages/randomizer-proper";
 import WheelPrototypePage from "@/pages/randomizer-prototype-wheel";
@@ -54,6 +56,8 @@ function Router() {
       <Route path="/minigames" component={MinigamesPage} />
 
       <Route path="/minigames/evolution" component={EvolutionPrototypePage} />
+
+      <Route path="/minigames/core-clash" component={CoreClashPrototypePage} />
 
       <Route path="/randomizers" component={RandomizersPage} />
 
@@ -136,6 +140,7 @@ function Router() {
       <Route path="/experimental/tournaments/:id/projector" component={TournamentProjector} />
       <Route path="/experimental/tournaments/:id" component={TournamentDetail} />
       <Route path="/experimental/tournaments" component={TournamentsHome} />
+      <Route path="/tournaments/stable" component={TournamentsHome} />
       <Route path="/tournaments/new" component={CreateTournament} />
       <Route path="/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/tournaments/:id/host" component={TournamentHost} />
@@ -147,7 +152,7 @@ function Router() {
 
       <Route path="/ludology/statement-classification/map" component={StatementClassificationPage} />
 
-      <Route path="/tournaments" component={TournamentsHome} />
+      <Route path="/tournaments" component={TournamentInterfaceChoice} />
 
       <Route path="/developer/overlay/camera-chat" component={CameraChatOverlay} />
 
@@ -173,3 +178,4 @@ function App() {
 }
 
 export default App;
+

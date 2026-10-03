@@ -943,7 +943,7 @@ export default function TournamentHost() {
         : "N/C";
 
     return (
-      <div onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
+      <div data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
         conflictedDraft
           ? "border-orange-500/60"
           : isCancelled
@@ -1818,7 +1818,7 @@ export default function TournamentHost() {
                   <h3 className="mb-3 font-semibold">{stage.name}</h3>
                   <div className="space-y-2">
                     {[...stageMatches].sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.round - b.round || a.matchNumber - b.matchNumber).map((match) => (
-                      <div key={match.id} className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${match.status === "in_progress" ? "border-secondary/60" : ""}`}>
+                      <div key={match.id} data-exp-match-state={isExperimental ? match.status : undefined} className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${isExperimental ? "experimental-host-match" : ""} ${match.status === "in_progress" ? "border-secondary/60" : ""}`}>
                         <span className="text-xs text-muted-foreground">R{match.round} · M{match.matchNumber}</span>
                         <span className="min-w-0 flex-1 text-sm font-medium">
                           <span className={match.winnerId && match.winnerId === match.player1Id ? "font-bold text-primary" : ""}>{match.player1Name ?? "Oczekuje na gracza"}</span>

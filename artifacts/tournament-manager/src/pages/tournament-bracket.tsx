@@ -182,7 +182,7 @@ export default function TournamentBracket() {
   }
 
   return (
-    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view" : ""}`} data-theme={presentationSettings.colorPreset || undefined}>
+    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view experimental-bracket-view" : ""}`} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <a
@@ -257,7 +257,7 @@ export default function TournamentBracket() {
       </div>
 
       {/* Header */}
-      <div className="flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
+      <div className="experimental-bracket-header flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
         <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />
         <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight font-deadlock">
           {tournament.name}
@@ -278,7 +278,7 @@ export default function TournamentBracket() {
       {/* Bracket / Swiss canvas */}
       <div
         ref={canvasRef}
-        className="flex-1 min-h-0 min-w-0 w-full overflow-auto"
+        className="experimental-bracket-canvas flex-1 min-h-0 min-w-0 w-full overflow-auto"
         style={{
           backgroundImage:
             "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",

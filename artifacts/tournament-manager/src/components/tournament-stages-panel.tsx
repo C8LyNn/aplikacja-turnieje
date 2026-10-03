@@ -141,6 +141,7 @@ export function StageNavigation({
             key={stage.id}
             onClick={() => onSelect(stage.id)}
             aria-pressed={selected}
+            data-exp-stage-status={stage.status}
             className={`organizer-stage-card rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               selected
                 ? "border-primary bg-primary/10"
@@ -868,7 +869,7 @@ export function TournamentStagesPanel({
       )}
       {selected && detailQuery.data && !detailQuery.isError && (
         <>
-          <Card className="organizer-stage-detail">
+          <Card data-exp-stage-status={selected.status} className="organizer-stage-detail">
             <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -898,7 +899,7 @@ export function TournamentStagesPanel({
             </CardContent>
           </Card>
 
-          {selected.status === "planned" && <div aria-label="Gotowość etapu" className="organizer-readiness rounded-lg border bg-card p-4 space-y-2">
+          {selected.status === "planned" && <div aria-label="Gotowość etapu" data-exp-ready={readinessQuery.data?.ready ? "true" : "false"} className="organizer-readiness rounded-lg border bg-card p-4 space-y-2">
             <h4 className="font-semibold">{startBlockedReason ? "Etap wymaga przygotowania" : "Gotowy do rozpoczęcia"}</h4>
             {readinessQuery.isError ? <><p>Nie udało się sprawdzić gotowości etapu.</p><Button variant="outline" onClick={() => void readinessQuery.refetch()}>Ponów sprawdzenie</Button></>
               : !readinessQuery.data ? <p role="status">Sprawdzanie gotowości etapu…</p>

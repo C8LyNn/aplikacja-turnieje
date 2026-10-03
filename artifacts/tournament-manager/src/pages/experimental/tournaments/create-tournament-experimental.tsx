@@ -376,12 +376,12 @@ function ExperimentalCreateForm() {
   return (
     <ExperimentalTournamentShell>
       <form onSubmit={handleSubmit} noValidate>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.85fr)]">
+        <div className="experimental-create-layout grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(300px,0.85fr)]">
           <ToolPanel
             title="Ustawienia turnieju"
             description="Skonfiguruj podstawowe zasady rozgrywek. Zaawansowane etapy będzie można dodać później."
           >
-            <div className="space-y-7">
+            <div className="experimental-create-form-stack space-y-7">
               <ToolSection
                 title="Informacje"
                 description="Nazwa i opis widoczne dla uczestników i widzów."
@@ -721,7 +721,7 @@ function ExperimentalCreateForm() {
                 Ustawienia formularza są zachowywane po odświeżeniu tej karty. Hasła pozostają tylko w bieżącej sesji formularza i nie trafiają do szkicu.
               </ToolNotice>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="experimental-create-action-bar flex flex-col-reverse gap-2 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex gap-2">
                   <Button variant="outline" asChild>
                     <Link href="/tournaments/create">Wstecz</Link>
@@ -748,7 +748,7 @@ function ExperimentalCreateForm() {
             </div>
           </ToolPanel>
 
-          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="experimental-create-summary-column space-y-4 lg:sticky lg:top-4 lg:self-start">
             <ToolPanel
               title="Podsumowanie"
               description="Konfiguracja, z którą utworzysz turniej."
@@ -827,7 +827,7 @@ function ExperimentalCreateForm() {
             >
               <div className="space-y-2">
                 {readinessItems.map((item) => (
-                  <div key={item.label} className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-background/25 px-3 py-2.5">
+                  <div key={item.label} data-ready={item.ready ? "true" : "false"} className="experimental-readiness-item flex items-start gap-2.5 rounded-xl border px-3 py-2.5">
                     {item.ready
                       ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
                       : <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />}

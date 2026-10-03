@@ -34,7 +34,7 @@ export function ExperimentalTestDataDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="experimental-test-data-dialog max-w-md">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/12">
@@ -131,7 +131,7 @@ export function ExperimentalDeleteTournamentDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!loading) onOpenChange(next); }}>
-      <DialogContent className="max-w-md border-destructive/45">
+      <DialogContent className="experimental-delete-dialog max-w-md border-destructive/45">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-destructive/12">

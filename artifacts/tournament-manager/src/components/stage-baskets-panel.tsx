@@ -195,6 +195,8 @@ export function BasketCard({
 
   return (
     <div
+      data-exp-basket-type={basket.type}
+      data-exp-locked={isLocked ? "true" : "false"}
       className={`organizer-basket rounded-md border px-3 py-2 text-sm space-y-2 ${color.bg} ${color.border} ${borderExtra} transition-all`}
       data-testid={`basket-${basket.id}`}
       onClick={handleCardClick}
@@ -393,6 +395,8 @@ export function StageBlock({
 
   return (
     <div
+      data-exp-stage-status={stage.status}
+      data-exp-locked={isLocked ? "true" : "false"}
       className="organizer-flow-stage rounded-lg border bg-card flex flex-col shrink-0"
       data-testid={`stage-block-${stage.id}`}
     >
@@ -945,7 +949,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
     <ReadQueryState query={basketsQuery} loadingMessage="Ładowanie konfiguracji koszyków…" errorMessage="Nie udało się pobrać konfiguracji koszyków.">
     <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
     <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
-    <div className="min-w-0 max-w-full space-y-4">
+    <div data-exp-locked={isLocked ? "true" : "false"} className="min-w-0 max-w-full space-y-4">
       {/* Locked banner */}
       {isLocked && (
         <div

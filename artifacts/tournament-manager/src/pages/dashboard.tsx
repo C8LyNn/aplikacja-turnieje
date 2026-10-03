@@ -507,7 +507,7 @@ export default function Dashboard() {
             {(isExperimental ? filteredTournaments : tournaments).map((tournament) => (
               <Card
                 key={tournament.id}
-                className={`hover:border-primary/50 transition-colors cursor-pointer h-full flex flex-col group ${isExperimental ? "experimental-dashboard-card" : ""}`}
+                className={`hover:border-primary/50 transition-colors cursor-pointer h-full flex flex-col group ${isExperimental ? `experimental-dashboard-card experimental-dashboard-card--${tournament.status}` : ""}`}
                 onClick={() => navigate(tournamentHref(tournament.id, isExperimental))}
               >
                 <CardHeader className="pb-3 border-b border-border/50 bg-card/50">

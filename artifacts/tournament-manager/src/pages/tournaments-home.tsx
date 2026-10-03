@@ -57,7 +57,7 @@ export default function TournamentsHome() {
   }
 
   return (
-    <div className={`min-h-screen bg-background px-4 py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry" : ""}`}>
+    <div className={`min-h-screen bg-background px-4 py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry experimental-role-home" : ""}`}>
       <div className={`mx-auto max-w-4xl ${isExperimental ? "experimental-entry-inner" : ""}`}>
         <button
           type="button"
@@ -93,6 +93,7 @@ export default function TournamentsHome() {
               key={item.id}
               type="button"
               onClick={() => selectRole(item)}
+              data-exp-role={isExperimental ? item.id : undefined}
               className={`group relative min-h-56 rounded-xl border border-border bg-card p-6 text-left transition-all duration-200 ${item.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isExperimental ? "experimental-entry-card" : ""}`}
             >
               <div className={`mb-6 text-muted-foreground transition-colors ${item.iconHover}`}>

@@ -116,7 +116,7 @@ export function ExperimentalTournamentOverview({
 }) {
   const statusTone =
     status === "active"
-      ? "active"
+      ? "live"
       : status === "completed"
         ? "success"
         : "neutral";
@@ -184,12 +184,14 @@ export function ExperimentalTournamentOverview({
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <ExperimentalMetricCard
             label="Uczestnicy"
+            tone="info"
             value={statsLoading ? "…" : stats?.totalPlayers ?? "—"}
             meta={maxPlayers ? `limit ${maxPlayers}` : "bez ustawionego limitu"}
             icon={Users}
           />
           <ExperimentalMetricCard
             label="Mecze"
+            tone="primary"
             value={
               statsLoading
                 ? "…"
@@ -202,12 +204,14 @@ export function ExperimentalTournamentOverview({
           />
           <ExperimentalMetricCard
             label="Postęp"
+            tone={status === "completed" ? "success" : "primary"}
             value={statsLoading ? "…" : progressLabel(stats)}
             meta={roundLabel}
             icon={Activity}
           />
           <ExperimentalMetricCard
             label="Format"
+            tone="info"
             value={formatLabel}
             meta={`${stageName || "Etap"} · BO${bestOf ?? 1}`}
             icon={Brackets}
@@ -230,10 +234,10 @@ export function ExperimentalTournamentOverview({
           {lifecycleSteps.map((step, index) => (
             <li
               key={step.label}
-              className={`rounded-xl border p-3 ${
+              className={`experimental-lifecycle-step rounded-xl border p-3 ${
                 step.done
-                  ? "border-primary/25 bg-primary/5"
-                  : "border-border/75 bg-background/25"
+                  ? "experimental-lifecycle-step--done"
+                  : "experimental-lifecycle-step--pending"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -285,7 +289,7 @@ export function ExperimentalTournamentOverview({
             </div>
 
             {nextStep ? (
-              <div className="rounded-xl border border-primary/25 bg-primary/5 p-3">
+              <div className="experimental-next-step-panel rounded-xl border p-3">
                 <dt className="text-xs font-bold uppercase tracking-[0.12em] text-primary">
                   Następny krok
                 </dt>

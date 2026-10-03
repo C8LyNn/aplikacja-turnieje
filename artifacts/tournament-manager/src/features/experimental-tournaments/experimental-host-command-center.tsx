@@ -63,9 +63,11 @@ export function ExperimentalHostCommandCenter({
       ? "danger"
       : isCompleted
         ? "success"
-        : liveCount > 0 || readyCount > 0
-          ? "active"
-          : "neutral";
+        : liveCount > 0
+          ? "live"
+          : readyCount > 0
+            ? "warning"
+            : "neutral";
 
   return (
     <section
@@ -92,30 +94,35 @@ export function ExperimentalHostCommandCenter({
       <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <ExperimentalMetricCard
           label="Na żywo"
+          tone="live"
           value={dataLoading ? "…" : liveCount}
           meta="mecze w trakcie"
           icon={Activity}
         />
         <ExperimentalMetricCard
           label="Gotowe"
+          tone="warning"
           value={dataLoading ? "…" : readyCount}
           meta="oczekują na rozegranie"
           icon={CircleDot}
         />
         <ExperimentalMetricCard
           label="Zakończone"
+          tone="success"
           value={dataLoading ? "…" : completedCount}
           meta={totalCount ? `z ${totalCount} w etapie` : "w bieżącym etapie"}
           icon={CircleCheck}
         />
         <ExperimentalMetricCard
           label="Pozostałe"
+          tone="neutral"
           value={dataLoading ? "…" : otherCount}
           meta="pary oczekujące / inne stany"
           icon={Clock3}
         />
         <ExperimentalMetricCard
           label="Następny krok"
+          tone={nextStepTitle ? "primary" : "neutral"}
           value={nextStepTitle ? "1" : "—"}
           meta={nextStepTitle || (isCompleted ? "brak — turniej zakończony" : "brak dodatkowej akcji")}
           icon={ListChecks}
