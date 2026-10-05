@@ -72,6 +72,20 @@ const MODULES = [
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background px-4 py-8 text-foreground dark sm:py-12">
+      {/* PORTFOLIO_MAIN_MENU_V9: main site menu */}
+      <header className="w-full max-w-5xl flex items-center justify-between mb-10">
+        <a href={(import.meta.env?.BASE_URL ?? "/")} className="text-xs font-bold tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors">
+          JAKUB POWIERSKI
+        </a>
+        <nav aria-label="Główne menu strony" className="flex items-center gap-3 text-sm font-medium">
+          <a
+            href={`${(import.meta.env?.BASE_URL ?? "/")}portfolio/`}
+            className="px-3 py-1.5 rounded border border-border text-foreground hover:bg-muted/40 transition-colors"
+          >
+            Portfolio
+          </a>
+        </nav>
+      </header>
       <div className="mx-auto w-full max-w-6xl">
         <div className="mb-7">
           <div className="text-xs font-black uppercase tracking-[0.2em] text-primary">PROJECTS</div>

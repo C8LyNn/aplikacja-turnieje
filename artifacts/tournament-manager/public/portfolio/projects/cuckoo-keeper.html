@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../src/styles.css" />
+  <title>Cuckoo Keeper — Case Study — Jakub Powierski</title>
+  <meta name="description" content="Case study Cuckoo Keeper: game design, level design, movement, energy, inventory, level mechanisms, testing and iteration in Unity." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#case-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="../index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../../">Strona główna</a><a href="index.html">Case studies</a><a href="../decisions.html">Decyzje</a><a href="../about.html">O mnie</a><a href="../evidence.html">Materiały</a><a class="nav-cv" href="../resume.html">CV</a></nav></header>
+  <main id="case-content">
+    <section class="case-hero shell case-cuckoo">
+      <p class="eyebrow">CASE STUDY · 2025 / 26 · YEAR TWO</p>
+      <h1>Cuckoo Keeper</h1>
+      <p class="case-lead">Projekt rozwijany jako Cuckoo Clock, finalnie nazwany Cuckoo Keeper. 2D platformowa gra przygodowo-zręcznościowa osadzona wewnątrz ogromnego steampunkowego zegara.</p>
+      <div class="fact-grid"><div><span>Rola</span><b>Game Design</b></div><div><span>Zespół</span><b>5 osób</b></div><div><span>Rdzeń</span><b>movement · energy · repair</b></div><div><span>Proces</span><b>reference → layout → Unity → testing</b></div></div>
+    </section>
+
+    <section class="case-section shell">
+      <div class="case-two-col"><div><p class="eyebrow">DESIGN PREMISE</p><h2>Czas miał wpływać na decyzje gracza, a nie być tylko motywem świata.</h2></div><div class="case-copy"><p>Core loop opiera się na eksplorowaniu wnętrza zegara, planowaniu trasy, zarządzaniu energią, aktywowaniu checkpointów, zbieraniu przedmiotów i naprawianiu mechanizmów. Presja czasu wynika z ograniczonego naciągu postaci i kosztów ruchu.</p><p>Moja praca obejmowała projektowanie i iterację gameplayu, movementu, energii, pułapek, przedmiotów, inventory, mechanizmów poziomu oraz czytelności i stabilności prototypu.</p></div></div>
+      <div class="pdr-grid"><article><span>PROBLEM</span><h3>Jak sprawić, żeby zegar był mechaniką?</h3><p>Sam setting nie generował decyzji. Potrzebny był zasób, który wpływa na ruch, trasowanie i tempo eksploracji.</p></article><article><span>DECISION</span><h3>Energia jako naciąg postaci.</h3><p>Ruch i dash zużywają zasób, postoje mogą go oszczędzać, a przedmioty i mechanizmy modyfikują sposób poruszania się.</p></article><article><span>RESULT</span><h3>System powiązał ruch, eksplorację i progresję.</h3><p>Gracz nie tylko omija przeszkody. Musi planować drogę, zarządzać zasobami i wykorzystywać elementy świata do dalszego przejścia.</p></article></div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">RESOURCE NETWORK</p>
+      <h2 class="case-h2">Movement, energia i przedmioty tworzą wspólną ekonomię przejścia.</h2>
+      <div class="resource-network cuckoo-network">
+        <article><span>MOVE</span><b>Poruszanie zużywa bazowy naciąg</b><p>Eksploracja ma koszt, więc trasa i timing są częścią decyzji.</p></article>
+        <article><span>DASH</span><b>Szybki ruch za dodatkowy koszt</b><p>Daje kontrolę w zagrożeniu, ale konkuruje o ten sam zasób.</p></article>
+        <article><span>REST</span><b>Postój może oszczędzać energię</b><p>Mechanika daje przestrzeń na obserwację pułapek i planowanie.</p></article>
+        <article><span>ITEMS</span><b>Przedmioty modyfikują ruch i zasoby</b><p>Waga, kryształ, olej i kaseta naciągu zmieniają ekonomię przejścia.</p></article>
+        <article><span>MECHANISMS</span><b>Checkpointy i naprawy zmieniają trasę</b><p>Świat staje się częścią progresji zamiast statycznym tłem.</p></article>
+      </div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">MY CONTRIBUTION · FINAL PRESENTATION</p>
+      <h2 class="case-h2">Cztery obszary odpowiedzialności.</h2>
+      <div class="contribution-grid">
+        <article><span>01</span><h3>Gameplay i sterowanie</h3><p>Movement, feeling sterowania, dash, system energii oraz zachowanie pułapek.</p></article>
+        <article><span>02</span><h3>Przedmioty i ekwipunek</h3><p>Znajdźki, inventory, używanie przedmiotów, wymiana części, zębatka, kryształ, olej i kaseta naciągu.</p></article>
+        <article><span>03</span><h3>Mechanizmy poziomu</h3><p>Teleporty/przejścia, checkpointy, bramy, zepsute warianty mechanizmów oraz naprawianie obiektów.</p></article>
+        <article><span>04</span><h3>Czytelność i stabilność</h3><p>Tutorial, prowadzenie gracza, tilesety, uproszczona minimapa, testowanie i bugfixing interakcji.</p></article>
+      </div>
+      <div class="case-gallery contribution-slides">
+        <figure><img loading="lazy" decoding="async" src="../assets/evidence/cuckoo-contrib-24.webp" alt="Slajd końcowej prezentacji Cuckoo Keeper podsumowujący zmiany Jakuba Powierskiego" /><figcaption>Zakres zmian · podsumowanie</figcaption></figure>
+        <figure><img loading="lazy" decoding="async" src="../assets/evidence/cuckoo-contrib-25.webp" alt="Slajd końcowej prezentacji Cuckoo Keeper opisujący gameplay i sterowanie" /><figcaption>Gameplay i sterowanie</figcaption></figure>
+        <figure><img loading="lazy" decoding="async" src="../assets/evidence/cuckoo-contrib-26.webp" alt="Slajd końcowej prezentacji Cuckoo Keeper opisujący przedmioty i ekwipunek" /><figcaption>Przedmioty i ekwipunek</figcaption></figure>
+        <figure><img loading="lazy" decoding="async" src="../assets/evidence/cuckoo-contrib-27.webp" alt="Slajd końcowej prezentacji Cuckoo Keeper opisujący mechanizmy poziomu" /><figcaption>Mechanizmy poziomu</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">PLAYTEST EVIDENCE</p>
+      <h2 class="case-h2">Testy zewnętrzne wpłynęły na dalszy kierunek projektu.</h2>
+      <div class="metric-grid"><div><strong>7</strong><span>testerów zewnętrznych w raporcie poziomu 1</span></div><div><strong>2:11</strong><span>najszybsze pełne przejście po poznaniu mapy</span></div><div><strong>4–8 min</strong><span>typowy czas pierwszej próby / przejścia</span></div><div><strong>1 krytyczny</strong><span>najważniejszy bug: pułapki oddziałujące przez ściany</span></div></div>
+      <p class="metric-note">Raport testów wskazuje, że po poznaniu mapy czasy spadały do ok. 2–4 minut, a iteracja po testach objęła zarówno level design, jak i nowe systemy.</p>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">LEVEL DESIGN PROCESS</p><h2 class="case-h2">Reference analysis → layout → Unity iteration.</h2>
+      <div class="case-gallery three-up"><figure><img loading="lazy" decoding="async" src="../assets/cuckoo-reference.webp" alt="Analiza referencji level designu na podstawie Rayman Legends"/><figcaption>01 · Reference analysis</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/cuckoo-layout.webp" alt="Layout poziomu Cuckoo Keeper z legendą elementów"/><figcaption>02 · Layout design</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/cuckoo-unity-iteration.webp" alt="Iteracja poziomu Cuckoo Keeper w Unity"/><figcaption>03 · Unity iteration</figcaption></figure></div>
+    </section>
+
+    <section class="case-section shell"><p class="eyebrow">MECHANICS PLANNING</p><h2 class="case-h2">Poziomy jako kombinacje mechanik, nie tylko kolejne mapy.</h2><div class="case-gallery single-wide"><figure><img loading="lazy" decoding="async" src="../assets/cuckoo-mechanics-map.webp" alt="Mapa mechanik i poziomów projektu Cuckoo Clock / Cuckoo Keeper"/><figcaption>System poziomów i mechanik</figcaption></figure></div></section>
+
+    <section class="case-section shell brand-system"><div><p class="eyebrow">PROJECT IDENTITY</p><h2 class="case-h2">Dokumentacja obejmowała również spójność marki.</h2><p>Brandbook definiował pełną nazwę Cuckoo Keeper, zasady logotypu, typografię oraz paletę. To materiał zespołowy — w portfolio służy jako kontekst produktu, nie jako przypisanie całego brandingu do mojej roli.</p></div><div class="brand-swatches" aria-label="Paleta Cuckoo Keeper"><span style="--sw:#A87C43">#A87C43</span><span style="--sw:#C5A059">#C5A059</span><span style="--sw:#5C3A21">#5C3A21</span><span style="--sw:#150D03">#150D03</span><span style="--sw:#F6D58C">#F6D58C</span></div></section>
+
+    <section class="case-section shell attribution-note"><p class="eyebrow">REFERENCE ATTRIBUTION</p><p>Pierwszy obraz w sekwencji level designu jest analizą zewnętrznej referencji <strong>Rayman Legends</strong>. Nie jest przedstawiany jako własna grafika ani własny level — służy wyłącznie jako zapis analizy referencyjnej.</p></section>
+
+    <section class="case-section shell case-resources"><p class="eyebrow">SOURCE MATERIAL</p><h2 class="case-h2">Dokumentacja projektu.</h2><div class="resource-grid"><a href="../docs/evidence/cuckoo-keeper-launch-bible.pdf" target="_blank" rel="noreferrer"><span>PDF · LOCAL</span><b>Cuckoo Keeper — Launch Bible</b></a><a href="../docs/evidence/cuckoo-keeper/cuckoo-keeper-final-presentation.pdf" target="_blank" rel="noreferrer"><span>PRESENTATION · LOCAL</span><b>Końcowa prezentacja</b></a><a href="../docs/evidence/cuckoo-keeper/cuckoo-keeper-mechanics-list.pdf" target="_blank" rel="noreferrer"><span>PDF · LOCAL</span><b>Lista mechanik</b></a><a href="../docs/evidence/cuckoo-keeper/cuckoo-keeper-test-deployment-report.pdf" target="_blank" rel="noreferrer"><span>QA · LOCAL</span><b>Raport testów i wdrożeń</b></a><a href="../docs/evidence/cuckoo-keeper/cuckoo-keeper-brandbook.pdf" target="_blank" rel="noreferrer"><span>TEAM ARTIFACT · LOCAL</span><b>Brandbook</b></a><a href="https://gitlab.com/wokun/Cuckoo-clock-unityport" target="_blank" rel="noreferrer"><span>REPO</span><b>Unity port</b></a></div></section>
+    <section class="case-section shell case-pagination" aria-label="Nawigacja między case studies"><a class="case-prev" href="animated-effects.html"><span>← POPRZEDNI</span><b>Animated Effects</b></a><a class="case-next" href="chrono-runes.html"><span>NASTĘPNY →</span><b>Chrono Runes</b></a></section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="../index.html">← Wróć do portfolio</a></footer>
+</body>
+</html>

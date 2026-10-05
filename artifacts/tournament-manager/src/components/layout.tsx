@@ -73,7 +73,14 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               <HelpCircle className="w-4 h-4" />
               Pomoc
             </Link>
-          </nav>
+                      {/* PORTFOLIO_MAIN_MENU_V9: global navigation */}
+            <a
+              href={`${(import.meta.env?.BASE_URL ?? "/")}portfolio/`}
+              className="px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors"
+            >
+              Portfolio
+            </a>
+</nav>
         </div>
       </header>
       <main id={isExperimentalTournamentView ? "experimental-main" : undefined} className="flex-1 container mx-auto px-4 md:px-8 py-8">
