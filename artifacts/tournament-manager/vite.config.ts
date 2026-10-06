@@ -65,6 +65,20 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     {
+      name: "portfolio-index",
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          if (request.url && /^\/portfolio\/?(?:\?.*)?$/.test(request.url)) {
+            request.url = request.url.replace(
+              /^\/portfolio\/?/,
+              "/portfolio/index.html",
+            );
+          }
+          next();
+        });
+      },
+    },
+    {
       name: "animated-effects-index",
       configureServer(server) {
         server.middlewares.use((request, _response, next) => {

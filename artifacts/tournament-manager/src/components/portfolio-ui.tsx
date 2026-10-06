@@ -23,53 +23,53 @@ const ACCENTS: Record<
   }
 > = {
   primary: {
-    gradient: "from-primary/15 via-primary/5 to-transparent",
-    stripe: "bg-primary/55",
+    gradient: "from-primary/28 via-primary/6 to-transparent",
+    stripe: "bg-primary/70",
     text: "text-primary",
-    borderHover: "hover:border-primary/45",
-    iconBg: "bg-primary/10",
+    borderHover: "hover:border-primary/60",
+    iconBg: "bg-primary/14",
   },
   emerald: {
-    gradient: "from-emerald-500/15 via-emerald-500/5 to-transparent",
-    stripe: "bg-emerald-500/55",
+    gradient: "from-emerald-500/28 via-emerald-500/6 to-transparent",
+    stripe: "bg-emerald-500/70",
     text: "text-emerald-400",
-    borderHover: "hover:border-emerald-500/45",
-    iconBg: "bg-emerald-500/10",
+    borderHover: "hover:border-emerald-500/60",
+    iconBg: "bg-emerald-500/14",
   },
   blue: {
-    gradient: "from-blue-500/15 via-blue-500/5 to-transparent",
-    stripe: "bg-blue-500/55",
+    gradient: "from-blue-500/28 via-blue-500/6 to-transparent",
+    stripe: "bg-blue-500/70",
     text: "text-blue-400",
-    borderHover: "hover:border-blue-500/45",
-    iconBg: "bg-blue-500/10",
+    borderHover: "hover:border-blue-500/60",
+    iconBg: "bg-blue-500/14",
   },
   fuchsia: {
-    gradient: "from-fuchsia-500/15 via-fuchsia-500/5 to-transparent",
-    stripe: "bg-fuchsia-500/55",
+    gradient: "from-fuchsia-500/28 via-fuchsia-500/6 to-transparent",
+    stripe: "bg-fuchsia-500/70",
     text: "text-fuchsia-400",
-    borderHover: "hover:border-fuchsia-500/45",
-    iconBg: "bg-fuchsia-500/10",
+    borderHover: "hover:border-fuchsia-500/60",
+    iconBg: "bg-fuchsia-500/14",
   },
   amber: {
-    gradient: "from-amber-500/15 via-amber-500/5 to-transparent",
-    stripe: "bg-amber-500/55",
+    gradient: "from-amber-500/28 via-amber-500/6 to-transparent",
+    stripe: "bg-amber-500/70",
     text: "text-amber-400",
-    borderHover: "hover:border-amber-500/45",
-    iconBg: "bg-amber-500/10",
+    borderHover: "hover:border-amber-500/60",
+    iconBg: "bg-amber-500/14",
   },
   cyan: {
-    gradient: "from-cyan-500/15 via-cyan-500/5 to-transparent",
-    stripe: "bg-cyan-500/55",
+    gradient: "from-cyan-500/28 via-cyan-500/6 to-transparent",
+    stripe: "bg-cyan-500/70",
     text: "text-cyan-400",
-    borderHover: "hover:border-cyan-500/45",
-    iconBg: "bg-cyan-500/10",
+    borderHover: "hover:border-cyan-500/60",
+    iconBg: "bg-cyan-500/14",
   },
   rose: {
-    gradient: "from-rose-500/15 via-rose-500/5 to-transparent",
-    stripe: "bg-rose-500/55",
+    gradient: "from-rose-500/28 via-rose-500/6 to-transparent",
+    stripe: "bg-rose-500/70",
     text: "text-rose-400",
-    borderHover: "hover:border-rose-500/45",
-    iconBg: "bg-rose-500/10",
+    borderHover: "hover:border-rose-500/60",
+    iconBg: "bg-rose-500/14",
   },
 };
 
@@ -136,7 +136,6 @@ export function ModuleHeader({
 }
 
 export function ProjectCard({
-  code,
   title,
   description,
   href,
@@ -144,6 +143,7 @@ export function ProjectCard({
   accent,
   status,
   actionLabel = "Otwórz →",
+  centerContent = false,
 }: {
   code: string;
   title: string;
@@ -153,18 +153,19 @@ export function ProjectCard({
   accent: Accent;
   status?: string;
   actionLabel?: string;
+  centerContent?: boolean;
 }) {
   const style = ACCENTS[accent];
 
   return (
     <Link
       href={href}
-      className={`group relative min-h-[205px] overflow-hidden rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${style.borderHover}`}
+      className={`group relative min-h-[205px] overflow-hidden rounded-2xl border border-border/90 bg-card/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(0,0,0,.22)] ${style.borderHover}`}
     >
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${style.gradient}`} />
       <div className={`absolute left-5 top-0 h-1.5 w-16 rounded-b-lg transition-all group-hover:w-20 ${style.stripe}`} />
-      <div className="relative flex h-full flex-col">
-        <div className="mb-5 flex items-start justify-between gap-3">
+      <div className={`relative flex h-full flex-col ${centerContent ? "items-center text-center" : ""}`}>
+        <div className={`mb-5 flex items-start gap-3 ${centerContent ? "justify-center" : "justify-between"}`}>
           <div className={`grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 ${style.text}`}>
             <Icon className="h-5 w-5" />
           </div>
@@ -173,9 +174,6 @@ export function ProjectCard({
               {status}
             </span>
           )}
-        </div>
-        <div className={`text-[11px] font-black uppercase tracking-[0.16em] ${style.text}`}>
-          {code}
         </div>
         <h2 className="mt-1 text-lg font-bold leading-tight">{title}</h2>
         {description && (

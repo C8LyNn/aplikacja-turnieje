@@ -8,8 +8,25 @@
   "background_color": "#090b0f",
   "theme_color": "#090b0f",
   "shortcuts": [
-    {"name": "Case Studies", "url": "./projects/index.html"},
-    {"name": "Design Decisions", "url": "./decisions.html"},
-    {"name": "CV", "url": "./resume.html"}
+    {
+      "name": "Case Studies",
+      "url": "./projects/index.html"
+    },
+    {
+      "name": "Design Decisions",
+      "url": "./decisions.html"
+    },
+    {
+      "name": "CV",
+      "url": "./resume.html"
+    }
+  ],
+  "icons": [
+    {
+      "src": "./assets/portfolio-favicon-v2.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
