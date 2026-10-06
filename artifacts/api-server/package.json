@@ -14,7 +14,7 @@
     "test:marvel:integration": "node --import tsx --test --test-concurrency=1 ./test/marvel-elimination-stage.integration.test.ts",
     "test:deadlock-game-config:integration": "node --import tsx --test --test-concurrency=1 ./test/deadlock-game-config.integration.test.ts",
     "test:double-elimination": "node --import tsx --test ./test/double-elimination-v2.test.ts && node --import tsx --test --test-concurrency=1 ./test/double-elimination-persistence.integration.test.ts ./test/double-elimination-api.integration.test.ts",
-    "test:unit": "node --import tsx ./test/run-tests.ts unit && node --import tsx --test ../tournament-manager/src/lib/backup-file.test.ts ../tournament-manager/src/lib/stage-utils.test.ts ../tournament-manager/src/lib/tournament-query-invalidation.test.ts && tsx --tsconfig ../tournament-manager/tsconfig.json --test ../tournament-manager/src/lib/tournament-stages-ui.test.tsx ../tournament-manager/src/lib/seeding-ceremony-view.test.ts",
+    "test:unit": "node --import tsx ./test/run-tests.ts unit && node --import tsx --test ../tournament-manager/src/lib/backup-file.test.ts ../tournament-manager/src/lib/stage-utils.test.ts ../tournament-manager/src/lib/tournament-query-invalidation.test.ts && tsx --tsconfig ../tournament-manager/tsconfig.json --import ../tournament-manager/test/setup-dom.mjs --test ../tournament-manager/src/lib/tournament-stages-ui.test.tsx ../tournament-manager/src/lib/seeding-ceremony-view.test.ts",
     "test:integration": "node --import tsx ./test/run-tests.ts integration",
     "legacy-credentials:preflight": "tsx ./src/scripts/preflight-legacy-credentials.ts",
     "legacy-credentials:recover-organizer": "tsx ./src/scripts/recover-legacy-organizer.ts"

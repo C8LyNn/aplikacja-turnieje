@@ -65,6 +65,21 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     {
+      name: "portfolio-index",
+      configureServer(server) {
+        server.middlewares.use((request, _response, next) => {
+          // Keep standalone HTML entrypoints ahead of the parent SPA fallback.
+          if (request.url) {
+            request.url = request.url.replace(
+              /^\/portfolio(\/projects)?\/(?=\?|$)/,
+              (_match, section = "") => `/portfolio${section}/index.html`,
+            );
+          }
+          next();
+        });
+      },
+    },
+    {
       name: "animated-effects-index",
       configureServer(server) {
         server.middlewares.use((request, _response, next) => {

@@ -7,3 +7,7 @@
 - [Bracket seeding](bracket-seeding.md) — standard single-elim seeding uses recursive interleave so #1 vs #2 can only meet in the final.
 - [Deadlock theme architecture](deadlock-theme-arch.md) — localStorage hook (useDeadlockTheme) bridges gap until Task #15 presentationSettings API merges; CSS via [data-theme="deadlock"]; nav has Reguły gry + Wizualia tabs.
 - [Nested static HTML under Vite](nested-static-html.md) — a directory URL in Vite's public folder may fall back to the parent SPA instead of serving its nested index.
+- [Portfolio source](portfolio-source.md) — Portfolio is the user's original standalone HTML site; import it intact, never fabricate a replacement.
+- [Landing labels](landing-labels.md) — Keep full main tile names; do not restore removed module codes or alter SF while restyling ordinary tiles.
+- [SF restoration scope](sf-scope.md) — Restoring the landing SF tile must preserve /sf behavior; distinguish a spec reconstruction from verified localhost parity.
+- [GitHub integration priorities](github-integration-priorities.md) — Preserve accepted local presentation while bringing in GitHub-only functionality; use the common ancestor to classify changes.

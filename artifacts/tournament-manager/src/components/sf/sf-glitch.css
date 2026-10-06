@@ -1,0 +1,21 @@
+.sf-fx { position: relative; display: inline-block; }
+.sf-fx__ghost { position: absolute; inset: 0; pointer-events: none; opacity: 0; white-space: inherit; }
+.sf-fx__ghost--c { color: #22e5ee; }
+.sf-fx__ghost--m { color: #ff2fb8; }
+.sf-root[data-state="glitch"] .sf-fx__ghost--c { animation: sf-ghost-c var(--sf-dur, 1.4s) steps(7, end) both; }
+.sf-root[data-state="glitch"] .sf-fx__ghost--m { animation: sf-ghost-m var(--sf-dur, 1.4s) steps(7, end) both; }
+.sf-root[data-state="glitch"] .sf-fx__ghost {
+  clip-path: inset(var(--sf-slice-y, 40%) 0 calc(100% - var(--sf-slice-y, 40%) - var(--sf-slice-h, 10%)) 0);
+}
+.sf-scan { position: absolute; left: 0; right: 0; top: var(--sf-slice-y, 40%); height: var(--sf-slice-h, 10%); pointer-events: none; opacity: 0;
+  background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(34,229,238,.24) 2px 3px, rgba(255,47,184,.2) 3px 4px); mix-blend-mode: screen; }
+.sf-root[data-state="glitch"] .sf-scan { animation: sf-slice var(--sf-dur, 1.4s) steps(9, end) both; }
+.sf-root[data-state="glitch"] .sf-slice-shift { animation: sf-shift var(--sf-dur, 1.4s) steps(8, end) both; }
+@keyframes sf-ghost-c { 0%,100% { opacity: 0; transform: none; } 15% { opacity: .85; transform: translateX(calc(var(--sf-dx, 4px) * -1)); } 45% { opacity: .5; transform: translate(var(--sf-dx, 4px), 1px); } 70% { opacity: .8; transform: translateX(calc(var(--sf-dx, 4px) * -.6)); } }
+@keyframes sf-ghost-m { 0%,100% { opacity: 0; transform: none; } 20% { opacity: .85; transform: translateX(var(--sf-dx, 4px)); } 50% { opacity: .55; transform: translate(calc(var(--sf-dx, 4px) * -1), -1px); } 75% { opacity: .8; transform: translateX(calc(var(--sf-dx, 4px) * .6)); } }
+@keyframes sf-slice { 0%,100% { opacity: 0; } 10%,40%,70% { opacity: 1; } 25%,55%,85% { opacity: .2; } }
+@keyframes sf-shift { 0%,100% { transform: none; clip-path: none; } 20% { transform: translateX(var(--sf-slice-shift, 6px)); } 50% { transform: translateX(calc(var(--sf-slice-shift, 6px) * -1)); } 75% { transform: translateX(calc(var(--sf-slice-shift, 6px) * .4)); } }
+@media (prefers-reduced-motion: reduce) {
+  .sf-fx__ghost, .sf-scan { animation: none !important; opacity: 0 !important; }
+  .sf-slice-shift { animation: none !important; transform: none !important; }
+}

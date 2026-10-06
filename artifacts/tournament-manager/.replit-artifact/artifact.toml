@@ -31,6 +31,14 @@ from = "/dev/animated-effects/"
 to = "/dev/animated-effects/index.html"
 
 [[services.production.rewrites]]
+from = "/portfolio/"
+to = "/portfolio/index.html"
+
+[[services.production.rewrites]]
+from = "/portfolio/projects/"
+to = "/portfolio/projects/index.html"
+
+[[services.production.rewrites]]
 from = "/*"
 to = "/index.html"
 
