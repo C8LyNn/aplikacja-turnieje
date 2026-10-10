@@ -3248,7 +3248,7 @@ components:
       properties:
         status:
           type: string
-          enum: [pending, in_progress, postponed, cancelled]
+          enum: [pending, in_progress, postponed]
         note:
           type: string
         bestOf:
