@@ -9216,3 +9216,64 @@ body {
   .ae-diagnostics-stress-controls { grid-template-columns: 1fr; }
   .ae-diagnostics-stress-controls button { white-space: normal; }
 }
+
+
+/* Local alert trace export/replay and A/B diagnostics. */
+.ae-diagnostics-trace-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.ae-diagnostics-trace-controls button {
+  flex: 1 1 145px;
+  min-height: 35px;
+  padding: 6px 11px;
+  white-space: normal;
+}
+.ae-diagnostics-trace-controls button:disabled {
+  cursor: not-allowed;
+  opacity: .46;
+}
+.ae-diagnostics-trace-controls input[type=file][hidden] {
+  display: none !important;
+}
+.ae-diagnostics-compare {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+}
+.ae-diagnostics-compare p {
+  margin: 0;
+  line-height: 1.5;
+}
+.ae-diagnostics-comparison-ok {
+  color: #96ddc9;
+  font-weight: 650;
+}
+.ae-diagnostics-comparison-warning {
+  color: #f0bd79;
+  font-weight: 650;
+}
+.ae-diagnostics-compare-table {
+  width: 100%;
+  min-width: 380px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 11px;
+}
+.ae-diagnostics-compare-table :is(th,td) {
+  padding: 7px 8px;
+  border-bottom: 1px solid rgba(131,171,204,.22);
+}
+.ae-diagnostics-compare-table th:first-child {
+  text-align: left;
+}
+.ae-diagnostics-compare-table thead {
+  color: #a6c9e9;
+  background: rgba(28,51,75,.6);
+}
+.ae-diagnostics-compare-table tbody tr:hover {
+  background: rgba(98,142,183,.11);
+}
