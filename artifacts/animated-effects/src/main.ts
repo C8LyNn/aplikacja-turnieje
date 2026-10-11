@@ -258,7 +258,7 @@ app.innerHTML = `
       </button>
     </div>
 
-    <section class="export-trigger-config" aria-label="Aktywacja efektów">
+    <section class="export-trigger-config" data-single-trigger aria-label="Aktywacja efektów">
       <strong>Uruchamianie animacji</strong>
       <p>Wybierz, kiedy StreamElements ma uruchomić tę scenę. Tryb ciągły zachowuje poprzednie działanie.</p>
       <div class="export-trigger-fields">
@@ -288,6 +288,19 @@ app.innerHTML = `
         </label>
       </div>
       <p class="export-trigger-note" data-trigger-info>Efekty startują po załadowaniu widgetu i pozostają aktywne.</p>
+    </section>
+
+    <section class="export-route-config" aria-label="Wiele reguł animacji">
+      <label class="export-route-toggle">
+        <input type="checkbox" data-multi-routes />
+        <span><strong>Wiele zdarzeń w jednym widżecie</strong><small>Przypisz różne efekty do komend i alertów bez instalowania kolejnych widgetów.</small></span>
+      </label>
+      <div data-route-workspace hidden>
+        <p class="export-route-description">Reguły są sprawdzane w kolejności od góry. Każda ma własny cooldown; najnowsza aktywowana scena zastępuje poprzednią.</p>
+        <div data-route-list class="export-route-list"></div>
+        <button type="button" data-add-route>+ Dodaj regułę</button>
+        <p class="export-route-note" data-route-warning role="status"></p>
+      </div>
     </section>
 
     <div class="export-section">
