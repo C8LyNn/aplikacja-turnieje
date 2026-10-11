@@ -124,6 +124,12 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       return;
     }
     const { page, pageSize, query: search, status } = params;
+    // Opt-in test-only timings. Production never exposes query profiles.
+    const measure = process.env.NODE_ENV === "test" && req.get("x-catalog-perf-probe") === "1";
+    const timings: Record<string, number> = {};
+    const recordMs = (name: string, start: number) => {
+      if (measure) timings[name] = Math.round((performance.now() - start) * 100) / 100;
+    };
     const hasCursor = req.query.cursor !== undefined;
     const cursor = hasCursor ? decodeSteamCatalogCursor(req.query.cursor, params) : null;
     if (hasCursor && !cursor) {
@@ -149,11 +155,13 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     // Status counts are updated transactionally by statement-level PostgreSQL
     // triggers on every insert/delete/status change, including Steam imports.
     // No full catalog scan is required for badges or unsearched totals.
+    const beginCounts = performance.now();
     const [statusTotals] = await db.select({
       unclassified: steamCatalogStatusCounts.unclassified,
       review: steamCatalogStatusCounts.review,
       ready: steamCatalogStatusCounts.ready,
     }).from(steamCatalogStatusCounts).where(eq(steamCatalogStatusCounts.id, 1));
+    recordMs("global_counts", beginCounts);
     if (!statusTotals) throw new Error("STEAM_CATALOG_COUNTERS_MISSING: apply migration 0034");
     const counts = {
       all: statusTotals.unclassified + statusTotals.review + statusTotals.ready,
@@ -161,9 +169,11 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       review: statusTotals.review,
       ready: statusTotals.ready,
     };
+    const beginCount = performance.now();
     const total = search
       ? Number((await db.select({ total: count() }).from(steamCatalogGames).where(where))[0]?.total ?? 0)
       : status === "all" ? counts.all : counts[status];
+    recordMs("match_count", beginCount);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const resolvedPage = Math.min(page, totalPages);
     if (cursor && page !== resolvedPage) {
@@ -179,6 +189,7 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     ) : undefined;
     // Cursor-based requests never use OFFSET, even on deep pages. The legacy
     // page-number API remains available for direct jumps and older clients.
+    const beginPage = performance.now();
     const pageRows = cursor || (resolvedPage - 1) * pageSize < total
       ? await db.select(gameListColumns).from(steamCatalogGames)
         .where(and(where, after))
@@ -186,12 +197,17 @@ router.get("/steam-catalog/games", async (req, res, next) => {
         .limit(pageSize + 1)
         .offset(cursor ? 0 : (resolvedPage - 1) * pageSize)
       : [];
+    recordMs("page_select", beginPage);
     const games = pageRows.slice(0, pageSize);
     const hasMore = pageRows.length > pageSize;
     const lastGame = games.at(-1);
     const nextCursor = hasMore && lastGame
       ? encodeSteamCatalogCursor(lastGame, { ...params, page: resolvedPage })
       : null;
+    if (measure) {
+      res.setHeader("Server-Timing",
+        Object.entries(timings).map(([name, ms]) => `${name};dur=${ms}`).join(", "));
+    }
     res.json({
       games,
       pagination: { page: resolvedPage, pageSize, total, totalPages, nextCursor },
