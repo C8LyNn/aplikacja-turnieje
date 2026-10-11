@@ -1,5 +1,6 @@
 import type {
   CodingRecord,
+  PositionAssessment,
   ResearchExcerpt,
   ResearchProjectData,
   ResearchSource,
@@ -117,4 +118,35 @@ export function evidenceSignature(codings: readonly CodingRecord[]): string {
       coding.confidence,
     ].join(":"))
     .join("|");
+}
+
+
+export function assessmentEvidenceCodings(
+  data: ResearchProjectData,
+  assessment: PositionAssessment,
+): CodingRecord[] {
+  const personSourceIds = new Set(
+    data.sources
+      .filter((source) => source.personId === assessment.personId)
+      .map((source) => source.id),
+  );
+  const personExcerptIds = new Set(
+    data.excerpts
+      .filter((excerpt) => personSourceIds.has(excerpt.sourceId))
+      .map((excerpt) => excerpt.id),
+  );
+  return data.codings.filter((coding) =>
+    personExcerptIds.has(coding.excerptId) &&
+    coding.propositionId === assessment.propositionId &&
+    coding.codebookId === assessment.codebookId
+  );
+}
+
+export function isAssessmentStale(
+  data: ResearchProjectData,
+  assessment: PositionAssessment,
+): boolean {
+  return assessment.evidenceSignature !== evidenceSignature(
+    assessmentEvidenceCodings(data, assessment),
+  );
 }
