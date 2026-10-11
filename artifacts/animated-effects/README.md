@@ -193,3 +193,35 @@ Dostępne są również niezależne animacje **wejścia i wyjścia** dla podpisu
 Wszystkie te ustawienia zapisują się w `.aescene.json`; w eksporcie StreamElements podpis i animacja są wyświetlane na podstawie przychodzącego `onEventReceived`. Stary tryb pozycjonowania góra/środek/dół i dawne sceny pozostają obsługiwane.
 
 **QA:** rozszerzono testy wygenerowanego widgetu o kolejność priorytetów, zapełnienie kolejki, zachowanie FIFO, brak przerywania aktywnego alertu, X/Y oraz wejście i wyjście podpisu. Przeciąganie w realnej przeglądarce wymaga osobnego testu manualnego (mysz/dotyk, różne rozdzielczości). PR nie zastępuje domyślnej kolejki AlertBox StreamElements.
+
+
+## Diagnostyka alertów (Events v4)
+
+W edytorze pod głównym podglądem znajduje się zwijany panel **Diagnostyka alertów — symulator kolejki**. Jest przeznaczony do szybkiego testowania konfiguracji sceny bez konta StreamElements i bez rzeczywistej transmisji. Panel jest lokalny: **nie jest eksportowany jako widoczna warstwa streamu**.
+
+Przebieg testu:
+1. Przypisz jednej lub kilku warstwom wyzwalacz StreamElements w Inspektorze (np. follow, tip, chat) oraz ewentualny priorytet.
+2. Otwórz diagnostykę, wybierz typ zdarzenia, wpisz testową kwotę/liczbę (dla tip/cheer/raid) i wybierz liczbę 1, 5 lub 20 zdarzeń.
+3. Kliknij **Symuluj**. W panelu zostaną pokazane: aktywny alert w trybie kolejki, czekające warstwy (w kolejności priorytetów), liczniki i ostatnie maksymalnie 60 decyzji.
+4. Kliknij **Następny alert**, aby ręcznie zakończyć aktualne odtwarzanie symulacji i wyświetlić następny w podglądzie.
+5. **Wyczyść** usuwa lokalny stan symulacji. Modyfikacja wyzwalaczy, priorytetów lub aktywności warstw resetuje symulator, aby nie bazował na nieaktualnych danych.
+
+Symulator rozróżnia **cooldown**, **zbyt niski próg donacji**, **zapełnioną kolejkę** oraz **wyparcie mniej istotnego alertu**. Zasady FIFO, priorytety i limit 16 oczekujących odpowiadają generowanemu widgetowi. Nie jest to połączenie na żywo: odtwarzanie kolejnych alertów następuje po kliknięciu, nie według rzeczywistych czasów i zdarzeń platformy.
+
+### Dane diagnostyczne w eksportowanym widgetcie
+
+Eksportowany JS publikuje opcjonalne zdarzenia `animated-effects:diagnostics` przez `window.dispatchEvent(new CustomEvent(...))`. Nie dodaje widocznego overlayu diagnostycznego, połączenia sieciowego ani tokenów.
+
+Przykład nasłuchiwania z konsoli DevTools widgetu:
+
+```javascript
+window.addEventListener("animated-effects:diagnostics", (event) => {
+  console.log(event.detail.action, event.detail.reason, event.detail.queueLength);
+});
+```
+
+Każda migawka zawiera rodzaj decyzji (accepted/started/dropped/evicted/completed), uzasadnienie (cooldown, below-threshold, queue-full, lower-priority), rodzaj zdarzenia i ID warstwy, priorytet, długość oraz listę metadanych kolejki, a także liczniki. **Nie zawiera nazwy widza, treści czatu, kwoty donacji ani URL awatara.** Migawki są ulotne. W przypadku braku nasłuchującego `CustomEvent` diagnostyka nie wpływa na działanie animacji.
+
+Automatyczne testy: `test/alertDiagnostics.test.mjs` (lokalny silnik i limit historii) oraz rozszerzone `test/streamEvents.test.mjs` (prawdziwy wygenerowany JS w symulowanym widgetcie, przyczyny odrzucenia, kolejka, brak danych widzów).
+
+Przed mergem wymagane jest ręczne QA układu panelu i rzeczywistych eventów StreamElements/OBS.
