@@ -11,11 +11,14 @@ import {
 import {
   normalizeStreamElementsTriggerOptions,
   type StreamElementsTriggerOptions,
+  type StreamElementsRouteInput,
+  normalizeStreamElementsRoutes,
 } from "./triggerOptions";
 
 export function generateStreamElementsExport(
   state: EditorState,
   triggerOptions: Partial<StreamElementsTriggerOptions> = {},
+  routes?: readonly StreamElementsRouteInput[],
 ): StreamElementsExport {
   const enabledEffects =
     state.effects.filter(
@@ -52,6 +55,10 @@ export function generateStreamElementsExport(
       generateJavaScript(
         config,
         normalizeStreamElementsTriggerOptions(triggerOptions),
+        routes === undefined ? undefined : normalizeStreamElementsRoutes(
+          routes,
+          enabledEffects.map((effect) => effect.instanceId),
+        ),
       ),
 
     estimatedDomNodes:
@@ -136,6 +143,7 @@ function generateJavaScript(
       EffectInstance["settings"];
   }>,
   trigger: StreamElementsTriggerOptions,
+  routes?: ReturnType<typeof normalizeStreamElementsRoutes>,
 ): string {
   const effectIds =
     [
@@ -208,6 +216,8 @@ const effects = ${JSON.stringify(
   )};
 
 const aeTrigger = ${JSON.stringify(trigger)};
+const aeMultiMode = ${routes !== undefined};
+const aeRoutes = ${JSON.stringify(routes ?? [])};
 
 function aeCreateSeededRandom(seed) {
   let value = seed >>> 0;
@@ -491,66 +501,42 @@ const aeRenderers = {
   ${rendererMap}
 };
 
-function startAnimatedEffects() {
-  const root =
-    document.getElementById(
-      "animated-effects-root"
-    );
-
+function startAnimatedEffects(allowedInstanceIds) {
+  const root = document.getElementById("animated-effects-root");
   if (!root) {
-    console.error(
-      "Animated Effects: " +
-      "#animated-effects-root " +
-      "not found."
-    );
-
+    console.error("Animated Effects: #animated-effects-root not found.");
     return;
   }
 
+  const allowed = allowedInstanceIds ? new Set(allowedInstanceIds) : null;
   root.replaceChildren();
-
-  effects.forEach(
-    function (effect) {
-      const renderer =
-        aeRenderers[
-          effect.effectId
-        ];
-
-      if (!renderer) {
-        console.warn(
-          "Animated Effects: " +
-          "unknown effect",
-          effect.effectId
-        );
-
-        return;
-      }
-
-      renderer(
-        effect,
-        root
-      );
+  effects.forEach(function (effect) {
+    if (allowed && !allowed.has(effect.instanceId)) return;
+    const renderer = aeRenderers[effect.effectId];
+    if (!renderer) {
+      console.warn("Animated Effects: unknown effect", effect.effectId);
+      return;
     }
-  );
-
-  console.log(
-    "Animated Effects started:",
-    effects.length,
-    "effect(s)"
-  );
+    renderer(effect, root);
+  });
 }
 
-// Keep backward-compatible behavior for exports without a trigger.
+const aeRules = aeMultiMode ? aeRoutes : [{
+  id: "legacy",
+  mode: aeTrigger.mode,
+  chatCommand: aeTrigger.chatCommand,
+  activeDurationMs: aeTrigger.activeDurationMs,
+  cooldownMs: aeTrigger.cooldownMs,
+  effectInstanceIds: effects.map(function (effect) { return effect.instanceId; })
+}];
 let aeReady = false;
-let aeLastRunAt = -Infinity;
 let aeStopTimer = null;
+const aeLastRunAt = new Map();
 const aeRecentMessageIds = new Set();
 const aeRecentMessageOrder = [];
 
-function aeMatchingEvent(detail) {
-  if (!detail || typeof detail !== "object") return false;
-  if (aeTrigger.mode === "always") return false;
-
+function aeMatchesRule(detail, rule) {
+  if (!detail || typeof detail !== "object" || rule.mode === "always") return false;
   const listeners = {
     follower: "follower-latest",
     subscriber: "subscriber-latest",
@@ -558,54 +544,53 @@ function aeMatchingEvent(detail) {
     cheer: "cheer-latest",
     raid: "raid-latest"
   };
-
-  if (aeTrigger.mode !== "chat-command") {
-    return detail.listener === listeners[aeTrigger.mode];
+  if (rule.mode !== "chat-command") {
+    return detail.listener === listeners[rule.mode];
   }
   if (detail.listener !== "message") return false;
-
   const event = detail.event || {};
   const data = event.data && typeof event.data === "object" ? event.data : event;
   if (!data || typeof data !== "object") return false;
   const message = typeof data.text === "string" ? data.text.trim().toLowerCase() : "";
-  const command = aeTrigger.chatCommand;
-  if (message !== command && !message.startsWith(command + " ")) return false;
-
-  const msgId = data.msgId == null ? "" : String(data.msgId);
-  if (msgId) {
-    if (aeRecentMessageIds.has(msgId)) return false;
-    aeRecentMessageIds.add(msgId);
-    aeRecentMessageOrder.push(msgId);
-    if (aeRecentMessageOrder.length > 128) {
-      aeRecentMessageIds.delete(aeRecentMessageOrder.shift());
-    }
-  }
-  return true;
+  return message === rule.chatCommand || message.startsWith(rule.chatCommand + " ");
 }
 
-function aeStartTriggeredEffects() {
-  if (!aeReady || aeTrigger.mode === "always") return;
-  const root = document.getElementById("animated-effects-root");
-  if (!root) return;
+function aeMessageId(detail) {
+  if (!detail || detail.listener !== "message") return "";
+  const event = detail.event || {};
+  const data = event.data && typeof event.data === "object" ? event.data : event;
+  return data && data.msgId != null ? String(data.msgId) : "";
+}
 
-  const now = Date.now();
-  if (now - aeLastRunAt < aeTrigger.cooldownMs) return;
-  aeLastRunAt = now;
+function aeRememberMessageId(id) {
+  if (!id) return;
+  aeRecentMessageIds.add(id);
+  aeRecentMessageOrder.push(id);
+  if (aeRecentMessageOrder.length > 128) {
+    aeRecentMessageIds.delete(aeRecentMessageOrder.shift());
+  }
+}
+
+function aeStartRoute(rule, now) {
+  aeLastRunAt.set(rule.id, now);
   if (aeStopTimer !== null) clearTimeout(aeStopTimer);
-  startAnimatedEffects();
+  // One scene at a time: the most recent eligible rule replaces the active scene.
+  startAnimatedEffects(rule.effectInstanceIds);
   aeStopTimer = setTimeout(function () {
-    root.replaceChildren();
+    const root = document.getElementById("animated-effects-root");
+    if (root) root.replaceChildren();
     aeStopTimer = null;
-  }, aeTrigger.activeDurationMs);
+  }, rule.activeDurationMs);
 }
 
 window.addEventListener("onWidgetLoad", function () {
   aeReady = true;
-  if (aeStopTimer !== null) {
-    clearTimeout(aeStopTimer);
-    aeStopTimer = null;
-  }
-  if (aeTrigger.mode === "always") {
+  if (aeStopTimer !== null) clearTimeout(aeStopTimer);
+  aeStopTimer = null;
+  aeLastRunAt.clear();
+  aeRecentMessageIds.clear();
+  aeRecentMessageOrder.length = 0;
+  if (!aeMultiMode && aeTrigger.mode === "always") {
     startAnimatedEffects();
   } else {
     const root = document.getElementById("animated-effects-root");
@@ -614,8 +599,24 @@ window.addEventListener("onWidgetLoad", function () {
 });
 
 window.addEventListener("onEventReceived", function (event) {
-  if (!aeReady || aeTrigger.mode === "always") return;
-  if (aeMatchingEvent(event && event.detail)) aeStartTriggeredEffects();
+  if (!aeReady || (!aeMultiMode && aeTrigger.mode === "always")) return;
+  const detail = event && event.detail;
+  const id = aeMessageId(detail);
+  if (id && aeRecentMessageIds.has(id)) return;
+
+  let matches = false;
+  const now = Date.now();
+  for (const rule of aeRules) {
+    if (!aeMatchesRule(detail, rule)) continue;
+    matches = true;
+    const previous = aeLastRunAt.has(rule.id) ? aeLastRunAt.get(rule.id) : -Infinity;
+    if (now - previous < rule.cooldownMs) continue;
+    aeRememberMessageId(id);
+    aeStartRoute(rule, now);
+    return;
+  }
+  // Deduplicate matching messages even when cooldown prevents activation.
+  if (matches) aeRememberMessageId(id);
 });
 `.trim();
 }
