@@ -1,7 +1,8 @@
 import type { EffectInstance } from "../core/types";
 import { normalizeLayerTimeline } from "./timeline";
-import { updateEffectTimeline } from "../editor/state";
+import { getEditorState, updateEffectTimeline } from "../editor/state";
 import { bindKeyframeControls, keyframeInspectorTemplate } from "./inspectorKeyframes";
+import { bindTriggerControls, triggerInspectorTemplate } from "./inspectorTriggers";
 
 export function layerTimelineTemplate(effect: EffectInstance): string {
   const timing = normalizeLayerTimeline(effect.timeline);
@@ -27,6 +28,7 @@ export function layerTimelineTemplate(effect: EffectInstance): string {
           <option value="loop" ${timing.mode === "loop" ? "selected" : ""}>Pętla</option>
         </select>
       </label>
+      ${triggerInspectorTemplate(effect)}
       <div class="ae-timeline-controls" ${timing.mode === "off" ? "hidden" : ""}>
         ${([
           ["delayMs", "Start po", 0, 60],
@@ -80,4 +82,6 @@ export function bindLayerTimelineControls(container: HTMLElement, instanceId: st
     document.dispatchEvent(new Event("animated-effects:replay-preview"));
   });
   bindKeyframeControls(container, instanceId);
+  const selected = getEditorState().effects.find((item) => item.instanceId === instanceId);
+  if (selected) bindTriggerControls(container, selected);
 }
