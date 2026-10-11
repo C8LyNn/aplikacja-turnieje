@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-access";
+import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
 import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
 import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
@@ -122,6 +123,15 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       return;
     }
     const { page, pageSize, query: search, status } = params;
+    const hasCursor = req.query.cursor !== undefined;
+    const cursor = hasCursor ? decodeSteamCatalogCursor(req.query.cursor, params) : null;
+    if (hasCursor && !cursor) {
+      res.status(400).json({
+        error: "Nieprawidłowy albo nieaktualny kursor paginacji.",
+        code: "INVALID_CATALOG_CURSOR",
+      });
+      return;
+    }
     const escaped = escapeSteamCatalogLikeQuery(search);
     const searchCondition = search ? or(
       ilike(steamCatalogGames.name, "%" + escaped + "%"),
@@ -139,11 +149,32 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     const total = Number(matches?.total ?? 0);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const resolvedPage = Math.min(page, totalPages);
-    const offset = (resolvedPage - 1) * pageSize;
-    const games = offset >= total ? [] : await db.select(gameListColumns).from(steamCatalogGames)
-      .where(where)
-      .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
-      .limit(pageSize).offset(offset);
+    if (cursor && page !== resolvedPage) {
+      res.status(409).json({
+        error: "Lista gier zmieniła się od ostatniego odczytu. Zacznij od pierwszej strony.",
+        code: "CATALOG_CURSOR_STALE",
+      });
+      return;
+    }
+    const after = cursor ? or(
+      gt(steamCatalogGames.name, cursor.name),
+      and(eq(steamCatalogGames.name, cursor.name), gt(steamCatalogGames.id, cursor.id)),
+    ) : undefined;
+    // Cursor-based requests never use OFFSET, even on deep pages. The legacy
+    // page-number API remains available for direct jumps and older clients.
+    const pageRows = cursor || (resolvedPage - 1) * pageSize < total
+      ? await db.select(gameListColumns).from(steamCatalogGames)
+        .where(and(where, after))
+        .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
+        .limit(pageSize + 1)
+        .offset(cursor ? 0 : (resolvedPage - 1) * pageSize)
+      : [];
+    const games = pageRows.slice(0, pageSize);
+    const hasMore = pageRows.length > pageSize;
+    const lastGame = games.at(-1);
+    const nextCursor = hasMore && lastGame
+      ? encodeSteamCatalogCursor(lastGame, { ...params, page: resolvedPage })
+      : null;
     const grouped = await db.select({ status: steamCatalogGames.status, total: count() })
       .from(steamCatalogGames).groupBy(steamCatalogGames.status);
     const counts = { all: 0, unclassified: 0, review: 0, ready: 0 };
@@ -153,7 +184,7 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     counts.all = counts.unclassified + counts.review + counts.ready;
     res.json({
       games,
-      pagination: { page: resolvedPage, pageSize, total, totalPages },
+      pagination: { page: resolvedPage, pageSize, total, totalPages, nextCursor },
       counts,
     });
   } catch (error) {
