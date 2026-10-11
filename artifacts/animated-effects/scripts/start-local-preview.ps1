@@ -9,7 +9,8 @@ param(
     [int]$Port = 4173,
 
     [switch]$SkipInstall,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$CheckToolsOnly
 )
 
 Set-StrictMode -Version Latest
@@ -32,14 +33,26 @@ if (-not $pnpm) {
     throw 'pnpm 10 is required. Enable it with: corepack enable; corepack prepare pnpm@10 --activate'
 }
 
-$nodeMajor = [int]((& $node.Source -p 'process.versions.node.split(".")[0]').Trim())
-if ($LASTEXITCODE -ne 0 -or $nodeMajor -lt 22) {
-    throw 'Node.js 22 or newer is required.'
+# Windows PowerShell 5.1 can strip nested quotes from native CLI arguments.
+# --version avoids passing JavaScript code through PowerShell to node -p.
+$nodeVersionText = (& $node.Source --version)
+if ($LASTEXITCODE -ne 0 -or -not $nodeVersionText -or
+    $nodeVersionText -notmatch '^v([0-9]+)\.') {
+    throw "Could not read a valid Node.js version: '$nodeVersionText'."
+}
+$nodeMajor = [int]$Matches[1]
+if ($nodeMajor -lt 22) {
+    throw "Node.js 22 or newer is required; detected $nodeVersionText."
 }
 
 $pnpmVersion = (& $pnpm.Source --version).Trim()
 if ($LASTEXITCODE -ne 0 -or -not $pnpmVersion.StartsWith('10.')) {
     throw "pnpm 10 is required; detected '$pnpmVersion'."
+}
+
+if ($CheckToolsOnly) {
+    Write-Host "Windows launcher prerequisites OK: $nodeVersionText, pnpm $pnpmVersion" -ForegroundColor Green
+    return
 }
 
 function Invoke-Pnpm {
