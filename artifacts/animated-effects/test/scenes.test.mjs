@@ -24,6 +24,13 @@ const definition = {
     { key: "glow", label: "Glow", min: 0, max: 1, defaultValue: 0.25 },
   ],
 };
+const timelineSource = readFileSync(new URL("../src/animation/timeline.ts", import.meta.url), "utf8");
+const timelineCompiled = ts.transpileModule(timelineSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  fileName: "timeline.ts",
+}).outputText;
+const timelineExports = {};
+runInNewContext(timelineCompiled, { exports: timelineExports });
 const exports = {};
 runInNewContext(compiled, {
   exports,
@@ -31,6 +38,7 @@ runInNewContext(compiled, {
     if (id === "../effects/registry") {
       return { getEffectDefinition: (effectId) => effectId === definition.id ? definition : undefined };
     }
+    if (id === "../animation/timeline") return timelineExports;
     throw new Error("Unexpected dependency: " + id);
   },
   structuredClone,
