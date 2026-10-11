@@ -28,9 +28,26 @@ if (-not $node) {
     throw 'Node.js 22+ is required. Install Node.js and rerun this script.'
 }
 
+# A local developer may use pnpm 11 for other projects. Do not overwrite
+# their global pnpm: use a project-scoped pnpm 10 via npx when necessary.
 $pnpm = Get-Command 'pnpm.cmd' -ErrorAction SilentlyContinue
-if (-not $pnpm) {
-    throw 'pnpm 10 is required. Enable it with: corepack enable; corepack prepare pnpm@10 --activate'
+$npx = Get-Command 'npx.cmd' -ErrorAction SilentlyContinue
+$usePinnedPnpm = $false
+$pnpmVersion = ''
+if ($pnpm) {
+    $pnpmVersion = ((& $pnpm.Source --version) | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) { $pnpmVersion = '' }
+}
+if (-not $pnpmVersion.StartsWith('10.')) {
+    if (-not $npx) {
+        throw "This workspace requires pnpm 10. Detected '$pnpmVersion', and npx.cmd is unavailable. Install npm/npx or pnpm 10."
+    }
+    $usePinnedPnpm = $true
+    Write-Host "Detected pnpm '$pnpmVersion'. Using pnpm 10.34.6 for this preview only (npx cache)." -ForegroundColor Yellow
+    $pnpmVersion = ((& $npx.Source '--yes' '--package=pnpm@10.34.6' '--' 'pnpm' '--version') | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $pnpmVersion.StartsWith('10.')) {
+        throw "Failed to launch pnpm 10.34.6 through npx. Check npm network access and retry."
+    }
 }
 
 # Windows PowerShell 5.1 can strip nested quotes from native CLI arguments.
@@ -45,11 +62,6 @@ if ($nodeMajor -lt 22) {
     throw "Node.js 22 or newer is required; detected $nodeVersionText."
 }
 
-$pnpmVersion = (& $pnpm.Source --version).Trim()
-if ($LASTEXITCODE -ne 0 -or -not $pnpmVersion.StartsWith('10.')) {
-    throw "pnpm 10 is required; detected '$pnpmVersion'."
-}
-
 if ($CheckToolsOnly) {
     Write-Host "Windows launcher prerequisites OK: $nodeVersionText, pnpm $pnpmVersion" -ForegroundColor Green
     return
@@ -57,7 +69,12 @@ if ($CheckToolsOnly) {
 
 function Invoke-Pnpm {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-    & $pnpm.Source @Arguments
+    if ($usePinnedPnpm) {
+        & $npx.Source '--yes' '--package=pnpm@10.34.6' '--' 'pnpm' @Arguments
+    }
+    else {
+        & $pnpm.Source @Arguments
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "pnpm command failed (exit $LASTEXITCODE): $($Arguments -join ' ')"
     }
