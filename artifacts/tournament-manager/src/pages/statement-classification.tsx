@@ -800,6 +800,8 @@ function ResearchWorkspace() {
 function Coding() {
   const { data, addCoding, deleteCoding } = useResearchProject();
   const [excerptId, setExcerptId] = useState("");
+  const [codingPersonId, setCodingPersonId] = useState("");
+  const [codingSourceId, setCodingSourceId] = useState("");
   const [coderId, setCoderId] = useState(data.coders[0]?.id ?? "");
   const [propositionId, setPropositionId] = useState("");
   const [direction, setDirection] = useState<"" | "-2" | "-1" | "0" | "1" | "2">("");
@@ -837,6 +839,12 @@ function Coding() {
     setRationale("");
   }
 
+  const candidateSources = data.sources.filter((source) => !codingPersonId || source.personId === codingPersonId);
+  const candidateSourceIds = new Set(candidateSources.map((source) => source.id));
+  const candidateExcerpts = data.excerpts.filter((excerpt) =>
+    (!codingSourceId || excerpt.sourceId === codingSourceId) &&
+    (!codingPersonId || candidateSourceIds.has(excerpt.sourceId))
+  );
   const selectedExcerpt = data.excerpts.find((excerpt) => excerpt.id === excerptId);
   const activeCoder = data.coders.find((item) => item.id === coderId) ?? data.coders[0];
   const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
@@ -857,6 +865,10 @@ function Coding() {
   );
   const filteredCodings = data.codings.filter((coding) => {
     if (coding.codebookId !== activeCodebook?.id) return false;
+    const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+    const source = data.sources.find((item) => item.id === excerpt?.sourceId);
+    if (codingPersonId && source?.personId !== codingPersonId) return false;
+    if (codingSourceId && source?.id !== codingSourceId) return false;
     if (filterPropositionId && coding.propositionId !== filterPropositionId) return false;
     if (filterConfidence && coding.confidence !== filterConfidence) return false;
     if (filterVerification) {
@@ -876,9 +888,19 @@ function Coding() {
             <ToolEmptyState title="Brak fragmentów do kodowania" description="Utwórz fragment w Warsztacie źródeł." />
           ) : (
             <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ToolSelect value={codingPersonId} onChange={(e) => { setCodingPersonId(e.target.value); setCodingSourceId(""); setExcerptId(""); }}>
+                  <option value="">Wszystkie osoby</option>
+                  {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
+                </ToolSelect>
+                <ToolSelect value={codingSourceId} onChange={(e) => { setCodingSourceId(e.target.value); setExcerptId(""); }}>
+                  <option value="">Wszystkie źródła</option>
+                  {candidateSources.map((source) => <option key={source.id} value={source.id}>{source.title}</option>)}
+                </ToolSelect>
+              </div>
               <ToolSelect value={excerptId} onChange={(e) => setExcerptId(e.target.value)}>
                 <option value="">Wybierz fragment…</option>
-                {data.excerpts.map((excerpt) => {
+                {candidateExcerpts.map((excerpt) => {
                   const source = data.sources.find((item) => item.id === excerpt.sourceId);
                   return <option key={excerpt.id} value={excerpt.id}>{source?.title ?? "Źródło"} — {excerpt.text.slice(0, 70)}</option>;
                 })}
@@ -979,7 +1001,10 @@ function Coding() {
                       Fragment: {excerpt?.verificationStatus ?? "unverified"}
                       {excerpt?.timestampStart !== undefined ? ` · ${excerpt.timestampStart}s` : ""}
                     </div>
-                    <ToolButton type="button" variant="ghost" onClick={() => deleteCoding(coding.id)}>Usuń kodowanie</ToolButton>
+                    <div className="flex items-center gap-2">
+                      {source?.url && <a href={source.url} target="_blank" rel="noreferrer" className="text-xs font-semibold underline-offset-2 hover:underline">Źródło ↗</a>}
+                      <ToolButton type="button" variant="ghost" onClick={() => deleteCoding(coding.id)}>Usuń kodowanie</ToolButton>
+                    </div>
                   </div>
                 </div>
               );
