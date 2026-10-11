@@ -208,7 +208,7 @@ test("embedded JS escapes malicious template delimiters without changing visible
     source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0,
     caption: { enabled: true, template: hostile, position: "bottom", fontSize: 40, color: "#ffffff" },
   });
-  assert.doesNotMatch(runtime.code.javascript, /<\\/script>/i, "no raw script-closing tag in exported JS");
+  assert.doesNotMatch(runtime.code.javascript, /<\/script>/i, "no raw script-closing tag in exported JS");
   assert.match(runtime.code.javascript, /\\u003c/, "dangerous tag delimiter escaped in config literal");
   runtime.listeners.onWidgetLoad({});
   runtime.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Guest" } } });
