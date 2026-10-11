@@ -179,3 +179,22 @@ test("internal links respect an unsaved classification guard", async () => {
     window.confirm = originalConfirm;
   }
 });
+
+test("a rejected save preserves the current draft and does not advance the queue", async () => {
+  mockCatalog([game(1, "Alpha"), game(2, "Beta")]);
+  const baseFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "PUT") return Response.json({ error: "Zapis odrzucony" }, { status: 503 });
+    return baseFetch(input, init);
+  }) as typeof fetch;
+
+  const location = mount(`${BASE}/games/1`);
+  await screen.findByRole("button", { name: "Akcja" });
+  fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
+  fireEvent.click(screen.getByRole("button", { name: /Zapisz i dalej/i }));
+
+  await screen.findByText("Zapis odrzucony");
+  assert.equal(location.history.at(-1), `${BASE}/games/1`);
+  assert.ok(screen.getByText("Niezapisane zmiany"));
+  assert.equal(screen.getByRole("button", { name: /Zapisz i dalej/i }).hasAttribute("disabled"), false);
+});
