@@ -104,6 +104,7 @@ test("assessment becomes stale when its evidence set changes", () => {
     propositionId: "q01",
     codebookId: "book",
     status: "stable" as const,
+    direction: 1 as const,
     confidence: "medium" as const,
     evidenceSignature: evidenceSignature(project.codings),
     updatedAt: "2026-10-11T00:00:00.000Z",
