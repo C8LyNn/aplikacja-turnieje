@@ -577,6 +577,36 @@ const aeQueue = [];
 let aeQueuedPlaying = null;
 let aeQueuedTimer = null;
 const AE_MAX_QUEUED_ALERTS = 16;
+const aeCounters = { accepted: 0, started: 0, completed: 0, dropped: 0, evicted: 0 };
+let aeReportSequence = 0;
+
+/** Diagnostics are metadata-only: never include viewer names, chat text, amounts,
+ * or avatar URLs. Developers can subscribe from browser DevTools. No on-screen UI.
+ */
+function aeReport(action, effect, reason) {
+  if (typeof CustomEvent !== "function" || typeof window.dispatchEvent !== "function") return;
+  const snapshot = {
+    version: 1,
+    sequence: ++aeReportSequence,
+    action,
+    reason: reason || null,
+    instanceId: effect ? effect.instanceId : null,
+    event: effect && effect.trigger ? effect.trigger.event : null,
+    priority: effect && effect.trigger ? (effect.trigger.priority ?? 5) : null,
+    queueLength: aeQueue.length,
+    active: aeQueuedPlaying ? "queued" : null,
+    waiting: aeQueue.map(function (entry) {
+      return {
+        instanceId: entry.effect.instanceId,
+        event: entry.listener,
+        priority: entry.effect.trigger.priority ?? 5,
+      };
+    }),
+    activeReplacements: aeActive.size,
+    counters: { ...aeCounters },
+  };
+  window.dispatchEvent(new CustomEvent("animated-effects:diagnostics", { detail: snapshot }));
+}
 
 function aeCompactEvent(listener, eventData) {
   // Do not retain arbitrary-size chat payloads while waiting in the queue.
@@ -602,15 +632,21 @@ function aeNextQueued() {
   const next = aeQueue.shift();
   const element = aeRenderOne(next.effect, aeRoot);
   if (!element) {
+    aeCounters.dropped++;
+    aeReport("dropped", next.effect, "unknown-effect");
     aeNextQueued();
     return;
   }
+  aeCounters.started++;
+  aeReport("started", next.effect, "queue");
   aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData, next.effect.playbackMs);
   aeQueuedPlaying = element;
   aeQueuedTimer = setTimeout(function () {
     if (aeQueuedPlaying === element) {
       element.remove();
       aeQueuedPlaying = null;
+      aeCounters.completed++;
+      aeReport("completed", next.effect, "queue");
     }
     aeQueuedTimer = null;
     aeNextQueued();
@@ -630,6 +666,8 @@ function startAnimatedEffects() {
   if (aeQueuedTimer !== null) clearTimeout(aeQueuedTimer);
   aeQueuedTimer = null;
   aeQueuedPlaying = null;
+  for (const key of Object.keys(aeCounters)) aeCounters[key] = 0;
+  aeReportSequence = 0;
   for (const id of Object.keys(aeLastFired)) delete aeLastFired[id];
   aeRoot = root;
   root.replaceChildren();
@@ -637,6 +675,7 @@ function startAnimatedEffects() {
     if (effect.trigger && effect.trigger.source === "event") return;
     aeRenderOne(effect, root);
   });
+  aeReport("ready", null, "widget-load");
   console.log("Animated Effects ready:", effects.length, "effect(s)");
 }
 
@@ -649,14 +688,22 @@ function aeHandleEvent(obj) {
     const rule = effect.trigger;
     if (!rule || rule.source !== "event" || rule.event !== detail.listener) return;
     const last = aeLastFired[effect.instanceId];
-    if (typeof last === "number" && now - last < rule.cooldownMs) return;
+    if (typeof last === "number" && now - last < rule.cooldownMs) {
+      aeCounters.dropped++;
+      aeReport("dropped", effect, "cooldown");
+      return;
+    }
     if (
       rule.minAmount > 0 &&
       (rule.event === "tip-latest" || rule.event === "cheer-latest" || rule.event === "raid-latest")
     ) {
       const amount = eventData && typeof eventData === "object"
         ? Number(eventData.amount) : NaN;
-      if (!Number.isFinite(amount) || amount < rule.minAmount) return;
+      if (!Number.isFinite(amount) || amount < rule.minAmount) {
+        aeCounters.dropped++;
+        aeReport("dropped", effect, "below-threshold");
+        return;
+      }
     }
 
     if (rule.queueMode === "queue") {
@@ -668,8 +715,14 @@ function aeHandleEvent(obj) {
         return (typeof other === "number" ? other : 5) < priority;
       });
       if (aeQueue.length >= AE_MAX_QUEUED_ALERTS) {
-        if (firstLower < 0) return; // Do not evict an equal or higher-priority alert.
-        aeQueue.pop(); // Lowest priority, newest first, loses its waiting slot.
+        if (firstLower < 0) {
+          aeCounters.dropped++;
+          aeReport("dropped", effect, "queue-full");
+          return; // Do not evict an equal or higher-priority alert.
+        }
+        const removed = aeQueue.pop(); // Lowest priority, newest first.
+        aeCounters.evicted++;
+        aeReport("evicted", removed.effect, "lower-priority");
       }
       const candidate = {
         effect,
@@ -680,17 +733,29 @@ function aeHandleEvent(obj) {
       else aeQueue.splice(firstLower, 0, candidate);
       // Admission control is performed on arrival, not on playback.
       aeLastFired[effect.instanceId] = now;
+      aeCounters.accepted++;
+      aeReport("accepted", effect, "queue");
       aeNextQueued();
       return;
     }
 
     const old = aeActive.get(effect.instanceId);
-    if (old) old.remove();
+    if (old) {
+      old.remove();
+      aeReport("replaced", effect, "restart");
+    }
     const timer = aePending.get(effect.instanceId);
     if (timer !== undefined) clearTimeout(timer);
 
     const element = aeRenderOne(effect, aeRoot);
-    if (!element) return;
+    if (!element) {
+      aeCounters.dropped++;
+      aeReport("dropped", effect, "unknown-effect");
+      return;
+    }
+    aeCounters.accepted++;
+    aeCounters.started++;
+    aeReport("started", effect, "replace");
     aeAttachCaption(element, rule.caption, detail.listener, eventData, effect.playbackMs);
     aeLastFired[effect.instanceId] = now;
     aeActive.set(effect.instanceId, element);
@@ -698,6 +763,8 @@ function aeHandleEvent(obj) {
       if (aeActive.get(effect.instanceId) === element) {
         element.remove();
         aeActive.delete(effect.instanceId);
+        aeCounters.completed++;
+        aeReport("completed", effect, "replace");
       }
       aePending.delete(effect.instanceId);
     }, effect.playbackMs));
