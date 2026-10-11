@@ -7,18 +7,25 @@ import {
   normalizeStreamElementsTriggerOptions,
   DEFAULT_STREAM_ELEMENTS_TRIGGER_OPTIONS,
   type StreamElementsTriggerMode,
+  type StreamElementsRouteInput,
+  normalizeStreamElementsRoutes,
 } from "../../../../../animated-effects/src/export/triggerOptions";
 
 const emptyScene = { effects: [] } as unknown as Parameters<typeof generateStreamElementsExport>[0];
 
-function makeWidget(mode: StreamElementsTriggerMode, options: Record<string, unknown> = {}) {
-  const snippets = generateStreamElementsExport(emptyScene, {
+function makeWidget(
+  mode: StreamElementsTriggerMode,
+  options: Record<string, unknown> = {},
+  routes?: StreamElementsRouteInput[],
+  scene = emptyScene,
+) {
+  const snippets = generateStreamElementsExport(scene, {
     mode,
     chatCommand: "!hype",
     activeDurationMs: 500,
     cooldownMs: 1000,
     ...options,
-  });
+  }, routes);
   const dom = new JSDOM(
     "<!doctype html><html><body>" + snippets.html + "</body></html>",
     { runScripts: "outside-only", url: "https://widgets.streamelements.test/" },
@@ -45,7 +52,11 @@ function makeWidget(mode: StreamElementsTriggerMode, options: Record<string, unk
     configurable: true,
     value: (id: number) => pending.delete(id),
   });
-  dom.window.eval(snippets.javascript);
+  const scripted = routes ? snippets.javascript.replace(
+    "const aeRenderers = {",
+    'const aeRenderers = { "test-effect": function (effect, root) { const div = document.createElement("div"); div.dataset.instanceId = effect.instanceId; root.appendChild(div); },',
+  ) : snippets.javascript;
+  dom.window.eval(scripted);
   const send = (listener: string, event: Record<string, unknown> = {}) =>
     dom.window.dispatchEvent(
       new dom.window.CustomEvent("onEventReceived", { detail: { listener, event } }),
@@ -201,6 +212,87 @@ test("export dialog updates the generated widget when trigger controls change", 
   } finally {
     dialog.remove();
   }
+});
+
+
+test("route normalization rejects malformed IDs, disabled layers, repeats and >8 routes", () => {
+  const input: StreamElementsRouteInput[] = [
+    { id: "one", mode: "chat-command", chatCommand: "!fire", effectInstanceIds: ["a", "a", "b", "inactive"] },
+    { id: "one", mode: "raid", effectInstanceIds: ["a"] },
+    { id: "always-rule", mode: "always", effectInstanceIds: ["b"] },
+    { id: "<bad>", mode: "follower", effectInstanceIds: ["a"] },
+    { id: "empty", mode: "raid", effectInstanceIds: ["inactive"] },
+    ...Array.from({ length: 10 }, (_, i) => ({
+      id: "extra-" + i, mode: "follower" as const, effectInstanceIds: ["a"],
+    })),
+  ];
+  const routes = normalizeStreamElementsRoutes(input, ["a", "b"]);
+  assert.equal(routes.length, 4);
+  assert.deepEqual(routes[0]?.effectInstanceIds, ["a", "b"]);
+  assert.equal(routes[0]?.chatCommand, "!fire");
+  assert.equal(routes[1]?.id, "extra-0");
+  assert.equal(routes[3]?.id, "extra-2");
+});
+
+test("one StreamElements widget routes independent commands and raids to distinct effect layers", () => {
+  const scene = {
+    effects: [
+      { effectId: "test-effect", instanceId: "fire", enabled: true, settings: {}, seed: 1 },
+      { effectId: "test-effect", instanceId: "raid", enabled: true, settings: {}, seed: 2 },
+      { effectId: "test-effect", instanceId: "off", enabled: false, settings: {}, seed: 3 },
+    ],
+  } as unknown as Parameters<typeof generateStreamElementsExport>[0];
+  const rules: StreamElementsRouteInput[] = [
+    { id: "rule-fire", mode: "chat-command", chatCommand: "!fire", effectInstanceIds: ["fire", "off"], cooldownMs: 1000, activeDurationMs: 2000 },
+    { id: "rule-raid", mode: "raid", effectInstanceIds: ["raid"], cooldownMs: 0, activeDurationMs: 500 },
+    { id: "rule-ice", mode: "chat-command", chatCommand: "!ice", effectInstanceIds: ["fire"], cooldownMs: 0, activeDurationMs: 500 },
+  ];
+  const widget = makeWidget("always", {}, rules, scene);
+  const active = () => Array.from(widget.root.querySelectorAll<HTMLElement>("[data-instance-id]"), (node) => node.dataset.instanceId);
+  try {
+    widget.load();
+    assert.deepEqual(active(), [], "multi mode never auto-starts even with legacy always");
+    widget.send("message", { data: { text: "!fire", msgId: "a" } });
+    assert.deepEqual(active(), ["fire"], "disabled effect excluded");
+    widget.send("raid-latest", { name: "someone" });
+    assert.deepEqual(active(), ["raid"], "raid replaces fire");
+    widget.tick(100);
+    widget.send("message", { data: { text: "!fire", msgId: "b" } });
+    assert.deepEqual(active(), ["raid"], "only fire cooldown is active");
+    widget.send("message", { data: { text: "!ice", msgId: "c" } });
+    assert.deepEqual(active(), ["fire"], "another command is independently eligible");
+    widget.send("message", { data: { text: "!ice", msgId: "c" } });
+    assert.deepEqual(active(), ["fire"], "duplicate message does not replay");
+    assert.equal(widget.pending(), 1, "replacing a scene cancels the old expiry timer");
+    widget.finish();
+    assert.deepEqual(active(), []);
+  } finally {
+    widget.dom.window.close();
+  }
+});
+
+test("duplicate multi-route triggers use deterministic priority, empty list stays idle", () => {
+  const scene = { effects: [
+    { effectId: "test-effect", instanceId: "first", enabled: true, settings: {}, seed: 1 },
+    { effectId: "test-effect", instanceId: "second", enabled: true, settings: {}, seed: 2 },
+  ] } as unknown as Parameters<typeof generateStreamElementsExport>[0];
+  const rules: StreamElementsRouteInput[] = [
+    { id: "one", mode: "chat-command", chatCommand: "!same", cooldownMs: 0, effectInstanceIds: ["first"] },
+    { id: "two", mode: "chat-command", chatCommand: "!same", cooldownMs: 0, effectInstanceIds: ["second"] },
+  ];
+  const w = makeWidget("always", {}, rules, scene);
+  try {
+    w.load();
+    w.send("message", { data: { text: "!same", msgId: "1" } });
+    assert.equal(w.root.querySelector("[data-instance-id]")?.getAttribute("data-instance-id"), "first");
+  } finally { w.dom.window.close(); }
+  const empty = makeWidget("always", {}, [], scene);
+  try {
+    empty.load();
+    empty.send("message", { data: { text: "!same", msgId: "2" } });
+    assert.equal(empty.root.childElementCount, 0);
+    assert.equal(empty.pending(), 0);
+  } finally { empty.dom.window.close(); }
 });
 
 test("event exports do not require an iframe or call back into the editor website", () => {
