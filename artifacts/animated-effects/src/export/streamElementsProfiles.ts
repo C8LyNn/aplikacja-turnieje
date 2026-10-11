@@ -114,6 +114,14 @@ function parseScene(input: unknown): EditorState {
     if (raw.groupId !== undefined && raw.groupId !== null && !validId(raw.groupId)) {
       throw new Error("Nieprawidłowa grupa warstwy.");
     }
+    // JSON validation above establishes the shape; narrow unknown fields
+    // explicitly instead of letting untrusted values escape into EffectInstance.
+    const customSettings: Record<string, number> | undefined =
+      isObject(settings.custom)
+        ? Object.fromEntries(
+            Object.entries(settings.custom).map(([key, value]) => [key, value as number]),
+          )
+        : undefined;
     return {
       instanceId: raw.instanceId,
       effectId: definition.id,
@@ -126,11 +134,11 @@ function parseScene(input: unknown): EditorState {
         area: settings.area,
         ...(settings.color === undefined ? {} : { color: settings.color }),
         ...(settings.colorize === undefined ? {} : { colorize: settings.colorize }),
-        ...(settings.custom === undefined ? {} : { custom: { ...settings.custom } }),
+        ...(customSettings === undefined ? {} : { custom: customSettings }),
       } as EffectSettings,
-      ...(raw.label === undefined ? {} : { label: raw.label }),
+      ...(typeof raw.label === "string" ? { label: raw.label } : {}),
       locked: raw.locked === true,
-      groupId: raw.groupId === undefined ? null : raw.groupId,
+      groupId: typeof raw.groupId === "string" ? raw.groupId : null,
     };
   });
 
