@@ -147,3 +147,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "CMD launcher failed with exit code $LASTEXITCODE."
           }
+
+      - name: Verify global pnpm 11 falls back to isolated pnpm 10
+        shell: powershell
+        run: |
+          $shim = Join-Path $env:RUNNER_TEMP "fake-pnpm-11"
+          New-Item -ItemType Directory -Path $shim -Force | Out-Null
+          "@echo off`r`necho 11.18.0" | Set-Content -Path (Join-Path $shim 'pnpm.cmd') -Encoding Ascii
+          $env:PATH = "$shim;$env:PATH"
+          $detected = & pnpm.cmd --version
+          if ($detected -ne "11.18.0") { throw "Expected global pnpm 11 test shim; got $detected" }
+          & .\artifacts\animated-effects\scripts\start-local-preview.ps1 -CheckToolsOnly
+          if ($LASTEXITCODE -ne 0) { throw "Pinned pnpm fallback failed." }
+          & .\START_ANIMATED_EFFECTS_PREVIEW.cmd -CheckToolsOnly
+          if ($LASTEXITCODE -ne 0) { throw "CMD pinned pnpm fallback failed." }
