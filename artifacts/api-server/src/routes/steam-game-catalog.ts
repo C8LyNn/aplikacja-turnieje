@@ -210,12 +210,11 @@ router.get("/steam-catalog/games", async (req, res, next) => {
         ? await (async () => {
             let compiled = pageQuery.toSQL();
             if (total <= 2_000) {
-              // If search yields a relatively small candidate set, materialize
-              // just matching IDs before sorting. This prevents PostgreSQL
-              // from walking the entire (name,id) index to find a page of
-              // publisher/developer matches near the end of the alphabet.
-              // Broad searches keep their ordinary bounded page query.
-              const candidates = db.select({ id: steamCatalogGames.id })
+              // Materialize a bounded projection of matching games before
+              // sorting. This avoids scanning the global name-order index
+              // for selective publisher/developer searches and avoids loading
+              // large Steam JSON metadata into the CTE.
+              const candidates = db.select(gameListColumns)
                 .from(steamCatalogGames).where(where).toSQL();
               const ordered = db.select(gameListColumns).from(steamCatalogGames)
                 .where(after)
@@ -226,8 +225,7 @@ router.get("/steam-catalog/games", async (req, res, next) => {
               const tableRef = 'from "steam_catalog_games"';
               if (!ordered.sql.includes(tableRef)) throw new Error("Unexpected catalog SQL table reference");
               const joinedSql = ordered.sql.replace(
-                tableRef,
-                tableRef + ' INNER JOIN catalog_hits ON catalog_hits.id = "steam_catalog_games"."id"',
+                tableRef, 'from catalog_hits AS "steam_catalog_games"',
               );
               // Parameter indices in two compiled, parameterized queries
               // both start at $1. Shift only the outer query's placeholders.
