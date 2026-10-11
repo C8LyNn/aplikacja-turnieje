@@ -158,6 +158,68 @@ test("native StreamElements events render safe text and remove moderated message
   }
 });
 
+test("chat motion presets stay in sync between browser source, preview and StreamElements", () => {
+  for (const animationStyle of ["rise", "slide", "pop", "fade"] as const) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, animationStyle, animationDurationMs: 460 };
+    const roundtrip = cameraChatConfigFromSearch(cameraChatConfigToSearch(config));
+    assert.deepEqual(roundtrip, config);
+    const preview = render(<CameraChatWidget config={config} messages={[{ name: "Viewer", text: "Animated", msgId: "one" }]} />);
+    const row = preview.container.querySelector(".obs-chat-message") as HTMLElement;
+    assert.match(row.style.animation, /obs-chat-in 460ms/);
+    const previewStyle = preview.container.querySelector("style")?.textContent ?? "";
+    const exported = generateStreamElementsWidget(config);
+    assert.match(exported.css, /animation: se-chat-in 460ms/);
+    assert.match(previewStyle, /prefers-reduced-motion: reduce/);
+    assert.match(exported.css, /prefers-reduced-motion: reduce/);
+    const transform = {
+      rise: "translateY(14px)",
+      slide: "translateX(-22px)",
+      pop: "scale(.78)",
+      fade: "transform: none",
+    }[animationStyle];
+    assert.ok(previewStyle.includes(transform), animationStyle);
+    assert.ok(exported.css.includes(transform), animationStyle);
+    preview.unmount();
+  }
+
+  const invalid = cameraChatConfigFromSearch("?animstyle=evil&animdur=-20");
+  assert.equal(invalid.animationStyle, "rise");
+  assert.equal(invalid.animationDurationMs, 100);
+  assert.equal(cameraChatConfigFromSearch("?animdur=999999").animationDurationMs, 1200);
+  assert.equal(cameraChatConfigFromSearch("").animationDurationMs, 220);
+  const disabled = generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, animateMessages: false });
+  assert.doesNotMatch(disabled.css, /animation: se-chat-in /);
+});
+
+test("StreamElements animates only new rows; deduplicates messages and moderates without replay", () => {
+  const snippets = generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 3 });
+  const dom = new JSDOM(`<!doctype html><html><head><style>${snippets.css}</style></head><body>${snippets.html}</body></html>`, { runScripts: "outside-only" });
+  try {
+    dom.window.eval(snippets.js);
+    const send = (listener: string, data: Record<string, unknown>) => {
+      dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", {
+        detail: { listener, event: { data } },
+      }));
+    };
+    send("message", { msgId: "a", userId: "a-user", text: "First" });
+    send("message", { msgId: "b", userId: "b-user", text: "Second" });
+    const list = dom.window.document.getElementById("se-chat-messages")!;
+    const secondRow = list.lastElementChild;
+    send("message", { msgId: "b", userId: "b-user", text: "Duplicate" });
+    assert.equal(list.children.length, 2);
+    send("message", { msgId: "c", userId: "c-user", text: "Third" });
+    assert.equal(list.children[1], secondRow, "existing message DOM should not be recreated");
+    send("delete-message", { msgId: "a" });
+    assert.equal(list.firstElementChild, secondRow, "moderation should preserve surviving rows");
+    assert.equal(list.children.length, 2);
+    send("delete-messages", { userId: "b-user" });
+    assert.equal(list.children.length, 1);
+    assert.match(list.textContent ?? "", /Third/);
+  } finally {
+    dom.window.close();
+  }
+});
+
 test("Draw Lab renders participant names as text, not executable HTML", async () => {
   const base = new URL("../../randomizers/draw-lab/engines/cards/", import.meta.url);
   const dom = new JSDOM(readFileSync(new URL("cards-host.html", base), "utf8"), { url: "https://tournament.example/developer", runScripts: "outside-only", pretendToBeVisual: true });
