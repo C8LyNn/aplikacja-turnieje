@@ -6,6 +6,7 @@ import {
   Network,
   Users,
 } from "lucide-react";
+import { FormEvent, useState } from "react";
 import { useLocation } from "wouter";
 import {
   ModuleHeader,
@@ -13,11 +14,15 @@ import {
   ProjectCard,
 } from "@/components/portfolio-ui";
 import {
+  ToolButton,
   ToolEmptyState,
+  ToolInput,
   ToolNotice,
+  ToolSelect,
   ToolPanel,
   ToolSection,
 } from "@/components/tool-ui";
+import { useResearchProject } from "@/features/ludology/statement-classification/use-research-project";
 
 const BASE = "/ludology/statement-classification";
 
@@ -118,29 +123,99 @@ function Overview() {
 }
 
 function People() {
+  const { data, addPerson } = useResearchProject();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) return;
+    addPerson({ displayName: name.trim(), description: description.trim() || undefined });
+    setName("");
+    setDescription("");
+  }
+
   return (
     <>
-      <PageHeader section="PEOPLE" title="Osoby" description="Lista analizowanych osób będzie tylko indeksem prowadzącym do ich źródeł i zakodowanych fragmentów." />
-      <ToolPanel>
-        <ToolEmptyState
-          title="Brak osób w zbiorze"
-          description="Na tym etapie przygotowana jest struktura. Profile zostaną dodane dopiero razem ze źródłami."
-        />
-      </ToolPanel>
+      <PageHeader section="PEOPLE" title="Osoby" description="Indeks badanych osób prowadzący do ich źródeł, argumentów i zakodowanych fragmentów." />
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        <ToolPanel title="Dodaj osobę" description="Profil jest kontenerem korpusu, nie gotową etykietą poglądów.">
+          <form className="space-y-3" onSubmit={submit}>
+            <ToolInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Nazwa / imię i nazwisko" />
+            <ToolInput value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Krótki opis (opcjonalnie)" />
+            <ToolButton type="submit" variant="primary">Dodaj do korpusu</ToolButton>
+          </form>
+        </ToolPanel>
+        <ToolPanel title={`Osoby w korpusie (${data.people.length})`}>
+          {data.people.length === 0 ? (
+            <ToolEmptyState title="Brak osób w zbiorze" description="Dodaj pierwszą osobę, aby rozpocząć pilotaż." />
+          ) : (
+            <div className="space-y-2">
+              {data.people.map((person) => {
+                const sources = data.sources.filter((source) => source.personId === person.id).length;
+                return <div key={person.id} className="rounded-xl border border-border bg-background/40 p-4">
+                  <div className="font-bold">{person.displayName}</div>
+                  {person.description && <div className="mt-1 text-sm text-muted-foreground">{person.description}</div>}
+                  <div className="mt-2 text-xs text-muted-foreground">{sources} źródeł</div>
+                </div>;
+              })}
+            </div>
+          )}
+        </ToolPanel>
+      </div>
     </>
   );
 }
 
 function Sources() {
+  const { data, addSource } = useResearchProject();
+  const [personId, setPersonId] = useState("");
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [sourceType, setSourceType] = useState<"video" | "stream" | "podcast" | "post" | "article" | "academic" | "other">("video");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!personId || !title.trim() || !url.trim()) return;
+    addSource({ personId, title: title.trim(), url: url.trim(), sourceType });
+    setTitle("");
+    setUrl("");
+  }
+
   return (
     <>
       <PageHeader section="SRC" title="Źródła" description="Każdy wniosek ma dać się prześledzić do konkretnego materiału i fragmentu wypowiedzi." />
-      <ToolPanel>
-        <ToolEmptyState
-          title="Brak źródeł"
-          description="Docelowo rekord źródła będzie przechowywał autora, adres, typ materiału, datę oraz fragmenty z kontekstem i timestampami."
-        />
-      </ToolPanel>
+      <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
+        <ToolPanel title="Dodaj źródło">
+          {data.people.length === 0 ? <ToolNotice>Najpierw dodaj osobę w sekcji Osoby.</ToolNotice> : (
+            <form className="space-y-3" onSubmit={submit}>
+              <ToolSelect value={personId} onChange={(e) => setPersonId(e.target.value)}>
+                <option value="">Wybierz osobę…</option>
+                {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
+              </ToolSelect>
+              <ToolInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tytuł materiału" />
+              <ToolInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL źródła" />
+              <ToolSelect value={sourceType} onChange={(e) => setSourceType(e.target.value as typeof sourceType)}>
+                <option value="video">Wideo</option><option value="stream">Stream</option><option value="podcast">Podcast</option>
+                <option value="article">Artykuł</option><option value="post">Post</option><option value="academic">Publikacja naukowa</option><option value="other">Inne</option>
+              </ToolSelect>
+              <ToolButton type="submit" variant="primary">Dodaj źródło</ToolButton>
+            </form>
+          )}
+        </ToolPanel>
+        <ToolPanel title={`Materiały źródłowe (${data.sources.length})`}>
+          {data.sources.length === 0 ? <ToolEmptyState title="Brak źródeł" description="Dodaj pierwszy materiał do korpusu." /> : (
+            <div className="space-y-2">{data.sources.map((source) => {
+              const person = data.people.find((item) => item.id === source.personId);
+              return <div key={source.id} className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{source.sourceType} · {person?.displayName ?? "Nieznana osoba"}</div>
+                <div className="mt-1 font-bold">{source.title}</div>
+                <div className="mt-1 truncate text-xs text-muted-foreground">{source.url}</div>
+              </div>;
+            })}</div>
+          )}
+        </ToolPanel>
+      </div>
     </>
   );
 }
