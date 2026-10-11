@@ -57,6 +57,7 @@ test("research queue surfaces verification coding contradiction and review work"
   assert.deepEqual(queue.verifiedUncodedExcerptIds, []);
   assert.equal(queue.contradictionCandidates.length, 1);
   assert.equal(queue.unreviewedPositions.length, 1);
+  assert.deepEqual(queue.samplingGaps, []);
 });
 
 test("verified excerpts without current codebook coding enter the queue", () => {
@@ -65,4 +66,28 @@ test("verified excerpts without current codebook coding enter the queue", () => 
   const queue = buildResearchQueue(data, "book");
 
   assert.deepEqual(queue.verifiedUncodedExcerptIds, ["e2"]);
+});
+
+
+test("research queue surfaces active sampling plan gaps", () => {
+  const data = base();
+  data.samplingPlans = [{
+    id: "plan",
+    name: "Pilot",
+    version: "1",
+    status: "active",
+    minimumSourcesPerPerson: 2,
+    minimumSourceTypesPerPerson: 1,
+    minimumPurposesPerPerson: 0,
+    minimumPreparednessModesPerPerson: 0,
+    minimumScopesPerPerson: 0,
+    minimumDatedSourceShare: null,
+    maximumSingleSourceTypeShare: null,
+    minimumTemporalSpanYears: null,
+  }];
+
+  const queue = buildResearchQueue(data, "book");
+  assert.equal(queue.samplingGaps.length, 1);
+  assert.equal(queue.samplingGaps[0]?.personId, "p1");
+  assert.ok(queue.samplingGaps[0]?.codes.includes("sources"));
 });
