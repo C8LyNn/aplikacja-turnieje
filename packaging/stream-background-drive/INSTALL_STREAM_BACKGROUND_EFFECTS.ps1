@@ -36,8 +36,13 @@ $allowedPaths = @(
 )
 function AllowedPath([string]$path) {
     if ($path.StartsWith('artifacts/animated-effects/', [StringComparison]::Ordinal)) {
-        return ($path -match '^artifacts/animated-effects/[a-zA-Z0-9_./-]+$' -and
-                -not $path.Contains('../') -and -not $path.Contains('//'))
+        # Existing tracked filenames may contain spaces or parentheses.
+        # Reject parent traversal, absolute paths and invalid Windows characters.
+        return ($path -notmatch '[\\x00-\\x1F\\\\:*?"<>|]' -and
+                -not $path.Contains('../') -and
+                -not $path.Contains('//') -and
+                -not $path.Contains('/./') -and
+                -not $path.StartsWith('/'))
     }
     return $allowedPaths -ccontains $path
 }
