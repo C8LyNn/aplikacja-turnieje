@@ -25,6 +25,20 @@ Biblioteka korzysta z **localStorage danej przeglądarki** (maks. 16 profili); n
 
 Profil obejmuje samą scenę edytora i konfigurację StreamElements. **Nie zmienia już wklejonego kodu w StreamElements** — po zmianie zestawu trzeba ponownie skopiować wygenerowane zakładki HTML, CSS i JavaScript do widgetu.
 
+## Symulator zdarzeń w edytorze
+
+W **Eksport StreamElements → Symulator StreamElements** możesz zobaczyć, co uruchomi kod widgetu jeszcze przed wklejeniem go do OBS:
+
+1. Skonfiguruj pojedynczy wyzwalacz lub włącz wiele reguł.
+2. Wybierz z listy **Czat: !fire**, **Raid**, **Subskrypcja** albo inne dostępne zdarzenie.
+3. Kliknij **Symuluj zdarzenie**. Podgląd wysyła do widgetu komunikat `onEventReceived` o takiej samej strukturze jak prawdziwy event StreamElements.
+4. Kliknij ten sam przycisk ponownie, żeby przetestować cooldown, lub wybierz inne zdarzenie, żeby sprawdzić zastępowanie scen.
+5. Użyj **Resetuj podgląd**, aby wywołać `onWidgetLoad` i wyzerować cooldowny. W trybie **Zawsze aktywna** scena uruchamia się automatycznie po załadowaniu podglądu.
+
+Podgląd jest tworzony z **dokładnie tego HTML, CSS i JavaScript, który wygenerował aktualny eksport**, a nie z zastępczego silnika animacji. Uruchamia się w ramce iframe z `sandbox="allow-scripts"`, **bez `allow-same-origin`**, i nie ma bezpośredniego dostępu do edytora ani do jego stanu. Symulowane zdarzenia i identyfikatory wiadomości są testowe — nie wykonują rzeczywistych akcji na kanale.
+
+Zmiana warstw, czasów, komend albo reguł przebudowuje podgląd na podstawie aktualnego eksportu. Zamknięcie okna eksportu usuwa ramkę i zatrzymuje uruchomioną animację. Ramka przedstawia widget w proporcjach **16:9**. Nie zastępuje to ręcznych testów w OBS/StreamElements (np. sprawdzenia wydajności GPU, Browser Source, uprawnień czatu i rzeczywistych payloadów subskrypcji).
+
 ## Wiele reguł w jednym widgetcie
 
 W oknie eksportu włącz **Wiele zdarzeń w jednym widżecie**. Kliknij **Dodaj regułę** (maksymalnie 8), wybierz rodzaj zdarzenia i zaznacz efekty z aktualnie włączonych warstw. Przykład:
