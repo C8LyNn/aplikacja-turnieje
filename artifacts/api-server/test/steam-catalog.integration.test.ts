@@ -253,9 +253,11 @@ describe("Steam catalog — real PostgreSQL API", () => {
       changed.filter((x) => x.status === "unclassified").length;
     const expectedReviewDelta = changed.filter((x) => x.next === "review").length -
       changed.filter((x) => x.status === "review").length;
+    const expectedReadyDelta = changed.filter((x) => x.next === "ready").length -
+      changed.filter((x) => x.status === "ready").length;
     assert.equal(Number(after.u), Number(before.u) + expectedUnclassifiedDelta);
     assert.equal(Number(after.r), Number(before.r) + expectedReviewDelta);
-    assert.equal(Number(after.y), Number(before.y));
+    assert.equal(Number(after.y), Number(before.y) + expectedReadyDelta);
     const actual = await rows<{ status: string; total: string }>(
       "SELECT status,count(*)::text AS total FROM steam_catalog_games GROUP BY status",
     );
