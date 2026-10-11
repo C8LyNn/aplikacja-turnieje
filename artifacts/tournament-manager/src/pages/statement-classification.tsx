@@ -150,6 +150,7 @@ function Overview() {
         contradictionCandidates: [],
         unreviewedPositions: [],
         staleAssessmentIds: [],
+        samplingGaps: [],
       };
 
   function exportProject() {
@@ -223,7 +224,7 @@ function Overview() {
         title="Kolejka badawcza"
         description="Lista pracy wynikająca z aktualnego stanu korpusu. Nie interpretuje stanowisk automatycznie — wskazuje miejsca wymagające działania badacza."
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <div className="rounded-xl border border-border bg-background/40 p-4">
             <div className="text-2xl font-black">{researchQueue.unverifiedExcerptIds.length}</div>
             <div className="text-xs text-muted-foreground">fragmentów do weryfikacji</div>
@@ -244,6 +245,10 @@ function Overview() {
             <div className="text-2xl font-black">{researchQueue.staleAssessmentIds.length}</div>
             <div className="text-xs text-muted-foreground">rekonstrukcji do odświeżenia</div>
           </div>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.samplingGaps.length}</div>
+            <div className="text-xs text-muted-foreground">osób z lukami samplingu</div>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href={`${BASE}/fragments`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
@@ -254,6 +259,12 @@ function Overview() {
           </Link>
           <Link href={`${BASE}/positions`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
             Profil dowodów →
+          </Link>
+          <Link href={`${BASE}/sampling`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Sampling →
+          </Link>
+          <Link href={`${BASE}/health`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Corpus Health →
           </Link>
         </div>
       </ToolPanel>
