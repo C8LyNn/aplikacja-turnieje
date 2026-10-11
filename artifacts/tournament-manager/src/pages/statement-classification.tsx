@@ -33,6 +33,7 @@ import {
   personEvidence,
 } from "@/features/ludology/statement-classification/evidence-analysis";
 import { computeCoderAgreementPairs } from "@/features/ludology/statement-classification/coder-agreement";
+import { checkResearchProjectIntegrity } from "@/features/ludology/statement-classification/integrity";
 
 const BASE = "/ludology/statement-classification";
 
@@ -121,6 +122,7 @@ function PageHeader({ section, title, description }: { section: string; title: s
 function Overview() {
   const { data, replaceProject } = useResearchProject();
   const [transferMessage, setTransferMessage] = useState("");
+  const integrityIssues = checkResearchProjectIntegrity(data);
 
   function exportProject() {
     if (typeof window === "undefined") return;
@@ -168,6 +170,26 @@ function Overview() {
           <ToolNotice>Brak danych nie oznacza neutralnego stanowiska. System powinien umieć zapisać niepewność, sprzeczności i zmianę poglądu w czasie.</ToolNotice>
         </ToolPanel>
       </div>
+
+      <ToolPanel
+        title="Integralność zbioru"
+        description="Automatyczna kontrola referencji i podstawowych niespójności technicznych. Brak błędów integralności nie oznacza poprawności metodologicznej."
+      >
+        {integrityIssues.length === 0 ? (
+          <ToolNotice tone="success">Nie wykryto osieroconych rekordów, duplikatów kodowań ani niespójnych zakresów timestampów.</ToolNotice>
+        ) : (
+          <div className="space-y-2">
+            <ToolNotice tone="danger">Wykryto {integrityIssues.length} problemów integralności. Przed dalszym kodowaniem warto je wyjaśnić.</ToolNotice>
+            {integrityIssues.slice(0, 12).map((issue, index) => (
+              <div key={`${issue.code}:${issue.entityId ?? index}`} className="rounded-xl border border-border bg-background/40 px-4 py-3">
+                <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">{issue.code}</div>
+                <div className="mt-1 text-sm">{issue.message}</div>
+              </div>
+            ))}
+            {integrityIssues.length > 12 && <div className="text-xs text-muted-foreground">+ {integrityIssues.length - 12} dalszych problemów.</div>}
+          </div>
+        )}
+      </ToolPanel>
 
       <ToolPanel
         title="Kopia danych pilotażu"
