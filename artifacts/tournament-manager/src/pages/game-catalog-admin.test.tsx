@@ -164,6 +164,27 @@ test("importing a Steam game opens its editor immediately, without requiring a r
   assert.equal(requests.filter((request) => request.path.endsWith("/import")).length, 1);
 });
 
+test("search-only screen skips blank catalog scans, then searches after typing", async () => {
+  const requests = mockCatalog([game(1, "Alpha"), game(2, "Beta")]);
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  // Wait past the 200ms list-request debounce; a blank search is not a browse.
+  await new Promise((resolve) => setTimeout(resolve, 275));
+  assert.equal(requests.filter((request) => request.path.startsWith("/api/steam-catalog/games?")).length, 0);
+  assert.ok(screen.getByText("Wpisz nazwę gry lub AppID."));
+  fireEvent.change(screen.getByPlaceholderText("Nazwa, studio, AppID..."), {
+    target: { value: "Alpha" },
+  });
+  await screen.findByRole("link", { name: /Alpha/i });
+  assert.equal(requests.filter((request) => request.path.startsWith("/api/steam-catalog/games?")).length, 1);
+  fireEvent.change(screen.getByPlaceholderText("Nazwa, studio, AppID..."), {
+    target: { value: "   " },
+  });
+  await screen.findByText("Wpisz nazwę gry lub AppID.");
+  await new Promise((resolve) => setTimeout(resolve, 275));
+  assert.equal(requests.filter((request) => request.path.startsWith("/api/steam-catalog/games?")).length, 1);
+});
+
 test("catalog filters games by classification status and title", async () => {
   mockCatalog([game(1, "Alpha", "ready"), game(2, "Beta", "review"), game(3, "Gamma")]);
   mount(`${BASE}/games`);
