@@ -8628,3 +8628,65 @@ body {
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* AE_SE_TRIGGER_EXPORT_V1 */
+.export-dialog { overflow-y: auto; }
+.export-dialog .export-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #0d111a;
+}
+.export-trigger-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+  background: linear-gradient(145deg, rgba(124,92,255,.11), rgba(0,217,255,.035));
+}
+.export-trigger-config > strong {
+  display: block;
+  font-size: 15px;
+}
+.export-trigger-config > p {
+  margin: 8px 0 12px;
+  color: #aab8d3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.export-trigger-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.export-trigger-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  color: #dbe5fa;
+  font-size: 12px;
+  font-weight: 600;
+}
+.export-trigger-fields > label[hidden] { display: none !important; }
+.export-trigger-fields select,
+.export-trigger-fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 41px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  padding: 8px 12px;
+  outline-offset: 2px;
+  background: #10192a;
+  color: #f0f5ff;
+}
+.export-trigger-fields select:focus-visible,
+.export-trigger-fields input:focus-visible {
+  outline: 2px solid #00d9ff;
+}
+.export-trigger-config .export-trigger-note {
+  margin-bottom: 0;
+  color: #a9d2e5;
+}
+@media (max-width: 620px) {
+  .export-trigger-fields { grid-template-columns: minmax(0, 1fr); }
+}
