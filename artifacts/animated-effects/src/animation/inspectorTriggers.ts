@@ -1,5 +1,13 @@
 import type { AlertCaption, EffectInstance, EffectTriggerEvent } from "../core/types";
 import { DEFAULT_ALERT_CAPTION, normalizeAlertCaption } from "./alertText";
+const RECOMMENDED_PRIORITIES: Record<EffectTriggerEvent, number> = {
+  "follower-latest": 5,
+  "subscriber-latest": 7,
+  "tip-latest": 9,
+  "cheer-latest": 8,
+  "raid-latest": 8,
+  message: 2,
+};
 const DEFAULT_EVENT_TEMPLATES: Record<EffectTriggerEvent, string> = {
   "follower-latest": "Dzięki za follow, {name}!",
   "subscriber-latest": "{name} — dzięki za subskrypcję!",
@@ -51,6 +59,12 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
             <option value="queue" ${config?.queueMode === "queue" ? "selected" : ""}>Kolejkuj z pozostałymi alertami</option>
           </select>
         </label>
+        <label class="ae-timeline-field">
+          <span class="inspector-label"><span>Priorytet w kolejce (0–10)</span></span>
+          <input data-ae-trigger-priority type="number" min="0" max="10" step="1"
+            value="${config?.priority ?? RECOMMENDED_PRIORITIES[selectedEvent]}">
+        </label>
+        <p class="ae-timeline-hint">Wyższy priorytet wyprzedza oczekujące alerty, ale nie przerywa odtwarzanego. Przy remisie zachowywana jest kolejność nadejścia.</p>
         <p class="ae-timeline-hint">Kolejka jest wspólna dla warstw z wybraną opcją. Odtwarza jeden alert naraz (maks. 16 oczekujących), bez nakładania efektów zdarzeniowych w trybie kolejki.</p>
         <div class="ae-caption-fields">
           <label class="ae-caption-switch">
@@ -105,7 +119,7 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
 
 export function bindTriggerControls(container: HTMLElement, effect: EffectInstance): void {
   const eventField = container.querySelector<HTMLSelectElement>("[data-ae-trigger-event]");
-  const write = (patch: { event?: EffectTriggerEvent; cooldownMs?: number; minAmount?: number; caption?: AlertCaption; queueMode?: "replace" | "queue" }): void => {
+  const write = (patch: { event?: EffectTriggerEvent; cooldownMs?: number; minAmount?: number; caption?: AlertCaption; queueMode?: "replace" | "queue"; priority?: number }): void => {
     const source = normalizeEffectTrigger(effect.trigger);
     const event = eventField?.value;
     if (!event || event === "always") {
@@ -120,6 +134,7 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
       minAmount: patch.minAmount ?? source?.minAmount ?? 0,
       caption: patch.caption ?? source?.caption,
       queueMode: patch.queueMode ?? source?.queueMode ?? "queue",
+      priority: patch.priority ?? source?.priority ?? RECOMMENDED_PRIORITIES[event as EffectTriggerEvent],
     });
   };
   eventField?.addEventListener("change", () => write({}));
@@ -134,6 +149,11 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   container.querySelector<HTMLSelectElement>("[data-ae-trigger-queue-mode]")?.addEventListener("change", (event) => {
     const value = (event.currentTarget as HTMLSelectElement).value;
     if (value === "replace" || value === "queue") write({ queueMode: value });
+  });
+
+  container.querySelector<HTMLInputElement>("[data-ae-trigger-priority]")?.addEventListener("change", (event) => {
+    const value = Number((event.currentTarget as HTMLInputElement).value);
+    if (Number.isFinite(value)) write({ priority: value });
   });
 
   const changeCaption = (patch: Partial<AlertCaption>): void => {
