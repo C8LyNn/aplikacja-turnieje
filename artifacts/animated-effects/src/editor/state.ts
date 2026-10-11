@@ -1,6 +1,6 @@
-import type { EditorState, EffectId, EffectInstance, EffectInstanceId, EffectSettings } from "../core/types";
+import type { EditorState, EffectId, EffectInstance, EffectInstanceId, EffectSettings, LayerKeyframe } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
-import { normalizeLayerTimeline } from "../animation/timeline";
+import { normalizedMotionTimeline, normalizeLayerKeyframes, upsertKeyframe } from "../animation/motion";
 
 const state: EditorState = {
   resolution: { width: 1920, height: 1080 },
@@ -184,9 +184,60 @@ export function updateEffectTimeline(
 ): void {
   const effect = state.effects.find((item) => item.instanceId === instanceId);
   if (!effect) return;
-  const timeline = normalizeLayerTimeline({ ...effect.timeline, ...patch });
+  const timeline = normalizedMotionTimeline({ ...effect.timeline, ...patch }, effect.settings);
   mutate("Zmień czas animacji", () => {
     effect.timeline = timeline;
+    state.activePresetId = null;
+  });
+}
+
+/** Insert or overwrite a pose at a relative millisecond position. */
+export function addEffectKeyframe(instanceId: EffectInstanceId, timeMs: number): void {
+  const effect = state.effects.find((item) => item.instanceId === instanceId);
+  if (!effect) return;
+  const timeline = normalizedMotionTimeline(effect.timeline, effect.settings);
+  const frames = timeline.keyframes ?? [];
+  const previous = [...frames].reverse().find((frame) => frame.timeMs <= timeMs);
+  const pose = previous ?? { ...effect.settings, opacity: 100 };
+  const next = upsertKeyframe(timeline, timeMs, pose, effect.settings);
+  mutate("Dodaj klatkę kluczową", () => {
+    effect.timeline = { ...timeline, mode: timeline.mode === "off" ? "once" : timeline.mode, keyframes: next };
+    state.activePresetId = null;
+  });
+}
+
+/** Edits preserve full poses and the 16-keyframe bound. */
+export function editEffectKeyframe(
+  instanceId: EffectInstanceId,
+  originalTimeMs: number,
+  patch: Partial<LayerKeyframe>,
+): void {
+  const effect = state.effects.find((item) => item.instanceId === instanceId);
+  if (!effect) return;
+  const timeline = normalizedMotionTimeline(effect.timeline, effect.settings);
+  const current = (timeline.keyframes ?? []).find((frame) => frame.timeMs === originalTimeMs);
+  if (!current) return;
+  const next = normalizeLayerKeyframes(
+    [...(timeline.keyframes ?? []).filter((frame) => frame.timeMs !== originalTimeMs), { ...current, ...patch }],
+    timeline.durationMs,
+    effect.settings,
+  );
+  mutate("Edytuj klatkę kluczową", () => {
+    effect.timeline = { ...timeline, keyframes: next };
+    state.activePresetId = null;
+  });
+}
+
+export function removeEffectKeyframe(instanceId: EffectInstanceId, timeMs: number): void {
+  const effect = state.effects.find((item) => item.instanceId === instanceId);
+  if (!effect) return;
+  const timeline = normalizedMotionTimeline(effect.timeline, effect.settings);
+  if (!(timeline.keyframes ?? []).some((frame) => frame.timeMs === timeMs)) return;
+  mutate("Usuń klatkę kluczową", () => {
+    effect.timeline = {
+      ...timeline,
+      keyframes: (timeline.keyframes ?? []).filter((frame) => frame.timeMs !== timeMs),
+    };
     state.activePresetId = null;
   });
 }
