@@ -44,7 +44,12 @@ export function setupExportPanel(
         "Plik scene.aescene.json jest kopią projektu do ponownej edycji",
         "w Animated Effects (Wczytaj), a nie plikiem do StreamElements.",
         "Rozdzielczość ustaw w overlayu / źródle OBS, nie w tym ZIP.",
-        "Kod widgetu uruchamia efekty po zdarzeniu onWidgetLoad.",
+        "Po onWidgetLoad startują warstwy ciągłe (Od razu / zawsze).",
+        "Warstwy z wyzwalaczem startują dopiero po pasującym onEventReceived.",
+        "Obsługa zdarzeń: follow, sub, tip, cheer, raid, wiadomość.",
+        "Wyzwalacze zależą od zdarzeń dostępnych na Twojej platformie.",
+        "Przycisk 'Testuj w podglądzie' działa tylko w edytorze Animated Effects.",
+        "Nie wymaga to tokenu SE_API ani zatrzymywania kolejki alertów.",
         "",
         "Wskazówka: plików ZIP nie przesyła się bezpośrednio do Custom Widget.",
       ].join("\n"));
