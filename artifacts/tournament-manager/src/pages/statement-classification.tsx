@@ -449,7 +449,7 @@ function ResearchWorkspace() {
 }
 
 function Coding() {
-  const { data, addCoding } = useResearchProject();
+  const { data, addCoding, deleteCoding } = useResearchProject();
   const [excerptId, setExcerptId] = useState("");
   const [propositionId, setPropositionId] = useState("");
   const [direction, setDirection] = useState<"" | "-2" | "-1" | "0" | "1" | "2">("");
@@ -457,12 +457,22 @@ function Coding() {
   const [evidenceLevel, setEvidenceLevel] = useState<"direct" | "argumentative" | "inferred">("argumentative");
   const [confidence, setConfidence] = useState<"low" | "medium" | "high">("medium");
   const [rationale, setRationale] = useState("");
+  const [filterPropositionId, setFilterPropositionId] = useState("");
+  const [filterConfidence, setFilterConfidence] = useState("");
+  const [filterVerification, setFilterVerification] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const codebook = data.codebooks[0];
     const coder = data.coders[0];
     if (!excerptId || !propositionId || !codebook || !coder) return;
+    const duplicate = data.codings.some((coding) =>
+      coding.excerptId === excerptId &&
+      coding.propositionId === propositionId &&
+      coding.coderId === coder.id &&
+      coding.codebookId === codebook.id
+    );
+    if (duplicate) return;
     addCoding({
       excerptId,
       propositionId,
@@ -478,6 +488,29 @@ function Coding() {
   }
 
   const selectedExcerpt = data.excerpts.find((excerpt) => excerpt.id === excerptId);
+  const activeCoder = data.coders[0];
+  const activeCodebook = data.codebooks[0];
+  const hasDuplicateCoding = Boolean(
+    selectedExcerpt &&
+    propositionId &&
+    activeCoder &&
+    activeCodebook &&
+    data.codings.some((coding) =>
+      coding.excerptId === selectedExcerpt.id &&
+      coding.propositionId === propositionId &&
+      coding.coderId === activeCoder.id &&
+      coding.codebookId === activeCodebook.id
+    )
+  );
+  const filteredCodings = data.codings.filter((coding) => {
+    if (filterPropositionId && coding.propositionId !== filterPropositionId) return false;
+    if (filterConfidence && coding.confidence !== filterConfidence) return false;
+    if (filterVerification) {
+      const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+      if ((excerpt?.verificationStatus ?? "unverified") !== filterVerification) return false;
+    }
+    return true;
+  });
 
   return (
     <>
@@ -539,17 +572,36 @@ function Coding() {
               <option value="high">Pewność interpretacji: wysoka</option>
             </ToolSelect>
             <ToolTextarea rows={4} value={rationale} onChange={(e) => setRationale(e.target.value)} placeholder="Uzasadnienie kodowania / wyjątki / zastrzeżenia…" />
-            <ToolButton type="submit" variant="primary" disabled={!excerptId || !propositionId}>Zapisz kodowanie</ToolButton>
+            {hasDuplicateCoding && <ToolNotice tone="danger">Ten koder zakodował już ten fragment dla wybranego mikrostanowiska w tej wersji codebooka.</ToolNotice>}
+            <ToolButton type="submit" variant="primary" disabled={!excerptId || !propositionId || hasDuplicateCoding}>Zapisz kodowanie</ToolButton>
           </form>
         </ToolPanel>
       </div>
 
-      <ToolPanel title={`Zakodowane obserwacje (${data.codings.length})`}>
+      <ToolPanel
+        title={`Zakodowane obserwacje (${filteredCodings.length}/${data.codings.length})`}
+        actions={
+          <div className="grid gap-2 sm:grid-cols-3">
+            <ToolSelect value={filterPropositionId} onChange={(e) => setFilterPropositionId(e.target.value)} className="min-w-44">
+              <option value="">Wszystkie mikrostanowiska</option>
+              {data.propositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code}</option>)}
+            </ToolSelect>
+            <ToolSelect value={filterConfidence} onChange={(e) => setFilterConfidence(e.target.value)} className="min-w-40">
+              <option value="">Każda pewność</option>
+              <option value="low">Niska</option><option value="medium">Średnia</option><option value="high">Wysoka</option>
+            </ToolSelect>
+            <ToolSelect value={filterVerification} onChange={(e) => setFilterVerification(e.target.value)} className="min-w-44">
+              <option value="">Każdy status fragmentu</option>
+              <option value="unverified">Nieweryfikowany</option><option value="checked">Sprawdzony</option><option value="verified">Zweryfikowany</option>
+            </ToolSelect>
+          </div>
+        }
+      >
         {data.codings.length === 0 ? (
           <ToolEmptyState title="Brak kodowań" description="Pierwsze kodowanie pojawi się tutaj wraz z pełnym śladem do fragmentu źródłowego." />
         ) : (
           <div className="space-y-3">
-            {[...data.codings].reverse().map((coding) => {
+            {[...filteredCodings].reverse().map((coding) => {
               const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
               const proposition = data.propositions.find((item) => item.id === coding.propositionId);
               const source = data.sources.find((item) => item.id === excerpt?.sourceId);
@@ -563,6 +615,13 @@ function Coding() {
                   <div className="mt-2 text-sm font-bold">{proposition?.label ?? "Nieznana teza"}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{source?.title ?? "Źródło"} — “{excerpt?.text.slice(0, 180) ?? "Brak fragmentu"}”</div>
                   {coding.rationale && <div className="mt-2 text-sm">{coding.rationale}</div>}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+                    <div className="text-xs text-muted-foreground">
+                      Fragment: {excerpt?.verificationStatus ?? "unverified"}
+                      {excerpt?.timestampStart !== undefined ? ` · ${excerpt.timestampStart}s` : ""}
+                    </div>
+                    <ToolButton type="button" variant="ghost" onClick={() => deleteCoding(coding.id)}>Usuń kodowanie</ToolButton>
+                  </div>
                 </div>
               );
             })}
