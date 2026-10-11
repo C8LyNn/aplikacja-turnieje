@@ -116,13 +116,14 @@ export function applyExportRoutes(
   if (!toggle || !list) return;
   toggle.checked = routes !== null;
   list.replaceChildren();
+  list.dataset.preserveEmpty = String(routes !== null && routes.length === 0);
   if (routes !== null) {
     const activeIds = activeEffects().map((effect) => effect.instanceId);
     const checkedRoutes = normalizeStreamElementsRoutes(routes, activeIds);
     for (const route of checkedRoutes) {
       const card = createRoute();
       card.dataset.routeId = route.id;
-      const match = /^route-(\\d+)$/.exec(route.id);
+      const match = /^route-(\d+)$/.exec(route.id);
       if (match) nextRouteId = Math.max(nextRouteId, Number(match[1]));
       card.querySelector<HTMLSelectElement>("[data-route-mode]")!.value = route.mode;
       card.querySelector<HTMLInputElement>("[data-route-command]")!.value = route.chatCommand;
@@ -148,7 +149,7 @@ export function syncExportRoutes(dialog: HTMLDialogElement): void {
 
   const list = dialog.querySelector<HTMLElement>("[data-route-list]");
   if (!list) return;
-  if (list.children.length === 0) list.appendChild(createRoute());
+  if (list.children.length === 0 && list.dataset.preserveEmpty !== "true") list.appendChild(createRoute());
   list.querySelectorAll<HTMLFieldSetElement>("[data-route-id]").forEach(syncRouteCard);
   const add = dialog.querySelector<HTMLButtonElement>("[data-add-route]");
   if (add) add.disabled = list.children.length >= MAX_STREAM_ELEMENTS_ROUTES;
@@ -171,9 +172,10 @@ export function setupExportRoutes(dialog: HTMLDialogElement, onUpdate: () => voi
   const add = dialog.querySelector<HTMLButtonElement>("[data-add-route]");
   if (!toggle || !list || !add) return;
 
-  toggle.addEventListener("change", () => { syncExportRoutes(dialog); onUpdate(); });
+  toggle.addEventListener("change", () => { list.dataset.preserveEmpty = "false"; syncExportRoutes(dialog); onUpdate(); });
   add.addEventListener("click", () => {
     if (list.children.length >= MAX_STREAM_ELEMENTS_ROUTES) return;
+    list.dataset.preserveEmpty = "false";
     list.appendChild(createRoute());
     syncExportRoutes(dialog);
     onUpdate();
