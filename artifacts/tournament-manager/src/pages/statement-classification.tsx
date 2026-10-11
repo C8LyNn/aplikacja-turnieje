@@ -1044,6 +1044,15 @@ function EvidenceProfile() {
   const dominantSourceShare = dominantSourceType && personSourceRecords.length
     ? dominantSourceType[1] / personSourceRecords.length
     : 0;
+  const metadataSlots = personSourceRecords.length * 5;
+  const filledMetadataSlots = personSourceRecords.reduce((total, source) =>
+    total +
+    Number(Boolean(source.publishedAt)) +
+    Number(Boolean(source.purpose)) +
+    Number(Boolean(source.preparedness)) +
+    Number(Boolean(source.scope)) +
+    Number(Boolean(source.language)), 0);
+  const metadataCompleteness = metadataSlots > 0 ? filledMetadataSlots / metadataSlots : 0;
 
   return (
     <>
@@ -1073,7 +1082,7 @@ function EvidenceProfile() {
             title="Corpus Health"
             description="Pilotażowe diagnostyki jakości korpusu. Progi są operacyjne i nie są miarą prawdziwości ani trafności stanowiska."
           >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div className="rounded-xl border border-border bg-background/40 p-4">
                 <div className="text-xl font-black">{personArgumentCount}</div>
                 <div className="text-xs text-muted-foreground">jednostek argumentacyjnych</div>
@@ -1090,6 +1099,10 @@ function EvidenceProfile() {
                 <div className="text-xl font-black">{Object.keys(sourceTypeCounts).length}</div>
                 <div className="text-xs text-muted-foreground">typów źródeł</div>
               </div>
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xl font-black">{Math.round(metadataCompleteness * 100)}%</div>
+                <div className="text-xs text-muted-foreground">kompletności metadanych źródeł</div>
+              </div>
             </div>
             <div className="mt-4 space-y-2">
               {personSourceRecords.length > 0 && personSourceRecords.length < 3 && (
@@ -1105,6 +1118,9 @@ function EvidenceProfile() {
               )}
               {currentPropositions.length > 0 && coveredPropositions / currentPropositions.length < 0.5 && (
                 <ToolNotice>Pokrycie codebooka jest poniżej połowy. Brak obserwacji pozostaje brakiem danych, nie stanowiskiem neutralnym.</ToolNotice>
+              )}
+              {personSourceRecords.length > 0 && metadataCompleteness < 0.6 && (
+                <ToolNotice>Metadane źródeł są niekompletne. Uzupełnij datę, cel materiału, tryb wypowiedzi, zakres i język tam, gdzie da się je ustalić.</ToolNotice>
               )}
             </div>
           </ToolPanel>
