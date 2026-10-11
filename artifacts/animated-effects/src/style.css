@@ -9042,3 +9042,112 @@ body {
   outline: 1px dashed rgba(235, 242, 255, .67);
   outline-offset: 8px;
 }
+
+
+/* Alert diagnostic workbench: closed by default, editorial-only, not exported. */
+.ae-diagnostics {
+  box-sizing: border-box;
+  margin: 8px 12px 12px;
+  border: 1px solid rgba(127,171,210,.25);
+  border-radius: 11px;
+  background: rgba(11,20,35,.78);
+  color: #dbe8f8;
+  font-size: 12px;
+  min-width: 0;
+}
+.ae-diagnostics > summary {
+  padding: 11px 14px;
+  cursor: pointer;
+  font-weight: 650;
+  letter-spacing: .01em;
+  color: #b7d8f2;
+}
+.ae-diagnostics > summary:hover { color: #e3f3ff; }
+.ae-diagnostics > summary:focus-visible,
+.ae-diagnostics button:focus-visible,
+.ae-diagnostics select:focus-visible,
+.ae-diagnostics input:focus-visible {
+  outline: 2px solid #68bcff;
+  outline-offset: 2px;
+}
+.ae-diagnostics-content {
+  padding: 0 14px 14px;
+  display: grid;
+  gap: 10px;
+}
+.ae-diagnostics-hint {
+  margin: 0;
+  color: #a2b7d2;
+  line-height: 1.5;
+}
+.ae-diagnostics-controls {
+  display: grid;
+  grid-template-columns: minmax(130px,1.5fr) minmax(76px,.55fr) minmax(102px,.7fr) repeat(3,max-content);
+  gap: 8px;
+  align-items: center;
+}
+.ae-diagnostics-controls > * { min-width: 0; }
+.ae-diagnostics-controls select,
+.ae-diagnostics-controls input {
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  color: #e6f2ff;
+  background: #162538;
+  border: 1px solid rgba(160,197,222,.26);
+  border-radius: 7px;
+}
+.ae-diagnostics-controls button {
+  min-height: 34px;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+.ae-diagnostics-status {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 2px solid #60b5e7;
+  background: rgba(56,110,150,.1);
+  color: #b6d8f0;
+}
+.ae-diagnostics-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ae-diagnostics-metrics span {
+  border: 1px solid rgba(152,183,219,.2);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.ae-diagnostics-content h4 {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 650;
+}
+.ae-diagnostics-current {
+  padding: 8px;
+  border: 1px solid rgba(140,189,217,.24);
+  border-radius: 7px;
+  word-break: break-word;
+}
+.ae-diagnostics-queue,
+.ae-diagnostics-log {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px 8px 8px 30px;
+  border-radius: 7px;
+  background: rgba(7,14,25,.48);
+  max-height: 128px;
+  overflow: auto;
+  line-height: 1.6;
+}
+.ae-diagnostics-log { max-height: 180px; }
+.ae-diagnostics :is(li) { overflow-wrap: anywhere; }
+@media (max-width: 1200px) {
+  .ae-diagnostics-controls { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .ae-diagnostics-controls { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ae-diagnostics-controls button { white-space: normal; }
+}
