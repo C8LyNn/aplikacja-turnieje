@@ -2,8 +2,10 @@ import {
   EMPTY_RESEARCH_PROJECT,
   type ResearchProjectData,
 } from "./model";
+import { migrateResearchProject } from "./schema-migration";
 
-const STORAGE_KEY = "neoludology_research_pipeline_v2";
+const STORAGE_KEY = "neoludology_research_pipeline_v3";
+const LEGACY_STORAGE_KEYS = ["neoludology_research_pipeline_v2"];
 
 export function createResearchId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -15,20 +17,12 @@ export function createResearchId(prefix: string): string {
 export function loadResearchProject(): ResearchProjectData {
   if (typeof window === "undefined") return EMPTY_RESEARCH_PROJECT;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean);
+
     if (!raw) return EMPTY_RESEARCH_PROJECT;
-    const parsed = JSON.parse(raw) as Partial<ResearchProjectData>;
-    return {
-      schemaVersion: 2,
-      people: Array.isArray(parsed.people) ? parsed.people : [],
-      sources: Array.isArray(parsed.sources) ? parsed.sources : [],
-      arguments: Array.isArray(parsed.arguments) ? parsed.arguments : [],
-      excerpts: Array.isArray(parsed.excerpts) ? parsed.excerpts : [],
-      codebooks: Array.isArray(parsed.codebooks) ? parsed.codebooks : [],
-      propositions: Array.isArray(parsed.propositions) ? parsed.propositions : [],
-      coders: Array.isArray(parsed.coders) ? parsed.coders : [],
-      codings: Array.isArray(parsed.codings) ? parsed.codings : [],
-    };
+    return migrateResearchProject(JSON.parse(raw));
   } catch {
     return EMPTY_RESEARCH_PROJECT;
   }
