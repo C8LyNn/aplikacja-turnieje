@@ -205,6 +205,12 @@ export default function MethodologyView() {
             <ToolSection title="Wersjonowanie" description="Zmiana definicji kodu nie może po cichu zmienić znaczenia wcześniejszych danych.">
               <ToolNotice>Istotna zmiana definicji mikrostanowiska powinna tworzyć nową wersję codebooka i zachować informację, według której wersji wykonano każde kodowanie.</ToolNotice>
             </ToolSection>
+            <ToolSection title="Corpus Health" description="Diagnostyka korpusu pokazuje ryzyka osobno zamiast redukować je do jednego wyniku.">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Audyt rozdziela kompletność metadanych, weryfikację fragmentów, przypisanie do argumentów, pokrycie codebooka, nieaktualne rekonstrukcje, sprzeczności i luki planu próbkowania.</p>
+                <p>Blocker jest bramką procesu publikacyjnego, warning wymaga świadomej decyzji badacza, a info wskazuje materiał do interpretacji. Żadna z tych kategorii nie jest „oceną jakości osoby”.</p>
+              </div>
+            </ToolSection>
             <ToolSection title="Sampling / Corpus Plan" description="Dobór materiału jest jawny i wersjonowany zamiast pozostawać ukrytą decyzją badacza.">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Plan próbkowania określa cele dotyczące liczby niezależnych źródeł, różnorodności formatów, celu materiału i pokrycia czasowego. Fragmenty z jednego filmu nie zwiększają liczby niezależnych źródeł.</p>
