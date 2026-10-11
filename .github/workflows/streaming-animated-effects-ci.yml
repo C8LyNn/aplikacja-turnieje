@@ -70,3 +70,16 @@ jobs:
 
       - name: Tournament frontend production build
         run: pnpm --filter @workspace/tournament-manager build
+
+      - name: Check embedded Animated Effects preview route
+        run: |
+          test -s artifacts/tournament-manager/dist/public/stream/animated-effects/index.html
+          test -d artifacts/tournament-manager/dist/public/stream/animated-effects/assets
+
+      - name: Upload isolated Animated Effects preview (no deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-animated-effects-static-preview
+          path: artifacts/tournament-manager/dist/public/stream/animated-effects/
+          if-no-files-found: error
+          retention-days: 14
