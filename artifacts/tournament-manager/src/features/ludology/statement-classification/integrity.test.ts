@@ -62,3 +62,39 @@ test("integrity detects duplicate coding units", () => {
 
   assert.ok(checkResearchProjectIntegrity(data).some((issue) => issue.code === "duplicate_coding"));
 });
+
+
+test("integrity validates position assessment references and uniqueness", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    people: [{ id: "p1", displayName: "P" }],
+    codebooks: [{ id: "book", name: "Book", version: "1", status: "pilot" as const }],
+    propositions: [{ id: "q1", codebookId: "book", code: "Q1", label: "Q", definition: "D" }],
+    coders: [{ id: "reviewer", displayName: "R", type: "human" as const }],
+    assessments: [
+      {
+        id: "a1",
+        personId: "p1",
+        propositionId: "q1",
+        codebookId: "book",
+        reviewerId: "reviewer",
+        status: "stable" as const,
+        confidence: "medium" as const,
+        updatedAt: "2026-10-11T00:00:00.000Z",
+      },
+      {
+        id: "a2",
+        personId: "p1",
+        propositionId: "q1",
+        codebookId: "book",
+        reviewerId: "reviewer",
+        status: "contradictory" as const,
+        confidence: "low" as const,
+        updatedAt: "2026-10-11T00:00:00.000Z",
+      },
+    ],
+  };
+
+  const issues = checkResearchProjectIntegrity(data);
+  assert.ok(issues.some((issue) => issue.code === "duplicate_assessment"));
+});
