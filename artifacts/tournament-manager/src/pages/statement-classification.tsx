@@ -105,7 +105,7 @@ function Overview() {
       <div className="grid gap-4 lg:grid-cols-2">
         <ToolPanel title="Łańcuch badawczy">
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {['Osoba', 'Źródło', 'Fragment', 'Kodowanie'].map((item, index) => (
+            {['Osoba', 'Źródło', 'Argument', 'Fragment', 'Kodowanie'].map((item, index) => (
               <div key={item} className="flex items-center gap-2">
                 {index > 0 && <span className="text-muted-foreground">→</span>}
                 <span className="rounded-lg border border-border bg-background/60 px-3 py-2">{item}</span>
@@ -224,6 +224,13 @@ function Coding() {
   return (
     <>
       <PageHeader section="CODE" title="Kodowanie" description="Tutaj fragmenty źródłowe będą zamieniane na audytowalne mikrostanowiska i przypisywane do tez." />
+      <ToolPanel title="Stan pilotażu" description="Codebook 0.1 jest już dostępny w modelu danych; kolejnym krokiem jest właściwy workspace fragmentów i kodowania.">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">5</div><div className="text-xs text-muted-foreground">mikrostanowisk pilotażowych</div></div>
+          <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">3</div><div className="text-xs text-muted-foreground">poziomy siły dowodu</div></div>
+          <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">4</div><div className="text-xs text-muted-foreground">poziomy jawności</div></div>
+        </div>
+      </ToolPanel>
       <ToolPanel title="Minimalny rekord kodowania">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
