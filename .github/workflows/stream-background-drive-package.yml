@@ -28,6 +28,7 @@ jobs:
           name: stream-background-effects_PR8_PR9_20261012
           path: release-stream-background-effects/
           if-no-files-found: error
+          include-hidden-files: true
           compression-level: 6
           retention-days: 30
 
