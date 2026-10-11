@@ -208,7 +208,36 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     const pageRows = cursor || (resolvedPage - 1) * pageSize < total
       ? search
         ? await (async () => {
-            const compiled = pageQuery.toSQL();
+            let compiled = pageQuery.toSQL();
+            if (total <= 2_000) {
+              // If search yields a relatively small candidate set, materialize
+              // just matching IDs before sorting. This prevents PostgreSQL
+              // from walking the entire (name,id) index to find a page of
+              // publisher/developer matches near the end of the alphabet.
+              // Broad searches keep their ordinary bounded page query.
+              const candidates = db.select({ id: steamCatalogGames.id })
+                .from(steamCatalogGames).where(where).toSQL();
+              const ordered = db.select(gameListColumns).from(steamCatalogGames)
+                .where(after)
+                .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
+                .limit(pageSize + 1)
+                .offset(cursor ? 0 : (resolvedPage - 1) * pageSize)
+                .toSQL();
+              const tableRef = 'from "steam_catalog_games"';
+              if (!ordered.sql.includes(tableRef)) throw new Error("Unexpected catalog SQL table reference");
+              const joinedSql = ordered.sql.replace(
+                tableRef,
+                tableRef + ' INNER JOIN catalog_hits ON catalog_hits.id = "steam_catalog_games"."id"',
+              );
+              // Parameter indices in two compiled, parameterized queries
+              // both start at $1. Shift only the outer query's placeholders.
+              const shiftedSql = joinedSql.replace(/\$(\d+)/g,
+                (_match, n: string) => "$" + (Number(n) + candidates.params.length));
+              compiled = {
+                sql: `WITH catalog_hits AS MATERIALIZED (${candidates.sql}) ${shiftedSql}`,
+                params: [...candidates.params, ...ordered.params],
+              };
+            }
             // Drizzle normally maps result columns by select order. Raw pg
             // returns SQL column names instead; read tuples to preserve the
             // stable public camelCase contract without fragile SQL aliases.
