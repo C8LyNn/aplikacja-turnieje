@@ -120,7 +120,7 @@ body {
 
 ${usedCss}
 
-${effects.map((effect) => getLayerTimelineAnimation(effect)?.css ?? "").filter(Boolean).join("\\n")}
+${effects.map((effect) => getLayerTimelineAnimation(effect)?.css ?? "").filter(Boolean).join("\n")}
 `.trim();
 }
 
