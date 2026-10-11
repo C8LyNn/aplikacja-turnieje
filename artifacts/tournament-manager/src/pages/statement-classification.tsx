@@ -27,6 +27,7 @@ import {
 import { useResearchProject } from "@/features/ludology/statement-classification/use-research-project";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
+import type { ResearchSource } from "@/features/ludology/statement-classification/model";
 import {
   countEvidenceDirections,
   evidenceSignature,
@@ -382,9 +383,9 @@ function Sources() {
   const [editSourceTitle, setEditSourceTitle] = useState("");
   const [editSourceUrl, setEditSourceUrl] = useState("");
   const [editSourcePublishedAt, setEditSourcePublishedAt] = useState("");
-  const [editSourcePurpose, setEditSourcePurpose] = useState("");
-  const [editSourcePreparedness, setEditSourcePreparedness] = useState("");
-  const [editSourceScope, setEditSourceScope] = useState("");
+  const [editSourcePurpose, setEditSourcePurpose] = useState<"" | NonNullable<ResearchSource["purpose"]>>("");
+  const [editSourcePreparedness, setEditSourcePreparedness] = useState<"" | NonNullable<ResearchSource["preparedness"]>>("");
+  const [editSourceScope, setEditSourceScope] = useState<"" | NonNullable<ResearchSource["scope"]>>("");
   const [editSourceLanguage, setEditSourceLanguage] = useState("");
 
   function submit(event: FormEvent) {
@@ -428,9 +429,9 @@ function Sources() {
       title: editSourceTitle.trim(),
       url: editSourceUrl.trim(),
       publishedAt: editSourcePublishedAt || undefined,
-      purpose: (editSourcePurpose || undefined) as typeof data.sources[number]["purpose"],
-      preparedness: (editSourcePreparedness || undefined) as typeof data.sources[number]["preparedness"],
-      scope: (editSourceScope || undefined) as typeof data.sources[number]["scope"],
+      purpose: editSourcePurpose || undefined,
+      preparedness: editSourcePreparedness || undefined,
+      scope: editSourceScope || undefined,
       language: editSourceLanguage.trim() || undefined,
     });
     setEditingSourceId("");
@@ -494,15 +495,15 @@ function Sources() {
                     <ToolInput value={editSourceUrl} onChange={(e) => setEditSourceUrl(e.target.value)} />
                     <ToolInput type="date" value={editSourcePublishedAt} onChange={(e) => setEditSourcePublishedAt(e.target.value)} />
                     <ToolInput value={editSourceLanguage} onChange={(e) => setEditSourceLanguage(e.target.value)} placeholder="Język" />
-                    <ToolSelect value={editSourcePurpose} onChange={(e) => setEditSourcePurpose(e.target.value)}>
+                    <ToolSelect value={editSourcePurpose} onChange={(e) => setEditSourcePurpose(e.target.value as typeof editSourcePurpose)}>
                       <option value="">Cel — nie określono</option>
                       <option value="review">Recenzja</option><option value="essay">Esej</option><option value="debate">Debata</option><option value="interview">Wywiad</option>
                       <option value="casual">Luźna wypowiedź</option><option value="social_post">Post społecznościowy</option><option value="academic">Materiał akademicki</option>
                     </ToolSelect>
-                    <ToolSelect value={editSourcePreparedness} onChange={(e) => setEditSourcePreparedness(e.target.value)}>
+                    <ToolSelect value={editSourcePreparedness} onChange={(e) => setEditSourcePreparedness(e.target.value as typeof editSourcePreparedness)}>
                       <option value="">Tryb — nie określono</option><option value="prepared">Przygotowana</option><option value="semi_prepared">Częściowo przygotowana</option><option value="spontaneous">Spontaniczna</option>
                     </ToolSelect>
-                    <ToolSelect value={editSourceScope} onChange={(e) => setEditSourceScope(e.target.value)}>
+                    <ToolSelect value={editSourceScope} onChange={(e) => setEditSourceScope(e.target.value as typeof editSourceScope)}>
                       <option value="">Zakres — nie określono</option><option value="specific_game">Konkretna gra</option><option value="genre">Gatunek</option><option value="games_general">Gry ogólnie</option><option value="definition_of_game">Definicja gry</option><option value="other">Inny</option>
                     </ToolSelect>
                     <div className="flex flex-wrap gap-2">
