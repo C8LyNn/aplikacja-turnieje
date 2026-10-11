@@ -62,11 +62,6 @@ if ($nodeMajor -lt 22) {
     throw "Node.js 22 or newer is required; detected $nodeVersionText."
 }
 
-if ($CheckToolsOnly) {
-    Write-Host "Windows launcher prerequisites OK: $nodeVersionText, pnpm $pnpmVersion" -ForegroundColor Green
-    return
-}
-
 function Invoke-Pnpm {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
     if ($usePinnedPnpm) {
@@ -78,6 +73,15 @@ function Invoke-Pnpm {
     if ($LASTEXITCODE -ne 0) {
         throw "pnpm command failed (exit $LASTEXITCODE): $($Arguments -join ' ')"
     }
+}
+
+if ($CheckToolsOnly) {
+    # Exercise the exact Invoke-Pnpm code path, not only the standalone
+    # npx version probe; this catches CLI argument forwarding regressions.
+    Write-Host "Windows launcher prerequisites: $nodeVersionText, pnpm $pnpmVersion" -ForegroundColor Green
+    Invoke-Pnpm '--version'
+    Write-Host 'Windows launcher bootstrap OK.' -ForegroundColor Green
+    return
 }
 
 Push-Location -LiteralPath $repoRoot
