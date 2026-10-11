@@ -363,6 +363,15 @@ export default function GameCatalogAdminPage() {
 
   useEffect(() => {
     if (screen !== "games" && screen !== "search") return;
+    // The search-only screen shows an input prompt when blank. Avoid fetching
+    // the entire catalog (and potentially issuing a broad, costly request)
+    // until the user actually enters a search term.
+    if (screen === "search" && !query.trim()) {
+      setGames([]);
+      setPagination({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1, nextCursor: null });
+      setListLoading(false);
+      return;
+    }
     const controller = new AbortController();
     setListLoading(true);
     setGames([]);
