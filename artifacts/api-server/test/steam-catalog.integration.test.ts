@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, describe, test } from "node:test";
 import type { Express } from "express";
 import request from "supertest";
+import { count, ilike, or } from "drizzle-orm";
 import { dropTestSchema, getSafeTestDatabaseConfig, type TestDatabaseConfig } from "./test-database";
 
 type Db = typeof import("@workspace/db");
@@ -541,6 +542,19 @@ describe("Steam catalog — real PostgreSQL API", () => {
     console.log("CATALOG_100K_STAGE_TIMINGS " + JSON.stringify(probes));
     // Record the database access plan separately from HTTP timings to
     // distinguish GIN index use from global-count and sequential-scan costs.
+    const like = "%Large Game 99999%";
+    const generated = database.db.select({ total: count() })
+      .from(database.steamCatalogGames)
+      .where(or(
+        ilike(database.steamCatalogGames.name, like),
+        ilike(database.steamCatalogGames.developer, like),
+        ilike(database.steamCatalogGames.publisher, like),
+      )).toSQL();
+    const generatedPlan = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + generated.sql, generated.params,
+    );
+    console.log("CATALOG_100K_DRIZZLE_QUERY " + JSON.stringify(generated));
+    console.log("CATALOG_100K_DRIZZLE_EXPLAIN " + JSON.stringify(generatedPlan[0]?.["QUERY PLAN"]).slice(0, 8500));
     const searchPlans = await rows<{ "QUERY PLAN": unknown }>(
       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT count(*) FROM steam_catalog_games " +
       "WHERE name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1",
