@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { steamCatalogReadiness } from "@workspace/game-catalog";
-import { filterTaxonomyTerms, nextPendingGameId, pendingCatalogGames } from "./game-catalog-workflow";
+import { filterTaxonomyTerms } from "./game-catalog-workflow";
 import {
   ModuleHeader,
   ModuleShell,
@@ -93,7 +93,15 @@ type Game = {
   assignments: Assignment[];
 };
 
+type GameListResponse = {
+  games: Game[];
+  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  counts: { all: number; unclassified: number; review: number; ready: number };
+};
+type QueueResponse = { pendingCount: number; nextId: number | null };
+
 const BASE = "/ludology/game-classification";
+const PAGE_SIZE = 25;
 
 const FACET_LABELS: Record<Facet, string> = {
   genre: "Gatunek",
@@ -244,11 +252,17 @@ export default function GameCatalogAdminPage() {
   const [location, navigate] = useLocation();
   const { screen, gameId } = getScreen(location);
   const [games, setGames] = useState<Game[]>([]);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [queue, setQueue] = useState<QueueResponse | null>(null);
+  const [pagination, setPagination] = useState<GameListResponse["pagination"]>({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 });
+  const [counts, setCounts] = useState<GameListResponse["counts"]>({ all: 0, unclassified: 0, review: 0, ready: 0 });
+  const [page, setPage] = useState(1);
   const [terms, setTerms] = useState<Term[]>([]);
   const [draft, setDraft] = useState<Assignment[]>([]);
   const [status, setStatus] = useState<Game["status"]>("unclassified");
   const [statusFilter, setStatusFilter] = useState<"all" | Game["status"]>("all");
-  const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
+  const [gameLoading, setGameLoading] = useState(false);
   const [importValue, setImportValue] = useState("");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -258,9 +272,8 @@ export default function GameCatalogAdminPage() {
   const [termQuery, setTermQuery] = useState("");
   const [perspective, setPerspective] = useState<Perspective>("gameplay");
 
-  const selected = gameId ? games.find((game) => game.id === gameId) ?? null : null;
-  const pendingGames = useMemo(() => pendingCatalogGames(games), [games]);
-  const nextPendingId = selected ? nextPendingGameId(games, selected.id) : null;
+  const selected = gameId !== null && selectedGame?.id === gameId ? selectedGame : null;
+  const nextPendingId = selected ? queue?.nextId ?? null : null;
 
   const termsByFacet = useMemo(() => {
     const map = new Map<Facet, Term[]>();
@@ -278,21 +291,7 @@ export default function GameCatalogAdminPage() {
 
   const readiness = steamCatalogReadiness(draft);
 
-  const filteredGames = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return games;
-    return games.filter((game) =>
-      [game.name, game.developer, game.publisher, String(game.steamAppId)]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(needle)),
-    );
-  }, [games, query]);
-
-  const visibleListGames = useMemo(() =>
-    filteredGames
-      .filter((game) => statusFilter === "all" || game.status === statusFilter)
-      .sort((a, b) => a.name.localeCompare(b.name, "pl")),
-  [filteredGames, statusFilter]);
+  const visibleListGames = games; // Already filtered and sorted on the server.
 
   const hasUnsavedChanges = Boolean(selected && (
     status !== selected.status ||
@@ -300,20 +299,68 @@ export default function GameCatalogAdminPage() {
     JSON.stringify(selected.assignments.map((item) => [item.termId, item.role]).sort((a, b) => Number(a[0]) - Number(b[0])))
   ));
 
-  async function reload() {
-    const [gamesBody, taxonomyBody] = await Promise.all([
-      api<{ games: Game[] }>("/api/steam-catalog/games"),
-      api<{ terms: Term[] }>("/api/steam-catalog/taxonomy"),
-    ]);
-    setGames(gamesBody.games);
-    setTerms(taxonomyBody.terms);
+  async function loadTaxonomy() {
+    const body = await api<{ terms: Term[] }>("/api/steam-catalog/taxonomy");
+    setTerms(body.terms);
+  }
+
+  async function loadDetail(id: number) {
+    const body = await api<{ game: Game }>(`/api/steam-catalog/games/${id}`);
+    setSelectedGame(body.game);
+    return body.game;
+  }
+
+  async function loadQueue(id: number) {
+    const body = await api<QueueResponse>(`/api/steam-catalog/queue?currentId=${id}`);
+    setQueue(body);
+    return body;
   }
 
   useEffect(() => {
-    reload()
-      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
-      .finally(() => setLoading(false));
+    loadTaxonomy().catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
   }, []);
+
+  useEffect(() => {
+    if (screen !== "games" && screen !== "search") return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), query });
+      if (screen === "games") params.set("status", statusFilter);
+      setListLoading(true);
+      api<GameListResponse>(`/api/steam-catalog/games?${params}`, { signal: controller.signal })
+        .then((body) => {
+          if (controller.signal.aborted) return;
+          setGames(body.games);
+          setPagination(body.pagination);
+          setCounts(body.counts);
+        })
+        .catch((cause) => {
+          if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+        })
+        .finally(() => { if (!controller.signal.aborted) setListLoading(false); });
+    }, 200);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [screen, query, statusFilter, page]);
+
+  useEffect(() => {
+    if (screen !== "game" || gameId === null) return;
+    let active = true;
+    setGameLoading(true);
+    setQueue(null);
+    Promise.all([
+      api<{ game: Game }>(`/api/steam-catalog/games/${gameId}`),
+      api<QueueResponse>(`/api/steam-catalog/queue?currentId=${gameId}`),
+    ]).then(([record, next]) => {
+      if (!active) return;
+      setSelectedGame(record.game);
+      setQueue(next);
+    }).catch((cause) => {
+      if (!active) return;
+      setSelectedGame(null);
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }).finally(() => { if (active) setGameLoading(false); });
+    return () => { active = false; };
+  }, [screen, gameId]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -390,16 +437,7 @@ export default function GameCatalogAdminPage() {
         method: "POST",
         body: JSON.stringify({ url: importValue.trim() }),
       });
-      // The import endpoint returns the Steam record, not its taxonomy assignments.
-      // Insert it locally before navigation so the editor works on the first visit.
-      setGames((current) => {
-        const existing = current.find((game) => game.id === body.game.id);
-        const imported: Game = {
-          ...body.game,
-          assignments: existing?.assignments ?? body.game.assignments ?? [],
-        };
-        return [...current.filter((game) => game.id !== imported.id), imported];
-      });
+      setSelectedGame({ ...body.game, assignments: body.game.assignments ?? [] });
       setImportValue("");
       navigate(`${BASE}/games/${body.game.id}`);
     } catch (cause) {
@@ -432,8 +470,9 @@ export default function GameCatalogAdminPage() {
           assignments: draft.map((item, index) => ({ termId: item.termId, role: item.role, position: index })),
         }),
       });
-      await reload();
-      if (openNext && targetNextId !== null) navigate(`${BASE}/games/${targetNextId}`);
+      await loadDetail(selected.id);
+      const refreshed = await loadQueue(selected.id);
+      if (openNext && (refreshed.nextId ?? targetNextId) !== null) navigate(`${BASE}/games/${refreshed.nextId ?? targetNextId}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -451,7 +490,7 @@ export default function GameCatalogAdminPage() {
         body: JSON.stringify({ facet: newFacet, label: newLabel.trim() }),
       });
       setNewLabel("");
-      await reload();
+      await loadTaxonomy();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
