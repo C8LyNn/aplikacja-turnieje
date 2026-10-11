@@ -29,6 +29,7 @@ import { parseResearchProject, serializeResearchProject } from "@/features/ludol
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import {
   countEvidenceDirections,
+  evidenceSignature,
   groupEvidenceByYear,
   personEvidence,
 } from "@/features/ludology/statement-classification/evidence-analysis";
@@ -1076,6 +1077,7 @@ function EvidenceProfile() {
 
   function saveAssessment() {
     if (!currentCodebook || !selectedPropositionId) return;
+    const selectedCodings = personCodings.filter((coding) => coding.propositionId === selectedPropositionId);
     upsertAssessment(
       {
         personId,
@@ -1087,6 +1089,7 @@ function EvidenceProfile() {
         status: assessmentStatus,
         confidence: assessmentConfidence,
         synthesis: assessmentSynthesis.trim() || undefined,
+        evidenceSignature: evidenceSignature(selectedCodings),
       },
     );
   }
@@ -1191,6 +1194,9 @@ function EvidenceProfile() {
                       item.propositionId === proposition.id &&
                       item.codebookId === currentCodebook?.id
                     );
+                    const assessmentStale = Boolean(
+                      assessment && assessment.evidenceSignature !== evidenceSignature(codings)
+                    );
                     const {
                       positive,
                       negative,
@@ -1212,7 +1218,12 @@ function EvidenceProfile() {
                         <td className="px-3 py-3 text-center">{allUnits}</td>
                         <td className="px-3 py-3 text-center text-muted-foreground">{codings.length}</td>
                         <td className="px-3 py-3 text-center text-xs">
-                          {assessment ? assessment.status : "—"}
+                          {assessment ? (
+                            <div>
+                              <div>{assessment.status}</div>
+                              {assessmentStale && <div className="mt-1 text-amber-400">dowody zmienione</div>}
+                            </div>
+                          ) : "—"}
                         </td>
                         <td className="px-3 py-3 text-right">
                           <ToolButton type="button" variant="ghost" onClick={() => openProposition(proposition.id)}>
@@ -1253,6 +1264,14 @@ function EvidenceProfile() {
           {selectedPropositionId && (() => {
             const proposition = data.propositions.find((item) => item.id === selectedPropositionId);
             const codings = personCodings.filter((coding) => coding.propositionId === selectedPropositionId);
+            const assessment = data.assessments.find((item) =>
+              item.personId === personId &&
+              item.propositionId === selectedPropositionId &&
+              item.codebookId === currentCodebook?.id
+            );
+            const assessmentStale = Boolean(
+              assessment && assessment.evidenceSignature !== evidenceSignature(codings)
+            );
             if (!proposition) return null;
             return (
               <ToolPanel
@@ -1283,6 +1302,11 @@ function EvidenceProfile() {
                       <option value="">Brak przypisanego recenzenta</option>
                       {data.coders.map((coder) => <option key={coder.id} value={coder.id}>{coder.displayName} · {coder.type}</option>)}
                     </ToolSelect>
+                    {assessmentStale && (
+                      <ToolNotice>
+                        Rekonstrukcja została zapisana dla wcześniejszego zestawu dowodów. Przejrzyj nowe lub usunięte kodowania i zapisz ją ponownie.
+                      </ToolNotice>
+                    )}
                     <ToolTextarea
                       rows={4}
                       value={assessmentSynthesis}
