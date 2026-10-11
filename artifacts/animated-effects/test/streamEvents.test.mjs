@@ -87,19 +87,19 @@ const settings = {
   brightness: 100, hue: 0, blendMode: "normal", area: "full", zIndex: 10,
   density: 100, speed: 100, intensity: 100, colorize: false,
 };
-const scene = (trigger) => ({
+const scene = (trigger, additional = []) => ({
   effects: [{
     instanceId: "event1", effectId: "stub", seed: 1, enabled: true,
     settings,
     timeline: { mode: "loop", delayMs: 0, durationMs: 1000, fadeInMs: 100, fadeOutMs: 100 },
     trigger,
-  }, {
+  }, ...additional, {
     instanceId: "always", effectId: "stub", seed: 2, enabled: true, settings,
   }],
 });
 
-function runWidget(trigger) {
-  const code = exporter.generateStreamElementsExport(scene(trigger));
+function runWidget(trigger, additional = []) {
+  const code = exporter.generateStreamElementsExport(scene(trigger, additional));
   const listeners = {};
   const root = element("root");
   const scheduled = new Map();
@@ -221,4 +221,80 @@ test("embedded JS escapes malicious template delimiters without changing visible
   runtime.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Guest" } } });
   const caption = runtime.root.children[1].children.find((child) => child.className === "ae-alert-caption");
   assert.equal(caption.textContent, "</script><img src=x onerror=alert(1)> Guest");
+});
+
+test("queued alerts are serialized even across independent effect layers", () => {
+  const config = { source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0, queueMode: "queue",
+    caption: { enabled: true, template: "{name}", position: "bottom", fontSize: 30, color: "#ffffff" } };
+  const other = {
+    instanceId: "event2", effectId: "stub", seed: 3, enabled: true, settings,
+    timeline: { mode: "once", delayMs: 0, durationMs: 500, fadeInMs: 0, fadeOutMs: 0 },
+    trigger: { ...config, event: "tip-latest" },
+  };
+  const widget = runWidget(config, [other]);
+  widget.listeners.onWidgetLoad({});
+  const send = (listener, name) => widget.listeners.onEventReceived({ detail: { listener, event: { name, amount: 30 } } });
+  send("follower-latest", "First");
+  send("tip-latest", "Second");
+  send("follower-latest", "Third");
+  assert.equal(widget.root.children.length, 2, "only one queue item visible");
+  let caption = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  assert.equal(caption.textContent, "First");
+  const next = () => {
+    const [id, timer] = widget.scheduled.entries().next().value;
+    widget.scheduled.delete(id);
+    timer.fn();
+  };
+  next();
+  assert.equal(widget.root.children.length, 2, "second queued alert replaces first after completion");
+  caption = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  assert.equal(caption.textContent, "Second");
+  next();
+  caption = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  assert.equal(caption.textContent, "Third");
+  next();
+  assert.equal(widget.root.children.length, 1, "continuous background still visible");
+});
+
+test("flood of queued events is bounded to sixteen waiting alerts", () => {
+  const widget = runWidget({
+    source: "event", event: "message", cooldownMs: 0, minAmount: 0, queueMode: "queue",
+    caption: { enabled: true, template: "{message}", position: "bottom", fontSize: 30, color: "#ffffff" },
+  });
+  widget.listeners.onWidgetLoad({});
+  for (let i = 0; i < 50; i++) {
+    widget.listeners.onEventReceived({ detail: { listener: "message", event: { data: { displayName: "Viewer", text: "line-" + i } } } });
+  }
+  assert.equal(widget.root.children.length, 2);
+  let shown = 0;
+  while (widget.scheduled.size > 0 && shown < 30) {
+    const [id, timer] = widget.scheduled.entries().next().value;
+    widget.scheduled.delete(id);
+    timer.fn();
+    shown++;
+  }
+  assert.equal(shown, 17, "1 active plus 16 waiting, remaining events dropped");
+  assert.equal(widget.root.children.length, 1);
+});
+
+test("caption avatar uses initials fallback or allowlisted HTTPS images", () => {
+  const caption = {
+    enabled: true, template: "Witaj {name}!", position: "bottom", fontSize: 38, color: "#ffffff",
+    avatarEnabled: true, avatarSize: 80,
+  };
+  const widget = runWidget({ source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0, caption });
+  widget.listeners.onWidgetLoad({});
+  widget.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Ala", avatar: "http://evil.test/img.png" } } });
+  let label = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  let avatar = label.children.find((n) => n.className === "ae-alert-avatar");
+  assert.ok(avatar);
+  assert.equal(avatar.textContent, "A");
+  assert.equal(avatar.children.length, 0, "HTTP / arbitrary host is rejected");
+  assert.equal(label.style.paddingLeft, "94px");
+  widget.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Ben", avatar: "https://static-cdn.jtvnw.net/jtv_user_pictures/id-profile_image-70x70.png" } } });
+  label = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  avatar = label.children.find((n) => n.className === "ae-alert-avatar");
+  assert.equal(avatar.children[0].tagName, "img");
+  assert.equal(avatar.children[0].referrerPolicy, "no-referrer");
+  assert.equal(avatar.children[0].alt, "");
 });
