@@ -30,10 +30,18 @@ function aeCaptionText(template, listener, data) {
   }).slice(0, 280);
 }
 
-function aeAttachCaption(parent, caption, listener, event) {
+function aeCaptionAnimation(intro, outro, playbackMs) {
+  const lifetime = Number.isFinite(playbackMs) ? Math.max(300, Math.min(180000, Math.round(playbackMs))) : 4000;
+  const enterMs = Math.min(420, Math.max(120, Math.round(lifetime * .22)));
+  const exitMs = Math.min(420, Math.max(120, Math.round(lifetime * .22)));
+  return "ae-caption-in-" + intro + " " + enterMs + "ms ease-out 0ms both, ae-caption-out-" + outro + " " + exitMs + "ms ease-in " + Math.max(0, lifetime - exitMs) + "ms forwards";
+}
+
+function aeAttachCaption(parent, caption, listener, event, playbackMs) {
   if (!caption || !caption.enabled) return null;
   const label = document.createElement("div");
   label.className = "ae-alert-caption";
+  label.style.animation = aeCaptionAnimation(caption.intro ?? "slide", caption.outro ?? "fade", playbackMs);
   label.textContent = aeCaptionText(caption.template, listener, event);
   label.style.position = "absolute";
   label.style.left = "5%";
