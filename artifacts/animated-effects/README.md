@@ -91,3 +91,35 @@ Pod podglądem sceny jest pasek **Play/Pause / Od początku / Suwak czasu**.
 Dodano `test/transport.test.mjs` (czas trwania sceny, geometria suwaka i granice czasu) i workflow `.github/workflows/animated-effects.yml`, który sprawdza typecheck, testy, build edytora oraz osadzenie w aplikacji turniejowej. Należy dodatkowo manualnie sprawdzić wskazywanie momentu w podglądzie dla kilku warstw, wielokrotne pauza/play, ruch klatki myszką i dotykiem oraz klawiaturą.
 
 Przy ręcznym QA uwzględnij również zachowanie na ekranach o różnych proporcjach i wydajność przy scenach z wieloma animowanymi elementami.
+
+
+## StreamElements — wyzwalacze zdarzeniowe (Events v1)
+
+W Inspektorze warstwy pojawił się panel **Wyzwalacz StreamElements**. Domyślnie każda warstwa działa jak wcześniej (`Od razu / zawsze`). Można jednak uruchamiać ją na:
+
+- nowy follow (`follower-latest`),
+- nową subskrypcję (`subscriber-latest`),
+- donację/tip (`tip-latest`),
+- cheer/bits (`cheer-latest`),
+- raid (`raid-latest`),
+- wiadomość czatu (`message`).
+
+**Odstęp między uruchomieniami** (cooldown) jest konfigurowalny osobno dla każdej warstwy (0–60 s, domyślnie 3 s). **Minimalna kwota/liczba** filtruje tylko tipy, cheery i raidy. Wartość jest odczytywana z `detail.event.amount` bez interpretowania ani wstrzykiwania treści wiadomości do DOM.
+
+### Zasada uruchomienia
+
+1. Po `onWidgetLoad` widget tworzy jedynie warstwy ciągłe.
+2. Kiedy `onEventReceived` przyniesie zdarzenie zgodne z wyzwalaczem, widget generuje wskazaną warstwę i odtwarza ją **jeden raz** (niezależnie od zapisanej pętli).
+3. Ponowne zgodne zdarzenie po zakończeniu cooldownu restartuje tę samą warstwę, a nie dokłada następnych kopii do DOM.
+4. Po zakończeniu animacji warstwa jest usuwana i zwalnia węzły DOM oraz aktywne animacje.
+5. **Testuj w podglądzie** uruchamia lokalną symulację wybranej warstwy. Nie emituje zdarzenia do StreamElements, nie wykonuje operacji na koncie i nie zapisuje go w pliku sceny.
+
+Ustawienia wyzwalacza są zapisywane w `.aescene.json` i po wczytaniu przechodzą walidację. Stare projekty bez `trigger` pozostają niezmienione. Sam eksport nie potrzebuje dodatkowego tokenu API StreamElements i nie dotyka ich kolejek alertów (`SE_API.pauseQueue` / `resumeQueue`).
+
+**Ograniczenia:** brak własnych integracji donation/subscription API poza obsługą zdarzeń Custom Widget; dane eventu nie są jeszcze używane do dynamicznego tekstu; brak selektora konkretnych słów w wiadomości. Faktyczna dostępność rodzaju zdarzenia zależy od źródła streamu/platformy.
+
+### QA
+
+Dodano `test/triggers.test.mjs` i `test/streamEvents.test.mjs`; ten drugi wykonuje wygenerowany JS w symulowanym Custom Widget, weryfikuje `onWidgetLoad`, `onEventReceived`, restart, cooldown, próg donacji i sprzątanie DOM. GitHub Actions wykonuje testy, typecheck i build. Przed wdrożeniem sprawdź ręcznie podgląd StreamElements/OBS i każdy istotny rodzaj eventu.
+
+Dokumentacja zdarzeń: https://docs.streamelements.com/overlays/events
