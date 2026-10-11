@@ -245,6 +245,8 @@ export default function GameCatalogAdminPage() {
   const [terms, setTerms] = useState<Term[]>([]);
   const [draft, setDraft] = useState<Assignment[]>([]);
   const [status, setStatus] = useState<Game["status"]>("unclassified");
+  const [statusFilter, setStatusFilter] = useState<"all" | Game["status"]>("all");
+  const [loading, setLoading] = useState(true);
   const [importValue, setImportValue] = useState("");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -275,6 +277,18 @@ export default function GameCatalogAdminPage() {
     );
   }, [games, query]);
 
+  const visibleListGames = useMemo(() =>
+    filteredGames
+      .filter((game) => statusFilter === "all" || game.status === statusFilter)
+      .sort((a, b) => a.name.localeCompare(b.name, "pl")),
+  [filteredGames, statusFilter]);
+
+  const hasUnsavedChanges = Boolean(selected && (
+    status !== selected.status ||
+    JSON.stringify(draft.map((item) => [item.termId, item.role]).sort((a, b) => Number(a[0]) - Number(b[0]))) !==
+    JSON.stringify(selected.assignments.map((item) => [item.termId, item.role]).sort((a, b) => Number(a[0]) - Number(b[0])))
+  ));
+
   async function reload() {
     const [gamesBody, taxonomyBody] = await Promise.all([
       api<{ games: Game[] }>("/api/steam-catalog/games"),
@@ -285,8 +299,20 @@ export default function GameCatalogAdminPage() {
   }
 
   useEffect(() => {
-    reload().catch((cause) => setError(String(cause)));
+    reload()
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     if (!selected) return;
@@ -331,10 +357,21 @@ export default function GameCatalogAdminPage() {
     setBusy(true);
     setError(null);
     try {
-      const body = await api<{ game: Game }>("/api/steam-catalog/import", {
+      const body = await api<{ game: Omit<Game, "assignments"> & { assignments?: Assignment[] } }>("/api/steam-catalog/import", {
         method: "POST",
         body: JSON.stringify({ url: importValue.trim() }),
       });
+      // The import endpoint returns the Steam record, not its taxonomy assignments.
+      // Insert it locally before navigation so the editor works on the first visit.
+      setGames((current) => {
+        const existing = current.find((game) => game.id === body.game.id);
+        const imported: Game = {
+          ...body.game,
+          assignments: existing?.assignments ?? body.game.assignments ?? [],
+        };
+        return [...current.filter((game) => game.id !== imported.id), imported];
+      });
+      setImportValue("");
       navigate(`${BASE}/games/${body.game.id}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -471,21 +508,36 @@ export default function GameCatalogAdminPage() {
 
       {screen === "games" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${games.length} skatalogowanych rekordów.`} accent="amber" />
-          {games.length ? (
+          <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${visibleListGames.length} z ${games.length} skatalogowanych rekordów.`} accent="amber" />
+          <ToolPanel title="Filtry katalogu" description="Szukaj po nazwie, studiu lub AppID i filtruj według stanu klasyfikacji.">
+            <ToolInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj w katalogu..." />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Chip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>Wszystkie ({games.length})</Chip>
+              {(Object.keys(STATUS_LABELS) as Game["status"][]).map((value) => (
+                <Chip key={value} active={statusFilter === value} onClick={() => setStatusFilter(value)}>
+                  {STATUS_LABELS[value]} ({games.filter((game) => game.status === value).length})
+                </Chip>
+              ))}
+            </div>
+          </ToolPanel>
+          {games.length && visibleListGames.length ? (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card/50">
               <div className="grid min-w-[620px] grid-cols-[minmax(0,1fr)_150px_140px] gap-3 border-b border-border bg-background/40 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
                 <span>Gra</span><span>Status</span><span>Steam AppID</span>
               </div>
               <div className="divide-y divide-border">
-                {[...games].sort((a, b) => a.name.localeCompare(b.name, "pl")).map((game) => (
+                {visibleListGames.map((game) => (
                   <Link key={game.id} href={`${BASE}/games/${game.id}`} className="grid min-w-[620px] grid-cols-[minmax(0,1fr)_150px_140px] gap-3 px-4 py-3 text-sm transition hover:bg-muted/50">
                     <span className="truncate font-semibold">{game.name}</span><span className="text-muted-foreground">{STATUS_LABELS[game.status]}</span><span className="font-mono text-xs text-muted-foreground">{game.steamAppId}</span>
                   </Link>
                 ))}
               </div>
             </div>
-          ) : <ToolEmptyState title="Brak gier" description="Zaimportuj pierwszą grę w sekcji Szukaj gry." />}
+          ) : games.length
+            ? <ToolEmptyState title="Brak wyników" description="Zmień frazę wyszukiwania lub status klasyfikacji." />
+            : loading
+              ? <ToolEmptyState title="Wczytywanie katalogu" description="Trwa pobieranie danych." />
+              : <ToolEmptyState title="Brak gier" description="Zaimportuj pierwszą grę w sekcji Szukaj gry." />}
         </div>
       )}
 
@@ -526,7 +578,11 @@ export default function GameCatalogAdminPage() {
         </div>
       )}
 
-      {screen === "game" && !selected && <ToolEmptyState title="Nie znaleziono gry" description="Rekord nie istnieje albo nie został jeszcze wczytany." />}
+      {screen === "game" && !selected && (
+        loading
+          ? <ToolEmptyState title="Wczytywanie gry" description="Trwa pobieranie rekordu." />
+          : <ToolEmptyState title="Nie znaleziono gry" description="Rekord nie istnieje w katalogu." />
+      )}
 
       {screen === "game" && selected && (
         <div className="space-y-4">
@@ -535,7 +591,9 @@ export default function GameCatalogAdminPage() {
             <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{selected.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{[selected.developer, selected.releaseDate].filter(Boolean).join(" · ") || `Steam AppID ${selected.steamAppId}`}</div></div>
             <a href={selected.steamUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">Steam <ExternalLink className="h-3.5 w-3.5" /></a>
             <ToolSelect value={status} onChange={(event) => setStatus(event.target.value as Game["status"])} className="w-auto min-w-36">{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect>
-            <ToolButton type="button" variant="primary" onClick={save} disabled={busy}><Save className="h-4 w-4" /> Zapisz</ToolButton>
+            {hasUnsavedChanges && <span role="status" className="text-xs font-semibold text-amber-300">Niezapisane zmiany</span>}
+            <ToolButton type="button" variant="ghost" onClick={() => { setDraft(selected.assignments); setStatus(selected.status); }} disabled={busy || !hasUnsavedChanges}>Przywróć</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={save} disabled={busy || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
           </ToolToolbar>
 
           <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz."><ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} /><div className="mt-6">{renderPerspectiveEditor()}</div></ToolPanel>
