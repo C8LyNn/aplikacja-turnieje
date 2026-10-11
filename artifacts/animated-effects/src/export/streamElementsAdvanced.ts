@@ -848,3 +848,5 @@ function estimatePerformanceCost(
     0,
   );
 }
+/** Compatibility alias for the original per-layer event exporter test suite. */
+export const generateStreamElementsExport = generateAdvancedStreamElementsExport;
