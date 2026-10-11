@@ -98,7 +98,7 @@ type GameSummary = Omit<Game, "assignments">;
 
 type GameListResponse = {
   games: GameSummary[];
-  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+  pagination: { page: number; pageSize: number; total: number; totalPages: number; nextCursor?: string | null };
   counts: { all: number; unclassified: number; review: number; ready: number };
 };
 type QueueResponse = { pendingCount: number; nextId: number | null };
@@ -272,6 +272,7 @@ export default function GameCatalogAdminPage() {
   const [pagination, setPagination] = useState<GameListResponse["pagination"]>({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 });
   const [counts, setCounts] = useState<GameListResponse["counts"]>({ all: 0, unclassified: 0, review: 0, ready: 0 });
   const [page, setPage] = useState(1);
+  const [pageCursors, setPageCursors] = useState<Record<number, string>>({});
   const [terms, setTerms] = useState<Term[]>([]);
   const [draft, setDraft] = useState<Assignment[]>([]);
   const [status, setStatus] = useState<Game["status"]>("unclassified");
@@ -355,6 +356,12 @@ export default function GameCatalogAdminPage() {
   }, []);
 
   useEffect(() => {
+    // A cursor only belongs to one listing/filter context.
+    setPage(1);
+    setPageCursors({});
+  }, [screen]);
+
+  useEffect(() => {
     if (screen !== "games" && screen !== "search") return;
     const controller = new AbortController();
     setListLoading(true);
@@ -362,6 +369,7 @@ export default function GameCatalogAdminPage() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), query });
       if (screen === "games") params.set("status", statusFilter);
+      if (page > 1 && pageCursors[page]) params.set("cursor", pageCursors[page]);
       api<GameListResponse>(`/api/steam-catalog/games?${params}`, { signal: controller.signal })
         .then((body) => {
           if (controller.signal.aborted) return;
@@ -371,7 +379,13 @@ export default function GameCatalogAdminPage() {
           if (body.pagination.page !== page) setPage(body.pagination.page);
         })
         .catch((cause) => {
-          if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+          if (controller.signal.aborted) return;
+          if (cause instanceof CatalogApiError && cause.code === "CATALOG_CURSOR_STALE") {
+            setPageCursors({});
+            setPage(1);
+          } else {
+            setError(cause instanceof Error ? cause.message : String(cause));
+          }
         })
         .finally(() => { if (!controller.signal.aborted) setListLoading(false); });
     }, 200);
@@ -477,6 +491,19 @@ export default function GameCatalogAdminPage() {
     }
   }
 
+  function resetListPosition() {
+    setPage(1);
+    setPageCursors({});
+  }
+
+  function advanceListPage() {
+    if (listLoading || page >= pagination.totalPages) return;
+    if (pagination.nextCursor) {
+      setPageCursors((current) => ({ ...current, [page + 1]: pagination.nextCursor! }));
+    }
+    setPage((current) => current + 1);
+  }
+
   function goToNextPending() {
     if (nextPendingId === null) return;
     if (hasUnsavedChanges && !window.confirm("Pominąć tę grę i utracić niezapisane zmiany?")) return;
@@ -489,7 +516,6 @@ export default function GameCatalogAdminPage() {
       setError(`Brakuje wymaganych elementów: ${readiness.missing.join(", ")}. Zapisz jako „Do sprawdzenia” lub uzupełnij klasyfikację.`);
       return;
     }
-    const targetNextId = openNext ? nextPendingId : null;
     setBusy(true);
     setError(null);
     try {
@@ -503,7 +529,7 @@ export default function GameCatalogAdminPage() {
       });
       await loadDetail(selected.id);
       const refreshed = await loadQueue(selected.id);
-      if (openNext && (refreshed.nextId ?? targetNextId) !== null) navigate(`${BASE}/games/${refreshed.nextId ?? targetNextId}`);
+      if (openNext && refreshed.nextId !== null) navigate(`${BASE}/games/${refreshed.nextId}`);
     } catch (cause) {
       if (cause instanceof CatalogApiError && cause.code === "CLASSIFICATION_CONFLICT") {
         // Keep the user's edits intact. Do not overwrite until they explicitly
@@ -639,7 +665,7 @@ export default function GameCatalogAdminPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background/60 px-3">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Nazwa, studio, AppID..." className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
+                <input value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder="Nazwa, studio, AppID..." className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
               </div>
             </div>
             <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border">
@@ -655,7 +681,7 @@ export default function GameCatalogAdminPage() {
           {query.trim() && <div className="flex flex-wrap items-center gap-3 text-sm">
             <span>{pagination.total} wyników · Strona {pagination.page} z {pagination.totalPages}</span>
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
-            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Następna</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>}
           <ToolPanel title="Dodaj ze Steam" description="Importuj grę, której nie ma jeszcze w katalogu.">
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -670,11 +696,11 @@ export default function GameCatalogAdminPage() {
         <div className="space-y-5">
           <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${pagination.total} pasujących z ${counts.all} skatalogowanych rekordów.`} accent="amber" />
           <ToolPanel title="Filtry katalogu" description="Szukaj po nazwie, studiu lub AppID i filtruj według stanu klasyfikacji.">
-            <ToolInput value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Szukaj w katalogu..." />
+            <ToolInput value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder="Szukaj w katalogu..." />
             <div className="mt-3 flex flex-wrap gap-2">
-              <Chip active={statusFilter === "all"} onClick={() => { setStatusFilter("all"); setPage(1); }}>Wszystkie ({counts.all})</Chip>
+              <Chip active={statusFilter === "all"} onClick={() => { setStatusFilter("all"); resetListPosition(); }}>Wszystkie ({counts.all})</Chip>
               {(Object.keys(STATUS_LABELS) as Game["status"][]).map((value) => (
-                <Chip key={value} active={statusFilter === value} onClick={() => { setStatusFilter(value); setPage(1); }}>
+                <Chip key={value} active={statusFilter === value} onClick={() => { setStatusFilter(value); resetListPosition(); }}>
                   {STATUS_LABELS[value]} ({counts[value]})
                 </Chip>
               ))}
@@ -701,7 +727,7 @@ export default function GameCatalogAdminPage() {
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span>Strona {pagination.page} z {pagination.totalPages} · {pagination.total} wyników</span>
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
-            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Następna</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>
         </div>
       )}
