@@ -1,5 +1,5 @@
 /** This small standalone script is included in the StreamElements widget. */
-export const AVATAR_WIDGET_RUNTIME = String.raw\`
+export const AVATAR_WIDGET_RUNTIME = String.raw`
 const aeAvatarAllowedHosts = new Set([
   "static-cdn.jtvnw.net", "yt3.googleusercontent.com",
   "lh3.googleusercontent.com", "cdn.streamelements.com",
@@ -65,4 +65,4 @@ function aeAttachAvatar(caption, event, name, size) {
   caption.style.minHeight = size + "px";
   caption.appendChild(avatar);
 }
-\`;
+`;
