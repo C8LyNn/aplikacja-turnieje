@@ -1,6 +1,7 @@
 import type { EffectInstance, LayerKeyframe } from "../core/types";
 import { addEffectKeyframe, editEffectKeyframe, getEditorState, removeEffectKeyframe, updateEffectTimeline } from "../editor/state";
 import { MAX_KEYFRAMES, normalizedMotionTimeline } from "./motion";
+import { timeFromPosition } from "./transportMath";
 
 const selectedFrames = new Map<string, number>();
 const seconds = (ms: number): string => String(Number((ms / 1000).toFixed(3)));
@@ -42,9 +43,13 @@ export function keyframeInspectorTemplate(effect: EffectInstance): string {
         <button type="button" class="ae-button ae-button-secondary" data-kf-preset="slide">Przesunięcie →</button>
         <button type="button" class="ae-button ae-button-secondary" data-kf-preset="pulse">Pulsowanie</button>
       </div>
-      <div class="ae-keyframe-ruler" aria-hidden="true">
-        ${frames.map((frame) => `<span class="ae-keyframe-dot" style="left:${(frame.timeMs / timeline.durationMs * 100).toFixed(3)}%"></span>`).join("")}
+      <div class="ae-keyframe-ruler" data-kf-ruler aria-label="Przeciągnij klatkę na osi czasu">
+        ${frames.map((frame, index) => `<button type="button" class="ae-keyframe-dot${active?.timeMs === frame.timeMs ? " is-selected" : ""}"
+          data-kf-marker="${frame.timeMs}" style="left:${(frame.timeMs / timeline.durationMs * 100).toFixed(3)}%"
+          title="Klatka ${index + 1}: ${seconds(frame.timeMs)} s"
+          aria-label="Klatka ${index + 1}, ${seconds(frame.timeMs)} sekundy. Przeciągnij albo użyj strzałek."></button>`).join("")}
       </div>
+      <output class="ae-keyframe-drag-time" data-kf-drag-time aria-live="off">Przesuń punkt, aby zmienić moment klatki · krok 0,1 s</output>
       <label class="inspector-field">
         <span class="inspector-label"><span>Edytowana klatka</span></span>
         <select data-kf-select aria-label="Wybierz klatkę kluczową" ${frames.length ? "" : "disabled"}>
@@ -107,6 +112,80 @@ export function bindKeyframeControls(container: HTMLElement, instanceId: string)
         editEffectKeyframe(instanceId, frame.timeMs, { [field]: number });
       }
     });
+  });
+
+  // Pointer gestures update only the marker until release. This ensures that
+  // the inspector isn't destroyed by state subscriptions mid-drag, and every
+  // completed drag produces a single undo entry.
+  const ruler = container.querySelector<HTMLElement>("[data-kf-ruler]");
+  const dragOutput = container.querySelector<HTMLOutputElement>("[data-kf-drag-time]");
+  ruler?.querySelectorAll<HTMLButtonElement>("[data-kf-marker]").forEach((marker) => {
+    const originalTimeMs = Number(marker.dataset.kfMarker);
+    const effect = getEffect();
+    if (!effect || !Number.isFinite(originalTimeMs)) return;
+    const durationMs = normalizedMotionTimeline(effect.timeline, effect.settings).durationMs;
+    const selectMarker = (): void => {
+      selectedFrames.set(instanceId, originalTimeMs);
+      if (select) {
+        select.value = String(originalTimeMs);
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      ruler.querySelectorAll(".ae-keyframe-dot").forEach((dot) =>
+        dot.classList.toggle("is-selected", dot === marker));
+    };
+    let dragging = false;
+    let pointerId: number | null = null;
+    let targetTimeMs = originalTimeMs;
+    const fromPointer = (clientX: number): number => {
+      const bounds = ruler.getBoundingClientRect();
+      return timeFromPosition(clientX, bounds.left, bounds.width, durationMs);
+    };
+    const showTime = (ms: number): void => {
+      marker.style.left = `${(ms / durationMs * 100).toFixed(3)}%`;
+      if (dragOutput) dragOutput.value = `Moment klatki: ${seconds(ms)} s`;
+    };
+    const finish = (commit: boolean): void => {
+      if (!dragging) return;
+      dragging = false;
+      if (pointerId !== null && marker.hasPointerCapture(pointerId)) marker.releasePointerCapture(pointerId);
+      pointerId = null;
+      if (commit && targetTimeMs !== originalTimeMs) {
+        selectedFrames.set(instanceId, targetTimeMs);
+        editEffectKeyframe(instanceId, originalTimeMs, { timeMs: targetTimeMs });
+      } else {
+        showTime(originalTimeMs);
+      }
+    };
+    marker.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      selectMarker();
+      dragging = true;
+      targetTimeMs = originalTimeMs;
+      pointerId = event.pointerId;
+      marker.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    marker.addEventListener("pointermove", (event) => {
+      if (!dragging || event.pointerId !== pointerId) return;
+      targetTimeMs = fromPointer(event.clientX);
+      showTime(targetTimeMs);
+    });
+    marker.addEventListener("pointerup", (event) => {
+      if (event.pointerId !== pointerId) return;
+      targetTimeMs = fromPointer(event.clientX);
+      finish(true);
+    });
+    marker.addEventListener("pointercancel", () => finish(false));
+    marker.addEventListener("keydown", (event) => {
+      const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (!direction) return;
+      event.preventDefault();
+      const next = Math.max(0, Math.min(durationMs, originalTimeMs + direction * (event.shiftKey ? 1000 : 100)));
+      if (next === originalTimeMs) return;
+      selectedFrames.set(instanceId, next);
+      editEffectKeyframe(instanceId, originalTimeMs, { timeMs: next });
+    });
+    marker.addEventListener("click", () => selectMarker());
   });
 
   container.querySelector<HTMLSelectElement>("[data-kf-easing]")?.addEventListener("change", (event) => {
