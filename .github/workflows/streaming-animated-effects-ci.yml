@@ -112,3 +112,38 @@ jobs:
           path: .cache/animated-effects-browser-qa/
           if-no-files-found: warn
           retention-days: 14
+
+  verify-windows-launcher:
+    name: Windows PowerShell 5.1 launcher bootstrap
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js (Windows user version family)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Verify PowerShell 5.1 launcher can detect Node and pnpm
+        shell: powershell
+        run: |
+          Write-Host "PowerShell: $($PSVersionTable.PSVersion)"
+          & .\artifacts\animated-effects\scripts\start-local-preview.ps1 -CheckToolsOnly
+          if ($LASTEXITCODE -ne 0) {
+            throw "PowerShell launcher bootstrap failed."
+          }
+
+      - name: Verify double-click CMD launcher delegates successfully
+        shell: powershell
+        run: |
+          & .\START_ANIMATED_EFFECTS_PREVIEW.cmd -CheckToolsOnly
+          if ($LASTEXITCODE -ne 0) {
+            throw "CMD launcher failed with exit code $LASTEXITCODE."
+          }
