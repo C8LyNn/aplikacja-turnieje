@@ -13,6 +13,10 @@ import type {
   ResearchSource,
 } from "./model";
 import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
+import {
+  canEditDimensionModelStructure,
+  canTransitionDimensionModelStatus,
+} from "./dimension-model-lifecycle";
 import { createResearchId, loadResearchProject, saveResearchProject } from "./storage";
 
 function withPilotDefaults(data: ResearchProjectData): ResearchProjectData {
@@ -188,9 +192,14 @@ export function useResearchProject() {
     updateDimensionModel(dimensionModelId: string, patch: Partial<Omit<DimensionModel, "id" | "createdAt" | "codebookId">>) {
       update((current) => ({
         ...current,
-        dimensionModels: current.dimensionModels.map((model) =>
-          model.id === dimensionModelId ? { ...model, ...patch } : model,
-        ),
+        dimensionModels: current.dimensionModels.map((model) => {
+          if (model.id !== dimensionModelId) return model;
+          if (patch.status && !canTransitionDimensionModelStatus(model.status, patch.status)) return model;
+          if (!canEditDimensionModelStructure(model.status) && (patch.name !== undefined || patch.version !== undefined || patch.description !== undefined)) {
+            return model;
+          }
+          return { ...model, ...patch };
+        }),
       }));
     },
     deleteDimensionModel(dimensionModelId: string) {
@@ -259,32 +268,58 @@ export function useResearchProject() {
     },
     addDimension(input: Omit<ResearchDimension, "id">) {
       const id = createResearchId("dimension");
-      update((current) => ({
-        ...current,
-        dimensions: [...current.dimensions, { ...input, id }],
-      }));
+      update((current) => {
+        const model = current.dimensionModels.find((candidate) => candidate.id === input.dimensionModelId);
+        if (!model || !canEditDimensionModelStructure(model.status)) return current;
+        return {
+          ...current,
+          dimensions: [...current.dimensions, { ...input, id }],
+        };
+      });
       return id;
     },
     updateDimension(dimensionId: string, patch: Partial<Omit<ResearchDimension, "id" | "dimensionModelId">>) {
-      update((current) => ({
-        ...current,
-        dimensions: current.dimensions.map((dimension) =>
-          dimension.id === dimensionId ? { ...dimension, ...patch } : dimension,
-        ),
-      }));
+      update((current) => {
+        const dimension = current.dimensions.find((candidate) => candidate.id === dimensionId);
+        const model = current.dimensionModels.find((candidate) => candidate.id === dimension?.dimensionModelId);
+        if (!dimension || !model || !canEditDimensionModelStructure(model.status)) return current;
+        return {
+          ...current,
+          dimensions: current.dimensions.map((candidate) =>
+            candidate.id === dimensionId ? { ...candidate, ...patch } : candidate,
+          ),
+        };
+      });
     },
     deleteDimension(dimensionId: string) {
-      update((current) => ({
-        ...current,
-        dimensions: current.dimensions.filter((dimension) => dimension.id !== dimensionId),
-        dimensionLinks: current.dimensionLinks.filter((link) => link.dimensionId !== dimensionId),
-      }));
+      update((current) => {
+        const dimension = current.dimensions.find((candidate) => candidate.id === dimensionId);
+        const model = current.dimensionModels.find((candidate) => candidate.id === dimension?.dimensionModelId);
+        if (!dimension || !model || !canEditDimensionModelStructure(model.status)) return current;
+        return {
+          ...current,
+          dimensions: current.dimensions.filter((candidate) => candidate.id !== dimensionId),
+          dimensionLinks: current.dimensionLinks.filter((link) => link.dimensionId !== dimensionId),
+        };
+      });
     },
     upsertDimensionLink(
       key: Pick<DimensionPropositionLink, "dimensionModelId" | "dimensionId" | "propositionId">,
       value: Omit<DimensionPropositionLink, "id" | "dimensionModelId" | "dimensionId" | "propositionId">,
     ) {
       update((current) => {
+        const model = current.dimensionModels.find((candidate) => candidate.id === key.dimensionModelId);
+        const dimension = current.dimensions.find((candidate) => candidate.id === key.dimensionId);
+        const proposition = current.propositions.find((candidate) => candidate.id === key.propositionId);
+        if (
+          !model ||
+          !dimension ||
+          !proposition ||
+          !canEditDimensionModelStructure(model.status) ||
+          dimension.dimensionModelId !== model.id ||
+          proposition.codebookId !== model.codebookId
+        ) return current;
+
         const existing = current.dimensionLinks.find((link) =>
           link.dimensionModelId === key.dimensionModelId &&
           link.dimensionId === key.dimensionId &&
@@ -304,10 +339,15 @@ export function useResearchProject() {
       });
     },
     deleteDimensionLink(dimensionLinkId: string) {
-      update((current) => ({
-        ...current,
-        dimensionLinks: current.dimensionLinks.filter((link) => link.id !== dimensionLinkId),
-      }));
+      update((current) => {
+        const link = current.dimensionLinks.find((candidate) => candidate.id === dimensionLinkId);
+        const model = current.dimensionModels.find((candidate) => candidate.id === link?.dimensionModelId);
+        if (!link || !model || !canEditDimensionModelStructure(model.status)) return current;
+        return {
+          ...current,
+          dimensionLinks: current.dimensionLinks.filter((candidate) => candidate.id !== dimensionLinkId),
+        };
+      });
     },
     upsertAssessment(
       key: Pick<PositionAssessment, "personId" | "propositionId" | "codebookId">,
