@@ -87,8 +87,12 @@ export function bindKeyframeControls(container: HTMLElement, instanceId: string)
     if (!effect) return;
     const timeMs = Number(select.value);
     selectedFrames.set(instanceId, timeMs);
-    const frame = normalizedMotionTimeline(effect.timeline, effect.settings).keyframes?.find((entry) => entry.timeMs === timeMs);
+    const timeline = normalizedMotionTimeline(effect.timeline, effect.settings);
+    const frame = timeline.keyframes?.find((entry) => entry.timeMs === timeMs);
     if (!frame) return;
+    document.dispatchEvent(new CustomEvent("animated-effects:preview-seek", {
+      detail: { ms: timeline.delayMs + frame.timeMs },
+    }));
     fields.forEach((input) => {
       const field = input.dataset.kfField;
       if (field === "timeMs") input.value = seconds(frame.timeMs);
