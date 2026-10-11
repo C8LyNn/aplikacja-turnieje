@@ -1,6 +1,7 @@
 import {
   getCameraChatSize,
   type CameraChatConfig,
+  getCameraChatAnimationCss,
 } from "./camera-chat-settings";
 
 const html = `<div id="se-camera-chat">
@@ -100,7 +101,7 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   padding: ${padding};
   ${config.messageBackground ? "border-radius: 12px; background: rgba(255,255,255,.055);" : ""}
   ${config.showBorders ? "border: 1px solid rgba(255,255,255,.07);" : ""}
-  ${config.animateMessages ? "animation: se-chat-in 220ms ease-out both;" : ""}
+  ${config.animateMessages ? `animation: se-chat-in ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards;` : ""}
 }
 .se-avatar {
   display: grid;
@@ -117,9 +118,9 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
 .se-content { min-width: 0; font-size: ${fontSize}px; line-height: 20px; }
 .se-name { margin-right: 8px; font-weight: 900; }
 .se-text { color: rgba(255,255,255,.85); overflow-wrap: anywhere; }
-@keyframes se-chat-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { transform: translateY(0); }
+${getCameraChatAnimationCss(config.animationStyle, "se-chat-in")}
+@media (prefers-reduced-motion: reduce) {
+  .se-message { animation: none !important; }
 }`;
 
   // Only validated, bounded configuration values are embedded in the exported script.
@@ -132,6 +133,8 @@ const settings = ${JSON.stringify({
 const list = document.getElementById("se-chat-messages");
 const nameColors = ["#fda4af", "#6ee7b7", "#c4b5fd", "#7dd3fc", "#fcd34d", "#67e8f9"];
 let messages = [];
+let nextLocalId = 0;
+const renderedRows = new Map();
 
 function asString(value) {
   return value == null ? "" : String(value);
@@ -139,33 +142,44 @@ function asString(value) {
 
 function renderMessages() {
   if (!list) return;
-  list.replaceChildren();
   const visible = messages.slice(-settings.maxMessages);
+  const visibleIds = new Set(visible.map(message => message.localId));
+  // Moderation removes rows immediately, without replaying the animations of survivors.
+  for (const [id, row] of renderedRows) {
+    if (!visibleIds.has(id)) {
+      row.remove();
+      renderedRows.delete(id);
+    }
+  }
   visible.forEach((message, index) => {
-    const row = document.createElement("div");
-    row.className = "se-message";
+    let row = renderedRows.get(message.localId);
+    if (!row) {
+      row = document.createElement("div");
+      row.className = "se-message";
+      if (settings.showAvatars) {
+        const avatar = document.createElement("div");
+        avatar.className = "se-avatar";
+        avatar.textContent = message.name.charAt(0);
+        row.appendChild(avatar);
+      }
+      const content = document.createElement("div");
+      content.className = "se-content";
+      const name = document.createElement("span");
+      name.className = "se-name";
+      name.textContent = message.name;
+      name.style.color = message.color && typeof window.CSS?.supports === "function" && window.CSS.supports("color", message.color)
+        ? message.color : nameColors[index % nameColors.length];
+      const text = document.createElement("span");
+      text.className = "se-text";
+      text.textContent = message.text;
+      content.append(name, text);
+      row.appendChild(content);
+      renderedRows.set(message.localId, row);
+      list.appendChild(row);
+    }
     row.style.opacity = settings.fadeOldMessages
       ? String(0.5 + (index + 1) / visible.length * 0.5)
       : "1";
-    if (settings.showAvatars) {
-      const avatar = document.createElement("div");
-      avatar.className = "se-avatar";
-      avatar.textContent = message.name.charAt(0);
-      row.appendChild(avatar);
-    }
-    const content = document.createElement("div");
-    content.className = "se-content";
-    const name = document.createElement("span");
-    name.className = "se-name";
-    name.textContent = message.name;
-    name.style.color = message.color && typeof window.CSS?.supports === "function" && window.CSS.supports("color", message.color)
-      ? message.color : nameColors[index % nameColors.length];
-    const text = document.createElement("span");
-    text.className = "se-text";
-    text.textContent = message.text;
-    content.append(name, text);
-    row.appendChild(content);
-    list.appendChild(row);
   });
 }
 
@@ -177,10 +191,13 @@ window.addEventListener("onEventReceived", function (event) {
   if (detail.listener === "message") {
     const text = asString(data.text);
     if (!text) return;
+    const msgId = asString(data.msgId);
+    if (msgId && messages.some(message => message.msgId === msgId)) return;
     messages.push({
+      localId: ++nextLocalId,
       name: asString(data.displayName) || asString(data.nick) || "user",
       text,
-      msgId: asString(data.msgId),
+      msgId,
       userId: asString(data.userId),
       color: asString(data.displayColor)
     });
