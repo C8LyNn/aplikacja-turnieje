@@ -1,6 +1,7 @@
 import "./style.css";
 import { installPreviewTransport } from "./animation/previewTransport";
 import { eventPlaybackInstance, isTriggeredEffect, triggerPlaybackDurationMs } from "./animation/triggers";
+import { appendAlertCaption } from "./animation/alertText";
 
 import {
   installPack08UiQa,
@@ -1006,6 +1007,11 @@ document.addEventListener("animated-effects:test-trigger", (event) => {
   });
   preview.appendChild(holder);
   renderEffect(holder, eventPlaybackInstance(instance));
+  const sampleListener = instance.trigger?.event ?? "follower-latest";
+  const sampleEvent = sampleListener === "message"
+    ? { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } }
+    : { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
+  appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent);
   previewTransport.replay();
   previewTransport.afterRender();
 
