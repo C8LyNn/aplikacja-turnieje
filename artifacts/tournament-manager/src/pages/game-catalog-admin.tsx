@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { nextPendingGameId, pendingCatalogGames } from "./game-catalog-workflow";
 import {
   ModuleHeader,
   ModuleShell,
@@ -256,6 +257,8 @@ export default function GameCatalogAdminPage() {
   const [perspective, setPerspective] = useState<Perspective>("gameplay");
 
   const selected = gameId ? games.find((game) => game.id === gameId) ?? null : null;
+  const pendingGames = useMemo(() => pendingCatalogGames(games), [games]);
+  const nextPendingId = selected ? nextPendingGameId(games, selected.id) : null;
 
   const termsByFacet = useMemo(() => {
     const map = new Map<Facet, Term[]>();
@@ -310,9 +313,26 @@ export default function GameCatalogAdminPage() {
       event.preventDefault();
       event.returnValue = "";
     };
+    // Wouter navigation does not trigger beforeunload, so protect in-app links too.
+    const guardUnsavedLink = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest("a[href]");
+      if (!link || link.getAttribute("target") === "_blank") return;
+      const destination = new URL((link as HTMLAnchorElement).href, window.location.href);
+      if (destination.origin !== window.location.origin || destination.pathname === location) return;
+      if (!window.confirm("Masz niezapisane zmiany. Opuścić edytor bez zapisywania?")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
     window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [hasUnsavedChanges]);
+    document.addEventListener("click", guardUnsavedLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", guardUnsavedLink, true);
+    };
+  }, [hasUnsavedChanges, location]);
 
   useEffect(() => {
     if (!selected) return;
@@ -380,8 +400,15 @@ export default function GameCatalogAdminPage() {
     }
   }
 
-  async function save() {
+  function goToNextPending() {
+    if (nextPendingId === null) return;
+    if (hasUnsavedChanges && !window.confirm("Pominąć tę grę i utracić niezapisane zmiany?")) return;
+    navigate(`${BASE}/games/${nextPendingId}`);
+  }
+
+  async function save(openNext = false) {
     if (!selected) return;
+    const targetNextId = openNext ? nextPendingId : null;
     setBusy(true);
     setError(null);
     try {
@@ -393,6 +420,7 @@ export default function GameCatalogAdminPage() {
         }),
       });
       await reload();
+      if (openNext && targetNextId !== null) navigate(`${BASE}/games/${targetNextId}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -586,6 +614,10 @@ export default function GameCatalogAdminPage() {
 
       {screen === "game" && selected && (
         <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3 text-sm text-muted-foreground">
+            Do opracowania: <strong className="text-foreground">{pendingGames.length}</strong> z {games.length} gier.
+            {nextPendingId === null && <span className="ml-2">Brak kolejnej gry w kolejce.</span>}
+          </div>
           <ToolToolbar>
             <Link href={`${BASE}/games`} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" /> Wszystkie gry</Link>
             <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{selected.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{[selected.developer, selected.releaseDate].filter(Boolean).join(" · ") || `Steam AppID ${selected.steamAppId}`}</div></div>
@@ -593,7 +625,9 @@ export default function GameCatalogAdminPage() {
             <ToolSelect value={status} onChange={(event) => setStatus(event.target.value as Game["status"])} className="w-auto min-w-36">{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect>
             {hasUnsavedChanges && <span role="status" className="text-xs font-semibold text-amber-300">Niezapisane zmiany</span>}
             <ToolButton type="button" variant="ghost" onClick={() => { setDraft(selected.assignments); setStatus(selected.status); }} disabled={busy || !hasUnsavedChanges}>Przywróć</ToolButton>
-            <ToolButton type="button" variant="primary" onClick={save} disabled={busy || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
+            <ToolButton type="button" variant="ghost" onClick={goToNextPending} disabled={busy || nextPendingId === null}>Następna do opracowania</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save()} disabled={busy || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" /> Zapisz i dalej</ToolButton>
           </ToolToolbar>
 
           <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz."><ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} /><div className="mt-6">{renderPerspectiveEditor()}</div></ToolPanel>
