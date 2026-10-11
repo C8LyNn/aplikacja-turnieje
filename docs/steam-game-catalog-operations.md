@@ -187,6 +187,53 @@ breakdown **only when `NODE_ENV=test`**. It does not expose query timings
 in the deployed service. The CI suite logs repeat timings for SQL stages and
 end-to-end HTTP without enforcing flaky timing cutoffs.
 
+## Parallel-load and packaging release gate
+
+The PostgreSQL integration QA now includes a **48-editor simultaneous write**
+scenario. Each request modifies a different game's review state, asserts a
+revision increment, and verifies the exact status-counter deltas against the
+full database. It records elapsed batch time as
+`CATALOG_48_PARALLEL_EDITS`, without an environment-sensitive timing limit.
+
+The 100,003-game workload also runs **60 simultaneous public GET requests**:
+12 each for selective search, broad publisher search, status-filtered listing,
+deep-page cursor pagination and the pending queue. It verifies status codes,
+result invariants and stable cursor ordering and logs cohort-specific median
+and 95th-percentile elapsed time as `CATALOG_100K_MIXED_LOAD`. This tests
+burst behavior on a disposable CI database; it does **not** establish a
+production concurrency limit, tail-latency guarantee or traffic forecast.
+
+### Safe integration into the local project
+
+The working branch `codex/game-catalog-editor-reliability` is a **shared
+integration branch**, not an isolated catalog-only patch: it also carries
+changes to other site features. Before copying changes into a different local
+checkout, review its file diff against that checkout's actual base. Do not
+blindly cherry-pick the entire branch or overwrite a local working tree.
+
+For a **separate, disposable checkout** that tracks this already-tested
+branch, use PowerShell (Git and pnpm installed):
+
+```powershell
+git clone --branch codex/game-catalog-editor-reliability --single-branch https://github.com/C8LyNn/aplikacja-turnieje.git aplikacja-turnieje-catalog-qa
+cd aplikacja-turnieje-catalog-qa
+pnpm install --frozen-lockfile
+pnpm --filter @workspace/tournament-manager test
+pnpm --filter @workspace/api-server test:unit
+pnpm typecheck
+pnpm --filter @workspace/tournament-manager build
+```
+
+The real PostgreSQL integration suite requires the **dedicated disposable
+test database** and destructive test-schema safety configuration already
+provided by `.github/workflows/game-catalog-qa.yml`; it is deliberately not
+included in the commands above. Keep existing app data and local edits
+outside this test checkout. Before a production deployment, back up the
+database, execute migrations `0029` through `0034` in order (migration
+`0034` briefly locks catalog writes during initialization), configure the
+catalog-admin secret and verify actual public endpoints in the deployed
+environment. Passing CI does not automatically deploy or modify `main`.
+
 ## Verification before merging
 
 From the repository root, with dependencies installed and a test database
