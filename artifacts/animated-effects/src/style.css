@@ -8807,3 +8807,53 @@ body {
   .export-profile-actions > label { flex-basis: 100%; }
   .export-profile-actions > button { flex-grow: 1; }
 }
+
+
+/* AE_SE_EVENT_SIMULATOR_V1 */
+.export-simulator-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(135deg, rgba(14,165,233,.09), rgba(124,92,255,.05));
+}
+.export-simulator-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.export-simulator-heading strong { font-size: 15px; }
+.export-simulator-heading span { color: #7dd3fc; font-size: 11px; }
+.export-simulator-config > p { margin: 8px 0 12px; color: #b4c4dd; font-size: 12px; line-height: 1.5; }
+.export-simulator-toolbar {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 10px;
+  padding-bottom: 12px;
+}
+.export-simulator-toolbar label {
+  display: flex; flex: 2 1 250px; flex-direction: column; gap: 7px;
+  min-width: 0; color: #dbeafe; font-size: 12px; font-weight: 600;
+}
+.export-simulator-toolbar select {
+  width: 100%; min-height: 40px; padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 9px; background: #0b1322; color: #f1f5ff;
+}
+.export-simulator-toolbar select:focus-visible,
+.export-simulator-toolbar button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+.export-simulator-toolbar button { min-height: 40px; font-size: 12px; }
+.export-simulator-toolbar button:disabled { cursor: not-allowed; opacity: .45; }
+.export-simulator-stage {
+  width: 100%; aspect-ratio: 16 / 9;
+  position: relative; overflow: hidden; border-radius: 12px;
+  border: 1px solid rgba(125,211,252,.25);
+  background-color: #080c17;
+  background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%),
+    linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+}
+.export-simulator-iframe {
+  display: block;
+  width: 100%; height: 100%;
+  border: 0; background: transparent;
+  pointer-events: none;
+}
+.export-simulator-config .export-simulator-status { min-height: 18px; color: #b9dcf0; }
+@media (max-width: 620px) {
+  .export-simulator-toolbar label { flex-basis: 100%; }
+  .export-simulator-toolbar button { flex: 1 1 auto; }
+}
