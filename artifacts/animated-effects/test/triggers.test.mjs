@@ -19,8 +19,10 @@ const motion = load("../src/animation/motion.ts", (name) => {
   if (name === "./timeline") return timeline;
   throw new Error(name);
 });
+const alertText = load("../src/animation/alertText.ts");
 const triggers = load("../src/animation/triggers.ts", (name) => {
   if (name === "./motion") return motion;
+  if (name === "./alertText") return alertText;
   throw new Error(name);
 });
 const { normalizeEffectTrigger, eventPlaybackInstance, matchesEffectTrigger, triggerPlaybackDurationMs } = triggers;
