@@ -1,4 +1,5 @@
 import "./style.css";
+import { installPreviewTransport } from "./animation/previewTransport";
 
 import {
   installPack08UiQa,
@@ -397,6 +398,10 @@ const preview =
   createPreview(
     previewHost,
   );
+const previewTransport = installPreviewTransport(
+  preview,
+  getRequiredElement<HTMLElement>(".ae-stage-panel"),
+);
 
 const effectDefinitions =
   getAllEffectDefinitions();
@@ -970,10 +975,8 @@ function renderPreview(): void {
       temporaryPreviewEffect,
     );
   }
+  previewTransport.afterRender();
 }
-
-// A replay starts every timed layer at t=0 without changing the saved scene.
-document.addEventListener("animated-effects:replay-preview", () => renderPreview());
 
 function renderLayers(): void {
   const state =
