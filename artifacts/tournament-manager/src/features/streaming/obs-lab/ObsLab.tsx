@@ -68,16 +68,16 @@ export function ObsLab() {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
-  function testChatAnimation() {
-    const id = ++previewMessageId.current;
-    setMockMessages((current) => [
-      ...current,
-      {
-        name: "Widz testowy",
-        text: "Nowa wiadomość — podgląd animacji!",
+  function testChatAnimation(count = 1) {
+    const incoming = Array.from({ length: count }, (_, index) => {
+      const id = ++previewMessageId.current;
+      return {
+        name: "Widz testowy " + (index + 1),
+        text: "Nowa wiadomość — podgląd animacji " + id + "!",
         msgId: `chat-animation-preview-${id}`,
-      },
-    ].slice(-30));
+      };
+    });
+    setMockMessages((current) => [...current, ...incoming].slice(-30));
   }
 
   function applyPreset(preset: "glass" | "minimal" | "compact") {
@@ -299,11 +299,18 @@ export function ObsLab() {
                   <option value="slide">Wjazd z lewej</option>
                   <option value="pop">Powiększenie</option>
                   <option value="fade">Przenikanie</option>
+                  <option value="bounce">Odbicie</option>
+                  <option value="flip">Obrót 3D</option>
+                  <option value="wipe">Odsłonięcie</option>
+                  <option value="random">Losowo dla każdej wiadomości</option>
                 </ToolSelect>
               </label>
               <ToolRange label="Czas animacji" value={config.animationDurationMs} suffix="ms" min={100} max={1200} step={20} onChange={(animationDurationMs) => patchConfig({ animationDurationMs })} />
-              <ToolButton type="button" onClick={testChatAnimation}>Testuj nową wiadomość</ToolButton>
-              <p className="text-xs leading-5 text-muted-foreground">Ten sam efekt i czas zostaną użyte w eksporcie StreamElements. Preferencja ograniczenia ruchu systemu wyłącza animacje.</p>
+              <div className="flex flex-wrap gap-2">
+                <ToolButton type="button" onClick={() => testChatAnimation()}>Testuj nową wiadomość</ToolButton>
+                <ToolButton type="button" onClick={() => testChatAnimation(4)}>Testuj serię 4 wiadomości</ToolButton>
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground">Animujemy <strong>samą wiadomość czatu</strong>, a nie całe tło sceny. Tryb losowy wybiera stabilny efekt osobno dla każdej wiadomości. Te same style trafią do URL OBS i eksportu StreamElements; ograniczenie ruchu systemu wyłącza animacje.</p>
             </div>
           )}
         </div>
