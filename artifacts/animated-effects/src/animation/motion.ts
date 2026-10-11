@@ -18,7 +18,7 @@ function bounded(value: unknown, fallback: number, min: number, max: number): nu
   return Number.isFinite(number) ? Math.max(min, Math.min(max, number)) : fallback;
 }
 
-function keyframeValues(raw: Record<string, unknown>, base: EffectSettings): Omit<LayerKeyframe, "timeMs"> {
+function keyframeValues(raw: Partial<Record<MotionField, unknown>>, base: EffectSettings): Omit<LayerKeyframe, "timeMs"> {
   return {
     x: bounded(raw.x, base.x, ...LIMITS.x),
     y: bounded(raw.y, base.y, ...LIMITS.y),
