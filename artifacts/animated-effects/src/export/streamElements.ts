@@ -8,6 +8,7 @@ import {
   getEffectModule,
 } from "../effects/registry";
 import { getLayerTimelineAnimation } from "../animation/timeline";
+import { getLayerMotionAnimation } from "../animation/motion";
 
 export function generateStreamElementsExport(
   state: EditorState,
@@ -32,6 +33,7 @@ export function generateStreamElementsExport(
         settings:
           effect.settings,
         timingAnimation: getLayerTimelineAnimation(effect)?.animation ?? null,
+        motionAnimation: getLayerMotionAnimation(effect)?.animation ?? null,
       }),
     );
 
@@ -120,7 +122,7 @@ body {
 
 ${usedCss}
 
-${effects.map((effect) => getLayerTimelineAnimation(effect)?.css ?? "").filter(Boolean).join("\n")}
+${effects.flatMap((effect) => [getLayerTimelineAnimation(effect)?.css, getLayerMotionAnimation(effect)?.css]).filter(Boolean).join("\n")}
 `.trim();
 }
 
@@ -132,6 +134,7 @@ function generateJavaScript(
     settings:
       EffectInstance["settings"];
     timingAnimation: string | null;
+    motionAnimation: string | null;
   }>,
 ): string {
   const effectIds =
@@ -521,6 +524,7 @@ function startAnimatedEffects() {
         return;
       }
 
+      let parent = root;
       if (effect.timingAnimation) {
         const wrapper = document.createElement("div");
         wrapper.className = "ae-timed-layer";
@@ -530,10 +534,30 @@ function startAnimatedEffects() {
         wrapper.style.pointerEvents = "none";
         wrapper.style.zIndex = String(effect.settings.zIndex);
         wrapper.style.animation = effect.timingAnimation;
-        root.appendChild(wrapper);
-        renderer(effect, wrapper);
-      } else {
-        renderer(effect, root);
+        parent.appendChild(wrapper);
+        parent = wrapper;
+      }
+      if (effect.motionAnimation) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "ae-motion-layer";
+        wrapper.style.position = "absolute";
+        wrapper.style.inset = "0";
+        wrapper.style.overflow = "hidden";
+        wrapper.style.pointerEvents = "none";
+        wrapper.style.zIndex = String(effect.settings.zIndex);
+        wrapper.style.animation = effect.motionAnimation;
+        parent.appendChild(wrapper);
+        parent = wrapper;
+      }
+      renderer(effect, parent);
+      if (effect.motionAnimation) {
+        // Source renderers use aeCreateLayer(), which sets a base transform.
+        // Move that transform entirely to the motion wrapper.
+        Array.from(parent.children).forEach(function (child) {
+          if (child.classList && child.classList.contains("ae-layer")) {
+            child.style.transform = "none";
+          }
+        });
       }
     }
   );
