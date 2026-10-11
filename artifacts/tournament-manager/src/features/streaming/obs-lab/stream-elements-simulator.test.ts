@@ -86,9 +86,11 @@ test("simulator forwards commands into the exact exported widget and shows selec
   });
   try {
     const posts: Array<Record<string, unknown>> = [];
-    Object.defineProperty(dom.window, "parent", {
+    // In JSDOM a top-level window is its own parent. Stub the outbound
+    // postMessage function rather than attempting to redefine window.parent.
+    Object.defineProperty(dom.window, "postMessage", {
       configurable: true,
-      value: { postMessage: (value: Record<string, unknown>) => posts.push(value) },
+      value: (value: Record<string, unknown>) => posts.push(value),
     });
     const pending = new Map<number, () => void>();
     let nextId = 0;
