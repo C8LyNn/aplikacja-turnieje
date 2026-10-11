@@ -87,7 +87,7 @@ test("importing a Steam game opens its editor immediately, without requiring a r
 
   await waitFor(() => {
     assert.ok(location.history.includes(`${BASE}/games/42`));
-    assert.ok(screen.getByText("Nowa gra"));
+    assert.ok(screen.getByRole("heading", { name: "Nowa gra" }));
   });
   assert.equal(screen.queryByText("Nie znaleziono gry"), null);
   assert.equal(requests.filter((request) => request.path.endsWith("/import")).length, 1);
