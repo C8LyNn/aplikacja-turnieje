@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   countEvidenceDirections,
+  evidenceSignature,
   evidenceUnitKey,
   groupEvidenceByYear,
 } from "./evidence-analysis";
@@ -65,4 +66,18 @@ test("timeline groups dated evidence without inventing dates", () => {
   assert.equal(result.years[0]?.units, 1);
   assert.equal(result.years[0]?.codings, 2);
   assert.equal(result.undatedCodings, 1);
+});
+
+
+test("evidence signature is stable by coding identity and changes with coding semantics", () => {
+  const first = coding("c1", "e1", 1);
+  const second = coding("c2", "e3", -1);
+  assert.equal(
+    evidenceSignature([first, second]),
+    evidenceSignature([second, first]),
+  );
+  assert.notEqual(
+    evidenceSignature([first]),
+    evidenceSignature([{ ...first, direction: 2 }]),
+  );
 });
