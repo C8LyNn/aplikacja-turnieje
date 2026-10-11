@@ -44,6 +44,14 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
           <input data-ae-trigger-amount type="number" min="0" max="1000000" step="1"
             value="${config?.minAmount ?? 0}">
         </label>
+        <label class="ae-timeline-field">
+          <span class="inspector-label"><span>Gdy kilka zdarzeń nastąpi szybko</span></span>
+          <select data-ae-trigger-queue-mode aria-label="Tryb odtwarzania zdarzeń">
+            <option value="replace" ${config?.queueMode !== "queue" ? "selected" : ""}>Restartuj ten efekt (zgodność wsteczna)</option>
+            <option value="queue" ${config?.queueMode === "queue" ? "selected" : ""}>Kolejkuj z pozostałymi alertami</option>
+          </select>
+        </label>
+        <p class="ae-timeline-hint">Kolejka jest wspólna dla warstw z wybraną opcją. Odtwarza jeden alert naraz (maks. 16 oczekujących), bez nakładania efektów zdarzeniowych w trybie kolejki.</p>
         <div class="ae-caption-fields">
           <label class="ae-caption-switch">
             <input type="checkbox" data-ae-caption-enabled ${caption.enabled ? "checked" : ""}>
@@ -88,7 +96,7 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
 
 export function bindTriggerControls(container: HTMLElement, effect: EffectInstance): void {
   const eventField = container.querySelector<HTMLSelectElement>("[data-ae-trigger-event]");
-  const write = (patch: { event?: EffectTriggerEvent; cooldownMs?: number; minAmount?: number; caption?: AlertCaption }): void => {
+  const write = (patch: { event?: EffectTriggerEvent; cooldownMs?: number; minAmount?: number; caption?: AlertCaption; queueMode?: "replace" | "queue" }): void => {
     const source = normalizeEffectTrigger(effect.trigger);
     const event = eventField?.value;
     if (!event || event === "always") {
@@ -102,6 +110,7 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
       cooldownMs: patch.cooldownMs ?? source?.cooldownMs ?? 3000,
       minAmount: patch.minAmount ?? source?.minAmount ?? 0,
       caption: patch.caption ?? source?.caption,
+      queueMode: patch.queueMode ?? source?.queueMode ?? "queue",
     });
   };
   eventField?.addEventListener("change", () => write({}));
@@ -113,6 +122,11 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
     const value = Number((event.currentTarget as HTMLInputElement).value);
     if (Number.isFinite(value)) write({ minAmount: Math.round(value) });
   });
+  container.querySelector<HTMLSelectElement>("[data-ae-trigger-queue-mode]")?.addEventListener("change", (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
+    if (value === "replace" || value === "queue") write({ queueMode: value });
+  });
+
   const changeCaption = (patch: Partial<AlertCaption>): void => {
     const existing = normalizeEffectTrigger(effect.trigger);
     const event = eventField?.value as EffectTriggerEvent | undefined;
