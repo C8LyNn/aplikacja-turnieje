@@ -9151,3 +9151,68 @@ body {
   .ae-diagnostics-controls { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .ae-diagnostics-controls button { white-space: normal; }
 }
+
+
+/* Real-time traffic stress runner, editor-only. */
+.ae-diagnostics-stress-controls {
+  display: grid;
+  grid-template-columns: minmax(170px,1.4fr) minmax(115px,.7fr) repeat(2,max-content);
+  align-items: center;
+  gap: 8px;
+}
+.ae-diagnostics-stress-controls > * { min-width: 0; }
+.ae-diagnostics-stress-controls select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  background: #162538;
+  color: #e6f2ff;
+  border: 1px solid rgba(160,197,222,.26);
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+.ae-diagnostics-stress-controls button {
+  min-height: 36px;
+  white-space: nowrap;
+  padding: 6px 10px;
+}
+.ae-diagnostics-stress-controls button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.ae-diagnostics-progress {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 9px;
+  border-radius: 9px;
+  accent-color: #5ebdeb;
+}
+.ae-diagnostics-stress-status {
+  margin: 0;
+  padding: 9px;
+  color: #d2e6f7;
+  background: rgba(55,127,174,.11);
+  border-left: 2px solid rgba(89,174,228,.65);
+  line-height: 1.5;
+}
+.ae-diagnostics-report {
+  display: grid;
+  gap: 5px;
+  color: #c1d9ee;
+  line-height: 1.5;
+}
+.ae-diagnostics-report p { margin: 0; font-variant-numeric: tabular-nums; }
+.ae-diagnostics-findings {
+  margin: 6px 0 0;
+  padding-left: 21px;
+  color: #f0d6a3;
+}
+.ae-diagnostics-findings li + li { margin-top: 4px; }
+@media (max-width: 900px) {
+  .ae-diagnostics-stress-controls { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 420px) {
+  .ae-diagnostics-stress-controls { grid-template-columns: 1fr; }
+  .ae-diagnostics-stress-controls button { white-space: normal; }
+}
