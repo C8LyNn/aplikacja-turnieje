@@ -53,7 +53,7 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
         { id: 7, facet: "genre", slug: "akcja", label: "Akcja", active: true },
       ] });
     }
-    if (/^\\/api\\/steam-catalog\\/games\\/\\d+\\/classification$/.test(path) && method === "PUT") {
+    if (path.startsWith("/api/steam-catalog/games/") && path.endsWith("/classification") && method === "PUT") {
       const id = Number(path.split("/")[4]);
       const changed = games.find((item) => item.id === id);
       assert.ok(changed, "classification request must target an existing game");
