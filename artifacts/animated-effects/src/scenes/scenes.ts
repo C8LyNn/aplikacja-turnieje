@@ -50,7 +50,7 @@ function safeSettings(raw: unknown, defaults: EffectSettings, controls: EffectCu
     blur: finite(source.blur, defaults.blur, 0, 100), brightness: finite(source.brightness, defaults.brightness, 0, 500),
     hue: finite(source.hue, defaults.hue, -1080, 1080), color,
     colorize: typeof source.colorize === "boolean" ? source.colorize : defaults.colorize,
-    density: finite(source.density, defaults.density, 0, 200), blendMode, area,
+    density: finite(source.density, defaults.density, 0, 400), blendMode, area,
     zIndex: finite(source.zIndex, defaults.zIndex, -1000, 1000),
     speed: finite(source.speed, defaults.speed, 1, 500), intensity: finite(source.intensity, defaults.intensity, 0, 200),
     custom: customKeys.size ? custom : undefined,
