@@ -90,7 +90,7 @@ try {
         Write-Host "Open: $previewUrl" -ForegroundColor Green
         Write-Host 'The other application pages can show API errors because no backend is running.'
         Write-Host 'To refresh edited Animated Effects code, stop, rebuild, and rerun. Ctrl+C stops preview.'
-        Invoke-Pnpm '--filter' '@workspace/tournament-manager' 'serve'
+        Invoke-Pnpm '--filter' '@workspace/tournament-manager' 'exec' 'vite' 'preview' '--config' 'vite.config.ts' '--host' '127.0.0.1' '--port' ([string]$Port) '--strictPort'
     }
 }
 finally {
