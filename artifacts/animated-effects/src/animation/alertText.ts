@@ -1,4 +1,5 @@
 import type { AlertCaption } from "../core/types";
+import { appendEventAvatar } from "./alertAvatar";
 
 export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   enabled: false,
@@ -94,6 +95,9 @@ export function appendAlertCaption(
     label.style.transform = "translateY(-50%)";
   } else {
     label.style.bottom = "8%";
+  }
+  if (options.avatarEnabled) {
+    appendEventAvatar(label, event, getAlertFields(listener, event).name, options.avatarSize ?? 72);
   }
   parent.appendChild(label);
   return label;
