@@ -11,10 +11,20 @@ import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
 import { createResearchId, loadResearchProject, saveResearchProject } from "./storage";
 
 function withPilotDefaults(data: ResearchProjectData): ResearchProjectData {
+  const codebooks = data.codebooks.some((codebook) => codebook.id === PILOT_CODEBOOK.id)
+    ? data.codebooks.map((codebook) => codebook.id === PILOT_CODEBOOK.id ? PILOT_CODEBOOK : codebook)
+    : [...data.codebooks, PILOT_CODEBOOK];
+
+  const pilotById = new Map(PILOT_PROPOSITIONS.map((proposition) => [proposition.id, proposition]));
+  const propositions = [
+    ...data.propositions.map((proposition) => pilotById.get(proposition.id) ?? proposition),
+    ...PILOT_PROPOSITIONS.filter((proposition) => !data.propositions.some((current) => current.id === proposition.id)),
+  ];
+
   return {
     ...data,
-    codebooks: data.codebooks.length ? data.codebooks : [PILOT_CODEBOOK],
-    propositions: data.propositions.length ? data.propositions : PILOT_PROPOSITIONS,
+    codebooks,
+    propositions,
     coders: data.coders.length
       ? data.coders
       : [{ id: "coder-owner", displayName: "Badacz", type: "human" }],
