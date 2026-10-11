@@ -54,3 +54,27 @@ test("control characters are stripped, message size is bounded and unknown place
   assert.ok(result.length <= 280);
   assert.equal(result, live.render("{name}: {message} {missing}", "message", payload));
 });
+
+test("avatar URL validation restricts transport and host without query-based bypasses", () => {
+  assert.equal(avatar.safeAvatarUrl("http://static-cdn.jtvnw.net/photo.png"), null);
+  assert.equal(avatar.safeAvatarUrl("https://static-cdn.jtvnw.net.evil.test/photo"), null);
+  assert.equal(avatar.safeAvatarUrl("https://example.com/photo"), null);
+  assert.equal(avatar.safeAvatarUrl("javascript:alert(1)"), null);
+  assert.equal(avatar.safeAvatarUrl("https://evil.test@static-cdn.jtvnw.net/photo"), null);
+  assert.equal(
+    avatar.safeAvatarUrl("https://static-cdn.jtvnw.net/test/photo.png"),
+    "https://static-cdn.jtvnw.net/test/photo.png",
+  );
+  assert.equal(
+    avatar.avatarFromEvent({ data: { avatar: "https://yt3.googleusercontent.com/avatar" } }),
+    "https://yt3.googleusercontent.com/avatar",
+  );
+});
+
+test("avatar settings default off and clamp imported sizes", () => {
+  const defaults = editor.normalizeAlertCaption(undefined);
+  assert.equal(defaults.avatarEnabled, false);
+  assert.equal(defaults.avatarSize, 72);
+  assert.equal(editor.normalizeAlertCaption({ enabled: true, avatarEnabled: true, avatarSize: 999 }).avatarSize, 144);
+  assert.equal(editor.normalizeAlertCaption({ avatarSize: -200 }).avatarSize, 32);
+});
