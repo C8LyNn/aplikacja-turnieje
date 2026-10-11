@@ -1,7 +1,7 @@
 import type { Codebook, Proposition } from "./model";
 
 export const PILOT_CODEBOOK: Codebook = {
-  id: "codebook-pilot-v1",
+  id: "codebook-pilot-0.2.0",
   name: "Neoludologia — pilot",
   version: "0.2.0",
   status: "pilot",
@@ -11,7 +11,7 @@ export const PILOT_CODEBOOK: Codebook = {
 
 export const PILOT_PROPOSITIONS: Proposition[] = [
   {
-    id: "q01",
+    id: "q01@0.2.0",
     codebookId: PILOT_CODEBOOK.id,
     code: "Q01",
     label: "Kryteria jakości poza indywidualnym gustem",
@@ -38,7 +38,7 @@ export const PILOT_PROPOSITIONS: Proposition[] = [
     ],
   },
   {
-    id: "q02",
+    id: "q02@0.2.0",
     codebookId: PILOT_CODEBOOK.id,
     code: "Q02",
     label: "Sprawczość jako warunek gry",
@@ -64,7 +64,7 @@ export const PILOT_PROPOSITIONS: Proposition[] = [
     ],
   },
   {
-    id: "q03",
+    id: "q03@0.2.0",
     codebookId: PILOT_CODEBOOK.id,
     code: "Q03",
     label: "Uprzywilejowanie mechanik",
@@ -90,7 +90,7 @@ export const PILOT_PROPOSITIONS: Proposition[] = [
     ],
   },
   {
-    id: "q04",
+    id: "q04@0.2.0",
     codebookId: PILOT_CODEBOOK.id,
     code: "Q04",
     label: "Narracja jako główna wartość gry",
@@ -116,7 +116,7 @@ export const PILOT_PROPOSITIONS: Proposition[] = [
     ],
   },
   {
-    id: "q05",
+    id: "q05@0.2.0",
     codebookId: PILOT_CODEBOOK.id,
     code: "Q05",
     label: "Znaczenie celu i kontekstu projektu",
