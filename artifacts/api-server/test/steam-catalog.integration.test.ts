@@ -608,6 +608,42 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const id = await measure("app_id_ms", "/api/steam-catalog/games?query=1600000");
     assert.equal(id.pagination.total, 1);
     assert.equal(id.games[0].steamAppId, 1600000);
+    // Compare an exact-count window plan with the two-query implementation
+    // for a broad search. This is diagnostic until repeat measurements justify
+    // any production SQL change.
+    const broadSql = [
+      "SELECT id,name,count(*) OVER() AS matching_total FROM steam_catalog_games",
+      "WHERE status='ready' AND (name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1)",
+      "ORDER BY name,id LIMIT 26",
+    ].join(" ");
+    const broadWindow: number[] = [];
+    const broadSplit: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const startedWindow = performance.now();
+      const windowRows = await rows<{ id: number; matching_total: string }>(
+        broadSql, ["%Scale Test Publisher%"],
+      );
+      broadWindow.push(Math.round((performance.now() - startedWindow) * 100) / 100);
+      assert.ok(windowRows.length === 26);
+      const startedSplit = performance.now();
+      const [countRow] = await rows<{ n: string }>(
+        "SELECT count(*) AS n FROM steam_catalog_games WHERE status='ready' " +
+        "AND (name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1)",
+        ["%Scale Test Publisher%"],
+      );
+      const firstRows = await rows<{ id: number }>(
+        "SELECT id FROM steam_catalog_games WHERE status='ready' " +
+        "AND (name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1) " +
+        "ORDER BY name,id LIMIT 26",
+        ["%Scale Test Publisher%"],
+      );
+      broadSplit.push(Math.round((performance.now() - startedSplit) * 100) / 100);
+      assert.equal(Number(countRow.n), Number(windowRows[0].matching_total));
+      assert.deepEqual(firstRows.map(x=>x.id),windowRows.map(x=>x.id));
+    }
+    console.log("CATALOG_100K_BROAD_WINDOW_COMPARE " + JSON.stringify({
+      window_ms: broadWindow, split_ms: broadSplit,
+    }));
     const broad = await measure(
       "broad_publisher_ms", "/api/steam-catalog/games?query=Scale%20Test%20Publisher&status=ready",
     );
