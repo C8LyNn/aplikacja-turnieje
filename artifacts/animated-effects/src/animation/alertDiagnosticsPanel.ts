@@ -1,6 +1,8 @@
 import type { EffectInstance, EffectTriggerEvent } from "../core/types";
 import { STREAM_EVENTS } from "./triggers";
 import { AlertDiagnosticEngine, type DiagnosticAlert } from "./alertDiagnosticEngine";
+import { AlertStressRunner } from "./alertStressRunner";
+import type { StressScenario } from "./alertStress";
 
 const reasonLabels: Record<string, string> = {
   accepted: "Dodano do kolejki",
@@ -27,6 +29,7 @@ export function installAlertDiagnostics(
   getEffects: () => EffectInstance[],
 ): { refresh: () => void } {
   const engine = new AlertDiagnosticEngine();
+  const stressRunner = new AlertStressRunner(engine);
   const fingerprint = (): string => JSON.stringify(getEffects().map((effect) => [
     effect.instanceId, effect.enabled, effect.trigger ?? null,
   ]));
@@ -85,6 +88,47 @@ export function installAlertDiagnostics(
   const logHeading = node("h4", "", "Historia decyzji (ostatnie 60)");
   const log = node("ol", "ae-diagnostics-log");
   content.append(logHeading, log);
+
+  const stressHeading = node("h4", "", "Test obciążeniowy transmisji (czas rzeczywisty)");
+  const stressHint = node("p", "ae-diagnostics-hint",
+    "Scenariusze wysyłają syntetyczne zdarzenia do lokalnej kolejki. Mierzone są odstępy requestAnimationFrame, nie obciążenie GPU ani serwerów StreamElements. Wynik zależy od komputera i przeglądarki.");
+  const stressControls = node("div", "ae-diagnostics-stress-controls");
+  const stressScenario = node("select") as HTMLSelectElement;
+  stressScenario.setAttribute("aria-label", "Scenariusz obciążenia");
+  for (const [value, label] of [
+    ["steady", "Zwykła transmisja"],
+    ["burst", "Nagły wzrost ruchu"],
+    ["chat-flood", "Intensywny czat"],
+  ] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    stressScenario.appendChild(option);
+  }
+  const stressDuration = node("select") as HTMLSelectElement;
+  stressDuration.setAttribute("aria-label", "Czas trwania testu");
+  for (const [ms, label] of [[12000, "12 sekund"], [30000, "30 sekund"]] as const) {
+    const option = document.createElement("option");
+    option.value = String(ms);
+    option.textContent = label;
+    stressDuration.appendChild(option);
+  }
+  const stressStart = node("button", "ae-button ae-button-primary", "Uruchom test") as HTMLButtonElement;
+  stressStart.type = "button";
+  const stressStop = node("button", "ae-button ae-button-secondary", "Zatrzymaj test") as HTMLButtonElement;
+  stressStop.type = "button";
+  stressStop.disabled = true;
+  stressControls.append(stressScenario, stressDuration, stressStart, stressStop);
+  const stressProgress = node("progress", "ae-diagnostics-progress") as HTMLProgressElement;
+  stressProgress.value = 0;
+  stressProgress.max = 100;
+  stressProgress.setAttribute("aria-label", "Postęp testu obciążeniowego");
+  const stressStatus = node("p", "ae-diagnostics-stress-status",
+    "Test nie został uruchomiony. Wybierz scenariusz i kliknij Uruchom test.");
+  stressStatus.setAttribute("role", "status");
+  const stressReport = node("div", "ae-diagnostics-report");
+  content.append(stressHeading, stressHint, stressControls, stressProgress, stressStatus, stressReport);
+
   section.appendChild(content);
   stagePanel.appendChild(section);
 
@@ -114,7 +158,8 @@ export function installAlertDiagnostics(
     }
 
     current.textContent = snapshot.current ? format(snapshot.current) : "Brak aktywnej symulowanej animacji.";
-    next.disabled = !snapshot.current && snapshot.waiting.length === 0;
+    next.disabled = stressRunner.isRunning() || (!snapshot.current && snapshot.waiting.length === 0);
+    simulate.disabled = stressRunner.isRunning();
     waiting.replaceChildren();
     if (!snapshot.waiting.length) waiting.appendChild(node("li", "", "Kolejka jest pusta."));
     for (const item of snapshot.waiting) waiting.appendChild(node("li", "", format(item)));
@@ -132,7 +177,65 @@ export function installAlertDiagnostics(
     }));
   };
 
+  stressStart.addEventListener("click", () => {
+    if (stressRunner.isRunning()) return;
+    const scenario = stressScenario.value as StressScenario;
+    const durationMs = Number(stressDuration.value);
+    const effects = getEffects();
+    if (!effects.some((effect) => effect.enabled && effect.trigger?.source === "event")) {
+      stressStatus.textContent = "Dodaj co najmniej jedną włączoną warstwę z wyzwalaczem StreamElements.";
+      return;
+    }
+    document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
+    stressStart.disabled = true;
+    stressStop.disabled = false;
+    stressScenario.disabled = true;
+    stressDuration.disabled = true;
+    stressReport.replaceChildren();
+    stressProgress.value = 0;
+    stressStatus.textContent = "Test wystartował; symulowane zdarzenia pojawiają się w czasie rzeczywistym.";
+    stressRunner.start(scenario, durationMs, effects, {
+      onPlay: play,
+      onProgress: (progress) => {
+        stressProgress.value = Math.round(progress.elapsedMs / progress.durationMs * 100);
+        const snap = engine.getSnapshot();
+        stressStatus.textContent = "Odtworzono " + progress.dispatched + "/" + progress.planned +
+          " zdarzeń; kolejka: " + progress.currentQueueSize +
+          "; odrzucenia: " + snap.counters.dropped +
+          "; maksimum oczekujących: " + progress.waitingPeak + ".";
+        render();
+      },
+      onFinish: (report, state) => {
+        stressStart.disabled = false;
+        stressStop.disabled = true;
+        stressScenario.disabled = false;
+        stressDuration.disabled = false;
+        stressProgress.value = Math.round(report.durationMs / durationMs * 100);
+        const statusMessage = state === "completed" ? "Zakończono scenariusz."
+          : state === "hidden" ? "Test przerwany: karta przeszła w tło (pomiar niemiarodajny)."
+            : "Zatrzymano test przed końcem.";
+        stressStatus.textContent = statusMessage + " Przetworzono " + report.dispatched + "/" + report.total + " zdarzeń.";
+        stressReport.replaceChildren();
+        const frame = report.frame;
+        stressReport.appendChild(node("p", "", "Oczekujące maksimum: " + report.waitingPeak +
+          "/16 · odrzucenia: " + report.dropped + " · wyparcia: " + report.evicted +
+          " · przyjęte: " + report.accepted));
+        stressReport.appendChild(node("p", "", "Rytm klatek rAF: " +
+          (frame.approximateFps === null ? "brak danych" : "~" + frame.approximateFps + " FPS") +
+          " · p95 odstępu: " + (frame.p95FrameMs ?? "brak") + " ms" +
+          " · klatki >33 ms: " + (frame.slowFramesPercent ?? "brak") + "% · próbek: " + frame.samples));
+        const findings = node("ul", "ae-diagnostics-findings");
+        for (const warning of report.warnings) findings.appendChild(node("li", "", warning));
+        stressReport.appendChild(findings);
+        render();
+      },
+    });
+    render();
+  });
+  stressStop.addEventListener("click", () => stressRunner.stop("stopped"));
+
   simulate.addEventListener("click", () => {
+    if (stressRunner.isRunning()) return;
     const event = eventSelect.value as EffectTriggerEvent;
     const n = Number(count.value);
     const numericAmount = Number(amount.value);
@@ -152,12 +255,14 @@ export function installAlertDiagnostics(
   });
 
   next.addEventListener("click", () => {
+    if (stressRunner.isRunning()) return;
     const item = engine.finishCurrent();
     if (item) play(item);
     else document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
     render(item ? "Odtwarzanie następnego alertu z symulowanej kolejki." : "Symulowana kolejka zakończona.");
   });
   reset.addEventListener("click", () => {
+    stressRunner.stop("stopped");
     engine.reset();
     document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
     render("Wyczyszczono stan lokalnego symulatora.");
@@ -170,6 +275,7 @@ export function installAlertDiagnostics(
       const nextFingerprint = fingerprint();
       if (lastFingerprint !== nextFingerprint) {
         lastFingerprint = nextFingerprint;
+        stressRunner.stop("stopped");
         engine.reset();
         render("Zmieniono konfigurację sceny — symulacja została wyzerowana.");
       } else {
