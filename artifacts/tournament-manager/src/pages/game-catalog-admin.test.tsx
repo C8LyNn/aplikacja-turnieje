@@ -53,6 +53,13 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
       const pageSize = Number(parsed.searchParams.get("pageSize") ?? "25");
       const query = (parsed.searchParams.get("query") ?? "").trim().toLowerCase();
       const status = parsed.searchParams.get("status") ?? "all";
+      const rawCursor = parsed.searchParams.get("cursor");
+      if (rawCursor) {
+        const decoded = JSON.parse(Buffer.from(rawCursor, "base64url").toString("utf8")) as {
+          page: number; query: string; status: string;
+        };
+        assert.deepEqual({ page: decoded.page, query: decoded.query, status: decoded.status }, { page, query, status });
+      }
       const matches = games.filter((item) =>
         (status === "all" || item.status === status) &&
         (!query || [item.name, item.developer, item.publisher, String(item.steamAppId)]
@@ -60,7 +67,13 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
       ).sort((a, b) => a.name.localeCompare(b.name, "pl") || a.id - b.id);
       return Response.json({
         games: matches.slice((page - 1) * pageSize, page * pageSize).map(({ assignments: _assignments, ...summary }) => summary),
-        pagination: { page, pageSize, total: matches.length, totalPages: Math.max(1, Math.ceil(matches.length / pageSize)) },
+        pagination: {
+          page, pageSize, total: matches.length,
+          totalPages: Math.max(1, Math.ceil(matches.length / pageSize)),
+          nextCursor: page * pageSize < matches.length
+            ? Buffer.from(JSON.stringify({ page: page + 1, query, status })).toString("base64url")
+            : null,
+        },
         counts: {
           all: games.length,
           unclassified: games.filter((item) => item.status === "unclassified").length,
@@ -280,7 +293,7 @@ test("catalog loads only a page of 25 games, then requests page two", async () =
   fireEvent.click(screen.getByRole("button", { name: "Następna" }));
   await screen.findByRole("link", { name: /Gra 26/i });
   assert.equal(screen.queryByRole("link", { name: /Gra 01/i }), null);
-  assert.ok(requests.some((request) => request.path.includes("page=2")));
+  assert.ok(requests.some((request) => request.path.includes("page=2") && request.path.includes("cursor=")));
 });
 
 test("a deep linked game is fetched by ID without first fetching every catalog row", async () => {
@@ -335,3 +348,20 @@ test("stale editor changes are retained after 409 until confirmed reload", async
     window.confirm = priorConfirm;
   }
 });
+
+test("changing filters discards a cursor from the previous listing", async () => {
+  const records = Array.from({ length: 40 }, (_, i) => game(i + 1, "List " + String(i + 1).padStart(2, "0")));
+  const requests = mockCatalog(records);
+  mount(`${BASE}/games`);
+  await screen.findByRole("link", { name: /List 01/i });
+  fireEvent.click(screen.getByRole("button", { name: "Następna" }));
+  await screen.findByRole("link", { name: /List 26/i });
+  const before = requests.length;
+  fireEvent.change(screen.getByPlaceholderText("Szukaj w katalogu..."), { target: { value: "List 01" } });
+  await waitFor(() => assert.ok(requests.length > before));
+  const latest = requests.at(-1)!;
+  assert.ok(latest.path.includes("page=1"));
+  assert.ok(!latest.path.includes("cursor="));
+  assert.ok(screen.getByRole("link", { name: /List 01/i }));
+});
+
