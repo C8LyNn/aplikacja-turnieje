@@ -94,6 +94,8 @@ export interface EffectTrigger {
   caption?: AlertCaption;
   /** Legacy replace mode is preserved for imported scenes. */
   queueMode?: "replace" | "queue";
+  /** Higher priority is shown sooner; never interrupts an active alert. */
+  priority?: number;
 }
 
 export interface EffectInstance {
