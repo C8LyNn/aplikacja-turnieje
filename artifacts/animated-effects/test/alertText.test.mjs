@@ -78,3 +78,17 @@ test("avatar settings default off and clamp imported sizes", () => {
   assert.equal(editor.normalizeAlertCaption({ enabled: true, avatarEnabled: true, avatarSize: 999 }).avatarSize, 144);
   assert.equal(editor.normalizeAlertCaption({ avatarSize: -200 }).avatarSize, 32);
 });
+
+
+test("custom caption coordinates clamp to the visible safe band", () => {
+  const caption = editor.normalizeAlertCaption({
+    enabled: true, position: "custom", xPercent: 200, yPercent: -10,
+  });
+  assert.equal(caption.position, "custom");
+  assert.equal(caption.xPercent, 75);
+  assert.equal(caption.yPercent, 10);
+  const baseline = editor.normalizeAlertCaption(undefined);
+  assert.equal(baseline.position, "bottom");
+  assert.equal(baseline.xPercent, 50);
+  assert.equal(baseline.yPercent, 75);
+});
