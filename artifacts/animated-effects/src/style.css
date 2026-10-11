@@ -8773,3 +8773,37 @@ body {
 @media (max-width: 620px) {
   .export-route-fields, .export-route-effect-list { grid-template-columns: minmax(0,1fr); }
 }
+
+
+/* AE_SE_PROFILE_LIBRARY_V1 */
+.export-profile-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(140deg, rgba(0,217,255,.08), rgba(124,92,255,.05));
+}
+.export-profile-heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.export-profile-heading strong { color: #f5f8ff; font-size: 15px; }
+.export-profile-heading span { color: #9fddea; font-size: 11px; }
+.export-profile-config > p { color: #aabbd6; font-size: 12px; line-height: 1.55; margin: 7px 0 12px; }
+.export-profile-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; margin-top: 10px; }
+.export-profile-actions > label { display: grid; flex: 1 1 210px; gap: 5px; min-width: 0; color: #d2ddef; font-size: 12px; }
+.export-profile-actions input:not([type=file]), .export-profile-actions select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px;
+  outline-offset: 2px;
+  background: #0f1929;
+  color: #f1f6ff;
+}
+.export-profile-actions input:focus-visible, .export-profile-actions select:focus-visible { outline: 2px solid #00d9ff; }
+.export-profile-actions > button { min-height: 40px; font-size: 12px; }
+.export-profile-actions > button:disabled { opacity: .45; cursor: not-allowed; }
+.export-profile-help { color: #8f9eba; font-size: 11px; line-height: 1.45; }
+.export-profile-config .export-profile-status { margin: 12px 0 0; color: #9fcfe1; }
+.export-profile-status[data-error=true] { color: #ff9ea9; }
+@media (max-width: 620px) {
+  .export-profile-actions > label { flex-basis: 100%; }
+  .export-profile-actions > button { flex-grow: 1; }
+}
