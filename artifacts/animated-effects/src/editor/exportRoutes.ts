@@ -103,6 +103,41 @@ export function readExportRoutes(dialog: HTMLDialogElement): StreamElementsRoute
   });
 }
 
+/**
+ * Replace only export rule UI; the actual scene is restored by the profile controller.
+ * Values are assigned via input.value/textContent, never interpolated as markup.
+ */
+export function applyExportRoutes(
+  dialog: HTMLDialogElement,
+  routes: readonly StreamElementsRouteInput[] | null,
+): void {
+  const toggle = dialog.querySelector<HTMLInputElement>("[data-multi-routes]");
+  const list = dialog.querySelector<HTMLElement>("[data-route-list]");
+  if (!toggle || !list) return;
+  toggle.checked = routes !== null;
+  list.replaceChildren();
+  if (routes !== null) {
+    const activeIds = activeEffects().map((effect) => effect.instanceId);
+    const checkedRoutes = normalizeStreamElementsRoutes(routes, activeIds);
+    for (const route of checkedRoutes) {
+      const card = createRoute();
+      card.dataset.routeId = route.id;
+      const match = /^route-(\\d+)$/.exec(route.id);
+      if (match) nextRouteId = Math.max(nextRouteId, Number(match[1]));
+      card.querySelector<HTMLSelectElement>("[data-route-mode]")!.value = route.mode;
+      card.querySelector<HTMLInputElement>("[data-route-command]")!.value = route.chatCommand;
+      card.querySelector<HTMLInputElement>("[data-route-duration]")!.value = String(route.activeDurationMs / 1000);
+      card.querySelector<HTMLInputElement>("[data-route-cooldown]")!.value = String(route.cooldownMs / 1000);
+      const ids = new Set(route.effectInstanceIds);
+      card.querySelectorAll<HTMLInputElement>("[data-route-effects] input").forEach((input) => {
+        input.checked = ids.has(input.value);
+      });
+      list.appendChild(card);
+    }
+  }
+  syncExportRoutes(dialog);
+}
+
 export function syncExportRoutes(dialog: HTMLDialogElement): void {
   const multi = dialog.querySelector<HTMLInputElement>("[data-multi-routes]")?.checked ?? false;
   const single = dialog.querySelector<HTMLElement>("[data-single-trigger]");
