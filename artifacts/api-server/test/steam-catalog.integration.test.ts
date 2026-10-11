@@ -555,7 +555,7 @@ describe("Steam catalog — real PostgreSQL API", () => {
       const rawBegin = performance.now();
       const pgResult = await database.pool.query(generated.sql, generated.params);
       driverBench.raw.push(Math.round((performance.now() - rawBegin) * 100) / 100);
-      assert.equal(Number(pgResult.rows[0].total), 1);
+      assert.equal(Number(pgResult.rows[0].count), 1);
 
       const drizzleBegin = performance.now();
       const ormResult = await database.db.select({ total: count() })
