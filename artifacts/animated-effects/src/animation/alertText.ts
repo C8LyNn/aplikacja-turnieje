@@ -6,6 +6,8 @@ export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   position: "bottom",
   fontSize: 48,
   color: "#ffffff",
+  avatarEnabled: false,
+  avatarSize: 72,
 };
 
 export function normalizeAlertCaption(value: unknown): AlertCaption {
@@ -21,6 +23,8 @@ export function normalizeAlertCaption(value: unknown): AlertCaption {
     position: input.position === "top" || input.position === "center" ? input.position : "bottom",
     fontSize: Number.isFinite(numeric) ? Math.round(Math.max(14, Math.min(120, numeric))) : DEFAULT_ALERT_CAPTION.fontSize,
     color: typeof input.color === "string" && /^#[\da-fA-F]{6}$/.test(input.color) ? input.color : DEFAULT_ALERT_CAPTION.color,
+    avatarEnabled: input.avatarEnabled === true,
+    avatarSize: Number.isFinite(Number(input.avatarSize)) ? Math.max(32, Math.min(144, Math.round(Number(input.avatarSize)))) : 72,
   };
 }
 
