@@ -53,3 +53,39 @@ export function normalizeStreamElementsTriggerOptions(
     cooldownMs: boundedInteger(input.cooldownMs, defaults.cooldownMs, 0, 300000),
   };
 }
+
+/** Routes are evaluated in order; the first matching eligible rule wins. */
+export interface StreamElementsRouteInput extends Partial<StreamElementsTriggerOptions> {
+  id: string;
+  effectInstanceIds: string[];
+}
+export interface StreamElementsRoute extends StreamElementsTriggerOptions {
+  id: string;
+  effectInstanceIds: string[];
+}
+
+export const MAX_STREAM_ELEMENTS_ROUTES = 8;
+
+export function normalizeStreamElementsRoutes(
+  routes: readonly StreamElementsRouteInput[],
+  enabledInstanceIds: readonly string[],
+): StreamElementsRoute[] {
+  const allowed = new Set(enabledInstanceIds);
+  const seenIds = new Set<string>();
+  const result: StreamElementsRoute[] = [];
+  for (const candidate of routes.slice(0, MAX_STREAM_ELEMENTS_ROUTES)) {
+    const id = typeof candidate?.id === "string" ? candidate.id.trim() : "";
+    if (!/^[a-zA-Z0-9_-]{1,48}$/.test(id) || seenIds.has(id)) continue;
+    const options = normalizeStreamElementsTriggerOptions(candidate);
+    // Continuous effects still use the backwards-compatible single-rule exporter.
+    if (options.mode === "always") continue;
+    const effectInstanceIds = [...new Set(
+      (Array.isArray(candidate.effectInstanceIds) ? candidate.effectInstanceIds : [])
+        .filter((value): value is string => typeof value === "string" && allowed.has(value)),
+    )];
+    if (effectInstanceIds.length === 0) continue;
+    seenIds.add(id);
+    result.push({ ...options, id, effectInstanceIds });
+  }
+  return result;
+}
