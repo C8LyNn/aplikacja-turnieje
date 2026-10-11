@@ -375,7 +375,7 @@ function Sources() {
         <ToolPanel title="Dodaj źródło">
           {data.people.length === 0 ? <ToolNotice>Najpierw dodaj osobę w sekcji Osoby.</ToolNotice> : (
             <form className="space-y-3" onSubmit={submit}>
-              <ToolSelect value={personId} onChange={(e) => { setPersonId(e.target.value); setSelectedPropositionId(""); }}>
+              <ToolSelect value={personId} onChange={(e) => setPersonId(e.target.value)}>
                 <option value="">Wybierz osobę…</option>
                 {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
               </ToolSelect>
@@ -1003,7 +1003,7 @@ function EvidenceProfile() {
       ) : (
         <div className="space-y-4">
           <ToolPanel title="Badana osoba">
-            <ToolSelect value={personId} onChange={(e) => setPersonId(e.target.value)}>
+            <ToolSelect value={personId} onChange={(e) => { setPersonId(e.target.value); setSelectedPropositionId(""); }}>
               {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
             </ToolSelect>
           </ToolPanel>
