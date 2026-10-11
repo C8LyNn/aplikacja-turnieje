@@ -19,7 +19,7 @@ const editor = load("../src/animation/alertText.ts", (id) => { if (id === "./ale
   if (id === "./captionMotion") return motionStyles; throw new Error(id); });
 const runtime = load("../src/animation/alertRuntime.ts");
 const live = {};
-runInNewContext(runtime.ALERT_WIDGET_RUNTIME + "\nthis.render = aeCaptionText;", live);
+runInNewContext(runtime.ALERT_WIDGET_RUNTIME + "\nthis.render = aeCaptionText; this.motion = aeCaptionAnimation;", live);
 
 test("follower, tip and chat captions agree between editor and exported widget", () => {
   const examples = [
@@ -93,4 +93,22 @@ test("custom caption coordinates clamp to the visible safe band", () => {
   assert.equal(baseline.position, "bottom");
   assert.equal(baseline.xPercent, 50);
   assert.equal(baseline.yPercent, 75);
+});
+
+test("entry and exit timing is identical in editor and generated widget", () => {
+  for (const duration of [300, 500, 1200, 6000, 180000]) {
+    for (const intro of ["fade", "slide", "pop"]) {
+      for (const outro of ["fade", "slide", "pop"]) {
+        assert.equal(
+          motionStyles.captionAnimationShorthand(intro, outro, duration),
+          live.motion(intro, outro, duration),
+        );
+      }
+    }
+  }
+  const normalized = editor.normalizeAlertCaption({
+    enabled: true, intro: "javascript:alert(1)", outro: "hijack",
+  });
+  assert.equal(normalized.intro, "slide");
+  assert.equal(normalized.outro, "fade");
 });
