@@ -141,6 +141,16 @@ ${effects.flatMap((effect) => [getLayerTimelineAnimation(effect)?.css, getLayerM
 `.trim();
 }
 
+/** Escape inline-script delimiters without changing the decoded widget config. */
+function inlineSafeJson(value: unknown): string {
+  return JSON.stringify(value, null, 2)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 function generateJavaScript(
   config: Array<{
     instanceId: string;
@@ -218,11 +228,7 @@ function generateJavaScript(
       .join(",\n  ");
 
   return `
-const effects = ${JSON.stringify(
-    config,
-    null,
-    2,
-  )};
+const effects = ${inlineSafeJson(config)};
 
 function aeCreateSeededRandom(seed) {
   let value = seed >>> 0;
