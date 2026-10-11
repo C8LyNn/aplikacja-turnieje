@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import type {
   Coder,
   CodingRecord,
+  DimensionModel,
+  DimensionPropositionLink,
   PositionAssessment,
+  ResearchDimension,
   ResearchArgument,
   ResearchExcerpt,
   ResearchPerson,
@@ -169,6 +172,90 @@ export function useResearchProject() {
       update((current) => ({
         ...current,
         codings: current.codings.filter((coding) => coding.id !== codingId),
+      }));
+    },
+    addDimensionModel(input: Omit<DimensionModel, "id" | "createdAt">) {
+      update((current) => ({
+        ...current,
+        dimensionModels: [
+          ...current.dimensionModels,
+          { ...input, id: createResearchId("dimension_model"), createdAt: new Date().toISOString() },
+        ],
+      }));
+    },
+    updateDimensionModel(dimensionModelId: string, patch: Partial<Omit<DimensionModel, "id" | "createdAt" | "codebookId">>) {
+      update((current) => ({
+        ...current,
+        dimensionModels: current.dimensionModels.map((model) =>
+          model.id === dimensionModelId ? { ...model, ...patch } : model,
+        ),
+      }));
+    },
+    deleteDimensionModel(dimensionModelId: string) {
+      update((current) => {
+        const dimensionIds = new Set(
+          current.dimensions
+            .filter((dimension) => dimension.dimensionModelId === dimensionModelId)
+            .map((dimension) => dimension.id),
+        );
+        return {
+          ...current,
+          dimensionModels: current.dimensionModels.filter((model) => model.id !== dimensionModelId),
+          dimensions: current.dimensions.filter((dimension) => dimension.dimensionModelId !== dimensionModelId),
+          dimensionLinks: current.dimensionLinks.filter(
+            (link) => link.dimensionModelId !== dimensionModelId && !dimensionIds.has(link.dimensionId),
+          ),
+        };
+      });
+    },
+    addDimension(input: Omit<ResearchDimension, "id">) {
+      update((current) => ({
+        ...current,
+        dimensions: [...current.dimensions, { ...input, id: createResearchId("dimension") }],
+      }));
+    },
+    updateDimension(dimensionId: string, patch: Partial<Omit<ResearchDimension, "id" | "dimensionModelId">>) {
+      update((current) => ({
+        ...current,
+        dimensions: current.dimensions.map((dimension) =>
+          dimension.id === dimensionId ? { ...dimension, ...patch } : dimension,
+        ),
+      }));
+    },
+    deleteDimension(dimensionId: string) {
+      update((current) => ({
+        ...current,
+        dimensions: current.dimensions.filter((dimension) => dimension.id !== dimensionId),
+        dimensionLinks: current.dimensionLinks.filter((link) => link.dimensionId !== dimensionId),
+      }));
+    },
+    upsertDimensionLink(
+      key: Pick<DimensionPropositionLink, "dimensionModelId" | "dimensionId" | "propositionId">,
+      value: Omit<DimensionPropositionLink, "id" | "dimensionModelId" | "dimensionId" | "propositionId">,
+    ) {
+      update((current) => {
+        const existing = current.dimensionLinks.find((link) =>
+          link.dimensionModelId === key.dimensionModelId &&
+          link.dimensionId === key.dimensionId &&
+          link.propositionId === key.propositionId
+        );
+        const next: DimensionPropositionLink = {
+          id: existing?.id ?? createResearchId("dimension_link"),
+          ...key,
+          ...value,
+        };
+        return {
+          ...current,
+          dimensionLinks: existing
+            ? current.dimensionLinks.map((link) => link.id === existing.id ? next : link)
+            : [...current.dimensionLinks, next],
+        };
+      });
+    },
+    deleteDimensionLink(dimensionLinkId: string) {
+      update((current) => ({
+        ...current,
+        dimensionLinks: current.dimensionLinks.filter((link) => link.id !== dimensionLinkId),
       }));
     },
     upsertAssessment(
