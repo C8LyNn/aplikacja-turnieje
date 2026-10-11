@@ -29,7 +29,8 @@ export type ResearchIntegrityIssue = {
     | "orphan_dimension_link_proposition"
     | "dimension_link_model_mismatch"
     | "dimension_link_codebook_mismatch"
-    | "duplicate_dimension_link";
+    | "duplicate_dimension_link"
+    | "invalid_sampling_plan";
   message: string;
   entityId?: string;
 };
@@ -71,6 +72,7 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("dimensionModels", data.dimensionModels),
     ...duplicateIdIssues("dimensions", data.dimensions),
     ...duplicateIdIssues("dimensionLinks", data.dimensionLinks),
+    ...duplicateIdIssues("samplingPlans", data.samplingPlans),
   ];
 
   const people = new Set(data.people.map((item) => item.id));
@@ -292,6 +294,37 @@ export function checkResearchProjectIntegrity(
       });
     }
     dimensionLinkKeys.add(duplicateKey);
+  }
+
+  for (const plan of data.samplingPlans) {
+    const nonNegativeFields: Array<[string, number]> = [
+      ["minimumSourcesPerPerson", plan.minimumSourcesPerPerson],
+      ["minimumSourceTypesPerPerson", plan.minimumSourceTypesPerPerson],
+      ["minimumPurposesPerPerson", plan.minimumPurposesPerPerson],
+      ["minimumPreparednessModesPerPerson", plan.minimumPreparednessModesPerPerson],
+      ["minimumScopesPerPerson", plan.minimumScopesPerPerson],
+    ];
+    const hasNegative = nonNegativeFields.some(([, value]) => !Number.isFinite(value) || value < 0);
+    const invalidShare =
+      (plan.minimumDatedSourceShare !== null &&
+        (!Number.isFinite(plan.minimumDatedSourceShare) ||
+          plan.minimumDatedSourceShare < 0 ||
+          plan.minimumDatedSourceShare > 1)) ||
+      (plan.maximumSingleSourceTypeShare !== null &&
+        (!Number.isFinite(plan.maximumSingleSourceTypeShare) ||
+          plan.maximumSingleSourceTypeShare < 0 ||
+          plan.maximumSingleSourceTypeShare > 1));
+    const invalidSpan =
+      plan.minimumTemporalSpanYears !== null &&
+      (!Number.isFinite(plan.minimumTemporalSpanYears) || plan.minimumTemporalSpanYears < 0);
+
+    if (hasNegative || invalidShare || invalidSpan) {
+      issues.push({
+        code: "invalid_sampling_plan",
+        entityId: plan.id,
+        message: "Plan próbkowania zawiera nieprawidłowy próg lub wartość spoza dozwolonego zakresu.",
+      });
+    }
   }
 
   const assessmentKeys = new Set<string>();
