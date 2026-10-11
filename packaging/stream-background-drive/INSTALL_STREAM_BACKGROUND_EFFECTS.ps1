@@ -36,13 +36,15 @@ $allowedPaths = @(
 )
 function AllowedPath([string]$path) {
     if ($path.StartsWith('artifacts/animated-effects/', [StringComparison]::Ordinal)) {
-        # Existing tracked filenames may contain spaces or parentheses.
-        # Reject parent traversal, absolute paths and invalid Windows characters.
-        return ($path -notmatch '[\\x00-\\x1F\\\\:*?"<>|]' -and
-                -not $path.Contains('../') -and
-                -not $path.Contains('//') -and
-                -not $path.Contains('/./') -and
-                -not $path.StartsWith('/'))
+        # Whitelist one source subtree. Individual tracked names can contain
+        # spaces or parentheses; Windows Path validates their characters.
+        foreach ($part in $path.Split('/')) {
+            if ($part.Length -eq 0 -or $part -eq '.' -or $part -eq '..' -or
+                $part.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+                return $false
+            }
+        }
+        return $true
     }
     return $allowedPaths -ccontains $path
 }
