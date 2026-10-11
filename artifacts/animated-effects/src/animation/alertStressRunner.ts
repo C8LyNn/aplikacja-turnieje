@@ -2,6 +2,7 @@ import type { EffectInstance } from "../core/types";
 import { triggerPlaybackDurationMs } from "./triggers";
 import { AlertDiagnosticEngine, type DiagnosticAlert } from "./alertDiagnosticEngine";
 import { assessFrames, makeStressEvents, summarizeStress, type StressScenario, type StressSummary } from "./alertStress";
+import { parseAlertTrace, type AlertTrace } from "./alertTrace";
 
 export interface StressUpdate {
   elapsedMs: number;
@@ -27,6 +28,7 @@ export class AlertStressRunner {
   private frameId: number | null = null;
   private active = false;
   private scheduled: ReturnType<typeof makeStressEvents> = [];
+  private trace: AlertTrace | null = null;
   private eventIndex = 0;
   private startTime = 0;
   private lastProgress = 0;
@@ -45,12 +47,30 @@ export class AlertStressRunner {
   }
 
   isRunning(): boolean { return this.active; }
+  /** Copy only non-personal synthetic timing, listener and amount fields. */
+  getTrace(): AlertTrace | null {
+    return this.trace ? parseAlertTrace(this.trace) : null;
+  }
 
   start(scenario: StressScenario, durationMs: number, effects: EffectInstance[], callbacks: StressCallbacks): void {
+    const safeDuration = Number.isFinite(durationMs) ? Math.round(Math.max(3000, Math.min(60000, durationMs))) : 12000;
+    this.startTrace({
+      version: 1,
+      source: scenario,
+      durationMs: safeDuration,
+      events: makeStressEvents(scenario, safeDuration),
+    }, effects, callbacks);
+  }
+
+  /** Replay exactly the same synthetic schedule, independent of current
+   * defaults. It is intentionally NOT a recorder of real viewers or chat. */
+  startTrace(input: AlertTrace, effects: EffectInstance[], callbacks: StressCallbacks): void {
+    const trace = parseAlertTrace(input);
     this.stop("stopped", false);
     this.engine.reset();
-    this.durationMs = Number.isFinite(durationMs) ? Math.max(3000, Math.min(60000, durationMs)) : 12000;
-    this.scheduled = makeStressEvents(scenario, this.durationMs);
+    this.trace = trace;
+    this.durationMs = trace.durationMs;
+    this.scheduled = trace.events.map((event) => ({ ...event }));
     this.eventIndex = 0;
     this.frames = [];
     this.waitingPeak = 0;
