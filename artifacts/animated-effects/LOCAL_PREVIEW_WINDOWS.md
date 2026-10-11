@@ -40,13 +40,11 @@ cd .\aplikacja-turnieje-preview
 
 ## Krok 2 — uruchom lokalny podgląd zintegrowanej aplikacji
 
-Wymagania: **Node.js 22+**, **pnpm 10**, PowerShell 5.1+.
-Jeśli pnpm nie jest aktywny:
-
-```powershell
-corepack enable
-corepack prepare pnpm@10 --activate
-```
+Wymagania: **Node.js 22+**, **PowerShell 5.1+**, npm/npx i dostęp do npm przy pierwszym uruchomieniu.
+Jeśli masz pnpm 10, launcher go wykorzysta. Jeśli masz **pnpm 11** (lub nie masz pnpm),
+skrypt automatycznie uruchomi **pnpm 10.34.6 przez npx** z lokalnego cache,
+bez zmiany globalnego menedżera pakietów. Pierwsze pobranie pnpm 10 może potrwać chwilę.
+**Nie trzeba odinstalowywać pnpm 11 ani wykonywać** `corepack prepare --activate`.
 
 W katalogu `aplikacja-turnieje-preview` uruchom:
 
