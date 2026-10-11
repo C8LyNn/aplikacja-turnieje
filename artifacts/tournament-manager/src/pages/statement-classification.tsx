@@ -292,17 +292,40 @@ function Sources() {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [sourceType, setSourceType] = useState<"video" | "stream" | "podcast" | "post" | "article" | "academic" | "other">("video");
+  const [publishedAt, setPublishedAt] = useState("");
+  const [purpose, setPurpose] = useState<"" | "review" | "essay" | "debate" | "interview" | "casual" | "social_post" | "academic">("");
+  const [preparedness, setPreparedness] = useState<"" | "prepared" | "semi_prepared" | "spontaneous">("");
+  const [scope, setScope] = useState<"" | "specific_game" | "genre" | "games_general" | "definition_of_game" | "other">("");
+  const [language, setLanguage] = useState("pl");
   const [editingSourceId, setEditingSourceId] = useState("");
   const [editSourceTitle, setEditSourceTitle] = useState("");
   const [editSourceUrl, setEditSourceUrl] = useState("");
   const [editSourcePublishedAt, setEditSourcePublishedAt] = useState("");
+  const [editSourcePurpose, setEditSourcePurpose] = useState("");
+  const [editSourcePreparedness, setEditSourcePreparedness] = useState("");
+  const [editSourceScope, setEditSourceScope] = useState("");
+  const [editSourceLanguage, setEditSourceLanguage] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!personId || !title.trim() || !url.trim()) return;
-    addSource({ personId, title: title.trim(), url: url.trim(), sourceType });
+    addSource({
+      personId,
+      title: title.trim(),
+      url: url.trim(),
+      sourceType,
+      publishedAt: publishedAt || undefined,
+      purpose: purpose || undefined,
+      preparedness: preparedness || undefined,
+      scope: scope || undefined,
+      language: language.trim() || undefined,
+    });
     setTitle("");
     setUrl("");
+    setPublishedAt("");
+    setPurpose("");
+    setPreparedness("");
+    setScope("");
   }
 
   function startSourceEdit(sourceId: string) {
@@ -312,6 +335,10 @@ function Sources() {
     setEditSourceTitle(source.title);
     setEditSourceUrl(source.url);
     setEditSourcePublishedAt(source.publishedAt ?? "");
+    setEditSourcePurpose(source.purpose ?? "");
+    setEditSourcePreparedness(source.preparedness ?? "");
+    setEditSourceScope(source.scope ?? "");
+    setEditSourceLanguage(source.language ?? "");
   }
 
   function saveSourceEdit(sourceId: string) {
@@ -320,6 +347,10 @@ function Sources() {
       title: editSourceTitle.trim(),
       url: editSourceUrl.trim(),
       publishedAt: editSourcePublishedAt || undefined,
+      purpose: (editSourcePurpose || undefined) as typeof data.sources[number]["purpose"],
+      preparedness: (editSourcePreparedness || undefined) as typeof data.sources[number]["preparedness"],
+      scope: (editSourceScope || undefined) as typeof data.sources[number]["scope"],
+      language: editSourceLanguage.trim() || undefined,
     });
     setEditingSourceId("");
   }
@@ -348,6 +379,25 @@ function Sources() {
                 <option value="video">Wideo</option><option value="stream">Stream</option><option value="podcast">Podcast</option>
                 <option value="article">Artykuł</option><option value="post">Post</option><option value="academic">Publikacja naukowa</option><option value="other">Inne</option>
               </ToolSelect>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ToolInput type="date" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} />
+                <ToolInput value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="Język, np. pl / en" />
+              </div>
+              <ToolSelect value={purpose} onChange={(e) => setPurpose(e.target.value as typeof purpose)}>
+                <option value="">Cel materiału — nie określono</option>
+                <option value="review">Recenzja</option><option value="essay">Esej</option><option value="debate">Debata</option>
+                <option value="interview">Wywiad</option><option value="casual">Luźna wypowiedź</option>
+                <option value="social_post">Post społecznościowy</option><option value="academic">Materiał akademicki</option>
+              </ToolSelect>
+              <ToolSelect value={preparedness} onChange={(e) => setPreparedness(e.target.value as typeof preparedness)}>
+                <option value="">Tryb wypowiedzi — nie określono</option>
+                <option value="prepared">Przygotowana</option><option value="semi_prepared">Częściowo przygotowana</option><option value="spontaneous">Spontaniczna</option>
+              </ToolSelect>
+              <ToolSelect value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
+                <option value="">Zakres — nie określono</option>
+                <option value="specific_game">Konkretna gra</option><option value="genre">Gatunek</option><option value="games_general">Gry ogólnie</option>
+                <option value="definition_of_game">Definicja gry</option><option value="other">Inny</option>
+              </ToolSelect>
               <ToolButton type="submit" variant="primary">Dodaj źródło</ToolButton>
             </form>
           )}
@@ -362,6 +412,18 @@ function Sources() {
                     <ToolInput value={editSourceTitle} onChange={(e) => setEditSourceTitle(e.target.value)} />
                     <ToolInput value={editSourceUrl} onChange={(e) => setEditSourceUrl(e.target.value)} />
                     <ToolInput type="date" value={editSourcePublishedAt} onChange={(e) => setEditSourcePublishedAt(e.target.value)} />
+                    <ToolInput value={editSourceLanguage} onChange={(e) => setEditSourceLanguage(e.target.value)} placeholder="Język" />
+                    <ToolSelect value={editSourcePurpose} onChange={(e) => setEditSourcePurpose(e.target.value)}>
+                      <option value="">Cel — nie określono</option>
+                      <option value="review">Recenzja</option><option value="essay">Esej</option><option value="debate">Debata</option><option value="interview">Wywiad</option>
+                      <option value="casual">Luźna wypowiedź</option><option value="social_post">Post społecznościowy</option><option value="academic">Materiał akademicki</option>
+                    </ToolSelect>
+                    <ToolSelect value={editSourcePreparedness} onChange={(e) => setEditSourcePreparedness(e.target.value)}>
+                      <option value="">Tryb — nie określono</option><option value="prepared">Przygotowana</option><option value="semi_prepared">Częściowo przygotowana</option><option value="spontaneous">Spontaniczna</option>
+                    </ToolSelect>
+                    <ToolSelect value={editSourceScope} onChange={(e) => setEditSourceScope(e.target.value)}>
+                      <option value="">Zakres — nie określono</option><option value="specific_game">Konkretna gra</option><option value="genre">Gatunek</option><option value="games_general">Gry ogólnie</option><option value="definition_of_game">Definicja gry</option><option value="other">Inny</option>
+                    </ToolSelect>
                     <div className="flex flex-wrap gap-2">
                       <ToolButton type="button" variant="primary" onClick={() => saveSourceEdit(source.id)}>Zapisz</ToolButton>
                       <ToolButton type="button" variant="ghost" onClick={() => setEditingSourceId("")}>Anuluj</ToolButton>
@@ -374,6 +436,12 @@ function Sources() {
                         {source.sourceType} · {person?.displayName ?? "Nieznana osoba"}{source.publishedAt ? ` · ${source.publishedAt}` : ""}
                       </div>
                       <div className="mt-1 font-bold">{source.title}</div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                        {source.purpose && <span className="rounded-md border border-border px-2 py-1">{source.purpose}</span>}
+                        {source.preparedness && <span className="rounded-md border border-border px-2 py-1">{source.preparedness}</span>}
+                        {source.scope && <span className="rounded-md border border-border px-2 py-1">{source.scope}</span>}
+                        {source.language && <span className="rounded-md border border-border px-2 py-1">{source.language}</span>}
+                      </div>
                       <a href={source.url} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-muted-foreground underline-offset-2 hover:underline">{source.url}</a>
                     </div>
                     <div className="flex shrink-0 gap-1">
