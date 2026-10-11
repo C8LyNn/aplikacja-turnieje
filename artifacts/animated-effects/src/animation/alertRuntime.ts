@@ -48,7 +48,12 @@ function aeAttachCaption(parent, caption, listener, event) {
   label.style.fontWeight = "700";
   label.style.lineHeight = "1.2";
   label.style.textShadow = "0 3px 14px rgba(0,0,0,.9),0 0 36px rgba(0,0,0,.65)";
-  if (caption.position === "top") {
+  if (caption.position === "custom") {
+    label.style.left = (caption.xPercent ?? 50) + "%";
+    label.style.top = (caption.yPercent ?? 75) + "%";
+    label.style.width = "48%";
+    label.style.transform = "translate(-50%, -50%)";
+  } else if (caption.position === "top") {
     label.style.top = "8%";
   } else if (caption.position === "center") {
     label.style.top = "50%";
