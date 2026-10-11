@@ -298,3 +298,79 @@ test("caption avatar uses initials fallback or allowlisted HTTPS images", () => 
   assert.equal(avatar.children[0].referrerPolicy, "no-referrer");
   assert.equal(avatar.children[0].alt, "");
 });
+
+test("higher priority tip overtakes waiting chat without interrupting active follow", () => {
+  const caption = { enabled: true, template: "{name}", position: "bottom", fontSize: 28, color: "#ffffff" };
+  const trigger = { source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0,
+    queueMode: "queue", priority: 5, caption };
+  const extra = [
+    { instanceId: "chat", effectId: "stub", seed: 3, enabled: true, settings,
+      timeline: { mode: "once", delayMs: 0, durationMs: 1000, fadeInMs: 0, fadeOutMs: 0 },
+      trigger: { ...trigger, event: "message", priority: 1 } },
+    { instanceId: "tip", effectId: "stub", seed: 4, enabled: true, settings,
+      timeline: { mode: "once", delayMs: 0, durationMs: 1000, fadeInMs: 0, fadeOutMs: 0 },
+      trigger: { ...trigger, event: "tip-latest", priority: 10 } },
+  ];
+  const widget = runWidget(trigger, extra);
+  const text = () => widget.root.children[1].children.find((n) => n.className === "ae-alert-caption").textContent;
+  const playNext = () => {
+    const [id, timer] = widget.scheduled.entries().next().value;
+    widget.scheduled.delete(id);
+    timer.fn();
+  };
+  widget.listeners.onWidgetLoad({});
+  widget.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Already playing" } } });
+  widget.listeners.onEventReceived({ detail: { listener: "message", event: { name: "Early chat", data: { displayName: "Early chat", text: "hello" } } } });
+  widget.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "Priority tip", amount: 200 } } });
+  assert.equal(text(), "Already playing", "current alert is never interrupted");
+  playNext();
+  assert.equal(text(), "Priority tip", "queued tip goes ahead of chat");
+  playNext();
+  assert.equal(text(), "Early chat");
+  playNext();
+  assert.equal(widget.root.children.length, 1);
+});
+
+test("full queue admits new higher-priority event by evicting lowest waiting", () => {
+  const caption = { enabled: true, template: "{name}", position: "bottom", fontSize: 28, color: "#ffffff" };
+  const chat = { source: "event", event: "message", cooldownMs: 0, minAmount: 0,
+    queueMode: "queue", priority: 1, caption };
+  const important = { instanceId: "important", effectId: "stub", seed: 4, enabled: true, settings,
+    timeline: { mode: "once", delayMs: 0, durationMs: 1000, fadeInMs: 0, fadeOutMs: 0 },
+    trigger: { ...chat, event: "tip-latest", priority: 10 } };
+  const widget = runWidget(chat, [important]);
+  widget.listeners.onWidgetLoad({});
+  for (let i = 0; i < 17; i++) {
+    widget.listeners.onEventReceived({ detail: { listener: "message",
+      event: { data: { displayName: "Chat" + i, text: "entry" } } } });
+  }
+  widget.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "VIP", amount: 500 } } });
+  let firstAfterActive = "";
+  let played = 0;
+  while (widget.scheduled.size && played < 20) {
+    const [id, timer] = widget.scheduled.entries().next().value;
+    widget.scheduled.delete(id);
+    timer.fn();
+    played++;
+    if (played === 1) {
+      firstAfterActive = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption").textContent;
+    }
+  }
+  assert.equal(firstAfterActive, "VIP");
+  assert.equal(played, 17, "active plus sixteen queued, one older chat was evicted");
+});
+
+test("custom X/Y placement is preserved in generated caption styles", () => {
+  const widget = runWidget({
+    source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0,
+    caption: { enabled: true, template: "{name}", position: "custom", xPercent: 38, yPercent: 62,
+      fontSize: 32, color: "#ffffff" },
+  });
+  widget.listeners.onWidgetLoad({});
+  widget.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Guest" } } });
+  const label = widget.root.children[1].children.find((n) => n.className === "ae-alert-caption");
+  assert.equal(label.style.left, "38%");
+  assert.equal(label.style.top, "62%");
+  assert.equal(label.style.width, "48%");
+  assert.equal(label.style.transform, "translate(-50%, -50%)");
+});
