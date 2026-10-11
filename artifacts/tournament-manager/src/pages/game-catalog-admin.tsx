@@ -318,9 +318,19 @@ export default function GameCatalogAdminPage() {
     setTerms(body.terms);
   }
 
+  function hydrateEditor(game: Game) {
+    // Keep the persisted record and editable draft in one React commit.
+    // Delayed effects used to overwrite fast edits made just after navigation.
+    setSelectedGame(game);
+    setDraft(game.assignments);
+    setStatus(game.status);
+    setPerspective("gameplay");
+    setTermQuery("");
+  }
+
   async function loadDetail(id: number) {
     const body = await api<{ game: Game }>(`/api/steam-catalog/games/${id}`);
-    setSelectedGame(body.game);
+    hydrateEditor(body.game);
     return body.game;
   }
 
@@ -368,7 +378,7 @@ export default function GameCatalogAdminPage() {
       api<QueueResponse>(`/api/steam-catalog/queue?currentId=${gameId}`),
     ]).then(([record, next]) => {
       if (!active) return;
-      setSelectedGame(record.game);
+      hydrateEditor(record.game);
       setQueue(next);
     }).catch((cause) => {
       if (!active) return;
@@ -406,14 +416,6 @@ export default function GameCatalogAdminPage() {
       document.removeEventListener("click", guardUnsavedLink, true);
     };
   }, [hasUnsavedChanges, location]);
-
-  useEffect(() => {
-    if (!selected) return;
-    setDraft(selected.assignments);
-    setStatus(selected.status);
-    setPerspective("gameplay");
-    setTermQuery("");
-  }, [selected]);
 
   function assignmentFor(termId: number) {
     return draft.find((item) => item.termId === termId);
@@ -455,7 +457,7 @@ export default function GameCatalogAdminPage() {
         method: "POST",
         body: JSON.stringify({ url: importValue.trim() }),
       });
-      setSelectedGame({ ...body.game, assignments: body.game.assignments ?? [] });
+      hydrateEditor({ ...body.game, assignments: body.game.assignments ?? [] });
       setImportValue("");
       navigate(`${BASE}/games/${body.game.id}`);
     } catch (cause) {
