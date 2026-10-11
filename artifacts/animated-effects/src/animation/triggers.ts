@@ -30,6 +30,7 @@ export function normalizeEffectTrigger(value: unknown): EffectTrigger | undefine
     cooldownMs: limit(raw.cooldownMs, 3000, 60000),
     minAmount: limit(raw.minAmount, 0, 1000000),
     caption: raw.caption === undefined ? undefined : normalizeAlertCaption(raw.caption),
+    queueMode: raw.queueMode === "queue" ? "queue" : "replace",
   };
 }
 
