@@ -98,6 +98,17 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(first.body.pagination.totalPages, 81);
     assert.equal(first.body.games.length, 25);
     assert.equal(second.body.games.length, 25);
+    assert.equal(typeof first.body.pagination.nextCursor, "string");
+    const keyed = await request(app).get("/api/steam-catalog/games")
+      .query({ page: 2, pageSize: 25, cursor: first.body.pagination.nextCursor }).expect(200);
+    assert.deepEqual(
+      keyed.body.games.map((x: { id: number }) => x.id),
+      second.body.games.map((x: { id: number }) => x.id),
+    );
+    await request(app).get("/api/steam-catalog/games")
+      .query({ page: 2, pageSize: 25, cursor: first.body.pagination.nextCursor, status: "ready" }).expect(400);
+    await request(app).get("/api/steam-catalog/games")
+      .query({ page: 2, pageSize: 25, cursor: "bad*cursor" }).expect(400);
     const ids = [...first.body.games, ...second.body.games].map((x: { id: number }) => x.id);
     assert.equal(new Set(ids).size, 50);
     assert.ok(first.body.games.every((x: Record<string, unknown>) => !("assignments" in x) && !("steamRawData" in x)));
@@ -318,9 +329,30 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const first = await measured("browse_first_ms", "/api/steam-catalog/games?page=1&pageSize=25");
     const middle = await measured("browse_middle_ms", "/api/steam-catalog/games?page=400&pageSize=25");
     const last = await measured("browse_last_ms", "/api/steam-catalog/games?page=801&pageSize=25");
+    // Resolve a deep anchor only once with the legacy page API. Subsequent
+    // navigation must match page 400 without scanning ~10k preceding rows.
+    const prior = await measured("browse_previous_offset_ms", "/api/steam-catalog/games?page=399&pageSize=25");
+    assert.equal(typeof prior.pagination.nextCursor, "string");
+    const withCursor = await measured(
+      "browse_middle_cursor_ms",
+      "/api/steam-catalog/games?page=400&pageSize=25&cursor=" + encodeURIComponent(prior.pagination.nextCursor),
+    );
+    assert.deepEqual(
+      withCursor.games.map((x: { id: number }) => x.id),
+      middle.games.map((x: { id: number }) => x.id),
+    );
     const searched = await measured("exact_name_ms", "/api/steam-catalog/games?query=Test%20Game%2019999");
     const filtered = await measured("status_filter_ms", "/api/steam-catalog/games?pageSize=50&status=review");
     const queue = await measured("pending_queue_ms", "/api/steam-catalog/queue");
+    const parallelStarted = performance.now();
+    const parallel = await Promise.all(Array.from({ length: 12 }, () =>
+      request(app).get("/api/steam-catalog/games?page=400&pageSize=25&cursor=" +
+        encodeURIComponent(prior.pagination.nextCursor)).expect(200),
+    ));
+    timings.twelve_parallel_cursor_ms = Math.round((performance.now() - parallelStarted) * 100) / 100;
+    assert.ok(parallel.every((item) => item.body.games.length === 25));
+    assert.ok(parallel.every((item) =>
+      item.body.games.every((game: { id: number }, index: number) => game.id === withCursor.games[index].id)));
 
     assert.equal(first.pagination.total, 20003);
     assert.equal(first.games.length, 25);
