@@ -21,7 +21,15 @@ export type ResearchIntegrityIssue = {
     | "orphan_assessment_codebook"
     | "orphan_assessment_reviewer"
     | "assessment_codebook_mismatch"
-    | "duplicate_assessment";
+    | "duplicate_assessment"
+    | "orphan_dimension_model_codebook"
+    | "orphan_dimension_model"
+    | "orphan_dimension_link_model"
+    | "orphan_dimension_link_dimension"
+    | "orphan_dimension_link_proposition"
+    | "dimension_link_model_mismatch"
+    | "dimension_link_codebook_mismatch"
+    | "duplicate_dimension_link";
   message: string;
   entityId?: string;
 };
@@ -60,6 +68,9 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("coders", data.coders),
     ...duplicateIdIssues("codings", data.codings),
     ...duplicateIdIssues("assessments", data.assessments),
+    ...duplicateIdIssues("dimensionModels", data.dimensionModels),
+    ...duplicateIdIssues("dimensions", data.dimensions),
+    ...duplicateIdIssues("dimensionLinks", data.dimensionLinks),
   ];
 
   const people = new Set(data.people.map((item) => item.id));
@@ -69,6 +80,8 @@ export function checkResearchProjectIntegrity(
   const codebooks = new Set(data.codebooks.map((item) => item.id));
   const propositions = new Map(data.propositions.map((item) => [item.id, item] as const));
   const coders = new Set(data.coders.map((item) => item.id));
+  const dimensionModels = new Map(data.dimensionModels.map((item) => [item.id, item] as const));
+  const dimensions = new Map(data.dimensions.map((item) => [item.id, item] as const));
 
   for (const source of data.sources) {
     if (!people.has(source.personId)) {
@@ -197,6 +210,88 @@ export function checkResearchProjectIntegrity(
       });
     }
     codingKeys.add(duplicateKey);
+  }
+
+  for (const model of data.dimensionModels) {
+    if (!codebooks.has(model.codebookId)) {
+      issues.push({
+        code: "orphan_dimension_model_codebook",
+        entityId: model.id,
+        message: "Model wymiarów wskazuje nieistniejącą wersję codebooka.",
+      });
+    }
+  }
+
+  for (const dimension of data.dimensions) {
+    if (!dimensionModels.has(dimension.dimensionModelId)) {
+      issues.push({
+        code: "orphan_dimension_model",
+        entityId: dimension.id,
+        message: "Wymiar wskazuje nieistniejący model wymiarów.",
+      });
+    }
+  }
+
+  const dimensionLinkKeys = new Set<string>();
+  for (const link of data.dimensionLinks) {
+    const model = dimensionModels.get(link.dimensionModelId);
+    const dimension = dimensions.get(link.dimensionId);
+    const proposition = propositions.get(link.propositionId);
+
+    if (!model) {
+      issues.push({
+        code: "orphan_dimension_link_model",
+        entityId: link.id,
+        message: "Powiązanie mikrostanowiska wskazuje nieistniejący model wymiarów.",
+      });
+    }
+
+    if (!dimension) {
+      issues.push({
+        code: "orphan_dimension_link_dimension",
+        entityId: link.id,
+        message: "Powiązanie mikrostanowiska wskazuje nieistniejący wymiar.",
+      });
+    }
+
+    if (!proposition) {
+      issues.push({
+        code: "orphan_dimension_link_proposition",
+        entityId: link.id,
+        message: "Powiązanie wymiaru wskazuje nieistniejące mikrostanowisko.",
+      });
+    }
+
+    if (dimension && dimension.dimensionModelId !== link.dimensionModelId) {
+      issues.push({
+        code: "dimension_link_model_mismatch",
+        entityId: link.id,
+        message: "Powiązanie i wymiar należą do różnych modeli wymiarów.",
+      });
+    }
+
+    if (model && proposition && model.codebookId !== proposition.codebookId) {
+      issues.push({
+        code: "dimension_link_codebook_mismatch",
+        entityId: link.id,
+        message: "Model wymiarów i mikrostanowisko należą do różnych wersji codebooka.",
+      });
+    }
+
+    const duplicateKey = [
+      link.dimensionModelId,
+      link.dimensionId,
+      link.propositionId,
+    ].join("::");
+
+    if (dimensionLinkKeys.has(duplicateKey)) {
+      issues.push({
+        code: "duplicate_dimension_link",
+        entityId: link.id,
+        message: "To samo mikrostanowisko jest podwójnie przypisane do tego samego wymiaru.",
+      });
+    }
+    dimensionLinkKeys.add(duplicateKey);
   }
 
   const assessmentKeys = new Set<string>();
