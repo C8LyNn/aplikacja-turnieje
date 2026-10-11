@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { steamCatalogReadiness } from "@workspace/game-catalog";
 import { asc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -344,6 +345,23 @@ router.put(
           code: "MULTIPLE_PRIMARY_GENRES",
         });
         return;
+      }
+
+      // Review/unclassified records can remain partial. Only ready records must
+      // satisfy all five perspectives and a defining primary mechanic.
+      if (status === "ready") {
+        const readiness = steamCatalogReadiness(normalized.map((item) => ({
+          facet: termById.get(item.termId)!.facet,
+          role: item.role,
+        })));
+        if (!readiness.complete) {
+          res.status(422).json({
+            error: "Uzupełnij klasyfikację przed oznaczeniem gry jako gotowej.",
+            code: "INCOMPLETE_CLASSIFICATION",
+            missing: readiness.missing,
+          });
+          return;
+        }
       }
 
       await db.transaction(async (tx) => {
