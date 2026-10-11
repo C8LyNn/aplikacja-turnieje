@@ -5,6 +5,7 @@ import {
   evidenceSignature,
   evidenceUnitKey,
   groupEvidenceByYear,
+  isAssessmentStale,
 } from "./evidence-analysis";
 import type { CodingRecord, ResearchExcerpt, ResearchSource } from "./model";
 
@@ -80,4 +81,35 @@ test("evidence signature is stable by coding identity and changes with coding se
     evidenceSignature([first]),
     evidenceSignature([{ ...first, direction: 2 }]),
   );
+});
+
+
+test("assessment becomes stale when its evidence set changes", () => {
+  const source = { id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" as const };
+  const project = {
+    schemaVersion: 3 as const,
+    people: [{ id: "p1", displayName: "P" }],
+    sources: [source],
+    arguments: [],
+    excerpts: [excerpts[0]!],
+    codebooks: [{ id: "book", name: "B", version: "1", status: "pilot" as const }],
+    propositions: [{ id: "q01", codebookId: "book", code: "Q01", label: "Q", definition: "D" }],
+    coders: [{ id: "coder", displayName: "C", type: "human" as const }],
+    codings: [coding("c1", "e1", 1)],
+    assessments: [],
+  };
+  const assessment = {
+    id: "a1",
+    personId: "p1",
+    propositionId: "q01",
+    codebookId: "book",
+    status: "stable" as const,
+    confidence: "medium" as const,
+    evidenceSignature: evidenceSignature(project.codings),
+    updatedAt: "2026-10-11T00:00:00.000Z",
+  };
+
+  assert.equal(isAssessmentStale(project, assessment), false);
+  const changed = { ...project, codings: [...project.codings, coding("c2", "e1", 2)] };
+  assert.equal(isAssessmentStale(changed, assessment), true);
 });
