@@ -55,6 +55,7 @@ function sceneState() {
       instanceId: "effect-1", effectId: "test-effect", seed: 43, enabled: false,
       settings: { ...structuredClone(defaultSettings), density: 350, custom: { burst: 7, glow: 0.8 } },
       label: "My Overlay", locked: true, groupId: "group-1",
+      timeline: { mode: "loop", delayMs: 2000, durationMs: 4500, fadeInMs: 600, fadeOutMs: 450 },
     }],
     selectedEffectInstanceId: "effect-1", activePresetId: null,
   };
@@ -75,6 +76,9 @@ test("round-trips advanced controls, zone settings, disabled layers and metadata
   assert.equal(layer.locked, true);
   assert.equal(layer.label, "My Overlay");
   assert.equal(layer.groupId, "group-1");
+  assert.equal(layer.timeline.mode, "loop");
+  assert.equal(layer.timeline.delayMs, 2000);
+  assert.equal(layer.timeline.fadeOutMs, 450);
 });
 
 test("clamps custom values and rejects non-declared control keys", () => {
