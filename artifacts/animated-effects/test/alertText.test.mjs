@@ -10,7 +10,7 @@ const load = (file, resolver = () => { throw new Error("Unexpected dependency");
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
-  runInNewContext(compiled, { exports, require: resolver });
+  runInNewContext(compiled, { exports, require: resolver, URL });
   return exports;
 };
 const avatar = load("../src/animation/alertAvatar.ts");
