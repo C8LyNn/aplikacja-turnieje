@@ -44,6 +44,13 @@ runInNewContext(motionCompiled, {
     throw new Error("Unexpected motion dependency: " + id);
   },
 });
+const alertTextSource = readFileSync(new URL("../src/animation/alertText.ts", import.meta.url), "utf8");
+const alertTextCompiled = ts.transpileModule(alertTextSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  fileName: "alertText.ts",
+}).outputText;
+const alertTextExports = {};
+runInNewContext(alertTextCompiled, { exports: alertTextExports });
 const triggerSource = readFileSync(new URL("../src/animation/triggers.ts", import.meta.url), "utf8");
 const triggerCompiled = ts.transpileModule(triggerSource, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -54,6 +61,7 @@ runInNewContext(triggerCompiled, {
   exports: triggerExports,
   require(id) {
     if (id === "./motion") return motionExports;
+    if (id === "./alertText") return alertTextExports;
     throw new Error("Unexpected trigger dependency: " + id);
   },
 });
