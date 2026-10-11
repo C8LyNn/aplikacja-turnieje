@@ -1,6 +1,7 @@
 import type { BlendMode, EditorState, EffectArea, EffectCustomControl, EffectInstance, EffectSettings, FocusZone, SafeZone } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
 import { normalizedMotionTimeline } from "../animation/motion";
+import { normalizeEffectTrigger } from "../animation/triggers";
 
 export const SCENE_FORMAT = "animated-effects-scene";
 export const SCENE_VERSION = 1;
@@ -98,6 +99,7 @@ export function parseScene(text: string, current: EditorState): { state: EditorS
       locked: value.locked === true,
       groupId: typeof value.groupId === "string" ? value.groupId : null,
       timeline: value.timeline == null ? undefined : normalizedMotionTimeline(value.timeline, safeSettings(value.settings, definition.defaultSettings, definition.customControls)),
+      trigger: normalizeEffectTrigger(value.trigger),
     });
   }
   const resolution = raw.resolution && typeof raw.resolution === "object" ? raw.resolution as Record<string, unknown> : {};
