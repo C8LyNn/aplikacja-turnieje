@@ -100,3 +100,39 @@ test("integrity validates position assessment references and uniqueness", () => 
   const issues = checkResearchProjectIntegrity(data);
   assert.ok(issues.some((issue) => issue.code === "duplicate_assessment"));
 });
+
+
+test("integrity validates dimension model mappings", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    codebooks: [{ id: "book", name: "Book", version: "1", status: "pilot" as const }],
+    propositions: [{ id: "q1", codebookId: "book", code: "Q1", label: "Q", definition: "D" }],
+    dimensionModels: [{ id: "m1", name: "M", version: "0.1", codebookId: "book", status: "draft" as const }],
+    dimensions: [{ id: "d1", dimensionModelId: "m1", code: "D1", label: "Dim", negativePoleLabel: "A", positivePoleLabel: "B" }],
+    dimensionLinks: [
+      { id: "l1", dimensionModelId: "m1", dimensionId: "d1", propositionId: "q1", orientation: "positive" as const, relevance: "core" as const },
+      { id: "l2", dimensionModelId: "m1", dimensionId: "d1", propositionId: "q1", orientation: "negative" as const, relevance: "supporting" as const },
+    ],
+  };
+
+  const codes = checkResearchProjectIntegrity(data).map((issue) => issue.code);
+  assert.ok(codes.includes("duplicate_dimension_link"));
+});
+
+test("integrity detects dimension links crossing codebook versions", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    codebooks: [
+      { id: "book-a", name: "A", version: "1", status: "pilot" as const },
+      { id: "book-b", name: "B", version: "1", status: "pilot" as const },
+    ],
+    propositions: [{ id: "q1", codebookId: "book-b", code: "Q1", label: "Q", definition: "D" }],
+    dimensionModels: [{ id: "m1", name: "M", version: "0.1", codebookId: "book-a", status: "draft" as const }],
+    dimensions: [{ id: "d1", dimensionModelId: "m1", code: "D1", label: "Dim", negativePoleLabel: "A", positivePoleLabel: "B" }],
+    dimensionLinks: [
+      { id: "l1", dimensionModelId: "m1", dimensionId: "d1", propositionId: "q1", orientation: "positive" as const, relevance: "core" as const },
+    ],
+  };
+
+  assert.ok(checkResearchProjectIntegrity(data).some((issue) => issue.code === "dimension_link_codebook_mismatch"));
+});
