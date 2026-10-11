@@ -6,6 +6,7 @@ import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-or
 import {
   db,
   steamCatalogGames,
+  steamCatalogStatusCounts,
   steamCatalogGameTerms,
   steamCatalogTerms,
 } from "@workspace/db";
@@ -145,20 +146,20 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       status !== "all" ? eq(steamCatalogGames.status, status) : undefined,
       searchCondition,
     );
-    // One unfiltered aggregation supplies all status badges and, without
-    // text search, also the filtered pagination total. Previously the endpoint
-    // performed an additional COUNT query for every list request.
+    // Status counts are updated transactionally by statement-level PostgreSQL
+    // triggers on every insert/delete/status change, including Steam imports.
+    // No full catalog scan is required for badges or unsearched totals.
     const [statusTotals] = await db.select({
-      all: count(),
-      unclassified: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'unclassified')`,
-      review: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'review')`,
-      ready: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'ready')`,
-    }).from(steamCatalogGames);
+      unclassified: steamCatalogStatusCounts.unclassified,
+      review: steamCatalogStatusCounts.review,
+      ready: steamCatalogStatusCounts.ready,
+    }).from(steamCatalogStatusCounts).where(eq(steamCatalogStatusCounts.id, 1));
+    if (!statusTotals) throw new Error("STEAM_CATALOG_COUNTERS_MISSING: apply migration 0034");
     const counts = {
-      all: Number(statusTotals?.all ?? 0),
-      unclassified: Number(statusTotals?.unclassified ?? 0),
-      review: Number(statusTotals?.review ?? 0),
-      ready: Number(statusTotals?.ready ?? 0),
+      all: statusTotals.unclassified + statusTotals.review + statusTotals.ready,
+      unclassified: statusTotals.unclassified,
+      review: statusTotals.review,
+      ready: statusTotals.ready,
     };
     const total = search
       ? Number((await db.select({ total: count() }).from(steamCatalogGames).where(where))[0]?.total ?? 0)
@@ -210,8 +211,12 @@ router.get("/steam-catalog/queue", async (req, res, next) => {
       return;
     }
     const pending = ne(steamCatalogGames.status, "ready");
-    const [totalRow] = await db.select({ total: count() }).from(steamCatalogGames).where(pending);
-    const pendingCount = Number(totalRow?.total ?? 0);
+    const [statusTotals] = await db.select({
+      unclassified: steamCatalogStatusCounts.unclassified,
+      review: steamCatalogStatusCounts.review,
+    }).from(steamCatalogStatusCounts).where(eq(steamCatalogStatusCounts.id, 1));
+    if (!statusTotals) throw new Error("STEAM_CATALOG_COUNTERS_MISSING: apply migration 0034");
+    const pendingCount = statusTotals.unclassified + statusTotals.review;
     let nextId: number | null = null;
     if (pendingCount) {
       const current = currentId === null ? null : (await db.select({
