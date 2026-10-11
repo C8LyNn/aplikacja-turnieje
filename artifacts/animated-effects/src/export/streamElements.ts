@@ -637,10 +637,10 @@ function aeNextQueued() {
     aeNextQueued();
     return;
   }
-  aeCounters.started++;
-  aeReport("started", next.effect, "queue");
   aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData, next.effect.playbackMs);
   aeQueuedPlaying = element;
+  aeCounters.started++;
+  aeReport("started", next.effect, "queue");
   aeQueuedTimer = setTimeout(function () {
     if (aeQueuedPlaying === element) {
       element.remove();
