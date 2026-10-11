@@ -27,6 +27,10 @@ export function installAlertDiagnostics(
   getEffects: () => EffectInstance[],
 ): { refresh: () => void } {
   const engine = new AlertDiagnosticEngine();
+  const fingerprint = (): string => JSON.stringify(getEffects().map((effect) => [
+    effect.instanceId, effect.enabled, effect.trigger ?? null,
+  ]));
+  let lastFingerprint = fingerprint();
   const section = node("details", "ae-diagnostics");
   const summary = node("summary", "", "Diagnostyka alertów — symulator kolejki");
   section.appendChild(summary);
@@ -72,7 +76,7 @@ export function installAlertDiagnostics(
   const metrics = node("div", "ae-diagnostics-metrics");
   content.appendChild(metrics);
 
-  const currentHeading = node("h4", "", "Aktualny alert");
+  const currentHeading = node("h4", "", "Aktywny alert w trybie kolejki");
   const current = node("div", "ae-diagnostics-current");
   content.append(currentHeading, current);
   const waitingHeading = node("h4", "", "Oczekujące alerty");
@@ -159,5 +163,16 @@ export function installAlertDiagnostics(
   eventSelect.addEventListener("change", () => render());
   render();
 
-  return { refresh: () => render() };
+  return {
+    refresh: () => {
+      const nextFingerprint = fingerprint();
+      if (lastFingerprint !== nextFingerprint) {
+        lastFingerprint = nextFingerprint;
+        engine.reset();
+        render("Zmieniono konfigurację sceny — symulacja została wyzerowana.");
+      } else {
+        render();
+      }
+    },
+  };
 }
