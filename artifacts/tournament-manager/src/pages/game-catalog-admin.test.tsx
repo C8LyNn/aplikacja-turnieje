@@ -305,23 +305,17 @@ test("catalog reads never transmit editor credentials, but classification writes
 });
 
 test("stale editor changes are retained after 409 until confirmed reload", async () => {
-  console.info("CATALOG_CONFLICT_TEST start");
   const record = game(60, "Kolizja edycji");
   const requests = mockCatalog([record]);
   const location = mount(`${BASE}/games/60`);
   await screen.findByRole("button", { name: "Akcja" });
-  console.info("CATALOG_CONFLICT_TEST loaded");
   fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
   await screen.findByText("Niezapisane zmiany");
-  console.info("CATALOG_CONFLICT_TEST draft");
   record.classificationRevision = 2; // Another editor saved since this page loaded.
   record.status = "review";
 
-  console.info("CATALOG_CONFLICT_TEST before_save");
   fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
-  console.info("CATALOG_CONFLICT_TEST after_save_click");
   await screen.findByText(/Konflikt edycji: zapisano nowszą wersję klasyfikacji/);
-  console.info("CATALOG_CONFLICT_TEST caught_409");
   assert.equal(requests.filter((item) => item.method === "PUT").length, 1);
   assert.equal(location.history.at(-1), `${BASE}/games/60`);
   assert.ok(screen.getByText("Niezapisane zmiany"));
@@ -330,11 +324,11 @@ test("stale editor changes are retained after 409 until confirmed reload", async
   const priorConfirm = window.confirm;
   try {
     window.confirm = () => true;
-    console.info("CATALOG_CONFLICT_TEST before_reload");
     fireEvent.click(screen.getByRole("button", { name: /Wczytaj aktualną wersję/i }));
-    console.info("CATALOG_CONFLICT_TEST after_reload_click");
-    await waitFor(() => assert.equal(screen.queryByText("Niezapisane zmiany"), null));
-    console.info("CATALOG_CONFLICT_TEST refreshed");
+    // The mocked GET resolves immediately; avoid a MutationObserver-driven
+    // waitFor loop across the guard teardown and editor rehydration.
+    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+    assert.equal(screen.queryByText("Niezapisane zmiany"), null);
     assert.equal(screen.queryByText(/Konflikt edycji: zapisano nowszą wersję klasyfikacji/), null);
     assert.equal((screen.getByRole("combobox", { name: "Status klasyfikacji" }) as HTMLSelectElement).value, "review");
   } finally {
