@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { JSDOM } from "jsdom";
 import { generateStreamElementsExport } from "../../../../../animated-effects/src/export/streamElements";
 import { setupExportPanel, openExportPanel } from "../../../../../animated-effects/src/editor/exportPanel";
+import { getEditorState, replaceEditorState } from "../../../../../animated-effects/src/editor/state";
 import {
   normalizeStreamElementsTriggerOptions,
   DEFAULT_STREAM_ELEMENTS_TRIGGER_OPTIONS,
@@ -214,6 +215,76 @@ test("export dialog updates the generated widget when trigger controls change", 
   }
 });
 
+
+
+test("multi-route export form maps each enabled effect to a selected rule", () => {
+  const original = structuredClone(getEditorState());
+  replaceEditorState({
+    ...original,
+    effects: [
+      { instanceId: "flame", effectId: "test-effect", enabled: true, seed: 1, settings: {} },
+      { instanceId: "explosion", effectId: "test-effect", enabled: true, seed: 2, settings: {} },
+    ],
+  } as typeof original);
+  const dialog = document.createElement("dialog");
+  dialog.innerHTML = `
+    <div data-single-trigger><select data-trigger-mode><option value="always">always</option></select></div>
+    <label><input type="checkbox" data-multi-routes></label>
+    <section data-route-workspace hidden>
+      <div data-route-list></div>
+      <button type="button" data-add-route>Dodaj</button>
+      <p data-route-warning></p>
+    </section>
+    <span data-export-metrics></span>
+    <textarea data-export="html"></textarea>
+    <textarea data-export="css"></textarea>
+    <textarea data-export="javascript"></textarea>
+  `;
+  Object.defineProperty(dialog, "showModal", { value: () => {} });
+  document.body.append(dialog);
+  try {
+    setupExportPanel(dialog);
+    const toggle = dialog.querySelector<HTMLInputElement>("[data-multi-routes]")!;
+    toggle.checked = true;
+    toggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+    const list = dialog.querySelector("[data-route-list]")!;
+    assert.equal(list.children.length, 1);
+    assert.equal(dialog.querySelector<HTMLElement>("[data-single-trigger]")!.hidden, true);
+    assert.equal(dialog.querySelector<HTMLElement>("[data-route-workspace]")!.hidden, false);
+    assert.equal(list.querySelectorAll<HTMLInputElement>("input[type=checkbox]:checked").length, 1);
+
+    dialog.querySelector<HTMLButtonElement>("[data-add-route]")!.click();
+    assert.equal(list.children.length, 2);
+    const second = list.lastElementChild!;
+    const mode = second.querySelector<HTMLSelectElement>("[data-route-mode]")!;
+    mode.value = "raid";
+    mode.dispatchEvent(new window.Event("change", { bubbles: true }));
+    assert.equal(second.querySelector<HTMLElement>("[data-route-command-field]")!.hidden, true);
+
+    const boxes = second.querySelectorAll<HTMLInputElement>("[data-route-effects] input");
+    assert.equal(boxes.length, 2);
+    boxes[0]!.checked = false;
+    boxes[1]!.checked = true;
+    boxes[1]!.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+    const js = dialog.querySelector<HTMLTextAreaElement>('[data-export="javascript"]')!.value;
+    assert.match(js, /const aeMultiMode = true/);
+    assert.match(js, /"chatCommand":"!hype"/);
+    assert.match(js, /"mode":"raid"/);
+    assert.match(js, /"effectInstanceIds":\["explosion"\]/);
+    assert.match(js, /"effectInstanceIds":\["flame"\]/);
+
+    second.querySelector<HTMLButtonElement>("[data-remove-route]")!.click();
+    assert.equal(list.children.length, 1);
+    toggle.checked = false;
+    toggle.dispatchEvent(new window.Event("change", { bubbles: true }));
+    assert.equal(dialog.querySelector<HTMLElement>("[data-single-trigger]")!.hidden, false);
+    assert.match(dialog.querySelector<HTMLTextAreaElement>('[data-export="javascript"]')!.value, /const aeMultiMode = false/);
+  } finally {
+    dialog.remove();
+    replaceEditorState(original);
+  }
+});
 
 test("route normalization rejects malformed IDs, disabled layers, repeats and >8 routes", () => {
   const input: StreamElementsRouteInput[] = [
