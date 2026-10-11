@@ -204,6 +204,8 @@ export function useResearchProject() {
     },
     deleteDimensionModel(dimensionModelId: string) {
       update((current) => {
+        const model = current.dimensionModels.find((candidate) => candidate.id === dimensionModelId);
+        if (!model || !canEditDimensionModelStructure(model.status)) return current;
         const dimensionIds = new Set(
           current.dimensions
             .filter((dimension) => dimension.dimensionModelId === dimensionModelId)
