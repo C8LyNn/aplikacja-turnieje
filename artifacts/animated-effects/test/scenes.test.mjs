@@ -99,7 +99,7 @@ function sceneState() {
       settings: { ...structuredClone(defaultSettings), density: 350, custom: { burst: 7, glow: 0.8 } },
       label: "My Overlay", locked: true, groupId: "group-1",
       timeline: { mode: "loop", delayMs: 2000, durationMs: 4500, fadeInMs: 600, fadeOutMs: 450, keyframes: [{ timeMs: 0, x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, { timeMs: 4500, x: 45, y: -12, scale: 125, rotation: 90, opacity: 50 }] },
-      trigger: { source: "event", event: "tip-latest", cooldownMs: 4000, minAmount: 25 },
+      trigger: { source: "event", event: "tip-latest", cooldownMs: 4000, minAmount: 25, caption: { enabled: true, template: "{name} przekazał {amount}", fontSize: 48, color: "#aaccff", position: "center" } },
     }],
     selectedEffectInstanceId: "effect-1", activePresetId: null,
   };
@@ -126,6 +126,10 @@ test("round-trips advanced controls, zone settings, disabled layers and metadata
   assert.equal(layer.trigger.event, "tip-latest");
   assert.equal(layer.trigger.cooldownMs, 4000);
   assert.equal(layer.trigger.minAmount, 25);
+  assert.equal(layer.trigger.caption.enabled, true);
+  assert.equal(layer.trigger.caption.template, "{name} przekazał {amount}");
+  assert.equal(layer.trigger.caption.color, "#aaccff");
+  assert.equal(layer.trigger.caption.position, "center");
   assert.deepEqual(
     JSON.parse(JSON.stringify(layer.timeline.keyframes)),
     [
