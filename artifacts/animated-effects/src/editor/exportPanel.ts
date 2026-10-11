@@ -51,6 +51,13 @@ export function setupExportPanel(
         "Przycisk 'Testuj w podglądzie' działa tylko w edytorze Animated Effects.",
         "Nie wymaga to tokenu SE_API ani zatrzymywania kolejki alertów.",
         "",
+        "Dynamiczne podpisy alertów można włączyć w Inspektorze warstwy.",
+        "Wzory: {name} - widz, {amount} - kwota/liczba,",
+        "{message} - treść wiadomości, {event} - typ zdarzenia.",
+        "Tekst jest kodowany bez HTML, aby wiadomości nie uruchamiały kodu.",
+        "Jeśli masz włączony alertbox StreamElements, osobno ustal",
+        "jego położenie, żeby nie nakładał się na te animacje.",
+        "",
         "Wskazówka: plików ZIP nie przesyła się bezpośrednio do Custom Widget.",
       ].join("\n"));
       const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
