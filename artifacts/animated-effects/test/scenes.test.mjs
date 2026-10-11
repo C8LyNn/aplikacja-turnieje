@@ -53,7 +53,7 @@ function sceneState() {
     focusZone: "right", safeZone: "left",
     effects: [{
       instanceId: "effect-1", effectId: "test-effect", seed: 43, enabled: false,
-      settings: { ...structuredClone(defaultSettings), custom: { burst: 7, glow: 0.8 } },
+      settings: { ...structuredClone(defaultSettings), density: 350, custom: { burst: 7, glow: 0.8 } },
       label: "My Overlay", locked: true, groupId: "group-1",
     }],
     selectedEffectInstanceId: "effect-1", activePresetId: null,
@@ -68,6 +68,7 @@ test("round-trips advanced controls, zone settings, disabled layers and metadata
   assert.equal(restored.state.safeZone, "left");
   assert.equal(restored.state.effects.length, 1);
   const layer = restored.state.effects[0];
+  assert.equal(layer.settings.density, 350);
   assert.equal(layer.settings.custom.burst, 7);
   assert.equal(layer.settings.custom.glow, 0.8);
   assert.equal(layer.enabled, false);
