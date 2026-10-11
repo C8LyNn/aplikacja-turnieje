@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-access";
 import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
-import { and, asc, count, eq, gt, ilike, inArray, ne, or } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
   db,
   steamCatalogGames,
@@ -73,6 +73,7 @@ const gameListColumns = {
   releaseDate: steamCatalogGames.releaseDate,
   shortDescription: steamCatalogGames.shortDescription,
   status: steamCatalogGames.status,
+  classificationRevision: steamCatalogGames.classificationRevision,
   updatedAt: steamCatalogGames.updatedAt,
 };
 
@@ -330,16 +331,25 @@ router.put(
   requireSteamCatalogAdmin,
   async (req, res, next) => {
     try {
-      const gameId = Number(req.params.id);
+      const gameId = parseQueueId(req.params.id);
+      const expectedRevision = req.body?.expectedRevision;
       const assignments = Array.isArray(req.body?.assignments)
         ? (req.body.assignments as AssignmentInput[])
         : null;
       const status = String(req.body?.status ?? "review");
 
-      if (!Number.isInteger(gameId) || gameId <= 0 || !assignments) {
+      if (gameId === null || !assignments) {
         res.status(400).json({
           error: "Nieprawidłowa klasyfikacja.",
           code: "INVALID_CLASSIFICATION",
+        });
+        return;
+      }
+      if (typeof expectedRevision !== "number" || !Number.isSafeInteger(expectedRevision) ||
+          expectedRevision < 1 || expectedRevision > 2_147_483_647) {
+        res.status(428).json({
+          error: "Wymagana jest wersja klasyfikacji z ostatniego odczytu gry.",
+          code: "CLASSIFICATION_REVISION_REQUIRED",
         });
         return;
       }
@@ -442,20 +452,38 @@ router.put(
         }
       }
 
-      await db.transaction(async (tx) => {
-        await tx
-          .delete(steamCatalogGameTerms)
+      // Claim the record version under PostgreSQL row locking before changing
+      // assignments. Concurrent writers with a stale version cannot delete
+      // another editor's work: only one conditional UPDATE may succeed.
+      const result = await db.transaction(async (tx) => {
+        const [claimed] = await tx.update(steamCatalogGames)
+          .set({
+            status,
+            updatedAt: new Date(),
+            classificationRevision: sql`${steamCatalogGames.classificationRevision} + 1`,
+          })
+          .where(and(
+            eq(steamCatalogGames.id, gameId),
+            eq(steamCatalogGames.classificationRevision, expectedRevision),
+          ))
+          .returning({ revision: steamCatalogGames.classificationRevision });
+        if (!claimed) return null;
+        await tx.delete(steamCatalogGameTerms)
           .where(eq(steamCatalogGameTerms.gameId, gameId));
         if (normalized.length > 0) {
           await tx.insert(steamCatalogGameTerms).values(normalized);
         }
-        await tx
-          .update(steamCatalogGames)
-          .set({ status, updatedAt: new Date() })
-          .where(eq(steamCatalogGames.id, gameId));
+        return claimed.revision;
       });
 
-      res.json({ ok: true });
+      if (result === null) {
+        res.status(409).json({
+          error: "Inny redaktor zapisał nowszą klasyfikację tej gry. Zaktualizuj rekord przed ponowną próbą.",
+          code: "CLASSIFICATION_CONFLICT",
+        });
+        return;
+      }
+      res.json({ ok: true, classificationRevision: result });
     } catch (error) {
       if (error instanceof Error && error.message === "INVALID_MECHANIC_ROLE") {
         res.status(400).json({
