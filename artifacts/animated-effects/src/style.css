@@ -8853,3 +8853,61 @@ body {
     height: 12px;
   }
 }
+
+
+/* Animated Effects — StreamElements event triggers */
+.ae-trigger-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(107, 200, 232, .28);
+  border-radius: 10px;
+  background: rgba(12, 26, 42, .48);
+}
+.ae-trigger-heading {
+  display: grid;
+  gap: 4px;
+}
+.ae-trigger-heading strong {
+  color: #d9ecff;
+  font-size: 12px;
+}
+.ae-trigger-heading span {
+  color: #9eafc7;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ae-trigger-advanced {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.ae-trigger-advanced[hidden],
+.ae-trigger-panel [hidden] {
+  display: none !important;
+}
+.ae-trigger-advanced button {
+  justify-self: start;
+  padding: 8px 12px;
+  min-height: 34px;
+}
+.ae-trigger-panel select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.ae-trigger-panel input[type="number"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  color: inherit;
+  background: rgba(8, 15, 28, .7);
+  border: 1px solid rgba(173, 194, 236, .24);
+  border-radius: 8px;
+}
+.ae-trigger-panel :is(input, select, button):focus-visible {
+  outline: 2px solid #71bfff;
+  outline-offset: 2px;
+}
