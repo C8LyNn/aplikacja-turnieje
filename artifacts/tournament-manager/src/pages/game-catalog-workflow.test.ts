@@ -33,7 +33,7 @@ test("taxonomy search handles Polish accents and keeps selected terms ahead of o
   const terms = [
     { id: 1, label: "Żywioły", slug: "zywioly" },
     { id: 2, label: "Akcja", slug: "akcja" },
-    { id: 3, label: "Łowienie", slug: "lowienie" },
+    { id: 3, label: "Łowienie", slug: "fishing" },
   ];
   assert.deepEqual(filterTaxonomyTerms(terms, "LOW", new Set()).map((t) => t.id), [3]);
   assert.deepEqual(filterTaxonomyTerms(terms, "zyw", new Set()).map((t) => t.id), [1]);
