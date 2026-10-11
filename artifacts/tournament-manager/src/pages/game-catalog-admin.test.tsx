@@ -126,7 +126,7 @@ test("catalog filters games by classification status and title", async () => {
 test("the classification editor marks unsaved changes and can restore persisted choices", async () => {
   mockCatalog([game(12, "Test gry")]);
   mount(`${BASE}/games/12`);
-  const save = await screen.findByRole("button", { name: /Zapisz/i });
+  const save = await screen.findByRole("button", { name: "Zapisz" });
   await waitFor(() => assert.equal(save.hasAttribute("disabled"), true));
 
   fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
@@ -197,4 +197,29 @@ test("a rejected save preserves the current draft and does not advance the queue
   assert.equal(location.history.at(-1), `${BASE}/games/1`);
   assert.ok(screen.getByText("Niezapisane zmiany"));
   assert.equal(screen.getByRole("button", { name: /Zapisz i dalej/i }).hasAttribute("disabled"), false);
+});
+
+test("an incomplete classification cannot be marked ready on the client", async () => {
+  const requests = mockCatalog([game(9, "Niekompletna")]);
+  mount(`${BASE}/games/9`);
+  const status = await screen.findByRole("combobox", { name: "Status klasyfikacji" });
+  fireEvent.change(status, { target: { value: "ready" } });
+  fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
+  await screen.findByText(/Brakuje wymaganych elementów/i);
+  assert.equal(requests.filter((request) => request.method === "PUT").length, 0);
+  assert.ok(screen.getByRole("alert").textContent?.includes("Status Gotowe wymaga"));
+});
+
+test("taxonomy search finds diacritic-insensitive labels in the active perspective", async () => {
+  mockCatalog([game(12, "Test gry")]);
+  mount(`${BASE}/games/12`);
+  await screen.findByRole("button", { name: "Akcja" });
+  fireEvent.change(screen.getByPlaceholderText("Szukaj pojęć w słowniku..."), {
+    target: { value: "akcja" },
+  });
+  assert.ok(screen.getByRole("button", { name: "Akcja" }));
+  fireEvent.change(screen.getByPlaceholderText("Szukaj pojęć w słowniku..."), {
+    target: { value: "nieistniejaca" },
+  });
+  assert.equal(screen.queryByRole("button", { name: "Akcja" }), null);
 });
