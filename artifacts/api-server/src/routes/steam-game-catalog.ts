@@ -209,8 +209,19 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       ? search
         ? await (async () => {
             const compiled = pageQuery.toSQL();
-            const result = await pool.query(compiled.sql, compiled.params);
-            return result.rows as Awaited<ReturnType<typeof pageQuery.execute>>;
+            // Drizzle normally maps result columns by select order. Raw pg
+            // returns SQL column names instead; read tuples to preserve the
+            // stable public camelCase contract without fragile SQL aliases.
+            const result = await pool.query({
+              text: compiled.sql, values: compiled.params, rowMode: "array",
+            });
+            const keys = Object.keys(gameListColumns);
+            return result.rows.map((cells: unknown) => {
+              if (!Array.isArray(cells) || cells.length !== keys.length) {
+                throw new Error("Unexpected Steam catalog search projection");
+              }
+              return Object.fromEntries(keys.map((key, index) => [key, cells[index]]));
+            }) as Awaited<ReturnType<typeof pageQuery.execute>>;
           })()
         : await pageQuery
       : [];
