@@ -948,7 +948,7 @@ function EvidenceProfile() {
             </div>
           </ToolPanel>
 
-          <ToolPanel title="Evidence Matrix" description="Każdy wiersz pokazuje obserwacje, nie syntetyczną etykietę osoby.">
+          <ToolPanel title="Evidence Matrix" description="Kolumny kierunku liczą niezależne jednostki argumentacyjne, nie liczbę cytatów. Liczba kodowań pozostaje pokazana osobno.">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
@@ -958,17 +958,25 @@ function EvidenceProfile() {
                     <th className="px-3 py-3 text-center">Przeciw</th>
                     <th className="px-3 py-3 text-center">Mieszane</th>
                     <th className="px-3 py-3 text-center">N/A</th>
-                    <th className="px-3 py-3 text-center">Łącznie</th>
+                    <th className="px-3 py-3 text-center">Jednostki</th>
+                    <th className="px-3 py-3 text-center">Kodowania</th>
                     <th className="px-3 py-3 text-right">Audyt</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.propositions.map((proposition) => {
                     const codings = personCodings.filter((coding) => coding.propositionId === proposition.id);
-                    const positive = codings.filter((coding) => coding.direction !== null && coding.direction > 0).length;
-                    const negative = codings.filter((coding) => coding.direction !== null && coding.direction < 0).length;
-                    const mixed = codings.filter((coding) => coding.direction === 0).length;
-                    const na = codings.filter((coding) => coding.direction === null).length;
+                    const unitKey = (coding: typeof codings[number]) => {
+                      const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+                      return excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`;
+                    };
+                    const countUnits = (predicate: (coding: typeof codings[number]) => boolean) =>
+                      new Set(codings.filter(predicate).map(unitKey)).size;
+                    const positive = countUnits((coding) => coding.direction !== null && coding.direction > 0);
+                    const negative = countUnits((coding) => coding.direction !== null && coding.direction < 0);
+                    const mixed = countUnits((coding) => coding.direction === 0);
+                    const na = countUnits((coding) => coding.direction === null);
+                    const allUnits = new Set(codings.map(unitKey)).size;
                     const contradiction = positive > 0 && negative > 0;
                     return (
                       <tr key={proposition.id} className="border-b border-border/60 last:border-0">
@@ -980,7 +988,8 @@ function EvidenceProfile() {
                         <td className="px-3 py-3 text-center font-bold">{negative}</td>
                         <td className="px-3 py-3 text-center">{mixed}</td>
                         <td className="px-3 py-3 text-center text-muted-foreground">{na}</td>
-                        <td className="px-3 py-3 text-center">{codings.length}</td>
+                        <td className="px-3 py-3 text-center">{allUnits}</td>
+                        <td className="px-3 py-3 text-center text-muted-foreground">{codings.length}</td>
                         <td className="px-3 py-3 text-right">
                           <ToolButton type="button" variant="ghost" onClick={() => setSelectedPropositionId(proposition.id)} disabled={codings.length === 0}>
                             Pokaż dowody
@@ -992,6 +1001,51 @@ function EvidenceProfile() {
                 </tbody>
               </table>
             </div>
+          </ToolPanel>
+
+          <ToolPanel title="Evidence Timeline" description="Chronologia pokazuje materiał według dat źródeł bez uśredniania starszych i nowszych stanowisk.">
+            {personCodings.length === 0 ? (
+              <ToolEmptyState title="Brak danych czasowych" description="Kodowania pojawią się na osi po dodaniu źródeł i fragmentów." />
+            ) : (() => {
+              const buckets = new Map<string, { codings: typeof personCodings; units: Set<string> }>();
+              let undated = 0;
+              for (const coding of personCodings) {
+                const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+                const source = data.sources.find((item) => item.id === excerpt?.sourceId);
+                const year = source?.publishedAt?.slice(0, 4);
+                if (!year) {
+                  undated += 1;
+                  continue;
+                }
+                const current = buckets.get(year) ?? { codings: [], units: new Set<string>() };
+                current.codings.push(coding);
+                current.units.add(excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`);
+                buckets.set(year, current);
+              }
+              const years = [...buckets.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+              if (years.length === 0) {
+                return <ToolEmptyState title="Brak dat źródeł" description="Dodaj daty publikacji materiałów, aby analizować zmianę stanowisk w czasie." />;
+              }
+              return (
+                <div className="space-y-3">
+                  {years.map(([year, bucket]) => {
+                    const positive = bucket.codings.filter((coding) => coding.direction !== null && coding.direction > 0).length;
+                    const negative = bucket.codings.filter((coding) => coding.direction !== null && coding.direction < 0).length;
+                    const mixed = bucket.codings.filter((coding) => coding.direction === 0).length;
+                    return (
+                      <div key={year} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[90px_1fr]">
+                        <div className="text-xl font-black">{year}</div>
+                        <div>
+                          <div className="text-sm font-semibold">{bucket.units.size} jednostek argumentacyjnych · {bucket.codings.length} kodowań</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Za: {positive} · Przeciw: {negative} · Mieszane: {mixed}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {undated > 0 && <ToolNotice>{undated} kodowań pochodzi ze źródeł bez daty publikacji i nie trafia na oś czasu.</ToolNotice>}
+                </div>
+              );
+            })()}
           </ToolPanel>
 
           {selectedPropositionId && (() => {
