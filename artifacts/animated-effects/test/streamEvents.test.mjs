@@ -18,8 +18,10 @@ const motion = moduleFromFile("../src/animation/motion.ts", (id) => {
   if (id === "./timeline") return timeline;
   throw new Error(id);
 });
+const alertText = moduleFromFile("../src/animation/alertText.ts");
 const triggers = moduleFromFile("../src/animation/triggers.ts", (id) => {
   if (id === "./motion") return motion;
+  if (id === "./alertText") return alertText;
   throw new Error(id);
 });
 const definition = {
@@ -34,11 +36,13 @@ const module = {
   streamElementsRendererSource: "function aeRenderStub(effect, root) { aeCreateLayer(effect, root); }",
   estimateDomNodes: () => 1,
 };
+const alertRuntime = moduleFromFile("../src/animation/alertRuntime.ts");
 const exporter = moduleFromFile("../src/export/streamElements.ts", (id) => {
   if (id === "../effects/registry") return { getEffectModule: (name) => name === "stub" ? module : undefined };
   if (id === "../animation/timeline") return timeline;
   if (id === "../animation/motion") return motion;
   if (id === "../animation/triggers") return triggers;
+  if (id === "../animation/alertRuntime") return alertRuntime;
   throw new Error(id);
 });
 
