@@ -45,8 +45,41 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
     const path = String(input);
     const method = init?.method ?? "GET";
     requests.push({ path, method });
-    if (path === "/api/steam-catalog/games" && method === "GET") {
-      return Response.json({ games });
+    const parsed = new URL(path, "http://localhost");
+    if (parsed.pathname === "/api/steam-catalog/games" && method === "GET") {
+      const page = Number(parsed.searchParams.get("page") ?? "1");
+      const pageSize = Number(parsed.searchParams.get("pageSize") ?? "25");
+      const query = (parsed.searchParams.get("query") ?? "").trim().toLowerCase();
+      const status = parsed.searchParams.get("status") ?? "all";
+      const matches = games.filter((item) =>
+        (status === "all" || item.status === status) &&
+        (!query || [item.name, item.developer, item.publisher, String(item.steamAppId)]
+          .filter(Boolean).some((part) => String(part).toLowerCase().includes(query))),
+      ).sort((a, b) => a.name.localeCompare(b.name, "pl") || a.id - b.id);
+      return Response.json({
+        games: matches.slice((page - 1) * pageSize, page * pageSize),
+        pagination: { page, pageSize, total: matches.length, totalPages: Math.max(1, Math.ceil(matches.length / pageSize)) },
+        counts: {
+          all: games.length,
+          unclassified: games.filter((item) => item.status === "unclassified").length,
+          review: games.filter((item) => item.status === "review").length,
+          ready: games.filter((item) => item.status === "ready").length,
+        },
+      });
+    }
+    if (parsed.pathname.startsWith("/api/steam-catalog/games/") && method === "GET") {
+      const id = Number(parsed.pathname.split("/")[4]);
+      const record = games.find((item) => item.id === id);
+      return record ? Response.json({ game: record }) : Response.json({ error: "GAME_NOT_FOUND" }, { status: 404 });
+    }
+    if (parsed.pathname === "/api/steam-catalog/queue" && method === "GET") {
+      const currentId = Number(parsed.searchParams.get("currentId") ?? "0");
+      const current = games.find((item) => item.id === currentId);
+      const pending = games.filter((item) => item.status !== "ready").sort((a, b) => a.name.localeCompare(b.name, "pl") || a.id - b.id);
+      const after = current ? pending.filter((item) => item.name.localeCompare(current.name, "pl") > 0 ||
+        (item.name === current.name && item.id > current.id)) : pending;
+      const next = [...after, ...pending].find((item) => item.id !== currentId);
+      return Response.json({ pendingCount: pending.length, nextId: next?.id ?? null });
     }
     if (path === "/api/steam-catalog/taxonomy" && method === "GET") {
       return Response.json({ terms: [
@@ -68,6 +101,9 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
     if (path === "/api/steam-catalog/import" && method === "POST" && imported) {
       // API returns the raw Steam record without the classifications array.
       const { assignments: _assignments, ...steamRecord } = imported;
+      const index = games.findIndex((item) => item.id === imported.id);
+      if (index < 0) games.push(imported);
+      else games[index] = imported;
       return Response.json({ game: steamRecord }, { status: 201 });
     }
     throw new Error(`Unexpected request: ${method} ${path}`);
@@ -222,4 +258,25 @@ test("taxonomy search finds diacritic-insensitive labels in the active perspecti
     target: { value: "nieistniejaca" },
   });
   assert.equal(screen.queryByRole("button", { name: "Akcja" }), null);
+});
+
+test("catalog loads only a page of 25 games, then requests page two", async () => {
+  const records = Array.from({ length: 31 }, (_, index) => game(index + 1, `Gra ${String(index + 1).padStart(2, "0")}`));
+  const requests = mockCatalog(records);
+  mount(`${BASE}/games`);
+  await screen.findByRole("link", { name: /Gra 01/i });
+  assert.equal(screen.getAllByRole("link", { name: /Gra \d+/i }).length, 25);
+
+  fireEvent.click(screen.getByRole("button", { name: "Następna" }));
+  await screen.findByRole("link", { name: /Gra 26/i });
+  assert.equal(screen.queryByRole("link", { name: /Gra 01/i }), null);
+  assert.ok(requests.some((request) => request.path.includes("page=2")));
+});
+
+test("a deep linked game is fetched by ID without first fetching every catalog row", async () => {
+  const requests = mockCatalog([game(77, "Bezpośredni rekord")]);
+  mount(`${BASE}/games/77`);
+  await screen.findByRole("heading", { name: "Bezpośredni rekord" });
+  assert.ok(requests.some((request) => request.path === "/api/steam-catalog/games/77"));
+  assert.equal(requests.filter((request) => request.path.includes("/steam-catalog/games?")).length, 0);
 });
