@@ -77,7 +77,10 @@ export interface AlertCaption {
   enabled: boolean;
   /** Template supports {name}, {amount}, {message}, {event}. */
   template: string;
-  position: "top" | "center" | "bottom";
+  position: "top" | "center" | "bottom" | "custom";
+  /** Custom caption center as percentages of scene bounds. */
+  xPercent?: number;
+  yPercent?: number;
   fontSize: number;
   color: string;
   avatarEnabled?: boolean;
