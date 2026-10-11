@@ -8,8 +8,14 @@ import {
   getEffectModule,
 } from "../effects/registry";
 
+import {
+  normalizeStreamElementsTriggerOptions,
+  type StreamElementsTriggerOptions,
+} from "./triggerOptions";
+
 export function generateStreamElementsExport(
   state: EditorState,
+  triggerOptions: Partial<StreamElementsTriggerOptions> = {},
 ): StreamElementsExport {
   const enabledEffects =
     state.effects.filter(
@@ -45,6 +51,7 @@ export function generateStreamElementsExport(
     javascript:
       generateJavaScript(
         config,
+        normalizeStreamElementsTriggerOptions(triggerOptions),
       ),
 
     estimatedDomNodes:
@@ -128,6 +135,7 @@ function generateJavaScript(
     settings:
       EffectInstance["settings"];
   }>,
+  trigger: StreamElementsTriggerOptions,
 ): string {
   const effectIds =
     [
@@ -198,6 +206,8 @@ const effects = ${JSON.stringify(
     null,
     2,
   )};
+
+const aeTrigger = ${JSON.stringify(trigger)};
 
 function aeCreateSeededRandom(seed) {
   let value = seed >>> 0;
@@ -530,10 +540,83 @@ function startAnimatedEffects() {
   );
 }
 
-window.addEventListener(
-  "onWidgetLoad",
-  startAnimatedEffects
-);
+// Keep backward-compatible behavior for exports without a trigger.
+let aeReady = false;
+let aeLastRunAt = -Infinity;
+let aeStopTimer = null;
+const aeRecentMessageIds = new Set();
+const aeRecentMessageOrder = [];
+
+function aeMatchingEvent(detail) {
+  if (!detail || typeof detail !== "object") return false;
+  if (aeTrigger.mode === "always") return false;
+
+  const listeners = {
+    follower: "follower-latest",
+    subscriber: "subscriber-latest",
+    tip: "tip-latest",
+    cheer: "cheer-latest",
+    raid: "raid-latest"
+  };
+
+  if (aeTrigger.mode !== "chat-command") {
+    return detail.listener === listeners[aeTrigger.mode];
+  }
+  if (detail.listener !== "message") return false;
+
+  const event = detail.event || {};
+  const data = event.data && typeof event.data === "object" ? event.data : event;
+  if (!data || typeof data !== "object") return false;
+  const message = typeof data.text === "string" ? data.text.trim().toLowerCase() : "";
+  const command = aeTrigger.chatCommand;
+  if (message !== command && !message.startsWith(command + " ")) return false;
+
+  const msgId = data.msgId == null ? "" : String(data.msgId);
+  if (msgId) {
+    if (aeRecentMessageIds.has(msgId)) return false;
+    aeRecentMessageIds.add(msgId);
+    aeRecentMessageOrder.push(msgId);
+    if (aeRecentMessageOrder.length > 128) {
+      aeRecentMessageIds.delete(aeRecentMessageOrder.shift());
+    }
+  }
+  return true;
+}
+
+function aeStartTriggeredEffects() {
+  if (!aeReady || aeTrigger.mode === "always") return;
+  const root = document.getElementById("animated-effects-root");
+  if (!root) return;
+
+  const now = Date.now();
+  if (now - aeLastRunAt < aeTrigger.cooldownMs) return;
+  aeLastRunAt = now;
+  if (aeStopTimer !== null) clearTimeout(aeStopTimer);
+  startAnimatedEffects();
+  aeStopTimer = setTimeout(function () {
+    root.replaceChildren();
+    aeStopTimer = null;
+  }, aeTrigger.activeDurationMs);
+}
+
+window.addEventListener("onWidgetLoad", function () {
+  aeReady = true;
+  if (aeStopTimer !== null) {
+    clearTimeout(aeStopTimer);
+    aeStopTimer = null;
+  }
+  if (aeTrigger.mode === "always") {
+    startAnimatedEffects();
+  } else {
+    const root = document.getElementById("animated-effects-root");
+    if (root) root.replaceChildren();
+  }
+});
+
+window.addEventListener("onEventReceived", function (event) {
+  if (!aeReady || aeTrigger.mode === "always") return;
+  if (aeMatchingEvent(event && event.detail)) aeStartTriggeredEffects();
+});
 `.trim();
 }
 
