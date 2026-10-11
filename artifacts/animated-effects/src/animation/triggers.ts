@@ -1,5 +1,6 @@
 import type { EffectInstance, EffectTrigger, EffectTriggerEvent } from "../core/types";
 import { normalizedMotionTimeline } from "./motion";
+import { normalizeAlertCaption } from "./alertText";
 
 export const STREAM_EVENTS: ReadonlyArray<{ value: EffectTriggerEvent; label: string }> = [
   { value: "follower-latest", label: "Nowy obserwujący" },
@@ -28,6 +29,7 @@ export function normalizeEffectTrigger(value: unknown): EffectTrigger | undefine
     event: EVENT_NAMES.has(String(raw.event)) ? raw.event as EffectTriggerEvent : "follower-latest",
     cooldownMs: limit(raw.cooldownMs, 3000, 60000),
     minAmount: limit(raw.minAmount, 0, 1000000),
+    caption: raw.caption === undefined ? undefined : normalizeAlertCaption(raw.caption),
   };
 }
 
