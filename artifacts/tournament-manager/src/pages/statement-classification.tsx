@@ -43,6 +43,7 @@ type Section = "hub" | "overview" | "people" | "sampling" | "sources" | "fragmen
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
+  if (tail === "dimensions") return "map";
   if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
@@ -100,9 +101,9 @@ const cards = [
     icon: Network,
   },
   {
-    code: "MAP",
-    title: "Mapa stanowisk",
-    description: "Wizualizacja wyników powstająca dopiero na podstawie zakodowanych danych.",
+    code: "MODEL",
+    title: "Model wymiarów",
+    description: "Wersjonowane hipotezy wymiarów i mapowania mikrostanowisk bez automatycznego X/Y.",
     href: `${BASE}/map`,
     icon: Map,
   },
