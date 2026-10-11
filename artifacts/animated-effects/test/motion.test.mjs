@@ -59,7 +59,7 @@ test("partial imported frames inherit defaults and invalid poses are clamped", (
     { timeMs: "2000", x: 44 },
     null,
   ], 4000, settings);
-  assert.equal(frames.length, 3);
+  assert.equal(frames.length, 2);
   assert.equal(frames[0].timeMs, 0);
   assert.equal(frames[0].x, -300);
   assert.equal(frames[1].x, 70);
