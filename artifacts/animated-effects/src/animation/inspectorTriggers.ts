@@ -85,6 +85,7 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
                   <option value="top" ${caption.position === "top" ? "selected" : ""}>Góra</option>
                   <option value="center" ${caption.position === "center" ? "selected" : ""}>Środek</option>
                   <option value="bottom" ${caption.position === "bottom" ? "selected" : ""}>Dół</option>
+                  <option value="custom" ${caption.position === "custom" ? "selected" : ""}>Własna pozycja (X/Y)</option>
                 </select>
               </label>
               <label class="ae-timeline-field">
@@ -96,6 +97,17 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
                 <input data-ae-caption-color type="color" value="${caption.color}" aria-label="Kolor podpisu">
               </label>
             </div>
+            <div class="ae-caption-row" data-ae-custom-position-row ${caption.position === "custom" ? "" : "hidden"}>
+              <label class="ae-timeline-field">
+                <span class="inspector-label"><span>X — środek (%)</span></span>
+                <input type="number" data-ae-caption-x min="25" max="75" step="1" value="${caption.xPercent ?? 50}">
+              </label>
+              <label class="ae-timeline-field">
+                <span class="inspector-label"><span>Y — środek (%)</span></span>
+                <input type="number" data-ae-caption-y min="10" max="90" step="1" value="${caption.yPercent ?? 75}">
+              </label>
+            </div>
+            <p class="ae-timeline-hint">W trybie własnej pozycji można też przeciągnąć podpis na podglądzie przyciskiem „Testuj w podglądzie”.</p>
             <label class="ae-caption-switch">
               <input type="checkbox" data-ae-caption-avatar ${caption.avatarEnabled ? "checked" : ""}>
               <span>Pokaż awatar (lub inicjał widza)</span>
@@ -171,10 +183,18 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   });
   container.querySelector<HTMLSelectElement>("[data-ae-caption-position]")?.addEventListener("change", (event) => {
     const value = (event.currentTarget as HTMLSelectElement).value;
-    if (value === "top" || value === "center" || value === "bottom") changeCaption({ position: value });
+    if (value === "top" || value === "center" || value === "bottom" || value === "custom") changeCaption({ position: value });
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-size]")?.addEventListener("change", (event) => {
     changeCaption({ fontSize: Number((event.currentTarget as HTMLInputElement).value) });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-x]")?.addEventListener("change", (event) => {
+    const xPercent = Number((event.currentTarget as HTMLInputElement).value);
+    if (Number.isFinite(xPercent)) changeCaption({ xPercent });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-y]")?.addEventListener("change", (event) => {
+    const yPercent = Number((event.currentTarget as HTMLInputElement).value);
+    if (Number.isFinite(yPercent)) changeCaption({ yPercent });
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-avatar]")?.addEventListener("change", (event) => {
     changeCaption({ avatarEnabled: (event.currentTarget as HTMLInputElement).checked });
