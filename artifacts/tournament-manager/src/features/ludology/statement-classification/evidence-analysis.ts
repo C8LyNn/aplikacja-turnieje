@@ -104,3 +104,17 @@ export function personEvidence(
     argumentsCount,
   };
 }
+
+
+export function evidenceSignature(codings: readonly CodingRecord[]): string {
+  return [...codings]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((coding) => [
+      coding.id,
+      coding.direction === null ? "na" : coding.direction,
+      coding.explicitness,
+      coding.evidenceLevel,
+      coding.confidence,
+    ].join(":"))
+    .join("|");
+}
