@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  Coder,
   CodingRecord,
   ResearchArgument,
   ResearchExcerpt,
@@ -45,6 +46,18 @@ export function useResearchProject() {
     data,
     replaceProject(next: ResearchProjectData) {
       setData(withPilotDefaults(next));
+    },
+    addCoder(input: Omit<Coder, "id">) {
+      update((current) => ({
+        ...current,
+        coders: [...current.coders, { ...input, id: createResearchId("coder") }],
+      }));
+    },
+    updateCoder(coderId: string, patch: Partial<Omit<Coder, "id">>) {
+      update((current) => ({
+        ...current,
+        coders: current.coders.map((coder) => coder.id === coderId ? { ...coder, ...patch } : coder),
+      }));
     },
     addPerson(input: Omit<ResearchPerson, "id" | "createdAt">) {
       update((current) => ({
