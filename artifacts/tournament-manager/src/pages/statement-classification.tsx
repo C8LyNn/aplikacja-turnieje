@@ -1073,6 +1073,7 @@ function EvidenceProfile() {
   const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
   const [selectedPropositionId, setSelectedPropositionId] = useState("");
   const [assessmentStatus, setAssessmentStatus] = useState<"insufficient_evidence" | "stable" | "context_dependent" | "contradictory" | "position_change">("insufficient_evidence");
+  const [assessmentDirection, setAssessmentDirection] = useState<"" | "-2" | "-1" | "0" | "1" | "2">("");
   const [assessmentConfidence, setAssessmentConfidence] = useState<"low" | "medium" | "high">("medium");
   const [assessmentSynthesis, setAssessmentSynthesis] = useState("");
   const [assessmentReviewerId, setAssessmentReviewerId] = useState(data.coders[0]?.id ?? "");
@@ -1121,6 +1122,7 @@ function EvidenceProfile() {
       assessment.codebookId === currentCodebook?.id
     );
     setAssessmentStatus(existing?.status ?? "insufficient_evidence");
+    setAssessmentDirection(existing?.direction === null || existing?.direction === undefined ? "" : String(existing.direction) as typeof assessmentDirection);
     setAssessmentConfidence(existing?.confidence ?? "medium");
     setAssessmentSynthesis(existing?.synthesis ?? "");
     setAssessmentReviewerId(existing?.reviewerId ?? data.coders[0]?.id ?? "");
@@ -1138,6 +1140,7 @@ function EvidenceProfile() {
       {
         reviewerId: assessmentReviewerId || undefined,
         status: assessmentStatus,
+        direction: assessmentDirection === "" ? null : Number(assessmentDirection) as -2 | -1 | 0 | 1 | 2,
         confidence: assessmentConfidence,
         synthesis: assessmentSynthesis.trim() || undefined,
         evidenceSignature: evidenceSignature(selectedCodings),
@@ -1271,7 +1274,7 @@ function EvidenceProfile() {
                         <td className="px-3 py-3 text-center text-xs">
                           {assessment ? (
                             <div>
-                              <div>{assessment.status}</div>
+                              <div>{assessment.direction === null ? "N/A" : assessment.direction > 0 ? `+${assessment.direction}` : assessment.direction} · {assessment.status}</div>
                               {assessmentStale && <div className="mt-1 text-amber-400">dowody zmienione</div>}
                             </div>
                           ) : "—"}
@@ -1335,7 +1338,15 @@ function EvidenceProfile() {
                     title="Rekonstrukcja stanowiska"
                     description="To osobna warstwa interpretacyjna oparta na zakodowanych dowodach. Nie zmienia danych źródłowych ani kodowań."
                   >
-                    <div className="grid gap-3 lg:grid-cols-2">
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      <ToolSelect value={assessmentDirection} onChange={(e) => setAssessmentDirection(e.target.value as typeof assessmentDirection)}>
+                        <option value="">Kierunek: brak / nierozstrzygnięty</option>
+                        <option value="-2">−2 — zdecydowanie odrzuca</option>
+                        <option value="-1">−1 — raczej odrzuca</option>
+                        <option value="0">0 — mieszane / warunkowe</option>
+                        <option value="1">+1 — raczej popiera</option>
+                        <option value="2">+2 — zdecydowanie popiera</option>
+                      </ToolSelect>
                       <ToolSelect value={assessmentStatus} onChange={(e) => setAssessmentStatus(e.target.value as typeof assessmentStatus)}>
                         <option value="insufficient_evidence">Niewystarczające dowody</option>
                         <option value="stable">Stanowisko stabilne</option>
