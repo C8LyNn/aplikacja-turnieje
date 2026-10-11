@@ -28,6 +28,7 @@ if ($LASTEXITCODE -ne 0 -or
 
 $allowedPaths = @(
     'artifacts/animated-effects/',
+    'START_ANIMATED_EFFECTS_PREVIEW.cmd',
     'artifacts/tournament-manager/scripts/stage-animated-effects.mjs',
     'artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts',
     'artifacts/tournament-manager/src/features/streaming/obs-lab/stream-elements-profiles.test.ts',
