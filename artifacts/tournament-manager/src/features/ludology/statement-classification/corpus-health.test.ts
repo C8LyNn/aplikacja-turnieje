@@ -49,6 +49,7 @@ function project(): ResearchProjectData {
     propositions: [
       { id: "q1", codebookId: "book", code: "Q1", label: "Q1", definition: "D1" },
       { id: "q2", codebookId: "book", code: "Q2", label: "Q2", definition: "D2" },
+      { id: "q3", codebookId: "book", code: "Q3", label: "Q3", definition: "D3" },
     ],
     coders: [{ id: "c", displayName: "C", type: "human" }],
     codings: [
