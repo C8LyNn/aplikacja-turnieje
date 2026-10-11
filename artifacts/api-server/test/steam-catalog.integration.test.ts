@@ -516,6 +516,29 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.ok(batch.every((response) =>
       response.body.games.map((x: { id: number }) => x.id).join(",") ===
       keyed.games.map((x: { id: number }) => x.id).join(",")));
+    // Repeat each HTTP request three times to separate actual SQL stages
+    // from routing, ORM, network and test-runner scheduling overhead.
+    const probes: Record<string, Array<{ http_ms: number; stages: string }>> = {};
+    for (const [name, url] of [
+      ["name", "/api/steam-catalog/games?query=Large%20Game%2099999"],
+      ["publisher", "/api/steam-catalog/games?query=Example%20Publisher"],
+      ["app_id", "/api/steam-catalog/games?query=1600000"],
+      ["literal", "/api/steam-catalog/games?query=100%25"],
+      ["unfiltered", "/api/steam-catalog/games?pageSize=25"],
+    ] as const) {
+      probes[name] = [];
+      for (let n = 0; n < 3; n++) {
+        const started = performance.now();
+        const response = await request(app).get(url).set("x-catalog-perf-probe", "1").expect(200);
+        const elapsed = Math.round((performance.now() - started) * 100) / 100;
+        const header = String(response.headers["server-timing"] ?? "");
+        assert.match(header, /^global_counts;dur=[\d.]+, match_count;dur=[\d.]+, page_select;dur=[\d.]+$/);
+        probes[name].push({ http_ms: elapsed, stages: header });
+      }
+    }
+    const withoutProbe = await request(app).get("/api/steam-catalog/games?query=1600000").expect(200);
+    assert.equal(withoutProbe.headers["server-timing"], undefined);
+    console.log("CATALOG_100K_STAGE_TIMINGS " + JSON.stringify(probes));
     // Record the database access plan separately from HTTP timings to
     // distinguish GIN index use from global-count and sequential-scan costs.
     const searchPlans = await rows<{ "QUERY PLAN": unknown }>(
