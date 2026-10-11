@@ -3,6 +3,7 @@
 import {
   type CameraChatConfig,
   getCameraChatSize,
+  getCameraChatAnimationCss,
 } from "./camera-chat-settings";
 
 export type MockChatMessage = {
@@ -173,7 +174,7 @@ export function CameraChatWidget({
                   )
                 }
                 className={[
-                  "flex min-w-0 items-start gap-2",
+                  "obs-chat-message flex min-w-0 items-start gap-2",
                   config.messageBackground
                     ? "rounded-xl bg-white/[0.055]"
                     : "",
@@ -186,7 +187,7 @@ export function CameraChatWidget({
                   opacity,
                   animation:
                     config.animateMessages
-                      ? "obs-chat-in 220ms ease-out both"
+                      ? `obs-chat-in ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
                       : undefined,
                 }}
               >
@@ -301,20 +302,8 @@ export function CameraChatWidget({
 
   return (
     <>
-      <style>
-        {`
-          @keyframes obs-chat-in {
-            from {
-              opacity: 0;
-              transform: translateY(8px);
-            }
-
-            to {
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
+      <style>{`${getCameraChatAnimationCss(config.animationStyle, "obs-chat-in")}
+@media (prefers-reduced-motion: reduce) { .obs-chat-message { animation: none !important; } }`}</style>
 
       <div
         className={[
