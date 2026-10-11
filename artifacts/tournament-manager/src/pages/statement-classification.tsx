@@ -2,6 +2,7 @@ import {
   BookOpen,
   FileText,
   FlaskConical,
+  ListChecks,
   Map,
   Network,
   Users,
@@ -29,6 +30,7 @@ import MethodologyView from "@/features/ludology/statement-classification/Method
 import CodingLab from "@/features/ludology/statement-classification/CodingLab";
 import ResearchWorkspace from "@/features/ludology/statement-classification/ResearchWorkspace";
 import DimensionModelLab from "@/features/ludology/statement-classification/DimensionModelLab";
+import SamplingLab from "@/features/ludology/statement-classification/SamplingLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
@@ -37,11 +39,11 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
-  if (tail === "overview" || tail === "people" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -61,6 +63,13 @@ const cards = [
     description: "Profile publicznych twórców i influencerów objętych analizą.",
     href: `${BASE}/people`,
     icon: Users,
+  },
+  {
+    code: "SAMPLE",
+    title: "Sampling / Corpus Plan",
+    description: "Plan próbkowania, różnorodność korpusu i kontrola cherry-pickingu.",
+    href: `${BASE}/sampling`,
+    icon: ListChecks,
   },
   {
     code: "SRC",
@@ -546,6 +555,7 @@ export default function StatementClassificationPage() {
       <ModuleShell>
         {section === "overview" && <Overview />}
         {section === "people" && <People />}
+        {section === "sampling" && <SamplingLab />}
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
