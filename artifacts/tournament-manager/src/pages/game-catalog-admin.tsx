@@ -16,7 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { nextPendingGameId, pendingCatalogGames } from "./game-catalog-workflow";
+import { steamCatalogReadiness } from "@workspace/game-catalog";
+import { filterTaxonomyTerms, nextPendingGameId, pendingCatalogGames } from "./game-catalog-workflow";
 import {
   ModuleHeader,
   ModuleShell,
@@ -254,6 +255,7 @@ export default function GameCatalogAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [newFacet, setNewFacet] = useState<Facet>("mechanic");
   const [newLabel, setNewLabel] = useState("");
+  const [termQuery, setTermQuery] = useState("");
   const [perspective, setPerspective] = useState<Perspective>("gameplay");
 
   const selected = gameId ? games.find((game) => game.id === gameId) ?? null : null;
@@ -262,13 +264,19 @@ export default function GameCatalogAdminPage() {
 
   const termsByFacet = useMemo(() => {
     const map = new Map<Facet, Term[]>();
+    const assigned = new Set(draft.map((term) => term.termId));
     for (const term of terms.filter((term) => term.active)) {
       const current = map.get(term.facet) ?? [];
       current.push(term);
       map.set(term.facet, current);
     }
+    for (const [facet, values] of map) {
+      map.set(facet, filterTaxonomyTerms(values, termQuery, assigned));
+    }
     return map;
-  }, [terms]);
+  }, [terms, draft, termQuery]);
+
+  const readiness = steamCatalogReadiness(draft);
 
   const filteredGames = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -339,6 +347,7 @@ export default function GameCatalogAdminPage() {
     setDraft(selected.assignments);
     setStatus(selected.status);
     setPerspective("gameplay");
+    setTermQuery("");
   }, [selected?.id, selected?.updatedAt]);
 
   function assignmentFor(termId: number) {
@@ -408,6 +417,10 @@ export default function GameCatalogAdminPage() {
 
   async function save(openNext = false) {
     if (!selected) return;
+    if (status === "ready" && !readiness.complete) {
+      setError(`Brakuje wymaganych elementów: ${readiness.missing.join(", ")}. Zapisz jako „Do sprawdzenia” lub uzupełnij klasyfikację.`);
+      return;
+    }
     const targetNextId = openNext ? nextPendingId : null;
     setBusy(true);
     setError(null);
@@ -449,10 +462,13 @@ export default function GameCatalogAdminPage() {
   function renderFacet(facet: Exclude<Facet, "mechanic">) {
     const facetTerms = termsByFacet.get(facet) ?? [];
     return (
-      <div className="flex flex-wrap gap-2">
-        {facetTerms.length ? facetTerms.map((term) => (
-          <Chip key={term.id} active={Boolean(assignmentFor(term.id))} onClick={() => toggleSimple(term)}>{term.label}</Chip>
-        )) : <span className="text-sm text-muted-foreground">Brak wartości w słowniku.</span>}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {facetTerms.length ? facetTerms.slice(0, 80).map((term) => (
+            <Chip key={term.id} active={Boolean(assignmentFor(term.id))} onClick={() => toggleSimple(term)}>{term.label}</Chip>
+          )) : <span className="text-sm text-muted-foreground">Brak pasujących wartości. Spróbuj innej frazy lub dodaj nowe pojęcie w słowniku.</span>}
+        </div>
+        {facetTerms.length > 80 && <p className="text-xs text-muted-foreground">Wyświetlono 80 z {facetTerms.length} pojęć. Wpisz fragment nazwy, aby znaleźć pozostałe.</p>}
       </div>
     );
   }
@@ -464,10 +480,10 @@ export default function GameCatalogAdminPage() {
           <ToolSection title="Gatunek" description="Jedna główna rama opisująca grę.">{renderFacet("genre")}</ToolSection>
           <ToolSection title="Podgatunki" description="Dodatkowe ramy, które realnie współtworzą doświadczenie.">{renderFacet("subgenre")}</ToolSection>
           <ToolSection title="Główne elementy rozgrywki" description="To, co gracz robi regularnie i co definiuje doświadczenie.">
-            <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).map((term) => <Chip key={`main-${term.id}`} active={assignmentFor(term.id)?.role === "main"} onClick={() => setMechanic(term, "main")}>{term.label}</Chip>)}</div>
+            <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).slice(0, 80).map((term) => <Chip key={`main-${term.id}`} active={assignmentFor(term.id)?.role === "main"} onClick={() => setMechanic(term, "main")}>{term.label}</Chip>)}</div>
           </ToolSection>
           <ToolSection title="Poboczne elementy rozgrywki" description="Istotne, ale nie centralne dla większości doświadczenia.">
-            <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).map((term) => <Chip key={`secondary-${term.id}`} active={assignmentFor(term.id)?.role === "secondary"} onClick={() => setMechanic(term, "secondary")}>{term.label}</Chip>)}</div>
+            <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).slice(0, 80).map((term) => <Chip key={`secondary-${term.id}`} active={assignmentFor(term.id)?.role === "secondary"} onClick={() => setMechanic(term, "secondary")}>{term.label}</Chip>)}</div>
           </ToolSection>
         </div>
       );
@@ -630,7 +646,24 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" /> Zapisz i dalej</ToolButton>
           </ToolToolbar>
 
-          <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz."><ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} /><div className="mt-6">{renderPerspectiveEditor()}</div></ToolPanel>
+          <ToolPanel title="Kontrola kompletności" description="Wymagania do uzyskania statusu Gotowe. Niepełny rekord można zapisać jako roboczy lub Do sprawdzenia.">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {readiness.checks.map((check) => (
+                <div key={check.key} className={`rounded-lg border px-3 py-2 text-sm ${check.complete ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-200" : "border-border bg-background/50 text-muted-foreground"}`}>
+                  <span aria-hidden="true">{check.complete ? "✓" : "○"}</span> {check.label}
+                </div>
+              ))}
+            </div>
+            {status === "ready" && !readiness.complete && (
+              <p role="alert" className="mt-3 text-sm text-amber-300">Status Gotowe wymaga uzupełnienia brakujących elementów. Możesz zapisać rekord jako Do sprawdzenia.</p>
+            )}
+          </ToolPanel>
+          <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz.">
+            <ToolInput value={termQuery} onChange={(event) => setTermQuery(event.target.value)} placeholder="Szukaj pojęć w słowniku..." aria-label="Szukaj pojęć w słowniku" />
+            <p className="mt-2 mb-4 text-xs text-muted-foreground">Wyszukiwanie obejmuje nazwy i identyfikatory pojęć. Zaznaczone wartości są wyświetlane jako pierwsze; listy ograniczono do 80 pozycji dla płynności.</p>
+            <ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} />
+            <div className="mt-6">{renderPerspectiveEditor()}</div>
+          </ToolPanel>
           <ToolDisclosure title="Pozostałe tagi" description="Szczegóły używane głównie do filtrowania.">{renderFacet("detail")}</ToolDisclosure>
           <ToolDisclosure title="Podgląd rekordu" description="To, co później zobaczy użytkownik katalogu.">
             <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
