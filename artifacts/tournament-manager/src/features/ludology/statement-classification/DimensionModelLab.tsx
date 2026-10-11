@@ -13,6 +13,7 @@ import {
 import { ModuleHeader } from "@/components/portfolio-ui";
 import {
   dimensionModelDimensions,
+  dimensionModelSummary,
   modelReadinessMatrix,
 } from "./dimension-model-analysis";
 import {
@@ -81,6 +82,10 @@ export default function DimensionModelLab() {
   const [linkRelevance, setLinkRelevance] = useState<DimensionLinkRelevance>("core");
   const [linkRationale, setLinkRationale] = useState("");
 
+  const modelSummaries = data.dimensionModels.map((model) => ({
+    model,
+    summary: dimensionModelSummary(data, model.id),
+  }));
   const selectedModel = data.dimensionModels.find((model) => model.id === selectedModelId);
   const selectedCodebook = data.codebooks.find((codebook) => codebook.id === selectedModel?.codebookId);
   const modelDimensions = selectedModel
@@ -289,6 +294,52 @@ export default function DimensionModelLab() {
             </div>
           </div>
         </ToolPanel>
+
+        {data.dimensionModels.length > 1 && (
+          <ToolPanel
+            title="Porównanie konkurencyjnych modeli"
+            description="Porównujemy strukturę i pokrycie tymi samymi rekonstrukcjami. Wyższe pokrycie nie oznacza automatycznie lepszego modelu."
+            flush
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="border-b border-border bg-background/40 text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Model</th>
+                    <th className="px-3 py-3 text-center">Status</th>
+                    <th className="px-3 py-3 text-center">Wymiary</th>
+                    <th className="px-3 py-3 text-center">Mapowania</th>
+                    <th className="px-3 py-3 text-center">Mikrostanowiska</th>
+                    <th className="px-3 py-3 text-center">Osoby z danymi</th>
+                    <th className="px-4 py-3 text-center">Pokrycie kierunkowe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelSummaries.map(({ model, summary }) => (
+                    <tr
+                      key={model.id}
+                      className={`cursor-pointer border-b border-border/60 last:border-b-0 ${model.id === selectedModelId ? "bg-primary/5" : "hover:bg-muted/30"}`}
+                      onClick={() => setSelectedModelId(model.id)}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-bold">{model.name}</div>
+                        <div className="text-xs text-muted-foreground">v{model.version}</div>
+                      </td>
+                      <td className="px-3 py-3 text-center">{model.status}</td>
+                      <td className="px-3 py-3 text-center">{summary.dimensions}</td>
+                      <td className="px-3 py-3 text-center">{summary.links}</td>
+                      <td className="px-3 py-3 text-center">{summary.mappedPropositions}</td>
+                      <td className="px-3 py-3 text-center">{summary.peopleWithDirectionalCoverage}/{data.people.length}</td>
+                      <td className="px-4 py-3 text-center font-bold">
+                        {summary.directionalCoverage === null ? "—" : `${Math.round(summary.directionalCoverage * 100)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ToolPanel>
+        )}
 
         {selectedModel && (
           <>
