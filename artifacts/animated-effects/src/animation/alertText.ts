@@ -1,5 +1,6 @@
 import type { AlertCaption } from "../core/types";
 import { appendEventAvatar } from "./alertAvatar";
+import { captionAnimationShorthand } from "./captionMotion";
 
 export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   enabled: false,
@@ -78,10 +79,12 @@ export function appendAlertCaption(
   options: AlertCaption | undefined,
   listener: string,
   event: unknown,
+  playbackMs = 4000,
 ): HTMLElement | null {
   if (!options || !options.enabled) return null;
   const label = document.createElement("div");
   label.className = "ae-alert-caption";
+  label.style.animation = captionAnimationShorthand(options.intro ?? "slide", options.outro ?? "fade", playbackMs);
   label.textContent = formatAlertCaption(options.template, listener, event);
   label.style.position = "absolute";
   label.style.left = "5%";
