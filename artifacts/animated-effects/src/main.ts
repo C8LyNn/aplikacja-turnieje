@@ -989,6 +989,14 @@ function renderPreview(): void {
   previewTransport.afterRender();
 }
 
+document.addEventListener("animated-effects:diagnostics-clear-preview", () => {
+  for (const timer of testTriggerTimeouts.values()) clearTimeout(timer);
+  testTriggerTimeouts.clear();
+  for (const element of Array.from(preview.children)) {
+    if ((element as HTMLElement).dataset.testTriggerId) element.remove();
+  }
+});
+
 // A test run renders only the selected event layer; it is not sent to
 // StreamElements and cannot change the scene or trigger real alerts.
 document.addEventListener("animated-effects:test-trigger", (event) => {
