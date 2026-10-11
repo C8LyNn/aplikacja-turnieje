@@ -12,6 +12,7 @@ const MIGRATIONS = [
   "0029_steam_game_catalog_v1.sql",
   "0030_steam_catalog_abstract_world.sql",
   "0031_steam_catalog_pagination_indexes.sql",
+  "0032_steam_catalog_classification_revision.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -75,6 +76,11 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "(SELECT count(*)::integer FROM steam_catalog_terms) AS terms",
     );
     assert.equal(counts.games, 2003);
+    const [versions] = await rows<{ min_version: number; max_version: number }>(
+      "SELECT min(classification_revision)::integer AS min_version, max(classification_revision)::integer AS max_version FROM steam_catalog_games",
+    );
+    assert.equal(versions.min_version, 1);
+    assert.equal(versions.max_version, 1);
     assert.ok(counts.terms >= 80);
     const indexes = await rows<{ indexname: string }>(
       "SELECT indexname FROM pg_indexes WHERE schemaname=$1 AND tablename='steam_catalog_games'",
@@ -164,14 +170,15 @@ describe("Steam catalog — real PostgreSQL API", () => {
     );
     const url = "/api/steam-catalog/games/" + game.id;
     await request(app).put(url + "/classification").set(edit()).send({
-      status: "review", assignments: [{ termId: genre.id, role: "default" }],
+      status: "review", expectedRevision: 1, assignments: [{ termId: genre.id, role: "default" }],
     }).expect(200);
     const draft = await request(app).get(url).expect(200);
     assert.equal(draft.body.game.status, "review");
+    assert.equal(draft.body.game.classificationRevision, 2);
     assert.deepEqual(draft.body.game.assignments.map((x: { termId: number }) => x.termId), [genre.id]);
 
     const failed = await request(app).put(url + "/classification").set(edit()).send({
-      status: "ready", assignments: [{ termId: genre.id, role: "default" }],
+      status: "ready", expectedRevision: 2, assignments: [{ termId: genre.id, role: "default" }],
     }).expect(422);
     assert.equal(failed.body.code, "INCOMPLETE_CLASSIFICATION");
     assert.equal((await request(app).get(url).expect(200)).body.game.status, "review");
@@ -185,10 +192,50 @@ describe("Steam catalog — real PostgreSQL API", () => {
       { termId: mechanic.id, role: "main" },
       ...rest.map((x) => ({ termId: x.id, role: "default" })),
     ];
-    await request(app).put(url + "/classification").set(edit()).send({ status: "ready", assignments }).expect(200);
+    await request(app).put(url + "/classification").set(edit()).send({ status: "ready", expectedRevision: 2, assignments }).expect(200);
     const ready = await request(app).get(url).expect(200);
     assert.equal(ready.body.game.status, "ready");
+    assert.equal(ready.body.game.classificationRevision, 3);
     assert.equal(ready.body.game.assignments.length, assignments.length);
+  });
+
+
+  test("two concurrent editors cannot overwrite each other's assignments", async () => {
+    const [game] = await rows<{ id: number }>(
+      "SELECT id FROM steam_catalog_games WHERE name='Test Game 0020'",
+    );
+    const [genre] = await rows<{ id: number }>(
+      "SELECT id FROM steam_catalog_terms WHERE facet='genre' ORDER BY id LIMIT 1",
+    );
+    const url = "/api/steam-catalog/games/" + game.id;
+    const initial = await request(app).get(url).expect(200);
+    assert.equal(initial.body.game.classificationRevision, 1);
+    const required = await request(app).put(url + "/classification").set(edit())
+      .send({ status: "review", assignments: [] }).expect(428);
+    assert.equal(required.body.code, "CLASSIFICATION_REVISION_REQUIRED");
+
+    const [first, second] = await Promise.all([
+      request(app).put(url + "/classification").set(edit()).send({
+        expectedRevision: 1, status: "review",
+        assignments: [{ termId: genre.id, role: "default" }],
+      }),
+      request(app).put(url + "/classification").set(edit()).send({
+        expectedRevision: 1, status: "review", assignments: [],
+      }),
+    ]);
+    assert.deepEqual([first.status, second.status].sort(), [200, 409]);
+    assert.equal((first.status === 409 ? first : second).body.code, "CLASSIFICATION_CONFLICT");
+    const actual = await request(app).get(url).expect(200);
+    assert.equal(actual.body.game.classificationRevision, 2);
+    assert.equal(actual.body.game.assignments.length, first.status === 200 ? 1 : 0);
+
+    await request(app).put(url + "/classification").set(edit()).send({
+      expectedRevision: 2, status: "review",
+      assignments: [{ termId: genre.id, role: "default" }],
+    }).expect(200);
+    const latest = await request(app).get(url).expect(200);
+    assert.equal(latest.body.game.classificationRevision, 3);
+    assert.equal(latest.body.game.assignments.length, 1);
   });
 
   test("taxonomy modifications require the secret and become publicly readable", async () => {
@@ -211,7 +258,7 @@ describe("Steam catalog — real PostgreSQL API", () => {
     );
     const url = "/api/steam-catalog/games/" + game.id;
     await request(app).put(url + "/classification").set(edit()).send({
-      status: "review", assignments: [{ termId: genre.id, role: "default" }],
+      status: "review", expectedRevision: 1, assignments: [{ termId: genre.id, role: "default" }],
     }).expect(200);
 
     const originalFetch = globalThis.fetch;
