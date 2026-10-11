@@ -283,7 +283,7 @@ function Sources() {
         <ToolPanel title="Dodaj źródło">
           {data.people.length === 0 ? <ToolNotice>Najpierw dodaj osobę w sekcji Osoby.</ToolNotice> : (
             <form className="space-y-3" onSubmit={submit}>
-              <ToolSelect value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              <ToolSelect value={personId} onChange={(e) => { setPersonId(e.target.value); setSelectedPropositionId(""); }}>
                 <option value="">Wybierz osobę…</option>
                 {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
               </ToolSelect>
@@ -743,6 +743,7 @@ function Coding() {
 function EvidenceProfile() {
   const { data } = useResearchProject();
   const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
+  const [selectedPropositionId, setSelectedPropositionId] = useState("");
   const personSourceRecords = data.sources.filter((source) => source.personId === personId);
   const personSources = new Set(personSourceRecords.map((source) => source.id));
   const personExcerptRecords = data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId));
@@ -835,6 +836,7 @@ function EvidenceProfile() {
                     <th className="px-3 py-3 text-center">Mieszane</th>
                     <th className="px-3 py-3 text-center">N/A</th>
                     <th className="px-3 py-3 text-center">Łącznie</th>
+                    <th className="px-3 py-3 text-right">Audyt</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -856,6 +858,11 @@ function EvidenceProfile() {
                         <td className="px-3 py-3 text-center">{mixed}</td>
                         <td className="px-3 py-3 text-center text-muted-foreground">{na}</td>
                         <td className="px-3 py-3 text-center">{codings.length}</td>
+                        <td className="px-3 py-3 text-right">
+                          <ToolButton type="button" variant="ghost" onClick={() => setSelectedPropositionId(proposition.id)} disabled={codings.length === 0}>
+                            Pokaż dowody
+                          </ToolButton>
+                        </td>
                       </tr>
                     );
                   })}
@@ -863,6 +870,60 @@ function EvidenceProfile() {
               </table>
             </div>
           </ToolPanel>
+
+          {selectedPropositionId && (() => {
+            const proposition = data.propositions.find((item) => item.id === selectedPropositionId);
+            const codings = personCodings.filter((coding) => coding.propositionId === selectedPropositionId);
+            if (!proposition) return null;
+            return (
+              <ToolPanel
+                title={`Audyt: ${proposition.code} — ${proposition.label}`}
+                description="Każda obserwacja prowadzi z powrotem do fragmentu i materiału źródłowego."
+                actions={<ToolButton type="button" variant="ghost" onClick={() => setSelectedPropositionId("")}>Zamknij</ToolButton>}
+              >
+                <div className="space-y-3">
+                  {codings.map((coding) => {
+                    const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+                    const source = data.sources.find((item) => item.id === excerpt?.sourceId);
+                    const argument = data.arguments.find((item) => item.id === excerpt?.argumentId);
+                    const directionLabel =
+                      coding.direction === null ? "N/A" :
+                      coding.direction === -2 ? "−2 zdecydowanie odrzuca" :
+                      coding.direction === -1 ? "−1 raczej odrzuca" :
+                      coding.direction === 0 ? "0 mieszane / warunkowe" :
+                      coding.direction === 1 ? "+1 raczej popiera" :
+                      "+2 zdecydowanie popiera";
+                    return (
+                      <div key={coding.id} className="rounded-xl border border-border bg-background/40 p-4">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          <span>{directionLabel}</span><span>·</span>
+                          <span>jawność {coding.explicitness}</span><span>·</span>
+                          <span>{coding.evidenceLevel}</span><span>·</span>
+                          <span>pewność {coding.confidence}</span>
+                        </div>
+                        <blockquote className="mt-3 text-sm leading-6">“{excerpt?.text ?? "Brak fragmentu"}”</blockquote>
+                        {excerpt?.contextBefore && <div className="mt-2 text-xs text-muted-foreground">Przed: {excerpt.contextBefore}</div>}
+                        {excerpt?.contextAfter && <div className="mt-1 text-xs text-muted-foreground">Po: {excerpt.contextAfter}</div>}
+                        {coding.rationale && <div className="mt-3 rounded-lg border border-border/60 bg-card/40 p-3 text-sm">Uzasadnienie: {coding.rationale}</div>}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                          <div>
+                            {argument?.title ? `${argument.title} · ` : ""}
+                            {excerpt?.verificationStatus ?? "unverified"}
+                            {excerpt?.timestampStart !== undefined ? ` · ${excerpt.timestampStart}s${excerpt.timestampEnd !== undefined ? `–${excerpt.timestampEnd}s` : ""}` : ""}
+                          </div>
+                          {source?.url && (
+                            <a href={source.url} target="_blank" rel="noreferrer" className="font-semibold text-foreground underline-offset-2 hover:underline">
+                              Otwórz źródło ↗
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ToolPanel>
+            );
+          })()}
 
           <ToolNotice>
             Ten widok celowo nie liczy jeszcze pozycji X/Y. Pokrycie, sprzeczności i liczba obserwacji pozostają widoczne przed agregacją.
@@ -888,22 +949,78 @@ function MapPage() {
 }
 
 function Methodology() {
+  const { data } = useResearchProject();
+  const activeCodebook = data.codebooks[0];
+  const propositions = activeCodebook
+    ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
+    : [];
+
   return (
     <>
       <PageHeader section="METHOD" title="Metodologia" description="Podstawą ma być analiza treści i jakościowe kodowanie z pełną możliwością audytu." />
-      <ToolPanel>
-        <div className="space-y-5">
-          <ToolSection title="Codebook" description="Wersjonowane definicje kodów, reguły przypisywania i przykłady graniczne." >
-            <ToolNotice>Zmiana definicji kodu powinna być widoczna jako nowa wersja metodologii, a nie cicha zmiana znaczenia wcześniejszych danych.</ToolNotice>
-          </ToolSection>
-          <ToolSection title="Niezależne kodowanie" description="Docelowo ten sam materiał może być oceniany przez więcej niż jednego kodera.">
-            <div className="text-sm text-muted-foreground">Pozwoli to mierzyć zgodność między koderami, np. współczynnikiem α Krippendorffa.</div>
-          </ToolSection>
-          <ToolSection title="AI" description="Automatyzacja może pomagać w wyszukiwaniu i proponowaniu kodów.">
-            <ToolNotice>AI pozostaje narzędziem pomocniczym. Nie jest arbitrem ostatecznej interpretacji.</ToolNotice>
-          </ToolSection>
-        </div>
-      </ToolPanel>
+      <div className="space-y-4">
+        <ToolPanel title="Aktywny codebook" description="Pilotażowy słownik mikrostanowisk używany przez Coding Lab.">
+          {activeCodebook ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-xs text-muted-foreground">Nazwa</div><div className="mt-1 font-bold">{activeCodebook.name}</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-xs text-muted-foreground">Wersja</div><div className="mt-1 font-bold">{activeCodebook.version}</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-xs text-muted-foreground">Status</div><div className="mt-1 font-bold">{activeCodebook.status}</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-xs text-muted-foreground">Mikrostanowiska</div><div className="mt-1 font-bold">{propositions.length}</div></div>
+            </div>
+          ) : <ToolEmptyState title="Brak codebooka" />}
+          {activeCodebook?.description && <div className="mt-4 text-sm text-muted-foreground">{activeCodebook.description}</div>}
+        </ToolPanel>
+
+        <ToolPanel title="Definicje mikrostanowisk" description="Kod powinien być możliwy do zastosowania przez inną osobę na podstawie tych samych reguł.">
+          <div className="space-y-3">
+            {propositions.map((proposition) => (
+              <ToolDisclosure
+                key={proposition.id}
+                title={`${proposition.code} — ${proposition.label}`}
+                description={proposition.definition}
+              >
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <ToolSection title="Włączaj, gdy">
+                    {proposition.includeRules?.length ? (
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {proposition.includeRules.map((rule) => <li key={rule}>• {rule}</li>)}
+                      </ul>
+                    ) : <div className="text-sm text-muted-foreground">Brak dodatkowych reguł włączenia w wersji pilotażowej.</div>}
+                  </ToolSection>
+                  <ToolSection title="Wykluczaj, gdy">
+                    {proposition.excludeRules?.length ? (
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {proposition.excludeRules.map((rule) => <li key={rule}>• {rule}</li>)}
+                      </ul>
+                    ) : <div className="text-sm text-muted-foreground">Brak dodatkowych reguł wyłączenia w wersji pilotażowej.</div>}
+                  </ToolSection>
+                </div>
+                {(proposition.positiveExamples?.length || proposition.negativeExamples?.length || proposition.borderlineExamples?.length) && (
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div><div className="mb-2 text-xs font-black uppercase text-muted-foreground">Przykłady +</div>{proposition.positiveExamples?.map((example) => <div key={example} className="mb-2 text-sm">{example}</div>)}</div>
+                    <div><div className="mb-2 text-xs font-black uppercase text-muted-foreground">Przykłady −</div>{proposition.negativeExamples?.map((example) => <div key={example} className="mb-2 text-sm">{example}</div>)}</div>
+                    <div><div className="mb-2 text-xs font-black uppercase text-muted-foreground">Graniczne</div>{proposition.borderlineExamples?.map((example) => <div key={example} className="mb-2 text-sm">{example}</div>)}</div>
+                  </div>
+                )}
+              </ToolDisclosure>
+            ))}
+          </div>
+        </ToolPanel>
+
+        <ToolPanel>
+          <div className="space-y-5">
+            <ToolSection title="Wersjonowanie" description="Zmiana definicji kodu nie może po cichu zmienić znaczenia wcześniejszych danych.">
+              <ToolNotice>Istotna zmiana definicji mikrostanowiska powinna tworzyć nową wersję codebooka i zachować informację, według której wersji wykonano każde kodowanie.</ToolNotice>
+            </ToolSection>
+            <ToolSection title="Niezależne kodowanie" description="Docelowo ten sam materiał może być oceniany przez więcej niż jednego kodera.">
+              <div className="text-sm text-muted-foreground">Pozwoli to mierzyć zgodność między koderami, np. współczynnikiem α Krippendorffa. Zgodność nie zastępuje jednak walidacji konstruktu.</div>
+            </ToolSection>
+            <ToolSection title="AI" description="Automatyzacja może pomagać w wyszukiwaniu i proponowaniu kodów.">
+              <ToolNotice>AI pozostaje narzędziem pomocniczym. Ostateczne kodowanie musi zachować identyfikowalnego kodera i pełny ślad do źródła.</ToolNotice>
+            </ToolSection>
+          </div>
+        </ToolPanel>
+      </div>
     </>
   );
 }
