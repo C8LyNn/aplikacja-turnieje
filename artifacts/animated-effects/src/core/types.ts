@@ -90,6 +90,8 @@ export interface EffectTrigger {
   /** Minimum tip/cheer/raid amount, ignored for other types. */
   minAmount: number;
   caption?: AlertCaption;
+  /** Legacy replace mode is preserved for imported scenes. */
+  queueMode?: "replace" | "queue";
 }
 
 export interface EffectInstance {
