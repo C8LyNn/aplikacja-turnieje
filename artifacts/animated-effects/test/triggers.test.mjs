@@ -63,5 +63,6 @@ test("event playback forces one cycle without mutating the saved looping scene",
   assert.equal(playback.timeline.mode, "once");
   assert.equal(instance.timeline.mode, "loop");
   assert.equal(triggerPlaybackDurationMs(instance), 5100);
-  assert.equal(eventPlaybackInstance({ ...instance, trigger: undefined }), instance.timeline ? instance : undefined);
+  const continuous = { ...instance, trigger: undefined };
+  assert.equal(eventPlaybackInstance(continuous), continuous);
 });
