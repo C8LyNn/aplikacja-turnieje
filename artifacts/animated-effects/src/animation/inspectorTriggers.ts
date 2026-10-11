@@ -1,5 +1,14 @@
 import type { AlertCaption, EffectInstance, EffectTriggerEvent } from "../core/types";
 import { DEFAULT_ALERT_CAPTION, normalizeAlertCaption } from "./alertText";
+const DEFAULT_EVENT_TEMPLATES: Record<EffectTriggerEvent, string> = {
+  "follower-latest": "Dzięki za follow, {name}!",
+  "subscriber-latest": "{name} — dzięki za subskrypcję!",
+  "tip-latest": "{name} przekazał {amount}!",
+  "cheer-latest": "{name} wysłał {amount} bits!",
+  "raid-latest": "{name} robi raid ({amount})!",
+  message: "{name}: {message}",
+};
+
 import { updateEffectTrigger } from "../editor/state";
 import { normalizeEffectTrigger, STREAM_EVENTS } from "./triggers";
 
@@ -7,7 +16,7 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
   const config = normalizeEffectTrigger(effect.trigger);
   const selectedEvent = config?.event ?? "follower-latest";
   const amountSupported = selectedEvent === "tip-latest" || selectedEvent === "cheer-latest" || selectedEvent === "raid-latest";
-  const caption = normalizeAlertCaption(config?.caption);
+  const caption = normalizeAlertCaption({ ...config?.caption, template: config?.caption?.template ?? DEFAULT_EVENT_TEMPLATES[selectedEvent] });
   const esc = (value: string): string => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return `
     <section class="ae-trigger-panel" aria-label="Wyzwalacze StreamElements">
@@ -106,7 +115,9 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   });
   const changeCaption = (patch: Partial<AlertCaption>): void => {
     const existing = normalizeEffectTrigger(effect.trigger);
-    const caption = normalizeAlertCaption({ ...(existing?.caption ?? DEFAULT_ALERT_CAPTION), ...patch });
+    const event = eventField?.value as EffectTriggerEvent | undefined;
+    const initial = existing?.caption ?? { ...DEFAULT_ALERT_CAPTION, template: (event && DEFAULT_EVENT_TEMPLATES[event]) || DEFAULT_ALERT_CAPTION.template };
+    const caption = normalizeAlertCaption({ ...initial, ...patch });
     write({ caption });
   };
   container.querySelector<HTMLInputElement>("[data-ae-caption-enabled]")?.addEventListener("change", (event) => {
