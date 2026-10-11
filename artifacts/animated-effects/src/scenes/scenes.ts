@@ -1,5 +1,6 @@
 import type { BlendMode, EditorState, EffectArea, EffectCustomControl, EffectInstance, EffectSettings, FocusZone, SafeZone } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
+import { normalizeLayerTimeline } from "../animation/timeline";
 
 export const SCENE_FORMAT = "animated-effects-scene";
 export const SCENE_VERSION = 1;
@@ -96,6 +97,7 @@ export function parseScene(text: string, current: EditorState): { state: EditorS
       label: typeof value.label === "string" ? value.label.trim().slice(0,80) || undefined : undefined,
       locked: value.locked === true,
       groupId: typeof value.groupId === "string" ? value.groupId : null,
+      timeline: value.timeline == null ? undefined : normalizeLayerTimeline(value.timeline),
     });
   }
   const resolution = raw.resolution && typeof raw.resolution === "object" ? raw.resolution as Record<string, unknown> : {};
