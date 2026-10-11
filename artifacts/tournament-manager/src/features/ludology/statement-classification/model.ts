@@ -3,6 +3,9 @@ export type CodingConfidence = "low" | "medium" | "high";
 export type DirectionScore = -2 | -1 | 0 | 1 | 2;
 export type ExplicitnessScore = 0 | 1 | 2 | 3;
 export type CodebookStatus = "draft" | "pilot" | "active" | "retired";
+export type DimensionModelStatus = "draft" | "pilot" | "active" | "retired";
+export type DimensionLinkOrientation = "positive" | "negative";
+export type DimensionLinkRelevance = "core" | "supporting" | "exploratory";
 export type PositionAssessmentStatus =
   | "insufficient_evidence"
   | "stable"
@@ -118,8 +121,40 @@ export type PositionAssessment = {
   updatedAt: string;
 };
 
+export type DimensionModel = {
+  id: string;
+  name: string;
+  version: string;
+  codebookId: string;
+  status: DimensionModelStatus;
+  description?: string;
+  createdAt?: string;
+};
+
+export type ResearchDimension = {
+  id: string;
+  dimensionModelId: string;
+  code: string;
+  label: string;
+  negativePoleLabel: string;
+  positivePoleLabel: string;
+  description?: string;
+  notes?: string;
+  order?: number;
+};
+
+export type DimensionPropositionLink = {
+  id: string;
+  dimensionModelId: string;
+  dimensionId: string;
+  propositionId: string;
+  orientation: DimensionLinkOrientation;
+  relevance: DimensionLinkRelevance;
+  rationale?: string;
+};
+
 export type ResearchProjectData = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -129,10 +164,13 @@ export type ResearchProjectData = {
   coders: Coder[];
   codings: CodingRecord[];
   assessments: PositionAssessment[];
+  dimensionModels: DimensionModel[];
+  dimensions: ResearchDimension[];
+  dimensionLinks: DimensionPropositionLink[];
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   people: [],
   sources: [],
   arguments: [],
@@ -142,6 +180,9 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   coders: [],
   codings: [],
   assessments: [],
+  dimensionModels: [],
+  dimensions: [],
+  dimensionLinks: [],
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
