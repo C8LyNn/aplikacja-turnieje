@@ -112,6 +112,12 @@ export function installPreviewTransport(preview: HTMLElement, mount: HTMLElement
   host.querySelector("[data-transport-restart]")?.addEventListener("click", () => replay());
   document.addEventListener("animated-effects:replay-preview", () => replay());
   document.addEventListener("animated-effects:transport-toggle", () => setPlaying(!playing));
+  document.addEventListener("animated-effects:preview-seek", (event) => {
+    const requestedMs = (event as CustomEvent<{ ms: number }>).detail?.ms;
+    if (typeof requestedMs !== "number" || !Number.isFinite(requestedMs)) return;
+    setPlaying(false);
+    seek(requestedMs);
+  });
 
   const afterRender = (): void => {
     durationMs = sceneDurationMs(getEditorState().effects);
