@@ -990,7 +990,7 @@ document.addEventListener("animated-effects:test-trigger", (event) => {
   const instance = getEditorState().effects.find((effect) => effect.instanceId === instanceId);
   if (!instance || !instance.enabled || !isTriggeredEffect(instance)) return;
 
-  const previous = [...preview.children].find(
+  const previous = Array.from(preview.children).find(
     (element) => (element as HTMLElement).dataset?.testTriggerId === instanceId,
   );
   previous?.remove();
