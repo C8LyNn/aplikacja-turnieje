@@ -95,8 +95,8 @@ async function loadAssignmentRows(gameIds: number[]) {
 // Detail responses include assignments; list responses intentionally do not.
 router.get("/steam-catalog/games/:id", async (req, res, next) => {
   try {
-    const gameId = Number(req.params.id);
-    if (!Number.isSafeInteger(gameId) || gameId < 1) {
+    const gameId = parseQueueId(req.params.id);
+    if (gameId === null) {
       res.status(400).json({ error: "Nieprawidłowe ID gry.", code: "INVALID_GAME_ID" });
       return;
     }
