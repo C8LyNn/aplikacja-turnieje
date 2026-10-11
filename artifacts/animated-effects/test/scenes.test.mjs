@@ -44,6 +44,19 @@ runInNewContext(motionCompiled, {
     throw new Error("Unexpected motion dependency: " + id);
   },
 });
+const triggerSource = readFileSync(new URL("../src/animation/triggers.ts", import.meta.url), "utf8");
+const triggerCompiled = ts.transpileModule(triggerSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  fileName: "triggers.ts",
+}).outputText;
+const triggerExports = {};
+runInNewContext(triggerCompiled, {
+  exports: triggerExports,
+  require(id) {
+    if (id === "./motion") return motionExports;
+    throw new Error("Unexpected trigger dependency: " + id);
+  },
+});
 const exports = {};
 runInNewContext(compiled, {
   exports,
@@ -52,6 +65,7 @@ runInNewContext(compiled, {
       return { getEffectDefinition: (effectId) => effectId === definition.id ? definition : undefined };
     }
     if (id === "../animation/motion") return motionExports;
+    if (id === "../animation/triggers") return triggerExports;
     throw new Error("Unexpected dependency: " + id);
   },
   structuredClone,
@@ -77,6 +91,7 @@ function sceneState() {
       settings: { ...structuredClone(defaultSettings), density: 350, custom: { burst: 7, glow: 0.8 } },
       label: "My Overlay", locked: true, groupId: "group-1",
       timeline: { mode: "loop", delayMs: 2000, durationMs: 4500, fadeInMs: 600, fadeOutMs: 450, keyframes: [{ timeMs: 0, x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, { timeMs: 4500, x: 45, y: -12, scale: 125, rotation: 90, opacity: 50 }] },
+      trigger: { source: "event", event: "tip-latest", cooldownMs: 4000, minAmount: 25 },
     }],
     selectedEffectInstanceId: "effect-1", activePresetId: null,
   };
@@ -100,6 +115,9 @@ test("round-trips advanced controls, zone settings, disabled layers and metadata
   assert.equal(layer.timeline.mode, "loop");
   assert.equal(layer.timeline.delayMs, 2000);
   assert.equal(layer.timeline.fadeOutMs, 450);
+  assert.equal(layer.trigger.event, "tip-latest");
+  assert.equal(layer.trigger.cooldownMs, 4000);
+  assert.equal(layer.trigger.minAmount, 25);
   assert.deepEqual(
     JSON.parse(JSON.stringify(layer.timeline.keyframes)),
     [
