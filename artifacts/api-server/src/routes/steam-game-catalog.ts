@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { steamCatalogReadiness } from "@workspace/game-catalog";
-import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, ne, or } from "drizzle-orm";
 import {
   db,
   steamCatalogGames,
