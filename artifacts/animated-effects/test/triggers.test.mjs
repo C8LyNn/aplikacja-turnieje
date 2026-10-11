@@ -20,8 +20,10 @@ const motion = load("../src/animation/motion.ts", (name) => {
   throw new Error(name);
 });
 const avatar = load("../src/animation/alertAvatar.ts");
+const motionStyles = load("../src/animation/captionMotion.ts");
 const alertText = load("../src/animation/alertText.ts", (id) => {
   if (id === "./alertAvatar") return avatar;
+  if (id === "./captionMotion") return motionStyles;
   throw new Error(id);
 });
 const triggers = load("../src/animation/triggers.ts", (name) => {
