@@ -9002,3 +9002,43 @@ body {
   display: block;
   border-radius: inherit;
 }
+
+
+/* Caption composition v2: independent preset entrance and exit motion.
+ * Use individual CSS transforms to preserve the caption's custom X/Y offset. */
+@keyframes ae-caption-in-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ae-caption-in-slide {
+  from { opacity: 0; translate: 0 18px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes ae-caption-in-pop {
+  from { opacity: 0; scale: .78; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes ae-caption-out-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes ae-caption-out-slide {
+  from { opacity: 1; translate: 0 0; }
+  to { opacity: 0; translate: 0 -18px; }
+}
+@keyframes ae-caption-out-pop {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: .78; }
+}
+.ae-caption-fields [data-ae-custom-position-row][hidden] {
+  display: none !important;
+}
+.ae-caption-row .ae-timeline-field select,
+.ae-caption-row .ae-timeline-field input {
+  width: 100%;
+  min-width: 0;
+}
+.ae-alert-caption[title] {
+  outline: 1px dashed rgba(235, 242, 255, .67);
+  outline-offset: 8px;
+}
