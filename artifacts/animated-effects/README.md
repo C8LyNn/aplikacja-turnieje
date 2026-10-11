@@ -225,3 +225,27 @@ Każda migawka zawiera rodzaj decyzji (accepted/started/dropped/evicted/complete
 Automatyczne testy: `test/alertDiagnostics.test.mjs` (lokalny silnik i limit historii) oraz rozszerzone `test/streamEvents.test.mjs` (prawdziwy wygenerowany JS w symulowanym widgetcie, przyczyny odrzucenia, kolejka, brak danych widzów).
 
 Przed mergem wymagane jest ręczne QA układu panelu i rzeczywistych eventów StreamElements/OBS.
+
+
+## Automatyczny test obciążeniowy transmisji (Events v5)
+
+W istniejącym panelu **Diagnostyka alertów — symulator kolejki** dodano lokalny test uruchamiany w czasie rzeczywistym. Test nie wysyła niczego do StreamElements ani OBS i nie wymaga konta, tokenu ani aktywnej transmisji.
+
+**Scenariusze ruchu:**
+- **Zwykła transmisja:** umiarkowany czat, pojedyncze followy i rzadsze donacje.
+- **Nagły wzrost ruchu:** częste wiadomości, followy, donacje oraz raid.
+- **Intensywny czat:** bardzo szybkie wiadomości uzupełniane followami, donacjami i cheerami.
+
+**Obsługa:** najpierw skonfiguruj co najmniej jedną aktywną warstwę reagującą na któryś typ zdarzeń. W panelu wybierz scenariusz, czas **12 lub 30 sekund** i kliknij **Uruchom test**. Zdarzenia są emitowane do **lokalnego modelu kolejki**, który respektuje cooldown, próg donacji, priorytety, maksymalnie 16 oczekujących i długości odtwarzania warstw. Test w rzeczywistym czasie uruchamia kolejne przykładowe efekty na podglądzie. Można go zatrzymać wcześniej; po zmianie konfiguracji sceny test zostaje przerwany.
+
+**Raport końcowy** obejmuje liczbę zaplanowanych/przetworzonych zdarzeń, maksimum długości kolejki, przyjęcia, odrzucenia, wyparcia, liczbę próbek `requestAnimationFrame`, orientacyjną liczbę FPS wyliczoną z mediany odstępów między wywołaniami oraz ich **95. percentyl i odsetek odstępów powyżej 33 ms**. Wyświetlane są ostrzeżenia o zbliżeniu do limitu kolejki, odrzuceniach i nieregularnym rytmie rAF.
+
+### Co oznacza wynik?
+
+To **diagnostyka lokalna i przybliżona**, a nie profesjonalny benchmark. Odstępy `requestAnimationFrame` zależą od obciążenia całej karty, harmonogramu przeglądarki, wyświetlacza oraz aktywnych rozszerzeń. Nie oznaczają bezpośrednio czasu renderowania GPU i nie przewidują dokładnie płynności w OBS Browser Source. Gdy karta przejdzie w tło, test zostanie przerwany, ponieważ ograniczanie liczby klatek w tle fałszowałoby wyniki.
+
+Lokalna symulacja nie gwarantuje identycznego zachowania wszystkich typów zdarzeń platformy i nie używa prawdziwych wiadomości, nazw użytkowników ani zdjęć. Raport pozostaje w edytorze, a same scenariusze nie są dodawane do eksportowanego overlayu.
+
+Testy automatyczne znajdują się w `test/alertStress.test.mjs`. Sprawdzają deterministyczność profili ruchu, limity harmonogramu, analizę rAF, zakończenie i czyszczenie timerów oraz zatrzymanie po ukryciu karty.
+
+**Nadal wymagane:** test ręczny realnych payloadów StreamElements, zachowania OBS Browser Source oraz grafiki wybranych efektów pod pełnym obciążeniem.
