@@ -70,3 +70,24 @@ Pod kontrolkami czasu pojawił się edytor **Klatki kluczowe**. Wspiera do 16 kl
 **Ograniczenia v2:** Klatki kluczowe animują właściwości całej warstwy, nie indywidualne cząsteczki ani parametry ich generowania (prędkość, gęstość). Nie ma jeszcze swobodnego przeciągania punktów na osi, scrubbingu ani zewnętrznych triggerów StreamElements. Podgląd i eksport korzystają z tej samej funkcji generującej klatki CSS.
 
 Testy jednostkowe dodane także w `test/motion.test.mjs` — obsługują synchronizację klatek, powtórzenia, ograniczenia wartości, deduplikację i bezpieczeństwo CSS. Nadal należy wykonać polecenia testowe oraz build wymienione powyżej.
+
+
+## Interaktywna oś czasu (Timeline v3)
+
+Pod podglądem sceny jest pasek **Play/Pause / Od początku / Suwak czasu**.
+
+- **Suwak** zatrzymuje wszystkie animacje podglądu i przenosi je do wybranej chwili; dotyczy także animacji cząsteczek odtwarzanych przez przeglądarkę. Nie zmienia wartości w zapisanej scenie.
+- **▶ Odtwórz** uruchamia odtwarzanie od bieżącej chwili; **⏸ Pauza** zatrzymuje podgląd; **↺ Od początku** przewija na zero i rozpoczyna odtwarzanie.
+- Starszy przycisk **Pauza** w nagłówku jest podłączony do tego samego sterowania.
+- Maksymalny czas podglądu zależy od aktywnych warstw, z co najmniej 10-sekundowym oknem.
+- Kliknięcie wybranej klatki kluczowej w Inspektorze automatycznie przewija podgląd do jej momentu, uwzględniając opóźnienie warstwy.
+- Klatki można przeciągać po linii czasu co **0,1 s**. Alternatywnie: strzałki w lewo/prawo przesuwają o 0,1 s, a Shift+strzałki o 1 s.
+- Zmiana położenia podczas przeciągania jest wizualna, a zapis następuje dopiero po puszczeniu klawisza myszy/palca — daje **jeden krok Undo**. Upuszczenie na istniejącą klatkę nie nadpisuje jej.
+
+**Zakres:** to sterowanie tylko podglądem edytora. Nie zmienia zachowania StreamElements/OBS i nie zapisuje stanu odtwarzania do `.aescene.json`.
+
+### Kontrola jakości
+
+Dodano `test/transport.test.mjs` (czas trwania sceny, geometria suwaka i granice czasu) i workflow `.github/workflows/animated-effects.yml`, który sprawdza typecheck, testy, build edytora oraz osadzenie w aplikacji turniejowej. Należy dodatkowo manualnie sprawdzić wskazywanie momentu w podglądzie dla kilku warstw, wielokrotne pauza/play, ruch klatki myszką i dotykiem oraz klawiaturą.
+
+Przy ręcznym QA uwzględnij również zachowanie na ekranach o różnych proporcjach i wydajność przy scenach z wieloma animowanymi elementami.
