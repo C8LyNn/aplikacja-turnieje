@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, Copy, ExternalLink, MonitorPlay, RefreshCw, Sparkles } from "lucide-react";
 import {
   ToolButton,
@@ -22,6 +22,7 @@ import {
   type CameraChatDensity,
   type CameraChatAnchor,
   type CameraChatOverlayPosition,
+  type CameraChatAnimationStyle,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigToSearch,
   getCameraChatSize,
@@ -38,6 +39,7 @@ export function ObsLab() {
   const [config, setConfig] = useState<CameraChatConfig>(DEFAULT_CAMERA_CHAT_CONFIG);
   const [mockMessages, setMockMessages] = useState(() => generateMockMessages());
   const [copied, setCopied] = useState(false);
+  const previewMessageId = useRef(0);
 
   const size = getCameraChatSize(config);
 
@@ -64,6 +66,18 @@ export function ObsLab() {
     }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  function testChatAnimation() {
+    const id = ++previewMessageId.current;
+    setMockMessages((current) => [
+      ...current,
+      {
+        name: "Widz testowy",
+        text: "Nowa wiadomość — podgląd animacji!",
+        msgId: `chat-animation-preview-${id}`,
+      },
+    ].slice(-30));
   }
 
   function applyPreset(preset: "glass" | "minimal" | "compact") {
@@ -276,6 +290,22 @@ export function ObsLab() {
           <ToolToggle label="Tła wiadomości" checked={config.messageBackground} onChange={(messageBackground) => patchConfig({ messageBackground })} />
           <ToolToggle label="Wygaszanie starszych" checked={config.fadeOldMessages} onChange={(fadeOldMessages) => patchConfig({ fadeOldMessages })} />
           <ToolToggle label="Animacja wejścia" checked={config.animateMessages} onChange={(animateMessages) => patchConfig({ animateMessages })} />
+          {config.animateMessages && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <label className="block text-xs text-muted-foreground">
+                Styl animacji
+                <ToolSelect value={config.animationStyle} onChange={(event) => patchConfig({ animationStyle: event.target.value as CameraChatAnimationStyle })} className="mt-1.5">
+                  <option value="rise">Pojawienie od dołu</option>
+                  <option value="slide">Wjazd z lewej</option>
+                  <option value="pop">Powiększenie</option>
+                  <option value="fade">Przenikanie</option>
+                </ToolSelect>
+              </label>
+              <ToolRange label="Czas animacji" value={config.animationDurationMs} suffix="ms" min={100} max={1200} step={20} onChange={(animationDurationMs) => patchConfig({ animationDurationMs })} />
+              <ToolButton type="button" onClick={testChatAnimation}>Testuj nową wiadomość</ToolButton>
+              <p className="text-xs leading-5 text-muted-foreground">Ten sam efekt i czas zostaną użyte w eksporcie StreamElements. Preferencja ograniczenia ruchu systemu wyłącza animacje.</p>
+            </div>
+          )}
         </div>
       </ToolDisclosure>
     </div>
