@@ -534,6 +534,15 @@ describe("Steam catalog — real PostgreSQL API", () => {
         const elapsed = Math.round((performance.now() - started) * 100) / 100;
         const header = String(response.headers["server-timing"] ?? "");
         assert.match(header, /^global_counts;dur=[\d.]+, match_count;dur=[\d.]+, page_select;dur=[\d.]+$/);
+        if (n === 0) {
+          const rawQuery = String(response.headers["x-catalog-test-sql"] ?? "");
+          if (name === "unfiltered") assert.equal(rawQuery, "");
+          else {
+            const routeQuery = JSON.parse(Buffer.from(rawQuery, "base64url").toString("utf8"));
+            assert.equal(routeQuery.params.length >= 3, true);
+            console.log("CATALOG_100K_ROUTE_SQL_" + name + " " + JSON.stringify(routeQuery));
+          }
+        }
         probes[name].push({ http_ms: elapsed, stages: header });
       }
     }
