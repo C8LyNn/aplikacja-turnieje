@@ -50,9 +50,62 @@ export interface EffectDefinition {
   customControls?: EffectCustomControl[];
 }
 
+export type LayerTimelineMode = "off" | "once" | "loop";
+export interface LayerKeyframe {
+  timeMs: number;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  /** 0-100 percent of the layer's base opacity. */
+  opacity: number;
+}
+export interface LayerTimeline {
+  mode: LayerTimelineMode;
+  delayMs: number;
+  durationMs: number;
+  fadeInMs: number;
+  fadeOutMs: number;
+  easing?: "linear" | "ease-in-out";
+  keyframes?: LayerKeyframe[];
+}
+
+export type EffectTriggerEvent =
+  | "follower-latest" | "subscriber-latest" | "tip-latest"
+  | "cheer-latest" | "raid-latest" | "message";
+export interface AlertCaption {
+  enabled: boolean;
+  /** Template supports {name}, {amount}, {message}, {event}. */
+  template: string;
+  position: "top" | "center" | "bottom" | "custom";
+  /** Custom caption center as percentages of scene bounds. */
+  xPercent?: number;
+  yPercent?: number;
+  fontSize: number;
+  color: string;
+  intro?: "fade" | "slide" | "pop";
+  outro?: "fade" | "slide" | "pop";
+  avatarEnabled?: boolean;
+  avatarSize?: number;
+}
+
+export interface EffectTrigger {
+  source: "event";
+  event: EffectTriggerEvent;
+  /** Anti-spam cooldown between activations of one effect instance. */
+  cooldownMs: number;
+  /** Minimum tip/cheer/raid amount, ignored for other types. */
+  minAmount: number;
+  caption?: AlertCaption;
+  /** Legacy replace mode is preserved for imported scenes. */
+  queueMode?: "replace" | "queue";
+  /** Higher priority is shown sooner; never interrupts an active alert. */
+  priority?: number;
+}
+
 export interface EffectInstance {
   instanceId: EffectInstanceId; effectId: EffectId; seed: number; enabled: boolean;
-  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null;
+  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null; timeline?: LayerTimeline; trigger?: EffectTrigger;
 }
 
 export interface PresetEffect { effectId: EffectId; settings?: Partial<EffectSettings>; }

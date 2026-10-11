@@ -10,6 +10,7 @@ import {
 import {
   getEffectDefinition,
 } from "../effects/registry";
+import { layerTimelineTemplate, bindLayerTimelineControls } from "../animation/inspectorTimeline";
 
 import {
   findMatchingEffectVariant,
@@ -552,6 +553,8 @@ export function renderInspector(
       )
       .join("")}
 
+    ${layerTimelineTemplate(selected)}
+
     <section
       class="inspector-group ${
         collapsedGroups.has("composition")
@@ -651,6 +654,8 @@ export function renderInspector(
       </div>
     </section>
   `;
+
+  bindLayerTimelineControls(container, selected.instanceId);
 
   const blendModeSelect =
     container.querySelector<HTMLSelectElement>(

@@ -1,5 +1,7 @@
 import type { EditorState, EffectInstance, EffectSettings } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
+import { normalizedMotionTimeline } from "../animation/motion";
+import { normalizeEffectTrigger } from "../animation/triggers";
 import {
   normalizeStreamElementsTriggerOptions,
   normalizeStreamElementsRoutes,
@@ -122,20 +124,30 @@ function parseScene(input: unknown): EditorState {
             Object.entries(settings.custom).map(([key, value]) => [key, value as number]),
           )
         : undefined;
+    if (raw.timeline !== undefined && !isObject(raw.timeline)) {
+      throw new Error("Nieprawidłowa oś czasu warstwy.");
+    }
+    const trigger = raw.trigger === undefined ? undefined : normalizeEffectTrigger(raw.trigger);
+    if (raw.trigger !== undefined && !trigger) {
+      throw new Error("Nieprawidłowy wyzwalacz warstwy.");
+    }
+    const resolvedSettings = {
+      ...definition.defaultSettings,
+      ...Object.fromEntries(numberKeys.map((key) => [key, settings[key]])),
+      blendMode: settings.blendMode,
+      area: settings.area,
+      ...(settings.color === undefined ? {} : { color: settings.color }),
+      ...(settings.colorize === undefined ? {} : { colorize: settings.colorize }),
+      ...(customSettings === undefined ? {} : { custom: customSettings }),
+    } as EffectSettings;
     return {
       instanceId: raw.instanceId,
       effectId: definition.id,
       enabled: raw.enabled,
       seed: raw.seed,
-      settings: {
-        ...definition.defaultSettings,
-        ...Object.fromEntries(numberKeys.map((key) => [key, settings[key]])),
-        blendMode: settings.blendMode,
-        area: settings.area,
-        ...(settings.color === undefined ? {} : { color: settings.color }),
-        ...(settings.colorize === undefined ? {} : { colorize: settings.colorize }),
-        ...(customSettings === undefined ? {} : { custom: customSettings }),
-      } as EffectSettings,
+      settings: resolvedSettings,
+      ...(raw.timeline === undefined ? {} : { timeline: normalizedMotionTimeline(raw.timeline, resolvedSettings) }),
+      ...(trigger === undefined ? {} : { trigger }),
       ...(typeof raw.label === "string" ? { label: raw.label } : {}),
       locked: raw.locked === true,
       groupId: typeof raw.groupId === "string" ? raw.groupId : null,
