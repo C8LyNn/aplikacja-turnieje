@@ -461,7 +461,7 @@ function Sources() {
 }
 
 function ResearchWorkspace() {
-  const { data, updateSource, addArgument, deleteArgument, addExcerpt, updateExcerpt, deleteExcerpt } = useResearchProject();
+  const { data, updateSource, addArgument, updateArgument, deleteArgument, addExcerpt, updateExcerpt, deleteExcerpt } = useResearchProject();
   const [sourceId, setSourceId] = useState("");
   const selectedSource = data.sources.find((source) => source.id === sourceId);
   const [transcript, setTranscript] = useState("");
@@ -476,6 +476,16 @@ function ResearchWorkspace() {
   const [verificationStatus, setVerificationStatus] = useState<"unverified" | "checked" | "verified">("unverified");
   const [selectionStart, setSelectionStart] = useState(0);
   const [selectionEnd, setSelectionEnd] = useState(0);
+  const [editingArgumentId, setEditingArgumentId] = useState("");
+  const [editArgumentTitle, setEditArgumentTitle] = useState("");
+  const [editArgumentSummary, setEditArgumentSummary] = useState("");
+  const [editingExcerptId, setEditingExcerptId] = useState("");
+  const [editExcerptText, setEditExcerptText] = useState("");
+  const [editExcerptContextBefore, setEditExcerptContextBefore] = useState("");
+  const [editExcerptContextAfter, setEditExcerptContextAfter] = useState("");
+  const [editExcerptTimestampStart, setEditExcerptTimestampStart] = useState("");
+  const [editExcerptTimestampEnd, setEditExcerptTimestampEnd] = useState("");
+  const [editExcerptArgumentId, setEditExcerptArgumentId] = useState("");
 
   function chooseSource(nextId: string) {
     setSourceId(nextId);
@@ -513,6 +523,48 @@ function ResearchWorkspace() {
     });
     setArgumentTitle("");
     setArgumentSummary("");
+  }
+
+  function startArgumentEdit(argumentId: string) {
+    const argument = data.arguments.find((item) => item.id === argumentId);
+    if (!argument) return;
+    setEditingArgumentId(argument.id);
+    setEditArgumentTitle(argument.title ?? "");
+    setEditArgumentSummary(argument.summary ?? "");
+  }
+
+  function saveArgumentEdit(argumentId: string) {
+    if (!editArgumentTitle.trim()) return;
+    updateArgument(argumentId, {
+      title: editArgumentTitle.trim(),
+      summary: editArgumentSummary.trim() || undefined,
+    });
+    setEditingArgumentId("");
+  }
+
+  function startExcerptEdit(excerptId: string) {
+    const excerpt = data.excerpts.find((item) => item.id === excerptId);
+    if (!excerpt) return;
+    setEditingExcerptId(excerpt.id);
+    setEditExcerptText(excerpt.text);
+    setEditExcerptContextBefore(excerpt.contextBefore ?? "");
+    setEditExcerptContextAfter(excerpt.contextAfter ?? "");
+    setEditExcerptTimestampStart(excerpt.timestampStart === undefined ? "" : String(excerpt.timestampStart));
+    setEditExcerptTimestampEnd(excerpt.timestampEnd === undefined ? "" : String(excerpt.timestampEnd));
+    setEditExcerptArgumentId(excerpt.argumentId ?? "");
+  }
+
+  function saveExcerptEdit(excerptId: string) {
+    if (!editExcerptText.trim()) return;
+    updateExcerpt(excerptId, {
+      text: editExcerptText.trim(),
+      contextBefore: editExcerptContextBefore.trim() || undefined,
+      contextAfter: editExcerptContextAfter.trim() || undefined,
+      timestampStart: editExcerptTimestampStart === "" ? undefined : Number(editExcerptTimestampStart),
+      timestampEnd: editExcerptTimestampEnd === "" ? undefined : Number(editExcerptTimestampEnd),
+      argumentId: editExcerptArgumentId || undefined,
+    });
+    setEditingExcerptId("");
   }
 
   function submitExcerpt(event: FormEvent) {
@@ -600,13 +652,27 @@ function ResearchWorkspace() {
                     <div className="mt-4 space-y-2">
                       {sourceArguments.map((argument) => (
                         <div key={argument.id} className="rounded-xl border border-border bg-background/40 p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="text-sm font-bold">{argument.title || "Argument bez tytułu"}</div>
-                              {argument.summary && <div className="mt-1 text-xs text-muted-foreground">{argument.summary}</div>}
+                          {editingArgumentId === argument.id ? (
+                            <div className="space-y-3">
+                              <ToolInput value={editArgumentTitle} onChange={(e) => setEditArgumentTitle(e.target.value)} />
+                              <ToolTextarea rows={3} value={editArgumentSummary} onChange={(e) => setEditArgumentSummary(e.target.value)} placeholder="Streszczenie argumentu" />
+                              <div className="flex flex-wrap gap-2">
+                                <ToolButton type="button" variant="primary" onClick={() => saveArgumentEdit(argument.id)}>Zapisz</ToolButton>
+                                <ToolButton type="button" variant="ghost" onClick={() => setEditingArgumentId("")}>Anuluj</ToolButton>
+                              </div>
                             </div>
-                            <ToolButton type="button" variant="ghost" onClick={() => deleteArgument(argument.id)}>Usuń</ToolButton>
-                          </div>
+                          ) : (
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-bold">{argument.title || "Argument bez tytułu"}</div>
+                                {argument.summary && <div className="mt-1 text-xs text-muted-foreground">{argument.summary}</div>}
+                              </div>
+                              <div className="flex shrink-0 gap-1">
+                                <ToolButton type="button" variant="ghost" onClick={() => startArgumentEdit(argument.id)}>Edytuj</ToolButton>
+                                <ToolButton type="button" variant="ghost" onClick={() => deleteArgument(argument.id)}>Usuń</ToolButton>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -645,27 +711,50 @@ function ResearchWorkspace() {
                       const argument = data.arguments.find((item) => item.id === excerpt.argumentId);
                       return (
                         <div key={excerpt.id} className="rounded-xl border border-border bg-background/40 p-4">
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              {argument?.title ?? "Bez argumentu"}
-                              {excerpt.timestampStart !== undefined ? ` · ${excerpt.timestampStart}s${excerpt.timestampEnd !== undefined ? `–${excerpt.timestampEnd}s` : ""}` : ""}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <ToolSelect
-                                className="w-auto py-1 text-xs"
-                                value={excerpt.verificationStatus ?? "unverified"}
-                                onChange={(e) => updateExcerpt(excerpt.id, { verificationStatus: e.target.value as "unverified" | "checked" | "verified" })}
-                              >
-                                <option value="unverified">nieweryfikowany</option>
-                                <option value="checked">sprawdzony</option>
-                                <option value="verified">zweryfikowany</option>
+                          {editingExcerptId === excerpt.id ? (
+                            <div className="space-y-3">
+                              <ToolSelect value={editExcerptArgumentId} onChange={(e) => setEditExcerptArgumentId(e.target.value)}>
+                                <option value="">Bez przypisanego argumentu</option>
+                                {sourceArguments.map((item) => <option key={item.id} value={item.id}>{item.title || "Argument"}</option>)}
                               </ToolSelect>
-                              <ToolButton type="button" variant="ghost" onClick={() => deleteExcerpt(excerpt.id)}>Usuń</ToolButton>
+                              <ToolTextarea rows={5} value={editExcerptText} onChange={(e) => setEditExcerptText(e.target.value)} />
+                              <ToolTextarea rows={3} value={editExcerptContextBefore} onChange={(e) => setEditExcerptContextBefore(e.target.value)} placeholder="Kontekst przed" />
+                              <ToolTextarea rows={3} value={editExcerptContextAfter} onChange={(e) => setEditExcerptContextAfter(e.target.value)} placeholder="Kontekst po" />
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <ToolInput type="number" min="0" step="0.1" value={editExcerptTimestampStart} onChange={(e) => setEditExcerptTimestampStart(e.target.value)} placeholder="Start [s]" />
+                                <ToolInput type="number" min="0" step="0.1" value={editExcerptTimestampEnd} onChange={(e) => setEditExcerptTimestampEnd(e.target.value)} placeholder="Koniec [s]" />
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <ToolButton type="button" variant="primary" onClick={() => saveExcerptEdit(excerpt.id)}>Zapisz fragment</ToolButton>
+                                <ToolButton type="button" variant="ghost" onClick={() => setEditingExcerptId("")}>Anuluj</ToolButton>
+                              </div>
                             </div>
-                          </div>
-                          <blockquote className="text-sm leading-6">“{excerpt.text}”</blockquote>
-                          {excerpt.contextBefore && <div className="mt-2 text-xs text-muted-foreground">Przed: {excerpt.contextBefore}</div>}
-                          {excerpt.contextAfter && <div className="mt-1 text-xs text-muted-foreground">Po: {excerpt.contextAfter}</div>}
+                          ) : (
+                            <>
+                              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                  {argument?.title ?? "Bez argumentu"}
+                                  {excerpt.timestampStart !== undefined ? ` · ${excerpt.timestampStart}s${excerpt.timestampEnd !== undefined ? `–${excerpt.timestampEnd}s` : ""}` : ""}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <ToolSelect
+                                    className="w-auto py-1 text-xs"
+                                    value={excerpt.verificationStatus ?? "unverified"}
+                                    onChange={(e) => updateExcerpt(excerpt.id, { verificationStatus: e.target.value as "unverified" | "checked" | "verified" })}
+                                  >
+                                    <option value="unverified">nieweryfikowany</option>
+                                    <option value="checked">sprawdzony</option>
+                                    <option value="verified">zweryfikowany</option>
+                                  </ToolSelect>
+                                  <ToolButton type="button" variant="ghost" onClick={() => startExcerptEdit(excerpt.id)}>Edytuj</ToolButton>
+                                  <ToolButton type="button" variant="ghost" onClick={() => deleteExcerpt(excerpt.id)}>Usuń</ToolButton>
+                                </div>
+                              </div>
+                              <blockquote className="text-sm leading-6">“{excerpt.text}”</blockquote>
+                              {excerpt.contextBefore && <div className="mt-2 text-xs text-muted-foreground">Przed: {excerpt.contextBefore}</div>}
+                              {excerpt.contextAfter && <div className="mt-1 text-xs text-muted-foreground">Po: {excerpt.contextAfter}</div>}
+                            </>
+                          )}
                         </div>
                       );
                     })}
