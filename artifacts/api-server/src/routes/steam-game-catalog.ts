@@ -145,8 +145,24 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       status !== "all" ? eq(steamCatalogGames.status, status) : undefined,
       searchCondition,
     );
-    const [matches] = await db.select({ total: count() }).from(steamCatalogGames).where(where);
-    const total = Number(matches?.total ?? 0);
+    // One unfiltered aggregation supplies all status badges and, without
+    // text search, also the filtered pagination total. Previously the endpoint
+    // performed an additional COUNT query for every list request.
+    const [statusTotals] = await db.select({
+      all: count(),
+      unclassified: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'unclassified')`,
+      review: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'review')`,
+      ready: sql<number>`count(*) FILTER (WHERE ${steamCatalogGames.status} = 'ready')`,
+    }).from(steamCatalogGames);
+    const counts = {
+      all: Number(statusTotals?.all ?? 0),
+      unclassified: Number(statusTotals?.unclassified ?? 0),
+      review: Number(statusTotals?.review ?? 0),
+      ready: Number(statusTotals?.ready ?? 0),
+    };
+    const total = search
+      ? Number((await db.select({ total: count() }).from(steamCatalogGames).where(where))[0]?.total ?? 0)
+      : status === "all" ? counts.all : counts[status];
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const resolvedPage = Math.min(page, totalPages);
     if (cursor && page !== resolvedPage) {
@@ -175,13 +191,6 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     const nextCursor = hasMore && lastGame
       ? encodeSteamCatalogCursor(lastGame, { ...params, page: resolvedPage })
       : null;
-    const grouped = await db.select({ status: steamCatalogGames.status, total: count() })
-      .from(steamCatalogGames).groupBy(steamCatalogGames.status);
-    const counts = { all: 0, unclassified: 0, review: 0, ready: 0 };
-    for (const item of grouped) {
-      if (item.status in counts) counts[item.status as "unclassified" | "review" | "ready"] = Number(item.total);
-    }
-    counts.all = counts.unclassified + counts.review + counts.ready;
     res.json({
       games,
       pagination: { page: resolvedPage, pageSize, total, totalPages, nextCursor },
