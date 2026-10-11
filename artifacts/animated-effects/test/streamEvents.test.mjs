@@ -18,7 +18,11 @@ const motion = moduleFromFile("../src/animation/motion.ts", (id) => {
   if (id === "./timeline") return timeline;
   throw new Error(id);
 });
-const alertText = moduleFromFile("../src/animation/alertText.ts");
+const avatar = moduleFromFile("../src/animation/alertAvatar.ts");
+const alertText = moduleFromFile("../src/animation/alertText.ts", (id) => {
+  if (id === "./alertAvatar") return avatar;
+  throw new Error(id);
+});
 const triggers = moduleFromFile("../src/animation/triggers.ts", (id) => {
   if (id === "./motion") return motion;
   if (id === "./alertText") return alertText;
@@ -36,6 +40,7 @@ const module = {
   streamElementsRendererSource: "function aeRenderStub(effect, root) { aeCreateLayer(effect, root); }",
   estimateDomNodes: () => 1,
 };
+const avatarRuntime = moduleFromFile("../src/animation/avatarRuntime.ts");
 const alertRuntime = moduleFromFile("../src/animation/alertRuntime.ts");
 const exporter = moduleFromFile("../src/export/streamElements.ts", (id) => {
   if (id === "../effects/registry") return { getEffectModule: (name) => name === "stub" ? module : undefined };
@@ -43,6 +48,7 @@ const exporter = moduleFromFile("../src/export/streamElements.ts", (id) => {
   if (id === "../animation/motion") return motion;
   if (id === "../animation/triggers") return triggers;
   if (id === "../animation/alertRuntime") return alertRuntime;
+  if (id === "../animation/avatarRuntime") return avatarRuntime;
   throw new Error(id);
 });
 
@@ -107,6 +113,7 @@ function runWidget(trigger) {
     },
     console: { log() {}, warn() {}, error() {} },
     Date: { now: () => now },
+    URL,
     setTimeout(fn, delay) {
       const id = nextId++;
       scheduled.set(id, { fn, delay });
