@@ -136,7 +136,7 @@ test("importing a Steam game opens its editor immediately, without requiring a r
 
   await waitFor(() => {
     assert.ok(location.history.includes(`${BASE}/games/42`));
-    assert.ok(screen.getByRole("heading", { name: "Nowa gra" }));
+    assert.ok(screen.getByRole("heading", { name: "Nowa gra", level: 1 }));
   });
   assert.equal(screen.queryByText("Nie znaleziono gry"), null);
   assert.equal(requests.filter((request) => request.path.endsWith("/import")).length, 1);
@@ -188,7 +188,7 @@ test("saving a classification advances to the next pending game", async () => {
 
   await waitFor(() => {
     assert.ok(location.history.includes(`${BASE}/games/2`));
-    assert.ok(screen.getByRole("heading", { name: "Beta" }));
+    assert.ok(screen.getByRole("heading", { name: "Beta", level: 1 }));
   });
   assert.equal(requests.filter((request) => request.method === "PUT").length, 1);
 });
@@ -277,7 +277,7 @@ test("catalog loads only a page of 25 games, then requests page two", async () =
 test("a deep linked game is fetched by ID without first fetching every catalog row", async () => {
   const requests = mockCatalog([game(77, "Bezpośredni rekord")]);
   mount(`${BASE}/games/77`);
-  await screen.findByRole("heading", { name: "Bezpośredni rekord" });
+  await screen.findByRole("heading", { name: "Bezpośredni rekord", level: 1 });
   assert.ok(requests.some((request) => request.path === "/api/steam-catalog/games/77"));
   assert.equal(requests.filter((request) => request.path.includes("/steam-catalog/games?")).length, 0);
 });
