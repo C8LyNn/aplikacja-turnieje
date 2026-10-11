@@ -2,6 +2,7 @@ import {
   getCameraChatSize,
   type CameraChatConfig,
   getCameraChatAnimationCss,
+  CHAT_MOTION_PRESETS,
 } from "./camera-chat-settings";
 
 const html = `<div id="se-camera-chat">
@@ -101,7 +102,7 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   padding: ${padding};
   ${config.messageBackground ? "border-radius: 12px; background: rgba(255,255,255,.055);" : ""}
   ${config.showBorders ? "border: 1px solid rgba(255,255,255,.07);" : ""}
-  ${config.animateMessages ? `animation: se-chat-in ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards;` : ""}
+  ${config.animateMessages ? `animation: ${config.animationStyle === "random" ? "se-chat-in-rise" : "se-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards;` : ""}
 }
 .se-avatar {
   display: grid;
@@ -129,9 +130,19 @@ const settings = ${JSON.stringify({
     maxMessages: config.maxMessages,
     showAvatars: config.showAvatars,
     fadeOldMessages: config.fadeOldMessages,
+    animateMessages: config.animateMessages,
+    animationStyle: config.animationStyle,
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ["#fda4af", "#6ee7b7", "#c4b5fd", "#7dd3fc", "#fcd34d", "#67e8f9"];
+const motionPresets = ${JSON.stringify(CHAT_MOTION_PRESETS)};
+function pickMotion(key) {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (Math.imul(hash, 31) + key.charCodeAt(i)) >>> 0;
+  }
+  return motionPresets[hash % motionPresets.length];
+}
 let messages = [];
 let nextLocalId = 0;
 const renderedRows = new Map();
@@ -156,6 +167,9 @@ function renderMessages() {
     if (!row) {
       row = document.createElement("div");
       row.className = "se-message";
+      if (settings.animateMessages && settings.animationStyle === "random") {
+        row.style.animationName = "se-chat-in-" + pickMotion(message.msgId || message.name + "|" + message.text);
+      }
       if (settings.showAvatars) {
         const avatar = document.createElement("div");
         avatar.className = "se-avatar";
