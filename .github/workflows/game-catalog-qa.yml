@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/game-catalog-editor-reliability
+      - codex/neoludology-research-pipeline-v1
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
