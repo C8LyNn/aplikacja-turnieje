@@ -3,6 +3,7 @@ import { getEffectDefinition } from "../effects/registry";
 import {
   normalizeStreamElementsTriggerOptions,
   normalizeStreamElementsRoutes,
+  MAX_STREAM_ELEMENTS_ROUTES,
   type StreamElementsRouteInput,
   type StreamElementsTriggerOptions,
 } from "./triggerOptions";
@@ -90,7 +91,7 @@ function parseScene(input: unknown): EditorState {
     }
     if (isObject(settings.custom)) {
       const entries = Object.entries(settings.custom);
-      if (entries.length > 80 || entries.some(([key, value]) => !/^[\w-]{1,64}$/.test(key) || !finite(value))) {
+      if (entries.length > 80 || entries.some(([key, value]) => !/^[\w-]{1,64}$/.test(key) || ["__proto__", "constructor", "prototype"].includes(key) || !finite(value))) {
         throw new Error("Nieprawidłowe parametry własne efektu.");
       }
     }
@@ -184,7 +185,9 @@ export function parseStreamElementsProfile(value: unknown): StreamElementsProfil
       !isObject(input.trigger) || (input.routes !== null && !Array.isArray(input.routes))) {
     throw new Error("Nieobsługiwany lub uszkodzony profil StreamElements.");
   }
-  if (typeof input.mode === "string" && input.mode === "never") throw new Error("Nieprawidłowy profil.");
+  if (Array.isArray(input.routes) && input.routes.length > MAX_STREAM_ELEMENTS_ROUTES) {
+    throw new Error("Profil zawiera zbyt wiele reguł StreamElements.");
+  }
   const scene = parseScene(input.scene);
   const trigger = normalizeStreamElementsTriggerOptions(input.trigger as Partial<StreamElementsTriggerOptions>);
   const enabled = scene.effects.filter((effect) => effect.enabled).map((effect) => effect.instanceId);
