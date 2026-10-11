@@ -251,6 +251,15 @@ app.innerHTML = `
 
       <button
         type="button"
+        class="ae-button ae-button-secondary"
+        data-export-download
+        title="Pobierz kod widgetu i kopię edytowalnej sceny"
+      >
+        Pobierz ZIP
+      </button>
+
+      <button
+        type="button"
         data-export-close
       >
         \u00D7
