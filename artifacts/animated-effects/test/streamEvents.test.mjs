@@ -19,8 +19,10 @@ const motion = moduleFromFile("../src/animation/motion.ts", (id) => {
   throw new Error(id);
 });
 const avatar = moduleFromFile("../src/animation/alertAvatar.ts");
+const motionStyles = moduleFromFile("../src/animation/captionMotion.ts");
 const alertText = moduleFromFile("../src/animation/alertText.ts", (id) => {
   if (id === "./alertAvatar") return avatar;
+  if (id === "./captionMotion") return motionStyles;
   throw new Error(id);
 });
 const triggers = moduleFromFile("../src/animation/triggers.ts", (id) => {
@@ -49,6 +51,7 @@ const exporter = moduleFromFile("../src/export/streamElements.ts", (id) => {
   if (id === "../animation/triggers") return triggers;
   if (id === "../animation/alertRuntime") return alertRuntime;
   if (id === "../animation/avatarRuntime") return avatarRuntime;
+  if (id === "../animation/captionMotion") return motionStyles;
   throw new Error(id);
 });
 
