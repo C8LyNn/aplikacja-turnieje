@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # compare bundle against the original, verified PR #14 merge
       - name: Verify payload equals merged PR14 and generate installer bundle
         run: python3 packaging/stream-background-drive/make_package.py
       - name: Publish full source + PowerShell installer
