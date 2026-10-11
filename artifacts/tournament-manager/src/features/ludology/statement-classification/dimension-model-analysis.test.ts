@@ -9,7 +9,7 @@ import {
 import type { ResearchProjectData } from "./model";
 
 const data = (): ResearchProjectData => ({
-  schemaVersion: 4,
+  schemaVersion: 5,
   people: [{ id: "p1", displayName: "P" }],
   sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" }],
   arguments: [],
@@ -57,6 +57,7 @@ const data = (): ResearchProjectData => ({
     { id: "l1", dimensionModelId: "m1", dimensionId: "d1", propositionId: "q1", orientation: "positive", relevance: "core" },
     { id: "l2", dimensionModelId: "m1", dimensionId: "d1", propositionId: "q2", orientation: "negative", relevance: "supporting" },
   ],
+  samplingPlans: [],
 });
 
 test("orientation flips reconstructed direction without changing the assessment", () => {
