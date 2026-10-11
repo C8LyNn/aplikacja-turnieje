@@ -11,6 +11,7 @@ import type {
   ResearchPerson,
   ResearchProjectData,
   ResearchSource,
+  SamplingPlan,
 } from "./model";
 import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
 import {
@@ -350,6 +351,31 @@ export function useResearchProject() {
           dimensionLinks: current.dimensionLinks.filter((candidate) => candidate.id !== dimensionLinkId),
         };
       });
+    },
+    addSamplingPlan(input: Omit<SamplingPlan, "id" | "createdAt">) {
+      const id = createResearchId("sampling_plan");
+      update((current) => ({
+        ...current,
+        samplingPlans: [
+          ...current.samplingPlans,
+          { ...input, id, createdAt: new Date().toISOString() },
+        ],
+      }));
+      return id;
+    },
+    updateSamplingPlan(samplingPlanId: string, patch: Partial<Omit<SamplingPlan, "id" | "createdAt">>) {
+      update((current) => ({
+        ...current,
+        samplingPlans: current.samplingPlans.map((plan) =>
+          plan.id === samplingPlanId ? { ...plan, ...patch } : plan,
+        ),
+      }));
+    },
+    deleteSamplingPlan(samplingPlanId: string) {
+      update((current) => ({
+        ...current,
+        samplingPlans: current.samplingPlans.filter((plan) => plan.id !== samplingPlanId),
+      }));
     },
     upsertAssessment(
       key: Pick<PositionAssessment, "personId" | "propositionId" | "codebookId">,
