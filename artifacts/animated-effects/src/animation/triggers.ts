@@ -31,6 +31,7 @@ export function normalizeEffectTrigger(value: unknown): EffectTrigger | undefine
     minAmount: limit(raw.minAmount, 0, 1000000),
     caption: raw.caption === undefined ? undefined : normalizeAlertCaption(raw.caption),
     queueMode: raw.queueMode === "queue" ? "queue" : "replace",
+    priority: limit(raw.priority, 5, 10),
   };
 }
 
