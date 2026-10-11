@@ -55,6 +55,36 @@ test("portable profile roundtrip keeps exact layer IDs, effect settings, routes 
   assert.equal(received.routes?.[0]?.effectInstanceIds[0], "rain-layer");
 });
 
+test("portable profile retains per-layer timeline keyframes, event triggers and alert captions", () => {
+  const scene = exampleScene();
+  scene.effects[0]!.timeline = {
+    mode: "once", delayMs: 100, durationMs: 2400, fadeInMs: 150, fadeOutMs: 250,
+    keyframes: [
+      { timeMs: 0, x: 0, y: 0, scale: 100, rotation: 0, opacity: 0 },
+      { timeMs: 2400, x: 20, y: 5, scale: 110, rotation: 15, opacity: 100 },
+    ],
+  };
+  scene.effects[0]!.trigger = {
+    source: "event", event: "raid-latest", cooldownMs: 2000,
+    minAmount: 3, queueMode: "queue", priority: 8,
+    caption: {
+      enabled: true, template: "{name} rozpoczyna raid",
+      position: "bottom", fontSize: 36, color: "#ffffff",
+      intro: "pop", outro: "fade", avatarEnabled: true, avatarSize: 64,
+    },
+  };
+  const saved = createStreamElementsProfile("Raid scene", scene, {}, undefined);
+  const loaded = parseStreamElementsProfile(JSON.stringify(saved));
+  assert.equal(loaded.scene.effects[0]?.timeline?.mode, "once");
+  assert.equal(loaded.scene.effects[0]?.timeline?.keyframes?.length, 2);
+  assert.equal(loaded.scene.effects[0]?.timeline?.keyframes?.[1]?.x, 20);
+  assert.equal(loaded.scene.effects[0]?.trigger?.event, "raid-latest");
+  assert.equal(loaded.scene.effects[0]?.trigger?.priority, 8);
+  assert.equal(loaded.scene.effects[0]?.trigger?.caption?.avatarEnabled, true);
+  assert.equal(loaded.scene.effects[0]?.trigger?.caption?.template, "{name} rozpoczyna raid");
+  assert.deepEqual(loaded, saved);
+});
+
 test("single-trigger presets preserve always-on legacy mode and empty multiple routes", () => {
   const scene = exampleScene();
   const legacy = createStreamElementsProfile("Ciągły", scene, {}, undefined);
