@@ -8619,3 +8619,86 @@ body {
 }
 
 /* === AE_LIBRARY_INTERACTION_PACK_22_CSS_END === */
+
+
+/* Animated Effects — layer timeline (v1) */
+.ae-timeline-panel {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+.ae-timeline-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ae-timeline-heading strong {
+  color: var(--ae-text, #f3f6ff);
+  font-size: 13px;
+}
+.ae-timeline-heading span,
+.ae-timeline-hint,
+.ae-timeline-actions small {
+  color: var(--ae-muted, #9ca9c1);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.ae-timeline-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+.ae-timeline-controls[hidden] { display: none; }
+.ae-timeline-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ae-timeline-field input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  color: inherit;
+  border: 1px solid rgba(173, 194, 236, 0.24);
+  border-radius: 8px;
+  background: rgba(8, 15, 28, 0.7);
+}
+.ae-timeline-field input:focus-visible,
+.ae-timeline-panel select:focus-visible {
+  outline: 2px solid #71bfff;
+  outline-offset: 2px;
+}
+.ae-timeline-ruler {
+  grid-column: 1 / -1;
+  display: flex;
+  height: 12px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(173, 194, 236, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.ae-timeline-segment { min-width: 0; }
+.ae-timeline-segment.is-wait { background: #53617b; }
+.ae-timeline-segment.is-fade-in { background: #7e83f2; }
+.ae-timeline-segment.is-hold { background: #38b5cf; }
+.ae-timeline-segment.is-fade-out { background: #c887cd; }
+.ae-timeline-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.ae-timeline-actions button {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.ae-timeline-hint { margin: 0; }
+@media (max-width: 500px) {
+  .ae-timeline-controls { grid-template-columns: 1fr; }
+}
