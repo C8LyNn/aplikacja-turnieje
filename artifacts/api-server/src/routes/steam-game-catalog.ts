@@ -169,9 +169,14 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       review: statusTotals.review,
       ready: statusTotals.ready,
     };
+    const matchQuery = db.select({ total: count() }).from(steamCatalogGames).where(where);
+    if (measure && search) {
+      res.setHeader("x-catalog-test-sql",
+        Buffer.from(JSON.stringify(matchQuery.toSQL()), "utf8").toString("base64url"));
+    }
     const beginCount = performance.now();
     const total = search
-      ? Number((await db.select({ total: count() }).from(steamCatalogGames).where(where))[0]?.total ?? 0)
+      ? Number((await matchQuery)[0]?.total ?? 0)
       : status === "all" ? counts.all : counts[status];
     recordMs("match_count", beginCount);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
