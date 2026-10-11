@@ -49,8 +49,20 @@ const alertTextCompiled = ts.transpileModule(alertTextSource, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   fileName: "alertText.ts",
 }).outputText;
+const avatarSource = readFileSync(new URL("../src/animation/alertAvatar.ts", import.meta.url), "utf8");
+const avatarCompiled = ts.transpileModule(avatarSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const avatarExports = {};
+runInNewContext(avatarCompiled, { exports: avatarExports });
 const alertTextExports = {};
-runInNewContext(alertTextCompiled, { exports: alertTextExports });
+runInNewContext(alertTextCompiled, {
+  exports: alertTextExports,
+  require(id) {
+    if (id === "./alertAvatar") return avatarExports;
+    throw new Error(id);
+  },
+});
 const triggerSource = readFileSync(new URL("../src/animation/triggers.ts", import.meta.url), "utf8");
 const triggerCompiled = ts.transpileModule(triggerSource, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
