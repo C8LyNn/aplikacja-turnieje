@@ -200,3 +200,18 @@ test("disabled captions and unknown placeholders are non-executable", () => {
   runtime.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "A", amount: 12 } } });
   assert.equal(runtime.root.children[1].children.some((node) => node.className === "ae-alert-caption"), false);
 });
+
+
+test("embedded JS escapes malicious template delimiters without changing visible caption", () => {
+  const hostile = "</script><img src=x onerror=alert(1)> {name}";
+  const runtime = runWidget({
+    source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0,
+    caption: { enabled: true, template: hostile, position: "bottom", fontSize: 40, color: "#ffffff" },
+  });
+  assert.doesNotMatch(runtime.code.javascript, /<\\/script>/i, "no raw script-closing tag in exported JS");
+  assert.match(runtime.code.javascript, /\\u003c/, "dangerous tag delimiter escaped in config literal");
+  runtime.listeners.onWidgetLoad({});
+  runtime.listeners.onEventReceived({ detail: { listener: "follower-latest", event: { name: "Guest" } } });
+  const caption = runtime.root.children[1].children.find((child) => child.className === "ae-alert-caption");
+  assert.equal(caption.textContent, "</script><img src=x onerror=alert(1)> Guest");
+});
