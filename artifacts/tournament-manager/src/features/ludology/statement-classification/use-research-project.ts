@@ -208,6 +208,53 @@ export function useResearchProject() {
         };
       });
     },
+    cloneDimensionModelVersion(dimensionModelId: string, version: string, name?: string) {
+      const nextModelId = createResearchId("dimension_model");
+      update((current) => {
+        const source = current.dimensionModels.find((model) => model.id === dimensionModelId);
+        if (!source) return current;
+
+        const sourceDimensions = current.dimensions.filter(
+          (dimension) => dimension.dimensionModelId === dimensionModelId,
+        );
+        const dimensionIdMap = new Map<string, string>();
+        const clonedDimensions = sourceDimensions.map((dimension) => {
+          const nextDimensionId = createResearchId("dimension");
+          dimensionIdMap.set(dimension.id, nextDimensionId);
+          return {
+            ...dimension,
+            id: nextDimensionId,
+            dimensionModelId: nextModelId,
+          };
+        });
+        const clonedLinks = current.dimensionLinks
+          .filter((link) => link.dimensionModelId === dimensionModelId)
+          .map((link) => ({
+            ...link,
+            id: createResearchId("dimension_link"),
+            dimensionModelId: nextModelId,
+            dimensionId: dimensionIdMap.get(link.dimensionId) ?? link.dimensionId,
+          }));
+
+        return {
+          ...current,
+          dimensionModels: [
+            ...current.dimensionModels,
+            {
+              ...source,
+              id: nextModelId,
+              name: name?.trim() || source.name,
+              version,
+              status: "draft",
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          dimensions: [...current.dimensions, ...clonedDimensions],
+          dimensionLinks: [...current.dimensionLinks, ...clonedLinks],
+        };
+      });
+      return nextModelId;
+    },
     addDimension(input: Omit<ResearchDimension, "id">) {
       update((current) => ({
         ...current,
