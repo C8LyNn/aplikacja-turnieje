@@ -50,9 +50,17 @@ corepack prepare pnpm@10 --activate
 
 W katalogu `aplikacja-turnieje-preview` uruchom:
 
+**Najprościej:** w Eksploratorze Windows dwukrotnie kliknij
+`START_ANIMATED_EFFECTS_PREVIEW.cmd` w głównym katalogu pobranej kopii.
+Plik wywołuje skrypt PowerShell z tymi samymi ustawieniami.
+
+Alternatywnie, w terminalu PowerShell:
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\artifacts\animated-effects\scripts\start-local-preview.ps1
 ```
+
+Skrypt działa wyłącznie na `127.0.0.1` (nie wystawia podglądu do sieci lokalnej).
 
 Skrypt:
 1. Weryfikuje Node.js i pnpm, instaluje zależności `pnpm install --frozen-lockfile`.
