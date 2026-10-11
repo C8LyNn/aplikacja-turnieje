@@ -83,6 +83,8 @@ export interface AlertCaption {
   yPercent?: number;
   fontSize: number;
   color: string;
+  intro?: "fade" | "slide" | "pop";
+  outro?: "fade" | "slide" | "pop";
   avatarEnabled?: boolean;
   avatarSize?: number;
 }
