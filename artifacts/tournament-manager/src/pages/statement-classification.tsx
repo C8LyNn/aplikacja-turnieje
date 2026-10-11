@@ -15,6 +15,7 @@ import {
 } from "@/components/portfolio-ui";
 import {
   ToolButton,
+  ToolDisclosure,
   ToolEmptyState,
   ToolInput,
   ToolNotice,
@@ -138,9 +139,12 @@ function Overview() {
 }
 
 function People() {
-  const { data, addPerson } = useResearchProject();
+  const { data, addPerson, updatePerson, deletePerson } = useResearchProject();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [editingPersonId, setEditingPersonId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -148,6 +152,30 @@ function People() {
     addPerson({ displayName: name.trim(), description: description.trim() || undefined });
     setName("");
     setDescription("");
+  }
+
+  function startEdit(personId: string) {
+    const person = data.people.find((item) => item.id === personId);
+    if (!person) return;
+    setEditingPersonId(person.id);
+    setEditName(person.displayName);
+    setEditDescription(person.description ?? "");
+  }
+
+  function saveEdit(personId: string) {
+    if (!editName.trim()) return;
+    updatePerson(personId, {
+      displayName: editName.trim(),
+      description: editDescription.trim() || undefined,
+    });
+    setEditingPersonId("");
+  }
+
+  function removePerson(personId: string) {
+    const person = data.people.find((item) => item.id === personId);
+    if (!person) return;
+    if (typeof window !== "undefined" && !window.confirm(`Usunąć „${person.displayName}” razem z jego źródłami, fragmentami i kodowaniami?`)) return;
+    deletePerson(personId);
   }
 
   return (
@@ -169,9 +197,30 @@ function People() {
               {data.people.map((person) => {
                 const sources = data.sources.filter((source) => source.personId === person.id).length;
                 return <div key={person.id} className="rounded-xl border border-border bg-background/40 p-4">
-                  <div className="font-bold">{person.displayName}</div>
-                  {person.description && <div className="mt-1 text-sm text-muted-foreground">{person.description}</div>}
-                  <div className="mt-2 text-xs text-muted-foreground">{sources} źródeł</div>
+                  {editingPersonId === person.id ? (
+                    <div className="space-y-3">
+                      <ToolInput value={editName} onChange={(e) => setEditName(e.target.value)} />
+                      <ToolInput value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Opis" />
+                      <div className="flex flex-wrap gap-2">
+                        <ToolButton type="button" variant="primary" onClick={() => saveEdit(person.id)}>Zapisz</ToolButton>
+                        <ToolButton type="button" variant="ghost" onClick={() => setEditingPersonId("")}>Anuluj</ToolButton>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold">{person.displayName}</div>
+                          {person.description && <div className="mt-1 text-sm text-muted-foreground">{person.description}</div>}
+                          <div className="mt-2 text-xs text-muted-foreground">{sources} źródeł</div>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                          <ToolButton type="button" variant="ghost" onClick={() => startEdit(person.id)}>Edytuj</ToolButton>
+                          <ToolButton type="button" variant="ghost" onClick={() => removePerson(person.id)}>Usuń</ToolButton>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>;
               })}
             </div>
@@ -183,11 +232,15 @@ function People() {
 }
 
 function Sources() {
-  const { data, addSource } = useResearchProject();
+  const { data, addSource, updateSource, deleteSource } = useResearchProject();
   const [personId, setPersonId] = useState("");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [sourceType, setSourceType] = useState<"video" | "stream" | "podcast" | "post" | "article" | "academic" | "other">("video");
+  const [editingSourceId, setEditingSourceId] = useState("");
+  const [editSourceTitle, setEditSourceTitle] = useState("");
+  const [editSourceUrl, setEditSourceUrl] = useState("");
+  const [editSourcePublishedAt, setEditSourcePublishedAt] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -195,6 +248,32 @@ function Sources() {
     addSource({ personId, title: title.trim(), url: url.trim(), sourceType });
     setTitle("");
     setUrl("");
+  }
+
+  function startSourceEdit(sourceId: string) {
+    const source = data.sources.find((item) => item.id === sourceId);
+    if (!source) return;
+    setEditingSourceId(source.id);
+    setEditSourceTitle(source.title);
+    setEditSourceUrl(source.url);
+    setEditSourcePublishedAt(source.publishedAt ?? "");
+  }
+
+  function saveSourceEdit(sourceId: string) {
+    if (!editSourceTitle.trim() || !editSourceUrl.trim()) return;
+    updateSource(sourceId, {
+      title: editSourceTitle.trim(),
+      url: editSourceUrl.trim(),
+      publishedAt: editSourcePublishedAt || undefined,
+    });
+    setEditingSourceId("");
+  }
+
+  function removeSource(sourceId: string) {
+    const source = data.sources.find((item) => item.id === sourceId);
+    if (!source) return;
+    if (typeof window !== "undefined" && !window.confirm(`Usunąć źródło „${source.title}” wraz z argumentami, fragmentami i kodowaniami?`)) return;
+    deleteSource(sourceId);
   }
 
   return (
@@ -223,9 +302,31 @@ function Sources() {
             <div className="space-y-2">{data.sources.map((source) => {
               const person = data.people.find((item) => item.id === source.personId);
               return <div key={source.id} className="rounded-xl border border-border bg-background/40 p-4">
-                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{source.sourceType} · {person?.displayName ?? "Nieznana osoba"}</div>
-                <div className="mt-1 font-bold">{source.title}</div>
-                <div className="mt-1 truncate text-xs text-muted-foreground">{source.url}</div>
+                {editingSourceId === source.id ? (
+                  <div className="space-y-3">
+                    <ToolInput value={editSourceTitle} onChange={(e) => setEditSourceTitle(e.target.value)} />
+                    <ToolInput value={editSourceUrl} onChange={(e) => setEditSourceUrl(e.target.value)} />
+                    <ToolInput type="date" value={editSourcePublishedAt} onChange={(e) => setEditSourcePublishedAt(e.target.value)} />
+                    <div className="flex flex-wrap gap-2">
+                      <ToolButton type="button" variant="primary" onClick={() => saveSourceEdit(source.id)}>Zapisz</ToolButton>
+                      <ToolButton type="button" variant="ghost" onClick={() => setEditingSourceId("")}>Anuluj</ToolButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {source.sourceType} · {person?.displayName ?? "Nieznana osoba"}{source.publishedAt ? ` · ${source.publishedAt}` : ""}
+                      </div>
+                      <div className="mt-1 font-bold">{source.title}</div>
+                      <a href={source.url} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-muted-foreground underline-offset-2 hover:underline">{source.url}</a>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <ToolButton type="button" variant="ghost" onClick={() => startSourceEdit(source.id)}>Edytuj</ToolButton>
+                      <ToolButton type="button" variant="ghost" onClick={() => removeSource(source.id)}>Usuń</ToolButton>
+                    </div>
+                  </div>
+                )}
               </div>;
             })}</div>
           )}
