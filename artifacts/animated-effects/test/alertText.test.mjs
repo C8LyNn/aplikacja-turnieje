@@ -4,16 +4,17 @@ import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
-const load = (file) => {
+const load = (file, resolver = () => { throw new Error("Unexpected dependency"); }) => {
   const source = readFileSync(new URL(file, import.meta.url), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
-  runInNewContext(compiled, { exports });
+  runInNewContext(compiled, { exports, require: resolver });
   return exports;
 };
-const editor = load("../src/animation/alertText.ts");
+const avatar = load("../src/animation/alertAvatar.ts");
+const editor = load("../src/animation/alertText.ts", (id) => { if (id === "./alertAvatar") return avatar; throw new Error(id); });
 const runtime = load("../src/animation/alertRuntime.ts");
 const live = {};
 runInNewContext(runtime.ALERT_WIDGET_RUNTIME + "\nthis.render = aeCaptionText;", live);
