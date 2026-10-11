@@ -14,6 +14,7 @@ on:
       - ".github/workflows/streaming-animated-effects-ci.yml"
   push:
     branches:
+      - codex/replit-visual-polish-handoff
       - feat/obs-chat-motion-presets-20261011
     paths:
       - "artifacts/animated-effects/**"
