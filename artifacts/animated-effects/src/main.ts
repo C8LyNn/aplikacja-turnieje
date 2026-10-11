@@ -2,6 +2,7 @@ import "./style.css";
 import { installPreviewTransport } from "./animation/previewTransport";
 import { eventPlaybackInstance, isTriggeredEffect, triggerPlaybackDurationMs } from "./animation/triggers";
 import { appendAlertCaption } from "./animation/alertText";
+import { installAlertDiagnostics } from "./animation/alertDiagnosticsPanel";
 
 import {
   installPack08UiQa,
@@ -404,6 +405,10 @@ const preview =
 const previewTransport = installPreviewTransport(
   preview,
   getRequiredElement<HTMLElement>(".ae-stage-panel"),
+);
+const alertDiagnostics = installAlertDiagnostics(
+  getRequiredElement<HTMLElement>(".ae-stage-panel"),
+  () => getEditorState().effects,
 );
 
 const effectDefinitions =
@@ -987,11 +992,21 @@ function renderPreview(): void {
 // A test run renders only the selected event layer; it is not sent to
 // StreamElements and cannot change the scene or trigger real alerts.
 document.addEventListener("animated-effects:test-trigger", (event) => {
-  const instanceId = (event as CustomEvent<{ instanceId: string }>).detail?.instanceId;
+  const detail = (event as CustomEvent<{ instanceId: string; diagnostic?: boolean }>).detail;
+  const instanceId = detail?.instanceId;
   if (!instanceId) return;
   const instance = getEditorState().effects.find((effect) => effect.instanceId === instanceId);
   if (!instance || !instance.enabled || !isTriggeredEffect(instance)) return;
 
+  if (detail.diagnostic) {
+    // The workbench plays one queued alert at a time. Keep its preview
+    // aligned with the simulated queue even across different layers.
+    for (const timeout of testTriggerTimeouts.values()) clearTimeout(timeout);
+    testTriggerTimeouts.clear();
+    for (const element of Array.from(preview.children)) {
+      if ((element as HTMLElement).dataset.testTriggerId) element.remove();
+    }
+  }
   const previous = Array.from(preview.children).find(
     (element) => (element as HTMLElement).dataset?.testTriggerId === instanceId,
   );
@@ -1291,6 +1306,7 @@ function renderEditor(): void {
   renderPreview();
   renderLayers();
   renderStatus();
+  alertDiagnostics.refresh();
 
   if (!isInspectorRangeDragging) {
     renderInspector(
