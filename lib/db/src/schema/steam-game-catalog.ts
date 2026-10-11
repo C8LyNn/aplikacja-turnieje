@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   integer,
   jsonb,
@@ -40,6 +41,14 @@ export const steamCatalogGames = pgTable(
     uniqueIndex("steam_catalog_games_app_id_uidx").on(table.steamAppId),
   ],
 );
+
+/** Global exact counts, maintained by database triggers (migration 0034). */
+export const steamCatalogStatusCounts = pgTable("steam_catalog_status_counts", {
+  id: integer("id").primaryKey().default(1),
+  unclassified: bigint("unclassified", { mode: "number" }).notNull().default(0),
+  review: bigint("review", { mode: "number" }).notNull().default(0),
+  ready: bigint("ready", { mode: "number" }).notNull().default(0),
+});
 
 export const steamCatalogTerms = pgTable(
   "steam_catalog_terms",
