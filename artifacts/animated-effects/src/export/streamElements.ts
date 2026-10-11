@@ -8,6 +8,8 @@ import {
   getEffectModule,
 } from "../effects/registry";
 
+import { generateAdvancedStreamElementsExport } from "./streamElementsAdvanced";
+
 import {
   normalizeStreamElementsTriggerOptions,
   type StreamElementsTriggerOptions,
@@ -20,6 +22,17 @@ export function generateStreamElementsExport(
   triggerOptions: Partial<StreamElementsTriggerOptions> = {},
   routes?: readonly StreamElementsRouteInput[],
 ): StreamElementsExport {
+  // Two compatible runtime models coexist: the original global StreamElements
+  // routing (PR #9) and the advanced, per-layer event/priority queue (PR #8).
+  // Explicit global routes win; otherwise triggered layers use advanced mode.
+  const policy = normalizeStreamElementsTriggerOptions(triggerOptions);
+  const hasLayerEvents = state.effects.some(
+    (effect) => effect.enabled && effect.trigger?.source === "event",
+  );
+  if (routes === undefined && policy.mode === "always" && hasLayerEvents) {
+    return generateAdvancedStreamElementsExport(state);
+  }
+
   const enabledEffects =
     state.effects.filter(
       (effect) => effect.enabled,
