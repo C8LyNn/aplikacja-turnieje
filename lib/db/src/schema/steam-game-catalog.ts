@@ -23,6 +23,7 @@ export const steamCatalogGames = pgTable(
     releaseDate: text("release_date"),
     shortDescription: text("short_description"),
     status: text("status").notNull().default("unclassified"),
+    classificationRevision: integer("classification_revision").notNull().default(1),
     steamRawData: jsonb("steam_raw_data")
       .$type<Record<string, unknown>>()
       .notNull()
