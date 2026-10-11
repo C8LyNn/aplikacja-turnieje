@@ -53,6 +53,18 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
         { id: 7, facet: "genre", slug: "akcja", label: "Akcja", active: true },
       ] });
     }
+    if (/^\\/api\\/steam-catalog\\/games\\/\\d+\\/classification$/.test(path) && method === "PUT") {
+      const id = Number(path.split("/")[4]);
+      const changed = games.find((item) => item.id === id);
+      assert.ok(changed, "classification request must target an existing game");
+      const body = JSON.parse(String(init?.body));
+      changed.status = body.status;
+      changed.assignments = body.assignments.map((assignment: { termId: number; role: string; position: number }) => ({
+        ...assignment, facet: "genre", slug: "akcja", label: "Akcja",
+      }));
+      changed.updatedAt = "2026-10-11T01:00:00.000Z";
+      return Response.json({ ok: true });
+    }
     if (path === "/api/steam-catalog/import" && method === "POST" && imported) {
       // API returns the raw Steam record without the classifications array.
       const { assignments: _assignments, ...steamRecord } = imported;
@@ -128,4 +140,42 @@ test("the classification editor marks unsaved changes and can restore persisted 
   fireEvent.click(screen.getByRole("button", { name: "Przywróć" }));
   await waitFor(() => assert.equal(save.hasAttribute("disabled"), true));
   assert.equal(screen.queryByText("Niezapisane zmiany"), null);
+});
+
+test("saving a classification advances to the next pending game", async () => {
+  const requests = mockCatalog([game(1, "Alpha"), game(2, "Beta")]);
+  const location = mount(`${BASE}/games/1`);
+  await screen.findByRole("button", { name: "Akcja" });
+  fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
+  fireEvent.click(screen.getByRole("button", { name: /Zapisz i dalej/i }));
+
+  await waitFor(() => {
+    assert.ok(location.history.includes(`${BASE}/games/2`));
+    assert.ok(screen.getByRole("heading", { name: "Beta" }));
+  });
+  assert.equal(requests.filter((request) => request.method === "PUT").length, 1);
+});
+
+test("internal links respect an unsaved classification guard", async () => {
+  const originalConfirm = window.confirm;
+  const calls: string[] = [];
+  window.confirm = (message?: string) => {
+    calls.push(String(message));
+    return false;
+  };
+  try {
+    mockCatalog([game(1, "Alpha")]);
+    const location = mount(`${BASE}/games/1`);
+    await screen.findByRole("button", { name: "Akcja" });
+    fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
+    fireEvent.click(screen.getByRole("link", { name: /Wszystkie gry/i }));
+    assert.equal(location.history.at(-1), `${BASE}/games/1`);
+    assert.equal(calls.length, 1);
+
+    window.confirm = () => true;
+    fireEvent.click(screen.getByRole("link", { name: /Wszystkie gry/i }));
+    await waitFor(() => assert.equal(location.history.at(-1), `${BASE}/games`));
+  } finally {
+    window.confirm = originalConfirm;
+  }
 });
