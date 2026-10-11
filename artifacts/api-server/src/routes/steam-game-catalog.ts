@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-access";
 import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
+import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
 import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
 import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
@@ -177,7 +178,10 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     // Unfiltered requests retain their indexed Drizzle path.
     const matching = search ? matchQuery.toSQL() : null;
     const total = matching
-      ? Number((await pool.query(matching.sql, matching.params)).rows[0]?.count ?? 0)
+      ? Number((await coalesceCatalogRead(
+          "count:" + JSON.stringify([matching.sql, matching.params]),
+          () => pool.query(matching.sql, matching.params),
+        )).rows[0]?.count ?? 0)
       : status === "all" ? counts.all : counts[status];
     recordMs("match_count", beginCount);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -235,9 +239,10 @@ router.get("/steam-catalog/games", async (req, res, next) => {
             // Drizzle normally maps result columns by select order. Raw pg
             // returns SQL column names instead; read tuples to preserve the
             // stable public camelCase contract without fragile SQL aliases.
-            const result = await pool.query({
-              text: compiled.sql, values: compiled.params, rowMode: "array",
-            });
+            const result = await coalesceCatalogRead(
+              "page:" + JSON.stringify([compiled.sql, compiled.params]),
+              () => pool.query({ text: compiled.sql, values: compiled.params, rowMode: "array" }),
+            );
             const keys = Object.keys(gameListColumns);
             return result.rows.map((cells: unknown) => {
               if (!Array.isArray(cells) || cells.length !== keys.length) {
