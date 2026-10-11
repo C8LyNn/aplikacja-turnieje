@@ -1,5 +1,6 @@
 import "./style.css";
 import { installPreviewTransport } from "./animation/previewTransport";
+import { eventPlaybackInstance, isTriggeredEffect, triggerPlaybackDurationMs } from "./animation/triggers";
 
 import {
   installPack08UiQa,
@@ -948,7 +949,10 @@ function renderEffectLibrary(): void {
   );
 }
 
+const testTriggerTimeouts = new Map<string, number>();
 function renderPreview(): void {
+  for (const timeout of testTriggerTimeouts.values()) clearTimeout(timeout);
+  testTriggerTimeouts.clear();
   preview.replaceChildren();
 
   const state =
@@ -956,7 +960,7 @@ function renderPreview(): void {
 
   state.effects.forEach(
     (effect) => {
-      if (!effect.enabled) {
+      if (!effect.enabled || isTriggeredEffect(effect)) {
         return;
       }
 
@@ -977,6 +981,39 @@ function renderPreview(): void {
   }
   previewTransport.afterRender();
 }
+
+// A test run renders only the selected event layer; it is not sent to
+// StreamElements and cannot change the scene or trigger real alerts.
+document.addEventListener("animated-effects:test-trigger", (event) => {
+  const instanceId = (event as CustomEvent<{ instanceId: string }>).detail?.instanceId;
+  if (!instanceId) return;
+  const instance = getEditorState().effects.find((effect) => effect.instanceId === instanceId);
+  if (!instance || !instance.enabled || !isTriggeredEffect(instance)) return;
+
+  const previous = [...preview.children].find(
+    (element) => (element as HTMLElement).dataset?.testTriggerId === instanceId,
+  );
+  previous?.remove();
+  const timeout = testTriggerTimeouts.get(instanceId);
+  if (timeout !== undefined) clearTimeout(timeout);
+
+  const holder = document.createElement("div");
+  holder.dataset.testTriggerId = instanceId;
+  Object.assign(holder.style, {
+    position: "absolute",
+    inset: "0",
+    pointerEvents: "none",
+  });
+  preview.appendChild(holder);
+  renderEffect(holder, eventPlaybackInstance(instance));
+  previewTransport.replay();
+  previewTransport.afterRender();
+
+  testTriggerTimeouts.set(instanceId, window.setTimeout(() => {
+    holder.remove();
+    testTriggerTimeouts.delete(instanceId);
+  }, triggerPlaybackDurationMs(instance)));
+});
 
 function renderLayers(): void {
   const state =
