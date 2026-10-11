@@ -3,6 +3,10 @@ import { STREAM_EVENTS } from "./triggers";
 import { AlertDiagnosticEngine, type DiagnosticAlert } from "./alertDiagnosticEngine";
 import { AlertStressRunner } from "./alertStressRunner";
 import type { StressScenario } from "./alertStress";
+import {
+  alertTraceKey, compareTraceResults, parseAlertTraceJson, serializeAlertTrace,
+  MAX_TRACE_BYTES, type AlertTrace, type TraceResult,
+} from "./alertTrace";
 
 const reasonLabels: Record<string, string> = {
   accepted: "Dodano do kolejki",
@@ -30,6 +34,10 @@ export function installAlertDiagnostics(
 ): { refresh: () => void } {
   const engine = new AlertDiagnosticEngine();
   const stressRunner = new AlertStressRunner(engine);
+  let savedTrace: AlertTrace | null = null;
+  let lastResult: TraceResult | null = null;
+  let baselineA: TraceResult | null = null;
+  let baselineB: TraceResult | null = null;
   const fingerprint = (): string => JSON.stringify(getEffects().map((effect) => [
     effect.instanceId, effect.enabled, effect.trigger ?? null,
   ]));
@@ -128,6 +136,25 @@ export function installAlertDiagnostics(
   stressStatus.setAttribute("role", "status");
   const stressReport = node("div", "ae-diagnostics-report");
   content.append(stressHeading, stressHint, stressControls, stressProgress, stressStatus, stressReport);
+  const traceHeading = node("h4", "", "Nagranie syntetycznych zdarzeń i porównanie A/B");
+  const traceHint = node("p", "ae-diagnostics-hint",
+    "Zapisz wygenerowany przebieg do JSON, wczytaj go ponownie i wykonaj tę samą próbę przed i po zmianach sceny. Tylko udane, pełne próby można ustawić jako A albo B.");
+  const traceControls = node("div", "ae-diagnostics-trace-controls");
+  const traceExport = node("button", "ae-button ae-button-secondary", "Eksportuj ślad JSON") as HTMLButtonElement;
+  const traceImport = node("button", "ae-button ae-button-secondary", "Importuj ślad") as HTMLButtonElement;
+  const traceReplay = node("button", "ae-button ae-button-primary", "Odtwórz identyczny ślad") as HTMLButtonElement;
+  const baselineSetA = node("button", "ae-button ae-button-secondary", "Zapisz wynik jako A") as HTMLButtonElement;
+  const baselineSetB = node("button", "ae-button ae-button-secondary", "Zapisz wynik jako B") as HTMLButtonElement;
+  for (const button of [traceExport, traceImport, traceReplay, baselineSetA, baselineSetB]) button.type = "button";
+  const traceInput = node("input") as HTMLInputElement;
+  traceInput.type = "file";
+  traceInput.accept = ".json,application/json";
+  traceInput.hidden = true;
+  traceControls.append(traceExport, traceImport, traceReplay, baselineSetA, baselineSetB, traceInput);
+  const traceStatus = node("p", "ae-diagnostics-stress-status");
+  traceStatus.setAttribute("role", "status");
+  const comparePanel = node("div", "ae-diagnostics-compare");
+  content.append(traceHeading, traceHint, traceControls, traceStatus, comparePanel);
 
   section.appendChild(content);
   stagePanel.appendChild(section);
@@ -137,6 +164,54 @@ export function installAlertDiagnostics(
       ?? item.instanceId.slice(0, 24);
     return (eventLabels.get(item.event as EffectTriggerEvent) ?? item.event) + " · P" + item.priority + " · " + name;
   };
+
+  function renderTraceStatus(message = ""): void {
+    traceStatus.textContent = message || (savedTrace
+      ? "Ślad: " + savedTrace.source + ", " + savedTrace.events.length +
+        " zdarzeń, " + (savedTrace.durationMs / 1000).toFixed(1) + " s. Tylko syntetyczne dane."
+      : "Brak nagranego śladu. Uruchom pełny scenariusz albo zaimportuj JSON.");
+    const busy = stressRunner.isRunning();
+    traceExport.disabled = busy || !savedTrace;
+    traceReplay.disabled = busy || !savedTrace;
+    traceImport.disabled = busy;
+    baselineSetA.disabled = busy || !lastResult;
+    baselineSetB.disabled = busy || !lastResult;
+
+    comparePanel.replaceChildren();
+    if (!baselineA && !baselineB) {
+      comparePanel.appendChild(node("p", "ae-diagnostics-hint",
+        "Przeprowadź próbę, zapisz wynik jako A, zmień scenę i odtwórz ten sam ślad jako B."));
+      return;
+    }
+    const state = node("p", "", "A: " + (baselineA ? "zapisano" : "brak") + " · B: " + (baselineB ? "zapisano" : "brak"));
+    comparePanel.appendChild(state);
+    if (!baselineA || !baselineB) return;
+    const comparison = compareTraceResults(baselineA, baselineB);
+    const title = node("p", comparison.comparable ? "ae-diagnostics-comparison-ok" : "ae-diagnostics-comparison-warning",
+      comparison.comparable ? "Porównanie tego samego harmonogramu A → B" : "Porównanie zablokowane — różne harmonogramy");
+    comparePanel.appendChild(title);
+    for (const reason of comparison.reasons) comparePanel.appendChild(node("p", "ae-diagnostics-hint", reason));
+    if (!comparison.comparable) return;
+    const table = node("table", "ae-diagnostics-compare-table");
+    const header = node("tr");
+    for (const cell of ["Metryka", "A", "B", "Zmiana B−A"]) header.appendChild(node("th", "", cell));
+    const thead = node("thead");
+    thead.appendChild(header);
+    table.appendChild(thead);
+    const tbody = node("tbody");
+    for (const measure of comparison.measures) {
+      const tr = node("tr");
+      const display = (value: number | null): string => value === null ? "brak danych" : String(value);
+      tr.appendChild(node("th", "", measure.label));
+      tr.appendChild(node("td", "", display(measure.first)));
+      tr.appendChild(node("td", "", display(measure.second)));
+      tr.appendChild(node("td", "", measure.delta === null ? "—" :
+        (measure.delta > 0 ? "+" : "") + measure.delta + (measure.unit ? " " + measure.unit : "")));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    comparePanel.appendChild(table);
+  }
 
   function render(message = ""): void {
     const snapshot = engine.getSnapshot();
@@ -177,10 +252,10 @@ export function installAlertDiagnostics(
     }));
   };
 
-  stressStart.addEventListener("click", () => {
+  function runStress(traceToReplay?: AlertTrace): void {
     if (stressRunner.isRunning()) return;
     const scenario = stressScenario.value as StressScenario;
-    const durationMs = Number(stressDuration.value);
+    const durationMs = traceToReplay?.durationMs ?? Number(stressDuration.value);
     const effects = getEffects();
     if (!effects.some((effect) => effect.enabled && effect.trigger?.source === "event")) {
       stressStatus.textContent = "Dodaj co najmniej jedną włączoną warstwę z wyzwalaczem StreamElements.";
@@ -191,10 +266,11 @@ export function installAlertDiagnostics(
     stressStop.disabled = false;
     stressScenario.disabled = true;
     stressDuration.disabled = true;
+    renderTraceStatus("Trwa próba. Zapis i porównanie będą dostępne po zakończeniu.");
     stressReport.replaceChildren();
     stressProgress.value = 0;
     stressStatus.textContent = "Test wystartował; symulowane zdarzenia pojawiają się w czasie rzeczywistym.";
-    stressRunner.start(scenario, durationMs, effects, {
+    const callbacks = {
       onPlay: play,
       onProgress: (progress) => {
         stressProgress.value = Math.round(progress.elapsedMs / progress.durationMs * 100);
@@ -210,6 +286,15 @@ export function installAlertDiagnostics(
         stressStop.disabled = true;
         stressScenario.disabled = false;
         stressDuration.disabled = false;
+        const finishedTrace = stressRunner.getTrace();
+        if (state === "completed" && finishedTrace) {
+          savedTrace = finishedTrace;
+          lastResult = { traceKey: alertTraceKey(finishedTrace), result: report };
+          renderTraceStatus("Zapisano syntetyczny harmonogram i wynik pełnej próby. Można eksportować, powtórzyć oraz ustawić A/B.");
+        } else {
+          lastResult = null;
+          renderTraceStatus("Niepełny pomiar nie jest dopuszczony do porównania A/B.");
+        }
         stressProgress.value = Math.round(report.durationMs / durationMs * 100);
         const statusMessage = state === "completed" ? "Zakończono scenariusz."
           : state === "hidden" ? "Test przerwany: karta przeszła w tło (pomiar niemiarodajny)."
@@ -229,10 +314,62 @@ export function installAlertDiagnostics(
         stressReport.appendChild(findings);
         render();
       },
-    });
+    };
+    if (traceToReplay) stressRunner.startTrace(traceToReplay, effects, callbacks);
+    else stressRunner.start(scenario, durationMs, effects, callbacks);
     render();
-  });
+  }
+  stressStart.addEventListener("click", () => runStress());
   stressStop.addEventListener("click", () => stressRunner.stop("stopped"));
+
+  traceExport.addEventListener("click", () => {
+    if (!savedTrace || stressRunner.isRunning()) return;
+    const blob = new Blob([serializeAlertTrace(savedTrace)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "animated-effects-alert-trace-v1.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    renderTraceStatus("Zapisano anonimowy ślad JSON. Plik zawiera jedynie syntetyczne typy, czasy i kwoty.");
+  });
+  traceImport.addEventListener("click", () => {
+    if (!stressRunner.isRunning()) traceInput.click();
+  });
+  traceInput.addEventListener("change", async () => {
+    const file = traceInput.files?.[0];
+    traceInput.value = "";
+    if (!file || stressRunner.isRunning()) return;
+    if (file.size > MAX_TRACE_BYTES) {
+      renderTraceStatus("Nie można wczytać: rozmiar pliku przekracza 100 KB.");
+      return;
+    }
+    try {
+      const trace = parseAlertTraceJson(await file.text());
+      savedTrace = trace;
+      lastResult = null;
+      renderTraceStatus("Wczytano ślad: " + trace.events.length +
+        " zdarzeń. Odtwórz identyczny harmonogram, aby uzyskać wynik.");
+    } catch (error) {
+      renderTraceStatus("Błąd importu: " + (error instanceof Error ? error.message : "Nieznany format."));
+    }
+  });
+  traceReplay.addEventListener("click", () => {
+    if (savedTrace && !stressRunner.isRunning()) runStress(savedTrace);
+  });
+  baselineSetA.addEventListener("click", () => {
+    if (!lastResult || stressRunner.isRunning()) return;
+    baselineA = { ...lastResult };
+    renderTraceStatus("Zapisano wynik A dla tej sekwencji testowej.");
+  });
+  baselineSetB.addEventListener("click", () => {
+    if (!lastResult || stressRunner.isRunning()) return;
+    baselineB = { ...lastResult };
+    renderTraceStatus("Zapisano wynik B. Sprawdź porównanie poniżej.");
+  });
+  renderTraceStatus();
 
   simulate.addEventListener("click", () => {
     if (stressRunner.isRunning()) return;
@@ -263,7 +400,9 @@ export function installAlertDiagnostics(
   });
   reset.addEventListener("click", () => {
     stressRunner.stop("stopped");
+    lastResult = null;
     engine.reset();
+    renderTraceStatus();
     document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
     render("Wyczyszczono stan lokalnego symulatora.");
   });
@@ -276,7 +415,9 @@ export function installAlertDiagnostics(
       if (lastFingerprint !== nextFingerprint) {
         lastFingerprint = nextFingerprint;
         stressRunner.stop("stopped");
+        lastResult = null;
         engine.reset();
+        renderTraceStatus();
         render("Zmieniono konfigurację sceny — symulacja została wyzerowana.");
       } else {
         render();
