@@ -31,7 +31,13 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
   const codings = requireArray(value, "codings");
   const assessments =
     value.schemaVersion === 3
-      ? requireArray(value, "assessments")
+      ? requireArray(value, "assessments").map((assessment) => {
+          if (!isRecord(assessment)) return assessment;
+          return {
+            ...assessment,
+            direction: assessment.direction === undefined ? null : assessment.direction,
+          };
+        })
       : [];
 
   return {
