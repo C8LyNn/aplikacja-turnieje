@@ -14,6 +14,7 @@ const MIGRATIONS = [
   "0031_steam_catalog_pagination_indexes.sql",
   "0032_steam_catalog_classification_revision.sql",
   "0033_steam_catalog_trigram_search.sql",
+  "0034_steam_catalog_exact_status_counters.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -77,6 +78,11 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "(SELECT count(*)::integer FROM steam_catalog_terms) AS terms",
     );
     assert.equal(counts.games, 2003);
+    const [counter] = await rows<{ unclassified: string; review: string; ready: string }>(
+      "SELECT unclassified,review,ready FROM steam_catalog_status_counts WHERE id=1",
+    );
+    assert.ok(counter);
+    assert.equal(Number(counter.unclassified) + Number(counter.review) + Number(counter.ready), 2003);
     const [versions] = await rows<{ min_version: number; max_version: number }>(
       "SELECT min(classification_revision)::integer AS min_version, max(classification_revision)::integer AS max_version FROM steam_catalog_games",
     );
@@ -135,6 +141,74 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(result.body.counts.all, 2003);
     assert.ok(result.body.counts.ready > 0);
     assert.ok(result.body.pagination.total < 2003);
+  });
+
+
+  test("exact counters track bulk inserts, status transitions, deletes and rollbacks", async () => {
+    type Totals = { unclassified: string; review: string; ready: string };
+    async function getCounters() {
+      const [item] = await rows<Totals>(
+        "SELECT unclassified,review,ready FROM steam_catalog_status_counts WHERE id=1",
+      );
+      return [Number(item.unclassified), Number(item.review), Number(item.ready)] as const;
+    }
+    async function getActual() {
+      const [row] = await rows<{ u: string; r: string; y: string }>(
+        "SELECT count(*) FILTER (WHERE status='unclassified') AS u, " +
+        "count(*) FILTER (WHERE status='review') AS r, " +
+        "count(*) FILTER (WHERE status='ready') AS y FROM steam_catalog_games",
+      );
+      return [Number(row.u), Number(row.r), Number(row.y)] as const;
+    }
+    const original = await getCounters();
+    assert.deepEqual(original, await getActual());
+
+    // Replaying 0034 must not reset counters or install duplicate triggers.
+    const migration = await readFile(new URL("0034_steam_catalog_exact_status_counters.sql", MIGRATION_ROOT), "utf8");
+    await database.pool.query(migration);
+    assert.deepEqual(await getCounters(), original);
+
+    await database.pool.query(
+      "INSERT INTO steam_catalog_games (steam_app_id,name,steam_url,status) VALUES " +
+      "(1999901,'Count Sample A','https://store.steampowered.com/app/1999901','unclassified')," +
+      "(1999902,'Count Sample B','https://store.steampowered.com/app/1999902','review')," +
+      "(1999903,'Count Sample C','https://store.steampowered.com/app/1999903','ready')",
+    );
+    assert.deepEqual(await getCounters(), original.map((x) => x + 1));
+    await database.pool.query(
+      "UPDATE steam_catalog_games SET status='ready' WHERE steam_app_id IN (1999901,1999902)",
+    );
+    assert.deepEqual(await getCounters(), [original[0], original[1], original[2] + 3]);
+    await database.pool.query(
+      "UPDATE steam_catalog_games SET developer='Updated' WHERE steam_app_id IN (1999901,1999902)",
+    );
+    assert.deepEqual(await getCounters(), [original[0], original[1], original[2] + 3]);
+
+    const connection = await database.pool.connect();
+    try {
+      await connection.query("BEGIN");
+      await connection.query(
+        "UPDATE steam_catalog_games SET status='review' WHERE steam_app_id IN (1999901,1999902)",
+      );
+      const preview = (await connection.query(
+        "SELECT review,ready FROM steam_catalog_status_counts WHERE id=1",
+      )).rows[0];
+      assert.equal(Number(preview.review), original[1] + 2);
+      await connection.query("ROLLBACK");
+    } finally {
+      connection.release();
+    }
+    assert.deepEqual(await getCounters(), [original[0], original[1], original[2] + 3]);
+    await database.pool.query(
+      "DELETE FROM steam_catalog_games WHERE steam_app_id BETWEEN 1999901 AND 1999903",
+    );
+    assert.deepEqual(await getCounters(), original);
+    assert.deepEqual(await getCounters(), await getActual());
+
+    const response = await request(app).get("/api/steam-catalog/games").expect(200);
+    assert.equal(response.body.counts.all, 2003);
+    const pending = await request(app).get("/api/steam-catalog/queue").expect(200);
+    assert.equal(pending.body.pendingCount, original[0] + original[1]);
   });
 
   test("literal SQL wildcards, publisher and exact AppID", async () => {
@@ -402,6 +476,16 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(first.counts.all, 100003);
     assert.equal(first.games.length, 25);
     assert.equal(first.counts.ready + first.counts.review + first.counts.unclassified, 100003);
+    // Trigger counter must agree with the live 100k-row table after bulk import.
+    const [actualCounts] = await rows<{ u: string; r: string; y: string }>(
+      "SELECT count(*) FILTER (WHERE status='unclassified') AS u," +
+      "count(*) FILTER (WHERE status='review') AS r," +
+      "count(*) FILTER (WHERE status='ready') AS y FROM steam_catalog_games",
+    );
+    assert.deepEqual(
+      [first.counts.unclassified, first.counts.review, first.counts.ready],
+      [Number(actualCounts.u), Number(actualCounts.r), Number(actualCounts.y)],
+    );
 
     const filter = await measure("ready_filter_ms", "/api/steam-catalog/games?status=ready&pageSize=25");
     assert.equal(filter.pagination.total, first.counts.ready);
@@ -460,6 +544,10 @@ describe("Steam catalog — real PostgreSQL API", () => {
     console.log("CATALOG_100K_MATERIALIZED_EXPLAIN " + JSON.stringify(materializedPlans[0]?.["QUERY PLAN"]).slice(0, 9000));
     console.log("CATALOG_100K_SEARCH_EXPLAIN " + JSON.stringify(searchPlans[0]?.["QUERY PLAN"]).slice(0, 8000));
     console.log("CATALOG_100K_COUNTS_EXPLAIN " + JSON.stringify(countPlans[0]?.["QUERY PLAN"]).slice(0, 4000));
+    const [counterPlans] = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT unclassified,review,ready FROM steam_catalog_status_counts WHERE id=1",
+    );
+    console.log("CATALOG_100K_COUNTER_ROW_EXPLAIN " + JSON.stringify(counterPlans[0]?.["QUERY PLAN"]).slice(0, 4000));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
