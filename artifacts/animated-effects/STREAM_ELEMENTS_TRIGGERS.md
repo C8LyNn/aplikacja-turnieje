@@ -10,6 +10,20 @@
 6. Dodaj adres overlay StreamElements do OBS jako Browser Source. W natywnym widżecie nie jest potrzebny iframe, token API ani połączenie z witryną edytora.
 7. Przetestuj komendę lub zdarzenie w rzeczywistym podglądzie StreamElements/OBS.
 
+## Wiele reguł w jednym widgetcie
+
+W oknie eksportu włącz **Wiele zdarzeń w jednym widżecie**. Kliknij **Dodaj regułę** (maksymalnie 8), wybierz rodzaj zdarzenia i zaznacz efekty z aktualnie włączonych warstw. Przykład:
+
+| Reguła | Wyzwalacz | Wybrane warstwy |
+| --- | --- | --- |
+| 1 | Komenda `!fire` | Ogień / dym |
+| 2 | Komenda `!ice` | Lód / śnieg |
+| 3 | Raid | Efekt kosmiczny / konfetti |
+
+Każda reguła ma własny cooldown i czas wyświetlania. **Zdarzenia są sprawdzane w kolejności reguł; pierwsza kwalifikująca się reguła ma pierwszeństwo.** Jeśli kilka reguł pasuje do tego samego zdarzenia, a pierwsza ma cooldown, może zostać uruchomiona następna. W razie nowej aktywacji **poprzednia scena jest zastępowana** (nie jest kolejkowana ani nakładana).
+
+Tryb wielu reguł działa również przy pustym zestawie reguł (widget pozostaje niewidoczny). Reguły bez zaznaczonych, włączonych warstw są pomijane. W tym trybie wyzwalacze są zdarzeniowe, a nie „zawsze aktywne”. Aby uzyskać ciągły efekt, wyłącz tryb wielu reguł i wybierz **Zawsze aktywna**.
+
 ## Obsługiwane wyzwalacze
 
 | Tryb | Listener StreamElements | Zachowanie |
@@ -31,14 +45,14 @@ Komendy są normalizowane do małych liter i muszą spełniać wzór `![a-z0-9_]
 ## Kompatybilność
 
 - Domyślny tryb `always` zachowuje się jak poprzedni eksport.
-- Ustawienia triggerów dotyczą **tego eksportu**. Nie stanowią na razie osobnej, zapisanej definicji sceny.
+- Ustawienia triggerów i wieloregularnego routingu dotyczą **tego eksportu**. Nie stanowią na razie osobnej, zapisanej definicji sceny.
 - Eksport tworzy samodzielny widget z HTML, CSS i JS, bez zależności od dostępności aplikacji po wklejeniu kodu.
-- Camera + Chat Overlay i Animated Effects są obecnie **dwoma niezależnymi widgetami**; oba mogą odbierać zdarzenia StreamElements, ale jeden widget nie wysyła poleceń bezpośrednio do drugiego.
+- Camera + Chat Overlay i Animated Effects są nadal **dwoma niezależnymi widgetami**; za to pojedynczy widget Animated Effects może obsługiwać wiele zdarzeń i zestawów warstw.
 - Wielokrotna aktywacja ciężkich efektów może obciążać OBS Browser Source. Najpierw sprawdzaj scenę w podglądzie, szczególnie na 1080p/60 FPS.
 
 ## Weryfikacja
 
-Testy regresyjne znajdują się w `artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts`. Są uruchamiane przez istniejący test runner frontendowy:
+Testy regresyjne routingu i edytora znajdują się w `artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts`. Są uruchamiane przez istniejący test runner frontendowy:
 
 ```bash
 pnpm --filter @workspace/tournament-manager test
