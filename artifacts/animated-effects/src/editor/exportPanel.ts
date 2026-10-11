@@ -4,8 +4,11 @@ import {
 
 import {
   getEditorState,
+  replaceEditorState,
 } from "./state";
-import { readExportRoutes, setupExportRoutes, syncExportRoutes } from "./exportRoutes";
+import { applyExportRoutes, readExportRoutes, setupExportRoutes, syncExportRoutes } from "./exportRoutes";
+import { setupExportProfilesUI } from "./exportProfilesUI";
+import { createStreamElementsProfile } from "../export/streamElementsProfiles";
 
 import {
   DEFAULT_STREAM_ELEMENTS_TRIGGER_OPTIONS,
@@ -37,6 +40,20 @@ export function setupExportPanel(
   });
   syncTriggerUi(dialog);
   setupExportRoutes(dialog, () => openExportPanel(dialog));
+  setupExportProfilesUI(dialog, {
+    capture: (name) => createStreamElementsProfile(
+      name,
+      getEditorState(),
+      readTriggerOptions(dialog),
+      readExportRoutes(dialog),
+    ),
+    apply: (profile) => {
+      replaceEditorState(profile.scene, "Wczytaj zestaw StreamElements: " + profile.name);
+      applyTriggerOptions(dialog, profile.trigger);
+      applyExportRoutes(dialog, profile.routes);
+      openExportPanel(dialog);
+    },
+  });
 
   dialog
     .querySelectorAll<HTMLButtonElement>(
@@ -141,6 +158,18 @@ function readTriggerOptions(dialog: HTMLDialogElement): StreamElementsTriggerOpt
     activeDurationMs: duration === undefined ? undefined : Number(duration) * 1000,
     cooldownMs: cooldown === undefined ? undefined : Number(cooldown) * 1000,
   });
+}
+
+function applyTriggerOptions(dialog: HTMLDialogElement, options: StreamElementsTriggerOptions): void {
+  const mode = dialog.querySelector<HTMLSelectElement>("[data-trigger-mode]");
+  const command = dialog.querySelector<HTMLInputElement>("[data-trigger-command]");
+  const duration = dialog.querySelector<HTMLInputElement>("[data-trigger-duration]");
+  const cooldown = dialog.querySelector<HTMLInputElement>("[data-trigger-cooldown]");
+  if (mode) mode.value = options.mode;
+  if (command) command.value = options.chatCommand;
+  if (duration) duration.value = String(options.activeDurationMs / 1000);
+  if (cooldown) cooldown.value = String(options.cooldownMs / 1000);
+  syncTriggerUi(dialog, options);
 }
 
 function syncTriggerUi(
