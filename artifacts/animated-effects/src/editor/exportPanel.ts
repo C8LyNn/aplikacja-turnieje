@@ -210,7 +210,7 @@ function syncTriggerUi(
   const commandInput = dialog.querySelector<HTMLInputElement>("[data-trigger-command]");
   const durationInput = dialog.querySelector<HTMLInputElement>("[data-trigger-duration]");
   const cooldownInput = dialog.querySelector<HTMLInputElement>("[data-trigger-cooldown]");
-  if (commandInput && commandInput.value.trim().toLowerCase() !== options.chatCommand) {
+  if (commandInput && commandInput.value !== options.chatCommand) {
     commandInput.value = options.chatCommand;
   }
   if (durationInput) durationInput.value = String(options.activeDurationMs / 1000);
