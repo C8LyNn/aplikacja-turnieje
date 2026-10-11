@@ -111,6 +111,7 @@ export type PositionAssessment = {
   codebookId: string;
   reviewerId?: string;
   status: PositionAssessmentStatus;
+  direction: DirectionScore | null;
   confidence: CodingConfidence;
   synthesis?: string;
   evidenceSignature?: string;
