@@ -258,6 +258,38 @@ app.innerHTML = `
       </button>
     </div>
 
+    <section class="export-trigger-config" aria-label="Aktywacja efektów">
+      <strong>Uruchamianie animacji</strong>
+      <p>Wybierz, kiedy StreamElements ma uruchomić tę scenę. Tryb ciągły zachowuje poprzednie działanie.</p>
+      <div class="export-trigger-fields">
+        <label>
+          Zdarzenie
+          <select data-trigger-mode>
+            <option value="always">Zawsze aktywna</option>
+            <option value="chat-command">Komenda na czacie</option>
+            <option value="follower">Nowy obserwujący</option>
+            <option value="subscriber">Subskrypcja</option>
+            <option value="tip">Donacja</option>
+            <option value="cheer">Cheer / Bits</option>
+            <option value="raid">Raid</option>
+          </select>
+        </label>
+        <label data-trigger-command-field hidden>
+          Komenda (dostępna każdemu widzowi)
+          <input type="text" data-trigger-command value="!hype" maxlength="25" spellcheck="false" autocomplete="off" />
+        </label>
+        <label data-trigger-timing hidden>
+          Czas wyświetlania (s)
+          <input type="number" data-trigger-duration value="5" min="0.5" max="60" step="0.5" />
+        </label>
+        <label data-trigger-timing hidden>
+          Przerwa między aktywacjami (s)
+          <input type="number" data-trigger-cooldown value="10" min="0" max="300" step="1" />
+        </label>
+      </div>
+      <p class="export-trigger-note" data-trigger-info>Efekty startują po załadowaniu widgetu i pozostają aktywne.</p>
+    </section>
+
     <div class="export-section">
       <div class="export-section-header">
         <strong>HTML</strong>
