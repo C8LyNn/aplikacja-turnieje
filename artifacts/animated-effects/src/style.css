@@ -8911,3 +8911,66 @@ body {
   outline: 2px solid #71bfff;
   outline-offset: 2px;
 }
+
+
+/* Dynamic StreamElements captions — local editor preview and trigger controls. */
+.ae-alert-caption {
+  z-index: 9999;
+  animation: ae-caption-intro 500ms cubic-bezier(.2,.7,.25,1) both;
+}
+@keyframes ae-caption-intro {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+.ae-caption-fields {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(131,181,223,.21);
+  background: rgba(14,25,41,.55);
+  border-radius: 9px;
+}
+.ae-caption-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #d7e9fc;
+  cursor: pointer;
+}
+.ae-caption-settings {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.ae-caption-settings[hidden] { display: none !important; }
+.ae-caption-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+}
+.ae-caption-row > * { min-width: 0; }
+.ae-caption-settings input[type="text"],
+.ae-caption-settings input[type="number"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  color: #eef4ff;
+  background: rgba(7,14,27,.72);
+  border: 1px solid rgba(153,184,215,.28);
+  border-radius: 8px;
+}
+.ae-caption-settings input[type="color"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  padding: 3px;
+  border: 1px solid rgba(153,184,215,.28);
+  border-radius: 8px;
+  background: transparent;
+}
+.ae-caption-settings code { font-size: 11px; }
+@media (max-width: 390px) {
+  .ae-caption-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
