@@ -397,7 +397,7 @@ export default function GameCatalogAdminPage() {
     setStatus(selected.status);
     setPerspective("gameplay");
     setTermQuery("");
-  }, [selected?.id, selected?.updatedAt]);
+  }, [selected]);
 
   function assignmentFor(termId: number) {
     return draft.find((item) => item.termId === termId);
