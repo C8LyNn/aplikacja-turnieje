@@ -212,6 +212,60 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(pending.body.pendingCount, original[0] + original[1]);
   });
 
+  test("48 simultaneous editors preserve classification versions and exact global counters", async () => {
+    const edits = await rows<{ id: number; status: string; classification_revision: number }>(
+      "SELECT id,status,classification_revision FROM steam_catalog_games " +
+      "WHERE name BETWEEN 'Test Game 0101' AND 'Test Game 0148' ORDER BY name",
+    );
+    assert.equal(edits.length, 48);
+    assert.ok(edits.every((item) => item.classification_revision === 1));
+    const [before] = await rows<{ u: string; r: string; y: string }>(
+      "SELECT unclassified::text AS u,review::text AS r,ready::text AS y " +
+      "FROM steam_catalog_status_counts WHERE id=1",
+    );
+    const changed = edits.map((item) => ({
+      ...item,
+      next: item.status === "review" ? "unclassified" : "review",
+    }));
+    const started = performance.now();
+    const writes = await Promise.all(changed.map((item) =>
+      request(app).put("/api/steam-catalog/games/" + item.id + "/classification")
+        .set(edit()).send({ status: item.next, expectedRevision: item.classification_revision, assignments: [] }),
+    ));
+    const elapsed = Math.round((performance.now() - started) * 100) / 100;
+    assert.deepEqual([...new Set(writes.map((response) => response.status))], [200]);
+    assert.ok(writes.every((response) => response.body.classificationRevision === 2));
+    const ids = edits.map((item) => item.id);
+    const refreshed = await rows<{ id: number; status: string; classification_revision: number }>(
+      "SELECT id,status,classification_revision FROM steam_catalog_games WHERE id=ANY($1::integer[])",
+      [ids],
+    );
+    const byId = new Map(refreshed.map((item) => [item.id, item]));
+    for (const edit of changed) {
+      assert.equal(byId.get(edit.id)?.classification_revision, 2);
+      assert.equal(byId.get(edit.id)?.status, edit.next);
+    }
+    const [after] = await rows<{ u: string; r: string; y: string }>(
+      "SELECT unclassified::text AS u,review::text AS r,ready::text AS y " +
+      "FROM steam_catalog_status_counts WHERE id=1",
+    );
+    const expectedUnclassifiedDelta = changed.filter((x) => x.next === "unclassified").length -
+      changed.filter((x) => x.status === "unclassified").length;
+    const expectedReviewDelta = changed.filter((x) => x.next === "review").length -
+      changed.filter((x) => x.status === "review").length;
+    assert.equal(Number(after.u), Number(before.u) + expectedUnclassifiedDelta);
+    assert.equal(Number(after.r), Number(before.r) + expectedReviewDelta);
+    assert.equal(Number(after.y), Number(before.y));
+    const actual = await rows<{ status: string; total: string }>(
+      "SELECT status,count(*)::text AS total FROM steam_catalog_games GROUP BY status",
+    );
+    for (const row of actual) {
+      const expected = Number(after[row.status === "unclassified" ? "u" : row.status === "review" ? "r" : "y"]);
+      assert.equal(Number(row.total), expected);
+    }
+    console.log("CATALOG_48_PARALLEL_EDITS " + JSON.stringify({ count: writes.length, elapsed_ms: elapsed }));
+  });
+
   test("literal SQL wildcards, publisher and exact AppID", async () => {
     const percent = await request(app).get("/api/steam-catalog/games").query({ query: "100%" }).expect(200);
     assert.deepEqual(percent.body.games.map((x: { name: string }) => x.name), ["Special 100% Game"]);
@@ -648,6 +702,48 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT unclassified,review,ready FROM steam_catalog_status_counts WHERE id=1",
     );
     console.log("CATALOG_100K_COUNTER_ROW_EXPLAIN " + JSON.stringify(counterPlans?.["QUERY PLAN"]).slice(0, 4000));
+    // Mixed public traffic exercises indexed listing, count+search, keyset
+    // navigation and queue reads against the same 100k-row database.
+    const scenarios = [
+      "/api/steam-catalog/games?query=Large%20Game%2099999",
+      "/api/steam-catalog/games?query=Scale%20Test%20Publisher&status=ready",
+      "/api/steam-catalog/games?status=review&pageSize=25",
+      cursorUrl,
+      "/api/steam-catalog/queue",
+    ];
+    const scheduled = Array.from({ length: 60 }, (_, i) => ({
+      type: i % scenarios.length,
+      path: scenarios[i % scenarios.length],
+    }));
+    const loadStart = performance.now();
+    const loadResults = await Promise.all(scheduled.map(async (job) => {
+      const started = performance.now();
+      const result = await request(app).get(job.path);
+      return { type: job.type, status: result.status, body: result.body,
+        duration: Math.round((performance.now() - started) * 100) / 100 };
+    }));
+    assert.ok(loadResults.every((item) => item.status === 200));
+    const cohorts: Array<{ scenario: string; median_ms: number; p95_ms: number; n: number }> = [];
+    for (let i = 0; i < scenarios.length; i++) {
+      const bucket = loadResults.filter((x) => x.type === i);
+      assert.equal(bucket.length, 12);
+      if (i === 0) assert.ok(bucket.every((x) => x.body.pagination.total === 1));
+      if (i === 1) assert.ok(bucket.every((x) => x.body.pagination.total > 2000));
+      if (i === 2) assert.ok(bucket.every((x) => x.body.counts.all === 100003));
+      if (i === 3) assert.ok(bucket.every((x) =>
+        x.body.games.map((game: { id: number }) => game.id).join(",") ===
+          keyed.games.map((game: { id: number }) => game.id).join(",")));
+      if (i === 4) assert.ok(bucket.every((x) => Number.isInteger(x.body.nextId)));
+      const durations = bucket.map((x) => x.duration).sort((a, b) => a - b);
+      cohorts.push({ scenario: ["name", "broad_search", "status_filter", "cursor", "queue"][i],
+        median_ms: durations[Math.floor(durations.length / 2)],
+        p95_ms: durations[Math.ceil(durations.length * 0.95) - 1], n: durations.length });
+    }
+    console.log("CATALOG_100K_MIXED_LOAD " + JSON.stringify({
+      requests: scheduled.length,
+      total_elapsed_ms: Math.round((performance.now() - loadStart) * 100) / 100,
+      cohorts,
+    }));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
