@@ -1,7 +1,7 @@
 import type { EffectInstance, EffectTriggerEvent } from "../core/types";
 import { STREAM_EVENTS } from "./triggers";
 import { AlertDiagnosticEngine, type DiagnosticAlert } from "./alertDiagnosticEngine";
-import { AlertStressRunner } from "./alertStressRunner";
+import { AlertStressRunner, type StressCallbacks } from "./alertStressRunner";
 import type { StressScenario } from "./alertStress";
 import {
   alertTraceKey, compareTraceResults, parseAlertTraceJson, serializeAlertTrace,
@@ -270,7 +270,7 @@ export function installAlertDiagnostics(
     stressReport.replaceChildren();
     stressProgress.value = 0;
     stressStatus.textContent = "Test wystartował; symulowane zdarzenia pojawiają się w czasie rzeczywistym.";
-    const callbacks = {
+    const callbacks: StressCallbacks = {
       onPlay: play,
       onProgress: (progress) => {
         stressProgress.value = Math.round(progress.elapsedMs / progress.durationMs * 100);
