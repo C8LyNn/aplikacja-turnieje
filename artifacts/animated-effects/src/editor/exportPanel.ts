@@ -61,7 +61,7 @@ export function setupExportPanel(
         "Pozycja Własna (X/Y) pozwala też przeciągnąć podpis w podglądzie.",
         "Podpis ma niezależne efekty wejścia i wyjścia: wjazd, fade, pop.",
         "Wszystkie konfiguracje pozostają w scene.aescene.json.",
-        "Jeśli masz włączony alertbox StreamElements, osobno ustal
+        "Jeśli masz włączony alertbox StreamElements, osobno ustal",
         "jego położenie, żeby nie nakładał się na te animacje.",
         "",
         "Wskazówka: plików ZIP nie przesyła się bezpośrednio do Custom Widget.",
