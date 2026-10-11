@@ -12,6 +12,7 @@ import { getLayerMotionAnimation } from "../animation/motion";
 import { eventPlaybackInstance, normalizeEffectTrigger, triggerPlaybackDurationMs } from "../animation/triggers";
 import { ALERT_WIDGET_RUNTIME } from "../animation/alertRuntime";
 import { AVATAR_WIDGET_RUNTIME } from "../animation/avatarRuntime";
+import { CAPTION_ANIMATIONS_CSS } from "../animation/captionMotion";
 
 export function generateStreamElementsExport(
   state: EditorState,
@@ -137,6 +138,8 @@ body {
 }
 
 ${usedCss}
+
+${CAPTION_ANIMATIONS_CSS}
 
 ${effects.flatMap((effect) => [getLayerTimelineAnimation(effect)?.css, getLayerMotionAnimation(effect)?.css]).filter(Boolean).join("\n")}
 `.trim();
@@ -602,7 +605,7 @@ function aeNextQueued() {
     aeNextQueued();
     return;
   }
-  aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData);
+  aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData, next.effect.playbackMs);
   aeQueuedPlaying = element;
   aeQueuedTimer = setTimeout(function () {
     if (aeQueuedPlaying === element) {
@@ -688,7 +691,7 @@ function aeHandleEvent(obj) {
 
     const element = aeRenderOne(effect, aeRoot);
     if (!element) return;
-    aeAttachCaption(element, rule.caption, detail.listener, eventData);
+    aeAttachCaption(element, rule.caption, detail.listener, eventData, effect.playbackMs);
     aeLastFired[effect.instanceId] = now;
     aeActive.set(effect.instanceId, element);
     aePending.set(effect.instanceId, setTimeout(function () {
