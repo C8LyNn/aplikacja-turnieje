@@ -323,16 +323,18 @@ export default function GameCatalogAdminPage() {
   useEffect(() => {
     if (screen !== "games" && screen !== "search") return;
     const controller = new AbortController();
+    setListLoading(true);
+    setGames([]);
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE), query });
       if (screen === "games") params.set("status", statusFilter);
-      setListLoading(true);
       api<GameListResponse>(`/api/steam-catalog/games?${params}`, { signal: controller.signal })
         .then((body) => {
           if (controller.signal.aborted) return;
           setGames(body.games);
           setPagination(body.pagination);
           setCounts(body.counts);
+          if (body.pagination.page !== page) setPage(body.pagination.page);
         })
         .catch((cause) => {
           if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
