@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -378,7 +378,9 @@ export default function GameCatalogAdminPage() {
     return () => { active = false; };
   }, [screen, gameId]);
 
-  useEffect(() => {
+  // Install the navigation guard before the browser can dispatch a second click
+  // after React commits an edited draft (a passive effect can be too late).
+  useLayoutEffect(() => {
     if (!hasUnsavedChanges) return;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
