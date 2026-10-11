@@ -92,18 +92,19 @@ export function setupExportPanel(
             return;
           }
 
-          await navigator.clipboard.writeText(
-            textarea.value,
-          );
-
-          const previous =
-            button.textContent;
-
-          button.textContent = "Skopiowano";
-
+          const previous = button.textContent;
+          try {
+            await navigator.clipboard.writeText(textarea.value);
+            button.textContent = "Skopiowano";
+          } catch {
+            // Secure clipboard is not always available in embedded browsers.
+            textarea.focus();
+            textarea.select();
+            button.textContent = "Zaznaczono · Ctrl+C";
+          }
           setTimeout(() => {
             button.textContent = previous;
-          }, 1000);
+          }, 1800);
         },
       );
     });
