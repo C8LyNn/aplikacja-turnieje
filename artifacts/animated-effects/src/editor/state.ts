@@ -217,6 +217,9 @@ export function editEffectKeyframe(
   const timeline = normalizedMotionTimeline(effect.timeline, effect.settings);
   const current = (timeline.keyframes ?? []).find((frame) => frame.timeMs === originalTimeMs);
   if (!current) return;
+  const targetTime = Math.max(0, Math.min(timeline.durationMs, Math.round(patch.timeMs ?? originalTimeMs)));
+  // Two distinct poses must not silently overwrite each other.
+  if ((timeline.keyframes ?? []).some((frame) => frame.timeMs === targetTime && frame.timeMs !== originalTimeMs)) return;
   const next = normalizeLayerKeyframes(
     [...(timeline.keyframes ?? []).filter((frame) => frame.timeMs !== originalTimeMs), { ...current, ...patch }],
     timeline.durationMs,
