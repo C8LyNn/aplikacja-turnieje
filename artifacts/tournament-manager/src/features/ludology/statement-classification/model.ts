@@ -3,6 +3,12 @@ export type CodingConfidence = "low" | "medium" | "high";
 export type DirectionScore = -2 | -1 | 0 | 1 | 2;
 export type ExplicitnessScore = 0 | 1 | 2 | 3;
 export type CodebookStatus = "draft" | "pilot" | "active" | "retired";
+export type PositionAssessmentStatus =
+  | "insufficient_evidence"
+  | "stable"
+  | "context_dependent"
+  | "contradictory"
+  | "position_change";
 
 export type ResearchPerson = {
   id: string;
@@ -98,8 +104,20 @@ export type CodingRecord = {
   createdAt?: string;
 };
 
+export type PositionAssessment = {
+  id: string;
+  personId: string;
+  propositionId: string;
+  codebookId: string;
+  reviewerId?: string;
+  status: PositionAssessmentStatus;
+  confidence: CodingConfidence;
+  synthesis?: string;
+  updatedAt: string;
+};
+
 export type ResearchProjectData = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -108,6 +126,7 @@ export type ResearchProjectData = {
   propositions: Proposition[];
   coders: Coder[];
   codings: CodingRecord[];
+  assessments: PositionAssessment[];
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
@@ -120,6 +139,7 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   propositions: [],
   coders: [],
   codings: [],
+  assessments: [],
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
