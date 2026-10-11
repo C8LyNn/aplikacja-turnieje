@@ -7,6 +7,7 @@ import {
   getAllEffectModules,
   getEffectModule,
 } from "../effects/registry";
+import { getLayerTimelineAnimation } from "../animation/timeline";
 
 const MODULE_STYLE_ID =
   "animated-effects-module-styles";
@@ -72,9 +73,27 @@ export function renderEffect(
     random,
   );
 
-  preview.appendChild(
-    layer,
-  );
+  const animation = getLayerTimelineAnimation(instance);
+  if (animation) {
+    const style = document.createElement("style");
+    style.textContent = animation.css;
+    preview.appendChild(style);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "ae-timed-layer";
+    Object.assign(wrapper.style, {
+      position: "absolute",
+      inset: "0",
+      overflow: "hidden",
+      pointerEvents: "none",
+      zIndex: String(instance.settings.zIndex),
+      animation: animation.animation,
+    });
+    wrapper.appendChild(layer);
+    preview.appendChild(wrapper);
+  } else {
+    preview.appendChild(layer);
+  }
 }
 
 function ensureModuleStyles(): void {
