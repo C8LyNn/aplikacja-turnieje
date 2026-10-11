@@ -72,3 +72,13 @@ test("event playback forces one cycle without mutating the saved looping scene",
   const continuous = { ...instance, trigger: undefined };
   assert.equal(eventPlaybackInstance(continuous), continuous);
 });
+
+
+test("priority is optional in old scenes, clamped to 0..10 for new and imported scenes", () => {
+  const make = (priority) => normalizeEffectTrigger({ source: "event", event: "tip-latest", priority });
+  assert.equal(make(undefined).priority, 5);
+  assert.equal(make(-100).priority, 0);
+  assert.equal(make(99999).priority, 10);
+  assert.equal(make(7.6).priority, 8);
+  assert.equal(make("bad").priority, 5);
+});
