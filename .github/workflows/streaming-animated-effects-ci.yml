@@ -83,3 +83,15 @@ jobs:
           path: artifacts/tournament-manager/dist/public/stream/animated-effects/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Headless Chromium browser smoke (frontend-only)
+        run: node artifacts/animated-effects/scripts/browser-smoke.mjs
+
+      - name: Upload browser QA screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: animated-effects-browser-qa
+          path: .cache/animated-effects-browser-qa/
+          if-no-files-found: warn
+          retention-days: 14
