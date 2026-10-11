@@ -38,7 +38,11 @@ export class AlertStressRunner {
   private callbacks: StressCallbacks | null = null;
   private effects: EffectInstance[] = [];
 
-  constructor(private readonly engine: AlertDiagnosticEngine) {}
+  private readonly engine: AlertDiagnosticEngine;
+
+  constructor(engine: AlertDiagnosticEngine) {
+    this.engine = engine;
+  }
 
   isRunning(): boolean { return this.active; }
 
