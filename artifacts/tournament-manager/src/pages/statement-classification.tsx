@@ -32,6 +32,7 @@ import {
   groupEvidenceByYear,
   personEvidence,
 } from "@/features/ludology/statement-classification/evidence-analysis";
+import { computeCoderAgreementPairs } from "@/features/ludology/statement-classification/coder-agreement";
 
 const BASE = "/ludology/statement-classification";
 
@@ -1223,6 +1224,9 @@ function Methodology() {
   const propositions = activeCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
     : [];
+  const agreementPairs = activeCodebook
+    ? computeCoderAgreementPairs(data.codings, data.coders, activeCodebook.id)
+    : [];
 
   function submitCoder(event: FormEvent) {
     event.preventDefault();
@@ -1296,6 +1300,32 @@ function Methodology() {
               })}
             </div>
           </div>
+        </ToolPanel>
+
+        <ToolPanel
+          title="Zgodność koderów — diagnostyka"
+          description="To prosty procent identycznych kierunków na wspólnie zakodowanych jednostkach. Nie zastępuje α Krippendorffa ani walidacji konstruktu."
+        >
+          {agreementPairs.length === 0 ? (
+            <ToolEmptyState title="Potrzeba co najmniej dwóch koderów" description="Dodaj kolejnego kodera i zakoduj te same fragmenty, aby zobaczyć nakładanie ocen." />
+          ) : (
+            <div className="space-y-2">
+              {agreementPairs.map((pair) => (
+                <div key={`${pair.coderAId}::${pair.coderBId}`} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div>
+                    <div className="font-bold">{pair.coderALabel} ↔ {pair.coderBLabel}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{pair.overlap} wspólnie zakodowanych par fragment–mikrostanowisko</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-black">
+                      {pair.exactDirectionAgreement === null ? "—" : `${Math.round(pair.exactDirectionAgreement * 100)}%`}
+                    </div>
+                    <div className="text-xs text-muted-foreground">identyczny kierunek</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </ToolPanel>
 
         <ToolPanel title="Historia codebooka" description="Każda wersja ma osobną tożsamość. Starsze kodowania pozostają przypięte do wersji, w której powstały.">
