@@ -11,6 +11,7 @@ import { getLayerTimelineAnimation } from "../animation/timeline";
 import { getLayerMotionAnimation } from "../animation/motion";
 import { eventPlaybackInstance, normalizeEffectTrigger, triggerPlaybackDurationMs } from "../animation/triggers";
 import { ALERT_WIDGET_RUNTIME } from "../animation/alertRuntime";
+import { AVATAR_WIDGET_RUNTIME } from "../animation/avatarRuntime";
 
 export function generateStreamElementsExport(
   state: EditorState,
@@ -507,6 +508,8 @@ function aeCreateLayer(
 }
 
 ${rendererSources}
+
+${AVATAR_WIDGET_RUNTIME}
 
 ${ALERT_WIDGET_RUNTIME}
 
