@@ -547,7 +547,7 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const [counterPlans] = await rows<{ "QUERY PLAN": unknown }>(
       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT unclassified,review,ready FROM steam_catalog_status_counts WHERE id=1",
     );
-    console.log("CATALOG_100K_COUNTER_ROW_EXPLAIN " + JSON.stringify(counterPlans[0]?.["QUERY PLAN"]).slice(0, 4000));
+    console.log("CATALOG_100K_COUNTER_ROW_EXPLAIN " + JSON.stringify(counterPlans?.["QUERY PLAN"]).slice(0, 4000));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
