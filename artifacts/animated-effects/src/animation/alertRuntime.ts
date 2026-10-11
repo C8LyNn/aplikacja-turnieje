@@ -56,6 +56,10 @@ function aeAttachCaption(parent, caption, listener, event) {
   } else {
     label.style.bottom = "8%";
   }
+  if (caption.avatarEnabled) {
+    const name = aeAlertData(listener, event).name;
+    aeAttachAvatar(label, event, name, caption.avatarSize ?? 72);
+  }
   parent.appendChild(label);
   return label;
 }
