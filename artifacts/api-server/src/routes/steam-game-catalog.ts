@@ -277,33 +277,46 @@ router.get("/steam-catalog/queue", async (req, res, next) => {
       res.status(400).json({ error: "Nieprawidłowe ID gry.", code: "INVALID_GAME_ID" });
       return;
     }
-    const pending = ne(steamCatalogGames.status, "ready");
-    const [statusTotals] = await db.select({
-      unclassified: steamCatalogStatusCounts.unclassified,
-      review: steamCatalogStatusCounts.review,
-    }).from(steamCatalogStatusCounts).where(eq(steamCatalogStatusCounts.id, 1));
-    if (!statusTotals) throw new Error("STEAM_CATALOG_COUNTERS_MISSING: apply migration 0034");
-    const pendingCount = statusTotals.unclassified + statusTotals.review;
-    let nextId: number | null = null;
-    if (pendingCount) {
-      const current = currentId === null ? null : (await db.select({
-        id: steamCatalogGames.id, name: steamCatalogGames.name,
-      }).from(steamCatalogGames).where(eq(steamCatalogGames.id, currentId)).limit(1))[0];
-      const after = current ? or(
-        gt(steamCatalogGames.name, current.name),
-        and(eq(steamCatalogGames.name, current.name), gt(steamCatalogGames.id, current.id)),
-      ) : undefined;
-      const base = and(pending, currentId === null ? undefined : ne(steamCatalogGames.id, currentId));
-      const queryFirst = (where: ReturnType<typeof and>) =>
-        db.select({ id: steamCatalogGames.id }).from(steamCatalogGames)
-          .where(where).orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id)).limit(1);
-      const [forward] = await queryFirst(and(base, after));
-      if (forward) nextId = forward.id;
-      else {
-        const [wrapped] = await queryFirst(base);
-        nextId = wrapped?.id ?? null;
-      }
-    }
+    // A single query handles the exact pending count, current position,
+    // forward scan and wrap-around. This avoids up to four serial database
+    // round trips for every queue poll under concurrent browser traffic.
+    const result = await pool.query<{
+      pending_count: string;
+      next_id: number | null;
+    }>(`
+      WITH current_game AS MATERIALIZED (
+        SELECT id, name FROM steam_catalog_games WHERE id = $1::integer
+      ),
+      next_forward AS (
+        SELECT g.id FROM steam_catalog_games AS g
+        WHERE g.status <> 'ready'
+          AND ($1::integer IS NULL OR g.id <> $1::integer)
+          AND (
+            NOT EXISTS (SELECT 1 FROM current_game)
+            OR (g.name, g.id) > (SELECT name, id FROM current_game)
+          )
+        ORDER BY g.name, g.id
+        LIMIT 1
+      ),
+      next_wrapped AS (
+        SELECT g.id FROM steam_catalog_games AS g
+        WHERE g.status <> 'ready'
+          AND ($1::integer IS NULL OR g.id <> $1::integer)
+        ORDER BY g.name, g.id
+        LIMIT 1
+      )
+      SELECT (c.unclassified + c.review)::text AS pending_count,
+        CASE WHEN c.unclassified + c.review = 0 THEN NULL
+        ELSE COALESCE(
+          (SELECT id FROM next_forward),
+          (SELECT id FROM next_wrapped)
+        ) END AS next_id
+      FROM steam_catalog_status_counts AS c WHERE c.id = 1
+    `, [currentId]);
+    const snapshot = result.rows[0];
+    if (!snapshot) throw new Error("STEAM_CATALOG_COUNTERS_MISSING: apply migration 0034");
+    const pendingCount = Number(snapshot.pending_count);
+    const nextId = snapshot.next_id;
     res.json({ pendingCount, nextId });
   } catch (error) {
     next(error);
