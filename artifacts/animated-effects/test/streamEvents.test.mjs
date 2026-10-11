@@ -377,3 +377,22 @@ test("custom X/Y placement is preserved in generated caption styles", () => {
   assert.equal(label.style.width, "48%");
   assert.equal(label.style.transform, "translate(-50%, -50%)");
 });
+
+test("caption entrance/exit presets are included in exported CSS and runtime animation", () => {
+  const widget = runWidget({
+    source: "event", event: "tip-latest", cooldownMs: 0, minAmount: 0,
+    caption: {
+      enabled: true, template: "{name}", position: "custom", xPercent: 45, yPercent: 60,
+      fontSize: 32, color: "#ffffff", intro: "pop", outro: "slide",
+    },
+  });
+  assert.match(widget.code.css, /@keyframes ae-caption-in-pop/);
+  assert.match(widget.code.css, /@keyframes ae-caption-out-slide/);
+  widget.listeners.onWidgetLoad({});
+  widget.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "Donor", amount: 10 } } });
+  const caption = widget.root.children[1].children.find((node) => node.className === "ae-alert-caption");
+  assert.match(caption.style.animation, /^ae-caption-in-pop /);
+  assert.match(caption.style.animation, /ae-caption-out-slide /);
+  assert.equal(caption.style.left, "45%");
+  assert.equal(caption.style.top, "60%");
+});
