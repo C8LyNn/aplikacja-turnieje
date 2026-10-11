@@ -302,7 +302,7 @@ describe("Steam catalog — real PostgreSQL API", () => {
   test("20k-record workload: paged browse, text search and pending queue", async () => {
     await database.pool.query([
       "INSERT INTO steam_catalog_games (steam_app_id, name, steam_url, developer, publisher, status)",
-      "SELECT 1500000+n, 'Test Game ' || lpad(n::text, 4, '0'),",
+      "SELECT 1500000+n, 'Test Game ' || n::text,",
       "'https://store.steampowered.com/app/' || (1500000+n),",
       "'Bulk Studio', 'Bulk Publisher',",
       "CASE WHEN n%7=0 THEN 'ready' WHEN n%3=0 THEN 'review' ELSE 'unclassified' END",
