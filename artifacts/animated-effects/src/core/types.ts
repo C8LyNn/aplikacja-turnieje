@@ -50,9 +50,18 @@ export interface EffectDefinition {
   customControls?: EffectCustomControl[];
 }
 
+export type LayerTimelineMode = "off" | "once" | "loop";
+export interface LayerTimeline {
+  mode: LayerTimelineMode;
+  delayMs: number;
+  durationMs: number;
+  fadeInMs: number;
+  fadeOutMs: number;
+}
+
 export interface EffectInstance {
   instanceId: EffectInstanceId; effectId: EffectId; seed: number; enabled: boolean;
-  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null;
+  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null; timeline?: LayerTimeline;
 }
 
 export interface PresetEffect { effectId: EffectId; settings?: Partial<EffectSettings>; }
