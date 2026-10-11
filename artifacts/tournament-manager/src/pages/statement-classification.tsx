@@ -642,9 +642,22 @@ function Coding() {
 function EvidenceProfile() {
   const { data } = useResearchProject();
   const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
-  const personSources = new Set(data.sources.filter((source) => source.personId === personId).map((source) => source.id));
-  const personExcerptIds = new Set(data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId)).map((excerpt) => excerpt.id));
+  const personSourceRecords = data.sources.filter((source) => source.personId === personId);
+  const personSources = new Set(personSourceRecords.map((source) => source.id));
+  const personExcerptRecords = data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId));
+  const personExcerptIds = new Set(personExcerptRecords.map((excerpt) => excerpt.id));
   const personCodings = data.codings.filter((coding) => personExcerptIds.has(coding.excerptId));
+  const personArgumentCount = data.arguments.filter((argument) => personSources.has(argument.sourceId)).length;
+  const verifiedExcerptCount = personExcerptRecords.filter((excerpt) => excerpt.verificationStatus === "verified").length;
+  const coveredPropositions = new Set(personCodings.map((coding) => coding.propositionId)).size;
+  const sourceTypeCounts = personSourceRecords.reduce<Record<string, number>>((acc, source) => {
+    acc[source.sourceType] = (acc[source.sourceType] ?? 0) + 1;
+    return acc;
+  }, {});
+  const dominantSourceType = Object.entries(sourceTypeCounts).sort((a, b) => b[1] - a[1])[0];
+  const dominantSourceShare = dominantSourceType && personSourceRecords.length
+    ? dominantSourceType[1] / personSourceRecords.length
+    : 0;
 
   return (
     <>
@@ -669,6 +682,46 @@ function EvidenceProfile() {
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personCodings.length}</div><div className="text-xs text-muted-foreground">kodowań</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{new Set(personCodings.map((coding) => coding.propositionId)).size}/{data.propositions.length}</div><div className="text-xs text-muted-foreground">mikrostanowisk z dowodami</div></div>
           </div>
+
+          <ToolPanel
+            title="Corpus Health"
+            description="Pilotażowe diagnostyki jakości korpusu. Progi są operacyjne i nie są miarą prawdziwości ani trafności stanowiska."
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xl font-black">{personArgumentCount}</div>
+                <div className="text-xs text-muted-foreground">jednostek argumentacyjnych</div>
+              </div>
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xl font-black">{personExcerptRecords.length ? Math.round((verifiedExcerptCount / personExcerptRecords.length) * 100) : 0}%</div>
+                <div className="text-xs text-muted-foreground">fragmentów zweryfikowanych</div>
+              </div>
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xl font-black">{coveredPropositions}/{data.propositions.length}</div>
+                <div className="text-xs text-muted-foreground">pokrycie codebooka</div>
+              </div>
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <div className="text-xl font-black">{Object.keys(sourceTypeCounts).length}</div>
+                <div className="text-xs text-muted-foreground">typów źródeł</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {personSourceRecords.length > 0 && personSourceRecords.length < 3 && (
+                <ToolNotice>Mały korpus: mniej niż 3 materiały źródłowe. Profil powinien być traktowany jako bardzo wstępny.</ToolNotice>
+              )}
+              {dominantSourceType && dominantSourceShare > 0.65 && personSourceRecords.length >= 3 && (
+                <ToolNotice>
+                  Koncentracja źródeł: {Math.round(dominantSourceShare * 100)}% materiałów ma typ „{dominantSourceType[0]}”. Warto dołożyć inne formaty.
+                </ToolNotice>
+              )}
+              {personExcerptRecords.length > 0 && verifiedExcerptCount / personExcerptRecords.length < 0.5 && (
+                <ToolNotice>Większość fragmentów nie ma jeszcze statusu „zweryfikowany”. Nie używaj tego profilu jako gotowego wyniku publicznego.</ToolNotice>
+              )}
+              {data.propositions.length > 0 && coveredPropositions / data.propositions.length < 0.5 && (
+                <ToolNotice>Pokrycie codebooka jest poniżej połowy. Brak obserwacji pozostaje brakiem danych, nie stanowiskiem neutralnym.</ToolNotice>
+              )}
+            </div>
+          </ToolPanel>
 
           <ToolPanel title="Evidence Matrix" description="Każdy wiersz pokazuje obserwacje, nie syntetyczną etykietę osoby.">
             <div className="overflow-x-auto">
