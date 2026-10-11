@@ -550,6 +550,29 @@ describe("Steam catalog — real PostgreSQL API", () => {
         ilike(database.steamCatalogGames.developer, like),
         ilike(database.steamCatalogGames.publisher, like),
       )).toSQL();
+    const driverBench: Record<string, number[]> = { raw: [], drizzle: [], raw_publisher: [] };
+    for (let i = 0; i < 3; i++) {
+      const rawBegin = performance.now();
+      const pgResult = await database.pool.query(generated.sql, generated.params);
+      driverBench.raw.push(Math.round((performance.now() - rawBegin) * 100) / 100);
+      assert.equal(Number(pgResult.rows[0].total), 1);
+
+      const drizzleBegin = performance.now();
+      const ormResult = await database.db.select({ total: count() })
+        .from(database.steamCatalogGames)
+        .where(or(
+          ilike(database.steamCatalogGames.name, like),
+          ilike(database.steamCatalogGames.developer, like),
+          ilike(database.steamCatalogGames.publisher, like),
+        ));
+      driverBench.drizzle.push(Math.round((performance.now() - drizzleBegin) * 100) / 100);
+      assert.equal(Number(ormResult[0].total), 1);
+
+      const publisherBegin = performance.now();
+      await database.pool.query(generated.sql, Array(3).fill("%Example Publisher%"));
+      driverBench.raw_publisher.push(Math.round((performance.now() - publisherBegin) * 100) / 100);
+    }
+    console.log("CATALOG_100K_DRIVER_BENCH " + JSON.stringify(driverBench));
     const generatedPlan = await rows<{ "QUERY PLAN": unknown }>(
       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + generated.sql, generated.params,
     );
