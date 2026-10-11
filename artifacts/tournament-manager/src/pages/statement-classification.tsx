@@ -28,10 +28,10 @@ import EvidenceProfile from "@/features/ludology/statement-classification/Eviden
 import MethodologyView from "@/features/ludology/statement-classification/MethodologyView";
 import CodingLab from "@/features/ludology/statement-classification/CodingLab";
 import ResearchWorkspace from "@/features/ludology/statement-classification/ResearchWorkspace";
+import DimensionModelLab from "@/features/ludology/statement-classification/DimensionModelLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
-import { isAssessmentStale } from "@/features/ludology/statement-classification/evidence-analysis";
 import { checkResearchProjectIntegrity } from "@/features/ludology/statement-classification/integrity";
 import { buildResearchQueue } from "@/features/ludology/statement-classification/research-queue";
 
@@ -537,65 +537,6 @@ function Sources() {
   );
 }
 
-function MapPage() {
-  const { data } = useResearchProject();
-  const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
-  const activePropositions = activeCodebook
-    ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
-    : [];
-  const activeAssessments = activeCodebook
-    ? data.assessments.filter((assessment) => assessment.codebookId === activeCodebook.id)
-    : [];
-  const freshAssessments = activeAssessments.filter((assessment) => !isAssessmentStale(data, assessment));
-  const staleAssessments = activeAssessments.filter((assessment) => isAssessmentStale(data, assessment));
-  const assessedPeople = new Set(freshAssessments.map((assessment) => assessment.personId));
-  const peopleWithCodings = new Set(
-    data.codings
-      .filter((coding) => coding.codebookId === activeCodebook?.id)
-      .map((coding) => {
-        const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
-        const source = data.sources.find((item) => item.id === excerpt?.sourceId);
-        return source?.personId;
-      })
-      .filter((personId): personId is string => Boolean(personId)),
-  );
-  const insufficient = freshAssessments.filter((assessment) => assessment.status === "insufficient_evidence").length;
-
-  return (
-    <>
-      <PageHeader section="MAP" title="Mapa stanowisk" description="Mapa jest warstwą modelową nad zakodowanymi dowodami i rekonstrukcjami, a nie podstawą danych." />
-      <div className="space-y-4">
-        <ToolPanel title="Gotowość danych do modelowania" description="Te wskaźniki nie wyznaczają automatycznie momentu publikacji; pokazują tylko, czego jeszcze brakuje przed budową modelu wymiarów.">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{data.people.length}</div><div className="text-xs text-muted-foreground">osób w korpusie</div></div>
-            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{peopleWithCodings.size}</div><div className="text-xs text-muted-foreground">osób z kodowaniami</div></div>
-            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{assessedPeople.size}</div><div className="text-xs text-muted-foreground">osób z rekonstrukcjami</div></div>
-            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{freshAssessments.length}</div><div className="text-xs text-muted-foreground">aktualnych rekonstrukcji</div></div>
-          </div>
-          <div className="mt-4 space-y-2">
-            {!activeCodebook && <ToolNotice tone="danger">Brak aktywnego codebooka — nie ma stabilnego punktu odniesienia dla modelu.</ToolNotice>}
-            {data.people.length < 2 && <ToolNotice>Do porównywania stanowisk potrzeba co najmniej więcej niż jednej osoby. Obecny korpus jest nadal pilotażowy.</ToolNotice>}
-            {activeAssessments.length === 0 && <ToolNotice>Nie ma jeszcze rekonstrukcji stanowisk. Mapa nie powinna agregować samych surowych kodowań bez warstwy przeglądu.</ToolNotice>}
-            {staleAssessments.length > 0 && <ToolNotice>{staleAssessments.length} rekonstrukcji jest nieaktualnych względem bieżącego zestawu kodowań i nie powinno wejść do modelu bez ponownego przeglądu.</ToolNotice>}
-            {insufficient > 0 && <ToolNotice>{insufficient} aktualnych rekonstrukcji ma status „niewystarczające dowody”. Powinny pozostać widoczne jako brak pewnego wyniku.</ToolNotice>}
-          </div>
-        </ToolPanel>
-
-        <ToolPanel title="Dimension Model" description="Osie i ich powiązania z mikrostanowiskami będą wersjonowanym modelem interpretacyjnym. Dane źródłowe pozostaną od niego niezależne.">
-          <ToolEmptyState
-            title="Model wymiarów nie został jeszcze zdefiniowany"
-            description={`Aktualny codebook ma ${activePropositions.length} mikrostanowisk. Następny etap to osobny, wersjonowany model mapujący je na potencjalne wymiary — bez przepisywania wcześniejszych danych.`}
-          />
-        </ToolPanel>
-
-        <ToolNotice>
-          Obecne hipotezy osi, takie jak subiektywizm ↔ obiektywizm czy pluralizm ↔ esencjalizm, pozostają kandydatami badawczymi. Nie są jeszcze wpisane do algorytmu.
-        </ToolNotice>
-      </div>
-    </>
-  );
-}
-
 export default function StatementClassificationPage() {
   const [location] = useLocation();
   const section = getSection(location);
@@ -609,7 +550,7 @@ export default function StatementClassificationPage() {
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
         {section === "positions" && <EvidenceProfile />}
-        {section === "map" && <MapPage />}
+        {section === "map" && <DimensionModelLab />}
         {section === "methodology" && <MethodologyView />}
       </ModuleShell>
     );
