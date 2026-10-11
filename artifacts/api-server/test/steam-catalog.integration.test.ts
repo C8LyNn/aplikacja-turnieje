@@ -223,6 +223,26 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.ok(publisher.body.pagination.total > 100);
   });
 
+  test("filtered search cursors preserve pagination order and status constraints", async () => {
+    const base = "/api/steam-catalog/games?query=Example%20Publisher&status=review&pageSize=7";
+    const first = await request(app).get(base + "&page=1").expect(200);
+    assert.equal(first.body.games.length, 7);
+    assert.ok(first.body.pagination.total > 7);
+    const nextCursor = first.body.pagination.nextCursor;
+    assert.equal(typeof nextCursor, "string");
+    const offset = await request(app).get(base + "&page=2").expect(200);
+    const keyed = await request(app).get(base + "&page=2&cursor=" + encodeURIComponent(nextCursor)).expect(200);
+    assert.deepEqual(
+      keyed.body.games.map((x: { id: number }) => x.id),
+      offset.body.games.map((x: { id: number }) => x.id),
+    );
+    assert.ok(keyed.body.games.every((x: { status: string }) => x.status === "review"));
+    await request(app).get(
+      "/api/steam-catalog/games?query=Example%20Publisher&status=ready&page=2&pageSize=7&cursor=" +
+      encodeURIComponent(nextCursor),
+    ).expect(400);
+  });
+
   test("strict query bounds and read ID validation", async () => {
     await request(app).get("/api/steam-catalog/games?page=0").expect(400);
     await request(app).get("/api/steam-catalog/games?pageSize=101").expect(400);
@@ -500,6 +520,11 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const id = await measure("app_id_ms", "/api/steam-catalog/games?query=1600000");
     assert.equal(id.pagination.total, 1);
     assert.equal(id.games[0].steamAppId, 1600000);
+    const broad = await measure(
+      "broad_publisher_ms", "/api/steam-catalog/games?query=Scale%20Test%20Publisher&status=ready",
+    );
+    assert.ok(broad.pagination.total > 2_000);
+    assert.ok(broad.games.every((x: { status: string }) => x.status === "ready"));
     const literal = await measure("literal_percent_ms", "/api/steam-catalog/games?query=100%25");
     assert.deepEqual(literal.games.map((x: { name: string }) => x.name), ["Special 100% Game"]);
 
