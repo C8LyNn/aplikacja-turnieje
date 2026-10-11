@@ -132,7 +132,7 @@ export type ResearchProjectData = {
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   people: [],
   sources: [],
   arguments: [],
