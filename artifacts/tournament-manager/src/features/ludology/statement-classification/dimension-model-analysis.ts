@@ -116,3 +116,33 @@ export function modelReadinessMatrix(
     personDimensionReadiness(data, dimensionModelId, person.id),
   );
 }
+
+
+export type DimensionModelSummary = {
+  modelId: string;
+  dimensions: number;
+  links: number;
+  mappedPropositions: number;
+  peopleWithDirectionalCoverage: number;
+  directionalCoverage: number | null;
+};
+
+export function dimensionModelSummary(
+  data: ResearchProjectData,
+  dimensionModelId: string,
+): DimensionModelSummary {
+  const dimensions = dimensionModelDimensions(data, dimensionModelId);
+  const links = dimensionModelLinks(data, dimensionModelId);
+  const readiness = modelReadinessMatrix(data, dimensionModelId);
+  const totalLinks = readiness.reduce((sum, row) => sum + row.totalLinks, 0);
+  const directionalLinks = readiness.reduce((sum, row) => sum + row.directionalLinks, 0);
+
+  return {
+    modelId: dimensionModelId,
+    dimensions: dimensions.length,
+    links: links.length,
+    mappedPropositions: new Set(links.map((link) => link.propositionId)).size,
+    peopleWithDirectionalCoverage: readiness.filter((row) => row.directionalLinks > 0).length,
+    directionalCoverage: totalLinks > 0 ? directionalLinks / totalLinks : null,
+  };
+}
