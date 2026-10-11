@@ -299,4 +299,42 @@ describe("Steam catalog — real PostgreSQL API", () => {
     await request(app).post("/api/steam-catalog/import").send({ appId: 620 }).expect(403);
     await request(app).post("/api/steam-catalog/import").set(edit()).send({ appId: "invalid" }).expect(400);
   });
+  test("20k-record workload: paged browse, text search and pending queue", async () => {
+    await database.pool.query([
+      "INSERT INTO steam_catalog_games (steam_app_id, name, steam_url, developer, publisher, status)",
+      "SELECT 1500000+n, 'Test Game ' || lpad(n::text, 4, '0'),",
+      "'https://store.steampowered.com/app/' || (1500000+n),",
+      "'Bulk Studio', 'Bulk Publisher',",
+      "CASE WHEN n%7=0 THEN 'ready' WHEN n%3=0 THEN 'review' ELSE 'unclassified' END",
+      "FROM generate_series(2001,20000) n",
+    ].join(" "));
+    const timings: Record<string, number> = {};
+    const measured = async (key: string, url: string) => {
+      const started = performance.now();
+      const res = await request(app).get(url).expect(200);
+      timings[key] = Math.round((performance.now() - started) * 100) / 100;
+      return res.body;
+    };
+    const first = await measured("browse_first_ms", "/api/steam-catalog/games?page=1&pageSize=25");
+    const middle = await measured("browse_middle_ms", "/api/steam-catalog/games?page=400&pageSize=25");
+    const last = await measured("browse_last_ms", "/api/steam-catalog/games?page=801&pageSize=25");
+    const searched = await measured("exact_name_ms", "/api/steam-catalog/games?query=Test%20Game%2019999");
+    const filtered = await measured("status_filter_ms", "/api/steam-catalog/games?pageSize=50&status=review");
+    const queue = await measured("pending_queue_ms", "/api/steam-catalog/queue");
+
+    assert.equal(first.pagination.total, 20003);
+    assert.equal(first.games.length, 25);
+    assert.equal(middle.games.length, 25);
+    assert.equal(last.games.length, 3);
+    assert.equal(searched.pagination.total, 1);
+    assert.equal(searched.games[0].name, "Test Game 19999");
+    assert.equal(filtered.games.length, 50);
+    assert.equal(queue.pendingCount, first.counts.unclassified + first.counts.review);
+    assert.ok(Number.isInteger(queue.nextId));
+    assert.equal(first.games.some((x: Record<string, unknown>) => "assignments" in x), false);
+    // Environment-dependent observations, NOT a production latency SLA.
+    console.log("CATALOG_20K_HTTP_TIMINGS_MS " + JSON.stringify(timings));
+  });
+
+
 });
