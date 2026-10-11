@@ -171,10 +171,6 @@ router.get("/steam-catalog/games", async (req, res, next) => {
       ready: statusTotals.ready,
     };
     const matchQuery = db.select({ total: count() }).from(steamCatalogGames).where(where);
-    if (measure && search) {
-      res.setHeader("x-catalog-test-sql",
-        Buffer.from(JSON.stringify(matchQuery.toSQL()), "utf8").toString("base64url"));
-    }
     const beginCount = performance.now();
     // Keep Drizzle's SQL builder and bound parameters, but avoid named
     // prepared-plan reuse for unpredictable substring search selectivity.
