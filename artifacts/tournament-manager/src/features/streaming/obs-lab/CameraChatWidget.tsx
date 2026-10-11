@@ -4,6 +4,7 @@ import {
   type CameraChatConfig,
   getCameraChatSize,
   getCameraChatAnimationCss,
+  resolveChatMotion,
 } from "./camera-chat-settings";
 
 export type MockChatMessage = {
@@ -187,7 +188,11 @@ export function CameraChatWidget({
                   opacity,
                   animation:
                     config.animateMessages
-                      ? `obs-chat-in ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
+                      ? `${config.animationStyle === "random"
+                        ? "obs-chat-in-" + resolveChatMotion(
+                          config.animationStyle, message.msgId || message.name + "|" + message.text,
+                        )
+                        : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
                       : undefined,
                 }}
               >

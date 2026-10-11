@@ -3,7 +3,24 @@ export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
 export type CameraChatFontSize = "small" | "medium" | "large";
 export type CameraChatDensity = "compact" | "normal" | "relaxed";
 export type CameraChatAnchor = "top" | "bottom";
-export type CameraChatAnimationStyle = "rise" | "slide" | "pop" | "fade";
+export type CameraChatMotionPreset = "rise" | "slide" | "pop" | "fade" | "bounce" | "flip" | "wipe";
+export type CameraChatAnimationStyle = CameraChatMotionPreset | "random";
+
+export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
+  ["rise", "slide", "pop", "fade", "bounce", "flip", "wipe"];
+
+/** Pick a stable visual motion for each message, not a new one on every render. */
+export function pickChatMotion(key: string): CameraChatMotionPreset {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (Math.imul(hash, 31) + key.charCodeAt(i)) >>> 0;
+  }
+  return CHAT_MOTION_PRESETS[hash % CHAT_MOTION_PRESETS.length];
+}
+
+export function resolveChatMotion(style: CameraChatAnimationStyle, key: string): CameraChatMotionPreset {
+  return style === "random" ? pickChatMotion(key) : style;
+}
 export type CameraChatOverlayPosition =
   | "top-left"
   | "top-right"
@@ -78,20 +95,29 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   animationDurationMs: 220,
 };
 
-// Shared keyframes keep the React preview and StreamElements export visually aligned.
-// Only the validated enum reaches the generated stylesheet.
+// The same keyframes power the React chat preview and the standalone SE widget.
 export function getCameraChatAnimationCss(
   style: CameraChatAnimationStyle,
   name: string,
-) {
-  const from = {
+): string {
+  if (style === "random") {
+    return CHAT_MOTION_PRESETS.map((preset) =>
+      getCameraChatAnimationCss(preset, `${name}-${preset}`),
+    ).join("\n");
+  }
+  const from: Record<CameraChatMotionPreset, string> = {
     rise: "opacity: 0; transform: translateY(14px) scale(.98);",
     slide: "opacity: 0; transform: translateX(-22px);",
     pop: "opacity: 0; transform: scale(.78);",
     fade: "opacity: 0; transform: none;",
-  }[style];
-
-  return `@keyframes ${name} { from { ${from} } to { opacity: 1; transform: none; } }`;
+    bounce: "opacity: 0; transform: translateY(24px) scale(.92);",
+    flip: "opacity: 0; transform: perspective(360px) rotateX(-78deg); transform-origin: top center;",
+    wipe: "opacity: 0; clip-path: inset(0 100% 0 0);",
+  };
+  if (style === "bounce") {
+    return `@keyframes ${name} { 0% { ${from[style]} } 65% { opacity: 1; transform: translateY(-5px) scale(1.03); } 100% { opacity: 1; transform: none; } }`;
+  }
+  return `@keyframes ${name} { from { ${from[style]} } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }`;
 }
 
 function clamp(
@@ -374,9 +400,9 @@ export function cameraChatConfigFromSearch(
 
   const animationRaw = params.get("animstyle");
   const animationStyle: CameraChatAnimationStyle =
-    animationRaw === "slide" || animationRaw === "pop" || animationRaw === "fade"
-      ? animationRaw
-      : "rise";
+    animationRaw !== null && (CHAT_MOTION_PRESETS as readonly string[]).includes(animationRaw)
+      ? animationRaw as CameraChatMotionPreset
+      : animationRaw === "random" ? "random" : "rise";
 
   return {
     layout,

@@ -8,7 +8,7 @@ import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget } from "./CameraChatWidget";
 import { StreamElementsSetup } from "./StreamElementsSetup";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
-import { DEFAULT_CAMERA_CHAT_CONFIG, cameraChatConfigFromSearch, cameraChatConfigToSearch, getCameraChatSize } from "./camera-chat-settings";
+import { CHAT_MOTION_PRESETS, pickChatMotion, DEFAULT_CAMERA_CHAT_CONFIG, cameraChatConfigFromSearch, cameraChatConfigToSearch, getCameraChatSize } from "./camera-chat-settings";
 
 afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
 
@@ -189,6 +189,63 @@ test("chat motion presets stay in sync between browser source, preview and Strea
   assert.equal(cameraChatConfigFromSearch("").animationDurationMs, 220);
   const disabled = generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, animateMessages: false });
   assert.doesNotMatch(disabled.css, /animation: se-chat-in /);
+});
+
+test("chat motion includes bounce, flip and wipe in both preview and StreamElements output", () => {
+  const signatures = {
+    bounce: "translateY(24px)",
+    flip: "rotateX(-78deg)",
+    wipe: "clip-path: inset(0 100% 0 0)",
+  };
+  for (const style of ["bounce", "flip", "wipe"] as const) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, animationStyle: style, animationDurationMs: 380 };
+    assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)), config);
+    const preview = render(<CameraChatWidget config={config} messages={[{ name: "Streamer", text: "Hej!", msgId: "m-1" }]} />);
+    const row = preview.container.querySelector(".obs-chat-message") as HTMLElement;
+    assert.match(row.style.animation, /obs-chat-in 380ms/);
+    assert.ok(preview.container.querySelector("style")?.textContent?.includes(signatures[style]));
+    const exported = generateStreamElementsWidget(config);
+    assert.ok(exported.css.includes(signatures[style]));
+    assert.match(exported.css, /animation: se-chat-in 380ms/);
+    preview.unmount();
+  }
+});
+
+test("random motion is stable per message and agrees between React and native StreamElements", () => {
+  const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, animationStyle: "random" as const, animationDurationMs: 300 };
+  assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)), config);
+  const cases = Array.from({ length: 14 }, (_, i) => ({ name: "Viewer", text: "message-" + i, msgId: "test-" + i }));
+  const expected = cases.map((message) => "se-chat-in-" + pickChatMotion(message.msgId));
+  assert.ok(new Set(expected).size >= 4, "different IDs should have varied motion presets");
+  assert.equal(CHAT_MOTION_PRESETS.length, 7);
+  const preview = render(<CameraChatWidget config={{ ...config, maxMessages: 20 }} messages={cases} />);
+  const names = Array.from(preview.container.querySelectorAll(".obs-chat-message"), (row) => (row as HTMLElement).style.animation);
+  assert.deepEqual(names.map((name) => name.split(" ")[0]), expected.map((name) => name.replace("se-chat", "obs-chat")));
+  preview.unmount();
+
+  const snippets = generateStreamElementsWidget({ ...config, maxMessages: 20 });
+  assert.ok(snippets.css.includes("@keyframes se-chat-in-bounce"));
+  assert.ok(snippets.css.includes("@keyframes se-chat-in-flip"));
+  assert.ok(snippets.css.includes("@keyframes se-chat-in-wipe"));
+  const dom = new JSDOM(`<!doctype html><body>${snippets.html}</body>`, { runScripts: "outside-only" });
+  try {
+    dom.window.eval(snippets.js);
+    cases.forEach((message) => {
+      dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", { detail: {
+        listener: "message", event: { data: { msgId: message.msgId, displayName: message.name, text: message.text } },
+      } }));
+    });
+    assert.deepEqual(Array.from(dom.window.document.querySelectorAll(".se-message"), (row) => (row as HTMLElement).style.animationName), expected);
+    const previous = dom.window.document.querySelectorAll(".se-message")[2]!;
+    dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", { detail: {
+      listener: "message", event: { data: { msgId: "test-2", displayName: "Viewer", text: "duplicate" } },
+    } }));
+    assert.equal(dom.window.document.querySelectorAll(".se-message")[2], previous);
+  } finally {
+    dom.window.close();
+  }
+  const fallback = cameraChatConfigFromSearch("?animstyle=unknown");
+  assert.equal(fallback.animationStyle, "rise");
 });
 
 test("StreamElements animates only new rows; deduplicates messages and moderates without replay", () => {
