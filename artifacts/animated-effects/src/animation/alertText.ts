@@ -9,6 +9,8 @@ export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   yPercent: 75,
   fontSize: 48,
   color: "#ffffff",
+  intro: "slide",
+  outro: "fade",
   avatarEnabled: false,
   avatarSize: 72,
 };
@@ -28,6 +30,8 @@ export function normalizeAlertCaption(value: unknown): AlertCaption {
     yPercent: Number.isFinite(Number(input.yPercent)) ? Math.max(10, Math.min(90, Math.round(Number(input.yPercent)))) : 75,
     fontSize: Number.isFinite(numeric) ? Math.round(Math.max(14, Math.min(120, numeric))) : DEFAULT_ALERT_CAPTION.fontSize,
     color: typeof input.color === "string" && /^#[\da-fA-F]{6}$/.test(input.color) ? input.color : DEFAULT_ALERT_CAPTION.color,
+    intro: input.intro === "fade" || input.intro === "pop" ? input.intro : "slide",
+    outro: input.outro === "slide" || input.outro === "pop" ? input.outro : "fade",
     avatarEnabled: input.avatarEnabled === true,
     avatarSize: Number.isFinite(Number(input.avatarSize)) ? Math.max(32, Math.min(144, Math.round(Number(input.avatarSize)))) : 72,
   };
