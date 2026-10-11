@@ -40,7 +40,7 @@ export function getAlertFields(listener: string, event: unknown): Record<string,
     ? bounded(nested.displayName ?? nested.nick ?? data.name, 60)
     : bounded(data.name ?? data.sender, 60);
   const message = listener === "message"
-    ? bounded(nested.text ?? nested.snippet && (nested.snippet as Record<string, unknown>).displayMessage ?? data.text, 180)
+    ? bounded(nested.text ?? (nested.snippet && typeof nested.snippet === "object" ? (nested.snippet as Record<string, unknown>).displayMessage : undefined) ?? data.text, 180)
     : bounded(data.message, 180);
   return {
     name: name || "Widz",
