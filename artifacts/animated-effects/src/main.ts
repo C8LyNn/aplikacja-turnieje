@@ -1012,7 +1012,7 @@ document.addEventListener("animated-effects:test-trigger", (event) => {
   const sampleEvent = sampleListener === "message"
     ? { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } }
     : { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
-  const label = appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent);
+  const label = appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent, triggerPlaybackDurationMs(instance));
   if (label && instance.trigger?.caption?.position === "custom") {
     label.style.pointerEvents = "auto";
     label.style.cursor = "grab";
