@@ -55,6 +55,7 @@ import {
   selectEffect,
   subscribe,
   toggleEffect,
+  updateEffectTrigger,
 } from "./editor/state";
 
 import {
@@ -1011,7 +1012,54 @@ document.addEventListener("animated-effects:test-trigger", (event) => {
   const sampleEvent = sampleListener === "message"
     ? { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } }
     : { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
-  appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent);
+  const label = appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent);
+  if (label && instance.trigger?.caption?.position === "custom") {
+    label.style.pointerEvents = "auto";
+    label.style.cursor = "grab";
+    label.style.touchAction = "none";
+    label.title = "Przeciągnij podpis, aby ustawić go na scenie";
+    let pointerId: number | null = null;
+    let xPercent = instance.trigger.caption.xPercent ?? 50;
+    let yPercent = instance.trigger.caption.yPercent ?? 75;
+    const move = (clientX: number, clientY: number): void => {
+      const rect = holder.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      xPercent = Math.max(25, Math.min(75, Math.round((clientX - rect.left) / rect.width * 100)));
+      yPercent = Math.max(10, Math.min(90, Math.round((clientY - rect.top) / rect.height * 100)));
+      label.style.left = xPercent + "%";
+      label.style.top = yPercent + "%";
+    };
+    label.addEventListener("pointerdown", (pointerEvent) => {
+      if (pointerEvent.button !== 0 || pointerId !== null) return;
+      pointerId = pointerEvent.pointerId;
+      label.setPointerCapture(pointerId);
+      label.style.cursor = "grabbing";
+      pointerEvent.preventDefault();
+      pointerEvent.stopPropagation();
+    });
+    label.addEventListener("pointermove", (pointerEvent) => {
+      if (pointerId !== pointerEvent.pointerId) return;
+      move(pointerEvent.clientX, pointerEvent.clientY);
+      pointerEvent.preventDefault();
+    });
+    label.addEventListener("pointerup", (pointerEvent) => {
+      if (pointerId !== pointerEvent.pointerId) return;
+      move(pointerEvent.clientX, pointerEvent.clientY);
+      if (label.hasPointerCapture(pointerId)) label.releasePointerCapture(pointerId);
+      pointerId = null;
+      label.style.cursor = "grab";
+      const trigger = getEditorState().effects.find((entry) => entry.instanceId === instanceId)?.trigger;
+      if (!trigger?.caption) return;
+      if (trigger.caption.xPercent === xPercent && trigger.caption.yPercent === yPercent) return;
+      updateEffectTrigger(instanceId, {
+        ...trigger,
+        caption: { ...trigger.caption, position: "custom", xPercent, yPercent },
+      });
+      // Redraw the test after the editor subscription refreshes the stage.
+      document.dispatchEvent(new CustomEvent("animated-effects:test-trigger", { detail: { instanceId } }));
+    });
+    label.addEventListener("pointercancel", () => { pointerId = null; label.style.cursor = "grab"; });
+  }
   previewTransport.replay();
   previewTransport.afterRender();
 
