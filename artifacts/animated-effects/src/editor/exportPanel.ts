@@ -1,6 +1,6 @@
-import {
-  generateStreamElementsExport,
-} from "../export/streamElements";
+import JSZip from "jszip";
+import { serializeScene } from "../scenes/scenes";
+import { generateStreamElementsExport } from "../export/streamElements";
 
 import {
   getEditorState,
@@ -18,6 +18,55 @@ export function setupExportPanel(
     "click",
     () => dialog.close(),
   );
+
+  const downloadButton = dialog.querySelector<HTMLButtonElement>("[data-export-download]");
+  downloadButton?.addEventListener("click", async () => {
+    if (downloadButton.disabled) return;
+    downloadButton.disabled = true;
+    const label = downloadButton.textContent;
+    downloadButton.textContent = "Tworzenie ZIP…";
+    try {
+      const state = structuredClone(getEditorState());
+      const output = generateStreamElementsExport(state);
+      const zip = new JSZip();
+      zip.file("widget.html", output.html);
+      zip.file("widget.css", output.css);
+      zip.file("widget.js", output.javascript);
+      zip.file("scene.aescene.json", serializeScene(state, "StreamElements Export"));
+      zip.file("README.txt", [
+        "Animated Effects — eksport do StreamElements",
+        "",
+        "1. Otwórz StreamElements > My Overlays i edytuj własny overlay.",
+        "2. Dodaj Custom Widget i przejdź do zakładek HTML, CSS i JS.",
+        "3. Wklej odpowiednio pliki widget.html, widget.css i widget.js.",
+        "4. Zapisz widget i sprawdź jego działanie w podglądzie.",
+        "",
+        "Plik scene.aescene.json jest kopią projektu do ponownej edycji",
+        "w Animated Effects (Wczytaj), a nie plikiem do StreamElements.",
+        "Rozdzielczość ustaw w overlayu / źródle OBS, nie w tym ZIP.",
+        "Kod widgetu uruchamia efekty po zdarzeniu onWidgetLoad.",
+        "",
+        "Wskazówka: plików ZIP nie przesyła się bezpośrednio do Custom Widget.",
+      ].join("\n"));
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "animated-effects-streamelements.zip";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      downloadButton.textContent = "Pobrano ZIP";
+    } catch (error) {
+      console.error("Animated Effects: export ZIP failed", error);
+      downloadButton.textContent = "Błąd eksportu";
+      window.alert("Nie udało się przygotować paczki. Spróbuj ponownie.");
+    } finally {
+      downloadButton.disabled = false;
+      setTimeout(() => { downloadButton.textContent = label; }, 1500);
+    }
+  });
 
   dialog
     .querySelectorAll<HTMLButtonElement>(
