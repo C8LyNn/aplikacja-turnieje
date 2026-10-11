@@ -13,6 +13,7 @@ const MIGRATIONS = [
   "0030_steam_catalog_abstract_world.sql",
   "0031_steam_catalog_pagination_indexes.sql",
   "0032_steam_catalog_classification_revision.sql",
+  "0033_steam_catalog_trigram_search.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -89,6 +90,14 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const names = new Set(indexes.map((x) => x.indexname));
     assert.ok(names.has("steam_catalog_games_name_id_idx"));
     assert.ok(names.has("steam_catalog_games_status_name_id_idx"));
+    const [trigram] = await rows<{ enabled: boolean }>(
+      "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname='pg_trgm') AS enabled",
+    );
+    if (trigram.enabled) {
+      for (const col of ["name", "developer", "publisher"]) {
+        assert.ok(names.has("steam_catalog_games_" + col + "_trgm_idx"));
+      }
+    }
   });
 
   test("2000+ records: bounded stable pages, metadata and clamping", async () => {
@@ -366,6 +375,64 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(first.games.some((x: Record<string, unknown>) => "assignments" in x), false);
     // Environment-dependent observations, NOT a production latency SLA.
     console.log("CATALOG_20K_HTTP_TIMINGS_MS " + JSON.stringify(timings));
+  });
+
+
+  test("100k records: status totals, selective substring searches, legacy and cursor pages", async () => {
+    // Fast PostgreSQL set-based seed; no external Steam traffic or user data.
+    await database.pool.query([
+      "INSERT INTO steam_catalog_games (steam_app_id,name,steam_url,developer,publisher,status)",
+      "SELECT 1500000+n, 'Large Game ' || n::text,",
+      "'https://store.steampowered.com/app/' || (1500000+n),",
+      "'Scale Test Studio', 'Scale Test Publisher',",
+      "CASE WHEN n%7=0 THEN 'ready' WHEN n%3=0 THEN 'review' ELSE 'unclassified' END",
+      "FROM generate_series(20001,100000) n",
+    ].join(" "));
+    await database.pool.query("ANALYZE steam_catalog_games");
+
+    const metrics: Record<string, number> = {};
+    const measure = async (label: string, url: string) => {
+      const start = performance.now();
+      const result = await request(app).get(url).expect(200);
+      metrics[label] = Math.round((performance.now() - start) * 100) / 100;
+      return result.body;
+    };
+    const first = await measure("first_page_ms", "/api/steam-catalog/games?pageSize=25");
+    assert.equal(first.pagination.total, 100003);
+    assert.equal(first.counts.all, 100003);
+    assert.equal(first.games.length, 25);
+    assert.equal(first.counts.ready + first.counts.review + first.counts.unclassified, 100003);
+
+    const filter = await measure("ready_filter_ms", "/api/steam-catalog/games?status=ready&pageSize=25");
+    assert.equal(filter.pagination.total, first.counts.ready);
+    assert.equal(filter.counts.all, 100003);
+
+    const exact = await measure("selective_name_ms", "/api/steam-catalog/games?query=Large%20Game%2099999");
+    assert.equal(exact.pagination.total, 1);
+    assert.equal(exact.games[0].name, "Large Game 99999");
+    const publisher = await measure("selective_publisher_ms", "/api/steam-catalog/games?query=Example%20Publisher");
+    assert.ok(publisher.pagination.total > 100);
+    const id = await measure("app_id_ms", "/api/steam-catalog/games?query=1600000");
+    assert.equal(id.pagination.total, 1);
+    assert.equal(id.games[0].steamAppId, 1600000);
+    const literal = await measure("literal_percent_ms", "/api/steam-catalog/games?query=100%25");
+    assert.deepEqual(literal.games.map((x: { name: string }) => x.name), ["Special 100% Game"]);
+
+    const legacy = await measure("deep_offset_ms", "/api/steam-catalog/games?page=3500&pageSize=25");
+    const previous = await measure("anchor_offset_ms", "/api/steam-catalog/games?page=3499&pageSize=25");
+    const cursorUrl = "/api/steam-catalog/games?page=3500&pageSize=25&cursor=" +
+      encodeURIComponent(previous.pagination.nextCursor);
+    const keyed = await measure("deep_cursor_ms", cursorUrl);
+    assert.deepEqual(keyed.games.map((x: { id: number }) => x.id),
+      legacy.games.map((x: { id: number }) => x.id));
+
+    const begin = performance.now();
+    const batch = await Promise.all(Array.from({ length: 12 }, () => request(app).get(cursorUrl).expect(200)));
+    metrics.parallel_12_cursor_ms = Math.round((performance.now() - begin) * 100) / 100;
+    assert.ok(batch.every((response) =>
+      response.body.games.map((x: { id: number }) => x.id).join(",") ===
+      keyed.games.map((x: { id: number }) => x.id).join(",")));
+    console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
 
