@@ -1017,9 +1017,13 @@ function Coding() {
 }
 
 function EvidenceProfile() {
-  const { data } = useResearchProject();
+  const { data, upsertAssessment } = useResearchProject();
   const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
   const [selectedPropositionId, setSelectedPropositionId] = useState("");
+  const [assessmentStatus, setAssessmentStatus] = useState<"insufficient_evidence" | "stable" | "context_dependent" | "contradictory" | "position_change">("insufficient_evidence");
+  const [assessmentConfidence, setAssessmentConfidence] = useState<"low" | "medium" | "high">("medium");
+  const [assessmentSynthesis, setAssessmentSynthesis] = useState("");
+  const [assessmentReviewerId, setAssessmentReviewerId] = useState(data.coders[0]?.id ?? "");
   const currentCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
   const currentPropositions = currentCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === currentCodebook.id)
@@ -1053,6 +1057,36 @@ function EvidenceProfile() {
     Number(Boolean(source.scope)) +
     Number(Boolean(source.language)), 0);
   const metadataCompleteness = metadataSlots > 0 ? filledMetadataSlots / metadataSlots : 0;
+
+  function openProposition(propositionId: string) {
+    setSelectedPropositionId(propositionId);
+    const existing = data.assessments.find((assessment) =>
+      assessment.personId === personId &&
+      assessment.propositionId === propositionId &&
+      assessment.codebookId === currentCodebook?.id
+    );
+    setAssessmentStatus(existing?.status ?? "insufficient_evidence");
+    setAssessmentConfidence(existing?.confidence ?? "medium");
+    setAssessmentSynthesis(existing?.synthesis ?? "");
+    setAssessmentReviewerId(existing?.reviewerId ?? data.coders[0]?.id ?? "");
+  }
+
+  function saveAssessment() {
+    if (!currentCodebook || !selectedPropositionId) return;
+    upsertAssessment(
+      {
+        personId,
+        propositionId: selectedPropositionId,
+        codebookId: currentCodebook.id,
+      },
+      {
+        reviewerId: assessmentReviewerId || undefined,
+        status: assessmentStatus,
+        confidence: assessmentConfidence,
+        synthesis: assessmentSynthesis.trim() || undefined,
+      },
+    );
+  }
 
   return (
     <>
@@ -1137,6 +1171,7 @@ function EvidenceProfile() {
                     <th className="px-3 py-3 text-center">N/A</th>
                     <th className="px-3 py-3 text-center">Jednostki</th>
                     <th className="px-3 py-3 text-center">Kodowania</th>
+                    <th className="px-3 py-3 text-center">Rekonstrukcja</th>
                     <th className="px-3 py-3 text-right">Audyt</th>
                   </tr>
                 </thead>
@@ -1144,6 +1179,11 @@ function EvidenceProfile() {
                   {currentPropositions.map((proposition) => {
                     const codings = personCodings.filter((coding) => coding.propositionId === proposition.id);
                     const counts = countEvidenceDirections(codings, data.excerpts);
+                    const assessment = data.assessments.find((item) =>
+                      item.personId === personId &&
+                      item.propositionId === proposition.id &&
+                      item.codebookId === currentCodebook?.id
+                    );
                     const {
                       positive,
                       negative,
@@ -1164,9 +1204,12 @@ function EvidenceProfile() {
                         <td className="px-3 py-3 text-center text-muted-foreground">{na}</td>
                         <td className="px-3 py-3 text-center">{allUnits}</td>
                         <td className="px-3 py-3 text-center text-muted-foreground">{codings.length}</td>
+                        <td className="px-3 py-3 text-center text-xs">
+                          {assessment ? assessment.status : "—"}
+                        </td>
                         <td className="px-3 py-3 text-right">
-                          <ToolButton type="button" variant="ghost" onClick={() => setSelectedPropositionId(proposition.id)} disabled={codings.length === 0}>
-                            Pokaż dowody
+                          <ToolButton type="button" variant="ghost" onClick={() => openProposition(proposition.id)}>
+                            Przegląd
                           </ToolButton>
                         </td>
                       </tr>
@@ -1210,7 +1253,41 @@ function EvidenceProfile() {
                 description="Każda obserwacja prowadzi z powrotem do fragmentu i materiału źródłowego."
                 actions={<ToolButton type="button" variant="ghost" onClick={() => setSelectedPropositionId("")}>Zamknij</ToolButton>}
               >
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  <ToolSection
+                    title="Rekonstrukcja stanowiska"
+                    description="To osobna warstwa interpretacyjna oparta na zakodowanych dowodach. Nie zmienia danych źródłowych ani kodowań."
+                  >
+                    <div className="grid gap-3 lg:grid-cols-2">
+                      <ToolSelect value={assessmentStatus} onChange={(e) => setAssessmentStatus(e.target.value as typeof assessmentStatus)}>
+                        <option value="insufficient_evidence">Niewystarczające dowody</option>
+                        <option value="stable">Stanowisko stabilne</option>
+                        <option value="context_dependent">Zależne od kontekstu</option>
+                        <option value="contradictory">Sprzeczne / nierozstrzygnięte</option>
+                        <option value="position_change">Kandydat zmiany stanowiska</option>
+                      </ToolSelect>
+                      <ToolSelect value={assessmentConfidence} onChange={(e) => setAssessmentConfidence(e.target.value as typeof assessmentConfidence)}>
+                        <option value="low">Pewność rekonstrukcji: niska</option>
+                        <option value="medium">Pewność rekonstrukcji: średnia</option>
+                        <option value="high">Pewność rekonstrukcji: wysoka</option>
+                      </ToolSelect>
+                    </div>
+                    <ToolSelect value={assessmentReviewerId} onChange={(e) => setAssessmentReviewerId(e.target.value)}>
+                      <option value="">Brak przypisanego recenzenta</option>
+                      {data.coders.map((coder) => <option key={coder.id} value={coder.id}>{coder.displayName} · {coder.type}</option>)}
+                    </ToolSelect>
+                    <ToolTextarea
+                      rows={4}
+                      value={assessmentSynthesis}
+                      onChange={(e) => setAssessmentSynthesis(e.target.value)}
+                      placeholder="Krótka synteza: co dokładnie można ostrożnie powiedzieć o stanowisku tej osoby i jakie są zastrzeżenia?"
+                    />
+                    <ToolButton type="button" variant="primary" onClick={saveAssessment}>Zapisz rekonstrukcję</ToolButton>
+                  </ToolSection>
+
+                  <ToolSection title="Dowody źródłowe" description={`${codings.length} kodowań powiązanych z tym mikrostanowiskiem.`}>
+                  <div className="space-y-3">
+                  {codings.length === 0 && <ToolEmptyState title="Brak kodowań dla tego mikrostanowiska" description="Możesz oznaczyć rekonstrukcję jako niewystarczające dowody albo wrócić do Coding Lab." />}
                   {codings.map((coding) => {
                     const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
                     const source = data.sources.find((item) => item.id === excerpt?.sourceId);
@@ -1249,6 +1326,8 @@ function EvidenceProfile() {
                       </div>
                     );
                   })}
+                  </div>
+                  </ToolSection>
                 </div>
               </ToolPanel>
             );
