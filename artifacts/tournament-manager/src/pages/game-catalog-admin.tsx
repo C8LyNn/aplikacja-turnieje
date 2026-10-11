@@ -567,19 +567,24 @@ export default function GameCatalogAdminPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background/60 px-3">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nazwa, studio, AppID..." className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
+                <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Nazwa, studio, AppID..." className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
               </div>
             </div>
             <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border">
-              {query.trim() && filteredGames.length ? filteredGames.slice(0, 30).map((game) => (
+              {query.trim() && visibleListGames.length ? visibleListGames.map((game) => (
                 <Link key={game.id} href={`${BASE}/games/${game.id}`} className="flex items-center gap-4 bg-card/40 px-4 py-3 transition hover:bg-muted/60">
                   {game.headerImageUrl ? <img src={game.headerImageUrl} alt="" className="h-12 w-24 rounded-md object-cover" /> : <div className="h-12 w-24 rounded-md bg-muted" />}
                   <div className="min-w-0 flex-1"><div className="truncate font-semibold">{game.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{game.developer || `Steam AppID ${game.steamAppId}`}</div></div>
                   <span className="text-xs text-muted-foreground">{STATUS_LABELS[game.status]}</span>
                 </Link>
-              )) : <div className="p-6 text-sm text-muted-foreground">{query.trim() ? "Brak wyników w katalogu." : "Wpisz nazwę gry lub AppID."}</div>}
+              )) : <div className="p-6 text-sm text-muted-foreground">{listLoading ? "Wyszukiwanie..." : query.trim() ? "Brak wyników w katalogu." : "Wpisz nazwę gry lub AppID."}</div>}
             </div>
           </ToolPanel>
+          {query.trim() && <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span>{pagination.total} wyników · Strona {pagination.page} z {pagination.totalPages}</span>
+            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Następna</ToolButton>
+          </div>}
           <ToolPanel title="Dodaj ze Steam" description="Importuj grę, której nie ma jeszcze w katalogu.">
             <div className="flex flex-col gap-2 sm:flex-row">
               <ToolInput value={importValue} onChange={(event) => setImportValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && importGame()} placeholder="Steam URL lub AppID" />
@@ -591,19 +596,19 @@ export default function GameCatalogAdminPage() {
 
       {screen === "games" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${visibleListGames.length} z ${games.length} skatalogowanych rekordów.`} accent="amber" />
+          <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${pagination.total} pasujących z ${counts.all} skatalogowanych rekordów.`} accent="amber" />
           <ToolPanel title="Filtry katalogu" description="Szukaj po nazwie, studiu lub AppID i filtruj według stanu klasyfikacji.">
-            <ToolInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Szukaj w katalogu..." />
+            <ToolInput value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Szukaj w katalogu..." />
             <div className="mt-3 flex flex-wrap gap-2">
-              <Chip active={statusFilter === "all"} onClick={() => setStatusFilter("all")}>Wszystkie ({games.length})</Chip>
+              <Chip active={statusFilter === "all"} onClick={() => { setStatusFilter("all"); setPage(1); }}>Wszystkie ({counts.all})</Chip>
               {(Object.keys(STATUS_LABELS) as Game["status"][]).map((value) => (
-                <Chip key={value} active={statusFilter === value} onClick={() => setStatusFilter(value)}>
-                  {STATUS_LABELS[value]} ({games.filter((game) => game.status === value).length})
+                <Chip key={value} active={statusFilter === value} onClick={() => { setStatusFilter(value); setPage(1); }}>
+                  {STATUS_LABELS[value]} ({counts[value]})
                 </Chip>
               ))}
             </div>
           </ToolPanel>
-          {games.length && visibleListGames.length ? (
+          {visibleListGames.length ? (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card/50">
               <div className="grid min-w-[620px] grid-cols-[minmax(0,1fr)_150px_140px] gap-3 border-b border-border bg-background/40 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
                 <span>Gra</span><span>Status</span><span>Steam AppID</span>
@@ -616,11 +621,16 @@ export default function GameCatalogAdminPage() {
                 ))}
               </div>
             </div>
-          ) : games.length
-            ? <ToolEmptyState title="Brak wyników" description="Zmień frazę wyszukiwania lub status klasyfikacji." />
-            : loading
-              ? <ToolEmptyState title="Wczytywanie katalogu" description="Trwa pobieranie danych." />
+          ) : listLoading
+            ? <ToolEmptyState title="Wczytywanie katalogu" description="Trwa pobieranie danych." />
+            : counts.all
+              ? <ToolEmptyState title="Brak wyników" description="Zmień frazę wyszukiwania lub status klasyfikacji." />
               : <ToolEmptyState title="Brak gier" description="Zaimportuj pierwszą grę w sekcji Szukaj gry." />}
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span>Strona {pagination.page} z {pagination.totalPages} · {pagination.total} wyników</span>
+            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Następna</ToolButton>
+          </div>
         </div>
       )}
 
@@ -662,7 +672,7 @@ export default function GameCatalogAdminPage() {
       )}
 
       {screen === "game" && !selected && (
-        loading
+        gameLoading
           ? <ToolEmptyState title="Wczytywanie gry" description="Trwa pobieranie rekordu." />
           : <ToolEmptyState title="Nie znaleziono gry" description="Rekord nie istnieje w katalogu." />
       )}
@@ -670,7 +680,7 @@ export default function GameCatalogAdminPage() {
       {screen === "game" && selected && (
         <div className="space-y-4">
           <div className="rounded-xl border border-border bg-card/50 px-4 py-3 text-sm text-muted-foreground">
-            Do opracowania: <strong className="text-foreground">{pendingGames.length}</strong> z {games.length} gier.
+            Do opracowania: <strong className="text-foreground">{queue?.pendingCount ?? "…"}</strong> gier.
             {nextPendingId === null && <span className="ml-2">Brak kolejnej gry w kolejce.</span>}
           </div>
           <ToolToolbar>
@@ -711,7 +721,7 @@ export default function GameCatalogAdminPage() {
             </div>
           </ToolDisclosure>
           <ToolDisclosure title="Słownik" description="Dodawaj nowe wartości dopiero, gdy brakuje ich w systemie.">
-            <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)_auto_auto]"><ToolSelect value={newFacet} onChange={(event) => setNewFacet(event.target.value as Facet)}>{Object.entries(FACET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect><ToolInput value={newLabel} onChange={(event) => setNewLabel(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addTerm()} placeholder="Nowa wartość" /><ToolButton type="button" onClick={addTerm} disabled={busy}><Plus className="h-4 w-4" /> Dodaj</ToolButton><ToolButton type="button" variant="ghost" onClick={reload}><RefreshCw className="h-4 w-4" /> Odśwież</ToolButton></div>
+            <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)_auto_auto]"><ToolSelect value={newFacet} onChange={(event) => setNewFacet(event.target.value as Facet)}>{Object.entries(FACET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect><ToolInput value={newLabel} onChange={(event) => setNewLabel(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addTerm()} placeholder="Nowa wartość" /><ToolButton type="button" onClick={addTerm} disabled={busy}><Plus className="h-4 w-4" /> Dodaj</ToolButton><ToolButton type="button" variant="ghost" disabled={busy || hasUnsavedChanges} onClick={() => loadTaxonomy().catch((cause) => setError(String(cause)))}><RefreshCw className="h-4 w-4" /> Odśwież</ToolButton></div>
           </ToolDisclosure>
         </div>
       )}
