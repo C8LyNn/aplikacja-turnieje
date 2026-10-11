@@ -1,6 +1,7 @@
 import type { EditorState, EffectId, EffectInstance, EffectInstanceId, EffectSettings, LayerKeyframe } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
 import { normalizedMotionTimeline, normalizeLayerKeyframes, upsertKeyframe } from "../animation/motion";
+import { normalizeEffectTrigger } from "../animation/triggers";
 
 const state: EditorState = {
   resolution: { width: 1920, height: 1080 },
@@ -187,6 +188,26 @@ export function updateEffectTimeline(
   const timeline = normalizedMotionTimeline({ ...effect.timeline, ...patch }, effect.settings);
   mutate("Zmień czas animacji", () => {
     effect.timeline = timeline;
+    state.activePresetId = null;
+  });
+}
+
+/** Changes are undoable. Event layers are replayed once per event. */
+export function updateEffectTrigger(
+  instanceId: EffectInstanceId,
+  trigger: EffectInstance["trigger"] | undefined,
+): void {
+  const effect = state.effects.find((item) => item.instanceId === instanceId);
+  if (!effect) return;
+  const next = normalizeEffectTrigger(trigger);
+  mutate("Zmień wyzwalacz warstwy", () => {
+    effect.trigger = next;
+    if (next) {
+      effect.timeline = normalizedMotionTimeline({
+        ...effect.timeline,
+        mode: "once",
+      }, effect.settings);
+    }
     state.activePresetId = null;
   });
 }
