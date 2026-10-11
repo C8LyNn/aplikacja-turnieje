@@ -123,3 +123,32 @@ Ustawienia wyzwalacza są zapisywane w `.aescene.json` i po wczytaniu przechodz�
 Dodano `test/triggers.test.mjs` i `test/streamEvents.test.mjs`; ten drugi wykonuje wygenerowany JS w symulowanym Custom Widget, weryfikuje `onWidgetLoad`, `onEventReceived`, restart, cooldown, próg donacji i sprzątanie DOM. GitHub Actions wykonuje testy, typecheck i build. Przed wdrożeniem sprawdź ręcznie podgląd StreamElements/OBS i każdy istotny rodzaj eventu.
 
 Dokumentacja zdarzeń: https://docs.streamelements.com/overlays/events
+
+
+## Dynamiczne podpisy alertów (Captions v1)
+
+Gdy warstwa ma ustawiony **wyzwalacz StreamElements**, w Inspektorze można włączyć **Pokazuj napis na animacji**. Tekst jest pobierany ze zdarzenia w chwili uruchomienia warstwy — nie trzeba modyfikować JS ręcznie.
+
+Obsługiwane zmienne we wzorze:
+- `{name}` — nazwa widza; w czacie odczytywana z `event.data.displayName` lub `nick`.
+- `{amount}` — kwota donacji, liczba bits lub widzów raidu.
+- `{message}` — treść czatu (`event.data.text`), wiadomość do subskrypcji lub donacji.
+- `{event}` — techniczna nazwa rodzaju zdarzenia.
+
+Dostępne są gotowe teksty dla follow, subskrypcji, tipa, cheer, raidu i wiadomości. Można zmienić **wzór, położenie (góra/środek/dół), wielkość 14–120 px i kolor**. Opcje są zapisywane w `scene.aescene.json` oraz przenoszone do generowanego widgetu. Starsze sceny i warstwy bez wyzwalacza działają bez podpisów.
+
+Przykłady:
+- `Dzięki za follow, {name}!`
+- `{name} przekazał {amount}!`
+- `{name}: {message}`
+
+**Bezpieczeństwo:** pola wiadomości i nazwy mają limity długości, a wyświetlany napis używa wyłącznie `textContent` — nigdy `innerHTML`. Wysłanie tekstu `<script>...` wyświetli go dosłownie. Nie są interpretowane dowolne zmienne, HTML, URL ani kod. Ustawienia koloru, fontu i położenia przechodzą walidację przed eksportem.
+
+**Testuj w podglądzie** pokazuje przykładowe imię, kwotę i wiadomość. Dane rzeczywiste trafiają do widgetu wyłącznie z `onEventReceived`. Podpis jest usuwany wraz z warstwą po zakończeniu pojedynczej animacji.
+
+Testy:
+- `test/alertText.test.mjs` porównuje rezultat podstawiania w edytorze i wygenerowanym JS, w tym warianty wiadomości czatu i limit długości.
+- `test/streamEvents.test.mjs` sprawdza rzeczywisty DOM wygenerowanego widgetu, podstawienie i brak wykonania wstrzykniętego HTML.
+- `test/scenes.test.mjs` kontroluje pełny round-trip ustawień podpisu.
+
+Wciąż wymagane jest ręczne QA w przeglądarce StreamElements i OBS. Referencja formatu eventów: https://docs.streamelements.com/overlays/events
