@@ -1,6 +1,7 @@
 import type { EffectInstance } from "../core/types";
 import { normalizeLayerTimeline } from "./timeline";
 import { updateEffectTimeline } from "../editor/state";
+import { bindKeyframeControls, keyframeInspectorTemplate } from "./inspectorKeyframes";
 
 export function layerTimelineTemplate(effect: EffectInstance): string {
   const timing = normalizeLayerTimeline(effect.timeline);
@@ -45,6 +46,7 @@ export function layerTimelineTemplate(effect: EffectInstance): string {
             `<span class="ae-timeline-segment is-${segment.cls}" title="${segment.title}" style="flex:${segment.amount}"></span>`
           ).join("")}
         </div>
+        ${keyframeInspectorTemplate(effect)}
         <div class="ae-timeline-actions">
           <small>Cykl: ${seconds(total)} s ${timing.mode === "loop" ? "· powtarzany" : "· jeden raz"}</small>
           <button type="button" class="ae-button ae-button-secondary" data-timeline-replay>
@@ -77,4 +79,5 @@ export function bindLayerTimelineControls(container: HTMLElement, instanceId: st
   container.querySelector<HTMLButtonElement>("[data-timeline-replay]")?.addEventListener("click", () => {
     document.dispatchEvent(new Event("animated-effects:replay-preview"));
   });
+  bindKeyframeControls(container, instanceId);
 }
