@@ -32,7 +32,7 @@ export function filterTaxonomyTerms<T extends { id: number; label: string; slug:
   selectedTermIds: ReadonlySet<number>,
 ): T[] {
   const normalize = (value: string) =>
-    value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pl");
+    value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[łŁ]/g, "l").toLocaleLowerCase("pl");
   const query = normalize(search.trim());
   return terms
     .filter((term) => !query || normalize(term.label).includes(query) || normalize(term.slug).includes(query))
