@@ -73,6 +73,15 @@ export interface LayerTimeline {
 export type EffectTriggerEvent =
   | "follower-latest" | "subscriber-latest" | "tip-latest"
   | "cheer-latest" | "raid-latest" | "message";
+export interface AlertCaption {
+  enabled: boolean;
+  /** Template supports {name}, {amount}, {message}, {event}. */
+  template: string;
+  position: "top" | "center" | "bottom";
+  fontSize: number;
+  color: string;
+}
+
 export interface EffectTrigger {
   source: "event";
   event: EffectTriggerEvent;
@@ -80,6 +89,7 @@ export interface EffectTrigger {
   cooldownMs: number;
   /** Minimum tip/cheer/raid amount, ignored for other types. */
   minAmount: number;
+  caption?: AlertCaption;
 }
 
 export interface EffectInstance {
