@@ -8,6 +8,7 @@ import {
   getEffectModule,
 } from "../effects/registry";
 import { getLayerTimelineAnimation } from "../animation/timeline";
+import { getLayerMotionAnimation } from "../animation/motion";
 
 const MODULE_STYLE_ID =
   "animated-effects-module-styles";
@@ -73,14 +74,21 @@ export function renderEffect(
     random,
   );
 
-  const animation = getLayerTimelineAnimation(instance);
-  if (animation) {
+  const timing = getLayerTimelineAnimation(instance);
+  const motion = getLayerMotionAnimation(instance);
+  // Keep the visibility envelope, animated pose and effect-internal
+  // particle transforms on separate elements to prevent CSS conflicts.
+  let parent: HTMLElement = preview;
+  for (const [animation, className] of [
+    [timing, "ae-timed-layer"],
+    [motion, "ae-motion-layer"],
+  ] as const) {
+    if (!animation) continue;
     const style = document.createElement("style");
     style.textContent = animation.css;
     preview.appendChild(style);
-
     const wrapper = document.createElement("div");
-    wrapper.className = "ae-timed-layer";
+    wrapper.className = className;
     Object.assign(wrapper.style, {
       position: "absolute",
       inset: "0",
@@ -89,11 +97,14 @@ export function renderEffect(
       zIndex: String(instance.settings.zIndex),
       animation: animation.animation,
     });
-    wrapper.appendChild(layer);
-    preview.appendChild(wrapper);
-  } else {
-    preview.appendChild(layer);
+    parent.appendChild(wrapper);
+    parent = wrapper;
   }
+  if (motion) {
+    // The motion wrapper now carries the complete pose.
+    layer.style.transform = "none";
+  }
+  parent.appendChild(layer);
 }
 
 function ensureModuleStyles(): void {
