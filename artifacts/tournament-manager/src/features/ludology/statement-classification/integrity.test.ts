@@ -136,3 +136,26 @@ test("integrity detects dimension links crossing codebook versions", () => {
 
   assert.ok(checkResearchProjectIntegrity(data).some((issue) => issue.code === "dimension_link_codebook_mismatch"));
 });
+
+
+test("integrity rejects invalid sampling plan thresholds", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    samplingPlans: [{
+      id: "plan",
+      name: "Bad",
+      version: "1",
+      status: "draft" as const,
+      minimumSourcesPerPerson: -1,
+      minimumSourceTypesPerPerson: 2,
+      minimumPurposesPerPerson: 2,
+      minimumPreparednessModesPerPerson: 1,
+      minimumScopesPerPerson: 1,
+      minimumDatedSourceShare: 1.2,
+      maximumSingleSourceTypeShare: 0.8,
+      minimumTemporalSpanYears: 1,
+    }],
+  };
+
+  assert.ok(checkResearchProjectIntegrity(data).some((issue) => issue.code === "invalid_sampling_plan"));
+});
