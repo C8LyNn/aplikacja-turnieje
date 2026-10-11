@@ -43,6 +43,9 @@ export function useResearchProject() {
 
   return {
     data,
+    replaceProject(next: ResearchProjectData) {
+      setData(withPilotDefaults(next));
+    },
     addPerson(input: Omit<ResearchPerson, "id" | "createdAt">) {
       update((current) => ({
         ...current,
