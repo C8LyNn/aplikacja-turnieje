@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { steamCatalogReadiness } from "@workspace/game-catalog";
+import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
 import { and, asc, count, eq, gt, ilike, inArray, ne, or } from "drizzle-orm";
 import {
   db,
@@ -55,30 +55,6 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-const PAGE_SIZE_DEFAULT = 25;
-const PAGE_SIZE_MAX = 100;
-const QUERY_LENGTH_MAX = 120;
-
-function parsePositiveInt(value: unknown, fallback: number): number | null {
-  if (value === undefined) return fallback;
-  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) return null;
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
-
-function parseListQuery(query: Record<string, unknown>) {
-  const page = parsePositiveInt(query.page, 1);
-  const pageSize = parsePositiveInt(query.pageSize, PAGE_SIZE_DEFAULT);
-  const search = typeof query.query === "string" ? query.query.trim() : "";
-  const status = query.status === undefined ? "all" : query.status;
-  if (!page || !pageSize || pageSize > PAGE_SIZE_MAX || page > 1_000_000 ||
-      typeof status !== "string" || (status !== "all" && !STATUSES.has(status)) ||
-      search.length > QUERY_LENGTH_MAX || (query.query !== undefined && typeof query.query !== "string")) {
-    return null;
-  }
-  return { page, pageSize, search, status };
-}
-
 const gameListColumns = {
   id: steamCatalogGames.id,
   steamAppId: steamCatalogGames.steamAppId,
@@ -132,13 +108,13 @@ router.get("/steam-catalog/games/:id", async (req, res, next) => {
 
 router.get("/steam-catalog/games", async (req, res, next) => {
   try {
-    const params = parseListQuery(req.query);
+    const params = parseSteamCatalogListQuery(req.query);
     if (!params) {
       res.status(400).json({ error: "Nieprawidłowe parametry wyszukiwania.", code: "INVALID_CATALOG_QUERY" });
       return;
     }
-    const { page, pageSize, search, status } = params;
-    const escaped = search.replace(/[\\%_]/g, "\\$&");
+    const { page, pageSize, query: search, status } = params;
+    const escaped = escapeSteamCatalogLikeQuery(search);
     const searchCondition = search ? or(
       ilike(steamCatalogGames.name, "%" + escaped + "%"),
       ilike(steamCatalogGames.developer, "%" + escaped + "%"),
