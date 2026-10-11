@@ -78,9 +78,21 @@ function parseScene(input: unknown): EditorState {
     if (!definition) throw new Error("Nieznany efekt: " + raw.effectId.slice(0, 80));
     ids.add(raw.instanceId);
     const settings = raw.settings;
-    const numberKeys = ["opacity", "scale", "x", "y", "rotation", "blur", "brightness", "hue", "density", "zIndex", "speed", "intensity"];
+    // Generous bounds allow normal customization without accepting extreme values
+    // that could accidentally create millions of rendered particles.
+    const ranges: Record<string, [number, number]> = {
+      opacity: [0, 100], scale: [0, 2000], x: [-2000, 2000], y: [-2000, 2000],
+      rotation: [-3600, 3600], blur: [0, 500], brightness: [0, 1000],
+      hue: [-3600, 3600], density: [0, 1000], zIndex: [-10000, 10000],
+      speed: [-1000, 1000], intensity: [0, 1000],
+    };
+    const numberKeys = Object.keys(ranges);
     for (const key of numberKeys) {
-      if (!finite(settings[key])) throw new Error("Nieprawidłowe ustawienie efektu: " + key);
+      const [min, max] = ranges[key]!;
+      if (!finite(settings[key], Math.max(Math.abs(min), Math.abs(max))) ||
+          (settings[key] as number) < min || (settings[key] as number) > max) {
+        throw new Error("Nieprawidłowe ustawienie efektu: " + key);
+      }
     }
     if (!["normal", "screen", "lighten", "multiply", "overlay"].includes(String(settings.blendMode)) ||
         !["full", "left", "center", "right", "top", "bottom"].includes(String(settings.area)) ||
@@ -91,7 +103,7 @@ function parseScene(input: unknown): EditorState {
     }
     if (isObject(settings.custom)) {
       const entries = Object.entries(settings.custom);
-      if (entries.length > 80 || entries.some(([key, value]) => !/^[\w-]{1,64}$/.test(key) || ["__proto__", "constructor", "prototype"].includes(key) || !finite(value))) {
+      if (entries.length > 80 || entries.some(([key, value]) => !/^[\w-]{1,64}$/.test(key) || ["__proto__", "constructor", "prototype"].includes(key) || !finite(value, 10000))) {
         throw new Error("Nieprawidłowe parametry własne efektu.");
       }
     }
