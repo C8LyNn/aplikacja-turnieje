@@ -10,6 +10,21 @@
 6. Dodaj adres overlay StreamElements do OBS jako Browser Source. W natywnym widżecie nie jest potrzebny iframe, token API ani połączenie z witryną edytora.
 7. Przetestuj komendę lub zdarzenie w rzeczywistym podglądzie StreamElements/OBS.
 
+## Biblioteka zestawów i przenoszenie projektu
+
+W oknie **Eksport StreamElements** pojawiła się sekcja **Zestawy animacji i zdarzeń**.
+
+- **Zapisz aktualny** zachowuje kompletną scenę (kolejność, ustawienia, nazwy, identyfikatory warstw) oraz jeden wyzwalacz lub pełną listę przypisanych reguł.
+- **Wczytaj** przywraca scenę i routing dopiero po potwierdzeniu użytkownika. Poprzedni stan sceny trafia do historii **Undo/Redo**.
+- **Pobierz JSON** zapisuje przenośny plik `.ae-profile.json`.
+- **Importuj JSON** sprawdza format i wersję profilu; po imporcie profil pojawia się w bibliotece, **ale nie zmienia bieżącej sceny** aż do wybrania opcji Wczytaj.
+- **Usuń** kasuje wyłącznie wybrany lokalny zapis i wymaga potwierdzenia.
+- Dwie konfiguracje o tej samej nazwie mogą współistnieć: nowa otrzyma dopisek `(2)`, `(3)` itd.
+
+Biblioteka korzysta z **localStorage danej przeglądarki** (maks. 16 profili); nie synchronizuje się automatycznie między urządzeniami ani kontami. Do przenoszenia między komputerami użyj eksportu/importu JSON. Import pojedynczego pliku jest ograniczony do **1 MB**, a dane są walidowane przed użyciem: obsługiwane identyfikatory efektów, skończone parametry numeryczne, schemat sceny, numery wersji i przypisania reguł. Nie wgrywaj nieznanych plików jako kodu JavaScript.
+
+Profil obejmuje samą scenę edytora i konfigurację StreamElements. **Nie zmienia już wklejonego kodu w StreamElements** — po zmianie zestawu trzeba ponownie skopiować wygenerowane zakładki HTML, CSS i JavaScript do widgetu.
+
 ## Wiele reguł w jednym widgetcie
 
 W oknie eksportu włącz **Wiele zdarzeń w jednym widżecie**. Kliknij **Dodaj regułę** (maksymalnie 8), wybierz rodzaj zdarzenia i zaznacz efekty z aktualnie włączonych warstw. Przykład:
@@ -45,14 +60,14 @@ Komendy są normalizowane do małych liter i muszą spełniać wzór `![a-z0-9_]
 ## Kompatybilność
 
 - Domyślny tryb `always` zachowuje się jak poprzedni eksport.
-- Ustawienia triggerów i wieloregularnego routingu dotyczą **tego eksportu**. Nie stanowią na razie osobnej, zapisanej definicji sceny.
+- Ustawienia triggerów i wieloregularnego routingu są przywracane razem ze sceną w zapisanym **profilu**, ale sam kod StreamElements po publikacji pozostaje niezależny od późniejszych zmian profilu.
 - Eksport tworzy samodzielny widget z HTML, CSS i JS, bez zależności od dostępności aplikacji po wklejeniu kodu.
 - Camera + Chat Overlay i Animated Effects są nadal **dwoma niezależnymi widgetami**; za to pojedynczy widget Animated Effects może obsługiwać wiele zdarzeń i zestawów warstw.
 - Wielokrotna aktywacja ciężkich efektów może obciążać OBS Browser Source. Najpierw sprawdzaj scenę w podglądzie, szczególnie na 1080p/60 FPS.
 
 ## Weryfikacja
 
-Testy regresyjne routingu i edytora znajdują się w `artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts`. Są uruchamiane przez istniejący test runner frontendowy:
+Testy regresyjne routingu, edytora i profili znajdują się w `artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts` oraz `stream-elements-profiles.test.ts` w tym samym katalogu. Są uruchamiane przez istniejący test runner frontendowy:
 
 ```bash
 pnpm --filter @workspace/tournament-manager test
