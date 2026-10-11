@@ -153,6 +153,40 @@ are not a latency SLA. To inspect index usage in a target environment, compare
 `EXPLAIN (ANALYZE, BUFFERS)` with realistic search queries after
 `ANALYZE steam_catalog_games`.
 
+## Search execution and post-import index maintenance
+
+The list endpoint still uses the Drizzle SQL builder and bound values, but
+**search-only reads** execute that compiled SQL through the PostgreSQL driver
+to avoid unstable execution plans encountered with this workload. Normal
+unfiltered pages retain their original ORM execution path. The API still
+returns exactly the same public field names and cursor/pagination metadata.
+
+When a search has at most 2,000 matches, the API uses a PostgreSQL
+`MATERIALIZED` CTE to collect a bounded projection of matching games before
+sorting the requested page. This prevents certain publisher/developer queries
+from scanning nearly the entire name-ordered index. Broader matches use the
+regular query, avoiding materializing many thousands of records. Filters and
+cursor comparison remain parameterized, and integration tests compare cursor
+pages against offset pages for filtered searches.
+
+The 100k-record test explicitly distinguishes **fresh bulk-import** search
+performance from the post-maintenance steady state. In one GitHub Actions run,
+the same search took 580.36 ms immediately after inserting 80k rows and
+16.13 ms after `VACUUM (ANALYZE) steam_catalog_games`. Subsequently, three
+searches by publisher were approximately 10–11 ms each. The result is
+consistent with the cost of GIN index pending-list maintenance, but it is
+not a general production latency guarantee.
+
+Keep PostgreSQL autovacuum healthy and plan `VACUUM (ANALYZE)` after large
+administrative bulk imports when operationally appropriate. **Do not run
+`VACUUM` after each small Steam re-import**; it is a separate operational
+maintenance command with its own resource cost. No API route performs it.
+
+The `x-catalog-perf-probe: 1` request header produces a `Server-Timing`
+breakdown **only when `NODE_ENV=test`**. It does not expose query timings
+in the deployed service. The CI suite logs repeat timings for SQL stages and
+end-to-end HTTP without enforcing flaky timing cutoffs.
+
 ## Verification before merging
 
 From the repository root, with dependencies installed and a test database
