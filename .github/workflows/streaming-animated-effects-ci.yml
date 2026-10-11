@@ -55,6 +55,9 @@ jobs:
       - name: Animated Effects TypeScript
         run: pnpm --filter animated-effects typecheck
 
+      - name: Build shared TypeScript library references
+        run: pnpm run typecheck:libs
+
       - name: Tournament frontend TypeScript
         run: pnpm --filter @workspace/tournament-manager typecheck
 
