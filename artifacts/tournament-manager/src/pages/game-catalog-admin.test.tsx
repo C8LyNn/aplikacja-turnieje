@@ -148,14 +148,14 @@ test("catalog filters games by classification status and title", async () => {
 
   assert.equal(screen.getAllByRole("link", { name: /Alpha|Beta|Gamma/i }).length, 3);
   fireEvent.click(screen.getByRole("button", { name: "Do sprawdzenia (1)" }));
-  assert.ok(screen.getByRole("link", { name: /Beta/i }));
+  await screen.findByRole("link", { name: /Beta/i });
   assert.equal(screen.queryByRole("link", { name: /Alpha/i }), null);
 
   fireEvent.click(screen.getByRole("button", { name: "Wszystkie (3)" }));
   fireEvent.change(screen.getByPlaceholderText("Szukaj w katalogu..."), {
     target: { value: "gamma" },
   });
-  assert.ok(screen.getByRole("link", { name: /Gamma/i }));
+  await screen.findByRole("link", { name: /Gamma/i });
   assert.equal(screen.queryByRole("link", { name: /Beta/i }), null);
 });
 
