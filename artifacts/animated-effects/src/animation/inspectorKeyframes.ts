@@ -149,11 +149,15 @@ export function bindKeyframeControls(container: HTMLElement, instanceId: string)
       dragging = false;
       if (pointerId !== null && marker.hasPointerCapture(pointerId)) marker.releasePointerCapture(pointerId);
       pointerId = null;
-      if (commit && targetTimeMs !== originalTimeMs) {
+      const current = getEffect();
+      const collision = current && normalizedMotionTimeline(current.timeline, current.settings).keyframes
+        ?.some((frame) => frame.timeMs === targetTimeMs && frame.timeMs !== originalTimeMs);
+      if (commit && targetTimeMs !== originalTimeMs && !collision) {
         selectedFrames.set(instanceId, targetTimeMs);
         editEffectKeyframe(instanceId, originalTimeMs, { timeMs: targetTimeMs });
       } else {
         showTime(originalTimeMs);
+        if (collision && dragOutput) dragOutput.value = "W tym miejscu jest już inna klatka.";
       }
     };
     marker.addEventListener("pointerdown", (event) => {
@@ -182,10 +186,17 @@ export function bindKeyframeControls(container: HTMLElement, instanceId: string)
       event.preventDefault();
       const next = Math.max(0, Math.min(durationMs, originalTimeMs + direction * (event.shiftKey ? 1000 : 100)));
       if (next === originalTimeMs) return;
+      const current = getEffect();
+      if (current && normalizedMotionTimeline(current.timeline, current.settings).keyframes
+        ?.some((frame) => frame.timeMs === next && frame.timeMs !== originalTimeMs)) return;
       selectedFrames.set(instanceId, next);
       editEffectKeyframe(instanceId, originalTimeMs, { timeMs: next });
     });
-    marker.addEventListener("click", () => selectMarker());
+    marker.addEventListener("click", (event) => {
+      // Pointerdown already selected it; avoid stale click after the DOM is
+      // replaced by a committed drag. detail=0 indicates keyboard activation.
+      if (event.detail === 0) selectMarker();
+    });
   });
 
   container.querySelector<HTMLSelectElement>("[data-kf-easing]")?.addEventListener("change", (event) => {
