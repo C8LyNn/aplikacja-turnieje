@@ -317,6 +317,7 @@ export function installAlertDiagnostics(
     };
     if (traceToReplay) stressRunner.startTrace(traceToReplay, effects, callbacks);
     else stressRunner.start(scenario, durationMs, effects, callbacks);
+    renderTraceStatus("Trwa odtwarzanie syntetycznego harmonogramu; eksport i porównanie są chwilowo zablokowane.");
     render();
   }
   stressStart.addEventListener("click", () => runStress());
