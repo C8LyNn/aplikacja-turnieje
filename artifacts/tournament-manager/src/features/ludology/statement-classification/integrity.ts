@@ -15,7 +15,13 @@ export type ResearchIntegrityIssue = {
     | "orphan_coding_codebook"
     | "coding_codebook_mismatch"
     | "duplicate_coding"
-    | "invalid_timestamp_range";
+    | "invalid_timestamp_range"
+    | "orphan_assessment_person"
+    | "orphan_assessment_proposition"
+    | "orphan_assessment_codebook"
+    | "orphan_assessment_reviewer"
+    | "assessment_codebook_mismatch"
+    | "duplicate_assessment";
   message: string;
   entityId?: string;
 };
@@ -36,6 +42,64 @@ function duplicateIdIssues(
     }
     seen.add(entry.id);
   }
+  const assessmentKeys = new Set<string>();
+  for (const assessment of data.assessments) {
+    if (!people.has(assessment.personId)) {
+      issues.push({
+        code: "orphan_assessment_person",
+        entityId: assessment.id,
+        message: "Rekonstrukcja stanowiska wskazuje nieistniejącą osobę.",
+      });
+    }
+
+    const proposition = propositions.get(assessment.propositionId);
+    if (!proposition) {
+      issues.push({
+        code: "orphan_assessment_proposition",
+        entityId: assessment.id,
+        message: "Rekonstrukcja stanowiska wskazuje nieistniejące mikrostanowisko.",
+      });
+    }
+
+    if (!codebooks.has(assessment.codebookId)) {
+      issues.push({
+        code: "orphan_assessment_codebook",
+        entityId: assessment.id,
+        message: "Rekonstrukcja stanowiska wskazuje nieistniejący codebook.",
+      });
+    }
+
+    if (assessment.reviewerId && !coders.has(assessment.reviewerId)) {
+      issues.push({
+        code: "orphan_assessment_reviewer",
+        entityId: assessment.id,
+        message: "Rekonstrukcja stanowiska wskazuje nieistniejącego recenzenta.",
+      });
+    }
+
+    if (proposition && proposition.codebookId !== assessment.codebookId) {
+      issues.push({
+        code: "assessment_codebook_mismatch",
+        entityId: assessment.id,
+        message: "Rekonstrukcja stanowiska i mikrostanowisko należą do różnych wersji codebooka.",
+      });
+    }
+
+    const duplicateKey = [
+      assessment.personId,
+      assessment.propositionId,
+      assessment.codebookId,
+    ].join("::");
+    if (assessmentKeys.has(duplicateKey)) {
+      issues.push({
+        code: "duplicate_assessment",
+        entityId: assessment.id,
+        message: "Istnieje więcej niż jedna rekonstrukcja tego samego mikrostanowiska dla tej osoby i wersji codebooka.",
+      });
+    }
+    assessmentKeys.add(duplicateKey);
+  }
+
   return issues;
 }
 
@@ -51,6 +115,7 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("propositions", data.propositions),
     ...duplicateIdIssues("coders", data.coders),
     ...duplicateIdIssues("codings", data.codings),
+    ...duplicateIdIssues("assessments", data.assessments),
   ];
 
   const people = new Set(data.people.map((item) => item.id));
