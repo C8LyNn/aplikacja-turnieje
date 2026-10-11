@@ -1,4 +1,6 @@
 import { countEvidenceDirections, isAssessmentStale } from "./evidence-analysis";
+import { activeSamplingPlan } from "./corpus-health";
+import { evaluateSamplingPlan, type SamplingGapCode } from "./sampling-analysis";
 import type { ResearchProjectData } from "./model";
 
 export type ResearchQueue = {
@@ -7,6 +9,7 @@ export type ResearchQueue = {
   contradictionCandidates: Array<{ personId: string; propositionId: string }>;
   unreviewedPositions: Array<{ personId: string; propositionId: string }>;
   staleAssessmentIds: string[];
+  samplingGaps: Array<{ personId: string; codes: SamplingGapCode[] }>;
 };
 
 export function buildResearchQueue(
@@ -78,11 +81,22 @@ export function buildResearchQueue(
     )
     .map((assessment) => assessment.id);
 
+  const samplingPlan = activeSamplingPlan(data);
+  const samplingGaps = samplingPlan
+    ? data.people
+        .map((person) => ({
+          personId: person.id,
+          codes: evaluateSamplingPlan(data, samplingPlan, person.id).gaps.map((gap) => gap.code),
+        }))
+        .filter((entry) => entry.codes.length > 0)
+    : [];
+
   return {
     unverifiedExcerptIds,
     verifiedUncodedExcerptIds,
     contradictionCandidates,
     unreviewedPositions,
     staleAssessmentIds,
+    samplingGaps,
   };
 }
