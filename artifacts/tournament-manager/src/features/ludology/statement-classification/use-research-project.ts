@@ -45,6 +45,14 @@ export function useResearchProject() {
         sources: [...current.sources, { ...input, id: createResearchId("source") }],
       }));
     },
+    updateSource(sourceId: string, patch: Partial<Omit<ResearchSource, "id" | "personId">>) {
+      update((current) => ({
+        ...current,
+        sources: current.sources.map((source) =>
+          source.id === sourceId ? { ...source, ...patch } : source,
+        ),
+      }));
+    },
     addArgument(input: Omit<ResearchArgument, "id">) {
       update((current) => ({
         ...current,
