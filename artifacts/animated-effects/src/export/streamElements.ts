@@ -567,6 +567,49 @@ let aeRoot = null;
 const aePending = new Map();
 const aeActive = new Map();
 const aeLastFired = Object.create(null);
+const aeQueue = [];
+let aeQueuedPlaying = null;
+let aeQueuedTimer = null;
+const AE_MAX_QUEUED_ALERTS = 16;
+
+function aeCompactEvent(listener, eventData) {
+  // Do not retain arbitrary-size chat payloads while waiting in the queue.
+  const values = aeAlertData(listener, eventData);
+  const result = {
+    name: values.name,
+    amount: values.amount,
+    message: values.message,
+    text: values.message,
+    data: { displayName: values.name, text: values.message },
+  };
+  if (eventData && typeof eventData === "object") {
+    const source = eventData.data && typeof eventData.data === "object" ? eventData.data : eventData;
+    if (typeof source.avatar === "string") result.avatar = source.avatar.slice(0, 500);
+    if (typeof source.avatarUrl === "string") result.avatarUrl = source.avatarUrl.slice(0, 500);
+    if (typeof source.profileImage === "string") result.profileImage = source.profileImage.slice(0, 500);
+  }
+  return result;
+}
+
+function aeNextQueued() {
+  if (!aeRoot || aeQueuedPlaying || aeQueue.length === 0) return;
+  const next = aeQueue.shift();
+  const element = aeRenderOne(next.effect, aeRoot);
+  if (!element) {
+    aeNextQueued();
+    return;
+  }
+  aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData);
+  aeQueuedPlaying = element;
+  aeQueuedTimer = setTimeout(function () {
+    if (aeQueuedPlaying === element) {
+      element.remove();
+      aeQueuedPlaying = null;
+    }
+    aeQueuedTimer = null;
+    aeNextQueued();
+  }, next.effect.playbackMs);
+}
 
 function startAnimatedEffects() {
   const root = document.getElementById("animated-effects-root");
@@ -577,6 +620,10 @@ function startAnimatedEffects() {
   for (const timer of aePending.values()) clearTimeout(timer);
   aePending.clear();
   aeActive.clear();
+  aeQueue.length = 0;
+  if (aeQueuedTimer !== null) clearTimeout(aeQueuedTimer);
+  aeQueuedTimer = null;
+  aeQueuedPlaying = null;
   for (const id of Object.keys(aeLastFired)) delete aeLastFired[id];
   aeRoot = root;
   root.replaceChildren();
@@ -604,6 +651,20 @@ function aeHandleEvent(obj) {
       const amount = eventData && typeof eventData === "object"
         ? Number(eventData.amount) : NaN;
       if (!Number.isFinite(amount) || amount < rule.minAmount) return;
+    }
+
+    if (rule.queueMode === "queue") {
+      // Admission control is performed on arrival, not on playback. Every
+      // accepted event therefore observes its configured cooldown.
+      if (aeQueue.length >= AE_MAX_QUEUED_ALERTS) return;
+      aeLastFired[effect.instanceId] = now;
+      aeQueue.push({
+        effect,
+        listener: detail.listener,
+        eventData: aeCompactEvent(detail.listener, eventData),
+      });
+      aeNextQueued();
+      return;
     }
 
     const old = aeActive.get(effect.instanceId);
