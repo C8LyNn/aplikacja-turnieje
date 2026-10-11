@@ -19,7 +19,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: game-catalog-qa-${{ github.ref }}
+  group: game-catalog-qa-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
