@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  dimensionModelSummary,
   modelReadinessMatrix,
   orientedAssessmentDirection,
   personDimensionReadiness,
@@ -77,4 +78,14 @@ test("model readiness matrix preserves one row per person", () => {
   project.people.push({ id: "p2", displayName: "P2" });
   const matrix = modelReadinessMatrix(project, "m1");
   assert.deepEqual(matrix.map((row) => row.personId), ["p1", "p2"]);
+});
+
+
+test("model summary compares structure and readiness without scoring coordinates", () => {
+  const summary = dimensionModelSummary(data(), "m1");
+  assert.equal(summary.dimensions, 1);
+  assert.equal(summary.links, 2);
+  assert.equal(summary.mappedPropositions, 2);
+  assert.equal(summary.peopleWithDirectionalCoverage, 1);
+  assert.equal(summary.directionalCoverage, 0.5);
 });
