@@ -54,3 +54,19 @@ Dodatkowy manual QA:
 6. Wyeksportuj ZIP i sprawdź zachowanie w faktycznym Custom Widget i OBS.
 
 > Status: implementacja i testy zostały dodane do repozytorium; ich wykonanie oraz integracyjny test z StreamElements/OBS wymagają jeszcze weryfikacji.
+
+
+## Klatki kluczowe ruchu (Timeline v2)
+
+Pod kontrolkami czasu pojawił się edytor **Klatki kluczowe**. Wspiera do 16 klatek na warstwę, każda z pełnym zestawem parametrów: moment (s), pozycja X, pozycja Y, skala, obrót oraz widoczność (%).
+
+- Dodawanie, wybieranie, przesuwanie w czasie, edycja i usuwanie klatek.
+- Interpolacja liniowa lub płynna (`ease-in-out`).
+- Dwa gotowe układy ruchu: **Przesunięcie →** oraz **Pulsowanie**.
+- Parametry są bezpiecznie ograniczane i zapisywane w pliku sceny, razem z trybem `once` lub `loop`.
+- Wygenerowane CSS używa **oddzielnego wrappera ruchu** i wrappera widoczności. Nie nadpisuje wewnętrznej animacji kropli, iskier czy innych elementów efektu.
+- Procent widoczności w klatce mnoży bazową przezroczystość efektu; nie zmienia zapisanej wartości bazowej Inspektora.
+
+**Ograniczenia v2:** Klatki kluczowe animują właściwości całej warstwy, nie indywidualne cząsteczki ani parametry ich generowania (prędkość, gęstość). Nie ma jeszcze swobodnego przeciągania punktów na osi, scrubbingu ani zewnętrznych triggerów StreamElements. Podgląd i eksport korzystają z tej samej funkcji generującej klatki CSS.
+
+Testy jednostkowe dodane także w `test/motion.test.mjs` — obsługują synchronizację klatek, powtórzenia, ograniczenia wartości, deduplikację i bezpieczeństwo CSS. Nadal należy wykonać polecenia testowe oraz build wymienione powyżej.
