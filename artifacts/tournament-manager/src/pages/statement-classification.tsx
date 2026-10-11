@@ -7,7 +7,7 @@ import {
   Users,
 } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   ModuleHeader,
   ModuleShell,
@@ -36,6 +36,7 @@ import {
 } from "@/features/ludology/statement-classification/evidence-analysis";
 import { computeCoderAgreementPairs } from "@/features/ludology/statement-classification/coder-agreement";
 import { checkResearchProjectIntegrity } from "@/features/ludology/statement-classification/integrity";
+import { buildResearchQueue } from "@/features/ludology/statement-classification/research-queue";
 
 const BASE = "/ludology/statement-classification";
 
@@ -125,6 +126,16 @@ function Overview() {
   const { data, replaceProject } = useResearchProject();
   const [transferMessage, setTransferMessage] = useState("");
   const integrityIssues = checkResearchProjectIntegrity(data);
+  const currentCodebook = data.codebooks.find((codebook) => codebook.id === PILOT_CODEBOOK.id);
+  const researchQueue = currentCodebook
+    ? buildResearchQueue(data, currentCodebook.id)
+    : {
+        unverifiedExcerptIds: [],
+        verifiedUncodedExcerptIds: [],
+        contradictionCandidates: [],
+        unreviewedPositions: [],
+        staleAssessmentIds: [],
+      };
 
   function exportProject() {
     if (typeof window === "undefined") return;
@@ -191,6 +202,45 @@ function Overview() {
             {integrityIssues.length > 12 && <div className="text-xs text-muted-foreground">+ {integrityIssues.length - 12} dalszych problemów.</div>}
           </div>
         )}
+      </ToolPanel>
+
+      <ToolPanel
+        title="Kolejka badawcza"
+        description="Lista pracy wynikająca z aktualnego stanu korpusu. Nie interpretuje stanowisk automatycznie — wskazuje miejsca wymagające działania badacza."
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.unverifiedExcerptIds.length}</div>
+            <div className="text-xs text-muted-foreground">fragmentów do weryfikacji</div>
+          </div>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.verifiedUncodedExcerptIds.length}</div>
+            <div className="text-xs text-muted-foreground">zweryfikowanych bez kodowania</div>
+          </div>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.contradictionCandidates.length}</div>
+            <div className="text-xs text-muted-foreground">kandydatów sprzeczności</div>
+          </div>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.unreviewedPositions.length}</div>
+            <div className="text-xs text-muted-foreground">pozycji bez rekonstrukcji</div>
+          </div>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="text-2xl font-black">{researchQueue.staleAssessmentIds.length}</div>
+            <div className="text-xs text-muted-foreground">rekonstrukcji do odświeżenia</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href={`${BASE}/fragments`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Warsztat źródeł →
+          </Link>
+          <Link href={`${BASE}/coding`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Coding Lab →
+          </Link>
+          <Link href={`${BASE}/positions`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Profil dowodów →
+          </Link>
+        </div>
       </ToolPanel>
 
       <ToolPanel
