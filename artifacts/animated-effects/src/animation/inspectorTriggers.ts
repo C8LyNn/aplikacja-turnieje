@@ -107,6 +107,24 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
                 <input type="number" data-ae-caption-y min="10" max="90" step="1" value="${caption.yPercent ?? 75}">
               </label>
             </div>
+            <div class="ae-caption-row">
+              <label class="ae-timeline-field">
+                <span class="inspector-label"><span>Animacja wejścia</span></span>
+                <select data-ae-caption-intro>
+                  <option value="slide" ${caption.intro === "slide" ? "selected" : ""}>Wjazd</option>
+                  <option value="fade" ${caption.intro === "fade" ? "selected" : ""}>Pojawienie</option>
+                  <option value="pop" ${caption.intro === "pop" ? "selected" : ""}>Powiększenie</option>
+                </select>
+              </label>
+              <label class="ae-timeline-field">
+                <span class="inspector-label"><span>Animacja wyjścia</span></span>
+                <select data-ae-caption-outro>
+                  <option value="fade" ${caption.outro === "fade" ? "selected" : ""}>Zanikanie</option>
+                  <option value="slide" ${caption.outro === "slide" ? "selected" : ""}>Wyjazd</option>
+                  <option value="pop" ${caption.outro === "pop" ? "selected" : ""}>Zmniejszenie</option>
+                </select>
+              </label>
+            </div>
             <p class="ae-timeline-hint">W trybie własnej pozycji można też przeciągnąć podpis na podglądzie przyciskiem „Testuj w podglądzie”.</p>
             <label class="ae-caption-switch">
               <input type="checkbox" data-ae-caption-avatar ${caption.avatarEnabled ? "checked" : ""}>
@@ -195,6 +213,14 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   container.querySelector<HTMLInputElement>("[data-ae-caption-y]")?.addEventListener("change", (event) => {
     const yPercent = Number((event.currentTarget as HTMLInputElement).value);
     if (Number.isFinite(yPercent)) changeCaption({ yPercent });
+  });
+  container.querySelector<HTMLSelectElement>("[data-ae-caption-intro]")?.addEventListener("change", (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
+    if (value === "slide" || value === "fade" || value === "pop") changeCaption({ intro: value });
+  });
+  container.querySelector<HTMLSelectElement>("[data-ae-caption-outro]")?.addEventListener("change", (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
+    if (value === "slide" || value === "fade" || value === "pop") changeCaption({ outro: value });
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-avatar]")?.addEventListener("change", (event) => {
     changeCaption({ avatarEnabled: (event.currentTarget as HTMLInputElement).checked });
