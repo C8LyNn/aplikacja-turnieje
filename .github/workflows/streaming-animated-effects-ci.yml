@@ -53,6 +53,23 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate local Windows preview launcher syntax
+        shell: pwsh
+        run: |
+          $file = "artifacts/animated-effects/scripts/start-local-preview.ps1"
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path $file).Path, [ref]$tokens, [ref]$parseErrors
+          ) | Out-Null
+          if ($parseErrors.Count -ne 0) {
+            $parseErrors | ForEach-Object { Write-Host $_.Message }
+            throw "Invalid PowerShell preview launcher syntax."
+          }
+          if (-not (Test-Path "START_ANIMATED_EFFECTS_PREVIEW.cmd")) {
+            throw "Missing Windows preview launcher."
+          }
+
       - name: Animated Effects TypeScript
         run: pnpm --filter animated-effects typecheck
 
