@@ -154,10 +154,12 @@ export function installAlertDiagnostics(
   next.addEventListener("click", () => {
     const item = engine.finishCurrent();
     if (item) play(item);
+    else document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
     render(item ? "Odtwarzanie następnego alertu z symulowanej kolejki." : "Symulowana kolejka zakończona.");
   });
   reset.addEventListener("click", () => {
     engine.reset();
+    document.dispatchEvent(new Event("animated-effects:diagnostics-clear-preview"));
     render("Wyczyszczono stan lokalnego symulatora.");
   });
   eventSelect.addEventListener("change", () => render());
