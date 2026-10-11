@@ -205,6 +205,12 @@ export default function MethodologyView() {
             <ToolSection title="Wersjonowanie" description="Zmiana definicji kodu nie może po cichu zmienić znaczenia wcześniejszych danych.">
               <ToolNotice>Istotna zmiana definicji mikrostanowiska powinna tworzyć nową wersję codebooka i zachować informację, według której wersji wykonano każde kodowanie.</ToolNotice>
             </ToolSection>
+            <ToolSection title="Model wymiarów" description="Osie są osobną, wersjonowaną hipotezą interpretacyjną nad rekonstrukcjami stanowisk.">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Codebook mówi, jakie mikrostanowiska kodujemy. Dimension Model mówi dopiero później, które z nich mogą wspólnie reprezentować szerszy wymiar.</p>
+                <p>Opublikowany model active/retired jest zamrożony. Zmiana osi, biegunów lub mapowań wymaga utworzenia nowej wersji draft, dzięki czemu można porównywać konkurencyjne modele na tych samych danych.</p>
+              </div>
+            </ToolSection>
             <ToolSection title="Niezależne kodowanie" description="Docelowo ten sam materiał może być oceniany przez więcej niż jednego kodera.">
               <div className="text-sm text-muted-foreground">Pozwoli to mierzyć zgodność między koderami, np. współczynnikiem α Krippendorffa. Zgodność nie zastępuje jednak walidacji konstruktu.</div>
             </ToolSection>
