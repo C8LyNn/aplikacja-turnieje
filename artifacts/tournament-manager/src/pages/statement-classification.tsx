@@ -927,8 +927,10 @@ function Coding() {
           </div>
         }
       >
-        {data.codings.length === 0 ? (
-          <ToolEmptyState title="Brak kodowań" description="Pierwsze kodowanie pojawi się tutaj wraz z pełnym śladem do fragmentu źródłowego." />
+        {data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length === 0 ? (
+          <ToolEmptyState title="Brak kodowań" description="Pierwsze kodowanie w aktualnym codebooku pojawi się tutaj wraz z pełnym śladem do fragmentu źródłowego." />
+        ) : filteredCodings.length === 0 ? (
+          <ToolEmptyState title="Brak wyników dla filtrów" description="Zmień filtry, aby zobaczyć pozostałe kodowania aktualnego codebooka." />
         ) : (
           <div className="space-y-3">
             {[...filteredCodings].reverse().map((coding) => {
@@ -1228,6 +1230,27 @@ function Methodology() {
             </div>
           ) : <ToolEmptyState title="Brak codebooka" />}
           {activeCodebook?.description && <div className="mt-4 text-sm text-muted-foreground">{activeCodebook.description}</div>}
+        </ToolPanel>
+
+        <ToolPanel title="Historia codebooka" description="Każda wersja ma osobną tożsamość. Starsze kodowania pozostają przypięte do wersji, w której powstały.">
+          <div className="space-y-2">
+            {[...data.codebooks].reverse().map((codebook) => {
+              const codingCount = data.codings.filter((coding) => coding.codebookId === codebook.id).length;
+              const propositionCount = data.propositions.filter((proposition) => proposition.codebookId === codebook.id).length;
+              const isCurrent = codebook.id === activeCodebook?.id;
+              return (
+                <div key={codebook.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/40 p-4">
+                  <div>
+                    <div className="font-bold">{codebook.name} · {codebook.version}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{propositionCount} mikrostanowisk · {codingCount} kodowań · status {codebook.status}</div>
+                  </div>
+                  <span className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${isCurrent ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300" : "border-border text-muted-foreground"}`}>
+                    {isCurrent ? "aktualna" : "historyczna"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </ToolPanel>
 
         <ToolPanel title="Definicje mikrostanowisk" description="Kod powinien być możliwy do zastosowania przez inną osobę na podstawie tych samych reguł.">
