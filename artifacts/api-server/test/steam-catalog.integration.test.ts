@@ -432,6 +432,19 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.ok(batch.every((response) =>
       response.body.games.map((x: { id: number }) => x.id).join(",") ===
       keyed.games.map((x: { id: number }) => x.id).join(",")));
+    // Record the database access plan separately from HTTP timings to
+    // distinguish GIN index use from global-count and sequential-scan costs.
+    const searchPlans = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT count(*) FROM steam_catalog_games " +
+      "WHERE name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1",
+      ["%Large Game 99999%"],
+    );
+    const countPlans = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT count(*), " +
+      "count(*) FILTER (WHERE status='review') FROM steam_catalog_games",
+    );
+    console.log("CATALOG_100K_SEARCH_EXPLAIN " + JSON.stringify(searchPlans[0]?.["QUERY PLAN"]).slice(0, 8000));
+    console.log("CATALOG_100K_COUNTS_EXPLAIN " + JSON.stringify(countPlans[0]?.["QUERY PLAN"]).slice(0, 4000));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
