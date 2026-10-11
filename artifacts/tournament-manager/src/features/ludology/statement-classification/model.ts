@@ -6,6 +6,7 @@ export type CodebookStatus = "draft" | "pilot" | "active" | "retired";
 export type DimensionModelStatus = "draft" | "pilot" | "active" | "retired";
 export type DimensionLinkOrientation = "positive" | "negative";
 export type DimensionLinkRelevance = "core" | "supporting" | "exploratory";
+export type SamplingPlanStatus = "draft" | "active" | "retired";
 export type PositionAssessmentStatus =
   | "insufficient_evidence"
   | "stable"
@@ -153,8 +154,25 @@ export type DimensionPropositionLink = {
   rationale?: string;
 };
 
+export type SamplingPlan = {
+  id: string;
+  name: string;
+  version: string;
+  status: SamplingPlanStatus;
+  minimumSourcesPerPerson: number;
+  minimumSourceTypesPerPerson: number;
+  minimumPurposesPerPerson: number;
+  minimumPreparednessModesPerPerson: number;
+  minimumScopesPerPerson: number;
+  minimumDatedSourceShare: number | null;
+  maximumSingleSourceTypeShare: number | null;
+  minimumTemporalSpanYears: number | null;
+  notes?: string;
+  createdAt?: string;
+};
+
 export type ResearchProjectData = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -167,10 +185,11 @@ export type ResearchProjectData = {
   dimensionModels: DimensionModel[];
   dimensions: ResearchDimension[];
   dimensionLinks: DimensionPropositionLink[];
+  samplingPlans: SamplingPlan[];
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 4,
+  schemaVersion: 5,
   people: [],
   sources: [],
   arguments: [],
@@ -183,6 +202,7 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   dimensionModels: [],
   dimensions: [],
   dimensionLinks: [],
+  samplingPlans: [],
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
