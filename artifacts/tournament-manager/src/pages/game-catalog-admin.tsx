@@ -102,6 +102,7 @@ type QueueResponse = { pendingCount: number; nextId: number | null };
 
 const BASE = "/ludology/game-classification";
 const PAGE_SIZE = 25;
+const ADMIN_KEY_STORAGE = "tm_steam_catalog_admin_token";
 
 const FACET_LABELS: Record<Facet, string> = {
   genre: "Gatunek",
@@ -180,10 +181,14 @@ const PERSPECTIVE_COPY: Record<
 };
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  // Public reads carry no credential. Keep the editing key in this tab only.
+  const key = method === "GET" ? null : window.sessionStorage.getItem(ADMIN_KEY_STORAGE);
   const response = await fetch(url, {
     ...init,
     headers: {
       "content-type": "application/json",
+      ...(key ? { "x-steam-catalog-admin-token": key } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -264,6 +269,7 @@ export default function GameCatalogAdminPage() {
   const [listLoading, setListLoading] = useState(false);
   const [gameLoading, setGameLoading] = useState(false);
   const [importValue, setImportValue] = useState("");
+  const [adminKey, setAdminKey] = useState(() => window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,6 +277,12 @@ export default function GameCatalogAdminPage() {
   const [newLabel, setNewLabel] = useState("");
   const [termQuery, setTermQuery] = useState("");
   const [perspective, setPerspective] = useState<Perspective>("gameplay");
+
+  function updateAdminKey(value: string) {
+    setAdminKey(value);
+    if (value) window.sessionStorage.setItem(ADMIN_KEY_STORAGE, value);
+    else window.sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+  }
 
   const selected = gameId !== null && selectedGame?.id === gameId ? selectedGame : null;
   const nextPendingId = selected ? queue?.nextId ?? null : null;
@@ -558,6 +570,22 @@ export default function GameCatalogAdminPage() {
         status={screen === "home" ? "projekt" : undefined}
       />
 
+      <div className="mb-4">
+        <ToolDisclosure title="Uprawnienia do edycji" description={adminKey ? "Klucz tej sesji został wprowadzony" : "Import i edycja wymagają klucza administratora katalogu"}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <ToolInput
+              type="password"
+              value={adminKey}
+              onChange={(event) => updateAdminKey(event.target.value)}
+              autoComplete="off"
+              aria-label="Klucz administratora katalogu"
+              placeholder="Klucz administratora katalogu"
+            />
+            <ToolButton type="button" onClick={() => updateAdminKey("")} disabled={!adminKey}>Wyczyść klucz</ToolButton>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Klucz jest przechowywany wyłącznie w pamięci tej karty przeglądarki. Odczyt katalogu nie wymaga klucza. Administrator musi skonfigurować STEAM_CATALOG_ADMIN_TOKEN po stronie serwera.</p>
+        </ToolDisclosure>
+      </div>
       {error && <div className="mb-4"><ToolNotice tone="danger">{error}</ToolNotice></div>}
 
       {screen === "home" && <ProjectHome />}
