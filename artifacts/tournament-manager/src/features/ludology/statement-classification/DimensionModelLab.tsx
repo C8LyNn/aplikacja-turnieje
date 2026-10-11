@@ -15,6 +15,10 @@ import {
   dimensionModelDimensions,
   modelReadinessMatrix,
 } from "./dimension-model-analysis";
+import {
+  canEditDimensionModelStructure,
+  dimensionModelStatusOptions,
+} from "./dimension-model-lifecycle";
 import { isAssessmentStale } from "./evidence-analysis";
 import type {
   DimensionLinkOrientation,
@@ -93,7 +97,9 @@ export default function DimensionModelLab() {
     ? modelReadinessMatrix(data, selectedModel.id)
     : [];
 
-  const structuralEditable = selectedModel?.status === "draft" || selectedModel?.status === "pilot";
+  const structuralEditable = selectedModel
+    ? canEditDimensionModelStructure(selectedModel.status)
+    : false;
 
   const linkedPropositionIds = new Set(modelLinks.map((link) => link.propositionId));
   const freshAssessments = selectedModel
@@ -264,12 +270,11 @@ export default function DimensionModelLab() {
                             value={selectedModel.status}
                             onChange={(e) => updateDimensionModel(selectedModel.id, { status: e.target.value as DimensionModelStatus })}
                           >
-                            <option value="draft">draft</option>
-                            <option value="pilot">pilot</option>
-                            <option value="active">active</option>
-                            <option value="retired">retired</option>
+                            {dimensionModelStatusOptions(selectedModel.status).map((status) => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
                           </ToolSelect>
-                          <ToolButton type="button" variant="ghost" onClick={removeModel}>Usuń</ToolButton>
+                          <ToolButton type="button" variant="ghost" onClick={removeModel} disabled={!structuralEditable}>Usuń</ToolButton>
                         </div>
                       </div>
 
@@ -289,7 +294,7 @@ export default function DimensionModelLab() {
           <>
             {!structuralEditable && (
               <ToolNotice>
-                Model ma status {selectedModel.status}. Struktura jest traktowana jako zamrożona. Aby zmienić wymiary lub mapowania, sklonuj go do nowej wersji draft.
+                Model ma status {selectedModel.status}. Struktura i metadane są zamrożone, a opublikowanej wersji nie można przywrócić do draftu. Aby coś zmienić, sklonuj model do nowej wersji draft.
               </ToolNotice>
             )}
 
