@@ -4,8 +4,8 @@ import {
 } from "./model";
 import { migrateResearchProject } from "./schema-migration";
 
-const STORAGE_KEY = "neoludology_research_pipeline_v4";
-const LEGACY_STORAGE_KEYS = ["neoludology_research_pipeline_v3", "neoludology_research_pipeline_v2"];
+const STORAGE_KEY = "neoludology_research_pipeline_v5";
+const LEGACY_STORAGE_KEYS = ["neoludology_research_pipeline_v4", "neoludology_research_pipeline_v3", "neoludology_research_pipeline_v2"];
 
 export function createResearchId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
