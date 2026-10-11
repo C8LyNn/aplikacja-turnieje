@@ -738,6 +738,7 @@ function Coding() {
     )
   );
   const filteredCodings = data.codings.filter((coding) => {
+    if (coding.codebookId !== activeCodebook?.id) return false;
     if (filterPropositionId && coding.propositionId !== filterPropositionId) return false;
     if (filterConfidence && coding.confidence !== filterConfidence) return false;
     if (filterVerification) {
@@ -814,7 +815,7 @@ function Coding() {
       </div>
 
       <ToolPanel
-        title={`Zakodowane obserwacje (${filteredCodings.length}/${data.codings.length})`}
+        title={`Zakodowane obserwacje (${filteredCodings.length}/${data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length})`}
         actions={
           <div className="grid gap-2 sm:grid-cols-3">
             <ToolSelect value={filterPropositionId} onChange={(e) => setFilterPropositionId(e.target.value)} className="min-w-44">
@@ -1039,15 +1040,21 @@ function EvidenceProfile() {
               return (
                 <div className="space-y-3">
                   {years.map(([year, bucket]) => {
-                    const positive = bucket.codings.filter((coding) => coding.direction !== null && coding.direction > 0).length;
-                    const negative = bucket.codings.filter((coding) => coding.direction !== null && coding.direction < 0).length;
-                    const mixed = bucket.codings.filter((coding) => coding.direction === 0).length;
+                    const unitKey = (coding: typeof bucket.codings[number]) => {
+                      const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
+                      return excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`;
+                    };
+                    const countUnits = (predicate: (coding: typeof bucket.codings[number]) => boolean) =>
+                      new Set(bucket.codings.filter(predicate).map(unitKey)).size;
+                    const positive = countUnits((coding) => coding.direction !== null && coding.direction > 0);
+                    const negative = countUnits((coding) => coding.direction !== null && coding.direction < 0);
+                    const mixed = countUnits((coding) => coding.direction === 0);
                     return (
                       <div key={year} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[90px_1fr]">
                         <div className="text-xl font-black">{year}</div>
                         <div>
                           <div className="text-sm font-semibold">{bucket.units.size} jednostek argumentacyjnych · {bucket.codings.length} kodowań</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Za: {positive} · Przeciw: {negative} · Mieszane: {mixed}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Jednostki — za: {positive} · przeciw: {negative} · mieszane: {mixed}</div>
                         </div>
                       </div>
                     );
