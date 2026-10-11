@@ -1,5 +1,6 @@
 import type { EditorState, EffectId, EffectInstance, EffectInstanceId, EffectSettings } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
+import { normalizeLayerTimeline } from "../animation/timeline";
 
 const state: EditorState = {
   resolution: { width: 1920, height: 1080 },
@@ -176,6 +177,20 @@ export function updateEffectSettings(instanceId: EffectInstanceId, settings: Par
     effect.settings = { ...effect.settings, ...settings }; state.activePresetId = null;
   });
 }
+/** Timed appearance is optional, so old scenes retain their continuous behavior. */
+export function updateEffectTimeline(
+  instanceId: EffectInstanceId,
+  patch: Partial<NonNullable<EffectInstance["timeline"]>>,
+): void {
+  const effect = state.effects.find((item) => item.instanceId === instanceId);
+  if (!effect) return;
+  const timeline = normalizeLayerTimeline({ ...effect.timeline, ...patch });
+  mutate("Zmień czas animacji", () => {
+    effect.timeline = timeline;
+    state.activePresetId = null;
+  });
+}
+
 export function updateEffectSeed(instanceId: EffectInstanceId, seed: number): void {
   const effect = state.effects.find((item) => item.instanceId === instanceId); if (!effect) return;
   const normalized = Math.max(0, Math.min(0xffffffff, Math.floor(seed)));
