@@ -20,6 +20,7 @@ type MockGame = {
   releaseDate: null;
   shortDescription: null;
   status: "unclassified" | "review" | "ready";
+  classificationRevision: number;
   updatedAt: string;
   assignments: { termId: number; facet: string; slug: string; label: string; role: string; position: number }[];
 };
@@ -35,6 +36,7 @@ const game = (id: number, name: string, status: MockGame["status"] = "unclassifi
   releaseDate: null,
   shortDescription: null,
   status,
+  classificationRevision: 1,
   updatedAt: "2026-10-11T00:00:00.000Z",
   assignments: [],
 });
@@ -91,6 +93,13 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
       const changed = games.find((item) => item.id === id);
       assert.ok(changed, "classification request must target an existing game");
       const body = JSON.parse(String(init?.body));
+      if (body.expectedRevision !== changed.classificationRevision) {
+        return Response.json({
+          error: "Inny redaktor zapisał nowszą klasyfikację tej gry.",
+          code: "CLASSIFICATION_CONFLICT",
+        }, { status: 409 });
+      }
+      changed.classificationRevision += 1;
       changed.status = body.status;
       changed.assignments = body.assignments.map((assignment: { termId: number; role: string; position: number }) => ({
         ...assignment, facet: "genre", slug: "akcja", label: "Akcja",
@@ -293,4 +302,33 @@ test("catalog reads never transmit editor credentials, but classification writes
   fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
   await waitFor(() => assert.equal(requests.filter((item) => item.method === "PUT").length, 1));
   assert.equal(requests.find((item) => item.method === "PUT")?.adminKey, "test-only-catalog-editor-key");
+});
+
+test("stale editor changes are retained after 409 until confirmed reload", async () => {
+  const record = game(60, "Kolizja edycji");
+  const requests = mockCatalog([record]);
+  const location = mount(`${BASE}/games/60`);
+  await screen.findByRole("button", { name: "Akcja" });
+  fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
+  await screen.findByText("Niezapisane zmiany");
+  record.classificationRevision = 2; // Another editor saved since this page loaded.
+  record.status = "review";
+
+  fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
+  await screen.findByText(/Konflikt edycji: zapisano nowszą wersję klasyfikacji/);
+  assert.equal(requests.filter((item) => item.method === "PUT").length, 1);
+  assert.equal(location.history.at(-1), `${BASE}/games/60`);
+  assert.ok(screen.getByText("Niezapisane zmiany"));
+  assert.equal(screen.getByRole("button", { name: "Zapisz" }).hasAttribute("disabled"), true);
+
+  const priorConfirm = window.confirm;
+  try {
+    window.confirm = () => true;
+    fireEvent.click(screen.getByRole("button", { name: /Wczytaj aktualną wersję/i }));
+    await waitFor(() => assert.equal(screen.queryByText("Niezapisane zmiany"), null));
+    assert.equal(screen.queryByText(/Konflikt edycji: zapisano nowszą wersję klasyfikacji/), null);
+    assert.equal((screen.getByRole("combobox", { name: "Status klasyfikacji" }) as HTMLSelectElement).value, "review");
+  } finally {
+    window.confirm = priorConfirm;
+  }
 });
