@@ -201,6 +201,53 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.ok(publicTerms.body.terms.some((x: { id: number }) => x.id === created.body.term.id));
   });
 
+
+  test("re-importing Steam metadata preserves manual classification and status", async () => {
+    const [game] = await rows<{ id: number; steam_app_id: number }>(
+      "SELECT id,steam_app_id FROM steam_catalog_games WHERE name='Test Game 0005'",
+    );
+    const [genre] = await rows<{ id: number }>(
+      "SELECT id FROM steam_catalog_terms WHERE facet='genre' ORDER BY id LIMIT 1",
+    );
+    const url = "/api/steam-catalog/games/" + game.id;
+    await request(app).put(url + "/classification").set(edit()).send({
+      status: "review", assignments: [{ termId: genre.id, role: "default" }],
+    }).expect(200);
+
+    const originalFetch = globalThis.fetch;
+    let steamRequests = 0;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const upstream = String(input);
+      assert.ok(upstream.startsWith("https://store.steampowered.com/api/appdetails"));
+      assert.ok(upstream.includes(String(game.steam_app_id)));
+      steamRequests += 1;
+      return Response.json({
+        [game.steam_app_id]: {
+          success: true,
+          data: {
+            name: "Test Game 0005 (Steam updated)",
+            developers: ["Updated Studio"],
+            publishers: ["Updated Publisher"],
+            short_description: "New public description",
+          },
+        },
+      });
+    }) as typeof fetch;
+    try {
+      const imported = await request(app).post("/api/steam-catalog/import").set(edit())
+        .send({ appId: game.steam_app_id }).expect(201);
+      assert.equal(imported.body.game.id, game.id);
+      assert.equal(steamRequests, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    const preserved = await request(app).get(url).expect(200);
+    assert.equal(preserved.body.game.name, "Test Game 0005 (Steam updated)");
+    assert.equal(preserved.body.game.developer, "Updated Studio");
+    assert.equal(preserved.body.game.status, "review");
+    assert.deepEqual(preserved.body.game.assignments.map((x: { termId: number }) => x.termId), [genre.id]);
+  });
+
   test("anonymous imports are blocked before calling Steam", async () => {
     await request(app).post("/api/steam-catalog/import").send({ appId: 620 }).expect(403);
     await request(app).post("/api/steam-catalog/import").set(edit()).send({ appId: "invalid" }).expect(400);
