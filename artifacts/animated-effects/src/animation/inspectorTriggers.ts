@@ -82,6 +82,15 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
                 <input data-ae-caption-color type="color" value="${caption.color}" aria-label="Kolor podpisu">
               </label>
             </div>
+            <label class="ae-caption-switch">
+              <input type="checkbox" data-ae-caption-avatar ${caption.avatarEnabled ? "checked" : ""}>
+              <span>Pokaż awatar (lub inicjał widza)</span>
+            </label>
+            <label class="ae-timeline-field" data-ae-avatar-size-row ${caption.avatarEnabled ? "" : "hidden"}>
+              <span class="inspector-label"><span>Rozmiar awatara (px)</span></span>
+              <input type="number" data-ae-caption-avatar-size min="32" max="144" step="4" value="${caption.avatarSize ?? 72}">
+            </label>
+            <p class="ae-timeline-hint">Zdjęcie pojawi się tylko, jeśli StreamElements przekaże adres z zaufanego serwera obrazów. W pozostałych przypadkach użyty zostanie inicjał nazwy widza.</p>
           </div>
         </div>
         <p class="ae-timeline-hint">Każde zdarzenie odtwarza jeden cykl animacji (również jeśli oś czasu ustawiono na pętlę). Przy kolejnych zdarzeniach warstwa jest uruchamiana od początku.</p>
@@ -146,6 +155,13 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-size]")?.addEventListener("change", (event) => {
     changeCaption({ fontSize: Number((event.currentTarget as HTMLInputElement).value) });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-avatar]")?.addEventListener("change", (event) => {
+    changeCaption({ avatarEnabled: (event.currentTarget as HTMLInputElement).checked });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-avatar-size]")?.addEventListener("change", (event) => {
+    const size = Number((event.currentTarget as HTMLInputElement).value);
+    if (Number.isFinite(size)) changeCaption({ avatarSize: size });
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-color]")?.addEventListener("change", (event) => {
     changeCaption({ color: (event.currentTarget as HTMLInputElement).value });
