@@ -44,7 +44,7 @@ const module = {
 };
 const avatarRuntime = moduleFromFile("../src/animation/avatarRuntime.ts");
 const alertRuntime = moduleFromFile("../src/animation/alertRuntime.ts");
-const exporter = moduleFromFile("../src/export/streamElements.ts", (id) => {
+const exporter = moduleFromFile("../src/export/streamElementsAdvanced.ts", (id) => {
   if (id === "../effects/registry") return { getEffectModule: (name) => name === "stub" ? module : undefined };
   if (id === "../animation/timeline") return timeline;
   if (id === "../animation/motion") return motion;
