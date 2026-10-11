@@ -5,6 +5,8 @@ export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   enabled: false,
   template: "{name} · {amount}",
   position: "bottom",
+  xPercent: 50,
+  yPercent: 75,
   fontSize: 48,
   color: "#ffffff",
   avatarEnabled: false,
@@ -21,7 +23,9 @@ export function normalizeAlertCaption(value: unknown): AlertCaption {
   return {
     enabled: input.enabled === true,
     template,
-    position: input.position === "top" || input.position === "center" ? input.position : "bottom",
+    position: input.position === "top" || input.position === "center" || input.position === "custom" ? input.position : "bottom",
+    xPercent: Number.isFinite(Number(input.xPercent)) ? Math.max(25, Math.min(75, Math.round(Number(input.xPercent)))) : 50,
+    yPercent: Number.isFinite(Number(input.yPercent)) ? Math.max(10, Math.min(90, Math.round(Number(input.yPercent)))) : 75,
     fontSize: Number.isFinite(numeric) ? Math.round(Math.max(14, Math.min(120, numeric))) : DEFAULT_ALERT_CAPTION.fontSize,
     color: typeof input.color === "string" && /^#[\da-fA-F]{6}$/.test(input.color) ? input.color : DEFAULT_ALERT_CAPTION.color,
     avatarEnabled: input.avatarEnabled === true,
@@ -88,7 +92,12 @@ export function appendAlertCaption(
   label.style.fontWeight = "700";
   label.style.lineHeight = "1.2";
   label.style.textShadow = "0 3px 14px rgba(0,0,0,.9),0 0 36px rgba(0,0,0,.65)";
-  if (options.position === "top") {
+  if (options.position === "custom") {
+    label.style.left = (options.xPercent ?? 50) + "%";
+    label.style.top = (options.yPercent ?? 75) + "%";
+    label.style.width = "48%";
+    label.style.transform = "translate(-50%, -50%)";
+  } else if (options.position === "top") {
     label.style.top = "8%";
   } else if (options.position === "center") {
     label.style.top = "50%";
