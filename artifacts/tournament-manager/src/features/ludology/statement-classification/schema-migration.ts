@@ -17,8 +17,8 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     throw new Error("Plik nie zawiera obiektu projektu.");
   }
 
-  if (value.schemaVersion !== 2 && value.schemaVersion !== 3) {
-    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2 i schemaVersion=3.");
+  if (value.schemaVersion !== 2 && value.schemaVersion !== 3 && value.schemaVersion !== 4) {
+    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2, schemaVersion=3 i schemaVersion=4.");
   }
 
   const people = requireArray(value, "people");
@@ -30,7 +30,7 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
   const coders = requireArray(value, "coders");
   const codings = requireArray(value, "codings");
   const assessments =
-    value.schemaVersion === 3
+    value.schemaVersion === 3 || value.schemaVersion === 4
       ? requireArray(value, "assessments").map((assessment) => {
           if (!isRecord(assessment)) return assessment;
           return {
@@ -40,8 +40,15 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
         })
       : [];
 
+  const dimensionModels =
+    value.schemaVersion === 4 ? requireArray(value, "dimensionModels") : [];
+  const dimensions =
+    value.schemaVersion === 4 ? requireArray(value, "dimensions") : [];
+  const dimensionLinks =
+    value.schemaVersion === 4 ? requireArray(value, "dimensionLinks") : [];
+
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     people: people as ResearchProjectData["people"],
     sources: sources as ResearchProjectData["sources"],
     arguments: argumentsList as ResearchProjectData["arguments"],
@@ -51,5 +58,8 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     coders: coders as ResearchProjectData["coders"],
     codings: codings as ResearchProjectData["codings"],
     assessments: assessments as ResearchProjectData["assessments"],
+    dimensionModels: dimensionModels as ResearchProjectData["dimensionModels"],
+    dimensions: dimensions as ResearchProjectData["dimensions"],
+    dimensionLinks: dimensionLinks as ResearchProjectData["dimensionLinks"],
   };
 }
