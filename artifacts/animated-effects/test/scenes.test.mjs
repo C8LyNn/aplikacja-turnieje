@@ -53,6 +53,10 @@ const avatarSource = readFileSync(new URL("../src/animation/alertAvatar.ts", imp
 const avatarCompiled = ts.transpileModule(avatarSource, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
+const motionCssSource = readFileSync(new URL("../src/animation/captionMotion.ts", import.meta.url), "utf8");
+const motionCssCompiled = ts.transpileModule(motionCssSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const motionCssExports = {};
+runInNewContext(motionCssCompiled, { exports: motionCssExports });
 const avatarExports = {};
 runInNewContext(avatarCompiled, { exports: avatarExports });
 const alertTextExports = {};
@@ -60,6 +64,7 @@ runInNewContext(alertTextCompiled, {
   exports: alertTextExports,
   require(id) {
     if (id === "./alertAvatar") return avatarExports;
+    if (id === "./captionMotion") return motionCssExports;
     throw new Error(id);
   },
 });
