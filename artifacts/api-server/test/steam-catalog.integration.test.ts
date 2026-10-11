@@ -327,6 +327,23 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const wrapped = await request(app).get("/api/steam-catalog/queue").query({ currentId: last.id }).expect(200);
     assert.equal(wrapped.body.nextId, earliest.id);
     assert.ok(wrapped.body.pendingCount > 1500);
+    const noCurrent = await request(app).get("/api/steam-catalog/queue").expect(200);
+    assert.equal(noCurrent.body.nextId, earliest.id);
+    const missingCurrent = await request(app).get("/api/steam-catalog/queue")
+      .query({ currentId: 2147483647 }).expect(200);
+    assert.equal(missingCurrent.body.nextId, earliest.id);
+    assert.equal(missingCurrent.body.pendingCount, wrapped.body.pendingCount);
+    const [readyGame] = await rows<{ id: number; name: string }>(
+      "SELECT id,name FROM steam_catalog_games WHERE status='ready' ORDER BY name,id LIMIT 1",
+    );
+    const [expectedAfterReady] = await rows<{ id: number }>(
+      "SELECT id FROM steam_catalog_games WHERE status<>'ready' " +
+      "AND (name,id)>($1,$2) ORDER BY name,id LIMIT 1",
+      [readyGame.name, readyGame.id],
+    );
+    const fromReady = await request(app).get("/api/steam-catalog/queue")
+      .query({ currentId: readyGame.id }).expect(200);
+    assert.equal(fromReady.body.nextId, expectedAfterReady.id);
   });
 
   test("editor saves a draft, rejects incomplete ready, accepts complete ready", async () => {
