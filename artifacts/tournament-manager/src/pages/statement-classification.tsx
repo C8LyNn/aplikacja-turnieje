@@ -26,6 +26,7 @@ import {
 } from "@/components/tool-ui";
 import { useResearchProject } from "@/features/ludology/statement-classification/use-research-project";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
+import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 
 const BASE = "/ludology/statement-classification";
 
@@ -694,7 +695,7 @@ function Coding() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    const codebook = data.codebooks[0];
+    const codebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
     const coder = data.coders[0];
     if (!excerptId || !propositionId || !codebook || !coder) return;
     const duplicate = data.codings.some((coding) =>
@@ -720,7 +721,10 @@ function Coding() {
 
   const selectedExcerpt = data.excerpts.find((excerpt) => excerpt.id === excerptId);
   const activeCoder = data.coders[0];
-  const activeCodebook = data.codebooks[0];
+  const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
+  const activePropositions = activeCodebook
+    ? data.propositions.filter((item) => item.codebookId === activeCodebook.id)
+    : [];
   const hasDuplicateCoding = Boolean(
     selectedExcerpt &&
     propositionId &&
@@ -774,7 +778,7 @@ function Coding() {
           <form className="space-y-3" onSubmit={submit}>
             <ToolSelect value={propositionId} onChange={(e) => setPropositionId(e.target.value)}>
               <option value="">Wybierz mikrostanowisko…</option>
-              {data.propositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code} — {proposition.label}</option>)}
+              {activePropositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code} — {proposition.label}</option>)}
             </ToolSelect>
             <ToolSelect value={direction} onChange={(e) => setDirection(e.target.value as typeof direction)}>
               <option value="">N/A — niewystarczające / nie dotyczy</option>
@@ -815,7 +819,7 @@ function Coding() {
           <div className="grid gap-2 sm:grid-cols-3">
             <ToolSelect value={filterPropositionId} onChange={(e) => setFilterPropositionId(e.target.value)} className="min-w-44">
               <option value="">Wszystkie mikrostanowiska</option>
-              {data.propositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code}</option>)}
+              {activePropositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code}</option>)}
             </ToolSelect>
             <ToolSelect value={filterConfidence} onChange={(e) => setFilterConfidence(e.target.value)} className="min-w-40">
               <option value="">Każda pewność</option>
@@ -867,11 +871,17 @@ function EvidenceProfile() {
   const { data } = useResearchProject();
   const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
   const [selectedPropositionId, setSelectedPropositionId] = useState("");
+  const currentCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
+  const currentPropositions = currentCodebook
+    ? data.propositions.filter((proposition) => proposition.codebookId === currentCodebook.id)
+    : [];
   const personSourceRecords = data.sources.filter((source) => source.personId === personId);
   const personSources = new Set(personSourceRecords.map((source) => source.id));
   const personExcerptRecords = data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId));
   const personExcerptIds = new Set(personExcerptRecords.map((excerpt) => excerpt.id));
-  const personCodings = data.codings.filter((coding) => personExcerptIds.has(coding.excerptId));
+  const personCodings = data.codings.filter((coding) =>
+    personExcerptIds.has(coding.excerptId) && coding.codebookId === currentCodebook?.id
+  );
   const personArgumentCount = data.arguments.filter((argument) => personSources.has(argument.sourceId)).length;
   const verifiedExcerptCount = personExcerptRecords.filter((excerpt) => excerpt.verificationStatus === "verified").length;
   const coveredPropositions = new Set(personCodings.map((coding) => coding.propositionId)).size;
@@ -905,7 +915,7 @@ function EvidenceProfile() {
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personSources.size}</div><div className="text-xs text-muted-foreground">źródeł</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personExcerptIds.size}</div><div className="text-xs text-muted-foreground">fragmentów</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personCodings.length}</div><div className="text-xs text-muted-foreground">kodowań</div></div>
-            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{new Set(personCodings.map((coding) => coding.propositionId)).size}/{data.propositions.length}</div><div className="text-xs text-muted-foreground">mikrostanowisk z dowodami</div></div>
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{new Set(personCodings.map((coding) => coding.propositionId)).size}/{currentPropositions.length}</div><div className="text-xs text-muted-foreground">mikrostanowisk z dowodami</div></div>
           </div>
 
           <ToolPanel
@@ -922,7 +932,7 @@ function EvidenceProfile() {
                 <div className="text-xs text-muted-foreground">fragmentów zweryfikowanych</div>
               </div>
               <div className="rounded-xl border border-border bg-background/40 p-4">
-                <div className="text-xl font-black">{coveredPropositions}/{data.propositions.length}</div>
+                <div className="text-xl font-black">{coveredPropositions}/{currentPropositions.length}</div>
                 <div className="text-xs text-muted-foreground">pokrycie codebooka</div>
               </div>
               <div className="rounded-xl border border-border bg-background/40 p-4">
@@ -942,7 +952,7 @@ function EvidenceProfile() {
               {personExcerptRecords.length > 0 && verifiedExcerptCount / personExcerptRecords.length < 0.5 && (
                 <ToolNotice>Większość fragmentów nie ma jeszcze statusu „zweryfikowany”. Nie używaj tego profilu jako gotowego wyniku publicznego.</ToolNotice>
               )}
-              {data.propositions.length > 0 && coveredPropositions / data.propositions.length < 0.5 && (
+              {currentPropositions.length > 0 && coveredPropositions / currentPropositions.length < 0.5 && (
                 <ToolNotice>Pokrycie codebooka jest poniżej połowy. Brak obserwacji pozostaje brakiem danych, nie stanowiskiem neutralnym.</ToolNotice>
               )}
             </div>
@@ -964,7 +974,7 @@ function EvidenceProfile() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.propositions.map((proposition) => {
+                  {currentPropositions.map((proposition) => {
                     const codings = personCodings.filter((coding) => coding.propositionId === proposition.id);
                     const unitKey = (coding: typeof codings[number]) => {
                       const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
@@ -1127,7 +1137,7 @@ function MapPage() {
 
 function Methodology() {
   const { data } = useResearchProject();
-  const activeCodebook = data.codebooks[0];
+  const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
   const propositions = activeCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
     : [];
