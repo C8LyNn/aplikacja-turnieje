@@ -216,7 +216,7 @@ describe("Steam catalog — real PostgreSQL API", () => {
 
     const originalFetch = globalThis.fetch;
     let steamRequests = 0;
-    globalThis.fetch = (async (input: RequestInfo | URL) => {
+    globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
       const upstream = String(input);
       assert.ok(upstream.startsWith("https://store.steampowered.com/api/appdetails"));
       assert.ok(upstream.includes(String(game.steam_app_id)));
