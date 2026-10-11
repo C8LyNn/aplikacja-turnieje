@@ -10,7 +10,7 @@ export const DEFAULT_LAYER_TIMELINE: LayerTimeline = {
 
 const clamp = (value: unknown, fallback: number, min: number, max: number): number => {
   const numeric = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(numeric) ? Math.round(Math.max(min, Math.min(max, numeric))) : fallback;
+  return Math.round(Math.max(min, Math.min(max, Number.isFinite(numeric) ? numeric : fallback)));
 };
 
 /** Accept only bounded numbers and supported modes, including from imported scenes. */
