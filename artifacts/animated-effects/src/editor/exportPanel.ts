@@ -5,6 +5,8 @@ import {
 import {
   getEditorState,
 } from "./state";
+import { readExportRoutes, setupExportRoutes, syncExportRoutes } from "./exportRoutes";
+
 import {
   DEFAULT_STREAM_ELEMENTS_TRIGGER_OPTIONS,
   normalizeStreamElementsTriggerOptions,
@@ -34,6 +36,7 @@ export function setupExportPanel(
     });
   });
   syncTriggerUi(dialog);
+  setupExportRoutes(dialog, () => openExportPanel(dialog));
 
   dialog
     .querySelectorAll<HTMLButtonElement>(
@@ -81,10 +84,13 @@ export function openExportPanel(
 ): void {
   const trigger = readTriggerOptions(dialog);
   syncTriggerUi(dialog, trigger);
+  syncExportRoutes(dialog);
+  const routes = readExportRoutes(dialog);
   const result =
     generateStreamElementsExport(
       getEditorState(),
       trigger,
+      routes,
     );
 
   setValue(
@@ -113,7 +119,8 @@ export function openExportPanel(
   if (metrics) {
     metrics.textContent =
       `${result.estimatedDomNodes} DOM · ` +
-      `koszt ${result.estimatedPerformanceCost}`;
+      `koszt ${result.estimatedPerformanceCost}` +
+      (routes === undefined ? "" : ` · ${routes.length} reguł`);
   }
 
   if (!dialog.open) {
