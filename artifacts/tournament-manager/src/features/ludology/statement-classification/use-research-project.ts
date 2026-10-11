@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type {
   Coder,
   CodingRecord,
+  PositionAssessment,
   ResearchArgument,
   ResearchExcerpt,
   ResearchPerson,
@@ -168,6 +169,30 @@ export function useResearchProject() {
         ...current,
         codings: current.codings.filter((coding) => coding.id !== codingId),
       }));
+    },
+    upsertAssessment(
+      key: Pick<PositionAssessment, "personId" | "propositionId" | "codebookId">,
+      value: Omit<PositionAssessment, "id" | "personId" | "propositionId" | "codebookId" | "updatedAt">,
+    ) {
+      update((current) => {
+        const existing = current.assessments.find((assessment) =>
+          assessment.personId === key.personId &&
+          assessment.propositionId === key.propositionId &&
+          assessment.codebookId === key.codebookId
+        );
+        const next: PositionAssessment = {
+          id: existing?.id ?? createResearchId("assessment"),
+          ...key,
+          ...value,
+          updatedAt: new Date().toISOString(),
+        };
+        return {
+          ...current,
+          assessments: existing
+            ? current.assessments.map((assessment) => assessment.id === existing.id ? next : assessment)
+            : [...current.assessments, next],
+        };
+      });
     },
   };
 }
