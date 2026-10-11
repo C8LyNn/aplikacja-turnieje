@@ -205,6 +205,12 @@ export default function MethodologyView() {
             <ToolSection title="Wersjonowanie" description="Zmiana definicji kodu nie może po cichu zmienić znaczenia wcześniejszych danych.">
               <ToolNotice>Istotna zmiana definicji mikrostanowiska powinna tworzyć nową wersję codebooka i zachować informację, według której wersji wykonano każde kodowanie.</ToolNotice>
             </ToolSection>
+            <ToolSection title="Sampling / Corpus Plan" description="Dobór materiału jest jawny i wersjonowany zamiast pozostawać ukrytą decyzją badacza.">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Plan próbkowania określa cele dotyczące liczby niezależnych źródeł, różnorodności formatów, celu materiału i pokrycia czasowego. Fragmenty z jednego filmu nie zwiększają liczby niezależnych źródeł.</p>
+                <p>Progi są celami operacyjnymi konkretnego badania, a nie uniwersalną miarą jakości. Niespełnienie celu powinno być widoczne jako luka korpusu, nie automatycznie jako „błąd” stanowiska.</p>
+              </div>
+            </ToolSection>
             <ToolSection title="Model wymiarów" description="Osie są osobną, wersjonowaną hipotezą interpretacyjną nad rekonstrukcjami stanowisk.">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Codebook mówi, jakie mikrostanowiska kodujemy. Dimension Model mówi dopiero później, które z nich mogą wspólnie reprezentować szerszy wymiar.</p>
