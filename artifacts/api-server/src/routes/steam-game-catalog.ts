@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { steamCatalogReadiness } from "@workspace/game-catalog";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
   db,
   steamCatalogGames,
@@ -55,67 +55,158 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-async function loadGames() {
-  // Exclude large raw Steam documents from catalog list responses.
-  const games = await db
-    .select({
-      id: steamCatalogGames.id,
-      steamAppId: steamCatalogGames.steamAppId,
-      name: steamCatalogGames.name,
-      steamUrl: steamCatalogGames.steamUrl,
-      headerImageUrl: steamCatalogGames.headerImageUrl,
-      developer: steamCatalogGames.developer,
-      publisher: steamCatalogGames.publisher,
-      releaseDate: steamCatalogGames.releaseDate,
-      shortDescription: steamCatalogGames.shortDescription,
-      status: steamCatalogGames.status,
-      updatedAt: steamCatalogGames.updatedAt,
-    })
-    .from(steamCatalogGames)
-    .orderBy(asc(steamCatalogGames.name));
+const PAGE_SIZE_DEFAULT = 25;
+const PAGE_SIZE_MAX = 100;
+const QUERY_LENGTH_MAX = 120;
 
-  if (games.length === 0) return [];
-
-  const assignments = await db
-    .select({
-      gameId: steamCatalogGameTerms.gameId,
-      termId: steamCatalogTerms.id,
-      facet: steamCatalogTerms.facet,
-      slug: steamCatalogTerms.slug,
-      label: steamCatalogTerms.label,
-      role: steamCatalogGameTerms.role,
-      position: steamCatalogGameTerms.position,
-    })
-    .from(steamCatalogGameTerms)
-    .innerJoin(
-      steamCatalogTerms,
-      eq(steamCatalogTerms.id, steamCatalogGameTerms.termId),
-    )
-    .where(
-      inArray(
-        steamCatalogGameTerms.gameId,
-        games.map((game) => game.id),
-      ),
-    );
-
-  const byGame = new Map<number, typeof assignments>();
-  for (const assignment of assignments) {
-    const list = byGame.get(assignment.gameId) ?? [];
-    list.push(assignment);
-    byGame.set(assignment.gameId, list);
-  }
-
-  return games.map((game) => ({
-    ...game,
-    assignments: (byGame.get(game.id) ?? []).sort(
-      (a, b) => a.position - b.position || a.label.localeCompare(b.label),
-    ),
-  }));
+function parsePositiveInt(value: unknown, fallback: number): number | null {
+  if (value === undefined) return fallback;
+  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
-router.get("/steam-catalog/games", async (_req, res, next) => {
+function parseListQuery(query: Record<string, unknown>) {
+  const page = parsePositiveInt(query.page, 1);
+  const pageSize = parsePositiveInt(query.pageSize, PAGE_SIZE_DEFAULT);
+  const search = typeof query.query === "string" ? query.query.trim() : "";
+  const status = query.status === undefined ? "all" : query.status;
+  if (!page || !pageSize || pageSize > PAGE_SIZE_MAX || page > 1_000_000 ||
+      typeof status !== "string" || (status !== "all" && !STATUSES.has(status)) ||
+      search.length > QUERY_LENGTH_MAX || (query.query !== undefined && typeof query.query !== "string")) {
+    return null;
+  }
+  return { page, pageSize, search, status };
+}
+
+const gameListColumns = {
+  id: steamCatalogGames.id,
+  steamAppId: steamCatalogGames.steamAppId,
+  name: steamCatalogGames.name,
+  steamUrl: steamCatalogGames.steamUrl,
+  headerImageUrl: steamCatalogGames.headerImageUrl,
+  developer: steamCatalogGames.developer,
+  publisher: steamCatalogGames.publisher,
+  releaseDate: steamCatalogGames.releaseDate,
+  shortDescription: steamCatalogGames.shortDescription,
+  status: steamCatalogGames.status,
+  updatedAt: steamCatalogGames.updatedAt,
+};
+
+async function loadAssignmentRows(gameIds: number[]) {
+  if (!gameIds.length) return [];
+  return db.select({
+    gameId: steamCatalogGameTerms.gameId,
+    termId: steamCatalogTerms.id,
+    facet: steamCatalogTerms.facet,
+    slug: steamCatalogTerms.slug,
+    label: steamCatalogTerms.label,
+    role: steamCatalogGameTerms.role,
+    position: steamCatalogGameTerms.position,
+  }).from(steamCatalogGameTerms)
+    .innerJoin(steamCatalogTerms, eq(steamCatalogTerms.id, steamCatalogGameTerms.termId))
+    .where(inArray(steamCatalogGameTerms.gameId, gameIds))
+    .orderBy(asc(steamCatalogGameTerms.position), asc(steamCatalogTerms.label));
+}
+
+// Detail responses include assignments; list responses intentionally do not.
+router.get("/steam-catalog/games/:id", async (req, res, next) => {
   try {
-    res.json({ games: await loadGames() });
+    const gameId = Number(req.params.id);
+    if (!Number.isSafeInteger(gameId) || gameId < 1) {
+      res.status(400).json({ error: "Nieprawidłowe ID gry.", code: "INVALID_GAME_ID" });
+      return;
+    }
+    const [game] = await db.select(gameListColumns)
+      .from(steamCatalogGames).where(eq(steamCatalogGames.id, gameId)).limit(1);
+    if (!game) {
+      res.status(404).json({ error: "Nie znaleziono gry.", code: "GAME_NOT_FOUND" });
+      return;
+    }
+    const assignments = await loadAssignmentRows([gameId]);
+    res.json({ game: { ...game, assignments } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/steam-catalog/games", async (req, res, next) => {
+  try {
+    const params = parseListQuery(req.query);
+    if (!params) {
+      res.status(400).json({ error: "Nieprawidłowe parametry wyszukiwania.", code: "INVALID_CATALOG_QUERY" });
+      return;
+    }
+    const { page, pageSize, search, status } = params;
+    const escaped = search.replace(/[\\%_]/g, "\\$&");
+    const searchCondition = search ? or(
+      ilike(steamCatalogGames.name, "%" + escaped + "%"),
+      ilike(steamCatalogGames.developer, "%" + escaped + "%"),
+      ilike(steamCatalogGames.publisher, "%" + escaped + "%"),
+      ...( /^\d+$/.test(search) && Number.isSafeInteger(Number(search)) && Number(search) <= 2_147_483_647
+        ? [eq(steamCatalogGames.steamAppId, Number(search))] : []),
+    ) : undefined;
+    // The escape character for the LIKE expression is a literal backslash.
+    const where = and(
+      status !== "all" ? eq(steamCatalogGames.status, status) : undefined,
+      searchCondition,
+    );
+    const [matches] = await db.select({ total: count() }).from(steamCatalogGames).where(where);
+    const total = Number(matches?.total ?? 0);
+    const offset = (page - 1) * pageSize;
+    const games = offset >= total ? [] : await db.select(gameListColumns).from(steamCatalogGames)
+      .where(where)
+      .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
+      .limit(pageSize).offset(offset);
+    const grouped = await db.select({ status: steamCatalogGames.status, total: count() })
+      .from(steamCatalogGames).groupBy(steamCatalogGames.status);
+    const counts = { all: 0, unclassified: 0, review: 0, ready: 0 };
+    for (const item of grouped) {
+      if (item.status in counts) counts[item.status as "unclassified" | "review" | "ready"] = Number(item.total);
+    }
+    counts.all = counts.unclassified + counts.review + counts.ready;
+    res.json({
+      games,
+      pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+      counts,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// A compact, indexed classification queue avoids transferring every game to the client.
+router.get("/steam-catalog/queue", async (req, res, next) => {
+  try {
+    const currentId = req.query.currentId === undefined ? null : parsePositiveInt(req.query.currentId, 1);
+    if (req.query.currentId !== undefined && (!currentId || currentId > 2_147_483_647)) {
+      res.status(400).json({ error: "Nieprawidłowe ID gry.", code: "INVALID_GAME_ID" });
+      return;
+    }
+    const pending = ne(steamCatalogGames.status, "ready");
+    const [totalRow] = await db.select({ total: count() }).from(steamCatalogGames).where(pending);
+    const pendingCount = Number(totalRow?.total ?? 0);
+    let nextId: number | null = null;
+    if (pendingCount) {
+      const current = currentId === null ? null : (await db.select({
+        id: steamCatalogGames.id, name: steamCatalogGames.name,
+      }).from(steamCatalogGames).where(eq(steamCatalogGames.id, currentId)).limit(1))[0];
+      const after = current ? or(
+        gt(steamCatalogGames.name, current.name),
+        and(eq(steamCatalogGames.name, current.name), gt(steamCatalogGames.id, current.id)),
+      ) : undefined;
+      const base = and(pending, currentId === null ? undefined : ne(steamCatalogGames.id, currentId));
+      const queryFirst = (where: ReturnType<typeof and>) =>
+        db.select({ id: steamCatalogGames.id }).from(steamCatalogGames)
+          .where(where).orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id)).limit(1);
+      const [forward] = await queryFirst(and(base, after));
+      if (forward) nextId = forward.id;
+      else {
+        const [wrapped] = await queryFirst(base);
+        nextId = wrapped?.id ?? null;
+      }
+    }
+    res.json({ pendingCount, nextId });
   } catch (error) {
     next(error);
   }
