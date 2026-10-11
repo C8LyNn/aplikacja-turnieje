@@ -51,12 +51,23 @@ export interface EffectDefinition {
 }
 
 export type LayerTimelineMode = "off" | "once" | "loop";
+export interface LayerKeyframe {
+  timeMs: number;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  /** 0-100 percent of the layer's base opacity. */
+  opacity: number;
+}
 export interface LayerTimeline {
   mode: LayerTimelineMode;
   delayMs: number;
   durationMs: number;
   fadeInMs: number;
   fadeOutMs: number;
+  easing?: "linear" | "ease-in-out";
+  keyframes?: LayerKeyframe[];
 }
 
 export interface EffectInstance {
