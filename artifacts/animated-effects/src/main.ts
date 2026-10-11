@@ -972,6 +972,9 @@ function renderPreview(): void {
   }
 }
 
+// A replay starts every timed layer at t=0 without changing the saved scene.
+document.addEventListener("animated-effects:replay-preview", () => renderPreview());
+
 function renderLayers(): void {
   const state =
     getEditorState();
