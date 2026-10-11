@@ -29,14 +29,18 @@ type AssignmentInput = {
 };
 
 function parseSteamAppId(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
-    return value;
-  }
+  const toAppId = (candidate: string | number): number | null => {
+    const parsed = typeof candidate === "number" ? candidate : Number(candidate);
+    return Number.isSafeInteger(parsed) && parsed > 0 && parsed <= 2_147_483_647
+      ? parsed
+      : null;
+  };
+  if (typeof value === "number") return toAppId(value);
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (/^\d+$/.test(trimmed)) return Number(trimmed);
-  const match = trimmed.match(/store\.steampowered\.com\/app\/(\d+)/i);
-  return match ? Number(match[1]) : null;
+  if (/^\d+$/.test(trimmed)) return toAppId(trimmed);
+  const match = trimmed.match(/^https?:\/\/store\.steampowered\.com\/app\/(\d+)(?:[\/?#]|$)/i);
+  return match ? toAppId(match[1]) : null;
 }
 
 function slugify(value: string): string {
@@ -50,8 +54,21 @@ function slugify(value: string): string {
 }
 
 async function loadGames() {
+  // Exclude large raw Steam documents from catalog list responses.
   const games = await db
-    .select()
+    .select({
+      id: steamCatalogGames.id,
+      steamAppId: steamCatalogGames.steamAppId,
+      name: steamCatalogGames.name,
+      steamUrl: steamCatalogGames.steamUrl,
+      headerImageUrl: steamCatalogGames.headerImageUrl,
+      developer: steamCatalogGames.developer,
+      publisher: steamCatalogGames.publisher,
+      releaseDate: steamCatalogGames.releaseDate,
+      shortDescription: steamCatalogGames.shortDescription,
+      status: steamCatalogGames.status,
+      updatedAt: steamCatalogGames.updatedAt,
+    })
     .from(steamCatalogGames)
     .orderBy(asc(steamCatalogGames.name));
 
@@ -251,6 +268,19 @@ router.put(
         res.status(400).json({
           error: "Nieprawidłowy status.",
           code: "INVALID_STATUS",
+        });
+        return;
+      }
+
+      const [existingGame] = await db
+        .select({ id: steamCatalogGames.id })
+        .from(steamCatalogGames)
+        .where(eq(steamCatalogGames.id, gameId))
+        .limit(1);
+      if (!existingGame) {
+        res.status(404).json({
+          error: "Nie znaleziono gry w katalogu.",
+          code: "GAME_NOT_FOUND",
         });
         return;
       }
