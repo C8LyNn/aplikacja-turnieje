@@ -1,0 +1,70 @@
+name: Stream background effects - Google Drive install package
+
+on:
+  push:
+    branches:
+      - packaging/stream-background-google-drive-20261012
+    paths:
+      - "packaging/stream-background-drive/**"
+      - ".github/workflows/stream-background-drive-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify payload equals merged PR14 and generate installer bundle
+        run: python3 packaging/stream-background-drive/make_package.py
+      - name: Publish full source + PowerShell installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: stream-background-effects_PR8_PR9_20261012
+          path: release-stream-background-effects/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
+
+  verify-windows:
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: stream-background-effects_PR8_PR9_20261012
+          path: ${{ runner.temp }}/stream-package
+      - name: Validate PowerShell 5.1 installer, dry run, overlay, and conflict handling
+        shell: powershell
+        run: |
+          $pack = Join-Path $env:RUNNER_TEMP 'stream-package'
+          $installer = Join-Path $pack 'INSTALL_STREAM_BACKGROUND_EFFECTS.ps1'
+          $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $pack 'manifest.json') | ConvertFrom-Json
+          if (@($manifest.files).Count -lt 80) { throw 'Incomplete package.' }
+          $repo = Join-Path $env:RUNNER_TEMP 'fake-tournament-repo'
+          New-Item -ItemType Directory -Path (Join-Path $repo 'artifacts/tournament-manager') -Force | Out-Null
+          '{"private":true}' | Set-Content -Path (Join-Path $repo 'package.json')
+          git -C $repo init | Out-Null
+          git -C $repo -c user.name=QA -c user.email=qa@example.test add package.json
+          git -C $repo -c user.name=QA -c user.email=qa@example.test commit -m init | Out-Null
+          & $installer -RepoPath $repo
+          if (Test-Path (Join-Path $repo 'artifacts/animated-effects/package.json')) {
+            throw 'Dry run unexpectedly copied package source!'
+          }
+          & $installer -RepoPath $repo -Apply
+          if (-not (Test-Path (Join-Path $repo 'artifacts/animated-effects/package.json'))) {
+            throw 'Apply did not copy effect editor.'
+          }
+          $file = Join-Path $repo 'artifacts/animated-effects/package.json'
+          Add-Content -Path $file -Value '/* local edit */'
+          $wasBlocked = $false
+          try { & $installer -RepoPath $repo -Apply } catch { $wasBlocked = $true }
+          if (-not $wasBlocked) { throw 'Locally edited file was overwritten!' }
+          if (-not (Get-Content $file -Raw).Contains('local edit')) {
+            throw 'Original local modification was lost.'
+          }
+          Write-Host 'Windows installer QA PASS' -ForegroundColor Green
