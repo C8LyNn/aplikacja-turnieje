@@ -31,6 +31,7 @@ import CodingLab from "@/features/ludology/statement-classification/CodingLab";
 import ResearchWorkspace from "@/features/ludology/statement-classification/ResearchWorkspace";
 import DimensionModelLab from "@/features/ludology/statement-classification/DimensionModelLab";
 import SamplingLab from "@/features/ludology/statement-classification/SamplingLab";
+import CorpusHealthLab from "@/features/ludology/statement-classification/CorpusHealthLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
@@ -39,12 +40,12 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sampling" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "health" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
   if (tail === "dimensions") return "map";
-  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -70,6 +71,13 @@ const cards = [
     title: "Sampling / Corpus Plan",
     description: "Plan próbkowania, różnorodność korpusu i kontrola cherry-pickingu.",
     href: `${BASE}/sampling`,
+    icon: ListChecks,
+  },
+  {
+    code: "HEALTH",
+    title: "Corpus Health",
+    description: "Audyt kompletności, pokrycia, sprzeczności, stale rekonstrukcji i ryzyk przed publikacją.",
+    href: `${BASE}/health`,
     icon: ListChecks,
   },
   {
@@ -557,6 +565,7 @@ export default function StatementClassificationPage() {
         {section === "overview" && <Overview />}
         {section === "people" && <People />}
         {section === "sampling" && <SamplingLab />}
+        {section === "health" && <CorpusHealthLab />}
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
