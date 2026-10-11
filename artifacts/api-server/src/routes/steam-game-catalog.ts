@@ -5,6 +5,7 @@ import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogRe
 import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
   db,
+  pool,
   steamCatalogGames,
   steamCatalogStatusCounts,
   steamCatalogGameTerms,
@@ -175,8 +176,12 @@ router.get("/steam-catalog/games", async (req, res, next) => {
         Buffer.from(JSON.stringify(matchQuery.toSQL()), "utf8").toString("base64url"));
     }
     const beginCount = performance.now();
-    const total = search
-      ? Number((await matchQuery)[0]?.total ?? 0)
+    // Keep Drizzle's SQL builder and bound parameters, but avoid named
+    // prepared-plan reuse for unpredictable substring search selectivity.
+    // Unfiltered requests retain their indexed Drizzle path.
+    const matching = search ? matchQuery.toSQL() : null;
+    const total = matching
+      ? Number((await pool.query(matching.sql, matching.params)).rows[0]?.count ?? 0)
       : status === "all" ? counts.all : counts[status];
     recordMs("match_count", beginCount);
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -195,12 +200,19 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     // Cursor-based requests never use OFFSET, even on deep pages. The legacy
     // page-number API remains available for direct jumps and older clients.
     const beginPage = performance.now();
+    const pageQuery = db.select(gameListColumns).from(steamCatalogGames)
+      .where(and(where, after))
+      .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
+      .limit(pageSize + 1)
+      .offset(cursor ? 0 : (resolvedPage - 1) * pageSize);
     const pageRows = cursor || (resolvedPage - 1) * pageSize < total
-      ? await db.select(gameListColumns).from(steamCatalogGames)
-        .where(and(where, after))
-        .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
-        .limit(pageSize + 1)
-        .offset(cursor ? 0 : (resolvedPage - 1) * pageSize)
+      ? search
+        ? await (async () => {
+            const compiled = pageQuery.toSQL();
+            const result = await pool.query(compiled.sql, compiled.params);
+            return result.rows as Awaited<ReturnType<typeof pageQuery.execute>>;
+          })()
+        : await pageQuery
       : [];
     recordMs("page_select", beginPage);
     const games = pageRows.slice(0, pageSize);
