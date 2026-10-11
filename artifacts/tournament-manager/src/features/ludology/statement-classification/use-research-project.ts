@@ -59,16 +59,54 @@ export function useResearchProject() {
         arguments: [...current.arguments, { ...input, id: createResearchId("argument") }],
       }));
     },
+    updateArgument(argumentId: string, patch: Partial<Omit<ResearchArgument, "id" | "sourceId">>) {
+      update((current) => ({
+        ...current,
+        arguments: current.arguments.map((argument) =>
+          argument.id === argumentId ? { ...argument, ...patch } : argument,
+        ),
+      }));
+    },
+    deleteArgument(argumentId: string) {
+      update((current) => ({
+        ...current,
+        arguments: current.arguments.filter((argument) => argument.id !== argumentId),
+        excerpts: current.excerpts.map((excerpt) =>
+          excerpt.argumentId === argumentId ? { ...excerpt, argumentId: undefined } : excerpt,
+        ),
+      }));
+    },
     addExcerpt(input: Omit<ResearchExcerpt, "id">) {
       update((current) => ({
         ...current,
         excerpts: [...current.excerpts, { ...input, id: createResearchId("excerpt") }],
       }));
     },
+    updateExcerpt(excerptId: string, patch: Partial<Omit<ResearchExcerpt, "id" | "sourceId">>) {
+      update((current) => ({
+        ...current,
+        excerpts: current.excerpts.map((excerpt) =>
+          excerpt.id === excerptId ? { ...excerpt, ...patch } : excerpt,
+        ),
+      }));
+    },
+    deleteExcerpt(excerptId: string) {
+      update((current) => ({
+        ...current,
+        excerpts: current.excerpts.filter((excerpt) => excerpt.id !== excerptId),
+        codings: current.codings.filter((coding) => coding.excerptId !== excerptId),
+      }));
+    },
     addCoding(input: Omit<CodingRecord, "id" | "createdAt">) {
       update((current) => ({
         ...current,
         codings: [...current.codings, { ...input, id: createResearchId("coding"), createdAt: new Date().toISOString() }],
+      }));
+    },
+    deleteCoding(codingId: string) {
+      update((current) => ({
+        ...current,
+        codings: current.codings.filter((coding) => coding.id !== codingId),
       }));
     },
   };
