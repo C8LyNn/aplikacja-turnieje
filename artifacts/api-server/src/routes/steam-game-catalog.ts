@@ -153,7 +153,9 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     );
     const [matches] = await db.select({ total: count() }).from(steamCatalogGames).where(where);
     const total = Number(matches?.total ?? 0);
-    const offset = (page - 1) * pageSize;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const resolvedPage = Math.min(page, totalPages);
+    const offset = (resolvedPage - 1) * pageSize;
     const games = offset >= total ? [] : await db.select(gameListColumns).from(steamCatalogGames)
       .where(where)
       .orderBy(asc(steamCatalogGames.name), asc(steamCatalogGames.id))
@@ -167,7 +169,7 @@ router.get("/steam-catalog/games", async (req, res, next) => {
     counts.all = counts.unclassified + counts.review + counts.ready;
     res.json({
       games,
-      pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+      pagination: { page: resolvedPage, pageSize, total, totalPages },
       counts,
     });
   } catch (error) {
