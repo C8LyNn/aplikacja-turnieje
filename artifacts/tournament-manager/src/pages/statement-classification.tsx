@@ -27,6 +27,11 @@ import {
 import { useResearchProject } from "@/features/ludology/statement-classification/use-research-project";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
+import {
+  countEvidenceDirections,
+  groupEvidenceByYear,
+  personEvidence,
+} from "@/features/ludology/statement-classification/evidence-analysis";
 
 const BASE = "/ludology/statement-classification";
 
@@ -965,14 +970,16 @@ function EvidenceProfile() {
   const currentPropositions = currentCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === currentCodebook.id)
     : [];
-  const personSourceRecords = data.sources.filter((source) => source.personId === personId);
+  const evidence = currentCodebook
+    ? personEvidence(data, personId, currentCodebook.id)
+    : { sources: [], excerpts: [], codings: [], argumentsCount: 0 };
+  const personSourceRecords = evidence.sources;
   const personSources = new Set(personSourceRecords.map((source) => source.id));
-  const personExcerptRecords = data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId));
+  const personExcerptRecords = evidence.excerpts;
   const personExcerptIds = new Set(personExcerptRecords.map((excerpt) => excerpt.id));
-  const personCodings = data.codings.filter((coding) =>
-    personExcerptIds.has(coding.excerptId) && coding.codebookId === currentCodebook?.id
-  );
-  const personArgumentCount = data.arguments.filter((argument) => personSources.has(argument.sourceId)).length;
+  const personCodings = evidence.codings;
+  const personArgumentCount = evidence.argumentsCount;
+  const evidenceTimeline = groupEvidenceByYear(personCodings, data.excerpts, data.sources);
   const verifiedExcerptCount = personExcerptRecords.filter((excerpt) => excerpt.verificationStatus === "verified").length;
   const coveredPropositions = new Set(personCodings.map((coding) => coding.propositionId)).size;
   const sourceTypeCounts = personSourceRecords.reduce<Record<string, number>>((acc, source) => {
@@ -1066,18 +1073,15 @@ function EvidenceProfile() {
                 <tbody>
                   {currentPropositions.map((proposition) => {
                     const codings = personCodings.filter((coding) => coding.propositionId === proposition.id);
-                    const unitKey = (coding: typeof codings[number]) => {
-                      const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
-                      return excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`;
-                    };
-                    const countUnits = (predicate: (coding: typeof codings[number]) => boolean) =>
-                      new Set(codings.filter(predicate).map(unitKey)).size;
-                    const positive = countUnits((coding) => coding.direction !== null && coding.direction > 0);
-                    const negative = countUnits((coding) => coding.direction !== null && coding.direction < 0);
-                    const mixed = countUnits((coding) => coding.direction === 0);
-                    const na = countUnits((coding) => coding.direction === null);
-                    const allUnits = new Set(codings.map(unitKey)).size;
-                    const contradiction = positive > 0 && negative > 0;
+                    const counts = countEvidenceDirections(codings, data.excerpts);
+                    const {
+                      positive,
+                      negative,
+                      mixed,
+                      na,
+                      units: allUnits,
+                      contradiction,
+                    } = counts;
                     return (
                       <tr key={proposition.id} className="border-b border-border/60 last:border-0">
                         <td className="px-3 py-3">
@@ -1106,52 +1110,24 @@ function EvidenceProfile() {
           <ToolPanel title="Evidence Timeline" description="Chronologia pokazuje materiał według dat źródeł bez uśredniania starszych i nowszych stanowisk.">
             {personCodings.length === 0 ? (
               <ToolEmptyState title="Brak danych czasowych" description="Kodowania pojawią się na osi po dodaniu źródeł i fragmentów." />
-            ) : (() => {
-              const buckets = new Map<string, { codings: typeof personCodings; units: Set<string> }>();
-              let undated = 0;
-              for (const coding of personCodings) {
-                const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
-                const source = data.sources.find((item) => item.id === excerpt?.sourceId);
-                const year = source?.publishedAt?.slice(0, 4);
-                if (!year) {
-                  undated += 1;
-                  continue;
-                }
-                const current = buckets.get(year) ?? { codings: [], units: new Set<string>() };
-                current.codings.push(coding);
-                current.units.add(excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`);
-                buckets.set(year, current);
-              }
-              const years = [...buckets.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-              if (years.length === 0) {
-                return <ToolEmptyState title="Brak dat źródeł" description="Dodaj daty publikacji materiałów, aby analizować zmianę stanowisk w czasie." />;
-              }
-              return (
-                <div className="space-y-3">
-                  {years.map(([year, bucket]) => {
-                    const unitKey = (coding: typeof bucket.codings[number]) => {
-                      const excerpt = data.excerpts.find((item) => item.id === coding.excerptId);
-                      return excerpt?.argumentId ? `argument:${excerpt.argumentId}` : `excerpt:${coding.excerptId}`;
-                    };
-                    const countUnits = (predicate: (coding: typeof bucket.codings[number]) => boolean) =>
-                      new Set(bucket.codings.filter(predicate).map(unitKey)).size;
-                    const positive = countUnits((coding) => coding.direction !== null && coding.direction > 0);
-                    const negative = countUnits((coding) => coding.direction !== null && coding.direction < 0);
-                    const mixed = countUnits((coding) => coding.direction === 0);
-                    return (
-                      <div key={year} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[90px_1fr]">
-                        <div className="text-xl font-black">{year}</div>
-                        <div>
-                          <div className="text-sm font-semibold">{bucket.units.size} jednostek argumentacyjnych · {bucket.codings.length} kodowań</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Jednostki — za: {positive} · przeciw: {negative} · mieszane: {mixed}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {undated > 0 && <ToolNotice>{undated} kodowań pochodzi ze źródeł bez daty publikacji i nie trafia na oś czasu.</ToolNotice>}
-                </div>
-              );
-            })()}
+            ) : evidenceTimeline.years.length === 0 ? (
+              <ToolEmptyState title="Brak dat źródeł" description="Dodaj daty publikacji materiałów, aby analizować zmianę stanowisk w czasie." />
+            ) : (
+              <div className="space-y-3">
+                {evidenceTimeline.years.map((bucket) => (
+                  <div key={bucket.year} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[90px_1fr]">
+                    <div className="text-xl font-black">{bucket.year}</div>
+                    <div>
+                      <div className="text-sm font-semibold">{bucket.units} jednostek argumentacyjnych · {bucket.codings} kodowań</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Jednostki — za: {bucket.positive} · przeciw: {bucket.negative} · mieszane: {bucket.mixed}</div>
+                    </div>
+                  </div>
+                ))}
+                {evidenceTimeline.undatedCodings > 0 && (
+                  <ToolNotice>{evidenceTimeline.undatedCodings} kodowań pochodzi ze źródeł bez daty publikacji i nie trafia na oś czasu.</ToolNotice>
+                )}
+              </div>
+            )}
           </ToolPanel>
 
           {selectedPropositionId && (() => {
