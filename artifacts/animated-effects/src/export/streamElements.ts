@@ -657,15 +657,26 @@ function aeHandleEvent(obj) {
     }
 
     if (rule.queueMode === "queue") {
-      // Admission control is performed on arrival, not on playback. Every
-      // accepted event therefore observes its configured cooldown.
-      if (aeQueue.length >= AE_MAX_QUEUED_ALERTS) return;
-      aeLastFired[effect.instanceId] = now;
-      aeQueue.push({
+      // Stable priority queue: higher priority is played sooner while equal
+      // priorities keep arrival order. The current alert is never preempted.
+      const priority = typeof rule.priority === "number" ? rule.priority : 5;
+      const firstLower = aeQueue.findIndex(function (entry) {
+        const other = entry.effect.trigger.priority;
+        return (typeof other === "number" ? other : 5) < priority;
+      });
+      if (aeQueue.length >= AE_MAX_QUEUED_ALERTS) {
+        if (firstLower < 0) return; // Do not evict an equal or higher-priority alert.
+        aeQueue.pop(); // Lowest priority, newest first, loses its waiting slot.
+      }
+      const candidate = {
         effect,
         listener: detail.listener,
         eventData: aeCompactEvent(detail.listener, eventData),
-      });
+      };
+      if (firstLower < 0) aeQueue.push(candidate);
+      else aeQueue.splice(firstLower, 0, candidate);
+      // Admission control is performed on arrival, not on playback.
+      aeLastFired[effect.instanceId] = now;
       aeNextQueued();
       return;
     }
