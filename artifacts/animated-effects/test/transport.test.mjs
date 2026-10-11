@@ -8,8 +8,21 @@ const source = readFileSync(new URL("../src/animation/transportMath.ts", import.
 const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
+const timelineSource = readFileSync(new URL("../src/animation/timeline.ts", import.meta.url), "utf8");
+const timelineCompiled = ts.transpileModule(timelineSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const timelineExports = {};
+runInNewContext(timelineCompiled, { exports: timelineExports });
+
 const exports = {};
-runInNewContext(compiled, { exports });
+runInNewContext(compiled, {
+  exports,
+  require(id) {
+    if (id === "./timeline") return timelineExports;
+    throw new Error("Unexpected transport dependency: " + id);
+  },
+});
 const { sceneDurationMs, clampTimeMs, timeFromPosition } = exports;
 
 test("keeps at least ten seconds of preview for untimed scenes", () => {
