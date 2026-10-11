@@ -51,6 +51,33 @@ classification and `GET /api/steam-catalog/queue?currentId=ID` for the
 next pending record. The latter avoids loading all catalog entries.
 
 Migrations `0030` and `0031` provide abstract-world support and indexes.
+Migration `0032_steam_catalog_classification_revision.sql` adds a durable
+`classification_revision` optimistic concurrency token. **Apply 0029-0032
+in order before deploying the updated API**; older databases without
+0032 will fail when retrieving catalog games.
+
+### Concurrent classification editing
+
+A complete game detail response includes `classificationRevision`, initially
+`1`. Every `PUT /api/steam-catalog/games/:id/classification` must include
+`expectedRevision` taken from the latest detail response, along with
+`status` and `assignments`.
+
+- Missing/malformed expected revision returns `428 CLASSIFICATION_REVISION_REQUIRED`.
+- A newer classification version returns `409 CLASSIFICATION_CONFLICT`;
+  neither status nor assignments are touched in the losing request.
+- Success increments the revision atomically and returns
+  `{ ok: true, classificationRevision: number }`.
+- A second editor who sees a conflict keeps their draft in the browser.
+  They must confirm **Wczytaj aktualną wersję** to discard that local
+  draft and fetch the latest server version before saving again.
+- A Steam metadata re-import does *not* increment the classification revision.
+  Editing tokens track manual classification changes rather than source refreshes.
+
+The 20k-record integration workload reports `CATALOG_20K_HTTP_TIMINGS_MS`
+in GitHub Actions logs. These response times depend on the ephemeral runner,
+database warm-up and test workload; they are diagnostic observations, **not**
+a production performance service-level objective.
 Apply migrations on a test database before releasing.
 
 ## Verification before merging
