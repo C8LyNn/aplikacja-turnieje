@@ -9,6 +9,7 @@ import {
 } from "../effects/registry";
 import { getLayerTimelineAnimation } from "../animation/timeline";
 import { getLayerMotionAnimation } from "../animation/motion";
+import { eventPlaybackInstance, normalizeEffectTrigger, triggerPlaybackDurationMs } from "../animation/triggers";
 
 export function generateStreamElementsExport(
   state: EditorState,
@@ -18,8 +19,10 @@ export function generateStreamElementsExport(
       (effect) => effect.enabled,
     );
 
+  const playbackEffects = enabledEffects.map(eventPlaybackInstance);
+
   const config =
-    enabledEffects.map(
+    playbackEffects.map(
       (effect) => ({
         instanceId:
           effect.instanceId,
@@ -34,6 +37,8 @@ export function generateStreamElementsExport(
           effect.settings,
         timingAnimation: getLayerTimelineAnimation(effect)?.animation ?? null,
         motionAnimation: getLayerMotionAnimation(effect)?.animation ?? null,
+        trigger: normalizeEffectTrigger(effect.trigger) ?? null,
+        playbackMs: triggerPlaybackDurationMs(effect),
       }),
     );
 
@@ -43,7 +48,7 @@ export function generateStreamElementsExport(
 
     css:
       generateCss(
-        enabledEffects,
+        playbackEffects,
       ),
 
     javascript:
@@ -135,6 +140,8 @@ function generateJavaScript(
       EffectInstance["settings"];
     timingAnimation: string | null;
     motionAnimation: string | null;
+    trigger: EffectInstance["trigger"] | null;
+    playbackMs: number;
   }>,
 ): string {
   const effectIds =
@@ -489,90 +496,119 @@ const aeRenderers = {
   ${rendererMap}
 };
 
-function startAnimatedEffects() {
-  const root =
-    document.getElementById(
-      "animated-effects-root"
-    );
-
-  if (!root) {
-    console.error(
-      "Animated Effects: " +
-      "#animated-effects-root " +
-      "not found."
-    );
-
-    return;
+// Per-layer host containers are intentionally separate from particle layers.
+function aeRenderOne(effect, root) {
+  const renderer = aeRenderers[effect.effectId];
+  if (!renderer) {
+    console.warn("Animated Effects: unknown effect", effect.effectId);
+    return null;
   }
+  const host = document.createElement("div");
+  host.className = "ae-instance-host";
+  host.style.position = "absolute";
+  host.style.inset = "0";
+  host.style.pointerEvents = "none";
+  host.style.zIndex = String(effect.settings.zIndex);
+  root.appendChild(host);
 
-  root.replaceChildren();
-
-  effects.forEach(
-    function (effect) {
-      const renderer =
-        aeRenderers[
-          effect.effectId
-        ];
-
-      if (!renderer) {
-        console.warn(
-          "Animated Effects: " +
-          "unknown effect",
-          effect.effectId
-        );
-
-        return;
+  let parent = host;
+  if (effect.timingAnimation) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "ae-timed-layer";
+    wrapper.style.position = "absolute";
+    wrapper.style.inset = "0";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.pointerEvents = "none";
+    wrapper.style.animation = effect.timingAnimation;
+    parent.appendChild(wrapper);
+    parent = wrapper;
+  }
+  if (effect.motionAnimation) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "ae-motion-layer";
+    wrapper.style.position = "absolute";
+    wrapper.style.inset = "0";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.pointerEvents = "none";
+    wrapper.style.animation = effect.motionAnimation;
+    parent.appendChild(wrapper);
+    parent = wrapper;
+  }
+  renderer(effect, parent);
+  if (effect.motionAnimation) {
+    Array.from(parent.children).forEach(function (child) {
+      if (child.classList && child.classList.contains("ae-layer")) {
+        child.style.transform = "none";
       }
-
-      let parent = root;
-      if (effect.timingAnimation) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "ae-timed-layer";
-        wrapper.style.position = "absolute";
-        wrapper.style.inset = "0";
-        wrapper.style.overflow = "hidden";
-        wrapper.style.pointerEvents = "none";
-        wrapper.style.zIndex = String(effect.settings.zIndex);
-        wrapper.style.animation = effect.timingAnimation;
-        parent.appendChild(wrapper);
-        parent = wrapper;
-      }
-      if (effect.motionAnimation) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "ae-motion-layer";
-        wrapper.style.position = "absolute";
-        wrapper.style.inset = "0";
-        wrapper.style.overflow = "hidden";
-        wrapper.style.pointerEvents = "none";
-        wrapper.style.zIndex = String(effect.settings.zIndex);
-        wrapper.style.animation = effect.motionAnimation;
-        parent.appendChild(wrapper);
-        parent = wrapper;
-      }
-      renderer(effect, parent);
-      if (effect.motionAnimation) {
-        // Source renderers use aeCreateLayer(), which sets a base transform.
-        // Move that transform entirely to the motion wrapper.
-        Array.from(parent.children).forEach(function (child) {
-          if (child.classList && child.classList.contains("ae-layer")) {
-            child.style.transform = "none";
-          }
-        });
-      }
-    }
-  );
-
-  console.log(
-    "Animated Effects started:",
-    effects.length,
-    "effect(s)"
-  );
+    });
+  }
+  return host;
 }
 
-window.addEventListener(
-  "onWidgetLoad",
-  startAnimatedEffects
-);
+let aeRoot = null;
+const aePending = new Map();
+const aeActive = new Map();
+const aeLastFired = Object.create(null);
+
+function startAnimatedEffects() {
+  const root = document.getElementById("animated-effects-root");
+  if (!root) {
+    console.error("Animated Effects: #animated-effects-root not found.");
+    return;
+  }
+  for (const timer of aePending.values()) clearTimeout(timer);
+  aePending.clear();
+  aeActive.clear();
+  for (const id of Object.keys(aeLastFired)) delete aeLastFired[id];
+  aeRoot = root;
+  root.replaceChildren();
+  effects.forEach(function (effect) {
+    if (effect.trigger && effect.trigger.source === "event") return;
+    aeRenderOne(effect, root);
+  });
+  console.log("Animated Effects ready:", effects.length, "effect(s)");
+}
+
+function aeHandleEvent(obj) {
+  const detail = obj && obj.detail;
+  if (!aeRoot || !detail || typeof detail.listener !== "string") return;
+  const eventData = detail.event;
+  const now = Date.now();
+  effects.forEach(function (effect) {
+    const rule = effect.trigger;
+    if (!rule || rule.source !== "event" || rule.event !== detail.listener) return;
+    const last = aeLastFired[effect.instanceId];
+    if (typeof last === "number" && now - last < rule.cooldownMs) return;
+    if (
+      rule.minAmount > 0 &&
+      (rule.event === "tip-latest" || rule.event === "cheer-latest" || rule.event === "raid-latest")
+    ) {
+      const amount = eventData && typeof eventData === "object"
+        ? Number(eventData.amount) : NaN;
+      if (!Number.isFinite(amount) || amount < rule.minAmount) return;
+    }
+
+    const old = aeActive.get(effect.instanceId);
+    if (old) old.remove();
+    const timer = aePending.get(effect.instanceId);
+    if (timer !== undefined) clearTimeout(timer);
+
+    const element = aeRenderOne(effect, aeRoot);
+    if (!element) return;
+    aeLastFired[effect.instanceId] = now;
+    aeActive.set(effect.instanceId, element);
+    aePending.set(effect.instanceId, setTimeout(function () {
+      if (aeActive.get(effect.instanceId) === element) {
+        element.remove();
+        aeActive.delete(effect.instanceId);
+      }
+      aePending.delete(effect.instanceId);
+    }, effect.playbackMs));
+  });
+}
+
+window.addEventListener("onWidgetLoad", startAnimatedEffects);
+window.addEventListener("onEventReceived", aeHandleEvent);
 `.trim();
 }
 
