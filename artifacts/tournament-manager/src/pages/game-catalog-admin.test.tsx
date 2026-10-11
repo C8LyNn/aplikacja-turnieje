@@ -57,7 +57,7 @@ function mockCatalog(games: MockGame[], imported?: MockGame) {
           .filter(Boolean).some((part) => String(part).toLowerCase().includes(query))),
       ).sort((a, b) => a.name.localeCompare(b.name, "pl") || a.id - b.id);
       return Response.json({
-        games: matches.slice((page - 1) * pageSize, page * pageSize),
+        games: matches.slice((page - 1) * pageSize, page * pageSize).map(({ assignments: _assignments, ...summary }) => summary),
         pagination: { page, pageSize, total: matches.length, totalPages: Math.max(1, Math.ceil(matches.length / pageSize)) },
         counts: {
           all: games.length,
