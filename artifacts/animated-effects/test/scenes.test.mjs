@@ -31,6 +31,19 @@ const timelineCompiled = ts.transpileModule(timelineSource, {
 }).outputText;
 const timelineExports = {};
 runInNewContext(timelineCompiled, { exports: timelineExports });
+const motionSource = readFileSync(new URL("../src/animation/motion.ts", import.meta.url), "utf8");
+const motionCompiled = ts.transpileModule(motionSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  fileName: "motion.ts",
+}).outputText;
+const motionExports = {};
+runInNewContext(motionCompiled, {
+  exports: motionExports,
+  require(id) {
+    if (id === "./timeline") return timelineExports;
+    throw new Error("Unexpected motion dependency: " + id);
+  },
+});
 const exports = {};
 runInNewContext(compiled, {
   exports,
@@ -38,7 +51,7 @@ runInNewContext(compiled, {
     if (id === "../effects/registry") {
       return { getEffectDefinition: (effectId) => effectId === definition.id ? definition : undefined };
     }
-    if (id === "../animation/timeline") return timelineExports;
+    if (id === "../animation/motion") return motionExports;
     throw new Error("Unexpected dependency: " + id);
   },
   structuredClone,
@@ -63,7 +76,7 @@ function sceneState() {
       instanceId: "effect-1", effectId: "test-effect", seed: 43, enabled: false,
       settings: { ...structuredClone(defaultSettings), density: 350, custom: { burst: 7, glow: 0.8 } },
       label: "My Overlay", locked: true, groupId: "group-1",
-      timeline: { mode: "loop", delayMs: 2000, durationMs: 4500, fadeInMs: 600, fadeOutMs: 450 },
+      timeline: { mode: "loop", delayMs: 2000, durationMs: 4500, fadeInMs: 600, fadeOutMs: 450, keyframes: [{ timeMs: 0, x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 }, { timeMs: 4500, x: 45, y: -12, scale: 125, rotation: 90, opacity: 50 }] },
     }],
     selectedEffectInstanceId: "effect-1", activePresetId: null,
   };
@@ -87,6 +100,13 @@ test("round-trips advanced controls, zone settings, disabled layers and metadata
   assert.equal(layer.timeline.mode, "loop");
   assert.equal(layer.timeline.delayMs, 2000);
   assert.equal(layer.timeline.fadeOutMs, 450);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(layer.timeline.keyframes)),
+    [
+      { timeMs: 0, x: 0, y: 0, scale: 100, rotation: 0, opacity: 100 },
+      { timeMs: 4500, x: 45, y: -12, scale: 125, rotation: 90, opacity: 50 },
+    ],
+  );
 });
 
 test("clamps custom values and rejects non-declared control keys", () => {
