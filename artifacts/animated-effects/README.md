@@ -152,3 +152,21 @@ Testy:
 - `test/scenes.test.mjs` kontroluje pełny round-trip ustawień podpisu.
 
 Wciąż wymagane jest ręczne QA w przeglądarce StreamElements i OBS. Referencja formatu eventów: https://docs.streamelements.com/overlays/events
+
+
+## Kolejka alertów i awatary (Events v2)
+
+W Inspektorze wyzwalacza można wybrać:
+
+- **Kolejkuj z pozostałymi alertami** — wspólna kolejka FIFO między wszystkimi warstwami ustawionymi w tym trybie. Odtwarzany jest jeden alert na raz, kolejne czekają na zakończenie. Maksymalnie 16 alertów może czekać; następne są odrzucane zamiast blokować overlay i zużywać nieograniczoną pamięć. Zapamiętywane są wyłącznie ograniczone dane tekstowe i adresy potencjalnych awatarów.
+- **Restartuj ten efekt** — dotychczasowe zachowanie warstwy; osobne efekty w tym trybie mogą działać równocześnie. Istniejące sceny bez pola `queueMode` domyślnie zachowują tę opcję, a nowe warstwy konfigurowane w edytorze proponują kolejkę.
+
+Cooldown i minimalna kwota obowiązują **przy przyjęciu zdarzenia do kolejki**, a nie dopiero przy jego odtwarzaniu. Reset widgetu opróżnia kolejkę i kasuje jej aktywny timer. Stan kolejki jest ulotny (nie zapisuje się w edytowalnym JSON).
+
+W konfiguracji dynamicznego podpisu jest teraz opcja **Pokaż awatar (lub inicjał widza)** z wielkością 32–144 px. Obsługiwane są wyłącznie obrazy przekazane w evencie przez HTTPS ze ściśle dozwolonych domen CDN Twitch, YouTube i StreamElements. Gdy URL nie występuje lub jest nieakceptowany, pojawi się kolorowe koło z inicjałem nazwy. Nie ma pobierania awatarów przez API ani przechowywania danych widzów po zakończeniu alertu.
+
+**Ważne:** StreamElements nie gwarantuje URL awatara w każdym rodzaju zdarzenia. W praktyce fallback do inicjału będzie często widoczny przy followach i tipach. Pole `avatarEnabled` domyślnie jest wyłączone, co zachowuje układ starych scen.
+
+Testy eksportowanego widgetu obejmują FIFO między dwiema warstwami, obsługę 50 jednocześnie przychodzących wiadomości, sprzątanie DOM, blokowanie HTTP/niedozwolonych hostów, renderowanie inicjału oraz zaufanego obrazu. Dodatkowo sprawdzany jest zapis tych ustawień w `.aescene.json`.
+
+Przed publikacją wymagany test wizualny w OBS: pozycje napisów i awatarów na różnych rozdzielczościach, działanie kolejek przy prawdziwych eventach, oraz weryfikacja zewnętrznych CDN w kontekście Browser Source.
