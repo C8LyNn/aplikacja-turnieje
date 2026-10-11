@@ -55,6 +55,12 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+function parseQueueId(value: unknown): number | null {
+  if (typeof value !== "string" || !/^[1-9]\\d*$/.test(value)) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id <= 2_147_483_647 ? id : null;
+}
+
 const gameListColumns = {
   id: steamCatalogGames.id,
   steamAppId: steamCatalogGames.steamAppId,
@@ -156,7 +162,7 @@ router.get("/steam-catalog/games", async (req, res, next) => {
 // A compact, indexed classification queue avoids transferring every game to the client.
 router.get("/steam-catalog/queue", async (req, res, next) => {
   try {
-    const currentId = req.query.currentId === undefined ? null : parsePositiveInt(req.query.currentId, 1);
+    const currentId = req.query.currentId === undefined ? null : parseQueueId(req.query.currentId);
     if (req.query.currentId !== undefined && (!currentId || currentId > 2_147_483_647)) {
       res.status(400).json({ error: "Nieprawidłowe ID gry.", code: "INVALID_GAME_ID" });
       return;
