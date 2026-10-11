@@ -331,6 +331,23 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section class="export-simulator-config" aria-label="Symulator StreamElements">
+      <div class="export-simulator-heading">
+        <strong>Symulator StreamElements</strong>
+        <span>Ten sam kod co w eksporcie</span>
+      </div>
+      <p>Sprawdź działanie wybranej reguły, cooldownu i warstw bez podłączania konta. Podgląd pracuje w odizolowanej ramce — nie zapisuje zmian w scenie.</p>
+      <div class="export-simulator-toolbar">
+        <label>Zdarzenie do zasymulowania
+          <select data-simulator-event aria-label="Zdarzenie testowe"></select>
+        </label>
+        <button type="button" data-simulator-fire disabled>▶ Symuluj zdarzenie</button>
+        <button type="button" data-simulator-reset disabled>↻ Resetuj podgląd</button>
+      </div>
+      <div class="export-simulator-stage" data-simulator-frame aria-label="Podgląd animacji 16:9"></div>
+      <p class="export-simulator-status" data-simulator-status role="status" aria-live="polite">Podgląd uruchomi się po otwarciu eksportu.</p>
+    </section>
+
     <div class="export-section">
       <div class="export-section-header">
         <strong>HTML</strong>
