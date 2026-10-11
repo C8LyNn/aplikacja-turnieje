@@ -203,6 +203,31 @@ and 95th-percentile elapsed time as `CATALOG_100K_MIXED_LOAD`. This tests
 burst behavior on a disposable CI database; it does **not** establish a
 production concurrency limit, tail-latency guarantee or traffic forecast.
 
+### Repeated concurrency scaling and in-flight coalescing
+
+Identical overlapping **public search count and page SQL** calls are
+coalesced in memory while the database read is pending. This is *not* a
+persistent cache: completed and failed reads are removed immediately, and
+classification writes are never coalesced. Different SQL or bound parameters
+never share a result. A maximum of 64 distinct active keys and 8,192
+characters per key bounds memory use; other requests simply execute normally.
+
+The 100,003-game integration benchmark now repeats selective identical,
+selective distinct, and broad identical searches at 1, 8, 24 and 48 parallel
+requests, with three rounds per configuration. It records per-batch and
+per-request median/p95 under `CATALOG_100K_CONCURRENCY_PROFILE`.
+The three runs within one CI job are **not independent machines** and no
+latency cutoff is enforced. In one benchmark on the same runner, the median
+batch latency of 48 identical selective requests was approximately 106 ms,
+versus 444 ms for 48 different selective searches. These workloads differ
+in query parameters; the contrast is diagnostic, not an isolated causal
+measurement or a production SLA.
+
+The search-only UI does not issue `GET /api/steam-catalog/games` until the
+user enters a nonblank term. The full catalog list still intentionally loads
+unfiltered results on its own browsing screen. A frontend regression test
+checks that clearing the search field does not trigger a whole-catalog query.
+
 ### Safe integration into the local project
 
 The working branch `codex/game-catalog-editor-reliability` is a **shared
