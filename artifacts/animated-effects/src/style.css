@@ -8690,3 +8690,86 @@ body {
 @media (max-width: 620px) {
   .export-trigger-fields { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* AE_SE_MULTI_ROUTE_V1 */
+.export-route-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+.export-route-toggle { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.export-route-toggle input { margin-top: 4px; width: 18px; height: 18px; accent-color: #7c5cff; }
+.export-route-toggle span { display: grid; gap: 5px; }
+.export-route-toggle strong { color: #f3f6ff; font-size: 14px; }
+.export-route-toggle small { color: #a9b9d1; line-height: 1.5; }
+.export-route-config [hidden], .export-trigger-config[hidden] { display: none !important; }
+.export-route-description, .export-route-note { color: #adbcd5; font-size: 12px; line-height: 1.5; }
+.export-route-list { display: grid; gap: 12px; margin: 12px 0; }
+.export-route-card {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 16px 13px 13px;
+  border: 1px solid rgba(124,92,255,.36);
+  border-radius: 12px;
+  background: rgba(8,12,22,.70);
+}
+.export-route-card legend {
+  padding: 0 7px;
+  color: #d0c5ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.export-route-card [data-remove-route] {
+  position: absolute;
+  right: 12px;
+  top: 9px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.export-route-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+}
+.export-route-fields label { display: grid; gap: 6px; min-width: 0; font-size: 12px; color: #bac8e3; }
+.export-route-fields select, .export-route-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  background: #10192a;
+  color: #f3f6ff;
+}
+.export-route-fields :is(select,input):focus-visible, .export-route-effect-list input:focus-visible {
+  outline: 2px solid #00d9ff;
+  outline-offset: 2px;
+}
+.export-route-effect-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+  max-height: 175px;
+  margin-top: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 8px;
+}
+.export-route-effect-list label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  font-size: 12px;
+}
+.export-route-effect-list input { flex: none; accent-color: #7c5cff; }
+.export-route-config [data-add-route] { font-size: 12px; }
+.export-route-config [data-add-route]:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 620px) {
+  .export-route-fields, .export-route-effect-list { grid-template-columns: minmax(0,1fr); }
+}
