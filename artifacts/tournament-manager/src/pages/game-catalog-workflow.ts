@@ -23,3 +23,50 @@ export function nextPendingGameId(games: readonly CatalogWorkItem[], currentId: 
   }
   return null;
 }
+
+
+export type CatalogAssignment = { facet: string; role: string };
+
+export const READINESS_REQUIREMENTS = [
+  { key: "genre", label: "Gatunek główny", check: (terms: readonly CatalogAssignment[]) =>
+    terms.filter((term) => term.facet === "genre").length === 1 },
+  { key: "mechanic", label: "Główna mechanika", check: (terms: readonly CatalogAssignment[]) =>
+    terms.some((term) => term.facet === "mechanic" && term.role === "main") },
+  { key: "mode", label: "Tryb", check: (terms: readonly CatalogAssignment[]) =>
+    terms.some((term) => term.facet === "mode") },
+  { key: "structure", label: "Struktura", check: (terms: readonly CatalogAssignment[]) =>
+    terms.some((term) => term.facet === "structure") },
+  { key: "world", label: "Świat lub konwencja (także abstrakcyjna)", check: (terms: readonly CatalogAssignment[]) =>
+    terms.some((term) => term.facet === "world") },
+  { key: "visual", label: "Oprawa wizualna", check: (terms: readonly CatalogAssignment[]) =>
+    terms.some((term) => term.facet === "visual") },
+] as const;
+
+export function classificationReadiness(assignments: readonly CatalogAssignment[]) {
+  const checks = READINESS_REQUIREMENTS.map((requirement) => ({
+    key: requirement.key,
+    label: requirement.label,
+    complete: requirement.check(assignments),
+  }));
+  return {
+    checks,
+    complete: checks.every((check) => check.complete),
+    missing: checks.filter((check) => !check.complete).map((check) => check.label),
+  };
+}
+
+/** Case- and accent-insensitive taxonomy search. Selected terms appear first. */
+export function filterTaxonomyTerms<T extends { id: number; label: string; slug: string }>(
+  terms: readonly T[],
+  search: string,
+  selectedTermIds: ReadonlySet<number>,
+): T[] {
+  const normalize = (value: string) =>
+    value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pl");
+  const query = normalize(search.trim());
+  return terms
+    .filter((term) => !query || normalize(term.label).includes(query) || normalize(term.slug).includes(query))
+    .sort((a, b) => Number(selectedTermIds.has(b.id)) - Number(selectedTermIds.has(a.id))
+      || a.label.localeCompare(b.label, "pl")
+      || a.id - b.id);
+}
