@@ -113,6 +113,7 @@ export type PositionAssessment = {
   status: PositionAssessmentStatus;
   confidence: CodingConfidence;
   synthesis?: string;
+  evidenceSignature?: string;
   updatedAt: string;
 };
 
