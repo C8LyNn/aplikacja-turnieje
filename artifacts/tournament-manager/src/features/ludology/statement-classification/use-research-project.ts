@@ -175,13 +175,15 @@ export function useResearchProject() {
       }));
     },
     addDimensionModel(input: Omit<DimensionModel, "id" | "createdAt">) {
+      const id = createResearchId("dimension_model");
       update((current) => ({
         ...current,
         dimensionModels: [
           ...current.dimensionModels,
-          { ...input, id: createResearchId("dimension_model"), createdAt: new Date().toISOString() },
+          { ...input, id, createdAt: new Date().toISOString() },
         ],
       }));
+      return id;
     },
     updateDimensionModel(dimensionModelId: string, patch: Partial<Omit<DimensionModel, "id" | "createdAt" | "codebookId">>) {
       update((current) => ({
@@ -256,10 +258,12 @@ export function useResearchProject() {
       return nextModelId;
     },
     addDimension(input: Omit<ResearchDimension, "id">) {
+      const id = createResearchId("dimension");
       update((current) => ({
         ...current,
-        dimensions: [...current.dimensions, { ...input, id: createResearchId("dimension") }],
+        dimensions: [...current.dimensions, { ...input, id }],
       }));
+      return id;
     },
     updateDimension(dimensionId: string, patch: Partial<Omit<ResearchDimension, "id" | "dimensionModelId">>) {
       update((current) => ({
