@@ -15,6 +15,13 @@ function load(file, requireFn = (id) => { throw new Error(id); }, environment = 
 }
 
 const stress = load("../src/animation/alertStress.ts");
+const traceModule = load("../src/animation/alertTrace.ts", (id) => {
+  if (id === "./triggers") return { STREAM_EVENTS: [
+    "follower-latest", "subscriber-latest", "tip-latest", "cheer-latest", "raid-latest", "message",
+  ].map((value) => ({ value })) };
+  throw new Error(id);
+});
+
 const { makeStressEvents, assessFrames, summarizeStress } = stress;
 
 test("traffic profiles are stable, timestamp sorted, duration-bounded and contain no viewer data", () => {
@@ -99,6 +106,7 @@ function loadHarness() {
   const mod = load("../src/animation/alertStressRunner.ts", (name) => {
     if (name === "./triggers") return trigger;
     if (name === "./alertStress") return stress;
+    if (name === "./alertTrace") return traceModule;
     throw new Error(name);
   }, environment);
   function step(ms) {
@@ -159,4 +167,34 @@ test("a backgrounded browser tab aborts measurements rather than reporting succe
   assert.deepEqual(statuses, ["hidden"]);
   assert.equal(testbed.getTimers(), 0);
   assert.equal(testbed.getFrames(), 0);
+});
+
+test("a synthetic timeline can be exported and replayed with identical scheduling", () => {
+  const t = loadHarness();
+  const runner = new t.Runner(t.engine);
+  const first = [];
+  const callbacks = {
+    onPlay(item) { first.push(item.instanceId); }, onProgress() {}, onFinish() {},
+  };
+  runner.start("chat-flood", 3000, [t.layer], callbacks);
+  t.step(3100);
+  const trace = runner.getTrace();
+  assert.ok(trace);
+  assert.ok(trace.events.length > 10);
+  assert.equal(trace.version, 1);
+  assert.equal(trace.durationMs, 3000);
+  assert.equal(trace.events.length, runner.getTrace().events.length);
+  const same = traceModule.parseAlertTraceJson(traceModule.serializeAlertTrace(trace));
+  assert.equal(traceModule.alertTraceKey(trace), traceModule.alertTraceKey(same));
+  const before = t.engine.getSnapshot().counters;
+  first.length = 0;
+  runner.startTrace(same, [t.layer], callbacks);
+  t.step(3100);
+  const after = t.engine.getSnapshot().counters;
+  assert.equal(after.accepted, before.accepted);
+  assert.equal(after.dropped, before.dropped);
+  assert.equal(after.evicted, before.evicted);
+  assert.ok(first.length > 0);
+  assert.equal(t.getTimers(), 0);
+  assert.equal(t.getFrames(), 0);
 });
