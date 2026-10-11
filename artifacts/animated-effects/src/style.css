@@ -8974,3 +8974,31 @@ body {
 @media (max-width: 390px) {
   .ae-caption-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Queue and avatar controls. Queueing lives in the exported widget runtime. */
+.ae-trigger-advanced [data-ae-trigger-queue-mode] {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+}
+.ae-caption-fields [data-ae-avatar-size-row][hidden] {
+  display: none !important;
+}
+.ae-caption-fields [data-ae-avatar-size-row] {
+  max-width: 180px;
+}
+.ae-alert-caption {
+  isolation: isolate;
+  box-sizing: border-box;
+  max-height: 72%;
+  overflow: visible;
+}
+.ae-alert-avatar {
+  flex: none;
+  box-shadow: 0 5px 26px rgba(0,0,0,.4);
+}
+.ae-alert-avatar img {
+  display: block;
+  border-radius: inherit;
+}
