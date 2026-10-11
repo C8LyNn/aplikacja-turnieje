@@ -82,9 +82,9 @@ next pending record. The latter avoids loading all catalog entries.
 
 Migrations `0030` and `0031` provide abstract-world support and indexes.
 Migration `0032_steam_catalog_classification_revision.sql` adds a durable
-`classification_revision` optimistic concurrency token. **Apply 0029-0032
+`classification_revision` optimistic concurrency token. **Apply 0029-0033
 in order before deploying the updated API**; older databases without
-0032 will fail when retrieving catalog games.
+0032 will fail when retrieving catalog games, while 0033 adds optional search indexes.
 
 ### Concurrent classification editing
 
@@ -109,6 +109,31 @@ in GitHub Actions logs. These response times depend on the ephemeral runner,
 database warm-up and test workload; they are diagnostic observations, **not**
 a production performance service-level objective.
 Apply migrations on a test database before releasing.
+
+## Search and counters at larger scale
+
+Apply `0033_steam_catalog_trigram_search.sql` **after 0032 and before this
+API version**. This migration tries to enable PostgreSQL `pg_trgm` and
+creates GIN trigram indexes on `name`, `developer`, and `publisher`.
+The extension is optional: if the deployment role cannot install it, migration
+continues and existing `ILIKE '%query%'` matching remains correct, with the
+older (slower) search plan. A database administrator can install `pg_trgm`
+separately; replay migration 0033 afterwards to build missing indexes.
+
+The status badges and unsearched page totals now come from a **single
+aggregate query** using `COUNT(*) FILTER (WHERE status = ...)`, replacing
+two scans of the full table for every ordinary listing. Text search still
+requires a separate count of matching rows (and global status badges remain
+global). Existing page-number, filter, and cursor contracts do not change.
+PostgreSQL will not always select GIN for very short or common search strings,
+and indexes add overhead and storage for inserts/re-imports.
+
+The integration suite seeds 100,003 test games, measures substring searches,
+status counts, deep cursors and parallel HTTP readers, and prints
+`CATALOG_100K_HTTP_TIMINGS_MS`. Measurements use one ephemeral runner and
+are not a latency SLA. To inspect index usage in a target environment, compare
+`EXPLAIN (ANALYZE, BUFFERS)` with realistic search queries after
+`ANALYZE steam_catalog_games`.
 
 ## Verification before merging
 
