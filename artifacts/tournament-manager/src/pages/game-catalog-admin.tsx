@@ -93,8 +93,10 @@ type Game = {
   assignments: Assignment[];
 };
 
+type GameSummary = Omit<Game, "assignments">;
+
 type GameListResponse = {
-  games: Game[];
+  games: GameSummary[];
   pagination: { page: number; pageSize: number; total: number; totalPages: number };
   counts: { all: number; unclassified: number; review: number; ready: number };
 };
@@ -256,7 +258,7 @@ function ProjectHome() {
 export default function GameCatalogAdminPage() {
   const [location, navigate] = useLocation();
   const { screen, gameId } = getScreen(location);
-  const [games, setGames] = useState<Game[]>([]);
+  const [games, setGames] = useState<GameSummary[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [queue, setQueue] = useState<QueueResponse | null>(null);
   const [pagination, setPagination] = useState<GameListResponse["pagination"]>({ page: 1, pageSize: PAGE_SIZE, total: 0, totalPages: 1 });
