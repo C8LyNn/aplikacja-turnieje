@@ -777,6 +777,7 @@ function ResearchWorkspace() {
 function Coding() {
   const { data, addCoding, deleteCoding } = useResearchProject();
   const [excerptId, setExcerptId] = useState("");
+  const [coderId, setCoderId] = useState(data.coders[0]?.id ?? "");
   const [propositionId, setPropositionId] = useState("");
   const [direction, setDirection] = useState<"" | "-2" | "-1" | "0" | "1" | "2">("");
   const [explicitness, setExplicitness] = useState<"0" | "1" | "2" | "3">("2");
@@ -790,7 +791,7 @@ function Coding() {
   function submit(event: FormEvent) {
     event.preventDefault();
     const codebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
-    const coder = data.coders[0];
+    const coder = data.coders.find((item) => item.id === coderId) ?? data.coders[0];
     if (!excerptId || !propositionId || !codebook || !coder) return;
     const duplicate = data.codings.some((coding) =>
       coding.excerptId === excerptId &&
@@ -814,7 +815,7 @@ function Coding() {
   }
 
   const selectedExcerpt = data.excerpts.find((excerpt) => excerpt.id === excerptId);
-  const activeCoder = data.coders[0];
+  const activeCoder = data.coders.find((item) => item.id === coderId) ?? data.coders[0];
   const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
   const activePropositions = activeCodebook
     ? data.propositions.filter((item) => item.codebookId === activeCodebook.id)
@@ -871,6 +872,9 @@ function Coding() {
 
         <ToolPanel title="Nowe kodowanie" description="Brak danych oznacz jako N/A, nie jako neutralne 0.">
           <form className="space-y-3" onSubmit={submit}>
+            <ToolSelect value={coderId} onChange={(e) => setCoderId(e.target.value)}>
+              {data.coders.map((coder) => <option key={coder.id} value={coder.id}>{coder.displayName} · {coder.type}</option>)}
+            </ToolSelect>
             <ToolSelect value={propositionId} onChange={(e) => setPropositionId(e.target.value)}>
               <option value="">Wybierz mikrostanowisko…</option>
               {activePropositions.map((proposition) => <option key={proposition.id} value={proposition.id}>{proposition.code} — {proposition.label}</option>)}
@@ -1210,11 +1214,36 @@ function MapPage() {
 }
 
 function Methodology() {
-  const { data } = useResearchProject();
+  const { data, addCoder, updateCoder } = useResearchProject();
+  const [coderName, setCoderName] = useState("");
+  const [coderType, setCoderType] = useState<"human" | "ai">("human");
+  const [editingCoderId, setEditingCoderId] = useState("");
+  const [editingCoderName, setEditingCoderName] = useState("");
   const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
   const propositions = activeCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
     : [];
+
+  function submitCoder(event: FormEvent) {
+    event.preventDefault();
+    if (!coderName.trim()) return;
+    addCoder({ displayName: coderName.trim(), type: coderType });
+    setCoderName("");
+    setCoderType("human");
+  }
+
+  function startCoderEdit(coderId: string) {
+    const coder = data.coders.find((item) => item.id === coderId);
+    if (!coder) return;
+    setEditingCoderId(coder.id);
+    setEditingCoderName(coder.displayName);
+  }
+
+  function saveCoderEdit(coderId: string) {
+    if (!editingCoderName.trim()) return;
+    updateCoder(coderId, { displayName: editingCoderName.trim() });
+    setEditingCoderId("");
+  }
 
   return (
     <>
@@ -1230,6 +1259,43 @@ function Methodology() {
             </div>
           ) : <ToolEmptyState title="Brak codebooka" />}
           {activeCodebook?.description && <div className="mt-4 text-sm text-muted-foreground">{activeCodebook.description}</div>}
+        </ToolPanel>
+
+        <ToolPanel title="Koderzy" description="Kodowanie pozostaje przypisane do konkretnego człowieka albo systemu AI, co umożliwia późniejsze porównanie zgodności.">
+          <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+            <form className="space-y-3" onSubmit={submitCoder}>
+              <ToolInput value={coderName} onChange={(e) => setCoderName(e.target.value)} placeholder="Nazwa kodera" />
+              <ToolSelect value={coderType} onChange={(e) => setCoderType(e.target.value as "human" | "ai")}>
+                <option value="human">Człowiek</option>
+                <option value="ai">AI</option>
+              </ToolSelect>
+              <ToolButton type="submit" variant="primary">Dodaj kodera</ToolButton>
+            </form>
+            <div className="space-y-2">
+              {data.coders.map((coder) => {
+                const codingCount = data.codings.filter((coding) => coding.coderId === coder.id).length;
+                return (
+                  <div key={coder.id} className="rounded-xl border border-border bg-background/40 p-4">
+                    {editingCoderId === coder.id ? (
+                      <div className="flex flex-wrap gap-2">
+                        <ToolInput className="min-w-56 flex-1" value={editingCoderName} onChange={(e) => setEditingCoderName(e.target.value)} />
+                        <ToolButton type="button" variant="primary" onClick={() => saveCoderEdit(coder.id)}>Zapisz</ToolButton>
+                        <ToolButton type="button" variant="ghost" onClick={() => setEditingCoderId("")}>Anuluj</ToolButton>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="font-bold">{coder.displayName}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{coder.type} · {codingCount} kodowań</div>
+                        </div>
+                        <ToolButton type="button" variant="ghost" onClick={() => startCoderEdit(coder.id)}>Edytuj nazwę</ToolButton>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </ToolPanel>
 
         <ToolPanel title="Historia codebooka" description="Każda wersja ma osobną tożsamość. Starsze kodowania pozostają przypięte do wersji, w której powstały.">
