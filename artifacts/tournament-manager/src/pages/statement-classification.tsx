@@ -25,6 +25,7 @@ import {
   ToolSection,
 } from "@/components/tool-ui";
 import { useResearchProject } from "@/features/ludology/statement-classification/use-research-project";
+import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 
 const BASE = "/ludology/statement-classification";
 
@@ -111,6 +112,32 @@ function PageHeader({ section, title, description }: { section: string; title: s
 }
 
 function Overview() {
+  const { data, replaceProject } = useResearchProject();
+  const [transferMessage, setTransferMessage] = useState("");
+
+  function exportProject() {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([serializeResearchProject(data)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `neoludologia-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setTransferMessage("Utworzono kopię JSON aktualnego projektu.");
+  }
+
+  async function importProject(file: File | undefined) {
+    if (!file) return;
+    try {
+      const parsed = parseResearchProject(await file.text());
+      replaceProject(parsed);
+      setTransferMessage("Wczytano kopię projektu. Pilotażowy codebook został uzgodniony z aktualną wersją.");
+    } catch (error) {
+      setTransferMessage(error instanceof Error ? error.message : "Nie udało się wczytać projektu.");
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -134,6 +161,34 @@ function Overview() {
           <ToolNotice>Brak danych nie oznacza neutralnego stanowiska. System powinien umieć zapisać niepewność, sprzeczności i zmianę poglądu w czasie.</ToolNotice>
         </ToolPanel>
       </div>
+
+      <ToolPanel
+        title="Kopia danych pilotażu"
+        description="Dopóki Research Lab korzysta z localStorage, eksport JSON jest podstawowym zabezpieczeniem przed utratą materiału."
+      >
+        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-xl border border-border bg-background/40 p-3"><strong>{data.people.length}</strong><div className="text-xs text-muted-foreground">osób</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-3"><strong>{data.sources.length}</strong><div className="text-xs text-muted-foreground">źródeł</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-3"><strong>{data.excerpts.length}</strong><div className="text-xs text-muted-foreground">fragmentów</div></div>
+              <div className="rounded-xl border border-border bg-background/40 p-3"><strong>{data.codings.length}</strong><div className="text-xs text-muted-foreground">kodowań</div></div>
+            </div>
+            <ToolButton type="button" variant="primary" onClick={exportProject}>Eksportuj projekt JSON</ToolButton>
+          </div>
+          <div className="space-y-3">
+            <ToolInput
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => void importProject(event.target.files?.[0])}
+            />
+            <div className="text-xs leading-5 text-muted-foreground">
+              Import zastępuje bieżący lokalny zbiór. Plik musi mieć schemaVersion=2 i kompletną strukturę projektu.
+            </div>
+            {transferMessage && <ToolNotice>{transferMessage}</ToolNotice>}
+          </div>
+        </div>
+      </ToolPanel>
     </>
   );
 }
