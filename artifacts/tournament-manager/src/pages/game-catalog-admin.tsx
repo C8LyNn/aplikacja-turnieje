@@ -89,6 +89,7 @@ type Game = {
   releaseDate: string | null;
   shortDescription: string | null;
   status: "unclassified" | "review" | "ready";
+  classificationRevision: number;
   updatedAt: string;
   assignments: Assignment[];
 };
@@ -182,6 +183,13 @@ const PERSPECTIVE_COPY: Record<
   },
 };
 
+class CatalogApiError extends Error {
+  constructor(message: string, readonly code: string | null, readonly status: number) {
+    super(message);
+    this.name = "CatalogApiError";
+  }
+}
+
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const method = (init?.method ?? "GET").toUpperCase();
   // Public reads carry no credential. Keep the editing key in this tab only.
@@ -195,7 +203,7 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body?.error ?? `HTTP ${response.status}`);
+  if (!response.ok) throw new CatalogApiError(body?.error ?? `HTTP ${response.status}`, body?.code ?? null, response.status);
   return body as T;
 }
 
@@ -275,6 +283,7 @@ export default function GameCatalogAdminPage() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [classificationConflict, setClassificationConflict] = useState(false);
   const [newFacet, setNewFacet] = useState<Facet>("mechanic");
   const [newLabel, setNewLabel] = useState("");
   const [termQuery, setTermQuery] = useState("");
@@ -322,6 +331,7 @@ export default function GameCatalogAdminPage() {
     // Keep the persisted record and editable draft in one React commit.
     // Delayed effects used to overwrite fast edits made just after navigation.
     setSelectedGame(game);
+    setClassificationConflict(false);
     setDraft(game.assignments);
     setStatus(game.status);
     setPerspective("gameplay");
@@ -487,12 +497,31 @@ export default function GameCatalogAdminPage() {
         method: "PUT",
         body: JSON.stringify({
           status,
+          expectedRevision: selected.classificationRevision,
           assignments: draft.map((item, index) => ({ termId: item.termId, role: item.role, position: index })),
         }),
       });
       await loadDetail(selected.id);
       const refreshed = await loadQueue(selected.id);
       if (openNext && (refreshed.nextId ?? targetNextId) !== null) navigate(`${BASE}/games/${refreshed.nextId ?? targetNextId}`);
+    } catch (cause) {
+      if (cause instanceof CatalogApiError && cause.code === "CLASSIFICATION_CONFLICT") {
+        // Keep the user's edits intact. Do not overwrite until they explicitly
+        // consent to reloading the newer persisted classification.
+        setClassificationConflict(true);
+      }
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshConflictedGame() {
+    if (!selected || busy || !window.confirm("Wczytać nowszą klasyfikację? Twoje niezapisane zmiany zostaną utracone.")) return;
+    setBusy(true);
+    try {
+      await loadDetail(selected.id);
+      setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -593,6 +622,13 @@ export default function GameCatalogAdminPage() {
         </ToolDisclosure>
       </div>
       {error && <div className="mb-4"><ToolNotice tone="danger">{error}</ToolNotice></div>}
+      {classificationConflict && selected && screen === "game" && (
+        <div role="alert" className="mb-4 space-y-3 rounded-xl border border-amber-400/60 bg-background/60 p-4">
+          <p className="text-sm font-semibold text-amber-200">Konflikt edycji: zapisano nowszą wersję klasyfikacji.</p>
+          <p className="text-sm text-muted-foreground">Twoje niezapisane zmiany pozostały w formularzu. Aby uniknąć nadpisania zmian drugiego redaktora, odśwież rekord i ponownie wprowadź poprawki.</p>
+          <ToolButton type="button" disabled={busy} onClick={refreshConflictedGame}><RefreshCw className="h-4 w-4" /> Wczytaj aktualną wersję</ToolButton>
+        </div>
+      )}
 
       {screen === "home" && <ProjectHome />}
 
@@ -727,8 +763,8 @@ export default function GameCatalogAdminPage() {
             {hasUnsavedChanges && <span role="status" className="text-xs font-semibold text-amber-300">Niezapisane zmiany</span>}
             <ToolButton type="button" variant="ghost" onClick={() => { setDraft(selected.assignments); setStatus(selected.status); }} disabled={busy || !hasUnsavedChanges}>Przywróć</ToolButton>
             <ToolButton type="button" variant="ghost" onClick={goToNextPending} disabled={busy || nextPendingId === null}>Następna do opracowania</ToolButton>
-            <ToolButton type="button" variant="primary" onClick={() => save()} disabled={busy || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
-            <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" /> Zapisz i dalej</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save()} disabled={busy || classificationConflict || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || classificationConflict || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" /> Zapisz i dalej</ToolButton>
           </ToolToolbar>
 
           <ToolPanel title="Kontrola kompletności" description="Wymagania do uzyskania statusu Gotowe. Niepełny rekord można zapisać jako roboczy lub Do sprawdzenia.">
