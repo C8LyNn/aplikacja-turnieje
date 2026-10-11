@@ -82,6 +82,9 @@ jobs:
       - name: Tournament frontend tests (including OBS and Animated Effects)
         run: pnpm --filter @workspace/tournament-manager test
 
+      - name: Animated Effects event/motion/timeline/queue regression suite
+        run: pnpm --filter animated-effects test
+
       - name: Animated Effects production build
         run: pnpm --filter animated-effects build
 
