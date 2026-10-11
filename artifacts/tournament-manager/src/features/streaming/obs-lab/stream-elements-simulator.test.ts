@@ -141,7 +141,7 @@ test("simulator forwards commands into the exact exported widget and shows selec
 test("always-on simulator reports ready before its initial active-layer count", () => {
   const snippets = generateStreamElementsExport(makeScene(), { mode: "always" });
   const html = createStreamElementsSimulationHtml(snippets);
-  const blocks = [...html.matchAll(/<script>([\\s\\S]*?)<\\/script>/g)];
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   assert.equal(blocks.length, 2);
   const dom = new JSDOM("<!doctype html><html><body>" + snippets.html + "</body></html>", {
     url: "https://widget-preview.example/", runScripts: "outside-only",
