@@ -70,9 +70,21 @@ export interface LayerTimeline {
   keyframes?: LayerKeyframe[];
 }
 
+export type EffectTriggerEvent =
+  | "follower-latest" | "subscriber-latest" | "tip-latest"
+  | "cheer-latest" | "raid-latest" | "message";
+export interface EffectTrigger {
+  source: "event";
+  event: EffectTriggerEvent;
+  /** Anti-spam cooldown between activations of one effect instance. */
+  cooldownMs: number;
+  /** Minimum tip/cheer/raid amount, ignored for other types. */
+  minAmount: number;
+}
+
 export interface EffectInstance {
   instanceId: EffectInstanceId; effectId: EffectId; seed: number; enabled: boolean;
-  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null; timeline?: LayerTimeline;
+  settings: EffectSettings; label?: string; locked?: boolean; groupId?: string | null; timeline?: LayerTimeline; trigger?: EffectTrigger;
 }
 
 export interface PresetEffect { effectId: EffectId; settings?: Partial<EffectSettings>; }
