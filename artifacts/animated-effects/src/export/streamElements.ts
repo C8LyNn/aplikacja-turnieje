@@ -10,6 +10,7 @@ import {
 import { getLayerTimelineAnimation } from "../animation/timeline";
 import { getLayerMotionAnimation } from "../animation/motion";
 import { eventPlaybackInstance, normalizeEffectTrigger, triggerPlaybackDurationMs } from "../animation/triggers";
+import { ALERT_WIDGET_RUNTIME } from "../animation/alertRuntime";
 
 export function generateStreamElementsExport(
   state: EditorState,
@@ -113,6 +114,15 @@ body {
   height: 100%;
   overflow: hidden;
   pointer-events: none;
+}
+
+.ae-alert-caption {
+  z-index: 9999;
+  animation: ae-caption-intro 500ms cubic-bezier(.2,.7,.25,1) both;
+}
+@keyframes ae-caption-intro {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
 }
 
 .ae-layer {
@@ -492,6 +502,8 @@ function aeCreateLayer(
 
 ${rendererSources}
 
+${ALERT_WIDGET_RUNTIME}
+
 const aeRenderers = {
   ${rendererMap}
 };
@@ -595,6 +607,7 @@ function aeHandleEvent(obj) {
 
     const element = aeRenderOne(effect, aeRoot);
     if (!element) return;
+    aeAttachCaption(element, rule.caption, detail.listener, eventData);
     aeLastFired[effect.instanceId] = now;
     aeActive.set(effect.instanceId, element);
     aePending.set(effect.instanceId, setTimeout(function () {
