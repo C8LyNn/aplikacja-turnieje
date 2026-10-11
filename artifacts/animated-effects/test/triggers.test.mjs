@@ -19,7 +19,11 @@ const motion = load("../src/animation/motion.ts", (name) => {
   if (name === "./timeline") return timeline;
   throw new Error(name);
 });
-const alertText = load("../src/animation/alertText.ts");
+const avatar = load("../src/animation/alertAvatar.ts");
+const alertText = load("../src/animation/alertText.ts", (id) => {
+  if (id === "./alertAvatar") return avatar;
+  throw new Error(id);
+});
 const triggers = load("../src/animation/triggers.ts", (name) => {
   if (name === "./motion") return motion;
   if (name === "./alertText") return alertText;
