@@ -76,12 +76,12 @@ export function installPreviewTransport(preview: HTMLElement, mount: HTMLElement
     updateUi();
     emit();
   };
-  const replay = (): void => seek(0);
+  const replay = (): void => { seek(0); setPlaying(true); };
 
   const tick = (timestamp: number): void => {
     if (playing && !seekHeld) {
       if (lastTimestamp !== null) {
-        cursorMs = Math.min(durationMs, cursorMs + Math.max(0, Math.min(timestamp - lastTimestamp, 250)));
+        cursorMs = Math.min(durationMs, cursorMs + Math.max(0, timestamp - lastTimestamp));
       }
       lastTimestamp = timestamp;
       if (cursorMs >= durationMs) {
