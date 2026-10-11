@@ -1037,6 +1037,9 @@ function EvidenceProfile() {
   const personExcerptIds = new Set(personExcerptRecords.map((excerpt) => excerpt.id));
   const personCodings = evidence.codings;
   const personArgumentCount = evidence.argumentsCount;
+  const personAssessments = data.assessments.filter((assessment) =>
+    assessment.personId === personId && assessment.codebookId === currentCodebook?.id
+  );
   const evidenceTimeline = groupEvidenceByYear(personCodings, data.excerpts, data.sources);
   const verifiedExcerptCount = personExcerptRecords.filter((excerpt) => excerpt.verificationStatus === "verified").length;
   const coveredPropositions = new Set(personCodings.map((coding) => coding.propositionId)).size;
@@ -1105,11 +1108,12 @@ function EvidenceProfile() {
             </ToolSelect>
           </ToolPanel>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personSources.size}</div><div className="text-xs text-muted-foreground">źródeł</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personExcerptIds.size}</div><div className="text-xs text-muted-foreground">fragmentów</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personCodings.length}</div><div className="text-xs text-muted-foreground">kodowań</div></div>
             <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{new Set(personCodings.map((coding) => coding.propositionId)).size}/{currentPropositions.length}</div><div className="text-xs text-muted-foreground">mikrostanowisk z dowodami</div></div>
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personAssessments.length}/{currentPropositions.length}</div><div className="text-xs text-muted-foreground">rekonstrukcji stanowiska</div></div>
           </div>
 
           <ToolPanel
@@ -1155,6 +1159,9 @@ function EvidenceProfile() {
               )}
               {personSourceRecords.length > 0 && metadataCompleteness < 0.6 && (
                 <ToolNotice>Metadane źródeł są niekompletne. Uzupełnij datę, cel materiału, tryb wypowiedzi, zakres i język tam, gdzie da się je ustalić.</ToolNotice>
+              )}
+              {coveredPropositions > personAssessments.length && (
+                <ToolNotice>Część mikrostanowisk ma już zakodowane dowody, ale nie ma jeszcze jawnej rekonstrukcji stanowiska. Evidence Matrix nie powinna być traktowana jako gotowy profil.</ToolNotice>
               )}
             </div>
           </ToolPanel>
