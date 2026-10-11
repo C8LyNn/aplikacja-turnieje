@@ -104,12 +104,17 @@ const scene = (trigger, additional = []) => ({
 function runWidget(trigger, additional = []) {
   const code = exporter.generateStreamElementsExport(scene(trigger, additional));
   const listeners = {};
+  const diagnosticEvents = [];
   const root = element("root");
   const scheduled = new Map();
   let nextId = 1;
   let now = 10000;
   const context = {
-    window: { addEventListener: (name, listener) => { listeners[name] = listener; } },
+    window: {
+      addEventListener: (name, listener) => { listeners[name] = listener; },
+      dispatchEvent: (event) => { diagnosticEvents.push(event.detail); return true; },
+    },
+    CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
     document: {
       getElementById: (name) => name === "animated-effects-root" ? root : null,
       createElement: (tag) => element(tag),
@@ -129,6 +134,7 @@ function runWidget(trigger, additional = []) {
     code,
     root,
     listeners,
+    diagnosticEvents,
     scheduled,
     advance: (ms) => { now += ms; },
   };
@@ -395,4 +401,57 @@ test("caption entrance/exit presets are included in exported CSS and runtime ani
   assert.match(caption.style.animation, /ae-caption-out-slide /);
   assert.equal(caption.style.left, "45%");
   assert.equal(caption.style.top, "60%");
+});
+
+test("generated StreamElements widget emits anonymized, bounded queue telemetry", () => {
+  const trigger = {
+    source: "event", event: "tip-latest", minAmount: 20, cooldownMs: 5000, queueMode: "queue", priority: 10,
+    caption: { enabled: true, template: "{name}: {message}", position: "bottom", fontSize: 36, color: "#ffffff" },
+  };
+  const runtime = runWidget(trigger);
+  runtime.listeners.onWidgetLoad({});
+  runtime.listeners.onEventReceived({
+    detail: { listener: "tip-latest", event: { name: "PRIVATE_USER_992", amount: 12, message: "SECRET_TEXT" } },
+  });
+  runtime.listeners.onEventReceived({
+    detail: { listener: "tip-latest", event: { name: "PRIVATE_USER_992", amount: 25, message: "SECRET_TEXT" } },
+  });
+  runtime.listeners.onEventReceived({
+    detail: { listener: "tip-latest", event: { name: "PRIVATE_USER_992", amount: 25, message: "SECRET_TEXT" } },
+  });
+  const reasons = runtime.diagnosticEvents.filter((x) => x.action === "dropped").map((x) => x.reason);
+  assert.ok(reasons.includes("cooldown"));
+  assert.ok(reasons.includes("below-threshold"));
+  assert.ok(runtime.diagnosticEvents.some((x) => x.action === "accepted"));
+  assert.ok(runtime.diagnosticEvents.some((x) => x.action === "started"));
+  for (const report of runtime.diagnosticEvents) {
+    assert.equal(report.version, 1);
+    assert.ok(report.counters);
+    assert.equal(typeof report.queueLength, "number");
+  }
+  assert.ok(!JSON.stringify(runtime.diagnosticEvents).includes("PRIVATE_USER_992"));
+  assert.ok(!JSON.stringify(runtime.diagnosticEvents).includes("SECRET_TEXT"));
+  assert.ok(!JSON.stringify(runtime.diagnosticEvents).includes('"amount":25'));
+});
+
+test("widget reports eviction, queue-full and cleanup with no per-viewer data", () => {
+  const caption = { enabled: true, template: "{name}", position: "bottom", fontSize: 26, color: "#ffffff" };
+  const chat = { source: "event", event: "message", minAmount: 0, cooldownMs: 0, queueMode: "queue", priority: 1, caption };
+  const tip = { instanceId: "tip-vip", effectId: "stub", seed: 3, enabled: true, settings,
+    timeline: { mode: "once", delayMs: 0, durationMs: 1000, fadeInMs: 0, fadeOutMs: 0 },
+    trigger: { ...chat, event: "tip-latest", priority: 10 } };
+  const runtime = runWidget(chat, [tip]);
+  runtime.listeners.onWidgetLoad({});
+  for (let i = 0; i < 24; i++) {
+    runtime.listeners.onEventReceived({ detail: { listener: "message",
+      event: { data: { displayName: "secret-" + i, text: "hidden-" + i } } } });
+  }
+  runtime.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "VIP private", amount: 1000 } } });
+  assert.ok(runtime.diagnosticEvents.some((x) => x.action === "evicted" && x.reason === "lower-priority"));
+  assert.ok(runtime.diagnosticEvents.some((x) => x.reason === "queue-full"));
+  assert.ok(!JSON.stringify(runtime.diagnosticEvents).includes("hidden-"));
+  const [id, timer] = runtime.scheduled.entries().next().value;
+  runtime.scheduled.delete(id);
+  timer.fn();
+  assert.ok(runtime.diagnosticEvents.some((x) => x.action === "completed"));
 });
