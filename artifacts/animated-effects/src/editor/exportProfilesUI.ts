@@ -1,7 +1,6 @@
 import {
   MAX_PROFILE_BYTES,
   MAX_SAVED_PROFILES,
-  createStreamElementsProfile,
   loadStreamElementsProfiles,
   parseStreamElementsProfile,
   saveStreamElementsProfiles,
