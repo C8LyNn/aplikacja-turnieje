@@ -483,7 +483,22 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "CASE WHEN n%7=0 THEN 'ready' WHEN n%3=0 THEN 'review' ELSE 'unclassified' END",
       "FROM generate_series(20001,100000) n",
     ].join(" "));
-    await database.pool.query("ANALYZE steam_catalog_games");
+    // A single huge seed leaves unflushed entries in pg_trgm GIN pending
+    // lists. Measure fresh-import behavior separately from steady-state reads.
+    const beforeVacuum = performance.now();
+    await request(app).get("/api/steam-catalog/games?query=Large%20Game%2099999").expect(200);
+    const beforeVacuumMs = Math.round((performance.now() - beforeVacuum) * 100) / 100;
+    const vacuumStarted = performance.now();
+    await database.pool.query("VACUUM (ANALYZE) steam_catalog_games");
+    const vacuumMs = Math.round((performance.now() - vacuumStarted) * 100) / 100;
+    const afterVacuum = performance.now();
+    await request(app).get("/api/steam-catalog/games?query=Large%20Game%2099999").expect(200);
+    const afterVacuumMs = Math.round((performance.now() - afterVacuum) * 100) / 100;
+    console.log("CATALOG_100K_GIN_MAINTENANCE " + JSON.stringify({
+      fresh_import_http_ms: beforeVacuumMs,
+      vacuum_ms: vacuumMs,
+      after_vacuum_http_ms: afterVacuumMs,
+    }));
 
     const metrics: Record<string, number> = {};
     const measure = async (label: string, url: string) => {
