@@ -85,6 +85,7 @@ export function useResearchProject() {
           arguments: current.arguments.filter((argument) => !sourceIds.has(argument.sourceId)),
           excerpts: current.excerpts.filter((excerpt) => !sourceIds.has(excerpt.sourceId)),
           codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
+          assessments: current.assessments.filter((assessment) => assessment.personId !== personId),
         };
       });
     },
