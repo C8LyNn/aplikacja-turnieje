@@ -3,6 +3,7 @@ export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
 export type CameraChatFontSize = "small" | "medium" | "large";
 export type CameraChatDensity = "compact" | "normal" | "relaxed";
 export type CameraChatAnchor = "top" | "bottom";
+export type CameraChatAnimationStyle = "rise" | "slide" | "pop" | "fade";
 export type CameraChatOverlayPosition =
   | "top-left"
   | "top-right"
@@ -39,6 +40,8 @@ export type CameraChatConfig = {
   messageBackground: boolean;
   fadeOldMessages: boolean;
   animateMessages: boolean;
+  animationStyle: CameraChatAnimationStyle;
+  animationDurationMs: number;
 };
 
 export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
@@ -71,7 +74,25 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   messageBackground: true,
   fadeOldMessages: true,
   animateMessages: true,
+  animationStyle: "rise",
+  animationDurationMs: 220,
 };
+
+// Shared keyframes keep the React preview and StreamElements export visually aligned.
+// Only the validated enum reaches the generated stylesheet.
+export function getCameraChatAnimationCss(
+  style: CameraChatAnimationStyle,
+  name: string,
+) {
+  const from = {
+    rise: "opacity: 0; transform: translateY(14px) scale(.98);",
+    slide: "opacity: 0; transform: translateX(-22px);",
+    pop: "opacity: 0; transform: scale(.78);",
+    fade: "opacity: 0; transform: none;",
+  }[style];
+
+  return `@keyframes ${name} { from { ${from} } to { opacity: 1; transform: none; } }`;
+}
 
 function clamp(
   value: number,
@@ -278,6 +299,8 @@ export function cameraChatConfigToSearch(
     "anim",
     config.animateMessages ? "1" : "0",
   );
+  params.set("animstyle", config.animationStyle);
+  params.set("animdur", String(config.animationDurationMs));
 
   return params.toString();
 }
@@ -348,6 +371,12 @@ export function cameraChatConfigFromSearch(
       positionRaw === "bottom-left"
         ? positionRaw
         : "bottom-right";
+
+  const animationRaw = params.get("animstyle");
+  const animationStyle: CameraChatAnimationStyle =
+    animationRaw === "slide" || animationRaw === "pop" || animationRaw === "fade"
+      ? animationRaw
+      : "rise";
 
   return {
     layout,
@@ -467,5 +496,14 @@ export function cameraChatConfigFromSearch(
       "anim",
       defaults.animateMessages,
     ),
+
+    animationStyle,
+    animationDurationMs: Math.round(numberParam(
+      params,
+      "animdur",
+      defaults.animationDurationMs,
+      100,
+      1200,
+    )),
   };
 }

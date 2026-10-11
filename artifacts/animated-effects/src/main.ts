@@ -258,6 +258,96 @@ app.innerHTML = `
       </button>
     </div>
 
+    <section class="export-profile-config" aria-label="Zapisane konfiguracje StreamElements">
+      <div class="export-profile-heading">
+        <strong>Zestawy animacji i zdarzeń</strong>
+        <span>Nowe · lokalne · przenośne</span>
+      </div>
+      <p>Zapisz całą scenę, przypisane warstwy i reguły StreamElements. Wczytanie wymaga potwierdzenia.</p>
+      <div class="export-profile-actions">
+        <label class="export-profile-name">Nazwa zestawu
+          <input type="text" data-profile-name value="Mój zestaw" maxlength="64" autocomplete="off" />
+        </label>
+        <button type="button" data-profile-save>Zapisz aktualny</button>
+      </div>
+      <div class="export-profile-actions">
+        <label class="export-profile-select-label">Zapisane zestawy
+          <select data-profile-select><option value="">Wybierz zapisany zestaw</option></select>
+        </label>
+        <button type="button" data-profile-load disabled>Wczytaj</button>
+        <button type="button" data-profile-export disabled>Pobierz JSON</button>
+        <button type="button" data-profile-delete disabled>Usuń</button>
+      </div>
+      <div class="export-profile-actions">
+        <button type="button" data-profile-import>Importuj JSON</button>
+        <input type="file" data-profile-file accept=".json,application/json" hidden />
+        <span class="export-profile-help">Pliki działają także w innej przeglądarce lub na drugim komputerze.</span>
+      </div>
+      <p class="export-profile-status" data-profile-status role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="export-trigger-config" data-single-trigger aria-label="Aktywacja efektów">
+      <strong>Uruchamianie animacji</strong>
+      <p>Wybierz, kiedy StreamElements ma uruchomić tę scenę. Tryb ciągły zachowuje poprzednie działanie.</p>
+      <div class="export-trigger-fields">
+        <label>
+          Zdarzenie
+          <select data-trigger-mode>
+            <option value="always">Zawsze aktywna</option>
+            <option value="chat-command">Komenda na czacie</option>
+            <option value="follower">Nowy obserwujący</option>
+            <option value="subscriber">Subskrypcja</option>
+            <option value="tip">Donacja</option>
+            <option value="cheer">Cheer / Bits</option>
+            <option value="raid">Raid</option>
+          </select>
+        </label>
+        <label data-trigger-command-field hidden>
+          Komenda (dostępna każdemu widzowi)
+          <input type="text" data-trigger-command value="!hype" maxlength="25" spellcheck="false" autocomplete="off" />
+        </label>
+        <label data-trigger-timing hidden>
+          Czas wyświetlania (s)
+          <input type="number" data-trigger-duration value="5" min="0.5" max="60" step="0.5" />
+        </label>
+        <label data-trigger-timing hidden>
+          Przerwa między aktywacjami (s)
+          <input type="number" data-trigger-cooldown value="10" min="0" max="300" step="1" />
+        </label>
+      </div>
+      <p class="export-trigger-note" data-trigger-info>Efekty startują po załadowaniu widgetu i pozostają aktywne.</p>
+    </section>
+
+    <section class="export-route-config" aria-label="Wiele reguł animacji">
+      <label class="export-route-toggle">
+        <input type="checkbox" data-multi-routes />
+        <span><strong>Wiele zdarzeń w jednym widżecie</strong><small>Przypisz różne efekty do komend i alertów bez instalowania kolejnych widgetów.</small></span>
+      </label>
+      <div data-route-workspace hidden>
+        <p class="export-route-description">Reguły są sprawdzane w kolejności od góry. Każda ma własny cooldown; najnowsza aktywowana scena zastępuje poprzednią.</p>
+        <div data-route-list class="export-route-list"></div>
+        <button type="button" data-add-route>+ Dodaj regułę</button>
+        <p class="export-route-note" data-route-warning role="status"></p>
+      </div>
+    </section>
+
+    <section class="export-simulator-config" aria-label="Symulator StreamElements">
+      <div class="export-simulator-heading">
+        <strong>Symulator StreamElements</strong>
+        <span>Ten sam kod co w eksporcie</span>
+      </div>
+      <p>Sprawdź działanie wybranej reguły, cooldownu i warstw bez podłączania konta. Podgląd pracuje w odizolowanej ramce — nie zapisuje zmian w scenie.</p>
+      <div class="export-simulator-toolbar">
+        <label>Zdarzenie do zasymulowania
+          <select data-simulator-event aria-label="Zdarzenie testowe"></select>
+        </label>
+        <button type="button" data-simulator-fire disabled>▶ Symuluj zdarzenie</button>
+        <button type="button" data-simulator-reset disabled>↻ Resetuj podgląd</button>
+      </div>
+      <div class="export-simulator-stage" data-simulator-frame aria-label="Podgląd animacji 16:9"></div>
+      <p class="export-simulator-status" data-simulator-status role="status" aria-live="polite">Podgląd uruchomi się po otwarciu eksportu.</p>
+    </section>
+
     <div class="export-section">
       <div class="export-section-header">
         <strong>HTML</strong>

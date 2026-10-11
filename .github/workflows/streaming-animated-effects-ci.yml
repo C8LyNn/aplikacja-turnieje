@@ -1,0 +1,71 @@
+name: Streaming UI / Animated Effects CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - codex/replit-visual-polish-handoff
+    paths:
+      - "artifacts/animated-effects/**"
+      - "artifacts/tournament-manager/**"
+      - "lib/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/streaming-animated-effects-ci.yml"
+  push:
+    branches:
+      - feat/obs-chat-motion-presets-20261011
+    paths:
+      - "artifacts/animated-effects/**"
+      - "artifacts/tournament-manager/**"
+      - ".github/workflows/streaming-animated-effects-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: streaming-ui-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-streaming:
+    name: Typecheck, tests, and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Animated Effects TypeScript
+        run: pnpm --filter animated-effects typecheck
+
+      - name: Build shared TypeScript library references
+        run: pnpm run typecheck:libs
+
+      - name: Tournament frontend TypeScript
+        run: pnpm --filter @workspace/tournament-manager typecheck
+
+      - name: Tournament frontend tests (including OBS and Animated Effects)
+        run: pnpm --filter @workspace/tournament-manager test
+
+      - name: Animated Effects production build
+        run: pnpm --filter animated-effects build
+
+      - name: Tournament frontend production build
+        run: pnpm --filter @workspace/tournament-manager build

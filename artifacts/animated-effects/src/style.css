@@ -8628,3 +8628,232 @@ body {
   text-decoration: none;
   white-space: nowrap;
 }
+
+/* AE_SE_TRIGGER_EXPORT_V1 */
+.export-dialog { overflow-y: auto; }
+.export-dialog .export-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #0d111a;
+}
+.export-trigger-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+  background: linear-gradient(145deg, rgba(124,92,255,.11), rgba(0,217,255,.035));
+}
+.export-trigger-config > strong {
+  display: block;
+  font-size: 15px;
+}
+.export-trigger-config > p {
+  margin: 8px 0 12px;
+  color: #aab8d3;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.export-trigger-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.export-trigger-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  color: #dbe5fa;
+  font-size: 12px;
+  font-weight: 600;
+}
+.export-trigger-fields > label[hidden] { display: none !important; }
+.export-trigger-fields select,
+.export-trigger-fields input {
+  width: 100%;
+  min-width: 0;
+  min-height: 41px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  padding: 8px 12px;
+  outline-offset: 2px;
+  background: #10192a;
+  color: #f0f5ff;
+}
+.export-trigger-fields select:focus-visible,
+.export-trigger-fields input:focus-visible {
+  outline: 2px solid #00d9ff;
+}
+.export-trigger-config .export-trigger-note {
+  margin-bottom: 0;
+  color: #a9d2e5;
+}
+@media (max-width: 620px) {
+  .export-trigger-fields { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* AE_SE_MULTI_ROUTE_V1 */
+.export-route-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+.export-route-toggle { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.export-route-toggle input { margin-top: 4px; width: 18px; height: 18px; accent-color: #7c5cff; }
+.export-route-toggle span { display: grid; gap: 5px; }
+.export-route-toggle strong { color: #f3f6ff; font-size: 14px; }
+.export-route-toggle small { color: #a9b9d1; line-height: 1.5; }
+.export-route-config [hidden], .export-trigger-config[hidden] { display: none !important; }
+.export-route-description, .export-route-note { color: #adbcd5; font-size: 12px; line-height: 1.5; }
+.export-route-list { display: grid; gap: 12px; margin: 12px 0; }
+.export-route-card {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  padding: 16px 13px 13px;
+  border: 1px solid rgba(124,92,255,.36);
+  border-radius: 12px;
+  background: rgba(8,12,22,.70);
+}
+.export-route-card legend {
+  padding: 0 7px;
+  color: #d0c5ff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.export-route-card [data-remove-route] {
+  position: absolute;
+  right: 12px;
+  top: 9px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.export-route-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+}
+.export-route-fields label { display: grid; gap: 6px; min-width: 0; font-size: 12px; color: #bac8e3; }
+.export-route-fields select, .export-route-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  background: #10192a;
+  color: #f3f6ff;
+}
+.export-route-fields :is(select,input):focus-visible, .export-route-effect-list input:focus-visible {
+  outline: 2px solid #00d9ff;
+  outline-offset: 2px;
+}
+.export-route-effect-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 8px;
+  max-height: 175px;
+  margin-top: 12px;
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 8px;
+}
+.export-route-effect-list label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  font-size: 12px;
+}
+.export-route-effect-list input { flex: none; accent-color: #7c5cff; }
+.export-route-config [data-add-route] { font-size: 12px; }
+.export-route-config [data-add-route]:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 620px) {
+  .export-route-fields, .export-route-effect-list { grid-template-columns: minmax(0,1fr); }
+}
+
+
+/* AE_SE_PROFILE_LIBRARY_V1 */
+.export-profile-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(140deg, rgba(0,217,255,.08), rgba(124,92,255,.05));
+}
+.export-profile-heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.export-profile-heading strong { color: #f5f8ff; font-size: 15px; }
+.export-profile-heading span { color: #9fddea; font-size: 11px; }
+.export-profile-config > p { color: #aabbd6; font-size: 12px; line-height: 1.55; margin: 7px 0 12px; }
+.export-profile-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; margin-top: 10px; }
+.export-profile-actions > label { display: grid; flex: 1 1 210px; gap: 5px; min-width: 0; color: #d2ddef; font-size: 12px; }
+.export-profile-actions input:not([type=file]), .export-profile-actions select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px;
+  outline-offset: 2px;
+  background: #0f1929;
+  color: #f1f6ff;
+}
+.export-profile-actions input:focus-visible, .export-profile-actions select:focus-visible { outline: 2px solid #00d9ff; }
+.export-profile-actions > button { min-height: 40px; font-size: 12px; }
+.export-profile-actions > button:disabled { opacity: .45; cursor: not-allowed; }
+.export-profile-help { color: #8f9eba; font-size: 11px; line-height: 1.45; }
+.export-profile-config .export-profile-status { margin: 12px 0 0; color: #9fcfe1; }
+.export-profile-status[data-error=true] { color: #ff9ea9; }
+@media (max-width: 620px) {
+  .export-profile-actions > label { flex-basis: 100%; }
+  .export-profile-actions > button { flex-grow: 1; }
+}
+
+
+/* AE_SE_EVENT_SIMULATOR_V1 */
+.export-simulator-config {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(135deg, rgba(14,165,233,.09), rgba(124,92,255,.05));
+}
+.export-simulator-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.export-simulator-heading strong { font-size: 15px; }
+.export-simulator-heading span { color: #7dd3fc; font-size: 11px; }
+.export-simulator-config > p { margin: 8px 0 12px; color: #b4c4dd; font-size: 12px; line-height: 1.5; }
+.export-simulator-toolbar {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 10px;
+  padding-bottom: 12px;
+}
+.export-simulator-toolbar label {
+  display: flex; flex: 2 1 250px; flex-direction: column; gap: 7px;
+  min-width: 0; color: #dbeafe; font-size: 12px; font-weight: 600;
+}
+.export-simulator-toolbar select {
+  width: 100%; min-height: 40px; padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 9px; background: #0b1322; color: #f1f5ff;
+}
+.export-simulator-toolbar select:focus-visible,
+.export-simulator-toolbar button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+.export-simulator-toolbar button { min-height: 40px; font-size: 12px; }
+.export-simulator-toolbar button:disabled { cursor: not-allowed; opacity: .45; }
+.export-simulator-stage {
+  width: 100%; aspect-ratio: 16 / 9;
+  position: relative; overflow: hidden; border-radius: 12px;
+  border: 1px solid rgba(125,211,252,.25);
+  background-color: #080c17;
+  background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%),
+    linear-gradient(45deg, #1e293b 25%, transparent 25%, transparent 75%, #1e293b 75%);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+}
+.export-simulator-iframe {
+  display: block;
+  width: 100%; height: 100%;
+  border: 0; background: transparent;
+  pointer-events: none;
+}
+.export-simulator-config .export-simulator-status { min-height: 18px; color: #b9dcf0; }
+@media (max-width: 620px) {
+  .export-simulator-toolbar label { flex-basis: 100%; }
+  .export-simulator-toolbar button { flex: 1 1 auto; }
+}
