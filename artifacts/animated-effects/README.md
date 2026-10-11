@@ -249,3 +249,25 @@ Lokalna symulacja nie gwarantuje identycznego zachowania wszystkich typów zdarz
 Testy automatyczne znajdują się w `test/alertStress.test.mjs`. Sprawdzają deterministyczność profili ruchu, limity harmonogramu, analizę rAF, zakończenie i czyszczenie timerów oraz zatrzymanie po ukryciu karty.
 
 **Nadal wymagane:** test ręczny realnych payloadów StreamElements, zachowania OBS Browser Source oraz grafiki wybranych efektów pod pełnym obciążeniem.
+
+
+## Zapisywanie i odtwarzanie śladów obciążeniowych (Events v6)
+
+Edytor umożliwia odtwarzanie **tego samego syntetycznego harmonogramu** po zmianie priorytetów, animacji i konfiguracji sceny. Narzędzie nie rejestruje prawdziwego czatu, imion, loginów ani adresów awatarów.
+
+### Praca ze śladem
+
+1. W panelu `Diagnostyka alertów` uruchom test obciążeniowy i zaczekaj na **pełne** zakończenie. Edytor przechowa w pamięci harmonogram generowanych zdarzeń.
+2. `Eksportuj ślad JSON` zapisuje `animated-effects-alert-trace-v1.json` — wyłącznie `version`, `source`, `durationMs` oraz tablicę `events` zawierającą `atMs`, `listener` i syntetyczne `amount`.
+3. `Importuj ślad` pozwala wskazać zapisany plik. Import nie używa serwera, nie dotyka zewnętrznej kolejki StreamElements i ignoruje nieznane pola. Walidator odrzuca pliki powyżej 100 KB, wersje inne niż 1, ponad 900 zdarzeń, nieznane typy oraz błędnie posortowane czasy.
+4. `Odtwórz identyczny ślad` uruchamia harmonogram bez ponownego losowania. Efekty, cooldowny i priorytety są pobierane z **aktualnej sceny**, dzięki czemu można testować różne warianty konfiguracji przy tym samym ruchu.
+
+### Porównanie A/B
+
+Po kompletnym przebiegu kliknij `Zapisz wynik jako A`. Zmień scenę lub wersję widgetu, odtwórz zapisany ślad i kliknij `Zapisz wynik jako B`. Panel pokazuje **A, B i zmianę B−A** dla liczby przetworzonych zdarzeń, odrzuceń, wyparć, maksymalnej kolejki, orientacyjnych FPS z rAF, p95 odstępów rAF oraz odsetka odstępów powyżej 33 ms.
+
+**Nie są porównywane różne harmonogramy.** W takim przypadku porównanie jest blokowane z komunikatem o niezgodnym śladzie. Niepełne testy (ręcznie zatrzymane lub przerwane przez kartę w tle) nie mogą zostać ustawione jako A lub B. Pliki i wyniki są przechowywane w pamięci bieżącej karty, a nie w `localStorage` ani bazie danych. Zamknięcie karty usuwa wyniki A/B; eksportowany JSON pozostaje na dysku użytkownika.
+
+**Ograniczenia:** identyczny ślad zapewnia identyczne *syntetyczne wejście*, nie gwarantuje takiego samego rytmu ramek ani w pełni identycznego harmonogramu odtwarzania w obciążonej przeglądarce. Metryki rAF nie są pomiarem GPU/OBS ani podstawą do automatycznego orzekania, która wersja jest wydajniejsza.
+
+Testy: `test/alertTrace.test.mjs` (walidacja importu, prywatność, round-trip i poprawne różnice A/B) oraz `test/alertStress.test.mjs` (identyczne odtwarzanie śladu w kontrolowanym zegarze). Ostateczna publikacja nadal wymaga ręcznych testów w przeglądarce, StreamElements i OBS.
