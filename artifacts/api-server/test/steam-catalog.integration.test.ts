@@ -799,6 +799,56 @@ describe("Steam catalog — real PostgreSQL API", () => {
       total_elapsed_ms: Math.round((performance.now() - loadStart) * 100) / 100,
       cohorts,
     }));
+    // Repeated bursts at independent concurrency levels. Use both identical
+    // requests (eligible for coalescing) and different search strings (which
+    // must never be merged). These are diagnostic measurements, not SLAs.
+    const concurrencyProfiles: Array<{
+      scenario: string; parallel: number; rounds: number;
+      median_batch_ms: number; p95_batch_ms: number;
+      median_request_ms: number; p95_request_ms: number;
+    }> = [];
+    const percentile = (sorted: number[], fraction: number) =>
+      sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)];
+    for (const parallel of [1, 8, 24, 48]) {
+      for (const scenario of ["identical_selective", "distinct_selective", "identical_broad"] as const) {
+        const batches: number[] = [];
+        const individual: number[] = [];
+        for (let round = 0; round < 3; round++) {
+          const started = performance.now();
+          const group = await Promise.all(Array.from({ length: parallel }, async (_, i) => {
+            const searchTerm = scenario === "identical_broad"
+              ? "Scale Test Publisher"
+              : scenario === "distinct_selective"
+                ? "Large Game " + (95000 + i)
+                : "Large Game 99999";
+            const url = "/api/steam-catalog/games?query=" + encodeURIComponent(searchTerm) +
+              (scenario === "identical_broad" ? "&status=ready" : "");
+            const startedRequest = performance.now();
+            const response = await request(app).get(url).expect(200);
+            individual.push(Math.round((performance.now() - startedRequest) * 100) / 100);
+            if (scenario === "identical_broad") {
+              assert.ok(response.body.pagination.total > 2_000);
+              assert.ok(response.body.games.every((x: { status: string }) => x.status === "ready"));
+            } else {
+              assert.equal(response.body.pagination.total, 1);
+              assert.equal(response.body.games[0].name, searchTerm);
+            }
+          }));
+          assert.equal(group.length, parallel);
+          batches.push(Math.round((performance.now() - started) * 100) / 100);
+        }
+        batches.sort((a, b) => a - b);
+        individual.sort((a, b) => a - b);
+        concurrencyProfiles.push({
+          scenario, parallel, rounds: 3,
+          median_batch_ms: percentile(batches, 0.5),
+          p95_batch_ms: percentile(batches, 0.95),
+          median_request_ms: percentile(individual, 0.5),
+          p95_request_ms: percentile(individual, 0.95),
+        });
+      }
+    }
+    console.log("CATALOG_100K_CONCURRENCY_PROFILE " + JSON.stringify(concurrencyProfiles));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
   });
 
