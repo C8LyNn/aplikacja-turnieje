@@ -31,6 +31,7 @@ import {
   countEvidenceDirections,
   evidenceSignature,
   groupEvidenceByYear,
+  isAssessmentStale,
   personEvidence,
 } from "@/features/ludology/statement-classification/evidence-analysis";
 import { computeCoderAgreementPairs } from "@/features/ludology/statement-classification/coder-agreement";
@@ -1382,7 +1383,9 @@ function MapPage() {
   const activeAssessments = activeCodebook
     ? data.assessments.filter((assessment) => assessment.codebookId === activeCodebook.id)
     : [];
-  const assessedPeople = new Set(activeAssessments.map((assessment) => assessment.personId));
+  const freshAssessments = activeAssessments.filter((assessment) => !isAssessmentStale(data, assessment));
+  const staleAssessments = activeAssessments.filter((assessment) => isAssessmentStale(data, assessment));
+  const assessedPeople = new Set(freshAssessments.map((assessment) => assessment.personId));
   const peopleWithCodings = new Set(
     data.codings
       .filter((coding) => coding.codebookId === activeCodebook?.id)
@@ -1393,7 +1396,7 @@ function MapPage() {
       })
       .filter((personId): personId is string => Boolean(personId)),
   );
-  const insufficient = activeAssessments.filter((assessment) => assessment.status === "insufficient_evidence").length;
+  const insufficient = freshAssessments.filter((assessment) => assessment.status === "insufficient_evidence").length;
 
   return (
     <>
@@ -1404,13 +1407,14 @@ function MapPage() {
             <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{data.people.length}</div><div className="text-xs text-muted-foreground">osób w korpusie</div></div>
             <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{peopleWithCodings.size}</div><div className="text-xs text-muted-foreground">osób z kodowaniami</div></div>
             <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{assessedPeople.size}</div><div className="text-xs text-muted-foreground">osób z rekonstrukcjami</div></div>
-            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{activeAssessments.length}</div><div className="text-xs text-muted-foreground">rekonstrukcji mikrostanowisk</div></div>
+            <div className="rounded-xl border border-border bg-background/40 p-4"><div className="text-2xl font-black">{freshAssessments.length}</div><div className="text-xs text-muted-foreground">aktualnych rekonstrukcji</div></div>
           </div>
           <div className="mt-4 space-y-2">
             {!activeCodebook && <ToolNotice tone="danger">Brak aktywnego codebooka — nie ma stabilnego punktu odniesienia dla modelu.</ToolNotice>}
             {data.people.length < 2 && <ToolNotice>Do porównywania stanowisk potrzeba co najmniej więcej niż jednej osoby. Obecny korpus jest nadal pilotażowy.</ToolNotice>}
             {activeAssessments.length === 0 && <ToolNotice>Nie ma jeszcze rekonstrukcji stanowisk. Mapa nie powinna agregować samych surowych kodowań bez warstwy przeglądu.</ToolNotice>}
-            {insufficient > 0 && <ToolNotice>{insufficient} rekonstrukcji ma status „niewystarczające dowody”. Powinny pozostać widoczne jako brak pewnego wyniku.</ToolNotice>}
+            {staleAssessments.length > 0 && <ToolNotice>{staleAssessments.length} rekonstrukcji jest nieaktualnych względem bieżącego zestawu kodowań i nie powinno wejść do modelu bez ponownego przeglądu.</ToolNotice>}
+            {insufficient > 0 && <ToolNotice>{insufficient} aktualnych rekonstrukcji ma status „niewystarczające dowody”. Powinny pozostać widoczne jako brak pewnego wyniku.</ToolNotice>}
           </div>
         </ToolPanel>
 
