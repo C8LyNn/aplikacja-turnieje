@@ -80,6 +80,8 @@ export interface AlertCaption {
   position: "top" | "center" | "bottom";
   fontSize: number;
   color: string;
+  avatarEnabled?: boolean;
+  avatarSize?: number;
 }
 
 export interface EffectTrigger {
