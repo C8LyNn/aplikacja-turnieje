@@ -39,6 +39,28 @@ export function useResearchProject() {
         people: [...current.people, { ...input, id: createResearchId("person"), createdAt: new Date().toISOString() }],
       }));
     },
+    updatePerson(personId: string, patch: Partial<Omit<ResearchPerson, "id" | "createdAt">>) {
+      update((current) => ({
+        ...current,
+        people: current.people.map((person) =>
+          person.id === personId ? { ...person, ...patch } : person,
+        ),
+      }));
+    },
+    deletePerson(personId: string) {
+      update((current) => {
+        const sourceIds = new Set(current.sources.filter((source) => source.personId === personId).map((source) => source.id));
+        const excerptIds = new Set(current.excerpts.filter((excerpt) => sourceIds.has(excerpt.sourceId)).map((excerpt) => excerpt.id));
+        return {
+          ...current,
+          people: current.people.filter((person) => person.id !== personId),
+          sources: current.sources.filter((source) => !sourceIds.has(source.id)),
+          arguments: current.arguments.filter((argument) => !sourceIds.has(argument.sourceId)),
+          excerpts: current.excerpts.filter((excerpt) => !sourceIds.has(excerpt.sourceId)),
+          codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
+        };
+      });
+    },
     addSource(input: Omit<ResearchSource, "id">) {
       update((current) => ({
         ...current,
@@ -52,6 +74,18 @@ export function useResearchProject() {
           source.id === sourceId ? { ...source, ...patch } : source,
         ),
       }));
+    },
+    deleteSource(sourceId: string) {
+      update((current) => {
+        const excerptIds = new Set(current.excerpts.filter((excerpt) => excerpt.sourceId === sourceId).map((excerpt) => excerpt.id));
+        return {
+          ...current,
+          sources: current.sources.filter((source) => source.id !== sourceId),
+          arguments: current.arguments.filter((argument) => argument.sourceId !== sourceId),
+          excerpts: current.excerpts.filter((excerpt) => excerpt.sourceId !== sourceId),
+          codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
+        };
+      });
     },
     addArgument(input: Omit<ResearchArgument, "id">) {
       update((current) => ({
