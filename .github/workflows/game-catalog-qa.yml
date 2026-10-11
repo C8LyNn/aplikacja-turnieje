@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - codex/game-catalog-editor-reliability
-      - codex/neoludology-research-pipeline-v2
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
@@ -19,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: game-catalog-qa-${{ github.ref }}-${{ github.sha }}
+  group: game-catalog-qa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
