@@ -258,6 +258,34 @@ app.innerHTML = `
       </button>
     </div>
 
+    <section class="export-profile-config" aria-label="Zapisane konfiguracje StreamElements">
+      <div class="export-profile-heading">
+        <strong>Zestawy animacji i zdarzeń</strong>
+        <span>Nowe · lokalne · przenośne</span>
+      </div>
+      <p>Zapisz całą scenę, przypisane warstwy i reguły StreamElements. Wczytanie wymaga potwierdzenia.</p>
+      <div class="export-profile-actions">
+        <label class="export-profile-name">Nazwa zestawu
+          <input type="text" data-profile-name value="Mój zestaw" maxlength="64" autocomplete="off" />
+        </label>
+        <button type="button" data-profile-save>Zapisz aktualny</button>
+      </div>
+      <div class="export-profile-actions">
+        <label class="export-profile-select-label">Zapisane zestawy
+          <select data-profile-select><option value="">Wybierz zapisany zestaw</option></select>
+        </label>
+        <button type="button" data-profile-load disabled>Wczytaj</button>
+        <button type="button" data-profile-export disabled>Pobierz JSON</button>
+        <button type="button" data-profile-delete disabled>Usuń</button>
+      </div>
+      <div class="export-profile-actions">
+        <button type="button" data-profile-import>Importuj JSON</button>
+        <input type="file" data-profile-file accept=".json,application/json" hidden />
+        <span class="export-profile-help">Pliki działają także w innej przeglądarce lub na drugim komputerze.</span>
+      </div>
+      <p class="export-profile-status" data-profile-status role="status" aria-live="polite"></p>
+    </section>
+
     <section class="export-trigger-config" data-single-trigger aria-label="Aktywacja efektów">
       <strong>Uruchamianie animacji</strong>
       <p>Wybierz, kiedy StreamElements ma uruchomić tę scenę. Tryb ciągły zachowuje poprzednie działanie.</p>
