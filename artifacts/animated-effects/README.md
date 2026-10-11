@@ -170,3 +170,26 @@ W konfiguracji dynamicznego podpisu jest teraz opcja **Pokaż awatar (lub inicja
 Testy eksportowanego widgetu obejmują FIFO między dwiema warstwami, obsługę 50 jednocześnie przychodzących wiadomości, sprzątanie DOM, blokowanie HTTP/niedozwolonych hostów, renderowanie inicjału oraz zaufanego obrazu. Dodatkowo sprawdzany jest zapis tych ustawień w `.aescene.json`.
 
 Przed publikacją wymagany test wizualny w OBS: pozycje napisów i awatarów na różnych rozdzielczościach, działanie kolejek przy prawdziwych eventach, oraz weryfikacja zewnętrznych CDN w kontekście Browser Source.
+
+
+## Priorytety kolejki i wizualna kompozycja alertów (Events v3)
+
+Każda warstwa zdarzeniowa ma teraz ustawienie **Priorytet w kolejce (0–10)**. Domyślne wartości dla nowo konfigurowanych warstw: donacje 9; cheery i raidy 8; subskrypcje 7; follow 5; czat 2. Istniejące sceny bez `priority` dostają neutralne 5, zachowując wcześniejszy porządek FIFO.
+
+Kolejka działa następująco:
+- Wyższy priorytet wyprzedza alerty **oczekujące**, nie przerywa aktualnie odtwarzanego.
+- Dwa alerty o tym samym priorytecie zachowują kolejność nadejścia.
+- Limit 16 oczekujących pozostaje aktywny. Po zapełnieniu ważniejszy nowy alert może zająć miejsce najnowszego alertu o najniższym priorytecie. Jeśli nie ma zdarzenia o niższym priorytecie, nowy jest odrzucany.
+- Priorytet nie ma wpływu na działanie trybu `Restartuj efekt`. Reguły cooldown i minimalnej kwoty nadal są oceniane przed przyjęciem do kolejki.
+
+### Kompozycja podpisu
+
+Po wybraniu `Własna pozycja (X/Y)` można:
+- wpisać pozycję środka podpisu w procentach obszaru sceny (X: 25–75%, Y: 10–90%),
+- kliknąć `Testuj w podglądzie` i **przeciągnąć sam podpis** na scenie; współrzędne zapisują się jako jedna zmiana Undo.
+
+Dostępne są również niezależne animacje **wejścia i wyjścia** dla podpisu: zanikanie/pokazywanie (fade), przesunięcie (slide) i powiększenie/zmniejszenie (pop). Animacje nie zmieniają właściwych klatek kluczowych efektu i są automatycznie dopasowane do długości alertu.
+
+Wszystkie te ustawienia zapisują się w `.aescene.json`; w eksporcie StreamElements podpis i animacja są wyświetlane na podstawie przychodzącego `onEventReceived`. Stary tryb pozycjonowania góra/środek/dół i dawne sceny pozostają obsługiwane.
+
+**QA:** rozszerzono testy wygenerowanego widgetu o kolejność priorytetów, zapełnienie kolejki, zachowanie FIFO, brak przerywania aktywnego alertu, X/Y oraz wejście i wyjście podpisu. Przeciąganie w realnej przeglądarce wymaga osobnego testu manualnego (mysz/dotyk, różne rozdzielczości). PR nie zastępuje domyślnej kolejki AlertBox StreamElements.
