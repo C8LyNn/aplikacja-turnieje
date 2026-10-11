@@ -244,6 +244,7 @@ function ResearchWorkspace() {
   const [argumentSummary, setArgumentSummary] = useState("");
   const [excerptText, setExcerptText] = useState("");
   const [excerptContext, setExcerptContext] = useState("");
+  const [excerptContextAfter, setExcerptContextAfter] = useState("");
   const [argumentId, setArgumentId] = useState("");
   const [timestampStart, setTimestampStart] = useState("");
   const [timestampEnd, setTimestampEnd] = useState("");
@@ -271,8 +272,10 @@ function ResearchWorkspace() {
     const text = transcript.slice(selectionStart, selectionEnd).trim();
     if (!text) return;
     const before = transcript.slice(Math.max(0, selectionStart - 280), selectionStart).trim();
+    const after = transcript.slice(selectionEnd, Math.min(transcript.length, selectionEnd + 280)).trim();
     setExcerptText(text);
     setExcerptContext(before);
+    setExcerptContextAfter(after);
   }
 
   function submitArgument(event: FormEvent) {
@@ -295,12 +298,14 @@ function ResearchWorkspace() {
       argumentId: argumentId || undefined,
       text: excerptText.trim(),
       contextBefore: excerptContext.trim() || undefined,
+      contextAfter: excerptContextAfter.trim() || undefined,
       timestampStart: timestampStart === "" ? undefined : Number(timestampStart),
       timestampEnd: timestampEnd === "" ? undefined : Number(timestampEnd),
       verificationStatus,
     });
     setExcerptText("");
     setExcerptContext("");
+    setExcerptContextAfter("");
     setTimestampStart("");
     setTimestampEnd("");
     setVerificationStatus("unverified");
@@ -390,7 +395,8 @@ function ResearchWorkspace() {
                       {sourceArguments.map((argument) => <option key={argument.id} value={argument.id}>{argument.title || "Argument"}</option>)}
                     </ToolSelect>
                     <ToolTextarea rows={6} value={excerptText} onChange={(e) => setExcerptText(e.target.value)} placeholder="Dokładny cytat / fragment…" />
-                    <ToolTextarea rows={3} value={excerptContext} onChange={(e) => setExcerptContext(e.target.value)} placeholder="Kontekst przed fragmentem / objaśnienie sytuacji…" />
+                    <ToolTextarea rows={3} value={excerptContext} onChange={(e) => setExcerptContext(e.target.value)} placeholder="Kontekst przed fragmentem…" />
+                    <ToolTextarea rows={3} value={excerptContextAfter} onChange={(e) => setExcerptContextAfter(e.target.value)} placeholder="Kontekst po fragmencie…" />
                     <div className="grid gap-3 sm:grid-cols-2">
                       <ToolInput type="number" min="0" step="0.1" value={timestampStart} onChange={(e) => setTimestampStart(e.target.value)} placeholder="Start [s]" />
                       <ToolInput type="number" min="0" step="0.1" value={timestampEnd} onChange={(e) => setTimestampEnd(e.target.value)} placeholder="Koniec [s]" />
@@ -433,7 +439,8 @@ function ResearchWorkspace() {
                             </div>
                           </div>
                           <blockquote className="text-sm leading-6">“{excerpt.text}”</blockquote>
-                          {excerpt.contextBefore && <div className="mt-2 text-xs text-muted-foreground">Kontekst: {excerpt.contextBefore}</div>}
+                          {excerpt.contextBefore && <div className="mt-2 text-xs text-muted-foreground">Przed: {excerpt.contextBefore}</div>}
+                          {excerpt.contextAfter && <div className="mt-1 text-xs text-muted-foreground">Po: {excerpt.contextAfter}</div>}
                         </div>
                       );
                     })}
