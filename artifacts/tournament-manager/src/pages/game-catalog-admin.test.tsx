@@ -40,11 +40,11 @@ const game = (id: number, name: string, status: MockGame["status"] = "unclassifi
 });
 
 function mockCatalog(games: MockGame[], imported?: MockGame) {
-  const requests: { path: string; method: string }[] = [];
+  const requests: { path: string; method: string; adminKey: string | null }[] = [];
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = String(input);
     const method = init?.method ?? "GET";
-    requests.push({ path, method });
+    requests.push({ path, method, adminKey: new Headers(init?.headers).get("x-steam-catalog-admin-token") });
     const parsed = new URL(path, "http://localhost");
     if (parsed.pathname === "/api/steam-catalog/games" && method === "GET") {
       const page = Number(parsed.searchParams.get("page") ?? "1");
@@ -119,6 +119,7 @@ function mount(path: string) {
 
 afterEach(() => {
   cleanup();
+  window.sessionStorage.clear();
   globalThis.fetch = originalFetch;
 });
 
@@ -279,4 +280,17 @@ test("a deep linked game is fetched by ID without first fetching every catalog r
   await screen.findByRole("heading", { name: "Bezpośredni rekord" });
   assert.ok(requests.some((request) => request.path === "/api/steam-catalog/games/77"));
   assert.equal(requests.filter((request) => request.path.includes("/steam-catalog/games?")).length, 0);
+});
+
+test("catalog reads never transmit editor credentials, but classification writes do", async () => {
+  window.sessionStorage.setItem("tm_steam_catalog_admin_token", "test-only-catalog-editor-key");
+  const requests = mockCatalog([game(11, "Zasoby")]);
+  mount(`${BASE}/games/11`);
+  await screen.findByRole("button", { name: "Akcja" });
+  assert.ok(requests.filter((item) => item.method === "GET").every((item) => item.adminKey === null));
+
+  fireEvent.click(screen.getByRole("button", { name: "Akcja" }));
+  fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
+  await waitFor(() => assert.equal(requests.filter((item) => item.method === "PUT").length, 1));
+  assert.equal(requests.find((item) => item.method === "PUT")?.adminKey, "test-only-catalog-editor-key");
 });
