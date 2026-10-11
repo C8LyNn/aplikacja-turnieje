@@ -6,6 +6,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0artifacts\animated
 if errorlevel 1 (
   echo.
   echo Preview did not start. See the error above.
-  pause
+  if not defined CI pause
+  exit /b 1
 )
 endlocal
