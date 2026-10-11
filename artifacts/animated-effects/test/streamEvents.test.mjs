@@ -155,3 +155,48 @@ test("generated widget rejects small tips without requiring HTML insertion", () 
   runtime.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { amount: 25 } } });
   assert.equal(runtime.root.children.length, 2);
 });
+
+
+test("exported widget renders bounded follower captions as text, never HTML", () => {
+  const runtime = runWidget({
+    source: "event", event: "follower-latest", cooldownMs: 0, minAmount: 0,
+    caption: { enabled: true, template: "Witaj {name}!", position: "top", fontSize: 54, color: "#ff8800" },
+  });
+  runtime.listeners.onWidgetLoad({});
+  runtime.listeners.onEventReceived({
+    detail: { listener: "follower-latest", event: { name: "<img src=x onerror=alert(1)>" } },
+  });
+  const host = runtime.root.children[1];
+  assert.ok(host);
+  const text = host.children.find((node) => node.className === "ae-alert-caption");
+  assert.ok(text, "caption created alongside the particle layer");
+  assert.equal(text.textContent, "Witaj <img src=x onerror=alert(1)>!");
+  assert.equal(text.innerHTML, undefined, "user input was never parsed as HTML");
+  assert.equal(text.style.top, "8%");
+  assert.equal(text.style.color, "#ff8800");
+  assert.equal(text.style.fontSize, "54px");
+});
+
+test("chat event.data carries displayName and message for safe placeholder substitution", () => {
+  const runtime = runWidget({
+    source: "event", event: "message", cooldownMs: 0, minAmount: 0,
+    caption: { enabled: true, template: "{name}: {message}", position: "bottom", fontSize: 30, color: "#ffffff" },
+  });
+  runtime.listeners.onWidgetLoad({});
+  runtime.listeners.onEventReceived({
+    detail: { listener: "message", event: { data: { displayName: "Viewer_13", text: "<b>hej</b>" } } },
+  });
+  const caption = runtime.root.children[1].children.find((node) => node.className === "ae-alert-caption");
+  assert.equal(caption.textContent, "Viewer_13: <b>hej</b>");
+  assert.equal(caption.style.bottom, "8%");
+});
+
+test("disabled captions and unknown placeholders are non-executable", () => {
+  const runtime = runWidget({
+    source: "event", event: "tip-latest", cooldownMs: 0, minAmount: 0,
+    caption: { enabled: false, template: "{name} {missing}", position: "center", fontSize: 50, color: "#ffffff" },
+  });
+  runtime.listeners.onWidgetLoad({});
+  runtime.listeners.onEventReceived({ detail: { listener: "tip-latest", event: { name: "A", amount: 12 } } });
+  assert.equal(runtime.root.children[1].children.some((node) => node.className === "ae-alert-caption"), false);
+});
