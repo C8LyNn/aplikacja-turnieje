@@ -8,6 +8,7 @@ import {
 } from "./state";
 import { applyExportRoutes, readExportRoutes, setupExportRoutes, syncExportRoutes } from "./exportRoutes";
 import { setupExportProfilesUI } from "./exportProfilesUI";
+import { setupStreamElementsSimulator } from "./streamElementsSimulator";
 import { createStreamElementsProfile } from "../export/streamElementsProfiles";
 
 import {
@@ -16,6 +17,8 @@ import {
   type StreamElementsTriggerOptions,
 } from "../export/triggerOptions";
 
+
+const simulators = new WeakMap<HTMLDialogElement, ReturnType<typeof setupStreamElementsSimulator>>();
 
 export function setupExportPanel(
   dialog: HTMLDialogElement,
@@ -54,6 +57,16 @@ export function setupExportPanel(
       openExportPanel(dialog);
     },
   });
+
+  simulators.set(dialog, setupStreamElementsSimulator(dialog, () => {
+    const trigger = readTriggerOptions(dialog);
+    const routes = readExportRoutes(dialog);
+    return {
+      trigger,
+      routes,
+      exported: generateStreamElementsExport(getEditorState(), trigger, routes),
+    };
+  }));
 
   dialog
     .querySelectorAll<HTMLButtonElement>(
@@ -143,6 +156,7 @@ export function openExportPanel(
   if (!dialog.open) {
     dialog.showModal();
   }
+  simulators.get(dialog)?.refresh();
 }
 
 function readTriggerOptions(dialog: HTMLDialogElement): StreamElementsTriggerOptions {
