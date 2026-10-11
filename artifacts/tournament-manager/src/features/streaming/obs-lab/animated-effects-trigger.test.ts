@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";
 import { generateStreamElementsExport } from "../../../../../animated-effects/src/export/streamElements";
+import { setupExportPanel, openExportPanel } from "../../../../../animated-effects/src/editor/exportPanel";
 import {
   normalizeStreamElementsTriggerOptions,
   DEFAULT_STREAM_ELEMENTS_TRIGGER_OPTIONS,
@@ -159,6 +160,48 @@ for (const [mode, listener] of [
     }
   });
 }
+
+test("export dialog updates the generated widget when trigger controls change", () => {
+  const dialog = document.createElement("dialog");
+  dialog.innerHTML = `
+    <select data-trigger-mode><option value="always">Always</option><option value="chat-command">Chat</option></select>
+    <label data-trigger-command-field hidden><input data-trigger-command value="!hype" /></label>
+    <label data-trigger-timing hidden><input data-trigger-duration value="5" /></label>
+    <label data-trigger-timing hidden><input data-trigger-cooldown value="10" /></label>
+    <p data-trigger-info></p>
+    <span data-export-metrics></span>
+    <textarea data-export="html"></textarea>
+    <textarea data-export="css"></textarea>
+    <textarea data-export="javascript"></textarea>
+  `;
+  Object.defineProperty(dialog, "showModal", { value: () => { dialog.open = true; } });
+  document.body.append(dialog);
+  try {
+    setupExportPanel(dialog);
+    const mode = dialog.querySelector<HTMLSelectElement>("[data-trigger-mode]")!;
+    const command = dialog.querySelector<HTMLInputElement>("[data-trigger-command]")!;
+    const duration = dialog.querySelector<HTMLInputElement>("[data-trigger-duration]")!;
+    const cooldown = dialog.querySelector<HTMLInputElement>("[data-trigger-cooldown]")!;
+    assert.equal(dialog.querySelector<HTMLElement>("[data-trigger-command-field]")!.hidden, true);
+    mode.value = "chat-command";
+    mode.dispatchEvent(new window.Event("change", { bubbles: true }));
+    assert.equal(dialog.querySelector<HTMLElement>("[data-trigger-command-field]")!.hidden, false);
+    assert.equal(dialog.querySelectorAll<HTMLElement>("[data-trigger-timing][hidden]").length, 0);
+    command.value = "!FIRE";
+    duration.value = "2.5";
+    cooldown.value = "3";
+    openExportPanel(dialog);
+    const javascript = dialog.querySelector<HTMLTextAreaElement>('[data-export="javascript"]')!.value;
+    assert.match(javascript, /"mode":"chat-command"/);
+    assert.match(javascript, /"chatCommand":"!fire"/);
+    assert.match(javascript, /"activeDurationMs":2500/);
+    assert.match(javascript, /"cooldownMs":3000/);
+    assert.equal(command.value, "!fire");
+    assert.ok(dialog.querySelector<HTMLElement>("[data-trigger-info]")!.textContent?.includes("!fire"));
+  } finally {
+    dialog.remove();
+  }
+});
 
 test("event exports do not require an iframe or call back into the editor website", () => {
   const output = generateStreamElementsExport(emptyScene, { mode: "chat-command", chatCommand: "!hype" });
