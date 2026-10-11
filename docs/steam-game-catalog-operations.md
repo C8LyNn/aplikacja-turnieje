@@ -46,6 +46,36 @@ assignments**), `pagination` (`page`, `pageSize`, `total`,
 `totalPages`) and global `counts` per status. The search accepts a maximum
 of 120 characters, page size at most 100. AppID searches are exact.
 
+### Sequential paging without OFFSET
+
+Every game-list response now also returns `pagination.nextCursor`, an opaque,
+versioned Base64URL keyset marker (or `null` on the final page). To read the next
+page, supply it in `cursor` together with the next numerical `page`, the
+same `pageSize`, `query`, and `status`:
+
+```text
+GET /api/steam-catalog/games?page=1&pageSize=25&status=review
+GET /api/steam-catalog/games?page=2&pageSize=25&status=review&cursor=<nextCursor from page 1>
+```
+
+The cursor is tied to the exact query and records the last `(name, id)`.
+It is **not** an access credential. A corrupted or mismatched token returns
+`400 INVALID_CATALOG_CURSOR`; after page counts shrink beyond the cursor's
+page, the API returns `409 CATALOG_CURSOR_STALE`. The browser discards the
+stack of cursors when filters or screens change and can recover by reopening
+the first page.
+
+Direct `page=N` requests *without* a cursor still work for legacy consumers,
+but use an `OFFSET` scan and can be slower at deep pages. This is a stable
+sequence of individually queried pages, **not a transactional snapshot**:
+concurrent insertions, deletions or renaming games may shift visible pages.
+
+The PostgreSQL 20,003-row CI test compared page 400: `66.78 ms` without the
+cursor and `8.46 ms` with it in one ephemeral runner. The exact result varies;
+use a representative production-like dataset and multiple measurement runs
+before making performance guarantees. The same integration test checks 12
+parallel cursor reads for consistent results.
+
 The editor fetches `GET /api/steam-catalog/games/:id` for the complete
 classification and `GET /api/steam-catalog/queue?currentId=ID` for the
 next pending record. The latter avoids loading all catalog entries.
