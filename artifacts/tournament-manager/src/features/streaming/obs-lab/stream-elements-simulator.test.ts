@@ -138,6 +138,33 @@ test("simulator forwards commands into the exact exported widget and shows selec
   }
 });
 
+test("always-on simulator reports ready before its initial active-layer count", () => {
+  const snippets = generateStreamElementsExport(makeScene(), { mode: "always" });
+  const html = createStreamElementsSimulationHtml(snippets);
+  const blocks = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+  assert.equal(blocks.length, 2);
+  const dom = new JSDOM("<!doctype html><html><body>" + snippets.html + "</body></html>", {
+    url: "https://widget-preview.example/", runScripts: "outside-only",
+  });
+  try {
+    const posts: Array<{type: string; count?: number}> = [];
+    Object.defineProperty(dom.window, "postMessage", {
+      configurable: true,
+      value: (value: { type: string; count?: number }) => posts.push(value),
+    });
+    dom.window.eval(blocks[0]![1]!);
+    dom.window.eval(blocks[1]![1]!);
+    const ready = posts.findIndex((entry) => entry.type === "ae-se-simulator-ready");
+    const active = posts.findIndex((entry) =>
+      entry.type === "ae-se-simulator-state" && (entry.count ?? 0) > 0,
+    );
+    assert.ok(ready >= 0, "ready event is emitted");
+    assert.ok(active > ready, "initial active-layer state must follow ready");
+  } finally {
+    dom.window.close();
+  }
+});
+
 test("editor mounts simulator inside sandbox without allowing same-origin access", () => {
   const oldScene = structuredClone(getEditorState());
   replaceEditorState(makeScene(), "Simulation test");
