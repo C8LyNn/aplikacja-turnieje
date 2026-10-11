@@ -443,6 +443,21 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT count(*), " +
       "count(*) FILTER (WHERE status='review') FROM steam_catalog_games",
     );
+    const orderedSearchPlans = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT id,name,steam_app_id,developer,publisher " +
+      "FROM steam_catalog_games WHERE name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1 " +
+      "ORDER BY name,id LIMIT 26",
+      ["%Large Game 99999%"],
+    );
+    const materializedPlans = await rows<{ "QUERY PLAN": unknown }>(
+      "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) WITH search_hits AS MATERIALIZED (" +
+      "SELECT id FROM steam_catalog_games WHERE name ILIKE $1 OR developer ILIKE $1 OR publisher ILIKE $1" +
+      ") SELECT g.id,g.name,g.steam_app_id,g.developer,g.publisher FROM steam_catalog_games g " +
+      "JOIN search_hits hits ON hits.id=g.id ORDER BY g.name,g.id LIMIT 26",
+      ["%Large Game 99999%"],
+    );
+    console.log("CATALOG_100K_ORDERED_EXPLAIN " + JSON.stringify(orderedSearchPlans[0]?.["QUERY PLAN"]).slice(0, 9000));
+    console.log("CATALOG_100K_MATERIALIZED_EXPLAIN " + JSON.stringify(materializedPlans[0]?.["QUERY PLAN"]).slice(0, 9000));
     console.log("CATALOG_100K_SEARCH_EXPLAIN " + JSON.stringify(searchPlans[0]?.["QUERY PLAN"]).slice(0, 8000));
     console.log("CATALOG_100K_COUNTS_EXPLAIN " + JSON.stringify(countPlans[0]?.["QUERY PLAN"]).slice(0, 4000));
     console.log("CATALOG_100K_HTTP_TIMINGS_MS " + JSON.stringify(metrics));
