@@ -1,0 +1,102 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
+
+// Exercise the real scene serializer/parser, without mounting a browser UI.
+const source = readFileSync(new URL("../src/scenes/scenes.ts", import.meta.url), "utf8");
+const compiled = ts.transpileModule(source, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  fileName: "scenes.ts",
+}).outputText;
+const defaultSettings = {
+  opacity: 90, scale: 100, x: 0, y: 0, rotation: 0,
+  blur: 0, brightness: 100, hue: 0, color: "#aabbcc", colorize: false,
+  density: 45, blendMode: "normal", area: "full", zIndex: 0,
+  speed: 100, intensity: 50, custom: { burst: 3 },
+};
+const definition = {
+  id: "test-effect",
+  defaultSettings,
+  customControls: [
+    { key: "burst", label: "Burst", min: 0, max: 10, defaultValue: 3 },
+    { key: "glow", label: "Glow", min: 0, max: 1, defaultValue: 0.25 },
+  ],
+};
+const exports = {};
+runInNewContext(compiled, {
+  exports,
+  require(id) {
+    if (id === "../effects/registry") {
+      return { getEffectDefinition: (effectId) => effectId === definition.id ? definition : undefined };
+    }
+    throw new Error("Unexpected dependency: " + id);
+  },
+  structuredClone,
+  crypto: globalThis.crypto,
+});
+const { serializeScene, parseScene } = exports;
+
+function sceneState() {
+  return {
+    resolution: { width: 1920, height: 1080 },
+    backgroundOnly: true,
+    palette: {
+      accent1: "#ffffff", accent2: "#eeeeee", accent3: "#dddddd",
+      background1: "#111111", background2: "#222222",
+    },
+    background: {
+      mode: "gradient", angle: 145, lightX: 50, lightY: 40, hue: 0,
+      saturation: 1, brightness: 1, contrast: 1, noise: 0, vignette: 0.2,
+    },
+    focusZone: "right", safeZone: "left",
+    effects: [{
+      instanceId: "effect-1", effectId: "test-effect", seed: 43, enabled: false,
+      settings: { ...structuredClone(defaultSettings), custom: { burst: 7, glow: 0.8 } },
+      label: "My Overlay", locked: true, groupId: "group-1",
+    }],
+    selectedEffectInstanceId: "effect-1", activePresetId: null,
+  };
+}
+
+test("round-trips advanced controls, zone settings, disabled layers and metadata", () => {
+  const state = sceneState();
+  const restored = parseScene(serializeScene(state), { ...state, focusZone: "none", safeZone: "off" });
+  assert.equal(restored.warnings.length, 0);
+  assert.equal(restored.state.focusZone, "right");
+  assert.equal(restored.state.safeZone, "left");
+  assert.equal(restored.state.effects.length, 1);
+  const layer = restored.state.effects[0];
+  assert.equal(layer.settings.custom.burst, 7);
+  assert.equal(layer.settings.custom.glow, 0.8);
+  assert.equal(layer.enabled, false);
+  assert.equal(layer.locked, true);
+  assert.equal(layer.label, "My Overlay");
+  assert.equal(layer.groupId, "group-1");
+});
+
+test("clamps custom values and rejects non-declared control keys", () => {
+  const state = sceneState();
+  const document = JSON.parse(serializeScene(state));
+  document.effects[0].settings.custom = { burst: 99999, glow: "not-a-number", unknown: 123 };
+  const result = parseScene(JSON.stringify(document), state);
+  assert.equal(result.state.effects[0].settings.custom.burst, 10);
+  assert.equal(result.state.effects[0].settings.custom.glow, 0.25);
+  assert.equal(result.state.effects[0].settings.custom.unknown, undefined);
+});
+
+test("rejects null and non-scene data without throwing an unhelpful type error", () => {
+  assert.throws(() => parseScene("null", sceneState()), /Nieprawidłowy format sceny/);
+  assert.throws(() => parseScene("{}", sceneState()), /To nie jest plik Animated Effects Scene/);
+});
+
+test("skips unknown effects and retains the remaining valid layers", () => {
+  const state = sceneState();
+  const document = JSON.parse(serializeScene(state));
+  document.effects.push({ ...document.effects[0], instanceId: "effect-2", effectId: "missing-effect" });
+  const result = parseScene(JSON.stringify(document), state);
+  assert.equal(result.state.effects.length, 1);
+  assert.equal(result.warnings.length, 1);
+  assert.match(result.warnings[0], /nieznany efekt/);
+});
