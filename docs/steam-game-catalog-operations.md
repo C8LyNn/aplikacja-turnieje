@@ -82,7 +82,7 @@ next pending record. The latter avoids loading all catalog entries.
 
 Migrations `0030` and `0031` provide abstract-world support and indexes.
 Migration `0032_steam_catalog_classification_revision.sql` adds a durable
-`classification_revision` optimistic concurrency token. **Apply 0029-0033
+`classification_revision` optimistic concurrency token. **Apply 0029-0034
 in order before deploying the updated API**; older databases without
 0032 will fail when retrieving catalog games, while 0033 adds optional search indexes.
 
@@ -120,11 +120,29 @@ continues and existing `ILIKE '%query%'` matching remains correct, with the
 older (slower) search plan. A database administrator can install `pg_trgm`
 separately; replay migration 0033 afterwards to build missing indexes.
 
-The status badges and unsearched page totals now come from a **single
-aggregate query** using `COUNT(*) FILTER (WHERE status = ...)`, replacing
-two scans of the full table for every ordinary listing. Text search still
-requires a separate count of matching rows (and global status badges remain
-global). Existing page-number, filter, and cursor contracts do not change.
+With migration `0034_steam_catalog_exact_status_counters.sql`, status badges,
+unsearched pagination totals and the pending queue count are **exact counters**
+stored in `steam_catalog_status_counts`, rather than full-table aggregates.
+PostgreSQL statement-level triggers apply status deltas transactionally to
+`INSERT`, `UPDATE`, and `DELETE`, including bulk imports. Counter updates
+participate in the writer's transaction and roll back with failed writes.
+The migration acquires a write-blocking table lock while taking the initial
+count snapshot and installing triggers; plan this brief lock for a quiet
+deployment window. It is safe to replay the migration: existing counter
+values are preserved and trigger definitions are replaced rather than duplicated.
+
+**Apply migrations 0029–0034 in order before deploying the new API.**
+Deploying the API before 0034 will fail for list/queue reads because the
+counters table does not yet exist. Direct manual SQL modifications to the
+counter table are unsupported; to check or repair drift, reconcile against
+`SELECT status, count(*) FROM steam_catalog_games GROUP BY status` while writes
+are paused. A dedicated verification test confirms insert/delete/status
+changes, rollback safety, idempotent migration replay and counts after a
+100k-row bulk load.
+
+Text search still requires a separate count of matching rows (and global
+status badges remain global). Existing page-number, filter, and cursor
+contracts do not change.
 PostgreSQL will not always select GIN for very short or common search strings,
 and indexes add overhead and storage for inserts/re-imports.
 
