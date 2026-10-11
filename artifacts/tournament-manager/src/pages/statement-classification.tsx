@@ -27,11 +27,11 @@ import { useResearchProject } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sources" | "fragments" | "coding" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
-  if (tail === "overview" || tail === "people" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -72,6 +72,13 @@ const cards = [
     description: "Przypisywanie fragmentów do tez, kodów i poziomu pewności.",
     href: `${BASE}/coding`,
     icon: FlaskConical,
+  },
+  {
+    code: "EVID",
+    title: "Profil dowodów",
+    description: "Macierz mikrostanowisk pokazująca pokrycie, kierunek i sprzeczności bez wymuszania osi mapy.",
+    href: `${BASE}/positions`,
+    icon: Network,
   },
   {
     code: "MAP",
@@ -506,6 +513,86 @@ function Coding() {
   );
 }
 
+function EvidenceProfile() {
+  const { data } = useResearchProject();
+  const [personId, setPersonId] = useState(data.people[0]?.id ?? "");
+  const personSources = new Set(data.sources.filter((source) => source.personId === personId).map((source) => source.id));
+  const personExcerptIds = new Set(data.excerpts.filter((excerpt) => personSources.has(excerpt.sourceId)).map((excerpt) => excerpt.id));
+  const personCodings = data.codings.filter((coding) => personExcerptIds.has(coding.excerptId));
+
+  return (
+    <>
+      <PageHeader
+        section="EVID"
+        title="Profil dowodów"
+        description="Najpierw pokazujemy strukturę materiału dowodowego. Pozycja na mapie będzie późniejszą interpretacją tych danych."
+      />
+      {data.people.length === 0 ? (
+        <ToolPanel><ToolEmptyState title="Brak osób do analizy" description="Dodaj osobę i rozpocznij budowę korpusu." /></ToolPanel>
+      ) : (
+        <div className="space-y-4">
+          <ToolPanel title="Badana osoba">
+            <ToolSelect value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              {data.people.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
+            </ToolSelect>
+          </ToolPanel>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personSources.size}</div><div className="text-xs text-muted-foreground">źródeł</div></div>
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personExcerptIds.size}</div><div className="text-xs text-muted-foreground">fragmentów</div></div>
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{personCodings.length}</div><div className="text-xs text-muted-foreground">kodowań</div></div>
+            <div className="rounded-2xl border border-border bg-card/60 p-4"><div className="text-2xl font-black">{new Set(personCodings.map((coding) => coding.propositionId)).size}/{data.propositions.length}</div><div className="text-xs text-muted-foreground">mikrostanowisk z dowodami</div></div>
+          </div>
+
+          <ToolPanel title="Evidence Matrix" description="Każdy wiersz pokazuje obserwacje, nie syntetyczną etykietę osoby.">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-3">Mikrostanowisko</th>
+                    <th className="px-3 py-3 text-center">Za</th>
+                    <th className="px-3 py-3 text-center">Przeciw</th>
+                    <th className="px-3 py-3 text-center">Mieszane</th>
+                    <th className="px-3 py-3 text-center">N/A</th>
+                    <th className="px-3 py-3 text-center">Łącznie</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.propositions.map((proposition) => {
+                    const codings = personCodings.filter((coding) => coding.propositionId === proposition.id);
+                    const positive = codings.filter((coding) => coding.direction !== null && coding.direction > 0).length;
+                    const negative = codings.filter((coding) => coding.direction !== null && coding.direction < 0).length;
+                    const mixed = codings.filter((coding) => coding.direction === 0).length;
+                    const na = codings.filter((coding) => coding.direction === null).length;
+                    const contradiction = positive > 0 && negative > 0;
+                    return (
+                      <tr key={proposition.id} className="border-b border-border/60 last:border-0">
+                        <td className="px-3 py-3">
+                          <div className="font-bold">{proposition.code} — {proposition.label}</div>
+                          {contradiction && <div className="mt-1 text-xs text-amber-400">Sprzeczne kierunki dowodów — wymaga przeglądu.</div>}
+                        </td>
+                        <td className="px-3 py-3 text-center font-bold">{positive}</td>
+                        <td className="px-3 py-3 text-center font-bold">{negative}</td>
+                        <td className="px-3 py-3 text-center">{mixed}</td>
+                        <td className="px-3 py-3 text-center text-muted-foreground">{na}</td>
+                        <td className="px-3 py-3 text-center">{codings.length}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </ToolPanel>
+
+          <ToolNotice>
+            Ten widok celowo nie liczy jeszcze pozycji X/Y. Pokrycie, sprzeczności i liczba obserwacji pozostają widoczne przed agregacją.
+          </ToolNotice>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MapPage() {
   return (
     <>
@@ -553,6 +640,7 @@ export default function StatementClassificationPage() {
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <Coding />}
+        {section === "positions" && <EvidenceProfile />}
         {section === "map" && <MapPage />}
         {section === "methodology" && <Methodology />}
       </ModuleShell>
