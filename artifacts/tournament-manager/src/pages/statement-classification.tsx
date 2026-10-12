@@ -34,6 +34,7 @@ import DimensionModelLab from "@/features/ludology/statement-classification/Dime
 import SamplingLab from "@/features/ludology/statement-classification/SamplingLab";
 import CorpusHealthLab from "@/features/ludology/statement-classification/CorpusHealthLab";
 import DiscussionLab from "@/features/ludology/statement-classification/DiscussionLab";
+import ComparisonLab from "@/features/ludology/statement-classification/ComparisonLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
@@ -42,12 +43,12 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "compare" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
   if (tail === "dimensions") return "map";
-  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "compare" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -88,6 +89,13 @@ const cards = [
     description: "Łączenie argumentów wielu osób i źródeł w śledzalne dyskusje oraz ich chronologię.",
     href: `${BASE}/debates`,
     icon: MessageCircle,
+  },
+  {
+    code: "COMPARE",
+    title: "Comparison Lab",
+    description: "Porównanie rekonstrukcji dwóch osób na tych samych mikrostanowiskach bez jednego score podobieństwa.",
+    href: `${BASE}/compare`,
+    icon: Network,
   },
   {
     code: "SRC",
@@ -274,6 +282,9 @@ function Overview() {
           </Link>
           <Link href={`${BASE}/health`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
             Corpus Health →
+          </Link>
+          <Link href={`${BASE}/compare`} className="rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">
+            Comparison Lab →
           </Link>
         </div>
       </ToolPanel>
@@ -587,6 +598,7 @@ export default function StatementClassificationPage() {
         {section === "sampling" && <SamplingLab />}
         {section === "health" && <CorpusHealthLab />}
         {section === "debates" && <DiscussionLab />}
+        {section === "compare" && <ComparisonLab />}
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
