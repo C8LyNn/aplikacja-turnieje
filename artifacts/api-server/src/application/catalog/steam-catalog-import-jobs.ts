@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
-import { getSteamSpyPage, STEAMSPY_PAGE_CAP, SteamSpyCooldownError } from "./steam-catalog-steamspy";
+import { getSteamSpyPage, STEAMSPY_PAGE_CAP, SteamSpyCooldownError, SteamSpySourceError } from "./steam-catalog-steamspy";
+import {
+  CatalogUpstreamTemporaryError, MAX_CATALOG_UPSTREAM_RETRIES,
+  catalogRetryDelaySeconds, fetchCatalogUpstream, isTemporaryUpstreamStatus,
+} from "./steam-catalog-upstream-retry";
 import {
   parseSteamDetailedGame, parseSteamDiscoveryPage,
   type SteamDiscoveryCandidate,
@@ -14,6 +18,7 @@ type JobRow = {
   pending: SteamDiscoveryCandidate[]; has_more: boolean; max_games: number;
   processed: number; inserted: number; existing: number; ignored: number;
   failed: number; scanned: number; pause_requested: boolean;
+  retry_count: number; next_run_at: Date;
   lease_token: string | null; last_error: string | null;
   created_at: Date; updated_at: Date; finished_at: Date | null;
 };
@@ -33,6 +38,7 @@ function view(job: JobRow) {
     processed: job.processed, inserted: job.inserted,
     existing: job.existing, ignored: job.ignored, failed: job.failed,
     scanned: job.scanned, pauseRequested: job.pause_requested,
+    retryCount: job.retry_count, nextRunAt: job.next_run_at,
     lastError: job.last_error,
     createdAt: job.created_at, updatedAt: job.updated_at,
     finishedAt: job.finished_at,
@@ -94,7 +100,7 @@ export async function resumeCatalogImportJob(id: number) {
   try {
     const result = await pool.query<JobRow>(`
       UPDATE steam_catalog_import_jobs SET status = 'running',
-        pause_requested = false, last_error = NULL,
+        pause_requested = false, last_error = NULL, retry_count = 0,
         next_run_at = now(), lease_token = NULL,
         lease_expires_at = NULL, updated_at = now()
       WHERE id = $1 AND status = 'paused' RETURNING *
@@ -120,11 +126,7 @@ async function discover(job: JobRow): Promise<Step> {
     include_videos: "false", include_hardware: "false",
   })) url.searchParams.set(param, value);
 
-  const result = await fetch(url, {
-    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
-    signal: AbortSignal.timeout(12_000),
-  });
-  if (!result.ok) throw new Error(result.status === 429 ? "Steam discovery rate limited" : "Steam discovery unavailable");
+  const result = await fetchCatalogUpstream(url, "Steam discovery");
   const parsed = parseSteamDiscoveryPage(await result.json(), job.steam_cursor);
   if (!parsed) throw new Error("Invalid Steam discovery page");
   return {
@@ -177,11 +179,7 @@ async function importOne(job: JobRow): Promise<Step> {
   const url = new URL("https://store.steampowered.com/api/appdetails");
   url.searchParams.set("appids", String(candidate.appId));
   url.searchParams.set("l", "english");
-  const result = await fetch(url, {
-    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
-    signal: AbortSignal.timeout(12_000),
-  });
-  if (!result.ok) throw new Error(result.status === 429 ? "Steam metadata rate limited" : "Steam metadata unavailable");
+  const result = await fetchCatalogUpstream(url, "Steam Store");
   const raw = await result.json() as Record<string, { success?: boolean; data?: unknown }>;
   const record = raw?.[String(candidate.appId)];
   if (!record?.success || !record.data) {
@@ -270,6 +268,7 @@ export async function runCatalogImportStep(): Promise<boolean> {
           inserted = inserted + $8, existing = existing + $9,
           ignored = ignored + $10, failed = failed + $11,
           status = $12, pause_requested = false, last_error = NULL,
+          retry_count = 0,
           lease_token = NULL, lease_expires_at = NULL,
           next_run_at = now() + interval '1 second',
           finished_at = CASE WHEN $12 = 'completed' THEN now() ELSE finished_at END,
@@ -293,14 +292,48 @@ export async function runCatalogImportStep(): Promise<boolean> {
       await pool.query(`
         UPDATE steam_catalog_import_jobs
         SET next_run_at = now() + ($3::integer * interval '1 second'),
+            status = CASE WHEN pause_requested THEN 'paused' ELSE status END,
+            pause_requested = false,
             lease_token = NULL, lease_expires_at = NULL, updated_at = now()
         WHERE id = $1 AND lease_token = $2::uuid
       `, [job.id, token, Math.max(1, error.retryAfterSeconds)]);
       return true;
     }
+    const temporary = error instanceof CatalogUpstreamTemporaryError
+      ? error
+      : error instanceof SteamSpySourceError && isTemporaryUpstreamStatus(error.status)
+        ? new CatalogUpstreamTemporaryError("SteamSpy")
+        : null;
+    if (temporary) {
+      // The lease guards retries as well as successful checkpoints.
+      // Never advance pending AppIDs or discovery cursors on an upstream failure.
+      const attempts = job.retry_count + 1;
+      const exhausted = attempts >= MAX_CATALOG_UPSTREAM_RETRIES;
+      const delaySeconds = exhausted ? 0 : catalogRetryDelaySeconds(
+        attempts, temporary.retryAfterSeconds,
+      );
+      const safeReason = exhausted
+        ? temporary.message + " Retry limit reached; resume manually."
+        : temporary.message + " Automatic retry scheduled.";
+      await pool.query(`
+        UPDATE steam_catalog_import_jobs
+        SET retry_count = $3,
+            next_run_at = now() + ($4::integer * interval '1 second'),
+            status = CASE WHEN pause_requested OR $5::boolean THEN 'paused' ELSE 'running' END,
+            pause_requested = false, last_error = $6,
+            lease_token = NULL, lease_expires_at = NULL, updated_at = now()
+        WHERE id = $1 AND lease_token = $2::uuid
+      `, [job.id, token, attempts, delaySeconds, exhausted, safeReason]);
+      return true;
+    }
     // No unbounded retry loop. A paused job can be resumed explicitly after
     // Steam recovers; avoid writing key-bearing upstream URLs to the database.
-    const reason = error instanceof Error ? error.message : "Steam import failed";
+    // Unknown driver/parser errors could contain URL query parameters or
+    // credentials. Do not persist raw error strings in operator-facing APIs.
+    const reason = error instanceof Error &&
+      (error.message === "Missing server STEAM_WEB_API_KEY" ||
+        error.message === "Invalid Steam discovery page")
+      ? error.message : "Steam import failed; inspect private server logs.";
     await pool.query(`
       UPDATE steam_catalog_import_jobs SET status = 'paused',
         pause_requested = false, last_error = $3,
