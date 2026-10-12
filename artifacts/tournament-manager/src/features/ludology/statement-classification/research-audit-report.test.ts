@@ -101,7 +101,7 @@ test("global integrity issues and person flags remain visible separately", () =>
 test("Markdown is escaped, marks N/A distinct from neutral and JSON preserves full snapshot", () => {
   const report = buildResearchAuditReport(fixture(), context);
   const md = renderResearchAuditMarkdown(report);
-  assert.match(md, /Osoba \\\| analizowana/);
+  assert.ok(md.includes("Osoba " + String.fromCharCode(92) + "| analizowana"));
   assert.match(md, /N\/A/);
   assert.match(md, /brak flag|Flagi|Integralność/);
   assert.match(md, /2026-10-12T17:00:00.000Z/);
