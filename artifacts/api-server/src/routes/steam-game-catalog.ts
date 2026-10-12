@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-access";
 import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
 import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
+import { parseSteamDetailedGame, parseSteamDiscoveryPage, parseSteamDiscoveryRequest, parseSteamImportBatch } from "../application/catalog/steam-catalog-growth";
 import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
 import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
@@ -364,6 +365,140 @@ router.post("/steam-catalog/taxonomy", requireSteamCatalogAdmin, async (req, res
       .returning();
 
     res.status(201).json({ term });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Steam IStoreService discovery is paginated by AppID and requests only games.
+// A Steam Web API key is required, kept exclusively in server environment.
+router.post("/steam-catalog/discover", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const params = parseSteamDiscoveryRequest(req.body);
+    if (!params) {
+      res.status(400).json({ error: "Nieprawidłowe parametry odkrywania gier.", code: "INVALID_STEAM_DISCOVERY" });
+      return;
+    }
+    const steamKey = process.env.STEAM_WEB_API_KEY?.trim();
+    if (!steamKey || !/^[a-f0-9]{32}$/i.test(steamKey)) {
+      res.status(503).json({
+        error: "Skonfiguruj STEAM_WEB_API_KEY po stronie serwera, aby odkrywać gry.",
+        code: "STEAM_DISCOVERY_NOT_CONFIGURED",
+      });
+      return;
+    }
+    const endpoint = new URL("https://api.steampowered.com/IStoreService/GetAppList/v1/");
+    endpoint.searchParams.set("key", steamKey);
+    endpoint.searchParams.set("last_appid", String(params.cursor));
+    endpoint.searchParams.set("max_results", String(params.pageSize));
+    endpoint.searchParams.set("include_games", "true");
+    endpoint.searchParams.set("include_dlc", "false");
+    endpoint.searchParams.set("include_software", "false");
+    endpoint.searchParams.set("include_videos", "false");
+    endpoint.searchParams.set("include_hardware", "false");
+    const upstream = await fetch(endpoint, {
+      headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!upstream.ok) {
+      res.status(502).json({
+        error: upstream.status === 429 ? "Steam ograniczył częstotliwość żądań. Spróbuj później." : "Steam nie udostępnił listy gier.",
+        code: upstream.status === 429 ? "STEAM_DISCOVERY_RATE_LIMITED" : "STEAM_DISCOVERY_UPSTREAM_ERROR",
+      });
+      return;
+    }
+    const page = parseSteamDiscoveryPage(await upstream.json(), params.cursor);
+    if (!page) {
+      res.status(502).json({ error: "Steam zwrócił nieprawidłową stronę wyników.", code: "STEAM_DISCOVERY_BAD_RESPONSE" });
+      return;
+    }
+    const appIds = page.games.map((item) => item.appId);
+    const existing = appIds.length ? await db.select({ appId: steamCatalogGames.steamAppId })
+      .from(steamCatalogGames).where(inArray(steamCatalogGames.steamAppId, appIds)) : [];
+    const known = new Set(existing.map((item) => item.appId));
+    res.json({
+      candidates: page.games.filter((item) => !known.has(item.appId)),
+      scanned: page.games.length,
+      alreadyInCatalog: known.size,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Import at most 10 real games per request, checking store type and existing
+// IDs before every write. This deliberately does not bulk-insert unverified
+// app-list entries, which could otherwise include DLC or unavailable items.
+router.post("/steam-catalog/import-batch", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const appIds = parseSteamImportBatch(req.body?.appIds);
+    if (!appIds) {
+      res.status(400).json({
+        error: "Podaj od 1 do 10 prawidłowych Steam AppID.",
+        code: "INVALID_STEAM_IMPORT_BATCH",
+      });
+      return;
+    }
+    const existing = await db.select({ appId: steamCatalogGames.steamAppId })
+      .from(steamCatalogGames).where(inArray(steamCatalogGames.steamAppId, appIds));
+    const known = new Set(existing.map((item) => item.appId));
+    const results: Array<{ appId: number; status: "inserted" | "existing" | "not_game" | "missing" | "upstream_error" }> = [];
+    let rateLimited = false;
+    let aborted = false;
+    for (const appId of appIds) {
+      if (known.has(appId)) {
+        results.push({ appId, status: "existing" });
+        continue;
+      }
+      // Avoid flooding the Store API with concurrent appdetails requests.
+      if (results.length) await new Promise((resolve) => setTimeout(resolve, 800));
+      try {
+        const endpoint = new URL("https://store.steampowered.com/api/appdetails");
+        endpoint.searchParams.set("appids", String(appId));
+        endpoint.searchParams.set("l", "english");
+        const upstream = await fetch(endpoint, {
+          headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+          signal: AbortSignal.timeout(12_000),
+        });
+        if (!upstream.ok) {
+          results.push({ appId, status: "upstream_error" });
+          if (upstream.status === 429 || upstream.status >= 500) {
+            rateLimited = upstream.status === 429;
+            aborted = true;
+            break;
+          }
+          continue;
+        }
+        const payload = await upstream.json() as Record<string, { success?: boolean; data?: unknown }>;
+        const entry = payload?.[String(appId)];
+        if (!entry?.success || !entry.data) {
+          results.push({ appId, status: "missing" });
+          continue;
+        }
+        const parsed = parseSteamDetailedGame(appId, entry.data);
+        if (!parsed) {
+          results.push({ appId, status: "not_game" });
+          continue;
+        }
+        const [created] = await db.insert(steamCatalogGames).values(parsed)
+          .onConflictDoNothing({ target: steamCatalogGames.steamAppId })
+          .returning({ id: steamCatalogGames.id });
+        results.push({ appId, status: created ? "inserted" : "existing" });
+      } catch {
+        results.push({ appId, status: "upstream_error" });
+        aborted = true;
+        break;
+      }
+    }
+    const totals = {
+      inserted: results.filter((item) => item.status === "inserted").length,
+      existing: results.filter((item) => item.status === "existing").length,
+      ignored: results.filter((item) => item.status === "not_game" || item.status === "missing").length,
+      failed: results.filter((item) => item.status === "upstream_error").length,
+    };
+    res.json({ requested: appIds.length, processed: results.length, ...totals, rateLimited, aborted, results });
   } catch (error) {
     next(error);
   }
