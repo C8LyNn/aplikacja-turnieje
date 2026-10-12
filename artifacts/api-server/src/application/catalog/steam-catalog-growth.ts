@@ -27,7 +27,7 @@ export function parseSteamImportBatch(raw: unknown): number[] | null {
 export function parseSteamDiscoveryRequest(raw: unknown): { cursor: number; pageSize: number } | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const input = raw as Record<string, unknown>;
-  const cursor = input.cursor === undefined ? 0 : appIdFrom(input.cursor);
+  const cursor = input.cursor === undefined || input.cursor === 0 || input.cursor === "0" ? 0 : appIdFrom(input.cursor);
   const pageSize = input.pageSize === undefined ? DISCOVERY_PAGE_SIZE : Number(input.pageSize);
   if (cursor === null || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > MAX_DISCOVERY_PAGE_SIZE) return null;
   return { cursor, pageSize };
