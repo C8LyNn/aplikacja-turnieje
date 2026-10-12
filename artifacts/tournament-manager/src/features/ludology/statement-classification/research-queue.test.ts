@@ -4,7 +4,7 @@ import { buildResearchQueue } from "./research-queue";
 import type { ResearchProjectData } from "./model";
 
 const base = (): ResearchProjectData => ({
-  schemaVersion: 5,
+  schemaVersion: 6,
   people: [{ id: "p1", displayName: "P" }],
   sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" }],
   arguments: [
@@ -48,6 +48,8 @@ const base = (): ResearchProjectData => ({
     dimensions: [],
     dimensionLinks: [],
     samplingPlans: [],
+    discussions: [],
+    discussionLinks: [],
 });
 
 test("research queue surfaces verification coding contradiction and review work", () => {
