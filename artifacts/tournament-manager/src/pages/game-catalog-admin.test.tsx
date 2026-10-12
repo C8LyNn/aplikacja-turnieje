@@ -230,6 +230,54 @@ test("Steam growth UI discovers candidate games, imports ten or fewer and stores
   assert.deepEqual(operations, ["discovery", "batch"]);
 });
 
+test("featured discovery imports the whole pending queue without calling keyed discovery", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  const operations: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover-featured") {
+      operations.push("featured");
+      return Response.json({
+        candidates: [{ appId: 570, name: "Dota 2" }, { appId: 730, name: "Counter-Strike 2" }],
+        scanned: 3, alreadyInCatalog: 1,
+      });
+    }
+    if (path === "/api/steam-catalog/discover") {
+      throw new Error("Keyed Steam discovery must not be called by queue-only mode");
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.appIds, [570, 730]);
+      operations.push("batch");
+      return Response.json({
+        requested: 2, processed: 2, inserted: 2, existing: 0,
+        ignored: 0, failed: 0, aborted: false, rateLimited: false,
+        results: [
+          { appId: 570, status: "inserted" },
+          { appId: 730, status: "inserted" },
+        ],
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz nowości i popularne/i }));
+  await screen.findByText("Dota 2");
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "2");
+  fireEvent.click(screen.getByRole("button", { name: /Przetwórz kolejkę/i }));
+  await waitFor(() => {
+    assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0");
+    assert.equal(screen.getByTestId("steam-imported-total").textContent, "2");
+  });
+  const stored = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+  assert.equal(stored.stats.inserted, 2);
+  assert.equal(stored.stats.scanned, 3);
+  assert.equal(stored.cursor, 0);
+  assert.deepEqual(operations, ["featured", "batch"]);
+});
+
 test("pasted Steam AppIDs queue without Steam discovery API credentials", async () => {
   mockCatalog([]);
   const underlying = globalThis.fetch;
