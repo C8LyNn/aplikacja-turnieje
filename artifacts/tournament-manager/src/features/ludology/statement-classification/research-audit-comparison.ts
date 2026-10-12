@@ -113,7 +113,14 @@ export function parseResearchAuditSnapshot(raw: string): ResearchAuditReport {
         (plan !== null && snapshots.samplingPlan === null)) {
       throw new Error("Nieprawidłowa migawka definicji narzędzi badawczych.");
     }
-    validateInstrumentSnapshot(snapshots as { codebook: string; samplingPlan: string | null });
+    validateInstrumentSnapshot(
+      snapshots as { codebook: string; samplingPlan: string | null },
+      {
+        codebookId: codebook.id as string, codebookVersion: codebook.version as string,
+        planId: plan === null ? null : plan.id as string,
+        planVersion: plan === null ? null : plan.version as string,
+      },
+    );
   }
   requireCounts(value.counts, CORPUS_METRICS.map(([key]) => key), "korpus");
   requireCounts(value.health, ["people", ...HEALTH_METRICS.map(([key]) => key)],
