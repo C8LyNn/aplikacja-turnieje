@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, ne, sql } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -10,6 +10,7 @@ import {
   type TournamentMutationActor,
 } from "../../access-policy";
 import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
+import { parseUndoPayloadForAction } from "../../domain/tournament/undo-payload";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -226,12 +227,23 @@ export async function undoTournamentRosterAction(input: {
     if (!action?.undoPayload)
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
 
-    let payload: Record<string, unknown>;
-    try {
-      payload = JSON.parse(action.undoPayload) as Record<string, unknown>;
-    } catch {
+    // undo-last reads the candidate before taking the tournament lock. A
+    // concurrent roster mutation may have appended a newer undoable action.
+    const [latestUndoableAction] = await tx.select({ id: actionLogTable.id })
+      .from(actionLogTable)
+      .where(and(
+        eq(actionLogTable.tournamentId, input.tournamentId),
+        eq(actionLogTable.isUndone, false),
+        sql`${actionLogTable.undoPayload} IS NOT NULL`,
+      ))
+      .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+      .limit(1);
+    if (latestUndoableAction?.id !== action.id) {
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
     }
+
+    const payload = parseUndoPayloadForAction(action.actionType, action.undoPayload);
+    if (!payload) throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
 
     if (payload.type === "delete_player") {
       const playerId = Number(payload.playerId);
