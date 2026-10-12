@@ -299,3 +299,23 @@ test("old roster history without a verifiable post-state cannot silently delete 
   );
   assert.deepEqual(unchanged.rows, [{ name: "Legacy participant" }]);
 });
+
+test("action-log reports false for old roster actions lacking post-write snapshots", async () => {
+  const f = await tournament(false);
+  await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Legacy registration" }).expect(201);
+  const before = (await request(app)
+    .get(`/api/tournaments/${f.id}/action-log`).set(f.auth).expect(200)).body;
+  const recent = before.find((entry: { actionType: string }) =>
+    entry.actionType === "player_added");
+  assert.equal(recent?.canUndo, true);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextData')::text WHERE tournament_id=$1 AND action_type='player_added'",
+    [f.id],
+  );
+  const after = (await request(app)
+    .get(`/api/tournaments/${f.id}/action-log`).set(f.auth).expect(200)).body;
+  const old = after.find((entry: { actionType: string }) =>
+    entry.actionType === "player_added");
+  assert.equal(old?.canUndo, false);
+});
