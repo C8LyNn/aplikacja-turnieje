@@ -131,11 +131,15 @@ def metadata(env: dict[str, str]) -> dict[str, str]:
 def restore_list(dump: Path, output: Path, env: dict[str, str]) -> None:
     listing = command(["pg_restore", "--list", str(dump)], env)
     public_schema = re.compile(r"^\s*\d+;\s+\d+\s+\d+\s+SCHEMA\s+-\s+public\s")
+    public_comment = re.compile(r"^\s*\d+;\s+\d+\s+\d+\s+COMMENT\s+-\s+SCHEMA\s+public\s")
     lines = []
     for line in listing.splitlines(keepends=True):
-        # Neon already provides a public schema. Leave it intact but restore
-        # ALL source tables, including any Replit _system metadata tables.
-        lines.append(";" + line if public_schema.match(line) else line)
+        # Neon provides public and owns it via pg_database_owner. Even with
+        # --no-owner the source's COMMENT ON SCHEMA public would require
+        # ownership and abort the whole transactional restore. Keep both
+        # entries out, while retaining ALL source tables and their data.
+        skip = public_schema.match(line) or public_comment.match(line)
+        lines.append(";" + line if skip else line)
     output.write_text("".join(lines))
     output.chmod(0o600)
 
