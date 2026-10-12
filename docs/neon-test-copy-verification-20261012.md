@@ -65,8 +65,13 @@ remaining ownership or ACL dependencies for the transfer role on the
 test copy. The transfer password was reset earlier, and the old
 Replit secret cannot authenticate.
 
-The transfer role still exists but owns **no objects**. Do not delete
-it or delete the QA branch without explicit owner confirmation.
+The now-unused transfer role **was deleted from the MAIN Neon test
+branch**, after validating zero ownership/ACL dependencies and closing its
+single idle pooled connection by suspending the idle test compute. A fresh
+Neon roles listing confirmed that only `tournament_manager_owner`
+remains on the main branch. The isolated QA child branch still exists,
+with its compute suspended; do not delete that branch without explicit
+owner approval.
 
 ## Remaining gates before any production cutover
 
@@ -97,9 +102,9 @@ in `scripts/neon-cutover-readiness-20261012.sql`.
 - All 17 custom triggers are enabled.
 - All 46 tables are owned by `pg_database_owner` under database owner
   `tournament_manager_owner`.
-- The transfer role has zero shared-dependency entries and no CREATE grant
-  on the public schema. It has no remaining owned relations, functions,
-  user-schema types, or schemas.
+- The transfer role had zero shared-dependency entries and no CREATE
+  grant on the public schema before it was deleted from Neon main.
+  No owned relations, functions, user-schema types or schemas remained.
 - All 28 serial sequences were traced to their associated ID columns.
   Twenty belong to nonempty tables, eight to empty tables. No sequence
   is behind the maximum ID stored in its table.
