@@ -260,3 +260,42 @@ test("roster undo refuses to overwrite later edits not reflected in the action l
   );
   assert.deepEqual(unchanged.rows, baseline.rows);
 });
+
+test("roster undo supports edit-then-registration reversal in order", async () => {
+  const f = await tournament(false);
+  const added = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Original", seed: 4 }).expect(201);
+  await request(app).patch(`/api/players/${added.body.id}`)
+    .set(f.auth).send({ name: "Renamed", seed: 6 }).expect(200);
+
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  const restored = await database.pool.query(
+    "SELECT name, seed FROM players WHERE id=$1", [added.body.id],
+  );
+  assert.deepEqual(restored.rows, [{ name: "Original", seed: 4 }]);
+
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  const removed = await database.pool.query(
+    "SELECT id FROM players WHERE id=$1", [added.body.id],
+  );
+  assert.equal(removed.rows.length, 0);
+});
+
+test("old roster history without a verifiable post-state cannot silently delete players", async () => {
+  const f = await tournament(false);
+  const added = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Legacy participant" }).expect(201);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextData')::text WHERE tournament_id=$1 AND action_type='player_added'",
+    [f.id],
+  );
+  const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
+  const unchanged = await database.pool.query(
+    "SELECT name FROM players WHERE id=$1", [added.body.id],
+  );
+  assert.deepEqual(unchanged.rows, [{ name: "Legacy participant" }]);
+});
