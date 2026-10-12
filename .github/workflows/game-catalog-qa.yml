@@ -5,6 +5,7 @@ on:
     branches:
       - codex/game-catalog-editor-reliability
       - codex/game-catalog-featured-discovery
+      - codex/game-catalog-steamspy-expansion
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
