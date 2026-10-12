@@ -30,7 +30,10 @@ export type ResearchIntegrityIssue = {
     | "dimension_link_model_mismatch"
     | "dimension_link_codebook_mismatch"
     | "duplicate_dimension_link"
-    | "invalid_sampling_plan";
+    | "invalid_sampling_plan"
+    | "orphan_discussion_link_discussion"
+    | "orphan_discussion_link_argument"
+    | "duplicate_discussion_link";
   message: string;
   entityId?: string;
 };
@@ -73,6 +76,8 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("dimensions", data.dimensions),
     ...duplicateIdIssues("dimensionLinks", data.dimensionLinks),
     ...duplicateIdIssues("samplingPlans", data.samplingPlans),
+    ...duplicateIdIssues("discussions", data.discussions),
+    ...duplicateIdIssues("discussionLinks", data.discussionLinks),
   ];
 
   const people = new Set(data.people.map((item) => item.id));
@@ -325,6 +330,35 @@ export function checkResearchProjectIntegrity(
         message: "Plan próbkowania zawiera nieprawidłowy próg lub wartość spoza dozwolonego zakresu.",
       });
     }
+  }
+
+  const discussions = new Set(data.discussions.map((discussion) => discussion.id));
+  const discussionLinkKeys = new Set<string>();
+  for (const link of data.discussionLinks) {
+    if (!discussions.has(link.discussionId)) {
+      issues.push({
+        code: "orphan_discussion_link_discussion",
+        entityId: link.id,
+        message: "Powiązanie debaty wskazuje nieistniejącą debatę.",
+      });
+    }
+    if (!argumentsById.has(link.argumentId)) {
+      issues.push({
+        code: "orphan_discussion_link_argument",
+        entityId: link.id,
+        message: "Powiązanie debaty wskazuje nieistniejący argument.",
+      });
+    }
+
+    const duplicateKey = [link.discussionId, link.argumentId].join("::");
+    if (discussionLinkKeys.has(duplicateKey)) {
+      issues.push({
+        code: "duplicate_discussion_link",
+        entityId: link.id,
+        message: "Ten sam argument jest podwójnie przypisany do tej samej debaty.",
+      });
+    }
+    discussionLinkKeys.add(duplicateKey);
   }
 
   const assessmentKeys = new Set<string>();
