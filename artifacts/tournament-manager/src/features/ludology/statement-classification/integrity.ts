@@ -64,17 +64,6 @@ function duplicateIdIssues(
     seen.add(entry.id);
   }
 
-  for (const adjudication of data.adjudications) {
-    const problem = adjudicationIssue(data, adjudication);
-    if (problem) {
-      issues.push({
-        code: "invalid_adjudication",
-        entityId: adjudication.id,
-        message: problem,
-      });
-    }
-  }
-
   return issues;
 }
 
@@ -505,6 +494,17 @@ export function checkResearchProjectIntegrity(
       });
     }
     assessmentKeys.add(duplicateKey);
+  }
+
+  for (const adjudication of data.adjudications) {
+    const problem = adjudicationIssue(data, adjudication);
+    if (problem) {
+      issues.push({
+        code: "invalid_adjudication",
+        entityId: adjudication.id,
+        message: problem,
+      });
+    }
   }
 
   return issues;
