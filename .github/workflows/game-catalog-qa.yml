@@ -10,6 +10,7 @@ on:
       - codex/game-catalog-discovery-unified
       - codex/game-catalog-server-keyless-import
       - codex/game-catalog-staging-preflight
+      - codex/game-catalog-isolated-staging-smoke
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
@@ -80,6 +81,8 @@ jobs:
         run: pnpm --filter @workspace/api-server exec node --import tsx --test ./test/steam-catalog.integration.test.ts
       - name: Read-only preflight against disposable PostgreSQL catalog
         run: pnpm --filter @workspace/db test:game-catalog-preflight:integration
+      - name: Isolated HTTP staging and verified five-AppID import
+        run: pnpm --filter @workspace/api-server exec node --import tsx --test ./test/game-catalog-staging-smoke.integration.test.ts
 
   catalog-validation:
     name: Frontend and backend checks

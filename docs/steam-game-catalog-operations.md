@@ -210,6 +210,36 @@ and rate-limit behavior must be observed on the actual deployment.
 Do not store the Steam key or administrator token in logs, source files
 or browser localStorage.
 
+## Isolated staging smoke in GitHub Actions
+
+The catalog CI also runs `game-catalog-staging-smoke.integration.test.ts`
+against its own disposable PostgreSQL schema and a **real loopback HTTP**
+Express server. All outbound SteamSpy and Steam Store calls in this test
+are mocked deterministically; no actual Steam/SteamSpy requests are sent.
+
+The smoke test checks: migrations 0029–0036, read-only DB readiness,
+public API counts/taxonomy/queue, rejected unauthenticated import,
+an authenticated **5-candidate** keyless import, pause/resume, Store
+game/DLC filtering, AppID deduplication, preservation of existing
+human classification, and equal DB/API counters after import.
+
+Run only with the repository's safety-configured dedicated test database:
+
+```bash
+pnpm --filter @workspace/api-server exec node --import tsx --test ./test/game-catalog-staging-smoke.integration.test.ts
+```
+
+This test creates and drops only `tm_test_catalog_smoke` and requires
+`TEST_DATABASE_URL`, `TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA`, and
+the Node test-runner context. It refuses database names not containing
+`test` and hosts indicating production.
+
+**Interpretation:** passing CI demonstrates the complete application
+logic on disposable infrastructure; it is *not* a real hosted staging
+deployment and does not confirm external Steam rate limits, DNS, TLS,
+provider configuration or real data insertion. Issue #23 still tracks
+the independently identified staging host and guarded live 5-AppID test.
+
 ## Read-only release preflight (before any staging/production import)
 
 Run the catalog database inspection **against the exact database you intend
