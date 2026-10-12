@@ -228,3 +228,115 @@ test("undo-last refuses stale restoration without overwriting a newer match stat
   assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await f.snapshot(), baseline);
 });
+
+async function undoSnapshot(tournamentId: number, matchId: number) {
+  const [matchRows, tournamentRows, pickRows, actionRows] = await Promise.all([
+    database.pool.query("SELECT * FROM matches WHERE id=$1", [matchId]),
+    database.pool.query("SELECT * FROM tournaments WHERE id=$1", [tournamentId]),
+    database.pool.query("SELECT * FROM match_game_picks WHERE match_id=$1 ORDER BY game_number", [matchId]),
+    database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [tournamentId]),
+  ]);
+  return {
+    match: matchRows.rows,
+    featuredMatchId: tournamentRows.rows[0]?.featured_match_id,
+    picks: pickRows.rows,
+    actions: actionRows.rows,
+  };
+}
+
+test("undo-last safely restores BO while a pending match is unchanged", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).patch(url).set(f.auth).send({ bestOf: 3 }).expect(200);
+  assert.equal((await f.read()).bestOf, 3);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await f.read()).bestOf, 1);
+});
+
+test("undo-last rejects a stale BO change without modifying the match or log", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ bestOf: 3 }).expect(200);
+  await database.pool.query("UPDATE matches SET best_of=5 WHERE id=$1", [f.match.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last restores a featured match when no later change occurred", async () => {
+  const f = await fixture();
+  const url = `/api/tournaments/${f.id}`;
+  await request(app).patch(url).set(f.auth)
+    .send({ featuredMatchId: f.match.id }).expect(200);
+  let state = await undoSnapshot(f.id, f.match.id);
+  assert.equal(state.featuredMatchId, f.match.id);
+  await request(app).post(`${url}/undo-last`).set(f.auth).expect(200);
+  state = await undoSnapshot(f.id, f.match.id);
+  assert.equal(state.featuredMatchId, null);
+});
+
+test("undo-last rejects a stale featured match pointer", async () => {
+  const f = await fixture();
+  const matches = (await request(app).get(`/api/tournaments/${f.id}/matches`).expect(200)).body;
+  const otherMatchId = matches.find((m: { id: number }) => m.id !== f.match.id)?.id as number;
+  assert.ok(otherMatchId, "fixture must have a second match");
+  await request(app).patch(`/api/tournaments/${f.id}`).set(f.auth)
+    .send({ featuredMatchId: f.match.id }).expect(200);
+  await database.pool.query("UPDATE tournaments SET featured_match_id=$1 WHERE id=$2", [otherMatchId, f.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last restores swapped players and unmodified Deadlock picks", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id, player1_side) VALUES ($1,1,'hero-a','hero-b','archmother')",
+    [f.match.id],
+  );
+  const original = await undoSnapshot(f.id, f.match.id);
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  const swapped = await undoSnapshot(f.id, f.match.id);
+  assert.equal(swapped.match[0].player1_id, original.match[0].player2_id);
+  assert.equal(swapped.picks[0].player1_hero_id, "hero-b");
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  const restored = await undoSnapshot(f.id, f.match.id);
+  assert.equal(restored.match[0].player1_id, original.match[0].player1_id);
+  assert.equal(restored.match[0].player2_id, original.match[0].player2_id);
+  assert.equal(restored.picks[0].player1_hero_id, "hero-a");
+  assert.equal(restored.picks[0].player2_hero_id, "hero-b");
+  assert.equal(restored.picks[0].player1_side, "archmother");
+});
+
+test("undo-last rejects a swap when a pick was edited after swapping", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id, player1_side) VALUES ($1,1,'hero-a','hero-b','archmother')",
+    [f.match.id],
+  );
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query(
+    "UPDATE match_game_picks SET player1_hero_id='edited-later' WHERE match_id=$1 AND game_number=1",
+    [f.match.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last rejects a swap after the match revision changed", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query("UPDATE matches SET best_of=3 WHERE id=$1", [f.match.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
