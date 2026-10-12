@@ -9,7 +9,7 @@ import {
 import type { ResearchProjectData } from "./model";
 
 const data = (): ResearchProjectData => ({
-  schemaVersion: 6,
+  schemaVersion: 7,
   people: [{ id: "p1", displayName: "P" }],
   sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" }],
   arguments: [],
@@ -60,6 +60,7 @@ const data = (): ResearchProjectData => ({
   samplingPlans: [],
   discussions: [],
   discussionLinks: [],
+  argumentRelations: [],
 });
 
 test("orientation flips reconstructed direction without changing the assessment", () => {
