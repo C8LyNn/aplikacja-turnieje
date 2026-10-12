@@ -1,6 +1,7 @@
 import type {
   CodingAdjudication,
   CodingRecord,
+  ResearchExcerpt,
   DirectionScore,
   ResearchProjectData,
 } from "./model";
@@ -8,6 +9,10 @@ import type {
 /** Canonical snapshot detects changes to the original coding after review. */
 export function snapshotCoding(coding: CodingRecord): string {
   return JSON.stringify(coding);
+}
+
+export function snapshotExcerpt(excerpt: ResearchExcerpt): string {
+  return JSON.stringify(excerpt);
 }
 
 export function canonicalCodingPair(aId: string, bId: string): string {
@@ -108,6 +113,12 @@ export function adjudicationIssue(
   if (!reviewer || reviewer.type !== "human" || reviewer.id === a.coderId || reviewer.id === b.coderId) {
     return "Nie ma poprawnego niezależnego recenzenta.";
   }
+  const excerpt = data.excerpts.find((item) => item.id === record.excerptId);
+  if (!excerpt || record.excerptSnapshot !== snapshotExcerpt(excerpt)) {
+    return "Fragment dowodowy został zmieniony lub usunięty po adjudykacji.";
+  }
+  const nowInvalid = validateAdjudicationInput(data, record);
+  if (nowInvalid) return nowInvalid;
   if (typeof record.rationale !== "string" || !record.rationale.trim()) return "Adjudykacja nie ma uzasadnienia.";
   if (record.decision === "deferred" && record.direction !== null) {
     return "Odroczenie zawiera ocenę rozstrzygającą.";
