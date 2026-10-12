@@ -15,6 +15,7 @@ on:
       - "artifacts/tournament-manager/**"
       - "lib/game-catalog/**"
       - "lib/db/**"
+      - "scripts/preflight-game-catalog-api*.mjs"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/game-catalog-qa.yml"
@@ -26,6 +27,7 @@ on:
       - "artifacts/tournament-manager/**"
       - "lib/game-catalog/**"
       - "lib/db/**"
+      - "scripts/preflight-game-catalog-api*.mjs"
       - ".github/workflows/game-catalog-qa.yml"
   workflow_dispatch:
 
@@ -103,6 +105,8 @@ jobs:
         run: pnpm --filter @workspace/api-server test:unit
       - name: Read-only catalog preflight regression tests
         run: pnpm --filter @workspace/db test:game-catalog-preflight
+      - name: Public API probe regression tests
+        run: node --test ./scripts/preflight-game-catalog-api.test.mjs
       - name: Workspace TypeScript
         run: pnpm typecheck
       - name: Production frontend build
