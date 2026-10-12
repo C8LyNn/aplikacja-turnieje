@@ -535,6 +535,64 @@ describe("Steam catalog — real PostgreSQL API", () => {
     }
   });
 
+  test("featured Steam discovery is protected, key-free, deduplicated and read-only", async () => {
+    const originalFetch = globalThis.fetch;
+    const oldKey = process.env.STEAM_WEB_API_KEY;
+    let upstreamCalls = 0;
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        upstreamCalls++;
+        const url = new URL(String(input));
+        assert.equal(url.hostname, "store.steampowered.com");
+        assert.equal(url.pathname, "/api/featuredcategories/");
+        assert.equal(url.searchParams.get("cc"), "us");
+        return Response.json({
+          new_releases: { items: [
+            { id: 1500001, name: "Already in DB" },
+            { id: 1900123, name: "New release" },
+          ] },
+          top_sellers: { items: [
+            { id: 1900123, name: "Duplicate featured entry" },
+            { id: 1900124, name: "Top game" },
+          ] },
+        });
+      }) as typeof fetch;
+      await request(app).post("/api/steam-catalog/discover-featured")
+        .send({}).expect(403);
+      assert.equal(upstreamCalls, 0);
+      const [before] = await rows<{ total: string }>(
+        "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      const featured = await request(app).post("/api/steam-catalog/discover-featured")
+        .set(edit()).send({}).expect(200);
+      assert.deepEqual(featured.body.candidates, [
+        { appId: 1900123, name: "New release" },
+        { appId: 1900124, name: "Top game" },
+      ]);
+      assert.equal(featured.body.scanned, 3);
+      assert.equal(featured.body.alreadyInCatalog, 1);
+      assert.equal(featured.headers["cache-control"], "no-store");
+      assert.equal(upstreamCalls, 1);
+      const [after] = await rows<{ total: string }>(
+        "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      assert.equal(after.total, before.total);
+      globalThis.fetch = (async () => Response.json({ wrong: [] })) as typeof fetch;
+      const invalid = await request(app).post("/api/steam-catalog/discover-featured")
+        .set(edit()).send({}).expect(502);
+      assert.equal(invalid.body.code, "STEAM_FEATURED_BAD_RESPONSE");
+      globalThis.fetch = (async () => new Response(null, { status: 429 })) as typeof fetch;
+      const throttled = await request(app).post("/api/steam-catalog/discover-featured")
+        .set(edit()).send({}).expect(429);
+      assert.equal(throttled.body.code, "STEAM_FEATURED_RATE_LIMITED");
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (oldKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = oldKey;
+    }
+  });
+
   test("batch import grows catalogue with real-game checks, dedup and exact counters", async () => {
     const previousFetch = globalThis.fetch;
     const appIds = [1900123, 1900124, 1900125, 1500001];
