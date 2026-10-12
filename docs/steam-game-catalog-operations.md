@@ -217,7 +217,7 @@ against its own disposable PostgreSQL schema and a **real loopback HTTP**
 Express server. All outbound SteamSpy and Steam Store calls in this test
 are mocked deterministically; no actual Steam/SteamSpy requests are sent.
 
-The smoke test checks: migrations 0029–0036, read-only DB readiness,
+The smoke test checks: migrations 0029–0037, read-only DB readiness,
 public API counts/taxonomy/queue, rejected unauthenticated import,
 an authenticated **5-candidate** keyless import, pause/resume, Store
 game/DLC filtering, AppID deduplication, preservation of existing
@@ -261,7 +261,7 @@ From the repository root, after installing locked dependencies:
     pnpm --filter @workspace/db preflight:game-catalog
 
 The tool uses one repeatable-read **READ ONLY** transaction and rolls back
-on exit. It checks required tables/columns of migrations 0029–0036, the
+on exit. It checks required tables/columns of migrations 0029–0037, the
 Steam AppID uniqueness index, the single-active-import index, all three
 status-counter triggers, and the equality of the counter and actual total.
 It prints a JSON report with check names, observed counts, and an overall
@@ -314,6 +314,38 @@ establish the identity of the deployed commit or authorize writes.
 Confirm the staging deployment source SHA independently before the first
 5-game test import.
 
+## Resilient persistent imports (migration 0037)
+
+Apply `0037_steam_catalog_import_retry_backoff.sql` **after 0036**
+before deploying the new importer. Existing jobs retain their source cursor,
+pending candidates, status and classifications. The new `retry_count`
+column starts at zero.
+
+Temporary Steam Store/Steam discovery or SteamSpy failures (HTTP 429 or 5xx,
+plus connection timeouts) now retry automatically. The worker persists a
+per-job retry count, `next_run_at` and a sanitized last-error message in
+PostgreSQL. Consecutive delays grow from 30s to 60s, 120s, 240s and 480s,
+unless the upstream `Retry-After` requires longer (honored up to 24 hours).
+After the **fifth consecutive failure**, the task pauses and requires
+manual review/resume. A successful discovery/import step resets the retry
+counter; manually resuming a paused task also resets it.
+
+No AppID queue element, source page or Steam discovery cursor is acknowledged
+during an unsuccessful upstream request. Operator-requested pauses take
+priority over delayed retries. This protects an hours-long import from a
+temporary rate limit without creating an unbounded retry loop.
+
+The administrator view displays retry attempt count and the earliest planned
+next attempt. This scheduling is not a guarantee of exact execution time:
+the worker only runs while the API service is running. It still requires
+single-instance or distributed rate-limiting for SteamSpy traffic, and
+operators should monitor source terms/rate limits.
+
+A successful test run on mocked source data is not proof of any real-game
+insertions in a deployed catalog. After deployment, verify actual counts
+against the correct database. The release gate now requires migrations
+0029–0037 in sequence.
+
 ## Persistent no-key SteamSpy import (migration 0036)
 
 The persistent importer now supports two explicitly selected discovery sources:
@@ -324,7 +356,7 @@ The persistent importer now supports two explicitly selected discovery sources:
 - `steam` — uses the official `IStoreService/GetAppList/v1` endpoint and
   requires a server-only `STEAM_WEB_API_KEY`.
 
-Apply migrations `0029–0036` **in order**, with `0036` applied before
+Apply migrations `0029–0037` **in order**, with `0036` applied before
 deploying this API. Existing 0035 jobs are migrated as `source='steam'`
 with their prior cursor and pending list preserved.
 

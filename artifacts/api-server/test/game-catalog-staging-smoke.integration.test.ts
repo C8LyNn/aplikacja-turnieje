@@ -18,6 +18,7 @@ const FILES = [
   "0034_steam_catalog_exact_status_counters.sql",
   "0035_steam_catalog_import_jobs.sql",
   "0036_steam_catalog_import_job_sources.sql",
+  "0037_steam_catalog_import_retry_backoff.sql",
 ] as const;
 const ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 

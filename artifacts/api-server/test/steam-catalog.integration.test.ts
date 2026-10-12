@@ -18,6 +18,7 @@ const MIGRATIONS = [
   "0034_steam_catalog_exact_status_counters.sql",
   "0035_steam_catalog_import_jobs.sql",
   "0036_steam_catalog_import_job_sources.sql",
+  "0037_steam_catalog_import_retry_backoff.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -905,6 +906,127 @@ describe("Steam catalog — real PostgreSQL API", () => {
       if (ids.length) await database.pool.query(
         "DELETE FROM steam_catalog_import_jobs WHERE id=ANY($1::bigint[])", [ids],
       );
+    }
+  });
+
+  test("temporary Steam Store errors back off, survive job reload and stop after five attempts", async () => {
+    const oldFetch = globalThis.fetch;
+    const oldKey = process.env.STEAM_WEB_API_KEY;
+    const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    let jobId = 0;
+    let storeFail = true;
+    let storeCalls = 0;
+    try {
+      process.env.STEAM_WEB_API_KEY = "0123456789abcdef0123456789abcdef";
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(input));
+        if (url.hostname === "api.steampowered.com") {
+          return Response.json({ response: {
+            apps: [{ appid: 1900951, name: "Transient Store example" }],
+            last_appid: 1900951, have_more_results: false,
+          } });
+        }
+        assert.equal(url.hostname, "store.steampowered.com");
+        assert.equal(url.searchParams.get("appids"), "1900951");
+        storeCalls++;
+        if (storeFail) return new Response("Busy", {
+          status: 429, headers: { "retry-after": "75" },
+        });
+        return Response.json({ 1900951: { success: true, data: {
+          type: "game", name: "Transient Store example",
+        } } });
+      }) as typeof fetch;
+      const created = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 1, source: "steam" }).expect(201);
+      jobId = Number(created.body.job.id);
+      assert.equal(await runCatalogImportStep(), true); // One candidate discovered.
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        await database.pool.query(
+          "UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [jobId],
+        );
+        assert.equal(await runCatalogImportStep(), true);
+        const progress = (await request(app).get("/api/steam-catalog/import-job")
+          .set(edit()).expect(200)).body.job;
+        assert.equal(progress.retryCount, attempt);
+        assert.equal(progress.pending, 1);
+        assert.equal(progress.processed, 0);
+        assert.equal(progress.inserted, 0);
+        assert.equal(progress.cursor, 1900951);
+        assert.equal(progress.status, attempt === 5 ? "paused" : "running");
+        assert.match(progress.lastError, /temporarily unavailable/);
+        assert.doesNotMatch(progress.lastError, /0123456789abcdef/);
+        if (attempt < 5) {
+          const next = await rows<{ delay: number }>(
+            "SELECT extract(epoch from next_run_at-now())::integer AS delay " +
+            "FROM steam_catalog_import_jobs WHERE id=$1", [jobId],
+          );
+          assert.ok(next[0].delay >= 70, "must respect upstream Retry-After");
+        }
+      }
+      assert.equal(storeCalls, 5);
+      assert.equal(await runCatalogImportStep(), false);
+      storeFail = false;
+      const resumed = await request(app)
+        .post("/api/steam-catalog/import-job/" + jobId + "/resume")
+        .set(edit()).expect(200);
+      assert.equal(resumed.body.job.retryCount, 0);
+      assert.equal(await runCatalogImportStep(), true);
+      const finished = (await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200)).body.job;
+      assert.equal(finished.status, "completed");
+      assert.equal(finished.retryCount, 0);
+      assert.deepEqual([finished.inserted, finished.existing, finished.ignored], [1, 0, 0]);
+      assert.equal(storeCalls, 6);
+      assert.equal((await rows("SELECT 1 FROM steam_catalog_games WHERE steam_app_id=1900951")).length, 1);
+    } finally {
+      globalThis.fetch = oldFetch;
+      if (oldKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = oldKey;
+      await database.pool.query("DELETE FROM steam_catalog_games WHERE steam_app_id=1900951");
+      if (jobId) await database.pool.query("DELETE FROM steam_catalog_import_jobs WHERE id=$1", [jobId]);
+    }
+  });
+
+  test("SteamSpy Retry-After defers a failed page without advancing its durable cursor", async () => {
+    const previousFetch = globalThis.fetch;
+    const previousKey = process.env.STEAM_WEB_API_KEY;
+    const { resetSteamSpyPageCacheForTests } = await import("../src/application/catalog/steam-catalog-steamspy");
+    const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    let jobId = 0;
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      resetSteamSpyPageCacheForTests();
+      globalThis.fetch = (async (resource: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(resource));
+        assert.equal(url.hostname, "steamspy.com");
+        return new Response("Retry later", {
+          status: 503, headers: { "retry-after": "180" },
+        });
+      }) as typeof fetch;
+      const created = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 5, source: "steamspy" }).expect(201);
+      jobId = Number(created.body.job.id);
+      assert.equal(await runCatalogImportStep(), true);
+      const progress = (await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200)).body.job;
+      assert.equal(progress.status, "running");
+      assert.equal(progress.retryCount, 1);
+      assert.equal(progress.sourcePage, 0);
+      assert.equal(progress.pending, 0);
+      assert.equal(progress.processed, 0);
+      const next = await rows<{ delay: number }>(
+        "SELECT extract(epoch from next_run_at-now())::integer AS delay " +
+        "FROM steam_catalog_import_jobs WHERE id=$1", [jobId],
+      );
+      assert.ok(next[0].delay >= 175);
+      await request(app).post("/api/steam-catalog/import-job/" + jobId + "/pause")
+        .set(edit()).expect(200);
+      assert.equal(await runCatalogImportStep(), false);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = previousKey;
+      if (jobId) await database.pool.query("DELETE FROM steam_catalog_import_jobs WHERE id=$1", [jobId]);
     }
   });
 

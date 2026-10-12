@@ -563,6 +563,7 @@ test("persistent Steam import task can start, pause, resume and show server coun
     id: "7", status, source: "steamspy", sourcePage: 2, cursor: 123, pending: 4, hasMore: true,
     maxGames: 1500, processed: 20, inserted: 11, existing: 5,
     ignored: 4, failed: 0, scanned: 80, pauseRequested: false, lastError: null,
+    retryCount: 0, nextRunAt: "2026-10-12T20:45:00.000Z",
   });
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -592,6 +593,32 @@ test("persistent Steam import task can start, pause, resume and show server coun
   await waitFor(() => assert.equal(screen.getByTestId("steam-server-job-status").textContent, "running"));
   fireEvent.click(screen.getByRole("button", { name: /Odśwież stan zadania/ }));
   await waitFor(() => assert.equal(paths.length, 4));
+});
+
+test("admin displays a persisted retry schedule rather than treating running import as stopped", async () => {
+  window.sessionStorage.setItem("tm_steam_catalog_admin_token", "integration-test-admin");
+  mockCatalog([]);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/steam-catalog/import-job") {
+      assert.equal(new Headers(init?.headers).get("x-steam-catalog-admin-token"), "integration-test-admin");
+      return Response.json({ job: {
+        id: "44", status: "running", source: "steamspy", sourcePage: 0,
+        cursor: 0, pending: 2, hasMore: true, maxGames: 100,
+        processed: 1, inserted: 0, existing: 1, ignored: 0, failed: 0,
+        scanned: 3, pauseRequested: false, retryCount: 2,
+        nextRunAt: "2026-10-12T20:45:00.000Z",
+        lastError: "SteamSpy temporarily unavailable. Automatic retry scheduled.",
+      } });
+    }
+    return originalFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Odśwież stan zadania/ }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-server-retry-count").textContent, "Próby ponowienia: 2/5"));
+  assert.ok(screen.getByText(/Ponowienie zaplanowane/));
+  assert.equal(screen.getByTestId("steam-server-job-status").textContent, "running");
 });
 
 test("catalog filters games by classification status and title", async () => {

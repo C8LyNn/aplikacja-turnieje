@@ -116,6 +116,7 @@ type ServerImportJob = {
   processed: number; inserted: number; existing: number;
   ignored: number; failed: number; scanned: number;
   pauseRequested: boolean; lastError: string | null;
+  retryCount: number; nextRunAt: string;
 };
 type SteamDiscoveryProgress = SteamGrowthProgress;
 type SteamDiscoveryResponse = SteamDiscoveryPage;
@@ -1099,9 +1100,16 @@ export default function GameCatalogAdminPage() {
                   <span>Błędy: {serverImportJob.failed}</span>
                   <span>Oczekujące: {serverImportJob.pending}</span>
                   <span>Odkryte: {serverImportJob.scanned}</span>
+                  {serverImportJob.retryCount > 0 && (
+                    <span data-testid="steam-server-retry-count">Próby ponowienia: {serverImportJob.retryCount}/5</span>
+                  )}
                 </div>
                 {serverImportJob.lastError && (
-                  <p role="alert" className="text-amber-300">Powód zatrzymania: {serverImportJob.lastError}</p>
+                  <p role="alert" className="text-amber-300">{serverImportJob.status === "running"
+                    ? "Ponowienie zaplanowane: " : "Powód zatrzymania: "}{serverImportJob.lastError}
+                    {serverImportJob.status === "running" && serverImportJob.retryCount > 0 && serverImportJob.nextRunAt &&
+                      ` (najwcześniej ${new Date(serverImportJob.nextRunAt).toLocaleString("pl-PL")})`}
+                  </p>
                 )}
               </div>
             )}
