@@ -122,7 +122,7 @@ export function sliceSteamSpyPage(
  * One Node process uses a single 65-second source throttle and page cache.
  * Multi-instance deployments still require distributed cross-replica pacing.
  */
-export const getSteamSpyPage = createSteamSpyPageCache(async (page) => {
+const loadSteamSpyPage = async (page: number) => {
   const endpoint = new URL("https://steamspy.com/api.php");
   endpoint.searchParams.set("request", "all");
   endpoint.searchParams.set("page", String(page));
@@ -132,4 +132,13 @@ export const getSteamSpyPage = createSteamSpyPageCache(async (page) => {
   });
   if (!upstream.ok) throw new SteamSpySourceError(upstream.status);
   return upstream.json();
-});
+};
+
+let sharedSteamSpyPage = createSteamSpyPageCache(loadSteamSpyPage);
+export const getSteamSpyPage = (page: number) => sharedSteamSpyPage(page);
+
+/** Isolate in-memory source throttle/cache across independent DB integration cases. */
+export function resetSteamSpyPageCacheForTests() {
+  if (process.env.NODE_ENV !== "test") throw new Error("Test-only SteamSpy cache reset");
+  sharedSteamSpyPage = createSteamSpyPageCache(loadSteamSpyPage);
+}
