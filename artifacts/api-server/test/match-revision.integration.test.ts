@@ -380,3 +380,35 @@ test("legacy swap action without a pick snapshot refuses undo when picks exist",
   assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
 });
+
+test("undo-last rejects ABA status changes that return to the same visible status", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ status: "in_progress" }).expect(200);
+  const initialRevision = (await f.read()).revision;
+  await database.pool.query("UPDATE matches SET status='postponed' WHERE id=$1", [f.match.id]);
+  await database.pool.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.match.id]);
+  assert.equal((await f.read()).status, "in_progress");
+  assert.ok((await f.read()).revision > initialRevision);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last refuses ABA cancellation when the match revision has changed", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth)
+    .send({ note: "Cancelled by organizer" }).expect(200);
+  const initialRevision = (await f.read()).revision;
+  await database.pool.query("UPDATE matches SET status='pending' WHERE id=$1", [f.match.id]);
+  await database.pool.query("UPDATE matches SET status='cancelled' WHERE id=$1", [f.match.id]);
+  assert.equal((await f.read()).status, "cancelled");
+  assert.ok((await f.read()).revision > initialRevision);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
