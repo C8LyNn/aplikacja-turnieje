@@ -18,7 +18,7 @@ import type {
   SamplingPlan,
 } from "./model";
 import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
-import { validateAdjudicationInput, type AdjudicationInput } from "./adjudication-protocol";
+import { snapshotCoding, validateAdjudicationInput, type AdjudicationInput } from "./adjudication-protocol";
 import {
   canEditDimensionModelStructure,
   canTransitionDimensionModelStatus,
@@ -355,6 +355,8 @@ export function useResearchProject() {
         const next: CodingAdjudication = {
           ...input,
           id: createResearchId("adjudication"),
+          codingASnapshot: snapshotCoding(a),
+          codingBSnapshot: snapshotCoding(b),
           codebookId: a.codebookId,
           excerptId: a.excerptId,
           propositionId: a.propositionId,
