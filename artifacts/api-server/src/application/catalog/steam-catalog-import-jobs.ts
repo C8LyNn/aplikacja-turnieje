@@ -1,0 +1,269 @@
+import { randomUUID } from "node:crypto";
+import { pool } from "@workspace/db";
+import {
+  parseSteamDetailedGame, parseSteamDiscoveryPage,
+  type SteamDiscoveryCandidate,
+} from "./steam-catalog-growth";
+
+type ImportJobStatus = "running" | "paused" | "completed";
+type JobRow = {
+  id: string; status: ImportJobStatus; steam_cursor: number;
+  pending: SteamDiscoveryCandidate[]; has_more: boolean; max_games: number;
+  processed: number; inserted: number; existing: number; ignored: number;
+  failed: number; scanned: number; pause_requested: boolean;
+  lease_token: string | null; last_error: string | null;
+  created_at: Date; updated_at: Date; finished_at: Date | null;
+};
+type ImportOutcome = "inserted" | "existing" | "ignored";
+type Step = {
+  cursor: number; hasMore: boolean; pending: SteamDiscoveryCandidate[];
+  scanned: number; processed: number; inserted: number;
+  existing: number; ignored: number; failed: number;
+  newGame?: NonNullable<ReturnType<typeof parseSteamDetailedGame>>;
+};
+
+function view(job: JobRow) {
+  return {
+    id: job.id, status: job.status, cursor: job.steam_cursor,
+    pending: job.pending.length, hasMore: job.has_more, maxGames: job.max_games,
+    processed: job.processed, inserted: job.inserted,
+    existing: job.existing, ignored: job.ignored, failed: job.failed,
+    scanned: job.scanned, pauseRequested: job.pause_requested,
+    lastError: job.last_error,
+    createdAt: job.created_at, updatedAt: job.updated_at,
+    finishedAt: job.finished_at,
+  };
+}
+
+export async function createCatalogImportJob(maxGames: number) {
+  if (!Number.isInteger(maxGames) || maxGames < 1 || maxGames > 20_000) {
+    throw new Error("INVALID_JOB_LIMIT");
+  }
+  try {
+    const result = await pool.query<JobRow>(
+      "INSERT INTO steam_catalog_import_jobs (max_games) VALUES ($1) RETURNING *", [maxGames],
+    );
+    return view(result.rows[0]);
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") throw new Error("ACTIVE_JOB_EXISTS");
+    throw error;
+  }
+}
+
+export async function latestCatalogImportJob() {
+  const result = await pool.query<JobRow>(
+    "SELECT * FROM steam_catalog_import_jobs ORDER BY id DESC LIMIT 1",
+  );
+  return result.rows[0] ? view(result.rows[0]) : null;
+}
+
+export async function pauseCatalogImportJob(id: number) {
+  const result = await pool.query<JobRow>(`
+    UPDATE steam_catalog_import_jobs SET
+      pause_requested = true,
+      status = CASE WHEN lease_token IS NULL THEN 'paused' ELSE status END,
+      updated_at = now()
+    WHERE id = $1 AND status = 'running' RETURNING *
+  `, [id]);
+  return result.rows[0] ? view(result.rows[0]) : null;
+}
+
+export async function resumeCatalogImportJob(id: number) {
+  try {
+    const result = await pool.query<JobRow>(`
+      UPDATE steam_catalog_import_jobs SET status = 'running',
+        pause_requested = false, last_error = NULL,
+        next_run_at = now(), lease_token = NULL,
+        lease_expires_at = NULL, updated_at = now()
+      WHERE id = $1 AND status = 'paused' RETURNING *
+    `, [id]);
+    return result.rows[0] ? view(result.rows[0]) : null;
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") throw new Error("ACTIVE_JOB_EXISTS");
+    throw error;
+  }
+}
+
+async function discover(job: JobRow): Promise<Step> {
+  const key = process.env.STEAM_WEB_API_KEY?.trim();
+  if (!key || !/^[a-f0-9]{32}$/i.test(key)) {
+    throw new Error("Missing server STEAM_WEB_API_KEY");
+  }
+  const url = new URL("https://api.steampowered.com/IStoreService/GetAppList/v1/");
+  url.searchParams.set("key", key);
+  url.searchParams.set("last_appid", String(job.steam_cursor));
+  url.searchParams.set("max_results", "100");
+  for (const [param, value] of Object.entries({
+    include_games: "true", include_dlc: "false", include_software: "false",
+    include_videos: "false", include_hardware: "false",
+  })) url.searchParams.set(param, value);
+
+  const result = await fetch(url, {
+    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!result.ok) throw new Error(result.status === 429 ? "Steam discovery rate limited" : "Steam discovery unavailable");
+  const parsed = parseSteamDiscoveryPage(await result.json(), job.steam_cursor);
+  if (!parsed) throw new Error("Invalid Steam discovery page");
+  return {
+    cursor: parsed.nextCursor, pending: parsed.games,
+    hasMore: parsed.hasMore, scanned: parsed.games.length,
+    processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
+  };
+}
+
+async function importOne(job: JobRow): Promise<Step> {
+  const candidate = job.pending[0];
+  if (!candidate) throw new Error("Empty Steam candidate queue");
+  const step: Step = {
+    cursor: job.steam_cursor, pending: job.pending.slice(1),
+    hasMore: job.has_more, scanned: 0, processed: 1,
+    inserted: 0, existing: 0, ignored: 0, failed: 0,
+  };
+  const already = await pool.query(
+    "SELECT 1 FROM steam_catalog_games WHERE steam_app_id = $1 LIMIT 1", [candidate.appId],
+  );
+  if (already.rowCount) {
+    step.existing = 1;
+    return step;
+  }
+  const url = new URL("https://store.steampowered.com/api/appdetails");
+  url.searchParams.set("appids", String(candidate.appId));
+  url.searchParams.set("l", "english");
+  const result = await fetch(url, {
+    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!result.ok) throw new Error(result.status === 429 ? "Steam metadata rate limited" : "Steam metadata unavailable");
+  const raw = await result.json() as Record<string, { success?: boolean; data?: unknown }>;
+  const record = raw?.[String(candidate.appId)];
+  if (!record?.success || !record.data) {
+    step.ignored = 1;
+    return step;
+  }
+  const parsed = parseSteamDetailedGame(candidate.appId, record.data);
+  if (!parsed) {
+    step.ignored = 1;
+    return step;
+  }
+  step.newGame = parsed;
+  return step;
+}
+
+/** Claim one step with a cross-process PostgreSQL lease. Only the worker
+ * holding the lease token may checkpoint its result. */
+export async function runCatalogImportStep(): Promise<boolean> {
+  const token = randomUUID();
+  const claim = await pool.query<JobRow>(`
+    WITH candidate AS (
+      SELECT id FROM steam_catalog_import_jobs
+      WHERE status = 'running' AND next_run_at <= now()
+        AND (lease_token IS NULL OR lease_expires_at < now())
+      ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
+    )
+    UPDATE steam_catalog_import_jobs AS job SET
+      lease_token = $1::uuid,
+      lease_expires_at = now() + interval '40 seconds', updated_at = now()
+    FROM candidate WHERE job.id = candidate.id RETURNING job.*
+  `, [token]);
+  const job = claim.rows[0];
+  if (!job) return false;
+
+  try {
+    const step: Step = job.pause_requested || job.processed >= job.max_games ||
+      (!job.pending.length && !job.has_more)
+      ? {
+          cursor: job.steam_cursor, pending: job.pending, hasMore: job.has_more,
+          scanned: 0, processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
+        }
+      : job.pending.length ? await importOne(job) : await discover(job);
+
+    // Commit a game insert and the job cursor/counters in ONE DB transaction.
+    // If a process dies, there is no half-acknowledged insertion.
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const lease = await client.query<JobRow>(
+        "SELECT * FROM steam_catalog_import_jobs WHERE id = $1 AND lease_token = $2::uuid FOR UPDATE",
+        [job.id, token],
+      );
+      if (!lease.rows[0]) {
+        await client.query("ROLLBACK");
+        return true; // lease expired/reclaimed, another worker owns the step
+      }
+      let inserted = step.inserted;
+      let existing = step.existing;
+      if (step.newGame) {
+        const g = step.newGame;
+        const result = await client.query(`
+          INSERT INTO steam_catalog_games
+            (steam_app_id, name, steam_url, header_image_url, developer, publisher,
+             release_date, short_description, steam_raw_data, source_updated_at, updated_at)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11)
+          ON CONFLICT (steam_app_id) DO NOTHING RETURNING id
+        `, [g.steamAppId, g.name, g.steamUrl, g.headerImageUrl,
+            g.developer, g.publisher, g.releaseDate, g.shortDescription,
+            JSON.stringify(g.steamRawData), g.sourceUpdatedAt, g.updatedAt]);
+        if (result.rowCount) inserted++;
+        else existing++;
+      }
+      const progress = lease.rows[0];
+      const processed = progress.processed + step.processed;
+      const finished = processed >= progress.max_games ||
+        (step.pending.length === 0 && !step.hasMore);
+      const newStatus: ImportJobStatus = progress.pause_requested ? "paused" :
+        finished ? "completed" : "running";
+      await client.query(`
+        UPDATE steam_catalog_import_jobs SET
+          steam_cursor = $3, pending = $4::jsonb, has_more = $5,
+          scanned = scanned + $6, processed = processed + $7,
+          inserted = inserted + $8, existing = existing + $9,
+          ignored = ignored + $10, failed = failed + $11,
+          status = $12, pause_requested = false, last_error = NULL,
+          lease_token = NULL, lease_expires_at = NULL,
+          next_run_at = now() + interval '1 second',
+          finished_at = CASE WHEN $12 = 'completed' THEN now() ELSE finished_at END,
+          updated_at = now()
+        WHERE id = $1 AND lease_token = $2::uuid
+      `, [job.id, token, step.cursor, JSON.stringify(step.pending), step.hasMore,
+        step.scanned, step.processed, inserted, existing, step.ignored, step.failed, newStatus]);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    // No unbounded retry loop. A paused job can be resumed explicitly after
+    // Steam recovers; avoid writing key-bearing upstream URLs to the database.
+    const reason = error instanceof Error ? error.message : "Steam import failed";
+    await pool.query(`
+      UPDATE steam_catalog_import_jobs SET status = 'paused',
+        pause_requested = false, last_error = $3,
+        lease_token = NULL, lease_expires_at = NULL, updated_at = now()
+      WHERE id = $1 AND lease_token = $2::uuid
+    `, [job.id, token, reason.slice(0, 200)]);
+  }
+  return true;
+}
+
+/** Start only in real API process, never in tests or request constructors. */
+export function startCatalogImportWorker() {
+  if (process.env.NODE_ENV === "test") return () => {};
+  let busy = false;
+  const interval = setInterval(() => {
+    if (busy) return;
+    busy = true;
+    void runCatalogImportStep()
+      .catch((error: unknown) => {
+        // A DB outage does not crash unrelated tournament endpoints. The next
+        // tick retries the lease claim, and PostgreSQL will reclaim stale work.
+        process.stderr.write("Steam catalog worker: " +
+          (error instanceof Error ? error.message : "unknown error") + "\n");
+      })
+      .finally(() => { busy = false; });
+  }, 1_000);
+  interval.unref();
+  return () => clearInterval(interval);
+}
