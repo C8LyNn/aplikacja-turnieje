@@ -487,6 +487,112 @@ describe("Steam catalog — real PostgreSQL API", () => {
     await request(app).post("/api/steam-catalog/import").send({ appId: 620 }).expect(403);
     await request(app).post("/api/steam-catalog/import").set(edit()).send({ appId: "invalid" }).expect(400);
   });
+  test("discovery uses the server-only Steam key, paginates and hides existing games", async () => {
+    const priorKey = process.env.STEAM_WEB_API_KEY;
+    const priorFetch = globalThis.fetch;
+    let steamCalls = 0;
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      await request(app).post("/api/steam-catalog/discover")
+        .send({ cursor: 1500000 }).expect(403);
+      const missingKey = await request(app).post("/api/steam-catalog/discover").set(edit())
+        .send({ cursor: 1500000 }).expect(503);
+      assert.equal(missingKey.body.code, "STEAM_DISCOVERY_NOT_CONFIGURED");
+      process.env.STEAM_WEB_API_KEY = "0123456789abcdef0123456789abcdef";
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        const source = new URL(String(input));
+        assert.equal(source.hostname, "api.steampowered.com");
+        assert.equal(source.pathname, "/IStoreService/GetAppList/v1/");
+        assert.equal(source.searchParams.get("key"), process.env.STEAM_WEB_API_KEY);
+        assert.equal(source.searchParams.get("include_dlc"), "false");
+        assert.equal(source.searchParams.get("last_appid"), "1500000");
+        steamCalls++;
+        return Response.json({ response: {
+          apps: [
+            { appid: 1500001, name: "Test Game 0001" },
+            { appid: 1900123, name: "New Steam Game" },
+            { appid: 1900124, name: "Another Steam Game" },
+          ],
+          last_appid: 1900124,
+          have_more_results: true,
+        } });
+      }) as typeof fetch;
+      const discovery = await request(app).post("/api/steam-catalog/discover").set(edit())
+        .send({ cursor: 1500000, pageSize: 10 }).expect(200);
+      assert.equal(steamCalls, 1);
+      assert.deepEqual(discovery.body.candidates, [
+        { appId: 1900123, name: "New Steam Game" },
+        { appId: 1900124, name: "Another Steam Game" },
+      ]);
+      assert.equal(discovery.body.alreadyInCatalog, 1);
+      assert.equal(discovery.body.nextCursor, 1900124);
+      assert.equal(discovery.body.hasMore, true);
+    } finally {
+      globalThis.fetch = priorFetch;
+      if (priorKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = priorKey;
+    }
+  });
+
+  test("batch import grows catalogue with real-game checks, dedup and exact counters", async () => {
+    const previousFetch = globalThis.fetch;
+    const appIds = [1900123, 1900124, 1900125, 1500001];
+    const seen: number[] = [];
+    const [original] = await rows<{ total: string }>(
+      "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+    );
+    try {
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(input));
+        assert.equal(url.hostname, "store.steampowered.com");
+        const appId = Number(url.searchParams.get("appids"));
+        seen.push(appId);
+        return Response.json({ [appId]: appId === 1900125
+          ? { success: false }
+          : { success: true, data: {
+              name: appId === 1900123 ? "Imported Game" : "Imported DLC",
+              type: appId === 1900123 ? "game" : "dlc",
+              developers: ["Real Studio"], publishers: ["Real Publisher"],
+            } },
+        });
+      }) as typeof fetch;
+      const denied = await request(app).post("/api/steam-catalog/import-batch")
+        .send({ appIds }).expect(403);
+      assert.equal(denied.body.code, "STEAM_CATALOG_ADMIN_REQUIRED");
+      await request(app).post("/api/steam-catalog/import-batch").set(edit())
+        .send({ appIds: Array.from({ length: 11 }, (_, index) => index + 1) }).expect(400);
+      const first = await request(app).post("/api/steam-catalog/import-batch").set(edit())
+        .send({ appIds }).expect(200);
+      assert.deepEqual(seen, [1900123, 1900124, 1900125]);
+      assert.equal(first.body.inserted, 1);
+      assert.equal(first.body.existing, 1);
+      assert.equal(first.body.ignored, 2);
+      assert.equal(first.body.failed, 0);
+      assert.equal(first.body.aborted, false);
+      const [imported] = await rows<{ name: string; status: string; developer: string }>(
+        "SELECT name,status,developer FROM steam_catalog_games WHERE steam_app_id=1900123",
+      );
+      assert.deepEqual(imported, { name: "Imported Game", status: "unclassified", developer: "Real Studio" });
+      const [updated] = await rows<{ total: string }>(
+        "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      assert.equal(Number(updated.total), Number(original.total) + 1);
+      seen.length = 0;
+      const second = await request(app).post("/api/steam-catalog/import-batch").set(edit())
+        .send({ appIds: [1900123, 1500001] }).expect(200);
+      assert.equal(second.body.inserted, 0);
+      assert.equal(second.body.existing, 2);
+      assert.deepEqual(seen, []);
+    } finally {
+      globalThis.fetch = previousFetch;
+      await database.pool.query("DELETE FROM steam_catalog_games WHERE steam_app_id=1900123");
+    }
+    const [restored] = await rows<{ total: string }>(
+      "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+    );
+    assert.equal(Number(restored.total), Number(original.total));
+  });
+
   test("20k-record workload: paged browse, text search and pending queue", async () => {
     await database.pool.query([
       "INSERT INTO steam_catalog_games (steam_app_id, name, steam_url, developer, publisher, status)",
