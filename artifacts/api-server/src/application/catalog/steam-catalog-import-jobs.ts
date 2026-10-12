@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
-import { getSteamSpyPage, STEAMSPY_PAGE_CAP } from "./steam-catalog-steamspy";
+import { getSteamSpyPage, STEAMSPY_PAGE_CAP, SteamSpyCooldownError } from "./steam-catalog-steamspy";
 import {
   parseSteamDetailedGame, parseSteamDiscoveryPage,
   type SteamDiscoveryCandidate,
@@ -286,6 +286,18 @@ export async function runCatalogImportStep(): Promise<boolean> {
       client.release();
     }
   } catch (error) {
+    // A same-process SteamSpy poll from the UI may have consumed the shared
+    // rate-limit slot. Delay this job without marking it failed or advancing
+    // any checkpoint. The next worker tick will resume after cooldown.
+    if (error instanceof SteamSpyCooldownError) {
+      await pool.query(`
+        UPDATE steam_catalog_import_jobs
+        SET next_run_at = now() + ($3::integer * interval '1 second'),
+            lease_token = NULL, lease_expires_at = NULL, updated_at = now()
+        WHERE id = $1 AND lease_token = $2::uuid
+      `, [job.id, token, Math.max(1, error.retryAfterSeconds)]);
+      return true;
+    }
     // No unbounded retry loop. A paused job can be resumed explicitly after
     // Steam recovers; avoid writing key-bearing upstream URLs to the database.
     const reason = error instanceof Error ? error.message : "Steam import failed";
