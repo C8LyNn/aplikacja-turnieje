@@ -21,13 +21,21 @@ export function stagingReadOnlyDatabaseUrl(value: string | undefined): string {
   if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
     throw new Error("Expected a PostgreSQL connection URI.");
   }
-  if (parsed.hostname !== PINNED_NEON_STAGING_HOST ||
-      parsed.port && parsed.port !== "5432" ||
+  // libpq / pg-connection-string can interpret URL query parameters such as
+  // host, hostaddr, user, dbname and service as connection overrides. Never
+  // trust only parsed.hostname when passing a user-supplied URL to pg.
+  const allowedParameters = new Set(["sslmode", "channel_binding"]);
+  if (parsed.hash || [...parsed.searchParams.keys()].some((key) =>
+        !allowedParameters.has(key) ||
+        parsed.searchParams.getAll(key).length !== 1) ||
+      (parsed.searchParams.has("channel_binding") &&
+        parsed.searchParams.get("channel_binding") !== "require") ||
+      parsed.hostname !== PINNED_NEON_STAGING_HOST ||
+      (parsed.port !== "" && parsed.port !== "5432") ||
       parsed.pathname !== "/tournament_manager" ||
       parsed.username !== "tournament_manager_owner" ||
       !parsed.password ||
-      !["require", "verify-full"].includes(parsed.searchParams.get("sslmode") ?? "") ||
-      parsed.searchParams.has("options")) {
+      !["require", "verify-full"].includes(parsed.searchParams.get("sslmode") ?? "")) {
     throw new Error("Connection refused: endpoint, role, SSL or database is not the pinned isolated Neon staging target.");
   }
   // PostgreSQL connection startup option: enforced on EVERY connection in
