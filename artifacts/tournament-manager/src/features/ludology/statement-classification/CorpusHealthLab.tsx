@@ -90,7 +90,7 @@ export default function CorpusHealthLab() {
           description="Wybierz codebook oraz opcjonalny plan próbkowania, względem których chcesz sprawdzić korpus."
         >
           <div className="grid gap-3 md:grid-cols-2">
-            <ToolSelect value={codebookId} onChange={(event) => setCodebookId(event.target.value)}>
+            <ToolSelect aria-label="Codebook audytu korpusu" value={codebookId} onChange={(event) => setCodebookId(event.target.value)}>
               <option value="">Wybierz codebook…</option>
               {data.codebooks.map((codebook) => (
                 <option key={codebook.id} value={codebook.id}>
@@ -98,7 +98,7 @@ export default function CorpusHealthLab() {
                 </option>
               ))}
             </ToolSelect>
-            <ToolSelect value={samplingPlanId} onChange={(event) => setSamplingPlanId(event.target.value)}>
+            <ToolSelect aria-label="Plan próbkowania audytu korpusu" value={samplingPlanId} onChange={(event) => setSamplingPlanId(event.target.value)}>
               <option value="">Bez planu próbkowania</option>
               {data.samplingPlans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
