@@ -3,6 +3,10 @@ import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-a
 import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
 import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
 import { parseSteamDetailedGame, parseSteamDiscoveryPage, parseSteamDiscoveryRequest, parseSteamImportBatch } from "../application/catalog/steam-catalog-growth";
+import {
+  createCatalogImportJob, latestCatalogImportJob,
+  pauseCatalogImportJob, resumeCatalogImportJob,
+} from "../application/catalog/steam-catalog-import-jobs";
 import { escapeSteamCatalogLikeQuery, parseSteamCatalogListQuery, steamCatalogReadiness } from "@workspace/game-catalog";
 import { and, asc, count, eq, gt, ilike, inArray, ne, or, sql } from "drizzle-orm";
 import {
@@ -367,6 +371,62 @@ router.post("/steam-catalog/taxonomy", requireSteamCatalogAdmin, async (req, res
     res.status(201).json({ term });
   } catch (error) {
     next(error);
+  }
+});
+
+// Persistent import jobs survive tab closure and API restarts. They require
+// the same administrative token as catalog edits; no Steam key is sent to UI.
+router.get("/steam-catalog/import-job", requireSteamCatalogAdmin, async (_req, res, next) => {
+  try {
+    res.json({ job: await latestCatalogImportJob() });
+  } catch (error) { next(error); }
+});
+
+router.post("/steam-catalog/import-job", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const maxGames = req.body?.maxGames ?? 1000;
+    if (typeof maxGames !== "number" || !Number.isInteger(maxGames) || maxGames < 1 || maxGames > 20000) {
+      res.status(400).json({ code: "INVALID_JOB_LIMIT", error: "Zadanie może zweryfikować od 1 do 20000 AppID." });
+      return;
+    }
+    const key = process.env.STEAM_WEB_API_KEY?.trim();
+    if (!key || !/^[a-f0-9]{32}$/i.test(key)) {
+      res.status(503).json({
+        code: "STEAM_DISCOVERY_NOT_CONFIGURED",
+        error: "Skonfiguruj STEAM_WEB_API_KEY na serwerze przed uruchomieniem zadania.",
+      });
+      return;
+    }
+    const job = await createCatalogImportJob(maxGames);
+    res.status(201).json({ job });
+  } catch (error) {
+    if (error instanceof Error && error.message === "ACTIVE_JOB_EXISTS") {
+      res.status(409).json({ code: "ACTIVE_JOB_EXISTS", error: "Istnieje już aktywne lub wstrzymane zadanie importu." });
+    } else next(error);
+  }
+});
+
+router.post("/steam-catalog/import-job/:id/pause", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const id = parseQueueId(req.params.id);
+    if (id === null) { res.status(400).json({ code: "INVALID_JOB_ID", error: "Nieprawidłowe ID zadania." }); return; }
+    const job = await pauseCatalogImportJob(id);
+    if (!job) { res.status(409).json({ code: "JOB_NOT_RUNNING", error: "Nie znaleziono działającego zadania." }); return; }
+    res.json({ job });
+  } catch (error) { next(error); }
+});
+
+router.post("/steam-catalog/import-job/:id/resume", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const id = parseQueueId(req.params.id);
+    if (id === null) { res.status(400).json({ code: "INVALID_JOB_ID", error: "Nieprawidłowe ID zadania." }); return; }
+    const job = await resumeCatalogImportJob(id);
+    if (!job) { res.status(409).json({ code: "JOB_NOT_PAUSED", error: "Nie znaleziono wstrzymanego zadania." }); return; }
+    res.json({ job });
+  } catch (error) {
+    if (error instanceof Error && error.message === "ACTIVE_JOB_EXISTS") {
+      res.status(409).json({ code: "ACTIVE_JOB_EXISTS", error: "Inne zadanie jest już aktywne." });
+    } else next(error);
   }
 });
 
