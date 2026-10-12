@@ -97,6 +97,12 @@ function Router() {
 
       <Route path="/ludology/statement-classification/people" component={StatementClassificationPage} />
 
+      <Route path="/ludology/statement-classification/sampling" component={StatementClassificationPage} />
+
+      <Route path="/ludology/statement-classification/health" component={StatementClassificationPage} />
+
+      <Route path="/ludology/statement-classification/debates" component={StatementClassificationPage} />
+
       <Route path="/ludology/statement-classification/sources" component={StatementClassificationPage} />
 
       <Route path="/ludology/statement-classification/fragments" component={StatementClassificationPage} />
