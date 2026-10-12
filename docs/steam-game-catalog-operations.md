@@ -200,6 +200,34 @@ queued candidates, so fetching it repeatedly does not guarantee additional
 games. The local `scanned` counter measures candidates inspected, not
 newly inserted database rows.
 
+### One-click SteamSpy discovery and verified import
+
+On the catalogue administrator's *Szukaj gry* screen, click
+**SteamSpy: odkryj i importuj do 100 AppID** for a single bounded session.
+The action consumes any already queued AppIDs first, then fetches successive
+SteamSpy slices as needed, always checking each new candidate through the
+existing official Steam Store `appdetails` batch endpoint before inserting.
+Only one session executes per user click and the tab must stay open; this is
+**not a server-side background import**.
+
+Limits: at most 100 examined AppIDs, at most 20 discovery slices, at most
+10 candidates per backend import batch and 200 locally queued IDs. The page
+and offset of SteamSpy remain separate from the official keyed Steam cursor.
+After every discovery slice and every finished import batch, the UI writes
+both cursors and the queue to browser localStorage (queue first, source
+second). A crash between the two writes may cause a page to be checked
+again, but will not silently skip candidates. Unique Steam AppID constraints
+also make retries safe after uncertain server-side writes.
+
+The *Zatrzymaj po bieżącej partii* control stops further requests after the
+current batch or discovery page. When SteamSpy returns a cooldown (429), the
+session stops without discarding already imported games or the current
+source cursor. Follow the server's `Retry-After` header or retry later;
+do not automatically hammer the source with retries. The UI summarizes
+the number examined and newly inserted during that particular session;
+the catalogue global count is still authoritative only from the public
+games endpoint.
+
 ### Unofficial SteamSpy paginated discovery (no Steam Web API key)
 
 The admin-only `POST /api/steam-catalog/discover-steamspy` accepts
