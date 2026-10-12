@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - codex/game-catalog-editor-reliability
+      - codex/game-catalog-featured-discovery
+      - codex/game-catalog-steamspy-expansion
+      - codex/game-catalog-steamspy-auto-sessions
+      - codex/game-catalog-discovery-unified
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
@@ -11,6 +15,15 @@ on:
       - "lib/db/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+      - ".github/workflows/game-catalog-qa.yml"
+  pull_request:
+    branches:
+      - codex/game-catalog-editor-reliability
+    paths:
+      - "artifacts/api-server/**"
+      - "artifacts/tournament-manager/**"
+      - "lib/game-catalog/**"
+      - "lib/db/**"
       - ".github/workflows/game-catalog-qa.yml"
   workflow_dispatch:
 

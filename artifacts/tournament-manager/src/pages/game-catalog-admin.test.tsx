@@ -230,6 +230,229 @@ test("Steam growth UI discovers candidate games, imports ten or fewer and stores
   assert.deepEqual(operations, ["discovery", "batch"]);
 });
 
+test("featured discovery imports the whole pending queue without calling keyed discovery", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  const operations: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover-featured") {
+      operations.push("featured");
+      return Response.json({
+        candidates: [{ appId: 570, name: "Dota 2" }, { appId: 730, name: "Counter-Strike 2" }],
+        scanned: 3, alreadyInCatalog: 1,
+      });
+    }
+    if (path === "/api/steam-catalog/discover") {
+      throw new Error("Keyed Steam discovery must not be called by queue-only mode");
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.appIds, [570, 730]);
+      operations.push("batch");
+      return Response.json({
+        requested: 2, processed: 2, inserted: 2, existing: 0,
+        ignored: 0, failed: 0, aborted: false, rateLimited: false,
+        results: [
+          { appId: 570, status: "inserted" },
+          { appId: 730, status: "inserted" },
+        ],
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz nowości i popularne/i }));
+  await screen.findByText("Dota 2");
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "2");
+  fireEvent.click(screen.getByRole("button", { name: /Przetwórz kolejkę/i }));
+  await waitFor(() => {
+    assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0");
+    assert.equal(screen.getByTestId("steam-imported-total").textContent, "2");
+  });
+  const stored = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+  assert.equal(stored.stats.inserted, 2);
+  assert.equal(stored.stats.scanned, 3);
+  assert.equal(stored.cursor, 0);
+  assert.deepEqual(operations, ["featured", "batch"]);
+});
+
+test("SteamSpy browse persists source cursor, merges slices and keeps source metadata out of imports", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  const steamSpyQueries: unknown[] = [];
+  const imported: number[][] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover-steamspy") {
+      const query = JSON.parse(String(init?.body));
+      steamSpyQueries.push(query);
+      if (steamSpyQueries.length === 1) {
+        assert.deepEqual(query, { page: 0, offset: 0, pageSize: 100 });
+        return Response.json({
+          candidates: [{ appId: 570, name: "Dota 2" }, { appId: 730, name: "CS2" }],
+          scanned: 100, alreadyInCatalog: 98, nextPage: 0, nextOffset: 100, hasMore: true,
+        });
+      }
+      assert.deepEqual(query, { page: 0, offset: 100, pageSize: 100 });
+      return Response.json({
+        candidates: [{ appId: 620, name: "Portal 2" }],
+        scanned: 1, alreadyInCatalog: 0, nextPage: 1, nextOffset: 0, hasMore: false,
+      });
+    }
+    if (path === "/api/steam-catalog/discover") {
+      throw Error("The key-only Steam source must not be called");
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const { appIds } = JSON.parse(String(init?.body));
+      imported.push(appIds);
+      return Response.json({
+        requested: appIds.length, processed: appIds.length,
+        inserted: appIds.length, existing: 0, ignored: 0, failed: 0,
+        aborted: false, rateLimited: false,
+        results: appIds.map((appId: number) => ({ appId, status: "inserted" })),
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz następną stronę SteamSpy/i }));
+  await screen.findByText("Dota 2");
+  await waitFor(() => {
+    assert.equal(screen.getByTestId("steam-candidate-count").textContent, "2");
+    const stored = JSON.parse(window.localStorage.getItem("steam-catalog-steamspy-progress-v1") ?? "null");
+    assert.deepEqual(stored, { page: 0, offset: 100, hasMore: true });
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz następną stronę SteamSpy/i }));
+  await screen.findByText("Portal 2");
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "3");
+  assert.equal((screen.getByRole("button", { name: /Pobierz następną stronę SteamSpy/i }) as HTMLButtonElement).disabled, true);
+  fireEvent.click(screen.getByRole("button", { name: /Przetwórz kolejkę/i }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-imported-total").textContent, "3"));
+  assert.deepEqual(imported, [[570, 730, 620]]);
+  const saved = JSON.parse(window.localStorage.getItem("steam-catalog-steamspy-progress-v1") ?? "null");
+  assert.deepEqual(saved, { page: 1, offset: 0, hasMore: false });
+  assert.equal(steamSpyQueries.length, 2);
+});
+
+test("SteamSpy single action fills next pages and imports 100 without calling keyed discovery", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  const discoveries: unknown[] = [];
+  const batches: number[][] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover-steamspy") {
+      const request = JSON.parse(String(init?.body));
+      discoveries.push(request);
+      assert.equal(request.page, 0);
+      assert.equal(request.pageSize, 100);
+      assert.equal(request.offset, discoveries.length === 1 ? 0 : 50);
+      return Response.json({
+        candidates: Array.from({ length: 50 }, (_, i) => ({
+          appId: discoveries.length * 1000 + i + 1, name: "Spy " + (discoveries.length * 1000 + i + 1),
+        })),
+        scanned: 50, alreadyInCatalog: 0, nextPage: 0, nextOffset: request.offset + 50, hasMore: true,
+      });
+    }
+    if (path === "/api/steam-catalog/discover") {
+      throw new Error("Keyed Steam source must not be called");
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const { appIds } = JSON.parse(String(init?.body));
+      batches.push(appIds);
+      return Response.json({
+        requested: appIds.length, processed: appIds.length,
+        inserted: appIds.length, existing: 0, ignored: 0, failed: 0,
+        aborted: false, rateLimited: false,
+        results: appIds.map((appId: number) => ({ appId, status: "inserted" })),
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: automatyczna seria do 100 AppID/ }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-imported-total").textContent, "100"));
+  assert.equal(discoveries.length, 2);
+  assert.equal(batches.length, 10);
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0");
+  const saved = JSON.parse(window.localStorage.getItem("steam-catalog-steamspy-progress-v1") ?? "null");
+  assert.deepEqual(saved, { page: 0, offset: 100, hasMore: true });
+  const queue = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+  assert.equal(queue.stats.batches, 10);
+  assert.equal(queue.stats.scanned, 100);
+});
+
+test("SteamSpy automatic discovery saves progress and stops on source cooldown", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover-steamspy") {
+      requests++;
+      if (requests === 2) return Response.json({
+        error: "Ograniczenie SteamSpy", code: "STEAMSPY_COOLDOWN",
+      }, { status: 429 });
+      return Response.json({
+        candidates: [{ appId: 570, name: "Dota 2" }],
+        scanned: 100, alreadyInCatalog: 99, nextPage: 0, nextOffset: 100, hasMore: true,
+      });
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const { appIds } = JSON.parse(String(init?.body));
+      assert.deepEqual(appIds, [570]);
+      return Response.json({
+        requested: 1, processed: 1, inserted: 1, existing: 0, ignored: 0,
+        failed: 0, aborted: false, rateLimited: false,
+        results: [{ appId: 570, status: "inserted" }],
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: automatyczna seria do 100 AppID/ }));
+  await screen.findByText(/Ograniczenie SteamSpy/);
+  const queue = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+  const spy = JSON.parse(window.localStorage.getItem("steam-catalog-steamspy-progress-v1") ?? "null");
+  assert.equal(queue.stats.inserted, 1);
+  assert.equal(queue.stats.scanned, 100);
+  assert.deepEqual(spy, {page: 0, offset: 100, hasMore: true});
+  assert.equal(requests, 2);
+});
+
+test("Steam keyed discovery never skips a page when the pending queue is nearly full", async () => {
+  mockCatalog([]);
+  const previousFetch = globalThis.fetch;
+  const queries: unknown[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/steam-catalog/discover") {
+      const query = JSON.parse(String(init?.body));
+      queries.push(query);
+      return Response.json({
+        candidates: [{ appId: 2147483600, name: "Last queued candidate" }],
+        scanned: 1, alreadyInCatalog: 0, nextCursor: 2147483600, hasMore: true,
+      });
+    }
+    return previousFetch(input, init);
+  }) as typeof fetch;
+  window.localStorage.setItem("steam-catalog-discovery-progress-v1", JSON.stringify({
+    cursor: 2000, hasMore: true,
+    candidates: Array.from({ length: 199 }, (_, index) =>
+      ({ appId: 3000 + index, name: "Queued " + index })),
+    stats: { inserted: 0, existing: 0, ignored: 0, failed: 0, scanned: 0, batches: 0 },
+  }));
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz propozycje ze Steam/i }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-candidate-count").textContent, "200"));
+  assert.deepEqual(queries, [{ cursor: 2000, pageSize: 1 }]);
+});
+
 test("pasted Steam AppIDs queue without Steam discovery API credentials", async () => {
   mockCatalog([]);
   const underlying = globalThis.fetch;

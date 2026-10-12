@@ -3,6 +3,8 @@ import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-a
 import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
 import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
 import { parseSteamDetailedGame, parseSteamDiscoveryPage, parseSteamDiscoveryRequest, parseSteamImportBatch } from "../application/catalog/steam-catalog-growth";
+import { parseSteamFeaturedCategories } from "../application/catalog/steam-catalog-featured";
+import { createSteamSpyPageCache, parseSteamSpyPageRequest, sliceSteamSpyPage, SteamSpyCooldownError, SteamSpySourceError } from "../application/catalog/steam-catalog-steamspy";
 import {
   createCatalogImportJob, latestCatalogImportJob,
   pauseCatalogImportJob, resumeCatalogImportJob,
@@ -427,6 +429,103 @@ router.post("/steam-catalog/import-job/:id/resume", requireSteamCatalogAdmin, as
     if (error instanceof Error && error.message === "ACTIVE_JOB_EXISTS") {
       res.status(409).json({ code: "ACTIVE_JOB_EXISTS", error: "Inne zadanie jest już aktywne." });
     } else next(error);
+  }
+});
+
+// SteamSpy is an unofficial, no-key alternative for finding far more Steam
+// AppIDs. Fetches are rate-limited/cached on this Node process and the source
+// is never trusted as authoritative game metadata.
+const getSteamSpyPage = createSteamSpyPageCache(async (page) => {
+  const endpoint = new URL("https://steamspy.com/api.php");
+  endpoint.searchParams.set("request", "all");
+  endpoint.searchParams.set("page", String(page));
+  const upstream = await fetch(endpoint, {
+    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!upstream.ok) throw new SteamSpySourceError(upstream.status);
+  return upstream.json();
+});
+
+router.post("/steam-catalog/discover-steamspy", requireSteamCatalogAdmin, async (req, res, next) => {
+  try {
+    const query = parseSteamSpyPageRequest(req.body);
+    if (!query) {
+      res.status(400).json({
+        error: "Nieprawidłowe parametry strony SteamSpy.",
+        code: "INVALID_STEAMSPY_DISCOVERY",
+      });
+      return;
+    }
+    const games = await getSteamSpyPage(query.page);
+    const slice = sliceSteamSpyPage(games, query);
+    const appIds = slice.candidates.map((game) => game.appId);
+    const existing = appIds.length ? await db.select({ appId: steamCatalogGames.steamAppId })
+      .from(steamCatalogGames).where(inArray(steamCatalogGames.steamAppId, appIds)) : [];
+    const known = new Set(existing.map((game) => game.appId));
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      ...slice,
+      candidates: slice.candidates.filter((game) => !known.has(game.appId)),
+      alreadyInCatalog: known.size,
+      source: "steamspy",
+    });
+  } catch (error) {
+    if (error instanceof SteamSpyCooldownError) {
+      res.setHeader("Retry-After", String(error.retryAfterSeconds));
+      res.status(429).json({ code: "STEAMSPY_COOLDOWN", error: error.message });
+      return;
+    }
+    if (error instanceof SteamSpySourceError) {
+      res.status(error.status === 429 ? 429 : 502).json({
+        code: error.status === 429 ? "STEAMSPY_UPSTREAM_RATE_LIMITED" : "STEAMSPY_UPSTREAM_ERROR",
+        error: "SteamSpy nie udostępnił tej strony. Zachowano poprzedni postęp.",
+      });
+      return;
+    }
+    next(error);
+  }
+});
+
+// Public Store featured sections offer a small, current, credential-free
+// discovery source. Every candidate still passes the verified appdetails
+// importer before any database insert. This endpoint never writes games.
+router.post("/steam-catalog/discover-featured", requireSteamCatalogAdmin, async (_req, res, next) => {
+  try {
+    const url = "https://store.steampowered.com/api/featuredcategories/?cc=us&l=english";
+    const upstream = await fetch(url, {
+      headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!upstream.ok) {
+      res.status(upstream.status === 429 ? 429 : 502).json({
+        error: upstream.status === 429
+          ? "Steam ograniczył częstotliwość żądań. Spróbuj później."
+          : "Steam nie udostępnił kategorii popularnych i nowych gier.",
+        code: upstream.status === 429 ? "STEAM_FEATURED_RATE_LIMITED" : "STEAM_FEATURED_UPSTREAM_ERROR",
+      });
+      return;
+    }
+    const games = parseSteamFeaturedCategories(await upstream.json().catch(() => null));
+    if (!games) {
+      res.status(502).json({
+        error: "Steam zwrócił nieprawidłową listę wyróżnionych gier.",
+        code: "STEAM_FEATURED_BAD_RESPONSE",
+      });
+      return;
+    }
+    const appIds = games.map((game) => game.appId);
+    const existing = appIds.length ? await db.select({ appId: steamCatalogGames.steamAppId })
+      .from(steamCatalogGames).where(inArray(steamCatalogGames.steamAppId, appIds)) : [];
+    const known = new Set(existing.map((game) => game.appId));
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      candidates: games.filter((game) => !known.has(game.appId)),
+      scanned: games.length,
+      alreadyInCatalog: known.size,
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
