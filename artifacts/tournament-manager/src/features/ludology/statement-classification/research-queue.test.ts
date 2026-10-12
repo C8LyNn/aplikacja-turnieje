@@ -4,7 +4,7 @@ import { buildResearchQueue } from "./research-queue";
 import type { ResearchProjectData } from "./model";
 
 const base = (): ResearchProjectData => ({
-  schemaVersion: 7,
+  schemaVersion: 8,
   people: [{ id: "p1", displayName: "P" }],
   sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" }],
   arguments: [
@@ -43,6 +43,7 @@ const base = (): ResearchProjectData => ({
       confidence: "medium",
     },
   ],
+  adjudications: [],
   assessments: [],
     dimensionModels: [],
     dimensions: [],
