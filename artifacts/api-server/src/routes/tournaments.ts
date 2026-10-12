@@ -2226,7 +2226,9 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
     actionType: entry.actionType,
     description: entry.description,
     matchId: entry.matchId ?? null,
-    canUndo: UNDOABLE_TYPES.has(entry.actionType) && !entry.isUndone && !!entry.undoPayload,
+    canUndo: UNDOABLE_TYPES.has(entry.actionType) &&
+      !entry.isUndone &&
+      parseUndoPayloadForAction(entry.actionType, entry.undoPayload) !== null,
     isUndone: entry.isUndone,
     createdAt: entry.createdAt.toISOString(),
   };
