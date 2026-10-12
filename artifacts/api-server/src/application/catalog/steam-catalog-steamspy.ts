@@ -43,7 +43,10 @@ export function parseSteamSpyAllPage(raw: unknown): SteamSpyCandidate[] | null {
     found.set(appId, { appId, name: name.slice(0, 300) });
     if (found.size >= STEAMSPY_PAGE_ITEMS_CAP) break;
   }
-  // An empty object is SteamSpy's end-of-list response.
+  // An empty object is SteamSpy's end-of-list response. A nonempty
+  // error/status object is not a valid terminal page: never silently
+  // advance the browser cursor if the third party changes its format.
+  if (!found.size && Object.keys(raw).length > 0) return null;
   return [...found.values()];
 }
 
