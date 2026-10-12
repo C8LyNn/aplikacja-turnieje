@@ -3,6 +3,7 @@ import {
   FileText,
   FlaskConical,
   ListChecks,
+  MessageCircle,
   Map,
   Network,
   Users,
@@ -32,6 +33,7 @@ import ResearchWorkspace from "@/features/ludology/statement-classification/Rese
 import DimensionModelLab from "@/features/ludology/statement-classification/DimensionModelLab";
 import SamplingLab from "@/features/ludology/statement-classification/SamplingLab";
 import CorpusHealthLab from "@/features/ludology/statement-classification/CorpusHealthLab";
+import DiscussionLab from "@/features/ludology/statement-classification/DiscussionLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
@@ -40,12 +42,12 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sampling" | "health" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
   if (tail === "dimensions") return "map";
-  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -79,6 +81,13 @@ const cards = [
     description: "Audyt kompletności, pokrycia, sprzeczności, stale rekonstrukcji i ryzyk przed publikacją.",
     href: `${BASE}/health`,
     icon: ListChecks,
+  },
+  {
+    code: "DEBATE",
+    title: "Debates / Discussions",
+    description: "Łączenie argumentów wielu osób i źródeł w śledzalne dyskusje oraz ich chronologię.",
+    href: `${BASE}/debates`,
+    icon: MessageCircle,
   },
   {
     code: "SRC",
@@ -290,7 +299,7 @@ function Overview() {
               onChange={(event) => void importProject(event.target.files?.[0])}
             />
             <div className="text-xs leading-5 text-muted-foreground">
-              Import zastępuje bieżący lokalny zbiór. Akceptowane są pliki schemaVersion=2, schemaVersion=3, schemaVersion=4 lub schemaVersion=5; starsze wersje są migrowane przy wczytaniu.
+              Import zastępuje bieżący lokalny zbiór. Akceptowane są pliki schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5 lub schemaVersion=6; starsze wersje są migrowane przy wczytaniu.
             </div>
             {transferMessage && <ToolNotice>{transferMessage}</ToolNotice>}
           </div>
@@ -577,6 +586,7 @@ export default function StatementClassificationPage() {
         {section === "people" && <People />}
         {section === "sampling" && <SamplingLab />}
         {section === "health" && <CorpusHealthLab />}
+        {section === "debates" && <DiscussionLab />}
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
