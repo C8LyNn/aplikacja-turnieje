@@ -11,6 +11,7 @@ on:
       - codex/game-catalog-server-keyless-import
       - codex/game-catalog-staging-preflight
       - codex/game-catalog-isolated-staging-smoke
+      - codex/game-catalog-resilient-retries
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
