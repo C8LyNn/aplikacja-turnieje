@@ -3,7 +3,7 @@
 [CmdletBinding()]
 param(
     [string]$BaseUrl = 'https://C8LyNn.replit.app',
-    [string]$InputFile = (Join-Path $PSScriptRoot '..\data\steam-catalog-seed-106.csv'),
+    [string]$InputFile = (Join-Path (Split-Path -Parent $PSScriptRoot) 'data/steam-catalog-seed-106.csv'),
     [ValidateRange(1,20000)][int]$Limit = 5,
     [ValidateRange(1,60)][int]$DelaySeconds = 2,
     [string]$StatePath = (Join-Path $HOME '.steam-catalog-seed-progress.json'),
@@ -117,8 +117,9 @@ foreach ($candidate in $candidates) {
             $status = [string]$batch.results[0].status
         } catch {
             $code = 0
-            if ($null -ne $_.Exception.Response) {
-                $code = [int]$_.Exception.Response.StatusCode
+            if ($null -ne $_.Exception.PSObject.Properties['Response']) {
+                $response = $_.Exception.PSObject.Properties['Response'].Value
+                if ($null -ne $response) { $code = [int]$response.StatusCode }
             }
             if ($code -ne 404 -or -not $AllowLegacy) { throw }
             # Legacy /import updates metadata on conflict and does not check
