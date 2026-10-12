@@ -10,10 +10,12 @@ import {
   ToolTextarea,
 } from "@/components/tool-ui";
 import {
+  discussionGraphSummary,
   discussionSummary,
   discussionTimeline,
 } from "./discussion-analysis";
 import type {
+  ArgumentRelationType,
   DiscussionArgumentRole,
   DiscussionStatus,
 } from "./model";
@@ -26,6 +28,14 @@ const ROLE_LABELS: Record<DiscussionArgumentRole, string> = {
   response: "Odpowiedź",
   follow_up: "Dalszy ciąg",
   background: "Kontekst",
+};
+
+const RELATION_LABELS: Record<ArgumentRelationType, string> = {
+  responds_to: "odpowiada na",
+  supports: "wspiera",
+  challenges: "kwestionuje",
+  clarifies: "doprecyzowuje",
+  extends: "rozwija",
 };
 
 function PageHeader() {
@@ -49,6 +59,9 @@ export default function DiscussionLab() {
     deleteDiscussion,
     upsertDiscussionLink,
     deleteDiscussionLink,
+    addArgumentRelation,
+    updateArgumentRelation,
+    deleteArgumentRelation,
   } = useResearchProject();
 
   const [selectedDiscussionId, setSelectedDiscussionId] = useState(
@@ -62,6 +75,10 @@ export default function DiscussionLab() {
   const [role, setRole] = useState<DiscussionArgumentRole>("primary");
   const [note, setNote] = useState("");
   const [order, setOrder] = useState("");
+  const [fromArgumentId, setFromArgumentId] = useState("");
+  const [toArgumentId, setToArgumentId] = useState("");
+  const [relationType, setRelationType] = useState<ArgumentRelationType>("responds_to");
+  const [relationNote, setRelationNote] = useState("");
 
   const selected = data.discussions.find(
     (discussion) => discussion.id === selectedDiscussionId,
@@ -72,6 +89,12 @@ export default function DiscussionLab() {
   const summary = selected
     ? discussionSummary(data, selected.id)
     : null;
+  const graphSummary = selected
+    ? discussionGraphSummary(data, selected.id)
+    : null;
+  const relations = selected
+    ? data.argumentRelations.filter((relation) => relation.discussionId === selected.id)
+    : [];
 
   const linkedArgumentIds = new Set(timeline.map((item) => item.argument.id));
   const availableArguments = data.arguments.filter(
@@ -134,6 +157,33 @@ export default function DiscussionLab() {
     setRole("primary");
     setNote("");
     setOrder("");
+  }
+
+  function addRelation(event: FormEvent) {
+    event.preventDefault();
+    if (
+      !selected ||
+      !fromArgumentId ||
+      !toArgumentId ||
+      fromArgumentId === toArgumentId
+    ) return;
+    addArgumentRelation({
+      discussionId: selected.id,
+      fromArgumentId,
+      toArgumentId,
+      relation: relationType,
+      note: relationNote.trim() || undefined,
+    });
+    setFromArgumentId("");
+    setToArgumentId("");
+    setRelationType("responds_to");
+    setRelationNote("");
+  }
+
+  function argumentLabel(id: string): string {
+    const item = timeline.find((entry) => entry.argument.id === id);
+    if (!item) return id;
+    return `${item.person?.displayName ?? "?"} · ${item.argument.title ?? item.argument.topic ?? "Argument"}`;
   }
 
   return (
@@ -415,6 +465,142 @@ export default function DiscussionLab() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </ToolPanel>
+
+            <ToolPanel
+              title="Graf argumentacji"
+              description="Relacje są kierunkowe i opisują strukturę odpowiedzi między argumentami, bez automatycznej oceny ich prawdziwości."
+            >
+              {timeline.length < 2 ? (
+                <ToolEmptyState
+                  title="Potrzeba co najmniej dwóch argumentów"
+                  description="Dodaj drugi argument do debaty, aby można było zbudować relację."
+                />
+              ) : (
+                <div className="space-y-4">
+                  {graphSummary && (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <div className="text-xl font-black">{graphSummary.nodes}</div>
+                        <div className="text-xs text-muted-foreground">węzłów</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <div className="text-xl font-black">{graphSummary.edges}</div>
+                        <div className="text-xs text-muted-foreground">relacji</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <div className="text-xl font-black">{graphSummary.connectedNodes}</div>
+                        <div className="text-xs text-muted-foreground">węzłów połączonych</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background/40 p-3">
+                        <div className="text-xl font-black">{graphSummary.isolatedNodes}</div>
+                        <div className="text-xs text-muted-foreground">węzłów izolowanych</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <form className="grid gap-3 lg:grid-cols-[1.3fr_1fr_1.3fr] lg:items-end" onSubmit={addRelation}>
+                    <div>
+                      <div className="mb-1 text-xs font-bold text-muted-foreground">Argument źródłowy</div>
+                      <ToolSelect value={fromArgumentId} onChange={(event) => setFromArgumentId(event.target.value)}>
+                        <option value="">Wybierz…</option>
+                        {timeline.map((item) => (
+                          <option key={item.argument.id} value={item.argument.id}>
+                            {item.person?.displayName ?? "?"} · {item.argument.title ?? item.argument.topic ?? "Argument"}
+                          </option>
+                        ))}
+                      </ToolSelect>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-xs font-bold text-muted-foreground">Relacja</div>
+                      <ToolSelect
+                        value={relationType}
+                        onChange={(event) => setRelationType(event.target.value as ArgumentRelationType)}
+                      >
+                        <option value="responds_to">odpowiada na</option>
+                        <option value="supports">wspiera</option>
+                        <option value="challenges">kwestionuje</option>
+                        <option value="clarifies">doprecyzowuje</option>
+                        <option value="extends">rozwija</option>
+                      </ToolSelect>
+                    </div>
+                    <div>
+                      <div className="mb-1 text-xs font-bold text-muted-foreground">Argument docelowy</div>
+                      <ToolSelect value={toArgumentId} onChange={(event) => setToArgumentId(event.target.value)}>
+                        <option value="">Wybierz…</option>
+                        {timeline.map((item) => (
+                          <option key={item.argument.id} value={item.argument.id} disabled={item.argument.id === fromArgumentId}>
+                            {item.person?.displayName ?? "?"} · {item.argument.title ?? item.argument.topic ?? "Argument"}
+                          </option>
+                        ))}
+                      </ToolSelect>
+                    </div>
+                    <div className="lg:col-span-2">
+                      <ToolInput
+                        value={relationNote}
+                        onChange={(event) => setRelationNote(event.target.value)}
+                        placeholder="Uzasadnienie relacji / kontekst"
+                      />
+                    </div>
+                    <ToolButton
+                      type="submit"
+                      variant="primary"
+                      disabled={!fromArgumentId || !toArgumentId || fromArgumentId === toArgumentId}
+                    >
+                      Dodaj relację
+                    </ToolButton>
+                  </form>
+
+                  {relations.length === 0 ? (
+                    <ToolNotice>Brak relacji. Chronologia mówi tylko kiedy argumenty się pojawiły; graf opisuje jak odnoszą się do siebie.</ToolNotice>
+                  ) : (
+                    <div className="space-y-2">
+                      {relations.map((relation) => (
+                        <div key={relation.id} className="rounded-xl border border-border bg-background/40 p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold">
+                                {argumentLabel(relation.fromArgumentId)}
+                                <span className="mx-2 text-muted-foreground">→</span>
+                                <span className="text-primary">{RELATION_LABELS[relation.relation]}</span>
+                                <span className="mx-2 text-muted-foreground">→</span>
+                                {argumentLabel(relation.toArgumentId)}
+                              </div>
+                              {relation.note && (
+                                <div className="mt-1 text-xs text-muted-foreground">{relation.note}</div>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <ToolSelect
+                                className="w-auto"
+                                value={relation.relation}
+                                onChange={(event) =>
+                                  updateArgumentRelation(relation.id, {
+                                    relation: event.target.value as ArgumentRelationType,
+                                  })
+                                }
+                              >
+                                <option value="responds_to">odpowiada na</option>
+                                <option value="supports">wspiera</option>
+                                <option value="challenges">kwestionuje</option>
+                                <option value="clarifies">doprecyzowuje</option>
+                                <option value="extends">rozwija</option>
+                              </ToolSelect>
+                              <ToolButton
+                                type="button"
+                                variant="ghost"
+                                onClick={() => deleteArgumentRelation(relation.id)}
+                              >
+                                Usuń
+                              </ToolButton>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </ToolPanel>
