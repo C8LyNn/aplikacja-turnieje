@@ -888,7 +888,7 @@ export default function GameCatalogAdminPage() {
               <span>Przeskanowane: {discovery.stats.scanned}</span>
               <span>Partie: {discovery.stats.batches}</span>
             </div>
-            {growthMessage && <p role="status" className="mt-2 text-sm text-foreground">{growthMessage}</p>
+            {growthMessage && <p role="status" className="mt-2 text-sm text-foreground">{growthMessage}</p>}
             {discovery.candidates.length > 0 && (
               <div className="mt-3 max-h-64 overflow-y-auto divide-y divide-border rounded-lg border border-border">
                 {discovery.candidates.map((item) => (
