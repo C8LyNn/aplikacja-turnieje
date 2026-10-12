@@ -16,6 +16,7 @@ const MIGRATIONS = [
   "0032_steam_catalog_classification_revision.sql",
   "0033_steam_catalog_trigram_search.sql",
   "0034_steam_catalog_exact_status_counters.sql",
+  "0035_steam_catalog_import_jobs.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -591,6 +592,107 @@ describe("Steam catalog — real PostgreSQL API", () => {
       "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
     );
     assert.equal(Number(restored.total), Number(original.total));
+  });
+
+  test("server import job survives pauses and lease recovery, inserts real games transactionally", async () => {
+    const oldKey = process.env.STEAM_WEB_API_KEY;
+    const oldFetch = globalThis.fetch;
+    const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    const [before] = await rows<{ total: string }>(
+      "SELECT (unclassified + review + ready)::text AS total FROM steam_catalog_status_counts WHERE id=1",
+    );
+    const calls: string[] = [];
+    let jobId = 0;
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 5 }).expect(503);
+      await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 20_001 }).expect(400);
+      await request(app).get("/api/steam-catalog/import-job").expect(403);
+      process.env.STEAM_WEB_API_KEY = "0123456789abcdef0123456789abcdef";
+      globalThis.fetch = (async (url: Parameters<typeof fetch>[0]) => {
+        const address = new URL(String(url));
+        if (address.hostname === "api.steampowered.com") {
+          calls.push("discover");
+          assert.equal(address.searchParams.get("key"), process.env.STEAM_WEB_API_KEY);
+          assert.equal(address.searchParams.get("last_appid"), "0");
+          return Response.json({ response: {
+            apps: [
+              { appid: 1500001, name: "Already imported" },
+              { appid: 1900401, name: "Fresh verified game" },
+              { appid: 1900402, name: "Not a game" },
+            ], last_appid: 1900402, have_more_results: false,
+          } });
+        }
+        assert.equal(address.hostname, "store.steampowered.com");
+        const id = Number(address.searchParams.get("appids"));
+        calls.push("details-" + id);
+        return Response.json({ [id]: { success: true, data: {
+          type: id === 1900401 ? "game" : "dlc",
+          name: id === 1900401 ? "Fresh verified game" : "DLC must be ignored",
+          publishers: ["Studio"], developers: ["Studio"],
+        } } });
+      }) as typeof fetch;
+      const started = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 5 }).expect(201);
+      jobId = Number(started.body.job.id);
+      assert.equal(started.body.job.status, "running");
+      assert.equal(started.body.job.maxGames, 5);
+      await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 5 }).expect(409);
+      const claims = await Promise.all([runCatalogImportStep(), runCatalogImportStep()]);
+      assert.deepEqual(claims.sort(), [false, true]);
+      assert.deepEqual(calls, ["discover"]);
+      const discovered = await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200);
+      assert.equal(discovered.body.job.pending, 3);
+      assert.equal(discovered.body.job.cursor, 1900402);
+      assert.equal(discovered.body.job.scanned, 3);
+      await request(app).post("/api/steam-catalog/import-job/" + jobId + "/pause")
+        .set(edit()).expect(200);
+      assert.equal(await runCatalogImportStep(), false);
+      const paused = await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200);
+      assert.equal(paused.body.job.status, "paused");
+      await request(app).post("/api/steam-catalog/import-job/" + jobId + "/resume")
+        .set(edit()).expect(200);
+      // Simulate crashed worker's expired lease to test cross-process reclaim.
+      await database.pool.query(
+        "UPDATE steam_catalog_import_jobs SET lease_token=$1::uuid, " +
+        "lease_expires_at=now()-interval '1 second',next_run_at=now() WHERE id=$2",
+        ["48bf8188-59f3-4d52-9a90-bfb668bc887b", jobId],
+      );
+      for (let index = 0; index < 3; index++) {
+        await database.pool.query(
+          "UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [jobId],
+        );
+        assert.equal(await runCatalogImportStep(), true);
+      }
+      const ended = await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200);
+      assert.equal(ended.body.job.status, "completed");
+      assert.equal(ended.body.job.processed, 3);
+      assert.equal(ended.body.job.inserted, 1);
+      assert.equal(ended.body.job.existing, 1);
+      assert.equal(ended.body.job.ignored, 1);
+      assert.equal(ended.body.job.pending, 0);
+      assert.deepEqual(calls, ["discover", "details-1900401", "details-1900402"]);
+      const imported = await rows<{ name: string; status: string }>(
+        "SELECT name,status FROM steam_catalog_games WHERE steam_app_id=1900401",
+      );
+      assert.deepEqual(imported, [{ name: "Fresh verified game", status: "unclassified" }]);
+      const [after] = await rows<{ total: string }>(
+        "SELECT (unclassified + review + ready)::text AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      assert.equal(Number(after.total), Number(before.total) + 1);
+    } finally {
+      globalThis.fetch = oldFetch;
+      if (oldKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = oldKey;
+      await database.pool.query("DELETE FROM steam_catalog_games WHERE steam_app_id=1900401");
+      if (jobId) await database.pool.query("DELETE FROM steam_catalog_import_jobs WHERE id=$1", [jobId]);
+    }
   });
 
   test("20k-record workload: paged browse, text search and pending queue", async () => {
