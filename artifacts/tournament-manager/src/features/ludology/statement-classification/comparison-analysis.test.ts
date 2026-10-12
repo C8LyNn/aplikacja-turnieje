@@ -10,7 +10,7 @@ import type { ResearchProjectData } from "./model";
 
 function data(): ResearchProjectData {
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     people: [
       { id: "p1", displayName: "A" },
       { id: "p2", displayName: "B" },
@@ -57,6 +57,7 @@ function data(): ResearchProjectData {
         confidence: "medium",
       },
     ],
+    adjudications: [],
     assessments: [],
     dimensionModels: [],
     dimensions: [],
