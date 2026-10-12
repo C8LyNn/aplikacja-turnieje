@@ -155,8 +155,8 @@ test("undo-last rejects a corrupted prior match status without writes", async ()
   await request(app).patch(`/api/matches/${f.matchId}`).set(f.auth)
     .send({ status: "in_progress" }).expect(200);
   await database.pool.query(
-    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{prevStatus}', '"completed"'::jsonb)::text WHERE tournament_id=$1 AND action_type='match_started'",
-    [f.id],
+    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{prevStatus}', $1::jsonb)::text WHERE tournament_id=$2 AND action_type='match_started'",
+    [JSON.stringify("completed"), f.id],
   );
   const beforeState = await matchAndLogState(f.id, f.matchId!);
   const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
@@ -170,8 +170,8 @@ test("undo-last rejects a corrupted cancellation note instead of writing invalid
   await request(app).post(`/api/matches/${f.matchId}/cancel`).set(f.auth)
     .send({ note: "Original cancellation" }).expect(200);
   await database.pool.query(
-    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{prevNote}', '{\"nested\":true}'::jsonb)::text WHERE tournament_id=$1 AND action_type='match_cancelled'",
-    [f.id],
+    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{prevNote}', $1::jsonb)::text WHERE tournament_id=$2 AND action_type='match_cancelled'",
+    [JSON.stringify({ nested: true }), f.id],
   );
   const beforeState = await matchAndLogState(f.id, f.matchId!);
   const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
