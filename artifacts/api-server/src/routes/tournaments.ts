@@ -2727,6 +2727,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       if (lockedMatch.status === "cancelled" && parsed.data.status != null) {
         throw new Error("CANCELLED_MATCH_PATCH_FORBIDDEN");
       }
+      // One PATCH must not generate two independent undo actions that share
+      // the same match revision: the second undo would invalidate the first.
+      if (parsed.data.status != null && parsed.data.bestOf != null) {
+        throw new Error("COMBINED_STATUS_BEST_OF_FORBIDDEN");
+      }
       if (
         lockedMatch.status === "completed" &&
         (parsed.data.status != null || parsed.data.bestOf != null)
@@ -2781,6 +2786,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         status: 422,
         error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
         code: "FINALIZED_MATCH_PATCH_FORBIDDEN",
+      },
+      COMBINED_STATUS_BEST_OF_FORBIDDEN: {
+        status: 422,
+        error: "Status meczu i bestOf zmieniaj oddzielnymi operacjami.",
+        code: "COMBINED_STATUS_BEST_OF_FORBIDDEN",
       },
       INVALID_BEST_OF: {
         status: 422,
