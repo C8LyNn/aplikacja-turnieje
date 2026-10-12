@@ -4,7 +4,7 @@ import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../applicati
 import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
 import { parseSteamDetailedGame, parseSteamDiscoveryPage, parseSteamDiscoveryRequest, parseSteamImportBatch } from "../application/catalog/steam-catalog-growth";
 import { parseSteamFeaturedCategories } from "../application/catalog/steam-catalog-featured";
-import { createSteamSpyPageCache, parseSteamSpyPageRequest, sliceSteamSpyPage, SteamSpyCooldownError, SteamSpySourceError } from "../application/catalog/steam-catalog-steamspy";
+import { getSteamSpyPage, parseSteamSpyPageRequest, sliceSteamSpyPage, SteamSpyCooldownError, SteamSpySourceError } from "../application/catalog/steam-catalog-steamspy";
 import {
   createCatalogImportJob, latestCatalogImportJob,
   pauseCatalogImportJob, resumeCatalogImportJob,
@@ -387,19 +387,24 @@ router.get("/steam-catalog/import-job", requireSteamCatalogAdmin, async (_req, r
 router.post("/steam-catalog/import-job", requireSteamCatalogAdmin, async (req, res, next) => {
   try {
     const maxGames = req.body?.maxGames ?? 1000;
+    const source = req.body?.source ?? "steam";
+    if (source !== "steam" && source !== "steamspy") {
+      res.status(400).json({ code: "INVALID_IMPORT_SOURCE", error: "Wybierz Steam lub SteamSpy." });
+      return;
+    }
     if (typeof maxGames !== "number" || !Number.isInteger(maxGames) || maxGames < 1 || maxGames > 20000) {
       res.status(400).json({ code: "INVALID_JOB_LIMIT", error: "Zadanie może zweryfikować od 1 do 20000 AppID." });
       return;
     }
     const key = process.env.STEAM_WEB_API_KEY?.trim();
-    if (!key || !/^[a-f0-9]{32}$/i.test(key)) {
+    if (source === "steam" && (!key || !/^[a-f0-9]{32}$/i.test(key))) {
       res.status(503).json({
         code: "STEAM_DISCOVERY_NOT_CONFIGURED",
         error: "Skonfiguruj STEAM_WEB_API_KEY na serwerze przed uruchomieniem zadania.",
       });
       return;
     }
-    const job = await createCatalogImportJob(maxGames);
+    const job = await createCatalogImportJob(maxGames, source);
     res.status(201).json({ job });
   } catch (error) {
     if (error instanceof Error && error.message === "ACTIVE_JOB_EXISTS") {
@@ -435,17 +440,6 @@ router.post("/steam-catalog/import-job/:id/resume", requireSteamCatalogAdmin, as
 // SteamSpy is an unofficial, no-key alternative for finding far more Steam
 // AppIDs. Fetches are rate-limited/cached on this Node process and the source
 // is never trusted as authoritative game metadata.
-const getSteamSpyPage = createSteamSpyPageCache(async (page) => {
-  const endpoint = new URL("https://steamspy.com/api.php");
-  endpoint.searchParams.set("request", "all");
-  endpoint.searchParams.set("page", String(page));
-  const upstream = await fetch(endpoint, {
-    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!upstream.ok) throw new SteamSpySourceError(upstream.status);
-  return upstream.json();
-});
 
 router.post("/steam-catalog/discover-steamspy", requireSteamCatalogAdmin, async (req, res, next) => {
   try {
