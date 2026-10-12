@@ -996,7 +996,7 @@ export default function GameCatalogAdminPage() {
                 <Search className="h-4 w-4" /> Pobierz następną stronę SteamSpy (bez klucza)
               </ToolButton>
               <ToolButton type="button" variant="primary" disabled={busy || (!steamSpy.hasMore && !discovery.candidates.length)} onClick={runAutomaticSteamSpyGrowth}>
-                SteamSpy: odkryj i importuj do 100 AppID
+                SteamSpy: automatyczna seria do 100 AppID
               </ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
                 <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
