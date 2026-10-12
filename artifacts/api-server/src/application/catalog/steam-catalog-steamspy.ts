@@ -6,8 +6,8 @@ import { CatalogUpstreamTemporaryError, parseCatalogRetryAfter } from "./steam-c
  * type:game validation in the existing batch importer before DB insertion.
  *
  * SteamSpy documents a 60-second global poll interval for request=all.
- * The in-process limiter prevents overlapping calls from this API instance;
- * distributed deployments should additionally coordinate polling centrally.
+ * In-process cache avoids duplicate page fetches. A PostgreSQL-backed
+ * reservation additionally enforces the interval across all API replicas.
  */
 export type SteamSpyCandidate = { appId: number; name: string };
 export type SteamSpyPageQuery = { page: number; offset: number; pageSize: number };
@@ -124,10 +124,15 @@ export function sliceSteamSpyPage(
 
 /**
  * Shared by the HTTP discovery endpoint and the background import worker.
- * One Node process uses a single 65-second source throttle and page cache.
- * Multi-instance deployments still require distributed cross-replica pacing.
+ * In-memory cache avoids duplicate calls on one process. The database-wide
+ * reservation before every uncached upstream GET prevents cross-replica bursts.
  */
 const loadSteamSpyPage = async (page: number) => {
+  // Lazy import keeps pure parser/cache unit tests independent of DATABASE_URL.
+  // A missing 0038 migration prevents outbound traffic (fail closed).
+  const { reserveGlobalSteamSpyPollSlot } = await import("./steam-catalog-source-throttle");
+  const remaining = await reserveGlobalSteamSpyPollSlot(STEAMSPY_POLL_INTERVAL_MS);
+  if (remaining > 0) throw new SteamSpyCooldownError(remaining);
   const endpoint = new URL("https://steamspy.com/api.php");
   endpoint.searchParams.set("request", "all");
   endpoint.searchParams.set("page", String(page));
