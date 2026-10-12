@@ -69,3 +69,32 @@ Dla zgodnych raportów system pokazuje zmianę liczebności korpusu, metryk zdro
 `samplingGaps: null` oznacza **nie oceniano**, a nie zero. Wartości nieobliczalne nie są zamieniane na `0`, a wynik nie jest rankingiem ani automatyczną oceną gotowości publikacyjnej. Zgodny identyfikator i wersja narzędzia **nie gwarantują** niezmienności treści definicji; eksporty nie są kryptograficznie podpisane. Badacz powinien zachować oryginalne pliki źródłowe i recenzować wyniki w ich kontekście.
 
 Porównanie eksportuje czytelne `.md` i strukturalne `.json`. Nie zastępuje ono pełnego eksportu danych projektu.
+
+## Porównywalność treści narzędzi (Audit Instrument Snapshot)
+
+Nowsze eksporty audytu zachowują `formatVersion: 1` i dodają pole
+`instrumentSnapshots`. Zawiera ono **kanoniczną, pełną treść** wybranego
+codebooka i jego mikrostanowisk oraz opcjonalnego planu próbkowania.
+
+Podczas porównania dwóch raportów kontrolowane są osobno:
+
+1. identyfikator i wersja codebooka;
+2. identyfikator i wersja planu próbkowania;
+3. **rzeczywista zgodność treści** obu instrumentów, niezależnie od kolejności
+   kluczy JSON i kolejności mikrostanowisk w tablicy;
+4. kierunek chronologiczny zrzutów.
+
+Zmiana definicji mikrostanowiska, reguł włączenia/wyłączenia, przykładów,
+statusu, metadanych instrumentu lub progów samplingowych **blokuje wyliczanie
+różnic**, nawet jeżeli autor nie zmienił numeru wersji. Przyjęto konserwatywne
+podejście: także redakcyjna zmiana definicji wymaga świadomego przeglądu.
+
+Raporty historyczne bez `instrumentSnapshots` można nadal zaimportować w
+`Historii audytu`, ale **nie są porównywalne liczbowo** z nowymi raportami:
+nie ma danych umożliwiających potwierdzenie niezmienności definicji. Taki
+przypadek daje jawną blokadę i wskazówkę, żeby utworzyć nową migawkę bazową.
+
+To porównanie dokładnych kanonicznych ciągów JSON, **nie kryptograficzny
+podpis** ani proof of provenance. Import zaufanych raportów nadal wymaga
+kontroli badacza. Migawka może zawierać niepublikowane szczegóły metodologii,
+dlatego eksport należy przejrzeć przed udostępnieniem zewnętrznym.
