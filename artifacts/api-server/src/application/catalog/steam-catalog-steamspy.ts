@@ -1,3 +1,5 @@
+import { CatalogUpstreamTemporaryError, parseCatalogRetryAfter } from "./steam-catalog-upstream-retry";
+
 /**
  * Unofficial SteamSpy "all" pages provide candidate Steam AppIDs only.
  * Every candidate MUST still pass the official Steam Store appdetails
@@ -57,7 +59,10 @@ export class SteamSpyCooldownError extends Error {
 }
 
 export class SteamSpySourceError extends Error {
-  constructor(public readonly status: number) {
+  constructor(
+    public readonly status: number,
+    public readonly retryAfterSeconds = 0,
+  ) {
     super("Nie można pobrać aktualnej listy SteamSpy.");
   }
 }
@@ -126,11 +131,22 @@ const loadSteamSpyPage = async (page: number) => {
   const endpoint = new URL("https://steamspy.com/api.php");
   endpoint.searchParams.set("request", "all");
   endpoint.searchParams.set("page", String(page));
-  const upstream = await fetch(endpoint, {
-    headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!upstream.ok) throw new SteamSpySourceError(upstream.status);
+  let upstream: Response;
+  try {
+    upstream = await fetch(endpoint, {
+      headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (error) {
+    if (error instanceof TypeError ||
+        (error instanceof DOMException && ["AbortError", "TimeoutError"].includes(error.name))) {
+      throw new CatalogUpstreamTemporaryError("SteamSpy");
+    }
+    throw error;
+  }
+  if (!upstream.ok) throw new SteamSpySourceError(
+    upstream.status, parseCatalogRetryAfter(upstream.headers.get("retry-after")),
+  );
   return upstream.json();
 };
 
