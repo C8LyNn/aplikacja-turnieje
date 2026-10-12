@@ -433,3 +433,32 @@ test("undo-last reverses dedicated cancelled-match restoration without overwriti
     .set(f.auth).expect(200);
   assert.equal((await f.read()).status, "cancelled");
 });
+
+test("undo-last does not overwrite a note edited after cancellation", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).post(`${url}/cancel`).set(f.auth)
+    .send({ note: "Initial cancellation note" }).expect(200);
+  await request(app).patch(url).set(f.auth)
+    .send({ note: "Operator updated the note" }).expect(200);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("old cancellation logs fail closed if cancellation changed the note", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth)
+    .send({ note: "New cancellation note" }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextNote' - 'nextRevision')::text WHERE tournament_id=$1 AND action_type='match_cancelled'",
+    [f.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
