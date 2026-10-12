@@ -481,22 +481,33 @@ export default function DiscussionLab() {
               ) : (
                 <div className="space-y-4">
                   {graphSummary && (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <div className="text-xl font-black">{graphSummary.nodes}</div>
-                        <div className="text-xs text-muted-foreground">węzłów</div>
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-xl border border-border bg-background/40 p-3">
+                          <div className="text-xl font-black">{graphSummary.nodes}</div>
+                          <div className="text-xs text-muted-foreground">węzłów</div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-background/40 p-3">
+                          <div className="text-xl font-black">{graphSummary.edges}</div>
+                          <div className="text-xs text-muted-foreground">relacji</div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-background/40 p-3">
+                          <div className="text-xl font-black">{graphSummary.connectedNodes}</div>
+                          <div className="text-xs text-muted-foreground">węzłów połączonych</div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-background/40 p-3">
+                          <div className="text-xl font-black">{graphSummary.isolatedNodes}</div>
+                          <div className="text-xs text-muted-foreground">węzłów izolowanych</div>
+                        </div>
                       </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <div className="text-xl font-black">{graphSummary.edges}</div>
-                        <div className="text-xs text-muted-foreground">relacji</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <div className="text-xl font-black">{graphSummary.connectedNodes}</div>
-                        <div className="text-xs text-muted-foreground">węzłów połączonych</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-background/40 p-3">
-                        <div className="text-xl font-black">{graphSummary.isolatedNodes}</div>
-                        <div className="text-xs text-muted-foreground">węzłów izolowanych</div>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        {(Object.entries(graphSummary.relationCounts) as Array<[ArgumentRelationType, number]>)
+                          .filter(([, count]) => count > 0)
+                          .map(([relation, count]) => (
+                            <span key={relation} className="rounded-md border border-border px-2 py-1">
+                              {RELATION_LABELS[relation]} · {count}
+                            </span>
+                          ))}
                       </div>
                     </div>
                   )}
