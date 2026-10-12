@@ -23,6 +23,9 @@ import {
   type SteamGrowthProgress, type SteamDiscoveryPage, type SteamBatchResponse,
 } from "./game-catalog-growth-runner";
 import {
+  mergeSteamSpyDiscoveryPage, runSteamSpyGrowthSession,
+} from "./game-catalog-steamspy-growth-runner";
+import {
   ModuleHeader,
   ModuleShell,
   ProjectCard,
@@ -636,37 +639,14 @@ export default function GameCatalogAdminPage() {
       const response = await api<SteamSpyDiscoveryResponse>("/api/steam-catalog/discover-steamspy", {
         method: "POST", body: JSON.stringify(query),
       });
-      if (!Array.isArray(response.candidates) ||
-          !Number.isSafeInteger(response.nextPage) || !Number.isSafeInteger(response.nextOffset) ||
-          typeof response.hasMore !== "boolean" || !Number.isSafeInteger(response.scanned) ||
-          response.scanned < 0 || response.scanned > query.pageSize ||
-          response.candidates.length > response.scanned ||
-          (response.nextPage === query.page && response.nextOffset <= query.offset &&
-            response.hasMore) ||
-          response.nextPage < query.page || response.nextPage > query.page + 1 ||
-          response.nextOffset < 0 || response.nextOffset >= 1000) {
-        throw new Error("SteamSpy zwrócił nieprawidłową stronę. Zachowano postęp.");
-      }
-      const combined = new Map(discovery.candidates.map((item) => [item.appId, item]));
-      for (const game of response.candidates) {
-        if (!Number.isSafeInteger(game.appId) || game.appId <= 0 ||
-            typeof game.name !== "string" || combined.has(game.appId)) continue;
-        if (combined.size >= 200) throw new Error("Kolejka Steam jest pełna.");
-        combined.set(game.appId, game);
-      }
-      const next = {
-        ...discovery,
-        candidates: [...combined.values()],
-        stats: { ...discovery.stats, scanned: discovery.stats.scanned + response.scanned },
-      };
-      // Persist before moving the SteamSpy cursor. No candidate is skipped
-      // by a browser refresh between these two completed steps.
-      window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(next));
-      setDiscovery(next);
-      const nextSource = { page: response.nextPage, offset: response.nextOffset, hasMore: response.hasMore };
-      window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(nextSource));
-      setSteamSpy(nextSource);
-      setGrowthMessage(`SteamSpy: sprawdzono ${response.scanned} AppID; już zapisane: ${response.alreadyInCatalog}. Nowe propozycje: ${combined.size - discovery.candidates.length}.`);
+      const next = mergeSteamSpyDiscoveryPage(discovery, steamSpy, response, query.pageSize);
+      // Write queue first: a refresh between writes may repeat discovery,
+      // but cannot skip AppIDs that were not recorded locally.
+      window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(next.queue));
+      setDiscovery(next.queue);
+      window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(next.source));
+      setSteamSpy(next.source);
+      setGrowthMessage(`SteamSpy: sprawdzono ${response.scanned} AppID; już zapisane: ${response.alreadyInCatalog}. Nowe propozycje: ${next.queue.candidates.length - discovery.candidates.length}.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -745,6 +725,50 @@ export default function GameCatalogAdminPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setGrowthMessage("Postęp wcześniejszych, zakończonych partii zachowano. Możesz wznowić import.");
+    } finally {
+      autoStopRef.current = true;
+      setAutoRunning(false);
+      setBusy(false);
+    }
+  }
+
+  async function runAutomaticSteamSpyGrowth() {
+    if (busy || autoRunning || (!steamSpy.hasMore && !discovery.candidates.length)) return;
+    autoStopRef.current = false;
+    setAutoRunning(true);
+    setBusy(true);
+    setError(null);
+    setGrowthMessage("SteamSpy: trwa odkrywanie i weryfikowanie do 100 AppID. Możesz zatrzymać po bieżącej partii.");
+    try {
+      const result = await runSteamSpyGrowthSession({
+        initial: discovery,
+        source: steamSpy,
+        maxVerified: 100,
+        maxPages: 20,
+        shouldStop: () => autoStopRef.current,
+        discover: (query) => api<SteamSpyDiscoveryResponse>("/api/steam-catalog/discover-steamspy", {
+          method: "POST", body: JSON.stringify(query),
+        }),
+        importBatch: (appIds) => api<SteamBatchImportResponse>("/api/steam-catalog/import-batch", {
+          method: "POST", body: JSON.stringify({ appIds }),
+        }),
+        checkpoint: (state) => {
+          window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(state.queue));
+          setDiscovery(state.queue);
+          window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(state.source));
+          setSteamSpy(state.source);
+        },
+      });
+      const endings = {
+        limit: "Zakończono serię. Możesz uruchomić kolejną.",
+        end_of_list: "Wyczerpano dostępne strony SteamSpy.",
+        paused: "Zatrzymano po ostatniej zakończonej partii.",
+        upstream_stopped: "Steam przerwał weryfikację. Pozostałe AppID zachowano.",
+      };
+      setGrowthMessage(`${endings[result.reason]} Zweryfikowano ${result.verified} AppID. Nowe gry w tej serii: ${result.queue.stats.inserted - discovery.stats.inserted}. Strony SteamSpy: ${result.pages}.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setGrowthMessage("Zachowano ukończone partie i kursor SteamSpy. Jeśli źródło ograniczyło żądania, ponów później.");
     } finally {
       autoStopRef.current = true;
       setAutoRunning(false);
@@ -970,6 +994,9 @@ export default function GameCatalogAdminPage() {
               </ToolButton>
               <ToolButton type="button" disabled={busy || !steamSpy.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamSpyGames}>
                 <Search className="h-4 w-4" /> Pobierz następną stronę SteamSpy (bez klucza)
+              </ToolButton>
+              <ToolButton type="button" variant="primary" disabled={busy || (!steamSpy.hasMore && !discovery.candidates.length)} onClick={runAutomaticSteamSpyGrowth}>
+                SteamSpy: odkryj i importuj do 100 AppID
               </ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
                 <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
