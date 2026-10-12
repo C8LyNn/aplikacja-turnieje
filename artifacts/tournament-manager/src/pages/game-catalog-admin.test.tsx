@@ -374,7 +374,7 @@ test("SteamSpy single action fills next pages and imports 100 without calling ke
   }) as typeof fetch;
   mount(`${BASE}/search`);
   await screen.findByRole("heading", { name: "Szukaj gry" });
-  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: odkryj i importuj do 100 AppID/ }));
+  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: automatyczna seria do 100 AppID/ }));
   await waitFor(() => assert.equal(screen.getByTestId("steam-imported-total").textContent, "100"));
   assert.equal(discoveries.length, 2);
   assert.equal(batches.length, 10);
@@ -415,7 +415,7 @@ test("SteamSpy automatic discovery saves progress and stops on source cooldown",
   }) as typeof fetch;
   mount(`${BASE}/search`);
   await screen.findByRole("heading", { name: "Szukaj gry" });
-  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: odkryj i importuj do 100 AppID/ }));
+  fireEvent.click(screen.getByRole("button", { name: /SteamSpy: automatyczna seria do 100 AppID/ }));
   await screen.findByText(/Ograniczenie SteamSpy/);
   const queue = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
   const spy = JSON.parse(window.localStorage.getItem("steam-catalog-steamspy-progress-v1") ?? "null");
