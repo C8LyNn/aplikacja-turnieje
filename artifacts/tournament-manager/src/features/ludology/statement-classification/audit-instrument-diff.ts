@@ -62,8 +62,16 @@ function readSnapshot(input: AuditInstrumentSnapshots): SnapshotContents {
 }
 
 /** Validate entire embedded snapshot so the audit importer rejects corrupt nested JSON. */
-export function validateInstrumentSnapshot(input: AuditInstrumentSnapshots): void {
-  readSnapshot(input);
+export function validateInstrumentSnapshot(
+  input: AuditInstrumentSnapshots,
+  expected: { codebookId: string; codebookVersion: string; planId: string | null; planVersion: string | null },
+): void {
+  const parsed = readSnapshot(input);
+  if (parsed.book.id !== expected.codebookId || parsed.book.version !== expected.codebookVersion ||
+      (parsed.plan?.id ?? null) !== expected.planId ||
+      (parsed.plan?.version ?? null) !== expected.planVersion) {
+    throw new Error("Migawka definicji jest niezgodna z identyfikatorami lub wersjami raportu.");
+  }
 }
 
 function renderValue(value: unknown): string | null {
