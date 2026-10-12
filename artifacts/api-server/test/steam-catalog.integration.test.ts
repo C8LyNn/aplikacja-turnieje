@@ -842,6 +842,29 @@ describe("Steam catalog — real PostgreSQL API", () => {
     assert.equal(await reserveGlobalSteamSpyPollSlot(65_000), 0);
   });
 
+  test("uncached SteamSpy HTTP request fails closed when another replica owns the slot", async () => {
+    const savedFetch = globalThis.fetch;
+    const { getSteamSpyPage, resetSteamSpyPageCacheForTests, SteamSpyCooldownError } =
+      await import("../src/application/catalog/steam-catalog-steamspy");
+    let outboundCalls = 0;
+    try {
+      resetSteamSpyPageCacheForTests();
+      await database.pool.query(
+        "UPDATE steam_catalog_source_poll_limiter " +
+        "SET next_allowed_at=now()+interval '65 seconds' WHERE source='steamspy_all'",
+      );
+      globalThis.fetch = (async () => {
+        outboundCalls++;
+        return Response.json({});
+      }) as typeof fetch;
+      await assert.rejects(getSteamSpyPage(0), (error: unknown) =>
+        error instanceof SteamSpyCooldownError && error.retryAfterSeconds > 0);
+      assert.equal(outboundCalls, 0, "global limiter must reject before any outbound fetch");
+    } finally {
+      globalThis.fetch = savedFetch;
+    }
+  });
+
   test("SteamSpy server jobs run without Steam key and persist queue across jobs", async () => {
     const previousFetch = globalThis.fetch;
     const previousKey = process.env.STEAM_WEB_API_KEY;
