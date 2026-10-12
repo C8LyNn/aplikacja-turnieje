@@ -118,25 +118,85 @@ export default function MethodologyView() {
         </ToolPanel>
 
         <ToolPanel
-          title="Zgodność koderów — diagnostyka"
-          description="To prosty procent identycznych kierunków na wspólnie zakodowanych jednostkach. Nie zastępuje α Krippendorffa ani walidacji konstruktu."
+          title="Zgodność koderów — diagnostyka i przegląd różnic"
+          description="Jednostka porównania: ta sama para fragment–mikrostanowisko i wersja codebooka. N/A nie jest oceną neutralną (0). Wyniki opisują zgodność, nie prawdziwość stanowiska."
         >
           {agreementPairs.length === 0 ? (
-            <ToolEmptyState title="Potrzeba co najmniej dwóch koderów" description="Dodaj kolejnego kodera i zakoduj te same fragmenty, aby zobaczyć nakładanie ocen." />
+            <ToolEmptyState title="Potrzeba co najmniej dwóch koderów" description="Dodaj kolejnego kodera i zakoduj te same jednostki niezależnie, aby porównać ich interpretacje." />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
+              <ToolNotice>
+                Surowa zgodność obejmuje również obustronne N/A. Zgodność ocen kierunkowych i liniowo ważona κ Cohena wykorzystują wyłącznie pary z dwiema ocenami −2…+2. κ jest niezdefiniowana przy zbyt małej próbie albo braku zmienności rozkładów. Nie traktuj jej jako automatycznej oceny jakości badania.
+              </ToolNotice>
               {agreementPairs.map((pair) => (
-                <div key={`${pair.coderAId}::${pair.coderBId}`} className="grid gap-3 rounded-xl border border-border bg-background/40 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                  <div>
-                    <div className="font-bold">{pair.coderALabel} ↔ {pair.coderBLabel}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{pair.overlap} wspólnie zakodowanych par fragment–mikrostanowisko</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-black">
-                      {pair.exactDirectionAgreement === null ? "—" : `${Math.round(pair.exactDirectionAgreement * 100)}%`}
+                <div key={`${pair.coderAId}::${pair.coderBId}`} className="space-y-3 rounded-xl border border-border bg-background/40 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="font-bold">{pair.coderALabel} ↔ {pair.coderBLabel}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Zakodowane jednostki: {pair.coderAUnits} / {pair.coderBUnits} · wspólne jednoznaczne: {pair.overlap}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">identyczny kierunek</div>
+                    <div className="text-xs text-muted-foreground">Codebook: {activeCodebook?.version}</div>
                   </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs text-muted-foreground">Zgodność wszystkich par</div>
+                      <div className="mt-1 text-xl font-black">{pair.exactDirectionAgreement === null ? "—" : `${Math.round(pair.exactDirectionAgreement * 100)}%`}</div>
+                      <div className="text-xs text-muted-foreground">{pair.exactDirectionMatches}/{pair.overlap} (w tym obustronne N/A)</div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs text-muted-foreground">Zgodność ocen kierunkowych</div>
+                      <div className="mt-1 text-xl font-black">{pair.ratedExactAgreement === null ? "—" : `${Math.round(pair.ratedExactAgreement * 100)}%`}</div>
+                      <div className="text-xs text-muted-foreground">{pair.ratedExactMatches}/{pair.ratedOverlap} (bez N/A)</div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-xs text-muted-foreground">κ Cohena · liniowa</div>
+                      <div className="mt-1 text-xl font-black">{pair.linearWeightedKappa === null ? "—" : pair.linearWeightedKappa.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">korekta o zgodność oczekiwaną</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Wspólne N/A: {pair.bothNotApplicable} · N/A kontra ocena: {pair.missingVsScored} · rozbieżności: {pair.disagreements.length}
+                  </div>
+                  {pair.duplicateUnitsExcluded > 0 && (
+                    <ToolNotice tone="danger">
+                      Wyłączono {pair.duplicateUnitsExcluded} wspólnych jednostek z powielonym kodowaniem przynajmniej jednego kodera. Usuń duplikaty w Coding Lab przed interpretacją statystyk.
+                    </ToolNotice>
+                  )}
+                  {pair.disagreements.length > 0 && (
+                    <details className="rounded-lg border border-border p-3">
+                      <summary className="cursor-pointer text-sm font-bold">
+                        Materiał do wspólnego przeglądu ({pair.disagreements.length})
+                      </summary>
+                      <div className="mt-3 space-y-3">
+                        {pair.disagreements.slice(0, 12).map((difference) => {
+                          const excerpt = data.excerpts.find((item) => item.id === difference.excerptId);
+                          const proposition = data.propositions.find((item) => item.id === difference.propositionId);
+                          const source = data.sources.find((item) => item.id === excerpt?.sourceId);
+                          return (
+                            <div key={JSON.stringify([difference.excerptId, difference.propositionId])} className="rounded-lg border border-border bg-background/50 p-3">
+                              <div className="text-xs font-bold">{proposition?.code ?? "?"} · {proposition?.label ?? "Nieznane mikrostanowisko"}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">{source?.title ?? "Nieznane źródło"} · {difference.kind === "missing_vs_scored" ? "N/A kontra ocena" : "rozbieżny kierunek"}</div>
+                              <blockquote className="mt-2 text-sm">“{excerpt?.text ?? "Brak fragmentu źródłowego"}”</blockquote>
+                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                <div className="text-sm">
+                                  <strong>{pair.coderALabel}: {difference.coderADirection === null ? "N/A" : difference.coderADirection > 0 ? `+${difference.coderADirection}` : difference.coderADirection}</strong>
+                                  {difference.coderARationale && <p className="mt-1 text-xs text-muted-foreground">{difference.coderARationale}</p>}
+                                </div>
+                                <div className="text-sm">
+                                  <strong>{pair.coderBLabel}: {difference.coderBDirection === null ? "N/A" : difference.coderBDirection > 0 ? `+${difference.coderBDirection}` : difference.coderBDirection}</strong>
+                                  {difference.coderBRationale && <p className="mt-1 text-xs text-muted-foreground">{difference.coderBRationale}</p>}
+                                </div>
+                              </div>
+                              {source?.url && <a className="mt-2 inline-block text-xs font-semibold underline-offset-2 hover:underline" href={source.url} target="_blank" rel="noreferrer">Otwórz źródło ↗</a>}
+                            </div>
+                          );
+                        })}
+                        {pair.disagreements.length > 12 && <div className="text-xs text-muted-foreground">Pokazano 12 z {pair.disagreements.length} rozbieżności. Pełny przegląd wymaga dalszego filtrowania danych.</div>}
+                      </div>
+                    </details>
+                  )}
                 </div>
               ))}
             </div>
