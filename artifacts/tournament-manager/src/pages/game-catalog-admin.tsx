@@ -106,6 +106,13 @@ type GameListResponse = {
   counts: { all: number; unclassified: number; review: number; ready: number };
 };
 type QueueResponse = { pendingCount: number; nextId: number | null };
+type ServerImportJob = {
+  id: string; status: "running" | "paused" | "completed";
+  cursor: number; pending: number; hasMore: boolean; maxGames: number;
+  processed: number; inserted: number; existing: number;
+  ignored: number; failed: number; scanned: number;
+  pauseRequested: boolean; lastError: string | null;
+};
 type SteamDiscoveryProgress = SteamGrowthProgress;
 type SteamDiscoveryResponse = SteamDiscoveryPage;
 type SteamBatchImportResponse = SteamBatchResponse;
@@ -295,6 +302,10 @@ export default function GameCatalogAdminPage() {
   const [autoRunning, setAutoRunning] = useState(false);
   const [growthMessage, setGrowthMessage] = useState<string | null>(null);
   const [bulkPaste, setBulkPaste] = useState("");
+  const [serverImportJob, setServerImportJob] = useState<ServerImportJob | null>(null);
+  const [serverImportLimit, setServerImportLimit] = useState("1000");
+  const [serverImportMessage, setServerImportMessage] = useState<string | null>(null);
+  const [serverJobBusy, setServerJobBusy] = useState(false);
   const [adminKey, setAdminKey] = useState(() => window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -633,6 +644,62 @@ export default function GameCatalogAdminPage() {
     }
   }
 
+  async function refreshServerImportJob() {
+    if (!adminKey || serverJobBusy) return;
+    setServerJobBusy(true);
+    try {
+      const payload = await api<{ job: ServerImportJob | null }>("/api/steam-catalog/import-job", {
+        headers: { "x-steam-catalog-admin-token": adminKey },
+      });
+      setServerImportJob(payload.job);
+      setServerImportMessage(payload.job ? "Odczytano aktualny stan zadania z serwera." : "Brak zadania serwerowego.");
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setServerJobBusy(false);
+    }
+  }
+
+  async function startServerImportJob() {
+    const limit = Number(serverImportLimit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 20000) {
+      setError("Podaj limit od 1 do 20000 AppID.");
+      return;
+    }
+    setServerJobBusy(true);
+    setError(null);
+    try {
+      const payload = await api<{ job: ServerImportJob }>("/api/steam-catalog/import-job", {
+        method: "POST", body: JSON.stringify({ maxGames: limit }),
+      });
+      setServerImportJob(payload.job);
+      setServerImportMessage("Zadanie uruchomione na serwerze. Możesz zamknąć tę kartę.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setServerJobBusy(false);
+    }
+  }
+
+  async function changeServerImportJob(operation: "pause" | "resume") {
+    if (!serverImportJob || serverJobBusy) return;
+    setServerJobBusy(true);
+    setError(null);
+    try {
+      const payload = await api<{ job: ServerImportJob }>(
+        `/api/steam-catalog/import-job/${serverImportJob.id}/${operation}`, { method: "POST" });
+      setServerImportJob(payload.job);
+      setServerImportMessage(operation === "pause"
+        ? "Wstrzymanie zlecone; bieżący krok zostanie zapisany."
+        : "Zadanie wznowione na serwerze.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setServerJobBusy(false);
+    }
+  }
+
   async function importGame() {
     if (!importValue.trim()) return;
     setBusy(true);
@@ -844,6 +911,49 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>}
+          <ToolPanel title="Trwały import serwerowy — tysiące gier"
+            description="Uruchom import do 20 000 AppID. Serwer zapisuje każdy krok w PostgreSQL, także gdy zamkniesz przeglądarkę. Wymaga STEAM_WEB_API_KEY i migracji 0035.">
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="steam-server-import-limit" className="text-sm">Maks. sprawdzonych AppID</label>
+              <ToolInput id="steam-server-import-limit" type="number" min={1} max={20000}
+                value={serverImportLimit} onChange={(event) => setServerImportLimit(event.target.value)} />
+              <ToolButton type="button" onClick={startServerImportJob}
+                disabled={!adminKey || serverJobBusy || serverImportJob?.status === "running" || serverImportJob?.status === "paused"}>
+                Uruchom zadanie serwerowe
+              </ToolButton>
+              <ToolButton type="button" variant="ghost" onClick={refreshServerImportJob}
+                disabled={!adminKey || serverJobBusy}>
+                <RefreshCw className="h-4 w-4" /> Odśwież stan zadania
+              </ToolButton>
+              {serverImportJob?.status === "running" && (
+                <ToolButton type="button" onClick={() => changeServerImportJob("pause")}
+                  disabled={serverJobBusy || serverImportJob.pauseRequested}>Wstrzymaj zadanie serwerowe</ToolButton>
+              )}
+              {serverImportJob?.status === "paused" && (
+                <ToolButton type="button" onClick={() => changeServerImportJob("resume")}
+                  disabled={serverJobBusy}>Wznów zadanie serwerowe</ToolButton>
+              )}
+            </div>
+            {serverImportJob && (
+              <div className="mt-3 space-y-2 text-sm" aria-label="Statystyki zadania serwerowego">
+                <p>Stan: <strong data-testid="steam-server-job-status">{serverImportJob.status}</strong>
+                  {" · "}Zweryfikowano: {serverImportJob.processed}/{serverImportJob.maxGames}
+                  {" · "}Kursor: {serverImportJob.cursor}</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                  <span>Dodano gier: <strong data-testid="steam-server-inserted">{serverImportJob.inserted}</strong></span>
+                  <span>Istniały: {serverImportJob.existing}</span>
+                  <span>Odrzucono: {serverImportJob.ignored}</span>
+                  <span>Błędy: {serverImportJob.failed}</span>
+                  <span>Oczekujące: {serverImportJob.pending}</span>
+                  <span>Odkryte: {serverImportJob.scanned}</span>
+                </div>
+                {serverImportJob.lastError && (
+                  <p role="alert" className="text-amber-300">Powód zatrzymania: {serverImportJob.lastError}</p>
+                )}
+              </div>
+            )}
+            {serverImportMessage && <p role="status" className="mt-2 text-sm">{serverImportMessage}</p>}
+          </ToolPanel>
           <ToolPanel title="Rozbuduj katalog ze Steam" description="Odkrywaj kolejne prawdziwe gry ze Steam, a następnie importuj po 10. Postęp zostaje zapisany w tej przeglądarce. Wymaga uprawnień administratora i STEAM_WEB_API_KEY na serwerze.">
             <div className="flex flex-wrap items-center gap-2">
               <ToolButton type="button" variant="primary" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
