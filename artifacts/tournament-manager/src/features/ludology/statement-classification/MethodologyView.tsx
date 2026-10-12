@@ -209,6 +209,7 @@ export default function MethodologyView() {
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Argumenty z różnych źródeł można łączyć wokół jednego jawnie zdefiniowanego pytania. Pozwala to odtwarzać historię sporu bez uznawania, że wszystkie wypowiedzi danej osoby są jednym niezmiennym stanowiskiem.</p>
                 <p>Rola argumentu w debacie — główny, odpowiedź, dalszy ciąg lub kontekst — opisuje funkcję w przebiegu dyskusji, a nie automatyczny kierunek ideologiczny lub ocenę poprawności.</p>
+                <p>Graf argumentacji zapisuje jawne, kierunkowe relacje: odpowiada na, wspiera, kwestionuje, doprecyzowuje i rozwija. Relacja opisuje strukturę publicznej argumentacji, ale sama nie oznacza, że którykolwiek argument jest prawdziwy, silniejszy lub reprezentatywny dla całej osoby.</p>
               </div>
             </ToolSection>
             <ToolSection title="Corpus Health" description="Diagnostyka korpusu pokazuje ryzyka osobno zamiast redukować je do jednego wyniku.">
