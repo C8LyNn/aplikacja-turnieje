@@ -524,12 +524,18 @@ export default function GameCatalogAdminPage() {
       setError("Lista zawiera niepoprawny AppID lub adres Steam.");
       return;
     }
+    const pending = new Set(discovery.candidates.map((item) => item.appId));
+    for (const id of ids as number[]) pending.add(id);
+    if (pending.size > 200) {
+      setError("Kolejka mieści maksymalnie 200 gier. Zaimportuj część oczekujących AppID.");
+      return;
+    }
     setDiscovery((current) => {
       const combined = new Map(current.candidates.map((item) => [item.appId, item]));
       for (const id of ids as number[]) {
         if (!combined.has(id)) combined.set(id, { appId: id, name: `Steam AppID ${id}` });
       }
-      return { ...current, candidates: [...combined.values()].slice(0, 200) };
+      return { ...current, candidates: [...combined.values()] };
     });
     setGrowthMessage(`Dodano do kolejki ${new Set(ids).size} AppID. Importuj po 10 zweryfikowanych gier.`);
     setError(null);
