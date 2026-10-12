@@ -30,7 +30,7 @@ export type ResearchAuditReport = {
     adjudicationEvents: number;
     integrityIssues: number;
   };
-  health: ReturnType<typeof corpusHealthTotals>;
+  health: Omit<ReturnType<typeof corpusHealthTotals>, "samplingGaps"> & { samplingGaps: number | null };
   review: ReturnType<typeof summarizeAdjudicationQueue>;
   agreementPairs: Array<{
     coderAId: string;
@@ -128,7 +128,7 @@ export function buildResearchAuditReport(
       adjudicationEvents: data.adjudications.filter((entry) => entry.codebookId === codebook.id).length,
       integrityIssues: integrityIssues.length,
     },
-    health: corpusHealthTotals(healthRows),
+    health: { ...corpusHealthTotals(healthRows), samplingGaps: plan ? corpusHealthTotals(healthRows).samplingGaps : null },
     review: summarizeAdjudicationQueue(reviewItems),
     agreementPairs: pairs,
     people: healthRows.map((row) => ({
@@ -196,7 +196,7 @@ export function renderResearchAuditMarkdown(report: ResearchAuditReport): string
     "",
     `- Flagi blocker: ${report.health.blockerFlags}; warning: ${report.health.warningFlags}; info: ${report.health.infoFlags}.`,
     `- Nieaktualne rekonstrukcje: ${report.health.staleAssessments}; wykryte sprzeczności: ${report.health.contradictions}.`,
-    `- Luki planu próbkowania: ${report.samplingPlan ? report.health.samplingGaps : "nie oceniano"}.`,
+    `- Luki planu próbkowania: ${report.health.samplingGaps ?? "nie oceniano"}.`,
     "",
     "## Spory między koderami (liczba par)",
     "",
