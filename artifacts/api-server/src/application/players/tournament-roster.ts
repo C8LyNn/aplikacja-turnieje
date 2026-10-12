@@ -56,6 +56,36 @@ type PlayerUpdate = Partial<
   >
 >;
 
+/** Only editable player fields belong in undo state: never persist credentials or database ownership. */
+function playerUndoState(player: typeof playersTable.$inferSelect) {
+  return {
+    name: player.name,
+    rank: player.rank,
+    country: player.country,
+    teamName: player.teamName,
+    seed: player.seed,
+    status: player.status,
+  };
+}
+
+/**
+ * Compare a persisted post-write snapshot to the current player record.
+ * Older action logs have no nextData and must not blindly overwrite later edits.
+ */
+function matchesExpectedPlayerUndoState(
+  player: typeof playersTable.$inferSelect,
+  expected: unknown,
+): boolean {
+  if (!expected || typeof expected !== "object" || Array.isArray(expected)) return false;
+  const candidate = expected as Record<string, unknown>;
+  const current = playerUndoState(player);
+  const keys = Object.keys(current) as Array<keyof typeof current>;
+  if (Object.keys(candidate).length !== keys.length) return false;
+  return keys.every((key) =>
+    Object.prototype.hasOwnProperty.call(candidate, key) && candidate[key] === current[key],
+  );
+}
+
 async function lockDraftTournament(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   tournamentId: number,
@@ -120,7 +150,11 @@ export async function addTournamentPlayer(input: {
       tournamentId: input.tournamentId,
       actionType: "player_added",
       description: `Dodano gracza: ${player.name}${player.seed ? ` (seed ${player.seed})` : ""}`,
-      undoPayload: JSON.stringify({ type: "delete_player", playerId: player.id }),
+      undoPayload: JSON.stringify({
+        type: "delete_player",
+        playerId: player.id,
+        nextData: playerUndoState(player),
+      }),
       isUndone: false,
     });
     return player;
@@ -163,13 +197,8 @@ export async function updateTournamentPlayer(input: {
       undoPayload: JSON.stringify({
         type: "restore_player",
         playerId: player.id,
-        prevData: {
-          name: existing.name,
-          seed: existing.seed,
-          rank: existing.rank,
-          country: existing.country,
-          teamName: existing.teamName,
-        },
+        prevData: playerUndoState(existing),
+        nextData: playerUndoState(player),
       }),
       isUndone: false,
     });
@@ -301,6 +330,9 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
+      if (!matchesExpectedPlayerUndoState(player, payload.nextData)) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       await tx.delete(playersTable).where(eq(playersTable.id, playerId));
       await tx.insert(actionLogTable).values({
         tournamentId: input.tournamentId,
@@ -326,6 +358,9 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
+      if (!matchesExpectedPlayerUndoState(player, payload.nextData)) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       if (changes.name != null) {
         await assertUniqueName(tx, input.tournamentId, changes.name, playerId);
       }
