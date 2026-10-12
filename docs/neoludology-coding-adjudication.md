@@ -52,3 +52,20 @@ Interpretacja liczebności:
 - `N/A` — brak wystarczającej podstawy do oceny, odmienny od neutralności `0`.
 
 Raport ma format `formatVersion: 1`, zawiera datę generowania i `schemaVersion` danych wejściowych. Nie zastępuje pełnego JSON backupu źródeł i historii ani nie podpisuje kryptograficznie danych. Eksportowane metadane mogą umożliwiać identyfikację badanych osób; przed udostępnieniem zewnętrznym badacz powinien przejrzeć raport i uprawnienia do materiału.
+
+## Historia audytu — porównanie migawek (Research Audit Delta)
+
+Ekran `/ludology/statement-classification/audit-compare` przyjmuje **tylko** wcześniejszy eksport raportu `Corpus Health → JSON` w formacie `formatVersion: 1`. Nie służy do importowania pełnych projektów ani zapisu cudzych danych do obecnego badania. Plik bazowy jest odczytywany lokalnie w przeglądarce (limit 2 MB), bez aktualizacji `localStorage` i bez jakiejkolwiek migracji.
+
+Raport bieżący jest wyliczany na aktualnych danych dla świadomie wybranego codebooka oraz opcjonalnego planu próbkowania. Porównywanie **jest blokowane** i nie oblicza różnic, jeżeli:
+
+- zmieni się identyfikator lub wersja codebooka;
+- zmieni się identyfikator lub wersja planu próbkowania, także gdy jeden raport nie zawiera planu;
+- raport bazowy będzie późniejszy niż bieżący;
+- różnią się wersje formatu lub zakresy raportów.
+
+Dla zgodnych raportów system pokazuje zmianę liczebności korpusu, metryk zdrowia i liczby sporów między koderami. Jednostką adjudykacji pozostaje **para kodowań**, nie samodzielny fragment źródła. Dla osób wyświetla dodane/usunięte profile na podstawie stabilnych ID, zmiany podstawowego pokrycia oraz nowe i nieobecne już flagi `severity + code`.
+
+`samplingGaps: null` oznacza **nie oceniano**, a nie zero. Wartości nieobliczalne nie są zamieniane na `0`, a wynik nie jest rankingiem ani automatyczną oceną gotowości publikacyjnej. Zgodny identyfikator i wersja narzędzia **nie gwarantują** niezmienności treści definicji; eksporty nie są kryptograficznie podpisane. Badacz powinien zachować oryginalne pliki źródłowe i recenzować wyniki w ich kontekście.
+
+Porównanie eksportuje czytelne `.md` i strukturalne `.json`. Nie zastępuje ono pełnego eksportu danych projektu.
