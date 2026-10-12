@@ -86,3 +86,39 @@ it or delete the QA branch without explicit owner confirmation.
 The production app remains on its existing Replit PostgreSQL connection.
 This report contains only structural evidence, counts, and nonsecret
 technical identifiers.
+
+
+## Additional read-only cutover preflight
+
+The main Neon copy was audited on 2026-10-12 with the query captured
+in `scripts/neon-cutover-readiness-20261012.sql`.
+
+- All 314 constraints are validated; no invalid or unready indexes.
+- All 17 custom triggers are enabled.
+- All 46 tables are owned by `pg_database_owner` under database owner
+  `tournament_manager_owner`.
+- The transfer role has zero shared-dependency entries and no CREATE grant
+  on the public schema. It has no remaining owned relations, functions,
+  user-schema types, or schemas.
+- All 28 serial sequences were traced to their associated ID columns.
+  Twenty belong to nonempty tables, eight to empty tables. No sequence
+  is behind the maximum ID stored in its table.
+- A separate QA Neon branch was used for real DDL permission verification
+  and was suspended afterward to minimize Free-plan compute consumption.
+- A read-only check of the still-running Replit production database reported
+  the same 46 tables and 5,502 total records as the copied snapshot.
+- Replit still retains the stale `NEON_MIGRATION_DATABASE_URL` secret
+  (its password has already been reset). Remove this obsolete secret
+  manually in Replit Secrets; never reuse it.
+- The original Steam catalog is still empty (0 games) in both production
+  and the Neon copy. Population of the catalog is a separate feature.
+
+**This is a database snapshot parity verification, not a production cutover
+or a live application integration test.** The source will continue changing
+after the snapshot and requires a final synchronization/maintenance window
+before switching the application.
+
+One remaining technical risk: the current backend checks database health
+with a 1-second SQL timeout. Neon Free can have cold-start latency after
+compute suspension; verify health/restart behavior on a staging deployment
+before depending on Neon as the production database.
