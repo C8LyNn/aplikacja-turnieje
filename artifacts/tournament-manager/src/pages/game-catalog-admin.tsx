@@ -804,7 +804,7 @@ export default function GameCatalogAdminPage() {
                 <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
               </ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={importDiscoveredGames}>
-                <Plus className="h-4 w-4" /> Importuj 10 kolejnych
+                <Plus className="h-4 w-4" /> Dodaj 10 gier z kolejki
               </ToolButton>
               <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => { setDiscovery(EMPTY_STEAM_DISCOVERY); setGrowthMessage(null); }}>
                 Od początku
@@ -822,7 +822,7 @@ export default function GameCatalogAdminPage() {
               </ToolButton>
             </div>
             <div className="mt-3 text-sm text-muted-foreground">
-              Oczekujące gry: <strong>{discovery.candidates.length}</strong> · Ostatni Steam AppID: {discovery.cursor}
+              Oczekujące gry: <strong data-testid="steam-candidate-count">{discovery.candidates.length}</strong> · Ostatni Steam AppID: {discovery.cursor}
               {!discovery.hasMore ? " · Koniec listy Steam." : ""}
               {discovery.candidates.length >= 200 ? " · Zaimportuj oczekujące gry przed pobraniem następnej strony." : ""}
             </div>
