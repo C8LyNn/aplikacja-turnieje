@@ -40,6 +40,31 @@ Connection string należy podać wyłącznie przez prywatny menedżer sekretów 
 - Neon SQL: 46 tabel, 5502 rekordy, 314 constraints, 125 indeksów, 28 sekwencji, 17 triggerów. Bez uszkodzonych indeksów, niewalidowanych constraints i wyłączonych triggerów.
 - Read-only SQL na kopii nie zastępuje pełnego uruchomienia Express i weryfikacji konfiguracji konkretnego hostingu.
 
+## Rzeczywisty HTTP smoke na jednorazowym PostgreSQL 16 w CI
+
+Dodany test: `artifacts/api-server/test/neon-local-http.integration.test.ts`.
+Na GitHub Actions uruchamiany jest osobny kontener PostgreSQL 16 z bazą
+`tournament_readiness_test`. Test otwiera wydzielony schemat
+`tm_test_neon_http`, odtwarza migracje aplikacji i tworzy wyłącznie
+**syntetyczne** dane: publiczny turniej, dwóch graczy i mecz.
+
+Oddzielny proces `neon-local-http-smoke.ts` jest blokowany, gdy host
+różni się od `127.0.0.1`, baza nie jest lokalną testową lub sesja
+nie wymusza `default_transaction_read_only=on`. Ten proces wykonuje
+pełny in-process Express i sprawdza 8 rzeczywistych tras GET:
+`/api/healthz`, `/api/tournaments`, szczegóły, etapy, mecze,
+graczy, standings oraz bracket. Kontrola stanu danych przed i po musi
+być identyczna. Schemat zostaje usunięty po teście.
+
+Wspólny moduł `neon-readonly-api-probe.ts` używany jest również przez
+niepublikowany, przypięty do gałęzi QA Neon smoke test. Wszelkie
+wyniki wypisywane do CI zawierają jedynie status i liczby tras.
+Prawdziwe dane uczestników i ciągi połączenia nie są potrzebne do CI.
+
+To jest **realny test HTTP** i migracji na jednorazowej bazie,
+ale **nie** weryfikuje opóźnień sieciowych oraz konfiguracji hostingu
+Neon przy rzeczywistym połączeniu — ten krok nadal pozostaje.
+
 ## Bramki przed produkcją
 
 1. Rzeczywiste uruchomienie skryptu smoke na odizolowanym stagingu, przez sekret do QA child branch.
