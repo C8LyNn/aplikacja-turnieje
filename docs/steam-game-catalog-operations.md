@@ -153,6 +153,62 @@ are not a latency SLA. To inspect index usage in a target environment, compare
 `EXPLAIN (ANALYZE, BUFFERS)` with realistic search queries after
 `ANALYZE steam_catalog_games`.
 
+## Persistent Steam imports without an open browser
+
+Migration `0035_steam_catalog_import_jobs.sql` adds the
+`steam_catalog_import_jobs` table for a **single resumable active job**.
+Apply migrations `0029–0035` in order and verify that the deployed API
+process has `STEAM_WEB_API_KEY` and `STEAM_CATALOG_ADMIN_TOKEN`. The
+worker starts automatically **only with the real API server**
+(`artifacts/api-server/src/index.ts`), not when constructing Express in
+tests.
+
+In the admin panel under *Szukaj gry*, use *Trwały import serwerowy*
+to start a job covering 1–20,000 AppIDs (default 1,000).
+*Odśwież stan zadania* reads the actual PostgreSQL progress;
+*Wstrzymaj zadanie serwerowe* pauses after an in-flight step;
+*Wznów zadanie serwerowe* restarts a paused job. The browser can be closed
+after starting: unlike the older 100-AppID local mode, this worker runs
+inside the deployed server and does not depend on the tab remaining open.
+No automatic unattended job is started merely by deploying the code.
+
+Admin-only API:
+- `POST /api/steam-catalog/import-job` body `{"maxGames":1000}`
+- `GET /api/steam-catalog/import-job` (latest job status)
+- `POST /api/steam-catalog/import-job/:id/pause`
+- `POST /api/steam-catalog/import-job/:id/resume`
+
+Each endpoint requires `x-steam-catalog-admin-token`. PostgreSQL leases
+coordinate simultaneous API replicas: only the worker holding the current
+lease can commit the step. Metadata inserts and job checkpoints are
+committed in **one database transaction**, and the unique Steam AppID
+index prevents duplicates after process restarts. The worker checks
+the Store `appdetails` product type before inserting, rejects DLC,
+demos and other non-games, and never overwrites existing manual
+classifications. Work is deliberately rate-controlled to approximately
+one Steam request per second per active job and pauses on network or
+Steam-side errors; resume manually when service recovers. A restart
+recovers expired leases after at most 40 seconds.
+
+The `maxGames` limit counts **verified candidate AppIDs**, not guaranteed
+new titles. The recorded `inserted` field counts actual newly inserted
+records. `scanned` counts records returned by discovery and may be
+larger than `processed`. The separate normal catalog counts remain
+authoritative for total unique games. For a further run after completion,
+start a new job; the new task starts at AppID zero but skips existing
+games safely. To avoid repeatedly scanning the same start of the Steam
+catalog, prefer higher `maxGames` values for the initial backfill,
+or extend the job model to support a saved starting cursor before
+operating on very large catalogs.
+
+**Deployment limitations:** a live API server must stay running; an
+on-demand deployment that scales to zero cannot process while asleep.
+Migrating the table alone does not start an import. Server-side processing
+has not been performed against a production Steam account, so completion
+and rate-limit behavior must be observed on the actual deployment.
+Do not store the Steam key or administrator token in logs, source files
+or browser localStorage.
+
 ## Expanding the number of real games
 
 The original `POST /api/steam-catalog/import` imports one Steam AppID at
@@ -225,7 +281,7 @@ verified import, then iterate at a sustainable cadence. Existing records
 are intentionally skipped rather than reimported; use the original single
 import action when you specifically want to refresh one game's Steam
 metadata while preserving its manual classification. Verify that the
-deployment database uses migrations `0029–0034` before importing.
+deployment database uses migrations `0029–0035` before importing.
 
 Steam reference: https://partner.steamgames.com/doc/webapi/IStoreService
 
