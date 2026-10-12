@@ -98,7 +98,7 @@ export default function AuditComparisonLab() {
       />
       <div className="space-y-4">
         <ToolNotice>
-          Import nie zmienia danych projektu. Raport bazowy musi pochodzić z eksportu JSON „Corpus Health” (formatVersion=1), a nie z kopii całego projektu. Porównanie nie stanowi zgody na publikację.
+          Import nie zmienia danych projektu. Raport bazowy musi pochodzić z eksportu JSON „Corpus Health” (formatVersion=1), a nie z kopii całego projektu. Nowe eksporty zapisują definicje narzędzi badawczych; starsze raporty można odczytać, ale nie można z nimi bezpiecznie wyliczyć różnic. Porównanie nie stanowi zgody na publikację.
         </ToolNotice>
         <ToolPanel title="Kontekst bieżącego audytu" description="Wybierz te same wersje codebooka i planu co w raporcie bazowym. Różnice w metodologii będą sygnalizowane jako blokada porównania.">
           <div className="grid gap-3 md:grid-cols-2">
@@ -132,6 +132,7 @@ export default function AuditComparisonLab() {
                   <div className="mt-1 text-xs text-muted-foreground">
                     {baseline.generatedAt} · {baseline.codebook.name} {baseline.codebook.version}
                     {" "}· {baseline.samplingPlan ? `plan ${baseline.samplingPlan.name} ${baseline.samplingPlan.version}` : "bez planu"}
+                    {" "}· {baseline.instrumentSnapshots ? "zapis definicji narzędzi" : "brak zapisu definicji (starszy eksport)"}
                   </div>
                 </div>
                 <ToolButton type="button" variant="ghost" onClick={() => {setBaseline(null);setBaselineFilename("");}}>Usuń bazę</ToolButton>
