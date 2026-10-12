@@ -1,4 +1,5 @@
 import type { ResearchAuditReport } from "./research-audit-report";
+import { diffAuditInstruments, validateInstrumentSnapshot, type InstrumentChange } from "./audit-instrument-diff";
 
 type AuditCountKey = keyof ResearchAuditReport["counts"];
 type AuditHealthKey = keyof ResearchAuditReport["health"];
@@ -32,6 +33,7 @@ export type AuditComparison = {
   after: { generatedAt: string; codebookId: string; codebookVersion: string; planId: string | null };
   metrics: AuditMetricDelta[];
   people: AuditPersonChange[];
+  instrumentChanges: InstrumentChange[];
 };
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -111,6 +113,7 @@ export function parseResearchAuditSnapshot(raw: string): ResearchAuditReport {
         (plan !== null && snapshots.samplingPlan === null)) {
       throw new Error("Nieprawidłowa migawka definicji narzędzi badawczych.");
     }
+    validateInstrumentSnapshot(snapshots as { codebook: string; samplingPlan: string | null });
   }
   requireCounts(value.counts, CORPUS_METRICS.map(([key]) => key), "korpus");
   requireCounts(value.health, ["people", ...HEALTH_METRICS.map(([key]) => key)],
@@ -188,6 +191,9 @@ export function compareResearchAudits(before: ResearchAuditReport, after: Resear
   if (Date.parse(before.generatedAt) > Date.parse(after.generatedAt)) {
     blockingReasons.push("Raport bazowy jest późniejszy od bieżącego zrzutu.");
   }
+  const instrumentChanges = before.instrumentSnapshots && after.instrumentSnapshots
+    ? diffAuditInstruments(before.instrumentSnapshots, after.instrumentSnapshots)
+    : [];
   const compatible = blockingReasons.length === 0;
   const notes = [
     "Różnica liczebności nie przesądza o poprawie ani pogorszeniu jakości badań.",
@@ -245,7 +251,7 @@ export function compareResearchAudits(before: ResearchAuditReport, after: Resear
       codebookVersion: before.codebook.version, planId: before.samplingPlan?.id ?? null },
     after: { generatedAt: after.generatedAt, codebookId: after.codebook.id,
       codebookVersion: after.codebook.version, planId: after.samplingPlan?.id ?? null },
-    metrics, people,
+    metrics, people, instrumentChanges,
   };
 }
 
@@ -280,6 +286,19 @@ export function renderAuditComparisonMarkdown(comparison: AuditComparison): stri
       "| --- | --- | --- | --- | --- | --- | --- |");
     for (const person of comparison.people) {
       output.push(`| ${escapeMd(person.personId)} | ${escapeMd(person.currentName ?? person.previousName ?? "—")} | ${person.kind} | ${person.sourcesBefore ?? "—"} → ${person.sourcesAfter ?? "—"} | ${person.verifiedBefore ?? "—"} → ${person.verifiedAfter ?? "—"} | ${person.flagsAdded.map(escapeMd).join("; ") || "—"} | ${person.flagsRemoved.map(escapeMd).join("; ") || "—"} |`);
+    }
+    output.push("");
+  }
+  output.push("## Zmiany definicji narzędzi", "");
+  if (comparison.instrumentChanges.length === 0) {
+    output.push(comparison.blockingReasons.some(reason => reason.includes("migawki definicji"))
+      ? "Nie można odtworzyć zmian: wcześniejszy raport nie zawiera migawki definicji."
+      : "Nie wykryto zmian w polach definicji narzędzi.", "");
+  } else {
+    output.push("| Narzędzie | ID | Pole | Operacja | Poprzednia wartość | Bieżąca wartość |",
+      "| --- | --- | --- | --- | --- | --- |");
+    for (const change of comparison.instrumentChanges) {
+      output.push(`| ${change.instrument} | ${escapeMd(change.entityId)} | ${escapeMd(change.field)} | ${change.kind} | ${escapeMd(change.before ?? "—")} | ${escapeMd(change.after ?? "—")} |`);
     }
     output.push("");
   }
