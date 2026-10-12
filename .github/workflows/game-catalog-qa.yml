@@ -109,6 +109,8 @@ jobs:
         run: pnpm --filter @workspace/api-server test:unit
       - name: Read-only catalog preflight regression tests
         run: pnpm --filter @workspace/db test:game-catalog-preflight
+      - name: Read-only staging classification audit tests
+        run: pnpm --filter @workspace/db test:game-catalog-staging-audit
       - name: Public API probe regression tests
         run: node --test ./scripts/preflight-game-catalog-api.test.mjs
       - name: Workspace TypeScript
