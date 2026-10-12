@@ -1,4 +1,5 @@
 import { logger } from "./lib/logger";
+import { startCatalogImportWorker } from "./application/catalog/steam-catalog-import-jobs";
 import {
   DeploymentTaskError,
   runDeploymentStartup,
@@ -28,6 +29,7 @@ async function startApi(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
+    startCatalogImportWorker();
   });
 }
 
