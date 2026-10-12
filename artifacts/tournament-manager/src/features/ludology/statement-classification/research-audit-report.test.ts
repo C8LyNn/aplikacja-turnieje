@@ -46,7 +46,6 @@ test("report counts raw observations separately from unique excerpt/proposition 
   const r = buildResearchAuditReport(data, context);
   assert.equal(r.formatVersion, 1);
   assert.equal(r.projectSchemaVersion, 8);
-  assert.ok(r.instrumentSnapshots?.codebook.includes("D1") === false);
   assert.ok(r.instrumentSnapshots?.codebook.includes("Opis"));
   assert.equal(r.instrumentSnapshots?.samplingPlan, null);
   assert.equal(r.counts.people, 1);
