@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     const result = await runReadOnlyApiSmoke({
       pool, requirePublicTournament: true,
     });
-    process.stdout.write(JSON.stringify({
+    process.stdout.write("NEON_HTTP_SMOKE_RESULT=" + JSON.stringify({
       result: "pass", target: "isolated-localhost-test", ...result,
     }) + "\n");
   } finally {
