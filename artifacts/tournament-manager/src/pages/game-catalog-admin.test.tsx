@@ -218,11 +218,11 @@ test("Steam growth UI discovers candidate games, imports ten or fewer and stores
   fireEvent.click(screen.getByRole("button", { name: /Pobierz propozycje ze Steam/ }));
   await screen.findByText("Dota 2");
   assert.ok(screen.getByText("Counter-Strike 2"));
-  assert.ok(screen.getByText(/Oczekujące gry:.*2/));
-  fireEvent.click(screen.getByRole("button", { name: /Importuj 10 kolejnych/ }));
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "2");
+  fireEvent.click(screen.getByRole("button", { name: /Dodaj 10 gier z kolejki/ }));
   await screen.findByRole("status");
   await waitFor(() => {
-    assert.ok(screen.getByText(/Oczekujące gry:.*0/));
+    assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0");
     const stored = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
     assert.equal(stored.cursor, 730);
     assert.deepEqual(stored.candidates, []);
@@ -256,9 +256,9 @@ test("pasted Steam AppIDs queue without Steam discovery API credentials", async 
   await screen.findByText("Steam AppID 570");
   assert.ok(screen.getByText("Steam AppID 730"));
   assert.ok(screen.getByText("Steam AppID 620"));
-  fireEvent.click(screen.getByRole("button", { name: /Importuj 10 kolejnych/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Dodaj 10 gier z kolejki/ }));
   await waitFor(() => assert.deepEqual(batches, [[570, 730, 620]]));
-  await waitFor(() => assert.ok(screen.getByText(/Oczekujące gry:.*0/)));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0"));
 });
 
 test("catalog filters games by classification status and title", async () => {
