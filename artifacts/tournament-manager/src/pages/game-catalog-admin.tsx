@@ -109,6 +109,7 @@ type QueueResponse = { pendingCount: number; nextId: number | null };
 type SteamDiscoveryProgress = SteamGrowthProgress;
 type SteamDiscoveryResponse = SteamDiscoveryPage;
 type SteamBatchImportResponse = SteamBatchResponse;
+type SteamFeaturedResponse = Pick<SteamDiscoveryPage, "candidates" | "scanned" | "alreadyInCatalog">;
 const STEAM_DISCOVERY_STORAGE = "steam-catalog-discovery-progress-v1";
 const EMPTY_STEAM_DISCOVERY = EMPTY_STEAM_GROWTH;
 
@@ -560,6 +561,34 @@ export default function GameCatalogAdminPage() {
     }
   }
 
+  async function discoverFeaturedGames() {
+    if (busy || discovery.candidates.length >= 200) return;
+    setBusy(true);
+    setError(null);
+    setGrowthMessage(null);
+    try {
+      const page = await api<SteamFeaturedResponse>("/api/steam-catalog/discover-featured", {
+        method: "POST", body: JSON.stringify({}),
+      });
+      setDiscovery((current) => {
+        const combined = new Map(current.candidates.map((item) => [item.appId, item]));
+        for (const item of page.candidates) {
+          if (combined.size >= 200) break;
+          if (!combined.has(item.appId)) combined.set(item.appId, item);
+        }
+        return {
+          ...current, candidates: [...combined.values()],
+          stats: { ...current.stats, scanned: current.stats.scanned + page.scanned },
+        };
+      });
+      setGrowthMessage(`Pobrano ${page.scanned} propozycji ze Steam (już w katalogu: ${page.alreadyInCatalog}). Pozostałe możesz zaimportować z kolejki.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function importDiscoveredGames() {
     if (!discovery.candidates.length || busy) return;
     setBusy(true);
@@ -590,8 +619,8 @@ export default function GameCatalogAdminPage() {
     }
   }
 
-  async function runAutomaticGrowth() {
-    if (autoRunning || busy) return;
+  async function runAutomaticGrowth(queueOnly = false) {
+    if (autoRunning || busy || (queueOnly && !discovery.candidates.length)) return;
     autoStopRef.current = false;
     setAutoRunning(true);
     setBusy(true);
@@ -600,7 +629,9 @@ export default function GameCatalogAdminPage() {
     try {
       const result = await runSteamGrowthSession({
         initial: discovery,
-        maxVerified: 100,
+        // Queue-only mode works without STEAM_WEB_API_KEY. Using the exact
+        // pending count prevents the runner from calling /discover afterwards.
+        maxVerified: queueOnly ? Math.min(100, discovery.candidates.length) : 100,
         maxPages: 20,
         shouldStop: () => autoStopRef.current,
         discover: (cursor) => api<SteamDiscoveryPage>("/api/steam-catalog/discover", {
@@ -622,7 +653,10 @@ export default function GameCatalogAdminPage() {
         paused: "Proces zatrzymany. Postęp zapisany.",
         upstream_stopped: "Steam przerwał import lub ograniczył żądania. Postęp zapisany; ponów później.",
       };
-      setGrowthMessage(`${messages[result.reason]} Zweryfikowano ${result.verified} AppID w tej serii. W katalogu przybyło ${result.progress.stats.inserted - discovery.stats.inserted} gier.`);
+      const summary = queueOnly && result.reason === "limit"
+        ? "Przetworzono bieżącą część kolejki. Można uruchomić następną serię."
+        : messages[result.reason];
+      setGrowthMessage(`${summary} Zweryfikowano ${result.verified} AppID w tej serii. W katalogu przybyło ${result.progress.stats.inserted - discovery.stats.inserted} gier.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setGrowthMessage("Postęp wcześniejszych, zakończonych partii zachowano. Możesz wznowić import.");
@@ -844,15 +878,21 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>}
-          <ToolPanel title="Rozbuduj katalog ze Steam" description="Odkrywaj kolejne prawdziwe gry ze Steam, a następnie importuj po 10. Postęp zostaje zapisany w tej przeglądarce. Wymaga uprawnień administratora i STEAM_WEB_API_KEY na serwerze.">
+          <ToolPanel title="Rozbuduj katalog ze Steam" description="Nowości i popularne gry możesz odkrywać bez klucza Steam. Do przeglądania pełnej listy AppID potrzebny jest STEAM_WEB_API_KEY na serwerze. Import wymaga klucza administratora katalogu i zapisuje postęp w tej przeglądarce.">
             <div className="flex flex-wrap items-center gap-2">
-              <ToolButton type="button" variant="primary" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
+              <ToolButton type="button" variant="primary" disabled={busy || discovery.candidates.length >= 200} onClick={discoverFeaturedGames}>
+                <Search className="h-4 w-4" /> Pobierz nowości i popularne (bez klucza)
+              </ToolButton>
+              <ToolButton type="button" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
                 <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
               </ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={importDiscoveredGames}>
                 <Plus className="h-4 w-4" /> Dodaj 10 gier z kolejki
               </ToolButton>
-              <ToolButton type="button" disabled={busy} onClick={runAutomaticGrowth}>
+              <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={() => void runAutomaticGrowth(true)}>
+                Przetwórz kolejkę (do 100 AppID)
+              </ToolButton>
+              <ToolButton type="button" disabled={busy} onClick={() => void runAutomaticGrowth(false)}>
                 Uruchom serię (do 100 AppID)
               </ToolButton>
               {autoRunning && (
