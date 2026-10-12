@@ -124,6 +124,8 @@ export type CodingAdjudication = {
   propositionId: string;
   codingAId: string;
   codingBId: string;
+  codingASnapshot: string;
+  codingBSnapshot: string;
   reviewerId: string;
   decision: "resolved" | "deferred";
   /** null means N/A, not neutral 0. Deferred events always contain null. */
