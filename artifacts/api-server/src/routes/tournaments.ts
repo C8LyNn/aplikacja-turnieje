@@ -2382,6 +2382,24 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
           case "restore_status": {
             const matchId = lockedPayload.matchId as number;
             const prevStatus = lockedPayload.prevStatus as string;
+            // Legacy undo entries predate nextStatus. Infer only documented status transitions.
+            const expectedStatus = lockedPayload.nextStatus ??
+              (lockedAction.actionType === "match_started" ? "in_progress" :
+                lockedAction.actionType === "match_postponed" ? "postponed" :
+                  lockedAction.actionType === "match_restored" ? "pending" : null);
+            const [currentMatch] = await tx.select({
+              status: matchesTable.status,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (!currentMatch || typeof expectedStatus !== "string" ||
+                currentMatch.status !== expectedStatus ||
+                currentMatch.completedAt != null || currentMatch.resultType != null) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
             await tx.update(matchesTable).set({ status: prevStatus as any }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
@@ -2409,6 +2427,18 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             const matchId = lockedPayload.matchId as number;
             const prevStatus = lockedPayload.prevStatus as string;
             const prevNote = (lockedPayload.prevNote as string | null) ?? null;
+            const [currentMatch] = await tx.select({
+              status: matchesTable.status,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (!currentMatch || currentMatch.status !== "cancelled" ||
+                currentMatch.completedAt != null || currentMatch.resultType != null) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
             await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
@@ -2598,11 +2628,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         const playerMap = new Map(players.map((player) => [player.id, player.name]));
         const matchLabel = `R${lockedMatch.round}M${lockedMatch.matchNumber}: ${playerMap.get(lockedMatch.player1Id ?? 0) ?? "TBD"} vs ${playerMap.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`;
         if (parsed.data.status === "in_progress") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status, nextStatus: parsed.data.status } }, tx);
         } else if (parsed.data.status === "postponed") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status, nextStatus: parsed.data.status } }, tx);
         } else if (parsed.data.status === "pending" && lockedMatch.status === "postponed") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: "postponed" } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: "postponed", nextStatus: "pending" } }, tx);
         }
       }
       if (parsed.data.bestOf != null && parsed.data.bestOf !== lockedMatch.bestOf) {
@@ -2839,7 +2869,7 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         actionType: "match_restored",
         description: `Przywrócono anulowany mecz ${matchLabel}`,
         matchId: lockedMatch.id,
-        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled" },
+        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled", nextStatus: "pending" },
       }, tx);
       return saved;
     },
