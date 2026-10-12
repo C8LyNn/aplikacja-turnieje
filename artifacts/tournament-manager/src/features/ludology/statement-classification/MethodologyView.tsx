@@ -205,6 +205,12 @@ export default function MethodologyView() {
             <ToolSection title="Wersjonowanie" description="Zmiana definicji kodu nie może po cichu zmienić znaczenia wcześniejszych danych.">
               <ToolNotice>Istotna zmiana definicji mikrostanowiska powinna tworzyć nową wersję codebooka i zachować informację, według której wersji wykonano każde kodowanie.</ToolNotice>
             </ToolSection>
+            <ToolSection title="Debates / Discussions" description="Debata jest jednostką analizy ponad pojedynczą osobą i pojedynczym materiałem.">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Argumenty z różnych źródeł można łączyć wokół jednego jawnie zdefiniowanego pytania. Pozwala to odtwarzać historię sporu bez uznawania, że wszystkie wypowiedzi danej osoby są jednym niezmiennym stanowiskiem.</p>
+                <p>Rola argumentu w debacie — główny, odpowiedź, dalszy ciąg lub kontekst — opisuje funkcję w przebiegu dyskusji, a nie automatyczny kierunek ideologiczny lub ocenę poprawności.</p>
+              </div>
+            </ToolSection>
             <ToolSection title="Corpus Health" description="Diagnostyka korpusu pokazuje ryzyka osobno zamiast redukować je do jednego wyniku.">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Audyt rozdziela kompletność metadanych, weryfikację fragmentów, przypisanie do argumentów, pokrycie codebooka, nieaktualne rekonstrukcje, sprzeczności i luki planu próbkowania.</p>
