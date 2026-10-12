@@ -695,6 +695,68 @@ describe("Steam catalog — real PostgreSQL API", () => {
     }
   });
 
+  test("next persistent job resumes pending AppIDs at the previous discovery cursor", async () => {
+    const oldFetch = globalThis.fetch;
+    const oldKey = process.env.STEAM_WEB_API_KEY;
+    const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    const jobIds: number[] = [];
+    const calls: string[] = [];
+    try {
+      process.env.STEAM_WEB_API_KEY = "0123456789abcdef0123456789abcdef";
+      globalThis.fetch = (async (value: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(value));
+        if (url.hostname === "api.steampowered.com") {
+          calls.push("discover");
+          return Response.json({ response: {
+            apps: [{ appid: 1900601, name: "Game 1" }, { appid: 1900602, name: "Game 2" }],
+            last_appid: 1900602, have_more_results: true,
+          } });
+        }
+        const appId = Number(url.searchParams.get("appids"));
+        calls.push("details-" + appId);
+        return Response.json({ [appId]: { success: true, data: { type: "game", name: "Game 1" } } });
+      }) as typeof fetch;
+      const one = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 1 }).expect(201);
+      jobIds.push(Number(one.body.job.id));
+      assert.equal(await runCatalogImportStep(), true);
+      await database.pool.query(
+        "UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [jobIds[0]],
+      );
+      assert.equal(await runCatalogImportStep(), true);
+      const complete = await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200);
+      assert.equal(complete.body.job.status, "completed");
+      assert.equal(complete.body.job.inserted, 1);
+      assert.equal(complete.body.job.pending, 1);
+      assert.equal(complete.body.job.cursor, 1900602);
+      const two = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 1 }).expect(201);
+      jobIds.push(Number(two.body.job.id));
+      assert.equal(two.body.job.cursor, 1900602);
+      assert.equal(two.body.job.pending, 1);
+      await database.pool.query(
+        "UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [jobIds[1]],
+      );
+      assert.equal(await runCatalogImportStep(), true);
+      const final = await request(app).get("/api/steam-catalog/import-job")
+        .set(edit()).expect(200);
+      assert.equal(final.body.job.status, "completed");
+      assert.equal(final.body.job.inserted, 1);
+      assert.deepEqual(calls, ["discover", "details-1900601", "details-1900602"]);
+    } finally {
+      globalThis.fetch = oldFetch;
+      if (oldKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = oldKey;
+      await database.pool.query(
+        "DELETE FROM steam_catalog_games WHERE steam_app_id IN (1900601,1900602)",
+      );
+      if (jobIds.length) await database.pool.query(
+        "DELETE FROM steam_catalog_import_jobs WHERE id=ANY($1::bigint[])", [jobIds],
+      );
+    }
+  });
+
   test("20k-record workload: paged browse, text search and pending queue", async () => {
     await database.pool.query([
       "INSERT INTO steam_catalog_games (steam_app_id, name, steam_url, developer, publisher, status)",
