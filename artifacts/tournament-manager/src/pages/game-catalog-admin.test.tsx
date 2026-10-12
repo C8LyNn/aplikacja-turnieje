@@ -560,7 +560,7 @@ test("persistent Steam import task can start, pause, resume and show server coun
   let status = "running";
   const paths: string[] = [];
   const job = () => ({
-    id: "7", status, cursor: 123, pending: 4, hasMore: true,
+    id: "7", status, source: "steamspy", sourcePage: 2, cursor: 123, pending: 4, hasMore: true,
     maxGames: 1500, processed: 20, inserted: 11, existing: 5,
     ignored: 4, failed: 0, scanned: 80, pauseRequested: false, lastError: null,
   });
@@ -572,7 +572,7 @@ test("persistent Steam import task can start, pause, resume and show server coun
       if (url.endsWith("/pause")) status = "paused";
       if (url.endsWith("/resume")) status = "running";
       if (init?.method === "POST" && url === "/api/steam-catalog/import-job") {
-        assert.deepEqual(JSON.parse(String(init.body)), { maxGames: 1500 });
+        assert.deepEqual(JSON.parse(String(init.body)), { maxGames: 1500, source: "steamspy" });
         return Response.json({ job: job() }, { status: 201 });
       }
       return Response.json({ job: job() });
@@ -581,9 +581,11 @@ test("persistent Steam import task can start, pause, resume and show server coun
   }) as typeof fetch;
   mount(`${BASE}/search`);
   await screen.findByRole("heading", { name: "Szukaj gry" });
+  assert.equal((screen.getByLabelText("Źródło kandydatów") as HTMLSelectElement).value, "steamspy");
   fireEvent.change(screen.getByLabelText("Maks. sprawdzonych AppID"), { target: { value: "1500" } });
   fireEvent.click(screen.getByRole("button", { name: "Uruchom zadanie serwerowe" }));
   await waitFor(() => assert.equal(screen.getByTestId("steam-server-inserted").textContent, "11"));
+  assert.ok(screen.getByText(/Strona: 2/));
   fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj zadanie serwerowe" }));
   await waitFor(() => assert.equal(screen.getByTestId("steam-server-job-status").textContent, "paused"));
   fireEvent.click(screen.getByRole("button", { name: "Wznów zadanie serwerowe" }));
