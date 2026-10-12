@@ -21,9 +21,10 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     value.schemaVersion !== 2 &&
     value.schemaVersion !== 3 &&
     value.schemaVersion !== 4 &&
-    value.schemaVersion !== 5
+    value.schemaVersion !== 5 &&
+    value.schemaVersion !== 6
   ) {
-    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2, schemaVersion=3, schemaVersion=4 i schemaVersion=5.");
+    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5 i schemaVersion=6.");
   }
 
   const people = requireArray(value, "people");
@@ -35,7 +36,7 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
   const coders = requireArray(value, "coders");
   const codings = requireArray(value, "codings");
   const assessments =
-    value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5
+    value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6
       ? requireArray(value, "assessments").map((assessment) => {
           if (!isRecord(assessment)) return assessment;
           return {
@@ -46,16 +47,20 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
       : [];
 
   const dimensionModels =
-    value.schemaVersion === 4 || value.schemaVersion === 5 ? requireArray(value, "dimensionModels") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 ? requireArray(value, "dimensionModels") : [];
   const dimensions =
-    value.schemaVersion === 4 || value.schemaVersion === 5 ? requireArray(value, "dimensions") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 ? requireArray(value, "dimensions") : [];
   const dimensionLinks =
-    value.schemaVersion === 4 || value.schemaVersion === 5 ? requireArray(value, "dimensionLinks") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 ? requireArray(value, "dimensionLinks") : [];
   const samplingPlans =
-    value.schemaVersion === 5 ? requireArray(value, "samplingPlans") : [];
+    value.schemaVersion === 5 || value.schemaVersion === 6 ? requireArray(value, "samplingPlans") : [];
+  const discussions =
+    value.schemaVersion === 6 ? requireArray(value, "discussions") : [];
+  const discussionLinks =
+    value.schemaVersion === 6 ? requireArray(value, "discussionLinks") : [];
 
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     people: people as ResearchProjectData["people"],
     sources: sources as ResearchProjectData["sources"],
     arguments: argumentsList as ResearchProjectData["arguments"],
@@ -69,5 +74,7 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     dimensions: dimensions as ResearchProjectData["dimensions"],
     dimensionLinks: dimensionLinks as ResearchProjectData["dimensionLinks"],
     samplingPlans: samplingPlans as ResearchProjectData["samplingPlans"],
+    discussions: discussions as ResearchProjectData["discussions"],
+    discussionLinks: discussionLinks as ResearchProjectData["discussionLinks"],
   };
 }
