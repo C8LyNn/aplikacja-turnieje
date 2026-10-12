@@ -314,6 +314,12 @@ establish the identity of the deployed commit or authorize writes.
 Confirm the staging deployment source SHA independently before the first
 5-game test import.
 
+## Cross-replica SteamSpy cooldown (migration 0038)
+
+Apply `0038_steam_catalog_global_source_throttle.sql` after 0037, before deploying the importer. The same PostgreSQL table enforces a shared 65-second interval for uncached SteamSpy `request=all` calls across API replicas, including the manual discovery endpoint and the background worker. Cached pages are served from each process without new polling. Successful reservations survive restarts, and a failed upstream request still consumes its slot.
+
+An absent migration fails closed: SteamSpy polling does not continue without a shared limiter. The actual third-party API may impose stricter limits. This migration changes no game classifications or import job cursors. The deployment release gate now requires migrations 0029 through 0038 in order, followed by both preflight checks on an independently confirmed staging database and API.
+
 ## Resilient persistent imports (migration 0037)
 
 Apply `0037_steam_catalog_import_retry_backoff.sql` **after 0036**
