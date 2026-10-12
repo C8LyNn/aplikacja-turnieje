@@ -412,3 +412,24 @@ test("undo-last refuses ABA cancellation when the match revision has changed", a
   assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
 });
+
+test("undo-last accepts the current match-start status and restores pending", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ status: "in_progress" }).expect(200);
+  assert.equal((await f.read()).status, "in_progress");
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "pending");
+});
+
+test("undo-last reverses dedicated cancelled-match restoration without overwriting new data", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).post(`${url}/cancel`).set(f.auth)
+    .send({ note: "Cancelled" }).expect(200);
+  await request(app).post(`${url}/restore-cancelled`).set(f.auth).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+});
