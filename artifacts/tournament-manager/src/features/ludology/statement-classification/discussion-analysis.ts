@@ -1,4 +1,5 @@
 import type {
+  ArgumentRelationType,
   DiscussionArgumentLink,
   ResearchArgument,
   ResearchDiscussion,
@@ -94,4 +95,54 @@ export function discussionSummaries(
   return data.discussions
     .map((discussion) => discussionSummary(data, discussion.id))
     .filter((summary): summary is DiscussionSummary => summary !== null);
+}
+
+
+export type DiscussionGraphSummary = {
+  discussionId: string;
+  nodes: number;
+  edges: number;
+  connectedNodes: number;
+  isolatedNodes: number;
+  relationCounts: Record<ArgumentRelationType, number>;
+};
+
+export function discussionGraphSummary(
+  data: ResearchProjectData,
+  discussionId: string,
+): DiscussionGraphSummary {
+  const nodeIds = new Set(
+    data.discussionLinks
+      .filter((link) => link.discussionId === discussionId)
+      .map((link) => link.argumentId),
+  );
+  const relations = data.argumentRelations.filter(
+    (relation) =>
+      relation.discussionId === discussionId &&
+      nodeIds.has(relation.fromArgumentId) &&
+      nodeIds.has(relation.toArgumentId),
+  );
+  const connected = new Set<string>();
+  const relationCounts: Record<ArgumentRelationType, number> = {
+    responds_to: 0,
+    supports: 0,
+    challenges: 0,
+    clarifies: 0,
+    extends: 0,
+  };
+
+  for (const relation of relations) {
+    connected.add(relation.fromArgumentId);
+    connected.add(relation.toArgumentId);
+    relationCounts[relation.relation] += 1;
+  }
+
+  return {
+    discussionId,
+    nodes: nodeIds.size,
+    edges: relations.length,
+    connectedNodes: connected.size,
+    isolatedNodes: Math.max(0, nodeIds.size - connected.size),
+    relationCounts,
+  };
 }
