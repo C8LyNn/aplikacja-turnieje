@@ -3,6 +3,22 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 import { logger } from "../lib/logger";
 
 export const DATABASE_HEALTH_TIMEOUT_MS = 1_000;
+export const MAX_DATABASE_HEALTH_TIMEOUT_MS = 15_000;
+
+/**
+ * Default behavior stays unchanged on existing Replit deployments.
+ * For isolated Neon staging, DB_HEALTH_TIMEOUT_MS=10000 tolerates
+ * autosuspended PostgreSQL cold starts without storing any credentials.
+ */
+export function resolveHealthTimeoutMs(raw: string | undefined): number {
+  if (!raw || !/^[1-9]\d{0,4}$/.test(raw)) return DATABASE_HEALTH_TIMEOUT_MS;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) &&
+    parsed >= DATABASE_HEALTH_TIMEOUT_MS &&
+    parsed <= MAX_DATABASE_HEALTH_TIMEOUT_MS
+    ? parsed
+    : DATABASE_HEALTH_TIMEOUT_MS;
+}
 
 interface HealthLogger {
   warn: (bindings: Record<string, unknown>, message: string) => void;
@@ -39,6 +55,7 @@ async function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise
 }
 
 export function createHealthRouter({
+  timeoutMs = resolveHealthTimeoutMs(process.env.DB_HEALTH_TIMEOUT_MS),
   databaseCheck = async () => {
     const { pool } = await import("@workspace/db");
     // pg 8.20 supports query_timeout at runtime, while the bundled @types/pg
@@ -46,9 +63,8 @@ export function createHealthRouter({
     const timedQuery = pool.query.bind(pool) as unknown as (
       config: RuntimeTimedQueryConfig,
     ) => Promise<unknown>;
-    return timedQuery({ text: "SELECT 1", query_timeout: DATABASE_HEALTH_TIMEOUT_MS });
+    return timedQuery({ text: "SELECT 1", query_timeout: timeoutMs });
   },
-  timeoutMs = DATABASE_HEALTH_TIMEOUT_MS,
   log = logger,
 }: HealthRouterOptions = {}): IRouter {
   const router: IRouter = Router();

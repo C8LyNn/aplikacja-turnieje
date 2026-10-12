@@ -1,0 +1,45 @@
+name: Neon staging backend readiness
+
+on:
+  push:
+    branches:
+      - codex/neon-staging-backend-readiness
+    paths:
+      - artifacts/api-server/src/routes/health.ts
+      - artifacts/api-server/src/scripts/neon-staging-target.ts
+      - artifacts/api-server/src/scripts/neon-staging-api-smoke.ts
+      - artifacts/api-server/test/health.test.ts
+      - artifacts/api-server/test/neon-staging-target.test.ts
+      - .github/workflows/neon-staging-backend-readiness.yml
+  pull_request:
+    paths:
+      - artifacts/api-server/src/routes/health.ts
+      - artifacts/api-server/src/scripts/neon-staging-target.ts
+      - artifacts/api-server/src/scripts/neon-staging-api-smoke.ts
+      - artifacts/api-server/test/health.test.ts
+      - artifacts/api-server/test/neon-staging-target.test.ts
+      - .github/workflows/neon-staging-backend-readiness.yml
+
+permissions:
+  contents: read
+
+jobs:
+  offline-neon-staging-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install project dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Workspace library types
+        run: pnpm run typecheck:libs
+      - name: Typecheck backend and staging scripts
+        run: pnpm --filter @workspace/api-server run typecheck
+      - name: Offline health + staging safeguards
+        run: pnpm --filter @workspace/api-server exec node --import tsx --test ./test/health.test.ts ./test/neon-staging-target.test.ts
