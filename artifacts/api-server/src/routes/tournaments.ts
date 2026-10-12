@@ -2374,6 +2374,22 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         ) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
+        // The candidate was read before obtaining the tournament mutation lock.
+        // Recheck ordering here: another request may have appended a newer undoable
+        // action while this request was waiting for the lock.
+        const [latestUndoableAction] = await tx
+          .select({ id: actionLogTable.id })
+          .from(actionLogTable)
+          .where(and(
+            eq(actionLogTable.tournamentId, params.data.id),
+            eq(actionLogTable.isUndone, false),
+            sql`${actionLogTable.undoPayload} IS NOT NULL`,
+          ))
+          .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+          .limit(1);
+        if (latestUndoableAction?.id !== lockedAction.id) {
+          throw new RevertMatchError("UNDO_ACTION_CHANGED");
+        }
         const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
         if (lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
