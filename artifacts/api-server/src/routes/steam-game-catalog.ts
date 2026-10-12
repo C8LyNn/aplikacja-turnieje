@@ -3,6 +3,7 @@ import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-a
 import { decodeSteamCatalogCursor, encodeSteamCatalogCursor } from "../application/catalog/steam-catalog-cursor";
 import { coalesceCatalogRead } from "../application/catalog/steam-catalog-inflight";
 import { parseSteamDetailedGame, parseSteamDiscoveryPage, parseSteamDiscoveryRequest, parseSteamImportBatch } from "../application/catalog/steam-catalog-growth";
+import { parseSteamFeaturedCategories } from "../application/catalog/steam-catalog-featured";
 import {
   createCatalogImportJob, latestCatalogImportJob,
   pauseCatalogImportJob, resumeCatalogImportJob,
@@ -427,6 +428,48 @@ router.post("/steam-catalog/import-job/:id/resume", requireSteamCatalogAdmin, as
     if (error instanceof Error && error.message === "ACTIVE_JOB_EXISTS") {
       res.status(409).json({ code: "ACTIVE_JOB_EXISTS", error: "Inne zadanie jest już aktywne." });
     } else next(error);
+  }
+});
+
+// Public Store featured sections offer a small, current, credential-free
+// discovery source. Every candidate still passes the verified appdetails
+// importer before any database insert. This endpoint never writes games.
+router.post("/steam-catalog/discover-featured", requireSteamCatalogAdmin, async (_req, res, next) => {
+  try {
+    const url = "https://store.steampowered.com/api/featuredcategories/?cc=us&l=english";
+    const upstream = await fetch(url, {
+      headers: { "user-agent": "TournamentManagerGameCatalog/0.1" },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!upstream.ok) {
+      res.status(upstream.status === 429 ? 429 : 502).json({
+        error: upstream.status === 429
+          ? "Steam ograniczył częstotliwość żądań. Spróbuj później."
+          : "Steam nie udostępnił kategorii popularnych i nowych gier.",
+        code: upstream.status === 429 ? "STEAM_FEATURED_RATE_LIMITED" : "STEAM_FEATURED_UPSTREAM_ERROR",
+      });
+      return;
+    }
+    const games = parseSteamFeaturedCategories(await upstream.json().catch(() => null));
+    if (!games) {
+      res.status(502).json({
+        error: "Steam zwrócił nieprawidłową listę wyróżnionych gier.",
+        code: "STEAM_FEATURED_BAD_RESPONSE",
+      });
+      return;
+    }
+    const appIds = games.map((game) => game.appId);
+    const existing = appIds.length ? await db.select({ appId: steamCatalogGames.steamAppId })
+      .from(steamCatalogGames).where(inArray(steamCatalogGames.steamAppId, appIds)) : [];
+    const known = new Set(existing.map((game) => game.appId));
+    res.setHeader("Cache-Control", "no-store");
+    res.json({
+      candidates: games.filter((game) => !known.has(game.appId)),
+      scanned: games.length,
+      alreadyInCatalog: known.size,
+    });
+  } catch (error) {
+    next(error);
   }
 });
 
