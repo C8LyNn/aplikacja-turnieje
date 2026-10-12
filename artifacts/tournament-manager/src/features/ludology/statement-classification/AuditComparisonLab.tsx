@@ -154,6 +154,33 @@ export default function AuditComparisonLab() {
                 <div key={index} className="rounded-lg border border-border bg-background/40 px-3 py-2 text-sm">{reason}</div>
               ))}
             </div>
+            {comparison.instrumentChanges.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h3 className="text-sm font-bold">Które definicje uległy zmianie?</h3>
+                <p className="text-xs text-muted-foreground">
+                  Lista pól narzędzi badawczych, nie zmiany wyników osób.
+                  Nowe i usunięte rekordy są rozpisane na poszczególne pola.
+                </p>
+                <div className="max-h-[540px] space-y-2 overflow-y-auto">
+                  {comparison.instrumentChanges.map((change, index) => (
+                    <div key={index} className="rounded-lg border border-border bg-background/40 px-3 py-2 text-sm">
+                      <div className="font-semibold break-all">
+                        {change.instrument} · {change.entityId} · {change.field}
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">({change.kind})</span>
+                      </div>
+                      <dl className="mt-2 grid gap-2 md:grid-cols-2">
+                        <div className="min-w-0"><dt className="text-xs text-muted-foreground">Poprzednio</dt>
+                          <dd className="whitespace-pre-wrap break-words text-xs">{change.before ?? "—"}</dd>
+                        </div>
+                        <div className="min-w-0"><dt className="text-xs text-muted-foreground">Teraz</dt>
+                          <dd className="whitespace-pre-wrap break-words text-xs">{change.after ?? "—"}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <ToolButton type="button" variant="ghost" onClick={() => downloadComparison("md")}>Eksportuj ostrzeżenia Markdown</ToolButton>
             </div>
@@ -211,7 +238,7 @@ export default function AuditComparisonLab() {
                 <ToolButton type="button" variant="ghost" onClick={() => downloadComparison("json")}>Pobierz JSON</ToolButton>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Raporty nie są podpisane kryptograficznie, a zgodne identyfikatory codebooka nie gwarantują niezmienności definicji. Interpretuj różnice w kontekście przebiegu badania.
+                Raporty nie są podpisane kryptograficznie. Zgodność definicji jest sprawdzana na migawkach, lecz nie potwierdza autentyczności raportów ani sposobu rzeczywistego kodowania. Interpretuj różnice w kontekście badania.
               </p>
             </ToolPanel>
           </>
