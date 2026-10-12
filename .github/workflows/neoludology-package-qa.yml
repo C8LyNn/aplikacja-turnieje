@@ -1,0 +1,45 @@
+name: Neoludology package QA
+
+on:
+  push:
+    branches:
+      - codex/neoludology-research-pipeline-v2
+    paths:
+      - "artifacts/tournament-manager/**"
+      - ".github/workflows/neoludology-package-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neoludology-package-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Research package validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Frontend regression tests
+        run: pnpm --filter @workspace/tournament-manager test
+      - name: Backend unit tests
+        run: pnpm --filter @workspace/api-server test:unit
+      - name: Workspace TypeScript
+        run: pnpm typecheck
+      - name: Production frontend build
+        run: pnpm --filter @workspace/tournament-manager build
