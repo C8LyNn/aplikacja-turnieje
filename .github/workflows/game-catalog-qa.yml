@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/game-catalog-editor-reliability
+      - codex/game-catalog-featured-discovery
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
