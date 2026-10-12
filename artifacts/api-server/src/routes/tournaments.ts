@@ -106,6 +106,7 @@ import {
   getTargetStageInputArrivals,
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
+import { parseUndoPayloadForAction } from "../domain/tournament/undo-payload";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
@@ -2315,7 +2316,11 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  const payload = JSON.parse(lastAction.undoPayload) as Record<string, unknown>;
+  const payload = parseUndoPayloadForAction(lastAction.actionType, lastAction.undoPayload);
+  if (!payload) {
+    sendRevertMatchError(new RevertMatchError("UNDO_ACTION_CHANGED"), res);
+    return;
+  }
 
   if (payload.type === "delete_player" || payload.type === "restore_player") {
     try {
@@ -2390,8 +2395,13 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         if (latestUndoableAction?.id !== lockedAction.id) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
-        const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
-        if (lockedPayload.type !== payload.type) {
+        const lockedPayload = parseUndoPayloadForAction(
+          lockedAction.actionType,
+          lockedAction.undoPayload,
+        );
+        if (!lockedPayload ||
+            lockedAction.actionType !== lastAction.actionType ||
+            lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
 
