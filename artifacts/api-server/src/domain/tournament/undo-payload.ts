@@ -44,3 +44,35 @@ export function parseUndoPayloadForAction(
     return null;
   }
 }
+
+const PLAYER_UNDO_KEYS = [
+  "name", "rank", "country", "teamName", "seed", "status",
+] as const;
+
+/**
+ * Conservative affordance for the action-log UI. No DB state is read here:
+ * an eligible action can still conflict with subsequent changes at execution time.
+ */
+export function isUndoPayloadStructurallyAvailable(
+  actionType: string,
+  rawPayload: string | null | undefined,
+): boolean {
+  const payload = parseUndoPayloadForAction(actionType, rawPayload);
+  if (!payload) return false;
+  if (actionType !== "player_added" && actionType !== "player_edited") return true;
+  if (!Number.isSafeInteger(payload.playerId) ||
+      (payload.playerId as number) < 1) return false;
+  const nextData = payload.nextData;
+  if (!nextData || typeof nextData !== "object" || Array.isArray(nextData)) return false;
+  const snapshot = nextData as Record<string, unknown>;
+  const keys = Object.keys(snapshot);
+  return keys.length === PLAYER_UNDO_KEYS.length &&
+    PLAYER_UNDO_KEYS.every((key) =>
+      Object.prototype.hasOwnProperty.call(snapshot, key)) &&
+    typeof snapshot.name === "string" && snapshot.name.trim().length > 0 &&
+    ["active", "eliminated", "winner"].includes(snapshot.status as string) &&
+    ["rank", "country", "teamName"].every((field) =>
+      snapshot[field] === null || typeof snapshot[field] === "string") &&
+    (snapshot.seed === null ||
+      (Number.isSafeInteger(snapshot.seed) && (snapshot.seed as number) > 0));
+}
