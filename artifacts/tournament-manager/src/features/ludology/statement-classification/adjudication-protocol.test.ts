@@ -5,6 +5,7 @@ import {
   adjudicationIssue,
   canonicalCodingPair,
   latestCodingAdjudication,
+  snapshotCoding,
   validateAdjudicationInput,
 } from "./adjudication-protocol";
 import { checkResearchProjectIntegrity } from "./integrity";
@@ -38,6 +39,8 @@ const input = () => ({
 });
 const event = (overrides: Partial<CodingAdjudication> = {}): CodingAdjudication => ({
   ...input(), id: "review1", codebookId: "b", excerptId: "e", propositionId: "q",
+  codingASnapshot: snapshotCoding(coding("ca", "a", -1)),
+  codingBSnapshot: snapshotCoding(coding("cb", "b", 1)),
   createdAt: "2026-10-12T14:00:00Z", ...overrides,
 });
 
@@ -110,4 +113,11 @@ test("normalizing an underlying disagreement flags old adjudication as invalid",
   data.adjudications = [event()];
   data.codings[1]!.direction = -1;
   assert.match(adjudicationIssue(data, data.adjudications[0]!) ?? "", /nie ma obecnie/);
+});
+
+test("review flags changed coder direction even while coders continue to disagree", () => {
+  const data = fixture();
+  data.adjudications = [event()];
+  data.codings[1]!.direction = 2;
+  assert.match(adjudicationIssue(data, data.adjudications[0]!) ?? "", /zmienione/);
 });
