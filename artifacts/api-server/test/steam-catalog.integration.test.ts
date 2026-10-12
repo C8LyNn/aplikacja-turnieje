@@ -593,6 +593,65 @@ describe("Steam catalog — real PostgreSQL API", () => {
     }
   });
 
+  test("SteamSpy discovery pages 100 AppIDs, ignores known games and throttles uncached pages", async () => {
+    const previousFetch = globalThis.fetch;
+    const oldKey = process.env.STEAM_WEB_API_KEY;
+    const data = Object.fromEntries(Array.from({ length: 105 }, (_, i) => {
+      const appId = i === 0 ? 1500001 : 1910000 + i;
+      return [String(appId), { appid: appId, name: "SteamSpy Game " + i }];
+    }));
+    let upstream = 0;
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(input));
+        assert.equal(url.hostname, "steamspy.com");
+        assert.equal(url.searchParams.get("request"), "all");
+        assert.equal(url.searchParams.get("page"), "0");
+        upstream++;
+        return Response.json(data);
+      }) as typeof fetch;
+      await request(app).post("/api/steam-catalog/discover-steamspy")
+        .send({ page: 0, offset: 0, pageSize: 100 }).expect(403);
+      await request(app).post("/api/steam-catalog/discover-steamspy").set(edit())
+        .send({ page: 0, offset: 0, pageSize: 200 }).expect(400);
+      assert.equal(upstream, 0);
+      const [before] = await rows<{ total: string }>(
+        "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      const first = await request(app).post("/api/steam-catalog/discover-steamspy").set(edit())
+        .send({ page: 0, offset: 0, pageSize: 100 }).expect(200);
+      assert.equal(first.body.scanned, 100);
+      assert.equal(first.body.alreadyInCatalog, 1);
+      assert.equal(first.body.candidates.length, 99);
+      assert.equal(first.body.nextOffset, 100);
+      assert.equal(first.body.nextPage, 0);
+      assert.equal(first.body.hasMore, true);
+      assert.equal(first.headers["cache-control"], "no-store");
+      const second = await request(app).post("/api/steam-catalog/discover-steamspy").set(edit())
+        .send({ page: 0, offset: 100, pageSize: 100 }).expect(200);
+      assert.equal(upstream, 1, "Second source slice must be a cache hit");
+      assert.equal(second.body.scanned, 5);
+      assert.equal(second.body.candidates.length, 5);
+      assert.equal(second.body.nextPage, 1);
+      assert.equal(second.body.nextOffset, 0);
+      assert.equal(second.body.hasMore, false);
+      const cooldown = await request(app).post("/api/steam-catalog/discover-steamspy").set(edit())
+        .send({ page: 1, offset: 0, pageSize: 100 }).expect(429);
+      assert.equal(cooldown.body.code, "STEAMSPY_COOLDOWN");
+      assert.ok(Number(cooldown.headers["retry-after"]) >= 1);
+      assert.equal(upstream, 1);
+      const [after] = await rows<{ total: string }>(
+        "SELECT unclassified+review+ready AS total FROM steam_catalog_status_counts WHERE id=1",
+      );
+      assert.equal(before.total, after.total);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (oldKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = oldKey;
+    }
+  });
+
   test("batch import grows catalogue with real-game checks, dedup and exact counters", async () => {
     const previousFetch = globalThis.fetch;
     const appIds = [1900123, 1900124, 1900125, 1500001];
