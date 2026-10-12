@@ -2,6 +2,7 @@ import { buildAdjudicationQueue, summarizeAdjudicationQueue } from "./adjudicati
 import { computeCoderAgreementPairs } from "./coder-agreement";
 import { buildCorpusHealthMatrix, corpusHealthTotals } from "./corpus-health";
 import { checkResearchProjectIntegrity } from "./integrity";
+import { snapshotAuditInstruments, type AuditInstrumentSnapshots } from "./audit-instrument-snapshot";
 import type { ResearchProjectData } from "./model";
 
 export type ResearchAuditContext = {
@@ -17,6 +18,8 @@ export type ResearchAuditReport = {
   codebook: { id: string; name: string; version: string; status: string };
   samplingPlan: { id: string; name: string; version: string; status: string } | null;
   scope: "research_project_local_snapshot";
+  /** Absent in legacy formatVersion 1 exports; never infer content parity from IDs alone. */
+  instrumentSnapshots?: AuditInstrumentSnapshots;
   counts: {
     people: number;
     sources: number;
@@ -115,6 +118,7 @@ export function buildResearchAuditReport(
     codebook: { id: codebook.id, name: codebook.name, version: codebook.version, status: codebook.status },
     samplingPlan: plan ? { id: plan.id, name: plan.name, version: plan.version, status: plan.status } : null,
     scope: "research_project_local_snapshot",
+    instrumentSnapshots: snapshotAuditInstruments(data, codebook.id, plan?.id ?? null),
     counts: {
       people: data.people.length,
       sources: data.sources.length,
@@ -148,6 +152,7 @@ export function buildResearchAuditReport(
     integrityIssues,
     notes: [
       "Raport stanowi diagnostykę konkretnego zrzutu lokalnych danych. Nie jest recenzją naukową ani zgodą na publikację.",
+      "Migawki definicji codebooka, mikrostanowisk i planu służą porównaniu treści narzędzi. Nie są podpisami kryptograficznymi i mogą zawierać autorską metodologię.",
       "Wskaźniki zgodności odnoszą się do par koderów na tych samych jednostkach fragment × mikrostanowisko; jednostki nie muszą być statystycznie niezależne.",
       "Wartość N/A oznacza brak wystarczającej oceny stanowiska i nie jest tożsama z neutralnością (0).",
       "Adjudykacja nie zmienia zgodności pierwotnych koderów ani automatycznie nie aktualizuje syntez stanowisk.",
@@ -172,6 +177,7 @@ export function renderResearchAuditMarkdown(report: ResearchAuditReport): string
     "",
     `- Wygenerowano: ${escapeCell(report.generatedAt)}`,
     `- Schemat projektu: v${report.projectSchemaVersion}; format raportu: v${report.formatVersion}`,
+    `- Migawki definicji narzędzi: ${report.instrumentSnapshots ? "obecne (dokładna zgodność treści)" : "brak — raport starszego typu"}`,
     `- Codebook: ${escapeCell(report.codebook.name)} (${escapeCell(report.codebook.version)}; ${escapeCell(report.codebook.id)})`,
     `- Plan próbkowania: ${report.samplingPlan
       ? `${escapeCell(report.samplingPlan.name)} (${escapeCell(report.samplingPlan.version)}; ${escapeCell(report.samplingPlan.id)})`
