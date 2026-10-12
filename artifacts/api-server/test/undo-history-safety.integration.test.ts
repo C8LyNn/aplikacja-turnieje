@@ -68,6 +68,12 @@ test("malformed latest undo payload returns 409 without a write", async () => {
       "UPDATE action_log SET undo_payload=$1 WHERE tournament_id=$2 AND action_type='match_bo_changed'",
       [raw, f.id],
     );
+    const audit = (await request(app)
+      .get(`/api/tournaments/${f.id}/action-log`).expect(200)).body;
+    const brokenEntry = audit.find((entry: { actionType: string }) =>
+      entry.actionType === "match_bo_changed");
+    assert.ok(brokenEntry);
+    assert.equal(brokenEntry.canUndo, false);
     const beforeState = await matchAndLogState(f.id, f.matchId!);
     const denied = await request(app)
       .post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(409);
