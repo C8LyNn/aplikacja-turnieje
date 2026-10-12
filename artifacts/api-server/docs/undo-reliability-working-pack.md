@@ -22,11 +22,14 @@ Make tournament undo operations reject stale, corrupt or contradictory history *
 8. Draft roster undo also rechecks operation order, validates player IDs and restores only editable, validated player fields.
 9. A combined match status + BO PATCH is rejected, avoiding two independent undo actions for one match revision.
 10. Historical entries without newer metadata are processed conservatively. Actions whose state cannot be validated are rejected rather than guessed.
+11. New roster add/edit operations persist complete post-operation snapshots (`nextData`), and edits additionally persist full pre-operation snapshots (`prevData`). Undo compares the current player to the expected post-operation state under the tournament lock before any deletion or restoration.
+12. Legacy roster add/edit actions without a verified `nextData` are **not automatically undoable**. This is intentionally stricter than prior behavior and requires an operator-mediated recovery route for older data.
+13. The action-log `canUndo` affordance reports false for roster actions missing valid post-operation snapshots; it is not a guarantee that a valid-looking operation will succeed when the underlying DB state has changed.
 
 ## Verification coverage (code authored; tests not yet executed)
 
 - `test/undo-payload.test.ts`: pure parser/action compatibility.
-- `test/undo-history-safety.integration.test.ts`: corrupt JSON, cross-match payload, stale roster order, invalid player ID/status/note, invalid roster snapshot and correct restore.
+- `test/undo-history-safety.integration.test.ts`: corrupt JSON, cross-match payload, stale roster order, invalid player ID/status/note, invalid roster snapshot, correct restore, post-write roster drift, legacy roster history, action-log availability, and sequential undo of edit then registration.
 - `test/match-revision.integration.test.ts`: cancellations, status ABA, best-of, featured/unfeatured, swap and Deadlock pick safety, legacy history and mixed PATCH rejection.
 
 ## Required QA (isolated environment only)
@@ -56,6 +59,6 @@ Then inspect organizer Host flows: cancel, restore, undo-last, match start/postp
 
 ## Follow-up risks to review
 
-- Legacy undo records can lack revisions or pick snapshots: conservative rejection is intentional but requires operator-facing guidance.
+- Legacy undo records can lack revisions, pick snapshots or roster `nextData`: conservative rejection is intentional but requires operator-facing guidance. **Older player registrations and edits without `nextData` will no longer be auto-reversible.** Before release, validate UX copy and a manual recovery procedure; do not bypass history verification.
 - Race testing should independently verify per-tournament serialization of status, roster and result mutations.
 - Verify OpenAPI documentation and clients' treatment of the HTTP 409 and 422 responses before promoting this bundle.
