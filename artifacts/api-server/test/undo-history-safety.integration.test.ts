@@ -179,3 +179,38 @@ test("undo-last rejects a corrupted cancellation note instead of writing invalid
   assert.equal(denied.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await matchAndLogState(f.id, f.matchId!), beforeState);
 });
+
+test("roster undo restores a valid player edit using only allowed fields", async () => {
+  const f = await tournament(false);
+  const created = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Before" }).expect(201);
+  await request(app).patch(`/api/players/${created.body.id}`)
+    .set(f.auth).send({ name: "After" }).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  const [player] = (await database.pool.query(
+    "SELECT id, name FROM players WHERE id=$1", [created.body.id],
+  )).rows;
+  assert.equal(player.name, "Before");
+});
+
+test("roster undo rejects unexpected immutable player fields in the snapshot", async () => {
+  const f = await tournament(false);
+  const created = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Original" }).expect(201);
+  await request(app).patch(`/api/players/${created.body.id}`)
+    .set(f.auth).send({ name: "Edited" }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{prevData,tournamentId}', to_jsonb($1::int))::text WHERE tournament_id=$2 AND action_type='player_edited'",
+    [999999, f.id],
+  );
+  const readState = async () => Promise.all([
+    database.pool.query("SELECT * FROM players WHERE tournament_id=$1 ORDER BY id", [f.id]),
+    database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [f.id]),
+  ]).then(([players, actions]) => ({ players: players.rows, actions: actions.rows }));
+  const baseline = await readState();
+  const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
+  assert.deepEqual(await readState(), baseline);
+});
