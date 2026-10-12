@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
   ExternalLink,
@@ -18,6 +18,10 @@ import {
 import { Link, useLocation } from "wouter";
 import { steamCatalogReadiness } from "@workspace/game-catalog";
 import { filterTaxonomyTerms } from "./game-catalog-workflow";
+import {
+  EMPTY_STEAM_GROWTH, readSteamGrowthProgress, runSteamGrowthSession,
+  type SteamGrowthProgress, type SteamDiscoveryPage, type SteamBatchResponse,
+} from "./game-catalog-growth-runner";
 import {
   ModuleHeader,
   ModuleShell,
@@ -102,16 +106,11 @@ type GameListResponse = {
   counts: { all: number; unclassified: number; review: number; ready: number };
 };
 type QueueResponse = { pendingCount: number; nextId: number | null };
-type SteamDiscoveryGame = { appId: number; name: string };
-type SteamDiscoveryProgress = { cursor: number; candidates: SteamDiscoveryGame[]; hasMore: boolean };
-type SteamDiscoveryResponse = { candidates: SteamDiscoveryGame[]; nextCursor: number; hasMore: boolean; scanned: number; alreadyInCatalog: number };
-type SteamBatchImportResponse = {
-  requested: number; processed: number; inserted: number; existing: number;
-  ignored: number; failed: number; aborted: boolean; rateLimited: boolean;
-  results: Array<{ appId: number; status: string }>;
-};
+type SteamDiscoveryProgress = SteamGrowthProgress;
+type SteamDiscoveryResponse = SteamDiscoveryPage;
+type SteamBatchImportResponse = SteamBatchResponse;
 const STEAM_DISCOVERY_STORAGE = "steam-catalog-discovery-progress-v1";
-const EMPTY_STEAM_DISCOVERY: SteamDiscoveryProgress = { cursor: 0, candidates: [], hasMore: true };
+const EMPTY_STEAM_DISCOVERY = EMPTY_STEAM_GROWTH;
 
 const BASE = "/ludology/game-classification";
 const PAGE_SIZE = 25;
@@ -290,18 +289,10 @@ export default function GameCatalogAdminPage() {
   const [listLoading, setListLoading] = useState(false);
   const [gameLoading, setGameLoading] = useState(false);
   const [importValue, setImportValue] = useState("");
-  const [discovery, setDiscovery] = useState<SteamDiscoveryProgress>(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(STEAM_DISCOVERY_STORAGE) ?? "null") as Partial<SteamDiscoveryProgress> | null;
-      if (saved && Number.isSafeInteger(saved.cursor) && (saved.cursor ?? 0) >= 0 &&
-          Array.isArray(saved.candidates) && typeof saved.hasMore === "boolean") {
-        const candidates = saved.candidates.filter((item): item is SteamDiscoveryGame =>
-          typeof item?.name === "string" && Number.isSafeInteger(item.appId) && item.appId > 0).slice(0, 200);
-        return { cursor: saved.cursor!, candidates, hasMore: saved.hasMore };
-      }
-    } catch { /* Corrupt local progress should never block the editor. */ }
-    return EMPTY_STEAM_DISCOVERY;
-  });
+  const [discovery, setDiscovery] = useState<SteamDiscoveryProgress>(() =>
+    readSteamGrowthProgress(window.localStorage.getItem(STEAM_DISCOVERY_STORAGE)));
+  const autoStopRef = useRef(false);
+  const [autoRunning, setAutoRunning] = useState(false);
   const [growthMessage, setGrowthMessage] = useState<string | null>(null);
   const [bulkPaste, setBulkPaste] = useState("");
   const [adminKey, setAdminKey] = useState(() => window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
@@ -317,6 +308,7 @@ export default function GameCatalogAdminPage() {
   useEffect(() => {
     window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(discovery));
   }, [discovery]);
+  useEffect(() => () => { autoStopRef.current = true; }, []);
 
   function updateAdminKey(value: string) {
     setAdminKey(value);
@@ -554,7 +546,11 @@ export default function GameCatalogAdminPage() {
       setDiscovery((current) => {
         const combined = new Map(current.candidates.map((item) => [item.appId, item]));
         for (const item of page.candidates) combined.set(item.appId, item);
-        return { cursor: page.nextCursor, hasMore: page.hasMore, candidates: [...combined.values()].slice(0, 200) };
+        return {
+          ...current, cursor: page.nextCursor, hasMore: page.hasMore,
+          candidates: [...combined.values()].slice(0, 200),
+          stats: { ...current.stats, scanned: current.stats.scanned + page.scanned },
+        };
       });
       setGrowthMessage(`Sprawdzono ${page.scanned} gier Steam, pominięto ${page.alreadyInCatalog} już zapisanych.`);
     } catch (cause) {
@@ -577,12 +573,62 @@ export default function GameCatalogAdminPage() {
       const finished = new Set(batch.results.filter((item) => item.status !== "upstream_error").map((item) => item.appId));
       setDiscovery((current) => ({
         ...current, candidates: current.candidates.filter((item) => !finished.has(item.appId)),
+        stats: {
+          ...current.stats, inserted: current.stats.inserted + batch.inserted,
+          existing: current.stats.existing + batch.existing,
+          ignored: current.stats.ignored + batch.ignored,
+          failed: current.stats.failed + batch.failed,
+          batches: current.stats.batches + 1,
+        },
       }));
       setGrowthMessage(`Dodano: ${batch.inserted}. Już istniały: ${batch.existing}. Odrzucono: ${batch.ignored}.` +
         (batch.aborted ? " Steam przerwał import — pozostałe gry zachowano do ponowienia." : ""));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runAutomaticGrowth() {
+    if (autoRunning || busy) return;
+    autoStopRef.current = false;
+    setAutoRunning(true);
+    setBusy(true);
+    setError(null);
+    setGrowthMessage("Trwa weryfikacja i dodawanie kolejnych gier. Możesz zatrzymać proces po bieżącej partii.");
+    try {
+      const result = await runSteamGrowthSession({
+        initial: discovery,
+        maxVerified: 100,
+        maxPages: 20,
+        shouldStop: () => autoStopRef.current,
+        discover: (cursor) => api<SteamDiscoveryPage>("/api/steam-catalog/discover", {
+          method: "POST", body: JSON.stringify({ cursor, pageSize: 50 }),
+        }),
+        importBatch: (appIds) => api<SteamBatchImportResponse>("/api/steam-catalog/import-batch", {
+          method: "POST", body: JSON.stringify({ appIds }),
+        }),
+        checkpoint: (progress) => {
+          // Save synchronously after every response; a later refresh or error
+          // can restart from the latest confirmed server-side outcome.
+          window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(progress));
+          setDiscovery(progress);
+        },
+      });
+      const messages = {
+        limit: "Zakończono limit tej serii. Można uruchomić następną.",
+        end_of_list: "Dotarto do końca dostępnych propozycji Steam.",
+        paused: "Proces zatrzymany. Postęp zapisany.",
+        upstream_stopped: "Steam przerwał import lub ograniczył żądania. Postęp zapisany; ponów później.",
+      };
+      setGrowthMessage(`${messages[result.reason]} Zweryfikowano ${result.verified} AppID w tej serii. W katalogu przybyło ${result.progress.stats.inserted - discovery.stats.inserted} gier.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setGrowthMessage("Postęp wcześniejszych, zakończonych partii zachowano. Możesz wznowić import.");
+    } finally {
+      autoStopRef.current = true;
+      setAutoRunning(false);
       setBusy(false);
     }
   }
@@ -806,7 +852,15 @@ export default function GameCatalogAdminPage() {
               <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={importDiscoveredGames}>
                 <Plus className="h-4 w-4" /> Dodaj 10 gier z kolejki
               </ToolButton>
-              <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => { setDiscovery(EMPTY_STEAM_DISCOVERY); setGrowthMessage(null); }}>
+              <ToolButton type="button" disabled={busy} onClick={runAutomaticGrowth}>
+                Uruchom serię (do 100 AppID)
+              </ToolButton>
+              {autoRunning && (
+                <ToolButton type="button" variant="ghost" onClick={() => { autoStopRef.current = true; }}>
+                  Zatrzymaj po bieżącej partii
+                </ToolButton>
+              )}
+              <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => { setDiscovery(readSteamGrowthProgress(null)); setGrowthMessage(null); }}>
                 Od początku
               </ToolButton>
             </div>
@@ -826,7 +880,15 @@ export default function GameCatalogAdminPage() {
               {!discovery.hasMore ? " · Koniec listy Steam." : ""}
               {discovery.candidates.length >= 200 ? " · Zaimportuj oczekujące gry przed pobraniem następnej strony." : ""}
             </div>
-            {growthMessage && <p role="status" className="mt-2 text-sm text-foreground">{growthMessage}</p>}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground" aria-label="Statystyki importu Steam">
+              <span>Dodane: <strong data-testid="steam-imported-total">{discovery.stats.inserted}</strong></span>
+              <span>Istniejące: {discovery.stats.existing}</span>
+              <span>Odrzucone: {discovery.stats.ignored}</span>
+              <span>Błędy: {discovery.stats.failed}</span>
+              <span>Przeskanowane: {discovery.stats.scanned}</span>
+              <span>Partie: {discovery.stats.batches}</span>
+            </div>
+            {growthMessage && <p role="status" className="mt-2 text-sm text-foreground">{growthMessage}</p>
             {discovery.candidates.length > 0 && (
               <div className="mt-3 max-h-64 overflow-y-auto divide-y divide-border rounded-lg border border-border">
                 {discovery.candidates.map((item) => (
