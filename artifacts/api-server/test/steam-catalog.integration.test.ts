@@ -17,6 +17,7 @@ const MIGRATIONS = [
   "0033_steam_catalog_trigram_search.sql",
   "0034_steam_catalog_exact_status_counters.sql",
   "0035_steam_catalog_import_jobs.sql",
+  "0036_steam_catalog_import_job_sources.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
@@ -809,6 +810,82 @@ describe("Steam catalog — real PostgreSQL API", () => {
       else process.env.STEAM_WEB_API_KEY = oldKey;
       await database.pool.query("DELETE FROM steam_catalog_games WHERE steam_app_id=1900401");
       if (jobId) await database.pool.query("DELETE FROM steam_catalog_import_jobs WHERE id=$1", [jobId]);
+    }
+  });
+
+  test("SteamSpy server jobs run without Steam key and persist queue across jobs", async () => {
+    const previousFetch = globalThis.fetch;
+    const previousKey = process.env.STEAM_WEB_API_KEY;
+    const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    const ids: number[] = [];
+    const calls: string[] = [];
+    try {
+      delete process.env.STEAM_WEB_API_KEY;
+      await request(app).post("/api/steam-catalog/import-job").set(edit())
+        .send({ maxGames: 2, source: "bad" }).expect(400);
+      globalThis.fetch = (async (resource: Parameters<typeof fetch>[0]) => {
+        const url = new URL(String(resource));
+        if (url.hostname === "steamspy.com") {
+          assert.equal(url.searchParams.get("request"), "all");
+          assert.equal(url.searchParams.get("page"), "0");
+          calls.push("spy-0");
+          return Response.json({
+            1500001: { appid: 1500001, name: "Already in catalog" },
+            1900701: { appid: 1900701, name: "New game" },
+            1900702: { appid: 1900702, name: "DLC" },
+          });
+        }
+        assert.equal(url.hostname, "store.steampowered.com");
+        const id = Number(url.searchParams.get("appids"));
+        calls.push("details-" + id);
+        return Response.json({ [id]: { success: true, data: {
+          type: id === 1900701 ? "game" : "dlc",
+          name: id === 1900701 ? "SteamSpy verified game" : "Not a game",
+        } } });
+      }) as typeof fetch;
+      const first = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 2, source: "steamspy" }).expect(201);
+      ids.push(Number(first.body.job.id));
+      assert.equal(first.body.job.source, "steamspy");
+      assert.equal(first.body.job.sourcePage, 0);
+      assert.equal(await runCatalogImportStep(), true);
+      let progress = await request(app).get("/api/steam-catalog/import-job").set(edit()).expect(200);
+      assert.equal(progress.body.job.sourcePage, 1);
+      assert.equal(progress.body.job.cursor, 0);
+      assert.equal(progress.body.job.pending, 3);
+      for (let i = 0; i < 2; i++) {
+        await database.pool.query("UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [ids[0]]);
+        assert.equal(await runCatalogImportStep(), true);
+      }
+      progress = await request(app).get("/api/steam-catalog/import-job").set(edit()).expect(200);
+      assert.equal(progress.body.job.status, "completed");
+      assert.equal(progress.body.job.processed, 2);
+      assert.equal(progress.body.job.existing, 1);
+      assert.equal(progress.body.job.inserted, 1);
+      assert.equal(progress.body.job.pending, 1);
+      const second = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 1, source: "steamspy" }).expect(201);
+      ids.push(Number(second.body.job.id));
+      assert.equal(second.body.job.sourcePage, 1);
+      assert.equal(second.body.job.pending, 1);
+      await database.pool.query("UPDATE steam_catalog_import_jobs SET next_run_at=now() WHERE id=$1", [ids[1]]);
+      assert.equal(await runCatalogImportStep(), true);
+      progress = await request(app).get("/api/steam-catalog/import-job").set(edit()).expect(200);
+      assert.equal(progress.body.job.status, "completed");
+      assert.equal(progress.body.job.ignored, 1);
+      assert.deepEqual(calls, ["spy-0", "details-1900701", "details-1900702"]);
+      const game = await rows<{ name: string; status: string }>(
+        "SELECT name,status FROM steam_catalog_games WHERE steam_app_id=1900701",
+      );
+      assert.deepEqual(game, [{ name: "SteamSpy verified game", status: "unclassified" }]);
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousKey === undefined) delete process.env.STEAM_WEB_API_KEY;
+      else process.env.STEAM_WEB_API_KEY = previousKey;
+      await database.pool.query("DELETE FROM steam_catalog_games WHERE steam_app_id=1900701");
+      if (ids.length) await database.pool.query(
+        "DELETE FROM steam_catalog_import_jobs WHERE id=ANY($1::bigint[])", [ids],
+      );
     }
   });
 
