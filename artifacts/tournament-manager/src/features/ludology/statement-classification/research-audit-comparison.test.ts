@@ -162,6 +162,10 @@ test("editing proposition definition without version bump blocks comparison", ()
   assert.equal(comparison.compatible, false);
   assert.equal(comparison.metrics.length, 0);
   assert.match(comparison.blockingReasons.join(" "), /Treść codebooka/);
+  assert.deepEqual(comparison.instrumentChanges.map(({instrument,entityId,field}) => [instrument,entityId,field]),
+    [["proposition", "p", "definition"]]);
+  assert.match(renderAuditComparisonMarkdown(comparison), /Zmiany definicji narzędzi/);
+  assert.match(renderAuditComparisonMarkdown(comparison), /A substantively different coding rule/);
 });
 
 test("changing a sampling threshold without version bump blocks comparison", () => {
@@ -179,6 +183,9 @@ test("changing a sampling threshold without version bump blocks comparison", () 
   const comparison = compareResearchAudits(before, after);
   assert.equal(comparison.compatible, false);
   assert.match(comparison.blockingReasons.join(" "), /Treść planu/);
+  assert.ok(comparison.instrumentChanges.some(change =>
+    change.instrument === "sampling_plan" && change.field === "minimumSourcesPerPerson" &&
+    change.before === "1" && change.after === "4"));
 });
 
 test("legacy v1 snapshots import, but cannot silently pass methodological comparability gate", () => {
@@ -190,6 +197,7 @@ test("legacy v1 snapshots import, but cannot silently pass methodological compar
   assert.equal(comparison.compatible, false);
   assert.equal(comparison.metrics.length, 0);
   assert.match(comparison.blockingReasons.join(" "), /migawki definicji/);
+  assert.deepEqual(comparison.instrumentChanges, []);
 });
 
 test("parser rejects malformed or inconsistent instrument snapshots", () => {
@@ -200,4 +208,24 @@ test("parser rejects malformed or inconsistent instrument snapshots", () => {
   assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
     ...valid, instrumentSnapshots: { codebook: "something", samplingPlan: "plan although none exists" },
   })), /migawka/);
+});
+
+test("import rejects an instrument snapshot that disagrees with declared book identity", () => {
+  const valid = audit(project(), first);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid,
+    codebook: { ...valid.codebook, id: "different" },
+  })), /niezgodna/);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid,
+    instrumentSnapshots: { codebook: "not JSON", samplingPlan: null },
+  })), /odczytać/);
+});
+
+test("comparison includes no fake method deltas for unchanged snapshots", () => {
+  const before = audit(project(), first);
+  const after = audit(project(), second);
+  const result = compareResearchAudits(before, after);
+  assert.equal(result.compatible, true);
+  assert.deepEqual(result.instrumentChanges, []);
 });
