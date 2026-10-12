@@ -9,6 +9,7 @@ on:
       - codex/game-catalog-steamspy-auto-sessions
       - codex/game-catalog-discovery-unified
       - codex/game-catalog-server-keyless-import
+      - codex/game-catalog-staging-preflight
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
@@ -98,6 +99,8 @@ jobs:
         run: pnpm --filter @workspace/tournament-manager test
       - name: Backend unit tests
         run: pnpm --filter @workspace/api-server test:unit
+      - name: Read-only catalog preflight regression tests
+        run: pnpm --filter @workspace/db test:game-catalog-preflight
       - name: Workspace TypeScript
         run: pnpm typecheck
       - name: Production frontend build
