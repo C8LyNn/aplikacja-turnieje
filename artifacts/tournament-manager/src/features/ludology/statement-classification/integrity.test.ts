@@ -191,3 +191,52 @@ test("integrity detects orphan debate references", () => {
   assert.ok(codes.includes("orphan_discussion_link_discussion"));
   assert.ok(codes.includes("orphan_discussion_link_argument"));
 });
+
+
+test("integrity validates argument graph relations inside one discussion", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    people: [{ id: "p1", displayName: "P" }],
+    sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" as const }],
+    arguments: [
+      { id: "a1", sourceId: "s1", title: "A1" },
+      { id: "a2", sourceId: "s1", title: "A2" },
+    ],
+    discussions: [{ id: "d1", title: "D", status: "active" as const }],
+    discussionLinks: [
+      { id: "l1", discussionId: "d1", argumentId: "a1", role: "primary" as const },
+      { id: "l2", discussionId: "d1", argumentId: "a2", role: "response" as const },
+    ],
+    argumentRelations: [
+      { id: "r1", discussionId: "d1", fromArgumentId: "a2", toArgumentId: "a1", relation: "challenges" as const },
+      { id: "r2", discussionId: "d1", fromArgumentId: "a2", toArgumentId: "a1", relation: "challenges" as const },
+    ],
+  };
+
+  const codes = checkResearchProjectIntegrity(data).map((issue) => issue.code);
+  assert.ok(codes.includes("duplicate_argument_relation"));
+});
+
+test("integrity rejects self and unlinked argument graph endpoints", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    people: [{ id: "p1", displayName: "P" }],
+    sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" as const }],
+    arguments: [
+      { id: "a1", sourceId: "s1", title: "A1" },
+      { id: "a2", sourceId: "s1", title: "A2" },
+    ],
+    discussions: [{ id: "d1", title: "D", status: "active" as const }],
+    discussionLinks: [
+      { id: "l1", discussionId: "d1", argumentId: "a1", role: "primary" as const },
+    ],
+    argumentRelations: [
+      { id: "r1", discussionId: "d1", fromArgumentId: "a1", toArgumentId: "a1", relation: "supports" as const },
+      { id: "r2", discussionId: "d1", fromArgumentId: "a2", toArgumentId: "a1", relation: "responds_to" as const },
+    ],
+  };
+
+  const codes = checkResearchProjectIntegrity(data).map((issue) => issue.code);
+  assert.ok(codes.includes("argument_relation_self"));
+  assert.ok(codes.includes("argument_relation_endpoint_not_linked"));
+});
