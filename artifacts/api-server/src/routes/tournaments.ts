@@ -2434,7 +2434,10 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             )).for("update");
-            if (!currentMatch || typeof expectedStatus !== "string" ||
+            if (!currentMatch ||
+                !["pending", "in_progress", "postponed", "cancelled"].includes(prevStatus) ||
+                typeof expectedStatus !== "string" ||
+                prevStatus === expectedStatus ||
                 currentMatch.status !== expectedStatus ||
                 currentMatch.completedAt != null || currentMatch.resultType != null ||
                 (lockedPayload.nextRevision != null &&
@@ -2521,7 +2524,11 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
           case "restore_cancelled_match": {
             const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevStatus = lockedPayload.prevStatus as string;
-            const prevNote = (lockedPayload.prevNote as string | null) ?? null;
+            const prevNote = lockedPayload.prevNote ?? null;
+            if (!["pending", "in_progress", "postponed"].includes(prevStatus) ||
+                !(prevNote === null || typeof prevNote === "string")) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
             // Old cancellation logs lack nextNote: undo only when the current note
             // still matches the pre-cancellation note, never overwrite unknown edits.
             const expectedNote = lockedPayload.nextNote === undefined
@@ -2543,7 +2550,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
                   currentMatch.revision !== lockedPayload.nextRevision)) {
               throw new RevertMatchError("UNDO_ACTION_CHANGED");
             }
-            await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(and(
+            await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote as string | null }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             ));
