@@ -109,6 +109,7 @@ export function computeCoderAgreementPairs(
         }
         const aCoding = aRecords[0];
         const bCoding = bRecords[0];
+        if (!aCoding || !bCoding) continue;
         overlap += 1;
         if (aCoding.direction === bCoding.direction) exactDirectionMatches += 1;
         if (aCoding.direction === null && bCoding.direction === null) {
