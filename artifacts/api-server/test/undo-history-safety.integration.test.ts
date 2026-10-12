@@ -1,0 +1,96 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { before, after, test } from "node:test";
+import type { Express } from "express";
+import request from "supertest";
+import {
+  dropTestSchema,
+  getSafeTestDatabaseConfig,
+  resetTestSchema,
+  type TestDatabaseConfig,
+  type TestPool,
+} from "./test-database";
+
+let app: Express;
+let database: typeof import("@workspace/db");
+let config: TestDatabaseConfig;
+let initialized = false;
+
+before(async () => {
+  config = getSafeTestDatabaseConfig();
+  process.env.NODE_ENV = "test";
+  process.env.DATABASE_URL = config.connectionString;
+  process.env.SESSION_SECRET = randomUUID();
+  database = await import("@workspace/db");
+  await resetTestSchema(database.pool as unknown as TestPool, config.schema);
+  initialized = true;
+  app = (await import("../src/app")).default;
+});
+after(async () => {
+  if (initialized) await dropTestSchema(database.pool as unknown as TestPool, config.schema);
+  if (database) await database.pool.end();
+});
+
+async function tournament(start = true) {
+  const created = await request(app).post("/api/tournaments").send({
+    name: `Undo history safety ${randomUUID()}`,
+    organizerPassword: "undo-safety-test-password",
+    format: "round_robin",
+    defaultBestOf: 1,
+  }).expect(201);
+  const id: number = created.body.id;
+  const auth = { "x-organizer-token": created.body.organizerToken as string };
+  if (!start) return { id, auth, matchId: null as number | null };
+  for (let i = 0; i < 3; i++) {
+    await request(app).post(`/api/tournaments/${id}/players`)
+      .set(auth).send({ name: `Player ${i}` }).expect(201);
+  }
+  await request(app).post(`/api/tournaments/${id}/start`).set(auth).expect(200);
+  const [match] = (await request(app)
+    .get(`/api/tournaments/${id}/matches`).expect(200)).body;
+  return { id, auth, matchId: match.id as number };
+}
+
+async function matchAndLogState(id: number, matchId: number) {
+  const [matches, actions] = await Promise.all([
+    database.pool.query("SELECT * FROM matches WHERE id=$1", [matchId]),
+    database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [id]),
+  ]);
+  return { matches: matches.rows, actions: actions.rows };
+}
+
+test("malformed latest undo payload returns 409 without a write", async () => {
+  for (const raw of ["{", "null", "[]", '{"type":"restore_players_swap"}']) {
+    const f = await tournament();
+    await request(app).patch(`/api/matches/${f.matchId}`).set(f.auth)
+      .send({ bestOf: 3 }).expect(200);
+    await database.pool.query(
+      "UPDATE action_log SET undo_payload=$1 WHERE tournament_id=$2 AND action_type='match_bo_changed'",
+      [raw, f.id],
+    );
+    const beforeState = await matchAndLogState(f.id, f.matchId!);
+    const denied = await request(app)
+      .post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(409);
+    assert.equal(denied.body.code, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await matchAndLogState(f.id, f.matchId!), beforeState);
+  }
+});
+
+test("undo payload cannot redirect a match mutation to another match", async () => {
+  const f = await tournament();
+  const matches = (await request(app)
+    .get(`/api/tournaments/${f.id}/matches`).expect(200)).body;
+  const another = matches.find((match: { id: number }) => match.id !== f.matchId);
+  assert.ok(another);
+  await request(app).patch(`/api/matches/${f.matchId}`).set(f.auth)
+    .send({ bestOf: 3 }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=jsonb_set(undo_payload::jsonb, '{matchId}', to_jsonb($1::int))::text WHERE tournament_id=$2 AND action_type='match_bo_changed'",
+    [another.id, f.id],
+  );
+  const beforeState = await matchAndLogState(f.id, f.matchId!);
+  const denied = await request(app)
+    .post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(409);
+  assert.equal(denied.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await matchAndLogState(f.id, f.matchId!), beforeState);
+});
