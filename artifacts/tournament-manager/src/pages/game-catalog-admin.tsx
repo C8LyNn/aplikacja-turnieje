@@ -111,6 +111,7 @@ type GameListResponse = {
 type QueueResponse = { pendingCount: number; nextId: number | null };
 type ServerImportJob = {
   id: string; status: "running" | "paused" | "completed";
+  source: "steam" | "steamspy"; sourcePage: number;
   cursor: number; pending: number; hasMore: boolean; maxGames: number;
   processed: number; inserted: number; existing: number;
   ignored: number; failed: number; scanned: number;
@@ -334,6 +335,7 @@ export default function GameCatalogAdminPage() {
   const [bulkPaste, setBulkPaste] = useState("");
   const [serverImportJob, setServerImportJob] = useState<ServerImportJob | null>(null);
   const [serverImportLimit, setServerImportLimit] = useState("1000");
+  const [serverImportSource, setServerImportSource] = useState<"steam" | "steamspy">("steamspy");
   const [serverImportMessage, setServerImportMessage] = useState<string | null>(null);
   const [serverJobBusy, setServerJobBusy] = useState(false);
   const [adminKey, setAdminKey] = useState(() => window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
@@ -770,10 +772,10 @@ export default function GameCatalogAdminPage() {
     setError(null);
     try {
       const payload = await api<{ job: ServerImportJob }>("/api/steam-catalog/import-job", {
-        method: "POST", body: JSON.stringify({ maxGames: limit }),
+        method: "POST", body: JSON.stringify({ maxGames: limit, source: serverImportSource }),
       });
       setServerImportJob(payload.job);
-      setServerImportMessage("Zadanie uruchomione na serwerze. Możesz zamknąć tę kartę.");
+      setServerImportMessage(`Zadanie (${serverImportSource === "steamspy" ? "SteamSpy bez klucza" : "Steam Web API"}) uruchomione. Możesz zamknąć tę kartę.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -1055,8 +1057,15 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>}
           <ToolPanel title="Trwały import serwerowy — tysiące gier"
-            description="Uruchom import do 20 000 AppID. Serwer zapisuje każdy krok w PostgreSQL, także gdy zamkniesz przeglądarkę. Wymaga STEAM_WEB_API_KEY i migracji 0035.">
+            description="Trwały import do 20 000 AppID z możliwością zamknięcia przeglądarki. SteamSpy nie wymaga klucza Web API; tryb Steam go wymaga. Serwer musi mieć migracje 0035–0036.">
             <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor="steam-server-import-source" className="text-sm">Źródło kandydatów</label>
+              <ToolSelect id="steam-server-import-source" value={serverImportSource}
+                onChange={(event) => setServerImportSource(event.target.value as "steam" | "steamspy")}
+                disabled={serverJobBusy || serverImportJob?.status === "running" || serverImportJob?.status === "paused"}>
+                <option value="steamspy">SteamSpy — bez klucza API</option>
+                <option value="steam">Steam Web API — wymaga klucza</option>
+              </ToolSelect>
               <label htmlFor="steam-server-import-limit" className="text-sm">Maks. sprawdzonych AppID</label>
               <ToolInput id="steam-server-import-limit" type="number" min={1} max={20000}
                 value={serverImportLimit} onChange={(event) => setServerImportLimit(event.target.value)} />
@@ -1081,7 +1090,8 @@ export default function GameCatalogAdminPage() {
               <div className="mt-3 space-y-2 text-sm" aria-label="Statystyki zadania serwerowego">
                 <p>Stan: <strong data-testid="steam-server-job-status">{serverImportJob.status}</strong>
                   {" · "}Zweryfikowano: {serverImportJob.processed}/{serverImportJob.maxGames}
-                  {" · "}Kursor: {serverImportJob.cursor}</p>
+                  {" · "}Źródło: {serverImportJob.source === "steamspy" ? "SteamSpy" : "Steam"}
+                  {" · "}{serverImportJob.source === "steamspy" ? `Strona: ${serverImportJob.sourcePage}` : `Kursor AppID: ${serverImportJob.cursor}`}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
                   <span>Dodano gier: <strong data-testid="steam-server-inserted">{serverImportJob.inserted}</strong></span>
                   <span>Istniały: {serverImportJob.existing}</span>
