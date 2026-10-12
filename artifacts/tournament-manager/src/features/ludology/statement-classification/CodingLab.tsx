@@ -41,6 +41,7 @@ export default function CodingLab() {
   const [filterPropositionId, setFilterPropositionId] = useState("");
   const [filterConfidence, setFilterConfidence] = useState("");
   const [filterVerification, setFilterVerification] = useState("");
+  const [independentMode, setIndependentMode] = useState(true);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -187,7 +188,7 @@ export default function CodingLab() {
       </div>
 
       <ToolPanel
-        title={`Zakodowane obserwacje (${filteredCodings.length}/${data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length})`}
+        title={independentMode ? "Zakodowane obserwacje — zakryte podczas niezależnego kodowania" : `Zakodowane obserwacje (${filteredCodings.length}/${data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length})`}
         actions={
           <div className="grid gap-2 sm:grid-cols-3">
             <ToolSelect value={filterPropositionId} onChange={(e) => setFilterPropositionId(e.target.value)} className="min-w-44">
@@ -205,7 +206,16 @@ export default function CodingLab() {
           </div>
         }
       >
-        {data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length === 0 ? (
+        <label className="mb-4 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={independentMode} onChange={(event) => setIndependentMode(event.target.checked)} />
+          Ukryj poprzednie kodowania podczas niezależnej oceny
+        </label>
+        {independentMode && (
+          <ToolNotice>
+            Oceny innych osób są ukryte na tej stronie, aby ograniczyć sugestię. To osłona interfejsu, a nie techniczne odseparowanie danych: w ramach projektu badacz nadal może otworzyć zapisane kodowania. Porównaj oceny dopiero po zakończeniu obu niezależnych przebiegów.
+          </ToolNotice>
+        )}
+        {independentMode ? null : data.codings.filter((coding) => coding.codebookId === activeCodebook?.id).length === 0 ? (
           <ToolEmptyState title="Brak kodowań" description="Pierwsze kodowanie w aktualnym codebooku pojawi się tutaj wraz z pełnym śladem do fragmentu źródłowego." />
         ) : filteredCodings.length === 0 ? (
           <ToolEmptyState title="Brak wyników dla filtrów" description="Zmień filtry, aby zobaczyć pozostałe kodowania aktualnego codebooka." />
