@@ -4,8 +4,10 @@ import type {
   CodingRecord,
   DimensionModel,
   DimensionPropositionLink,
+  DiscussionArgumentLink,
   PositionAssessment,
   ResearchDimension,
+  ResearchDiscussion,
   ResearchArgument,
   ResearchExcerpt,
   ResearchPerson,
@@ -85,6 +87,7 @@ export function useResearchProject() {
     deletePerson(personId: string) {
       update((current) => {
         const sourceIds = new Set(current.sources.filter((source) => source.personId === personId).map((source) => source.id));
+        const argumentIds = new Set(current.arguments.filter((argument) => sourceIds.has(argument.sourceId)).map((argument) => argument.id));
         const excerptIds = new Set(current.excerpts.filter((excerpt) => sourceIds.has(excerpt.sourceId)).map((excerpt) => excerpt.id));
         return {
           ...current,
@@ -94,6 +97,7 @@ export function useResearchProject() {
           excerpts: current.excerpts.filter((excerpt) => !sourceIds.has(excerpt.sourceId)),
           codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
           assessments: current.assessments.filter((assessment) => assessment.personId !== personId),
+          discussionLinks: current.discussionLinks.filter((link) => !argumentIds.has(link.argumentId)),
         };
       });
     },
@@ -113,6 +117,7 @@ export function useResearchProject() {
     },
     deleteSource(sourceId: string) {
       update((current) => {
+        const argumentIds = new Set(current.arguments.filter((argument) => argument.sourceId === sourceId).map((argument) => argument.id));
         const excerptIds = new Set(current.excerpts.filter((excerpt) => excerpt.sourceId === sourceId).map((excerpt) => excerpt.id));
         return {
           ...current,
@@ -120,6 +125,7 @@ export function useResearchProject() {
           arguments: current.arguments.filter((argument) => argument.sourceId !== sourceId),
           excerpts: current.excerpts.filter((excerpt) => excerpt.sourceId !== sourceId),
           codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
+          discussionLinks: current.discussionLinks.filter((link) => !argumentIds.has(link.argumentId)),
         };
       });
     },
@@ -144,6 +150,64 @@ export function useResearchProject() {
         excerpts: current.excerpts.map((excerpt) =>
           excerpt.argumentId === argumentId ? { ...excerpt, argumentId: undefined } : excerpt,
         ),
+        discussionLinks: current.discussionLinks.filter((link) => link.argumentId !== argumentId),
+      }));
+    },
+    addDiscussion(input: Omit<ResearchDiscussion, "id" | "createdAt">) {
+      const id = createResearchId("discussion");
+      update((current) => ({
+        ...current,
+        discussions: [
+          ...current.discussions,
+          { ...input, id, createdAt: new Date().toISOString() },
+        ],
+      }));
+      return id;
+    },
+    updateDiscussion(discussionId: string, patch: Partial<Omit<ResearchDiscussion, "id" | "createdAt">>) {
+      update((current) => ({
+        ...current,
+        discussions: current.discussions.map((discussion) =>
+          discussion.id === discussionId ? { ...discussion, ...patch } : discussion,
+        ),
+      }));
+    },
+    deleteDiscussion(discussionId: string) {
+      update((current) => ({
+        ...current,
+        discussions: current.discussions.filter((discussion) => discussion.id !== discussionId),
+        discussionLinks: current.discussionLinks.filter((link) => link.discussionId !== discussionId),
+      }));
+    },
+    upsertDiscussionLink(
+      key: Pick<DiscussionArgumentLink, "discussionId" | "argumentId">,
+      value: Omit<DiscussionArgumentLink, "id" | "discussionId" | "argumentId">,
+    ) {
+      update((current) => {
+        const discussion = current.discussions.find((candidate) => candidate.id === key.discussionId);
+        const argument = current.arguments.find((candidate) => candidate.id === key.argumentId);
+        if (!discussion || !argument) return current;
+
+        const existing = current.discussionLinks.find((link) =>
+          link.discussionId === key.discussionId && link.argumentId === key.argumentId
+        );
+        const next: DiscussionArgumentLink = {
+          id: existing?.id ?? createResearchId("discussion_link"),
+          ...key,
+          ...value,
+        };
+        return {
+          ...current,
+          discussionLinks: existing
+            ? current.discussionLinks.map((link) => link.id === existing.id ? next : link)
+            : [...current.discussionLinks, next],
+        };
+      });
+    },
+    deleteDiscussionLink(discussionLinkId: string) {
+      update((current) => ({
+        ...current,
+        discussionLinks: current.discussionLinks.filter((link) => link.id !== discussionLinkId),
       }));
     },
     addExcerpt(input: Omit<ResearchExcerpt, "id">) {
