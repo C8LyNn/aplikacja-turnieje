@@ -87,7 +87,7 @@ test("evidence signature is stable by coding identity and changes with coding se
 test("assessment becomes stale when its evidence set changes", () => {
   const source = { id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" as const };
   const project = {
-    schemaVersion: 7 as const,
+    schemaVersion: 8 as const,
     people: [{ id: "p1", displayName: "P" }],
     sources: [source],
     arguments: [],
@@ -96,6 +96,7 @@ test("assessment becomes stale when its evidence set changes", () => {
     propositions: [{ id: "q01", codebookId: "book", code: "Q01", label: "Q", definition: "D" }],
     coders: [{ id: "coder", displayName: "C", type: "human" as const }],
     codings: [coding("c1", "e1", 1)],
+    adjudications: [],
     assessments: [],
     dimensionModels: [],
     dimensions: [],
