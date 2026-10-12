@@ -82,10 +82,10 @@ test("selected sampling plan is explicit, never inferred from draft", () => {
   }];
   const without = buildResearchAuditReport(data, context);
   assert.equal(without.samplingPlan, null);
-  assert.equal(without.health.samplingGaps, 0);
+  assert.equal(without.health.samplingGaps, null);
   const withPlan = buildResearchAuditReport(data, { ...context, samplingPlanId: "plan" });
   assert.equal(withPlan.samplingPlan?.id, "plan");
-  assert.ok(withPlan.health.samplingGaps > 0);
+  assert.ok(withPlan.health.samplingGaps !== null && withPlan.health.samplingGaps > 0);
   assert.match(renderResearchAuditMarkdown(without), /nie oceniano/);
 });
 
