@@ -110,6 +110,30 @@ type SteamDiscoveryProgress = SteamGrowthProgress;
 type SteamDiscoveryResponse = SteamDiscoveryPage;
 type SteamBatchImportResponse = SteamBatchResponse;
 type SteamFeaturedResponse = Pick<SteamDiscoveryPage, "candidates" | "scanned" | "alreadyInCatalog">;
+type SteamSpyProgress = { page: number; offset: number; hasMore: boolean };
+type SteamSpyDiscoveryResponse = {
+  candidates: SteamGrowthProgress["candidates"];
+  nextPage: number;
+  nextOffset: number;
+  hasMore: boolean;
+  scanned: number;
+  alreadyInCatalog: number;
+};
+const STEAMSPY_STORAGE = "steam-catalog-steamspy-progress-v1";
+const EMPTY_STEAMSPY_PROGRESS: SteamSpyProgress = { page: 0, offset: 0, hasMore: true };
+function readSteamSpyProgress(raw: string | null): SteamSpyProgress {
+  try {
+    const value: unknown = raw ? JSON.parse(raw) : null;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return { ...EMPTY_STEAMSPY_PROGRESS };
+    const item = value as Record<string, unknown>;
+    if (!Number.isSafeInteger(item.page) || (item.page as number) < 0 || (item.page as number) > 300 ||
+        !Number.isSafeInteger(item.offset) || (item.offset as number) < 0 || (item.offset as number) >= 1000 ||
+        typeof item.hasMore !== "boolean") return { ...EMPTY_STEAMSPY_PROGRESS };
+    return { page: item.page as number, offset: item.offset as number, hasMore: item.hasMore };
+  } catch {
+    return { ...EMPTY_STEAMSPY_PROGRESS };
+  }
+}
 const STEAM_DISCOVERY_STORAGE = "steam-catalog-discovery-progress-v1";
 const EMPTY_STEAM_DISCOVERY = EMPTY_STEAM_GROWTH;
 
@@ -292,6 +316,8 @@ export default function GameCatalogAdminPage() {
   const [importValue, setImportValue] = useState("");
   const [discovery, setDiscovery] = useState<SteamDiscoveryProgress>(() =>
     readSteamGrowthProgress(window.localStorage.getItem(STEAM_DISCOVERY_STORAGE)));
+  const [steamSpy, setSteamSpy] = useState<SteamSpyProgress>(() =>
+    readSteamSpyProgress(window.localStorage.getItem(STEAMSPY_STORAGE)));
   const autoStopRef = useRef(false);
   const [autoRunning, setAutoRunning] = useState(false);
   const [growthMessage, setGrowthMessage] = useState<string | null>(null);
@@ -309,6 +335,9 @@ export default function GameCatalogAdminPage() {
   useEffect(() => {
     window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(discovery));
   }, [discovery]);
+  useEffect(() => {
+    window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(steamSpy));
+  }, [steamSpy]);
   useEffect(() => () => { autoStopRef.current = true; }, []);
 
   function updateAdminKey(value: string) {
@@ -542,14 +571,18 @@ export default function GameCatalogAdminPage() {
     setGrowthMessage(null);
     try {
       const page = await api<SteamDiscoveryResponse>("/api/steam-catalog/discover", {
-        method: "POST", body: JSON.stringify({ cursor: discovery.cursor, pageSize: 50 }),
+        // Never advance the cursor past candidates that cannot fit in the
+        // persisted queue. Existing AppIDs may reduce actual candidates.
+        method: "POST", body: JSON.stringify({
+          cursor: discovery.cursor, pageSize: Math.min(50, 200 - discovery.candidates.length),
+        }),
       });
       setDiscovery((current) => {
         const combined = new Map(current.candidates.map((item) => [item.appId, item]));
         for (const item of page.candidates) combined.set(item.appId, item);
         return {
           ...current, cursor: page.nextCursor, hasMore: page.hasMore,
-          candidates: [...combined.values()].slice(0, 200),
+          candidates: [...combined.values()],
           stats: { ...current.stats, scanned: current.stats.scanned + page.scanned },
         };
       });
@@ -582,6 +615,58 @@ export default function GameCatalogAdminPage() {
         };
       });
       setGrowthMessage(`Pobrano ${page.scanned} propozycji ze Steam (już w katalogu: ${page.alreadyInCatalog}). Pozostałe możesz zaimportować z kolejki.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function discoverSteamSpyGames() {
+    if (busy || !steamSpy.hasMore || discovery.candidates.length >= 200) return;
+    setBusy(true);
+    setError(null);
+    setGrowthMessage(null);
+    try {
+      const query = {
+        page: steamSpy.page,
+        offset: steamSpy.offset,
+        pageSize: Math.min(100, 200 - discovery.candidates.length),
+      };
+      const response = await api<SteamSpyDiscoveryResponse>("/api/steam-catalog/discover-steamspy", {
+        method: "POST", body: JSON.stringify(query),
+      });
+      if (!Array.isArray(response.candidates) ||
+          !Number.isSafeInteger(response.nextPage) || !Number.isSafeInteger(response.nextOffset) ||
+          typeof response.hasMore !== "boolean" || !Number.isSafeInteger(response.scanned) ||
+          response.scanned < 0 || response.scanned > query.pageSize ||
+          response.candidates.length > response.scanned ||
+          (response.nextPage === query.page && response.nextOffset <= query.offset &&
+            response.hasMore) ||
+          response.nextPage < query.page || response.nextPage > query.page + 1 ||
+          response.nextOffset < 0 || response.nextOffset >= 1000) {
+        throw new Error("SteamSpy zwrócił nieprawidłową stronę. Zachowano postęp.");
+      }
+      const combined = new Map(discovery.candidates.map((item) => [item.appId, item]));
+      for (const game of response.candidates) {
+        if (!Number.isSafeInteger(game.appId) || game.appId <= 0 ||
+            typeof game.name !== "string" || combined.has(game.appId)) continue;
+        if (combined.size >= 200) throw new Error("Kolejka Steam jest pełna.");
+        combined.set(game.appId, game);
+      }
+      const next = {
+        ...discovery,
+        candidates: [...combined.values()],
+        stats: { ...discovery.stats, scanned: discovery.stats.scanned + response.scanned },
+      };
+      // Persist before moving the SteamSpy cursor. No candidate is skipped
+      // by a browser refresh between these two completed steps.
+      window.localStorage.setItem(STEAM_DISCOVERY_STORAGE, JSON.stringify(next));
+      setDiscovery(next);
+      const nextSource = { page: response.nextPage, offset: response.nextOffset, hasMore: response.hasMore };
+      window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(nextSource));
+      setSteamSpy(nextSource);
+      setGrowthMessage(`SteamSpy: sprawdzono ${response.scanned} AppID; już zapisane: ${response.alreadyInCatalog}. Nowe propozycje: ${combined.size - discovery.candidates.length}.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -878,10 +963,13 @@ export default function GameCatalogAdminPage() {
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
           </div>}
-          <ToolPanel title="Rozbuduj katalog ze Steam" description="Nowości i popularne gry możesz odkrywać bez klucza Steam. Do przeglądania pełnej listy AppID potrzebny jest STEAM_WEB_API_KEY na serwerze. Import wymaga klucza administratora katalogu i zapisuje postęp w tej przeglądarce.">
+          <ToolPanel title="Rozbuduj katalog ze Steam" description="Dostępne źródła: nowości Steam i paginowana lista SteamSpy bez klucza Web API, a także pełna lista AppID Steam z STEAM_WEB_API_KEY. SteamSpy jest zewnętrzną, nieoficjalną usługą i może ograniczać pobieranie stron. Import zawsze weryfikuje grę w Steam.">
             <div className="flex flex-wrap items-center gap-2">
               <ToolButton type="button" variant="primary" disabled={busy || discovery.candidates.length >= 200} onClick={discoverFeaturedGames}>
                 <Search className="h-4 w-4" /> Pobierz nowości i popularne (bez klucza)
+              </ToolButton>
+              <ToolButton type="button" disabled={busy || !steamSpy.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamSpyGames}>
+                <Search className="h-4 w-4" /> Pobierz następną stronę SteamSpy (bez klucza)
               </ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
                 <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
@@ -900,7 +988,11 @@ export default function GameCatalogAdminPage() {
                   Zatrzymaj po bieżącej partii
                 </ToolButton>
               )}
-              <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => { setDiscovery(readSteamGrowthProgress(null)); setGrowthMessage(null); }}>
+              <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => {
+                setDiscovery(readSteamGrowthProgress(null));
+                setSteamSpy({ ...EMPTY_STEAMSPY_PROGRESS });
+                setGrowthMessage(null);
+              }}>
                 Od początku
               </ToolButton>
             </div>
@@ -918,6 +1010,8 @@ export default function GameCatalogAdminPage() {
             <div className="mt-3 text-sm text-muted-foreground">
               Oczekujące gry: <strong data-testid="steam-candidate-count">{discovery.candidates.length}</strong> · Ostatni Steam AppID: {discovery.cursor}
               {!discovery.hasMore ? " · Koniec listy Steam." : ""}
+              {" · SteamSpy strona: "}{steamSpy.page}{" · pozycja: "}{steamSpy.offset}
+              {!steamSpy.hasMore ? " · Koniec listy SteamSpy." : ""}
               {discovery.candidates.length >= 200 ? " · Zaimportuj oczekujące gry przed pobraniem następnej strony." : ""}
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground" aria-label="Statystyki importu Steam">
