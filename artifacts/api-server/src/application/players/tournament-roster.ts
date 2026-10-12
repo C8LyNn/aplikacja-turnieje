@@ -206,6 +206,45 @@ export async function deleteTournamentPlayer(input: {
   });
 }
 
+/**
+ * Reconstruct only the editable player fields stored in historical snapshots.
+ * Never forward arbitrary imported JSON keys to Drizzle's update().set().
+ */
+function validatedPlayerUndoSnapshot(value: unknown): PlayerUpdate {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+  }
+  const source = value as Record<string, unknown>;
+  const allowed = new Set(["name", "rank", "country", "teamName", "seed", "status"]);
+  if (Object.keys(source).some((key) => !allowed.has(key)) ||
+      typeof source.name !== "string" || !source.name.trim()) {
+    throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+  }
+  const changes: PlayerUpdate = { name: source.name.trim() };
+  for (const field of ["rank", "country", "teamName"] as const) {
+    if (!(field in source)) continue;
+    const rawValue = source[field];
+    if (rawValue !== null && typeof rawValue !== "string") {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes[field] = rawValue as string | null;
+  }
+  if ("seed" in source) {
+    const seed = source.seed;
+    if (seed !== null && (!Number.isSafeInteger(seed) || (seed as number) <= 0)) {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes.seed = seed as number | null;
+  }
+  if ("status" in source) {
+    if (!["active", "eliminated", "winner"].includes(source.status as string)) {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes.status = source.status as "active" | "eliminated" | "winner";
+  }
+  return changes;
+}
+
 export async function undoTournamentRosterAction(input: {
   tournamentId: number;
   actionId: number;
@@ -275,9 +314,7 @@ export async function undoTournamentRosterAction(input: {
           !Number.isSafeInteger(playerId) || playerId < 1) {
         throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
       }
-      const prevData = payload.prevData;
-      if (!prevData || typeof prevData !== "object" || Array.isArray(prevData))
-        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      const changes = validatedPlayerUndoSnapshot(payload.prevData);
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -289,9 +326,7 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
-      const changes = prevData as PlayerUpdate;
       if (changes.name != null) {
-        changes.name = String(changes.name).trim();
         await assertUniqueName(tx, input.tournamentId, changes.name, playerId);
       }
       await tx.update(playersTable).set(changes).where(eq(playersTable.id, playerId));
