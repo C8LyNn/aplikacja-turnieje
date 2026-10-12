@@ -210,6 +210,59 @@ and rate-limit behavior must be observed on the actual deployment.
 Do not store the Steam key or administrator token in logs, source files
 or browser localStorage.
 
+## Persistent no-key SteamSpy import (migration 0036)
+
+The persistent importer now supports two explicitly selected discovery sources:
+
+- `steamspy` — **no `STEAM_WEB_API_KEY` required**. Finds candidate AppIDs
+  from the unofficial SteamSpy paginated `request=all` feed. The database
+  stores `source_page` independently of the normal Steam AppID cursor.
+- `steam` — uses the official `IStoreService/GetAppList/v1` endpoint and
+  requires a server-only `STEAM_WEB_API_KEY`.
+
+Apply migrations `0029–0036` **in order**, with `0036` applied before
+deploying this API. Existing 0035 jobs are migrated as `source='steam'`
+with their prior cursor and pending list preserved.
+
+In the administrator panel, choose **SteamSpy — bez klucza API** (default)
+or **Steam Web API — wymaga klucza**, then start the persistent import.
+It continues server-side while the browser is closed **as long as the
+API deployment remains running**. One active/paused job per catalog is
+enforced by the existing PostgreSQL unique index. The API contract is:
+
+```text
+POST /api/steam-catalog/import-job
+{"maxGames":1000,"source":"steamspy"}
+```
+
+The `source` field defaults to `steam` for older API clients, and unknown
+source values return HTTP 400. The request still requires the catalog
+administrator token. Existing pause/resume/status routes work unchanged.
+Completed jobs of the **same source** can transfer their pending queue and
+source cursor to the next job. Jobs for different sources do not exchange
+cursors or candidate queues.
+
+The SteamSpy page requests are bounded to pages 0–300 and use the same
+in-process 65-second throttle and cache as the admin discovery endpoint.
+SteamSpy can change format, omit games or rate-limit. On upstream errors
+the job pauses rather than resending unlimited requests; an operator can
+resume it later. The cache and cooldown are **per process**: multiple API
+replicas need a shared/distributed SteamSpy request limiter before enabling
+this mode simultaneously on production replicas.
+
+**Trust boundary:** the SteamSpy names are never written as authoritative
+metadata. Every candidate still passes Steam Store `appdetails`
+`type='game'` validation or is counted as ignored; existing AppIDs are
+skipped without overwriting classifications or revisions. Source discovery
+is not proof of insertion: `processed` counts inspected candidates,
+`inserted` is the newly inserted count. Confirm the catalog's public
+`GET /api/steam-catalog/games` `counts.all` before and after a real
+job. Start with a small 5–10 candidate smoke test, not a 20k job.
+
+No production import is started merely by merging code, applying the
+migration or deploying the API. The source's compliance, rate limits and
+availability must be checked for the target hosting environment.
+
 ## Expanding the number of real games
 
 The original `POST /api/steam-catalog/import` imports one Steam AppID at
