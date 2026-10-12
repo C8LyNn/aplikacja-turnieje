@@ -94,3 +94,58 @@ test("undo payload cannot redirect a match mutation to another match", async () 
   assert.equal(denied.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await matchAndLogState(f.id, f.matchId!), beforeState);
 });
+
+test("roster undo rejects an older action without touching players", async () => {
+  const f = await tournament(false);
+  await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "First" }).expect(201);
+  await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Second" }).expect(201);
+  const actions = (await database.pool.query(
+    "SELECT id FROM action_log WHERE tournament_id=$1 AND action_type='player_added' ORDER BY id",
+    [f.id],
+  )).rows;
+  assert.equal(actions.length, 2);
+  const snapshot = async () => {
+    const [players, log] = await Promise.all([
+      database.pool.query("SELECT id, name FROM players WHERE tournament_id=$1 ORDER BY id", [f.id]),
+      database.pool.query("SELECT id, is_undone FROM action_log WHERE tournament_id=$1 ORDER BY id", [f.id]),
+    ]);
+    return { players: players.rows, log: log.rows };
+  };
+  const beforeState = await snapshot();
+  const { undoTournamentRosterAction } = await import("../src/application/players/tournament-roster");
+  await assert.rejects(
+    () => undoTournamentRosterAction({ tournamentId: f.id, actionId: actions[0].id }),
+    (error: unknown) =>
+      error instanceof Error && "code" in error && error.code === "ROSTER_UNDO_UNAVAILABLE",
+  );
+  assert.deepEqual(await snapshot(), beforeState);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  const players = await database.pool.query(
+    "SELECT name FROM players WHERE tournament_id=$1 ORDER BY id",
+    [f.id],
+  );
+  assert.deepEqual(players.rows, [{ name: "First" }]);
+});
+
+test("roster undo rejects malformed player identity without changing the database", async () => {
+  const f = await tournament(false);
+  await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Participant" }).expect(201);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=$1 WHERE tournament_id=$2 AND action_type='player_added'",
+    ['{"type":"delete_player","playerId":"not-a-number"}', f.id],
+  );
+  const beforeState = await database.pool.query(
+    "SELECT id, name FROM players WHERE tournament_id=$1 ORDER BY id", [f.id],
+  );
+  const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
+  const afterState = await database.pool.query(
+    "SELECT id, name FROM players WHERE tournament_id=$1 ORDER BY id", [f.id],
+  );
+  assert.deepEqual(afterState.rows, beforeState.rows);
+});
