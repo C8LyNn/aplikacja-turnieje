@@ -279,12 +279,28 @@ export function useResearchProject() {
       argumentRelationId: string,
       patch: Partial<Omit<ArgumentRelation, "id" | "discussionId" | "fromArgumentId" | "toArgumentId">>,
     ) {
-      update((current) => ({
-        ...current,
-        argumentRelations: current.argumentRelations.map((relation) =>
-          relation.id === argumentRelationId ? { ...relation, ...patch } : relation,
-        ),
-      }));
+      update((current) => {
+        const existing = current.argumentRelations.find(
+          (relation) => relation.id === argumentRelationId,
+        );
+        if (!existing) return current;
+        const next = { ...existing, ...patch };
+        const duplicate = current.argumentRelations.some(
+          (relation) =>
+            relation.id !== argumentRelationId &&
+            relation.discussionId === next.discussionId &&
+            relation.fromArgumentId === next.fromArgumentId &&
+            relation.toArgumentId === next.toArgumentId &&
+            relation.relation === next.relation,
+        );
+        if (duplicate) return current;
+        return {
+          ...current,
+          argumentRelations: current.argumentRelations.map((relation) =>
+            relation.id === argumentRelationId ? next : relation,
+          ),
+        };
+      });
     },
     deleteArgumentRelation(argumentRelationId: string) {
       update((current) => ({
