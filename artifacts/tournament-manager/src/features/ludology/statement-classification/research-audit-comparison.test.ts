@@ -124,6 +124,15 @@ test("reject unsupported, malformed and misleading baseline reports", () => {
   assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
     ...valid, people: [],
   })), /Niespójna/);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid, counts: { ...valid.counts, verifiedExcerpts: valid.counts.excerpts + 1 },
+  })), /niespójne/);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid, review: { ...valid.review, total: valid.review.total + 1 },
+  })), /niespójne/);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid, counts: { ...valid.counts, integrityIssues: valid.counts.integrityIssues + 1 },
+  })), /niespójne/);
 });
 
 test("changing project schema yields explicit caution, not automatic equivalence guarantee", () => {
