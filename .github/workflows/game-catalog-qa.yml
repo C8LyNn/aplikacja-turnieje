@@ -6,6 +6,7 @@ on:
       - codex/game-catalog-editor-reliability
       - codex/game-catalog-featured-discovery
       - codex/game-catalog-steamspy-expansion
+      - codex/game-catalog-steamspy-auto-sessions
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
