@@ -310,7 +310,7 @@ function Overview() {
               onChange={(event) => void importProject(event.target.files?.[0])}
             />
             <div className="text-xs leading-5 text-muted-foreground">
-              Import zastępuje bieżący lokalny zbiór. Akceptowane są pliki schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5, schemaVersion=6 lub schemaVersion=7; starsze wersje są migrowane przy wczytaniu.
+              Import zastępuje bieżący lokalny zbiór. Akceptowane są pliki schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5, schemaVersion=6, schemaVersion=7 lub schemaVersion=8; starsze wersje są migrowane przy wczytaniu.
             </div>
             {transferMessage && <ToolNotice>{transferMessage}</ToolNotice>}
           </div>
