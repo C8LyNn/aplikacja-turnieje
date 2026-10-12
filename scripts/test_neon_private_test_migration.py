@@ -40,6 +40,7 @@ class MigrationSafetyTests(unittest.TestCase):
         fixture = (
             "; pg_restore toc\n"
             "5; 2615 2200 SCHEMA - public pg_database_owner\n"
+            "6; 0 0 COMMENT - SCHEMA public pg_database_owner\n"
             "7; 2615 16390 SCHEMA - _system test_owner\n"
             "17; 1259 16400 TABLE public tournaments test_owner\n"
             "18; 1259 16402 TABLE _system replit_database_migrations_v1 test_owner\n"
@@ -51,9 +52,10 @@ class MigrationSafetyTests(unittest.TestCase):
                 migration.restore_list(Path(d) / "source.dump", out, {})
             lines = out.read_text().splitlines()
             self.assertTrue(lines[1].startswith(";5;"))
-            self.assertEqual(lines[2], "7; 2615 16390 SCHEMA - _system test_owner")
-            self.assertEqual(lines[3], "17; 1259 16400 TABLE public tournaments test_owner")
-            self.assertEqual(len(lines), 6)
+            self.assertTrue(lines[2].startswith(";6;"))
+            self.assertEqual(lines[3], "7; 2615 16390 SCHEMA - _system test_owner")
+            self.assertEqual(lines[4], "17; 1259 16400 TABLE public tournaments test_owner")
+            self.assertEqual(len(lines), 7)
             self.assertEqual(out.stat().st_mode & 0o777, 0o600)
 
     def test_count_queries_escape_table_identifiers(self):
