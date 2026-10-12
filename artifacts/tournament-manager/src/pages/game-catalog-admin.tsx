@@ -893,7 +893,7 @@ export default function GameCatalogAdminPage() {
                 Przetwórz kolejkę (do 100 AppID)
               </ToolButton>
               <ToolButton type="button" disabled={busy} onClick={() => void runAutomaticGrowth(false)}>
-                Uruchom serię z odkrywaniem (do 100 AppID)
+                Uruchom serię (do 100 AppID)
               </ToolButton>
               {autoRunning && (
                 <ToolButton type="button" variant="ghost" onClick={() => { autoStopRef.current = true; }}>
