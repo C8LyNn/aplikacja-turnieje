@@ -23,9 +23,10 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     value.schemaVersion !== 4 &&
     value.schemaVersion !== 5 &&
     value.schemaVersion !== 6 &&
-    value.schemaVersion !== 7
+    value.schemaVersion !== 7 &&
+    value.schemaVersion !== 8
   ) {
-    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5, schemaVersion=6 i schemaVersion=7.");
+    throw new Error("Nieobsługiwana wersja schematu. Obsługiwane są schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5, schemaVersion=6, schemaVersion=7 i schemaVersion=8.");
   }
 
   const people = requireArray(value, "people");
@@ -37,7 +38,7 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
   const coders = requireArray(value, "coders");
   const codings = requireArray(value, "codings");
   const assessments =
-    value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7
+    value.schemaVersion === 3 || value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8
       ? requireArray(value, "assessments").map((assessment) => {
           if (!isRecord(assessment)) return assessment;
           return {
@@ -48,22 +49,24 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
       : [];
 
   const dimensionModels =
-    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "dimensionModels") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "dimensionModels") : [];
   const dimensions =
-    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "dimensions") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "dimensions") : [];
   const dimensionLinks =
-    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "dimensionLinks") : [];
+    value.schemaVersion === 4 || value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "dimensionLinks") : [];
   const samplingPlans =
-    value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "samplingPlans") : [];
+    value.schemaVersion === 5 || value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "samplingPlans") : [];
   const discussions =
-    value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "discussions") : [];
+    value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "discussions") : [];
   const discussionLinks =
-    value.schemaVersion === 6 || value.schemaVersion === 7 ? requireArray(value, "discussionLinks") : [];
+    value.schemaVersion === 6 || value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "discussionLinks") : [];
   const argumentRelations =
-    value.schemaVersion === 7 ? requireArray(value, "argumentRelations") : [];
+    value.schemaVersion === 7 || value.schemaVersion === 8 ? requireArray(value, "argumentRelations") : [];
+
+  const adjudications = value.schemaVersion === 8 ? requireArray(value, "adjudications") : [];
 
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     people: people as ResearchProjectData["people"],
     sources: sources as ResearchProjectData["sources"],
     arguments: argumentsList as ResearchProjectData["arguments"],
@@ -72,6 +75,7 @@ export function migrateResearchProject(value: unknown): ResearchProjectData {
     propositions: propositions as ResearchProjectData["propositions"],
     coders: coders as ResearchProjectData["coders"],
     codings: codings as ResearchProjectData["codings"],
+    adjudications: adjudications as ResearchProjectData["adjudications"],
     assessments: assessments as ResearchProjectData["assessments"],
     dimensionModels: dimensionModels as ResearchProjectData["dimensionModels"],
     dimensions: dimensions as ResearchProjectData["dimensions"],
