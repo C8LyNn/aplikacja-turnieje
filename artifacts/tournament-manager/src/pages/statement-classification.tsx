@@ -35,6 +35,7 @@ import SamplingLab from "@/features/ludology/statement-classification/SamplingLa
 import CorpusHealthLab from "@/features/ludology/statement-classification/CorpusHealthLab";
 import DiscussionLab from "@/features/ludology/statement-classification/DiscussionLab";
 import ComparisonLab from "@/features/ludology/statement-classification/ComparisonLab";
+import AdjudicationQueueLab from "@/features/ludology/statement-classification/AdjudicationQueueLab";
 import { parseResearchProject, serializeResearchProject } from "@/features/ludology/statement-classification/project-transfer";
 import { PILOT_CODEBOOK } from "@/features/ludology/statement-classification/pilot-codebook";
 import type { ResearchSource } from "@/features/ludology/statement-classification/model";
@@ -43,12 +44,12 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "compare" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "compare" | "adjudication" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
   if (tail === "dimensions") return "map";
-  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "compare" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "compare" || tail === "adjudication" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -117,6 +118,13 @@ const cards = [
     description: "Przypisywanie fragmentów do tez, kodów i poziomu pewności.",
     href: `${BASE}/coding`,
     icon: FlaskConical,
+  },
+  {
+    code: "REVIEW",
+    title: "Adjudication Queue",
+    description: "Rozbieżności koderów, trzecia recenzja, priorytety i eksport CSV z audytem decyzji.",
+    href: `${BASE}/adjudication`,
+    icon: ListChecks,
   },
   {
     code: "EVID",
@@ -599,6 +607,7 @@ export default function StatementClassificationPage() {
         {section === "health" && <CorpusHealthLab />}
         {section === "debates" && <DiscussionLab />}
         {section === "compare" && <ComparisonLab />}
+        {section === "adjudication" && <AdjudicationQueueLab />}
         {section === "sources" && <Sources />}
         {section === "fragments" && <ResearchWorkspace />}
         {section === "coding" && <CodingLab />}
