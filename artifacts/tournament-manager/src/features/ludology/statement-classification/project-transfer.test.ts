@@ -4,7 +4,7 @@ import { EMPTY_RESEARCH_PROJECT } from "./model";
 import { parseResearchProject, serializeResearchProject } from "./project-transfer";
 import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
 
-test("research project JSON round-trips schema v6 data", () => {
+test("research project JSON round-trips schema v7 data", () => {
   const project = {
     ...EMPTY_RESEARCH_PROJECT,
     codebooks: [PILOT_CODEBOOK],
@@ -12,7 +12,7 @@ test("research project JSON round-trips schema v6 data", () => {
   };
   const parsed = parseResearchProject(serializeResearchProject(project));
 
-  assert.equal(parsed.schemaVersion, 6);
+  assert.equal(parsed.schemaVersion, 7);
   assert.equal(parsed.codebooks[0]?.id, PILOT_CODEBOOK.id);
   assert.equal(parsed.propositions.length, 5);
   assert.deepEqual(parsed.assessments, []);
@@ -22,9 +22,10 @@ test("research project JSON round-trips schema v6 data", () => {
   assert.deepEqual(parsed.samplingPlans, []);
   assert.deepEqual(parsed.discussions, []);
   assert.deepEqual(parsed.discussionLinks, []);
+  assert.deepEqual(parsed.argumentRelations, []);
 });
 
-test("project import migrates schema v2 data to v6", () => {
+test("project import migrates schema v2 data to v7", () => {
   const legacy = {
     schemaVersion: 2,
     people: [],
@@ -38,14 +39,15 @@ test("project import migrates schema v2 data to v6", () => {
   };
   const parsed = parseResearchProject(JSON.stringify(legacy));
 
-  assert.equal(parsed.schemaVersion, 6);
+  assert.equal(parsed.schemaVersion, 7);
   assert.deepEqual(parsed.assessments, []);
   assert.deepEqual(parsed.dimensionModels, []);
   assert.deepEqual(parsed.samplingPlans, []);
   assert.deepEqual(parsed.discussions, []);
+  assert.deepEqual(parsed.argumentRelations, []);
 });
 
-test("project import migrates schema v3 data to v6", () => {
+test("project import migrates schema v3 data to v7", () => {
   const legacy = {
     schemaVersion: 3,
     people: [],
@@ -60,15 +62,16 @@ test("project import migrates schema v3 data to v6", () => {
   };
   const parsed = parseResearchProject(JSON.stringify(legacy));
 
-  assert.equal(parsed.schemaVersion, 6);
+  assert.equal(parsed.schemaVersion, 7);
   assert.deepEqual(parsed.dimensionModels, []);
   assert.deepEqual(parsed.dimensions, []);
   assert.deepEqual(parsed.dimensionLinks, []);
   assert.deepEqual(parsed.samplingPlans, []);
   assert.deepEqual(parsed.discussions, []);
+  assert.deepEqual(parsed.argumentRelations, []);
 });
 
-test("project import migrates schema v4 data to v6", () => {
+test("project import migrates schema v4 data to v7", () => {
   const legacy = {
     schemaVersion: 4,
     people: [],
@@ -86,12 +89,13 @@ test("project import migrates schema v4 data to v6", () => {
   };
   const parsed = parseResearchProject(JSON.stringify(legacy));
 
-  assert.equal(parsed.schemaVersion, 6);
+  assert.equal(parsed.schemaVersion, 7);
   assert.deepEqual(parsed.samplingPlans, []);
   assert.deepEqual(parsed.discussions, []);
+  assert.deepEqual(parsed.argumentRelations, []);
 });
 
-test("project import migrates schema v5 data to v6", () => {
+test("project import migrates schema v5 data to v7", () => {
   const legacy = {
     schemaVersion: 5,
     people: [],
@@ -110,16 +114,42 @@ test("project import migrates schema v5 data to v6", () => {
   };
   const parsed = parseResearchProject(JSON.stringify(legacy));
 
-  assert.equal(parsed.schemaVersion, 6);
+  assert.equal(parsed.schemaVersion, 7);
   assert.deepEqual(parsed.discussions, []);
   assert.deepEqual(parsed.discussionLinks, []);
+  assert.deepEqual(parsed.argumentRelations, []);
+});
+
+test("project import migrates schema v6 data to v7", () => {
+  const legacy = {
+    schemaVersion: 6,
+    people: [],
+    sources: [],
+    arguments: [],
+    excerpts: [],
+    codebooks: [],
+    propositions: [],
+    coders: [],
+    codings: [],
+    assessments: [],
+    dimensionModels: [],
+    dimensions: [],
+    dimensionLinks: [],
+    samplingPlans: [],
+    discussions: [],
+    discussionLinks: [],
+  };
+  const parsed = parseResearchProject(JSON.stringify(legacy));
+
+  assert.equal(parsed.schemaVersion, 7);
+  assert.deepEqual(parsed.argumentRelations, []);
 });
 
 test("project import rejects unsupported schema versions", () => {
   const raw = JSON.stringify({ ...EMPTY_RESEARCH_PROJECT, schemaVersion: 1 });
   assert.throws(
     () => parseResearchProject(raw),
-    /schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5 i schemaVersion=6/,
+    /schemaVersion=2, schemaVersion=3, schemaVersion=4, schemaVersion=5, schemaVersion=6 i schemaVersion=7/,
   );
 });
 
