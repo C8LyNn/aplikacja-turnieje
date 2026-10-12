@@ -118,7 +118,9 @@ export async function runSteamGrowthSession(options: {
       if (!progress.hasMore) return result("end_of_list");
       if (pages >= maxPages) return result("limit");
       const page = await options.discover(progress.cursor);
-      if (!Number.isSafeInteger(page.nextCursor) || page.nextCursor <= progress.cursor ||
+      if (!Number.isSafeInteger(page.nextCursor) ||
+          (page.nextCursor <= progress.cursor && (page.hasMore || page.candidates.length > 0)) ||
+          page.nextCursor < progress.cursor ||
           page.nextCursor > 2_147_483_647 || !Array.isArray(page.candidates)) {
         throw new Error("Steam zwrócił nieprawidłowy kursor odkrywania gier.");
       }
