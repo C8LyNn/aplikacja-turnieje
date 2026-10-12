@@ -76,6 +76,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Catalog integration against PostgreSQL 16
         run: pnpm --filter @workspace/api-server exec node --import tsx --test ./test/steam-catalog.integration.test.ts
+      - name: Read-only preflight against disposable PostgreSQL catalog
+        run: pnpm --filter @workspace/db test:game-catalog-preflight:integration
 
   catalog-validation:
     name: Frontend and backend checks
