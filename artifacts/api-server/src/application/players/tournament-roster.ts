@@ -246,7 +246,11 @@ export async function undoTournamentRosterAction(input: {
     if (!payload) throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
 
     if (payload.type === "delete_player") {
-      const playerId = Number(payload.playerId);
+      const playerId = payload.playerId;
+      if (typeof playerId !== "number" ||
+          !Number.isSafeInteger(playerId) || playerId < 1) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -266,7 +270,11 @@ export async function undoTournamentRosterAction(input: {
         isUndone: false,
       });
     } else if (payload.type === "restore_player") {
-      const playerId = Number(payload.playerId);
+      const playerId = payload.playerId;
+      if (typeof playerId !== "number" ||
+          !Number.isSafeInteger(playerId) || playerId < 1) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       const prevData = payload.prevData;
       if (!prevData || typeof prevData !== "object" || Array.isArray(prevData))
         throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
