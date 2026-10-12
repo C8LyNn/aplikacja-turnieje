@@ -106,7 +106,10 @@ import {
   getTargetStageInputArrivals,
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
-import { parseUndoPayloadForAction } from "../domain/tournament/undo-payload";
+import {
+  isUndoPayloadStructurallyAvailable,
+  parseUndoPayloadForAction,
+} from "../domain/tournament/undo-payload";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
@@ -2228,7 +2231,7 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
     matchId: entry.matchId ?? null,
     canUndo: UNDOABLE_TYPES.has(entry.actionType) &&
       !entry.isUndone &&
-      parseUndoPayloadForAction(entry.actionType, entry.undoPayload) !== null,
+      isUndoPayloadStructurallyAvailable(entry.actionType, entry.undoPayload),
     isUndone: entry.isUndone,
     createdAt: entry.createdAt.toISOString(),
   };
