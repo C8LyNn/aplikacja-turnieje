@@ -66,6 +66,26 @@ class MigrationSafetyTests(unittest.TestCase):
         self.assertIn('FROM "public"."unusual"', statement)
         self.assertIn('FROM "_system"."log"', statement)
 
+    def test_owner_handoff_sql_is_explicitly_test_only_and_preserves_rows(self):
+        sql = FILE.with_name("neon-owner-handoff-20261012.sql").read_text()
+        self.assertIn("current_user <> 'transfer_20261012b'", sql)
+        self.assertIn("current_database() <> 'tournament_manager'", sql)
+        self.assertIn("OWNER TO pg_database_owner", sql)
+        for kind in ("SCHEMA", "TYPE", "TABLE", "SEQUENCE", "FUNCTION"):
+            self.assertIn("ALTER " + kind, sql)
+        for forbidden in ("DROP TABLE", "DROP SCHEMA", "DELETE FROM", "TRUNCATE", "CASCADE"):
+            self.assertNotIn(forbidden, sql.upper())
+
+    def test_readiness_audit_sql_is_read_only(self):
+        sql = FILE.with_name("neon-cutover-readiness-20261012.sql").read_text()
+        statements = [line.strip() for line in sql.splitlines()
+                      if line.strip() and not line.lstrip().startswith("--")]
+        self.assertTrue(statements[0].startswith("SELECT"))
+        self.assertIn("unvalidated_constraints", sql)
+        self.assertIn("transfer_role_dependencies", sql)
+        for forbidden in ("INSERT INTO", "UPDATE ", "DELETE FROM", "DROP TABLE", "TRUNCATE "):
+            self.assertNotIn(forbidden, "\n".join(statements).upper())
+
     def test_default_mode_requires_both_secrets_and_does_not_run(self):
         with patch.dict(os.environ, {}, clear=True):
             with patch("sys.argv", ["migration"]):
