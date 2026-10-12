@@ -7,6 +7,8 @@ export type DimensionModelStatus = "draft" | "pilot" | "active" | "retired";
 export type DimensionLinkOrientation = "positive" | "negative";
 export type DimensionLinkRelevance = "core" | "supporting" | "exploratory";
 export type SamplingPlanStatus = "draft" | "active" | "retired";
+export type DiscussionStatus = "draft" | "active" | "closed" | "archived";
+export type DiscussionArgumentRole = "primary" | "response" | "follow_up" | "background";
 export type PositionAssessmentStatus =
   | "insufficient_evidence"
   | "stable"
@@ -171,8 +173,27 @@ export type SamplingPlan = {
   createdAt?: string;
 };
 
+export type ResearchDiscussion = {
+  id: string;
+  title: string;
+  question?: string;
+  description?: string;
+  status: DiscussionStatus;
+  tags?: string[];
+  createdAt?: string;
+};
+
+export type DiscussionArgumentLink = {
+  id: string;
+  discussionId: string;
+  argumentId: string;
+  role: DiscussionArgumentRole;
+  note?: string;
+  order?: number;
+};
+
 export type ResearchProjectData = {
-  schemaVersion: 5;
+  schemaVersion: 6;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -186,10 +207,12 @@ export type ResearchProjectData = {
   dimensions: ResearchDimension[];
   dimensionLinks: DimensionPropositionLink[];
   samplingPlans: SamplingPlan[];
+  discussions: ResearchDiscussion[];
+  discussionLinks: DiscussionArgumentLink[];
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   people: [],
   sources: [],
   arguments: [],
@@ -203,6 +226,8 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   dimensions: [],
   dimensionLinks: [],
   samplingPlans: [],
+  discussions: [],
+  discussionLinks: [],
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
