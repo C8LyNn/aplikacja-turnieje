@@ -1,13 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { pool } from "@workspace/db";
+import { getSteamSpyPage, STEAMSPY_PAGE_CAP } from "./steam-catalog-steamspy";
 import {
   parseSteamDetailedGame, parseSteamDiscoveryPage,
   type SteamDiscoveryCandidate,
 } from "./steam-catalog-growth";
 
+export type ImportJobSource = "steam" | "steamspy";
 type ImportJobStatus = "running" | "paused" | "completed";
 type JobRow = {
-  id: string; status: ImportJobStatus; steam_cursor: number;
+  id: string; status: ImportJobStatus; source: ImportJobSource;
+  source_page: number; steam_cursor: number;
   pending: SteamDiscoveryCandidate[]; has_more: boolean; max_games: number;
   processed: number; inserted: number; existing: number; ignored: number;
   failed: number; scanned: number; pause_requested: boolean;
@@ -16,7 +19,7 @@ type JobRow = {
 };
 type ImportOutcome = "inserted" | "existing" | "ignored";
 type Step = {
-  cursor: number; hasMore: boolean; pending: SteamDiscoveryCandidate[];
+  cursor: number; sourcePage: number; hasMore: boolean; pending: SteamDiscoveryCandidate[];
   scanned: number; processed: number; inserted: number;
   existing: number; ignored: number; failed: number;
   newGame?: NonNullable<ReturnType<typeof parseSteamDetailedGame>>;
@@ -24,7 +27,8 @@ type Step = {
 
 function view(job: JobRow) {
   return {
-    id: job.id, status: job.status, cursor: job.steam_cursor,
+    id: job.id, status: job.status, source: job.source,
+    sourcePage: job.source_page, cursor: job.steam_cursor,
     pending: job.pending.length, hasMore: job.has_more, maxGames: job.max_games,
     processed: job.processed, inserted: job.inserted,
     existing: job.existing, ignored: job.ignored, failed: job.failed,
@@ -35,7 +39,9 @@ function view(job: JobRow) {
   };
 }
 
-export async function createCatalogImportJob(maxGames: number) {
+export async function createCatalogImportJob(
+  maxGames: number, source: ImportJobSource = "steam",
+) {
   if (!Number.isInteger(maxGames) || maxGames < 1 || maxGames > 20_000) {
     throw new Error("INVALID_JOB_LIMIT");
   }
@@ -44,19 +50,21 @@ export async function createCatalogImportJob(maxGames: number) {
     // page may still contain unprocessed candidates; preserve both its cursor
     // AND pending IDs so chaining 20k-ID jobs never skips or rescans them.
     const previous = await pool.query<JobRow>(
-      "SELECT * FROM steam_catalog_import_jobs ORDER BY id DESC LIMIT 1",
+      "SELECT * FROM steam_catalog_import_jobs WHERE source = $1 ORDER BY id DESC LIMIT 1",
+      [source],
     );
     const last = previous.rows[0];
     const canContinue = last?.status === "completed" &&
       (last.has_more || last.pending.length > 0);
     const cursor = canContinue ? last.steam_cursor : 0;
+    const sourcePage = canContinue ? last.source_page : 0;
     const pending = canContinue ? last.pending : [];
     const hasMore = canContinue ? last.has_more : true;
     const result = await pool.query<JobRow>(`
       INSERT INTO steam_catalog_import_jobs
-        (max_games, steam_cursor, pending, has_more)
-      VALUES ($1,$2,$3::jsonb,$4) RETURNING *
-    `, [maxGames, cursor, JSON.stringify(pending), hasMore]);
+        (max_games, source, steam_cursor, source_page, pending, has_more)
+      VALUES ($1,$2,$3,$4,$5::jsonb,$6) RETURNING *
+    `, [maxGames, source, cursor, sourcePage, JSON.stringify(pending), hasMore]);
     return view(result.rows[0]);
   } catch (error) {
     if ((error as { code?: string }).code === "23505") throw new Error("ACTIVE_JOB_EXISTS");
@@ -120,8 +128,32 @@ async function discover(job: JobRow): Promise<Step> {
   const parsed = parseSteamDiscoveryPage(await result.json(), job.steam_cursor);
   if (!parsed) throw new Error("Invalid Steam discovery page");
   return {
-    cursor: parsed.nextCursor, pending: parsed.games,
+    cursor: parsed.nextCursor, sourcePage: job.source_page, pending: parsed.games,
     hasMore: parsed.hasMore, scanned: parsed.games.length,
+    processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
+  };
+}
+
+/**
+ * Unofficial SteamSpy supplies candidate IDs only. The existing importOne
+ * always validates each candidate against Steam Store before DB insertion.
+ * A completed 1,000-ID page advances the durable source_page atomically.
+ */
+async function discoverSteamSpy(job: JobRow): Promise<Step> {
+  if (job.source_page > STEAMSPY_PAGE_CAP) {
+    return {
+      cursor: job.steam_cursor, sourcePage: job.source_page,
+      pending: [], hasMore: false, scanned: 0,
+      processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
+    };
+  }
+  const page = await getSteamSpyPage(job.source_page);
+  return {
+    cursor: job.steam_cursor,
+    sourcePage: job.source_page + 1,
+    pending: page,
+    hasMore: page.length === 1_000 && job.source_page < STEAMSPY_PAGE_CAP,
+    scanned: page.length,
     processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
   };
 }
@@ -130,7 +162,8 @@ async function importOne(job: JobRow): Promise<Step> {
   const candidate = job.pending[0];
   if (!candidate) throw new Error("Empty Steam candidate queue");
   const step: Step = {
-    cursor: job.steam_cursor, pending: job.pending.slice(1),
+    cursor: job.steam_cursor, sourcePage: job.source_page,
+    pending: job.pending.slice(1),
     hasMore: job.has_more, scanned: 0, processed: 1,
     inserted: 0, existing: 0, ignored: 0, failed: 0,
   };
@@ -187,10 +220,12 @@ export async function runCatalogImportStep(): Promise<boolean> {
     const step: Step = job.pause_requested || job.processed >= job.max_games ||
       (!job.pending.length && !job.has_more)
       ? {
-          cursor: job.steam_cursor, pending: job.pending, hasMore: job.has_more,
+          cursor: job.steam_cursor, sourcePage: job.source_page,
+          pending: job.pending, hasMore: job.has_more,
           scanned: 0, processed: 0, inserted: 0, existing: 0, ignored: 0, failed: 0,
         }
-      : job.pending.length ? await importOne(job) : await discover(job);
+      : job.pending.length ? await importOne(job)
+        : job.source === "steamspy" ? await discoverSteamSpy(job) : await discover(job);
 
     // Commit a game insert and the job cursor/counters in ONE DB transaction.
     // If a process dies, there is no half-acknowledged insertion.
@@ -230,6 +265,7 @@ export async function runCatalogImportStep(): Promise<boolean> {
       await client.query(`
         UPDATE steam_catalog_import_jobs SET
           steam_cursor = $3, pending = $4::jsonb, has_more = $5,
+          source_page = $13,
           scanned = scanned + $6, processed = processed + $7,
           inserted = inserted + $8, existing = existing + $9,
           ignored = ignored + $10, failed = failed + $11,
@@ -240,7 +276,8 @@ export async function runCatalogImportStep(): Promise<boolean> {
           updated_at = now()
         WHERE id = $1 AND lease_token = $2::uuid
       `, [job.id, token, step.cursor, JSON.stringify(step.pending), step.hasMore,
-        step.scanned, step.processed, inserted, existing, step.ignored, step.failed, newStatus]);
+        step.scanned, step.processed, inserted, existing, step.ignored,
+        step.failed, newStatus, step.sourcePage]);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
