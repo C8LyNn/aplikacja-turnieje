@@ -5,7 +5,7 @@ import type { ResearchProjectData } from "./model";
 
 function data(): ResearchProjectData {
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     people: [
       { id: "p1", displayName: "A" },
       { id: "p2", displayName: "B" },
