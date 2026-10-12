@@ -217,7 +217,7 @@ against its own disposable PostgreSQL schema and a **real loopback HTTP**
 Express server. All outbound SteamSpy and Steam Store calls in this test
 are mocked deterministically; no actual Steam/SteamSpy requests are sent.
 
-The smoke test checks: migrations 0029–0037, read-only DB readiness,
+The smoke test checks: migrations 0029–0038, read-only DB readiness,
 public API counts/taxonomy/queue, rejected unauthenticated import,
 an authenticated **5-candidate** keyless import, pause/resume, Store
 game/DLC filtering, AppID deduplication, preservation of existing
@@ -261,7 +261,7 @@ From the repository root, after installing locked dependencies:
     pnpm --filter @workspace/db preflight:game-catalog
 
 The tool uses one repeatable-read **READ ONLY** transaction and rolls back
-on exit. It checks required tables/columns of migrations 0029–0037, the
+on exit. It checks required tables/columns of migrations 0029–0038, the
 Steam AppID uniqueness index, the single-active-import index, all three
 status-counter triggers, and the equality of the counter and actual total.
 It prints a JSON report with check names, observed counts, and an overall
@@ -343,8 +343,7 @@ temporary rate limit without creating an unbounded retry loop.
 
 The administrator view displays retry attempt count and the earliest planned
 next attempt. This scheduling is not a guarantee of exact execution time:
-the worker only runs while the API service is running. It still requires
-single-instance or distributed rate-limiting for SteamSpy traffic, and
+the worker only runs while the API service is running. It uses a PostgreSQL-backed global rate limiter for SteamSpy traffic, and
 operators should monitor source terms/rate limits.
 
 A successful test run on mocked source data is not proof of any real-game
@@ -506,10 +505,7 @@ estimates or user tags as classification evidence or overwrite manual work.
 up-to-three-page in-memory cache. Multiple simultaneous requests for
 the *same* page share one fetch; another uncached page within the
 cooldown returns 429 `STEAMSPY_COOLDOWN` and a `Retry-After` header.
-Successful slices from the same cached page are immediate. After a
-server restart, cache/cooldown reset; in multi-instance deployments,
-add a distributed cooldown and cache before enabling this source at
-high volume. **Do not automatically bypass 429 or poll quickly.**
+Successful slices from the same cached page are immediate. After a server restart, the local cache resets but the global PostgreSQL cooldown remains in force across instances. **Do not automatically bypass 429 or poll quickly.**
 
 This source cannot guarantee full historical coverage of Steam:
 it excludes apps not exposed by SteamSpy and may reorder pages between
