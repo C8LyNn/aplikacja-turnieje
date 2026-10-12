@@ -11,7 +11,7 @@ import type { ResearchProjectData } from "./model";
 
 function project(): ResearchProjectData {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     people: [{ id: "p1", displayName: "P1" }, { id: "p2", displayName: "P2" }],
     sources: [
       {
@@ -107,6 +107,8 @@ function project(): ResearchProjectData {
         minimumTemporalSpanYears: 2,
       },
     ],
+    discussions: [],
+    discussionLinks: [],
   };
 }
 
