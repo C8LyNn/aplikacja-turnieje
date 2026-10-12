@@ -193,7 +193,7 @@ Use *Przetwórz kolejkę (do 100 AppID)* to verify the already collected
 candidates **without calling the keyed app-list API**. This queue-only mode
 can process manual pasted AppIDs and featured games without
 `STEAM_WEB_API_KEY`; it keeps all normal 10-item batch checkpoints.
-Use *Uruchom serię z odkrywaniem (do 100 AppID)* only when the server has a
+Use *Uruchom serię (do 100 AppID)* only when the server has a
 Steam Web API key, because it continues requesting new app-list pages after
 the pending queue is exhausted. The featured snapshot may contain already
 queued candidates, so fetching it repeatedly does not guarantee additional
