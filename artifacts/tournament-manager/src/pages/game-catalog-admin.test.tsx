@@ -142,6 +142,7 @@ function mount(path: string) {
 afterEach(() => {
   cleanup();
   window.sessionStorage.clear();
+  window.localStorage.clear();
   globalThis.fetch = originalFetch;
 });
 
@@ -183,6 +184,50 @@ test("search-only screen skips blank catalog scans, then searches after typing",
   await screen.findByText("Wpisz nazwę gry lub AppID.");
   await new Promise((resolve) => setTimeout(resolve, 275));
   assert.equal(requests.filter((request) => request.path.startsWith("/api/steam-catalog/games?")).length, 1);
+});
+
+test("Steam growth UI discovers candidate games, imports ten or fewer and stores progress", async () => {
+  mockCatalog([]);
+  const underlying = globalThis.fetch;
+  const operations: string[] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path === "/api/steam-catalog/discover") {
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body, { cursor: 0, pageSize: 50 });
+      operations.push("discovery");
+      return Response.json({
+        candidates: [{ appId: 570, name: "Dota 2" }, { appId: 730, name: "Counter-Strike 2" }],
+        scanned: 3, alreadyInCatalog: 1, nextCursor: 730, hasMore: true,
+      });
+    }
+    if (path === "/api/steam-catalog/import-batch") {
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.appIds, [570, 730]);
+      operations.push("batch");
+      return Response.json({
+        requested: 2, processed: 2, inserted: 1, existing: 0, ignored: 1, failed: 0,
+        aborted: false, rateLimited: false,
+        results: [{ appId: 570, status: "inserted" }, { appId: 730, status: "not_game" }],
+      });
+    }
+    return underlying(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Pobierz propozycje ze Steam/ }));
+  await screen.findByText("Dota 2");
+  assert.ok(screen.getByText("Counter-Strike 2"));
+  assert.ok(screen.getByText(/Oczekujące gry:.*2/));
+  fireEvent.click(screen.getByRole("button", { name: /Importuj 10 kolejnych/ }));
+  await screen.findByRole("status");
+  await waitFor(() => {
+    assert.ok(screen.getByText(/Oczekujące gry:.*0/));
+    const stored = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+    assert.equal(stored.cursor, 730);
+    assert.deepEqual(stored.candidates, []);
+  });
+  assert.deepEqual(operations, ["discovery", "batch"]);
 });
 
 test("catalog filters games by classification status and title", async () => {
