@@ -230,6 +230,37 @@ test("Steam growth UI discovers candidate games, imports ten or fewer and stores
   assert.deepEqual(operations, ["discovery", "batch"]);
 });
 
+test("pasted Steam AppIDs queue without Steam discovery API credentials", async () => {
+  mockCatalog([]);
+  const underlying = globalThis.fetch;
+  const batches: number[][] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/steam-catalog/import-batch") {
+      const parsed = JSON.parse(String(init?.body));
+      batches.push(parsed.appIds);
+      return Response.json({
+        requested: parsed.appIds.length, processed: parsed.appIds.length,
+        inserted: parsed.appIds.length, existing: 0, ignored: 0, failed: 0,
+        rateLimited: false, aborted: false,
+        results: parsed.appIds.map((appId: number) => ({ appId, status: "inserted" })),
+      });
+    }
+    return underlying(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.change(screen.getByLabelText(/Masz listę AppID/), {
+    target: { value: "570, 730\nhttps://store.steampowered.com/app/620/" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Dodaj AppID do kolejki/ }));
+  await screen.findByText("Steam AppID 570");
+  assert.ok(screen.getByText("Steam AppID 730"));
+  assert.ok(screen.getByText("Steam AppID 620"));
+  fireEvent.click(screen.getByRole("button", { name: /Importuj 10 kolejnych/ }));
+  await waitFor(() => assert.deepEqual(batches, [[570, 730, 620]]));
+  await waitFor(() => assert.ok(screen.getByText(/Oczekujące gry:.*0/)));
+});
+
 test("catalog filters games by classification status and title", async () => {
   mockCatalog([game(1, "Alpha", "ready"), game(2, "Beta", "review"), game(3, "Gamma")]);
   mount(`${BASE}/games`);
