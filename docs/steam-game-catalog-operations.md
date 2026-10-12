@@ -194,12 +194,13 @@ The `maxGames` limit counts **verified candidate AppIDs**, not guaranteed
 new titles. The recorded `inserted` field counts actual newly inserted
 records. `scanned` counts records returned by discovery and may be
 larger than `processed`. The separate normal catalog counts remain
-authoritative for total unique games. For a further run after completion,
-start a new job; the new task starts at AppID zero but skips existing
-games safely. To avoid repeatedly scanning the same start of the Steam
-catalog, prefer higher `maxGames` values for the initial backfill,
-or extend the job model to support a saved starting cursor before
-operating on very large catalogs.
+authoritative for total unique games. For further growth after completion, start another job. If the previous
+job reached its `maxGames` limit, the new job inherits its discovery cursor
+**and any remaining unprocessed candidates**. Chained jobs therefore
+continue the same backfill without skipping or rescanning those entries.
+If the previous task genuinely reached the end of the Steam discovery
+list, the next job begins a fresh scan at AppID zero to pick up future
+changes; already imported games are skipped.
 
 **Deployment limitations:** a live API server must stay running; an
 on-demand deployment that scales to zero cannot process while asleep.
