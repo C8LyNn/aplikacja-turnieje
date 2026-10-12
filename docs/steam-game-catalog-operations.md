@@ -203,7 +203,7 @@ newly inserted database rows.
 ### One-click SteamSpy discovery and verified import
 
 On the catalogue administrator's *Szukaj gry* screen, click
-**SteamSpy: odkryj i importuj do 100 AppID** for a single bounded session.
+**SteamSpy: automatyczna seria do 100 AppID** for a single bounded session.
 The action consumes any already queued AppIDs first, then fetches successive
 SteamSpy slices as needed, always checking each new candidate through the
 existing official Steam Store `appdetails` batch endpoint before inserting.
