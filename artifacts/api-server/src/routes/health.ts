@@ -11,7 +11,7 @@ export const MAX_DATABASE_HEALTH_TIMEOUT_MS = 15_000;
  * autosuspended PostgreSQL cold starts without storing any credentials.
  */
 export function resolveHealthTimeoutMs(raw: string | undefined): number {
-  if (!raw || !/^[1-9]\\d{0,4}$/.test(raw)) return DATABASE_HEALTH_TIMEOUT_MS;
+  if (!raw || !/^[1-9]\d{0,4}$/.test(raw)) return DATABASE_HEALTH_TIMEOUT_MS;
   const parsed = Number(raw);
   return Number.isSafeInteger(parsed) &&
     parsed >= DATABASE_HEALTH_TIMEOUT_MS &&
