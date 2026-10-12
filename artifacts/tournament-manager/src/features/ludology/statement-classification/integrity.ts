@@ -33,7 +33,13 @@ export type ResearchIntegrityIssue = {
     | "invalid_sampling_plan"
     | "orphan_discussion_link_discussion"
     | "orphan_discussion_link_argument"
-    | "duplicate_discussion_link";
+    | "duplicate_discussion_link"
+    | "orphan_argument_relation_discussion"
+    | "orphan_argument_relation_from"
+    | "orphan_argument_relation_to"
+    | "argument_relation_self"
+    | "argument_relation_endpoint_not_linked"
+    | "duplicate_argument_relation";
   message: string;
   entityId?: string;
 };
@@ -78,6 +84,7 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("samplingPlans", data.samplingPlans),
     ...duplicateIdIssues("discussions", data.discussions),
     ...duplicateIdIssues("discussionLinks", data.discussionLinks),
+    ...duplicateIdIssues("argumentRelations", data.argumentRelations),
   ];
 
   const people = new Set(data.people.map((item) => item.id));
@@ -359,6 +366,72 @@ export function checkResearchProjectIntegrity(
       });
     }
     discussionLinkKeys.add(duplicateKey);
+  }
+
+  const discussionLinksByDiscussion = new Map<string, Set<string>>();
+  for (const link of data.discussionLinks) {
+    const current = discussionLinksByDiscussion.get(link.discussionId) ?? new Set<string>();
+    current.add(link.argumentId);
+    discussionLinksByDiscussion.set(link.discussionId, current);
+  }
+
+  const argumentRelationKeys = new Set<string>();
+  for (const relation of data.argumentRelations) {
+    if (!discussions.has(relation.discussionId)) {
+      issues.push({
+        code: "orphan_argument_relation_discussion",
+        entityId: relation.id,
+        message: "Relacja argumentów wskazuje nieistniejącą debatę.",
+      });
+    }
+    if (!argumentsById.has(relation.fromArgumentId)) {
+      issues.push({
+        code: "orphan_argument_relation_from",
+        entityId: relation.id,
+        message: "Relacja argumentów ma nieistniejący argument źródłowy.",
+      });
+    }
+    if (!argumentsById.has(relation.toArgumentId)) {
+      issues.push({
+        code: "orphan_argument_relation_to",
+        entityId: relation.id,
+        message: "Relacja argumentów ma nieistniejący argument docelowy.",
+      });
+    }
+    if (relation.fromArgumentId === relation.toArgumentId) {
+      issues.push({
+        code: "argument_relation_self",
+        entityId: relation.id,
+        message: "Argument nie może tworzyć relacji sam ze sobą.",
+      });
+    }
+
+    const linked = discussionLinksByDiscussion.get(relation.discussionId);
+    if (
+      linked &&
+      (!linked.has(relation.fromArgumentId) || !linked.has(relation.toArgumentId))
+    ) {
+      issues.push({
+        code: "argument_relation_endpoint_not_linked",
+        entityId: relation.id,
+        message: "Oba końce relacji muszą być przypisane do tej samej debaty.",
+      });
+    }
+
+    const duplicateKey = [
+      relation.discussionId,
+      relation.fromArgumentId,
+      relation.toArgumentId,
+      relation.relation,
+    ].join("::");
+    if (argumentRelationKeys.has(duplicateKey)) {
+      issues.push({
+        code: "duplicate_argument_relation",
+        entityId: relation.id,
+        message: "Ta sama relacja między argumentami została zduplikowana.",
+      });
+    }
+    argumentRelationKeys.add(duplicateKey);
   }
 
   const assessmentKeys = new Set<string>();
