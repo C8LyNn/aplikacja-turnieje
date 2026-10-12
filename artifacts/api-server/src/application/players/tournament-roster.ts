@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, ne, sql } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -10,6 +10,7 @@ import {
   type TournamentMutationActor,
 } from "../../access-policy";
 import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
+import { parseUndoPayloadForAction } from "../../domain/tournament/undo-payload";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -54,6 +55,36 @@ type PlayerUpdate = Partial<
     "name" | "rank" | "country" | "teamName" | "seed" | "status"
   >
 >;
+
+/** Only editable player fields belong in undo state: never persist credentials or database ownership. */
+function playerUndoState(player: typeof playersTable.$inferSelect) {
+  return {
+    name: player.name,
+    rank: player.rank,
+    country: player.country,
+    teamName: player.teamName,
+    seed: player.seed,
+    status: player.status,
+  };
+}
+
+/**
+ * Compare a persisted post-write snapshot to the current player record.
+ * Older action logs have no nextData and must not blindly overwrite later edits.
+ */
+function matchesExpectedPlayerUndoState(
+  player: typeof playersTable.$inferSelect,
+  expected: unknown,
+): boolean {
+  if (!expected || typeof expected !== "object" || Array.isArray(expected)) return false;
+  const candidate = expected as Record<string, unknown>;
+  const current = playerUndoState(player);
+  const keys = Object.keys(current) as Array<keyof typeof current>;
+  if (Object.keys(candidate).length !== keys.length) return false;
+  return keys.every((key) =>
+    Object.prototype.hasOwnProperty.call(candidate, key) && candidate[key] === current[key],
+  );
+}
 
 async function lockDraftTournament(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
@@ -119,7 +150,11 @@ export async function addTournamentPlayer(input: {
       tournamentId: input.tournamentId,
       actionType: "player_added",
       description: `Dodano gracza: ${player.name}${player.seed ? ` (seed ${player.seed})` : ""}`,
-      undoPayload: JSON.stringify({ type: "delete_player", playerId: player.id }),
+      undoPayload: JSON.stringify({
+        type: "delete_player",
+        playerId: player.id,
+        nextData: playerUndoState(player),
+      }),
       isUndone: false,
     });
     return player;
@@ -162,13 +197,8 @@ export async function updateTournamentPlayer(input: {
       undoPayload: JSON.stringify({
         type: "restore_player",
         playerId: player.id,
-        prevData: {
-          name: existing.name,
-          seed: existing.seed,
-          rank: existing.rank,
-          country: existing.country,
-          teamName: existing.teamName,
-        },
+        prevData: playerUndoState(existing),
+        nextData: playerUndoState(player),
       }),
       isUndone: false,
     });
@@ -205,6 +235,45 @@ export async function deleteTournamentPlayer(input: {
   });
 }
 
+/**
+ * Reconstruct only the editable player fields stored in historical snapshots.
+ * Never forward arbitrary imported JSON keys to Drizzle's update().set().
+ */
+function validatedPlayerUndoSnapshot(value: unknown): PlayerUpdate {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+  }
+  const source = value as Record<string, unknown>;
+  const allowed = new Set(["name", "rank", "country", "teamName", "seed", "status"]);
+  if (Object.keys(source).some((key) => !allowed.has(key)) ||
+      typeof source.name !== "string" || !source.name.trim()) {
+    throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+  }
+  const changes: PlayerUpdate = { name: source.name.trim() };
+  for (const field of ["rank", "country", "teamName"] as const) {
+    if (!(field in source)) continue;
+    const rawValue = source[field];
+    if (rawValue !== null && typeof rawValue !== "string") {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes[field] = rawValue as string | null;
+  }
+  if ("seed" in source) {
+    const seed = source.seed;
+    if (seed !== null && (!Number.isSafeInteger(seed) || (seed as number) <= 0)) {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes.seed = seed as number | null;
+  }
+  if ("status" in source) {
+    if (!["active", "eliminated", "winner"].includes(source.status as string)) {
+      throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+    }
+    changes.status = source.status as "active" | "eliminated" | "winner";
+  }
+  return changes;
+}
+
 export async function undoTournamentRosterAction(input: {
   tournamentId: number;
   actionId: number;
@@ -226,15 +295,30 @@ export async function undoTournamentRosterAction(input: {
     if (!action?.undoPayload)
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
 
-    let payload: Record<string, unknown>;
-    try {
-      payload = JSON.parse(action.undoPayload) as Record<string, unknown>;
-    } catch {
+    // undo-last reads the candidate before taking the tournament lock. A
+    // concurrent roster mutation may have appended a newer undoable action.
+    const [latestUndoableAction] = await tx.select({ id: actionLogTable.id })
+      .from(actionLogTable)
+      .where(and(
+        eq(actionLogTable.tournamentId, input.tournamentId),
+        eq(actionLogTable.isUndone, false),
+        sql`${actionLogTable.undoPayload} IS NOT NULL`,
+      ))
+      .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+      .limit(1);
+    if (latestUndoableAction?.id !== action.id) {
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
     }
 
+    const payload = parseUndoPayloadForAction(action.actionType, action.undoPayload);
+    if (!payload) throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+
     if (payload.type === "delete_player") {
-      const playerId = Number(payload.playerId);
+      const playerId = payload.playerId;
+      if (typeof playerId !== "number" ||
+          !Number.isSafeInteger(playerId) || playerId < 1) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -246,6 +330,9 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
+      if (!matchesExpectedPlayerUndoState(player, payload.nextData)) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       await tx.delete(playersTable).where(eq(playersTable.id, playerId));
       await tx.insert(actionLogTable).values({
         tournamentId: input.tournamentId,
@@ -254,10 +341,12 @@ export async function undoTournamentRosterAction(input: {
         isUndone: false,
       });
     } else if (payload.type === "restore_player") {
-      const playerId = Number(payload.playerId);
-      const prevData = payload.prevData;
-      if (!prevData || typeof prevData !== "object" || Array.isArray(prevData))
+      const playerId = payload.playerId;
+      if (typeof playerId !== "number" ||
+          !Number.isSafeInteger(playerId) || playerId < 1) {
         throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
+      const changes = validatedPlayerUndoSnapshot(payload.prevData);
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -269,9 +358,10 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
-      const changes = prevData as PlayerUpdate;
+      if (!matchesExpectedPlayerUndoState(player, payload.nextData)) {
+        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      }
       if (changes.name != null) {
-        changes.name = String(changes.name).trim();
         await assertUniqueName(tx, input.tournamentId, changes.name, playerId);
       }
       await tx.update(playersTable).set(changes).where(eq(playersTable.id, playerId));

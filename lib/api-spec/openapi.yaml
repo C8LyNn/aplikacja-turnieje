@@ -1342,7 +1342,7 @@ paths:
                   error:
                     type: string
         "409":
-          description: The result was already reverted or changed concurrently
+          description: Undo conflict — operation superseded, malformed stored history, or current match/roster state changed
           content:
             application/json:
               schema:
@@ -1589,6 +1589,7 @@ paths:
     patch:
       operationId: updateMatch
       tags: [matches]
+      description: Updating status and bestOf in the same PATCH is rejected; submit them as separate operations.
       parameters:
         - name: id
           in: path
@@ -1608,6 +1609,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Match"
+        "422":
+          description: Invalid status/BO transition or combined status and bestOf update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /matches/{id}/complete:
     post:

@@ -106,6 +106,10 @@ import {
   getTargetStageInputArrivals,
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
+import {
+  isUndoPayloadStructurallyAvailable,
+  parseUndoPayloadForAction,
+} from "../domain/tournament/undo-payload";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
@@ -346,7 +350,8 @@ function sendTournamentRosterError(
 ): void {
   const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND"
     ? 404
-    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME"
+    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME" ||
+        error.code === "ROSTER_UNDO_UNAVAILABLE"
       ? 409
       : 422;
   res.status(status).json({ error: error.message, code: error.code });
@@ -1330,6 +1335,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
             undoPayload: JSON.stringify({
               type: "restore_featured",
               prevFeaturedMatchId: prevT.featuredMatchId,
+              nextFeaturedMatchId: newFeatured,
             }),
             isUndone: false,
           });
@@ -2223,10 +2229,25 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
     actionType: entry.actionType,
     description: entry.description,
     matchId: entry.matchId ?? null,
-    canUndo: UNDOABLE_TYPES.has(entry.actionType) && !entry.isUndone && !!entry.undoPayload,
+    canUndo: UNDOABLE_TYPES.has(entry.actionType) &&
+      !entry.isUndone &&
+      isUndoPayloadStructurallyAvailable(entry.actionType, entry.undoPayload),
     isUndone: entry.isUndone,
     createdAt: entry.createdAt.toISOString(),
   };
+}
+
+function requireUndoMatchId(
+  payload: Record<string, unknown>,
+  action: typeof actionLogTable.$inferSelect,
+): number {
+  const matchId = payload.matchId;
+  if (!Number.isSafeInteger(matchId) ||
+      (matchId as number) < 1 ||
+      action.matchId !== matchId) {
+    throw new RevertMatchError("UNDO_ACTION_CHANGED");
+  }
+  return matchId as number;
 }
 
 function sendRevertMatchError(
@@ -2314,7 +2335,11 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  const payload = JSON.parse(lastAction.undoPayload) as Record<string, unknown>;
+  const payload = parseUndoPayloadForAction(lastAction.actionType, lastAction.undoPayload);
+  if (!payload) {
+    sendRevertMatchError(new RevertMatchError("UNDO_ACTION_CHANGED"), res);
+    return;
+  }
 
   if (payload.type === "delete_player" || payload.type === "restore_player") {
     try {
@@ -2339,10 +2364,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 
   try {
     if (payload.type === "revert_match") {
-      const matchId = payload.matchId as number;
-      if (!Number.isInteger(matchId) || matchId < 1) {
-        throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
-      }
+      const matchId = requireUndoMatchId(payload, lastAction);
       const result = await revertMatch({
         matchId,
         expectedTournamentId: params.data.id,
@@ -2373,15 +2395,60 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         ) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
-        const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
-        if (lockedPayload.type !== payload.type) {
+        // The candidate was read before obtaining the tournament mutation lock.
+        // Recheck ordering here: another request may have appended a newer undoable
+        // action while this request was waiting for the lock.
+        const [latestUndoableAction] = await tx
+          .select({ id: actionLogTable.id })
+          .from(actionLogTable)
+          .where(and(
+            eq(actionLogTable.tournamentId, params.data.id),
+            eq(actionLogTable.isUndone, false),
+            sql`${actionLogTable.undoPayload} IS NOT NULL`,
+          ))
+          .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+          .limit(1);
+        if (latestUndoableAction?.id !== lockedAction.id) {
+          throw new RevertMatchError("UNDO_ACTION_CHANGED");
+        }
+        const lockedPayload = parseUndoPayloadForAction(
+          lockedAction.actionType,
+          lockedAction.undoPayload,
+        );
+        if (!lockedPayload ||
+            lockedAction.actionType !== lastAction.actionType ||
+            lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
 
         switch (lockedPayload.type) {
           case "restore_status": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevStatus = lockedPayload.prevStatus as string;
+            // Legacy undo entries predate nextStatus. Infer only documented status transitions.
+            const expectedStatus = lockedPayload.nextStatus ??
+              (lockedAction.actionType === "match_started" ? "in_progress" :
+                lockedAction.actionType === "match_postponed" ? "postponed" :
+                  lockedAction.actionType === "match_restored" ? "pending" : null);
+            const [currentMatch] = await tx.select({
+              status: matchesTable.status,
+              revision: matchesTable.revision,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (!currentMatch ||
+                !["pending", "in_progress", "postponed", "cancelled"].includes(prevStatus) ||
+                typeof expectedStatus !== "string" ||
+                prevStatus === expectedStatus ||
+                currentMatch.status !== expectedStatus ||
+                currentMatch.completedAt != null || currentMatch.resultType != null ||
+                (lockedPayload.nextRevision != null &&
+                  currentMatch.revision !== lockedPayload.nextRevision)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
             await tx.update(matchesTable).set({ status: prevStatus as any }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
@@ -2390,9 +2457,37 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_best_of": {
-            const matchId = lockedPayload.matchId as number;
-            const prevBestOf = lockedPayload.prevBestOf as number;
-            await tx.update(matchesTable).set({ bestOf: prevBestOf }).where(and(
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
+            const prevBestOf = lockedPayload.prevBestOf;
+            // Older actions contain the target BO only in the standard action description.
+            const legacyNextBestOf = lockedAction.actionType === "match_bo_changed"
+              ? / → BO([1-9][0-9]*)$/.exec(lockedAction.description)?.[1]
+              : undefined;
+            const expectedBestOf = lockedPayload.nextBestOf ??
+              (legacyNextBestOf == null ? undefined : Number(legacyNextBestOf));
+            const [currentMatch] = await tx.select({
+              bestOf: matchesTable.bestOf,
+              status: matchesTable.status,
+              revision: matchesTable.revision,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (lockedAction.actionType !== "match_bo_changed" ||
+                !Number.isSafeInteger(prevBestOf) || (prevBestOf as number) < 1 ||
+                (prevBestOf as number) % 2 !== 1 ||
+                !Number.isSafeInteger(expectedBestOf) || (expectedBestOf as number) < 1 ||
+                (expectedBestOf as number) % 2 !== 1 ||
+                !currentMatch || currentMatch.status !== "pending" ||
+                currentMatch.completedAt != null || currentMatch.resultType != null ||
+                currentMatch.bestOf !== expectedBestOf ||
+                (lockedPayload.nextRevision != null &&
+                  currentMatch.revision !== lockedPayload.nextRevision)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            await tx.update(matchesTable).set({ bestOf: prevBestOf as number }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             ));
@@ -2400,16 +2495,67 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_featured": {
-            const prevFeaturedMatchId = (lockedPayload.prevFeaturedMatchId as number) ?? null;
-            await tx.update(tournamentsTable).set({ featuredMatchId: prevFeaturedMatchId }).where(eq(tournamentsTable.id, params.data.id));
+            const prevFeaturedMatchId = lockedPayload.prevFeaturedMatchId ?? null;
+            // Existing action rows have no nextFeaturedMatchId: derive it from their
+            // immutable action type / matchId, rather than trusting current state.
+            const expectedFeaturedMatchId = lockedPayload.nextFeaturedMatchId ??
+              (lockedAction.actionType === "match_unfeatured" ? null : lockedAction.matchId);
+            const [currentTournament] = await tx.select({
+              featuredMatchId: tournamentsTable.featuredMatchId,
+            }).from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id)).for("update");
+            if (!currentTournament ||
+                !["match_featured", "match_unfeatured"].includes(lockedAction.actionType) ||
+                !(prevFeaturedMatchId === null ||
+                  (Number.isSafeInteger(prevFeaturedMatchId) && (prevFeaturedMatchId as number) > 0)) ||
+                !(expectedFeaturedMatchId === null ||
+                  (Number.isSafeInteger(expectedFeaturedMatchId) && (expectedFeaturedMatchId as number) > 0)) ||
+                currentTournament.featuredMatchId !== expectedFeaturedMatchId ||
+                (lockedAction.actionType === "match_featured" && expectedFeaturedMatchId === null) ||
+                (lockedAction.actionType === "match_unfeatured" && expectedFeaturedMatchId !== null)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            if (prevFeaturedMatchId !== null) {
+              const [previousFeatured] = await tx.select({ id: matchesTable.id })
+                .from(matchesTable).where(and(
+                  eq(matchesTable.id, prevFeaturedMatchId as number),
+                  eq(matchesTable.tournamentId, params.data.id),
+                ));
+              if (!previousFeatured) throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            await tx.update(tournamentsTable).set({ featuredMatchId: prevFeaturedMatchId as number | null }).where(eq(tournamentsTable.id, params.data.id));
             await logAction({ tournamentId: params.data.id, actionType: "match_result_reverted", description: "Cofnięto zmianę wyróżnionego meczu" }, tx);
             break;
           }
           case "restore_cancelled_match": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevStatus = lockedPayload.prevStatus as string;
-            const prevNote = (lockedPayload.prevNote as string | null) ?? null;
-            await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote }).where(and(
+            const prevNote = lockedPayload.prevNote ?? null;
+            if (!["pending", "in_progress", "postponed"].includes(prevStatus) ||
+                !(prevNote === null || typeof prevNote === "string")) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            // Old cancellation logs lack nextNote: undo only when the current note
+            // still matches the pre-cancellation note, never overwrite unknown edits.
+            const expectedNote = lockedPayload.nextNote === undefined
+              ? prevNote : lockedPayload.nextNote;
+            const [currentMatch] = await tx.select({
+              status: matchesTable.status,
+              note: matchesTable.note,
+              revision: matchesTable.revision,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (!currentMatch || currentMatch.status !== "cancelled" ||
+                currentMatch.note !== expectedNote ||
+                currentMatch.completedAt != null || currentMatch.resultType != null ||
+                (lockedPayload.nextRevision != null &&
+                  currentMatch.revision !== lockedPayload.nextRevision)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            await tx.update(matchesTable).set({ status: prevStatus as any, note: prevNote as string | null }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             ));
@@ -2417,17 +2563,62 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_players_swap": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
+            const originalP1 = lockedPayload.player1Id ?? null;
+            const originalP2 = lockedPayload.player2Id ?? null;
+            const originalS1 = lockedPayload.score1 ?? null;
+            const originalS2 = lockedPayload.score2 ?? null;
+            const [currentMatch] = await tx.select({
+              player1Id: matchesTable.player1Id,
+              player2Id: matchesTable.player2Id,
+              score1: matchesTable.score1,
+              score2: matchesTable.score2,
+              status: matchesTable.status,
+              revision: matchesTable.revision,
+              completedAt: matchesTable.completedAt,
+              resultType: matchesTable.resultType,
+            }).from(matchesTable).where(and(
+              eq(matchesTable.id, matchId),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+            if (lockedAction.actionType !== "match_players_swapped" ||
+                !currentMatch || currentMatch.status === "completed" ||
+                (lockedPayload.nextStatus !== undefined
+                  ? currentMatch.status !== lockedPayload.nextStatus
+                  : currentMatch.status === "cancelled") ||
+                currentMatch.completedAt != null || currentMatch.resultType != null ||
+                currentMatch.player1Id !== originalP2 ||
+                currentMatch.player2Id !== originalP1 ||
+                currentMatch.score1 !== originalS2 ||
+                currentMatch.score2 !== originalS1 ||
+                (lockedPayload.nextRevision != null &&
+                  currentMatch.revision !== lockedPayload.nextRevision)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
+            const currentPicks = await tx.select({
+              gameNumber: matchGamePicksTable.gameNumber,
+              player1HeroId: matchGamePicksTable.player1HeroId,
+              player2HeroId: matchGamePicksTable.player2HeroId,
+              player1Side: matchGamePicksTable.player1Side,
+            }).from(matchGamePicksTable).where(eq(matchGamePicksTable.matchId, matchId))
+              .orderBy(matchGamePicksTable.gameNumber).for("update");
+            // Older swaps lack a pick snapshot: only allow their undo when no picks
+            // exist, otherwise we cannot establish that no picks changed afterwards.
+            if (lockedPayload.nextPicks === undefined) {
+              if (currentPicks.length) throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            } else if (JSON.stringify(currentPicks) !== JSON.stringify(lockedPayload.nextPicks)) {
+              throw new RevertMatchError("UNDO_ACTION_CHANGED");
+            }
             await tx.update(matchesTable).set({
-              player1Id: (lockedPayload.player1Id as number | null) ?? null,
-              player2Id: (lockedPayload.player2Id as number | null) ?? null,
-              score1: (lockedPayload.score1 as number | null) ?? null,
-              score2: (lockedPayload.score2 as number | null) ?? null,
+              player1Id: originalP1 as number | null,
+              player2Id: originalP2 as number | null,
+              score1: originalS1 as number | null,
+              score2: originalS2 as number | null,
             }).where(and(
               eq(matchesTable.id, matchId),
               eq(matchesTable.tournamentId, params.data.id),
             ));
-            // Also restore hero picks and sides (swap is symmetric — same SQL restores original values)
+            // With unchanged picks, swapping the sides back restores exactly the previous rows.
             await tx
               .update(matchGamePicksTable)
               .set({
@@ -2569,6 +2760,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       if (lockedMatch.status === "cancelled" && parsed.data.status != null) {
         throw new Error("CANCELLED_MATCH_PATCH_FORBIDDEN");
       }
+      // One PATCH must not generate two independent undo actions that share
+      // the same match revision: the second undo would invalidate the first.
+      if (parsed.data.status != null && parsed.data.bestOf != null) {
+        throw new Error("COMBINED_STATUS_BEST_OF_FORBIDDEN");
+      }
       if (
         lockedMatch.status === "completed" &&
         (parsed.data.status != null || parsed.data.bestOf != null)
@@ -2598,15 +2794,15 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         const playerMap = new Map(players.map((player) => [player.id, player.name]));
         const matchLabel = `R${lockedMatch.round}M${lockedMatch.matchNumber}: ${playerMap.get(lockedMatch.player1Id ?? 0) ?? "TBD"} vs ${playerMap.get(lockedMatch.player2Id ?? 0) ?? "TBD"}`;
         if (parsed.data.status === "in_progress") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_started", description: `Rozpoczęto mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status, nextStatus: parsed.data.status, nextRevision: saved.revision } }, tx);
         } else if (parsed.data.status === "postponed") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_postponed", description: `Przełożono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: lockedMatch.status, nextStatus: parsed.data.status, nextRevision: saved.revision } }, tx);
         } else if (parsed.data.status === "pending" && lockedMatch.status === "postponed") {
-          await logAction({ tournamentId: saved.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: "postponed" } }, tx);
+          await logAction({ tournamentId: saved.tournamentId, actionType: "match_restored", description: `Przywrócono mecz ${matchLabel}`, matchId: saved.id, undoPayload: { type: "restore_status", matchId: saved.id, prevStatus: "postponed", nextStatus: "pending", nextRevision: saved.revision } }, tx);
         }
       }
       if (parsed.data.bestOf != null && parsed.data.bestOf !== lockedMatch.bestOf) {
-        await logAction({ tournamentId: saved.tournamentId, actionType: "match_bo_changed", description: `Zmieniono format meczu R${saved.round}M${saved.matchNumber}: BO${lockedMatch.bestOf ?? 1} → BO${saved.bestOf}`, matchId: saved.id, undoPayload: { type: "restore_best_of", matchId: saved.id, prevBestOf: lockedMatch.bestOf ?? 1 } }, tx);
+        await logAction({ tournamentId: saved.tournamentId, actionType: "match_bo_changed", description: `Zmieniono format meczu R${saved.round}M${saved.matchNumber}: BO${lockedMatch.bestOf ?? 1} → BO${saved.bestOf}`, matchId: saved.id, undoPayload: { type: "restore_best_of", matchId: saved.id, prevBestOf: lockedMatch.bestOf ?? 1, nextBestOf: saved.bestOf, nextRevision: saved.revision } }, tx);
       }
       return saved;
     },
@@ -2623,6 +2819,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         status: 422,
         error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
         code: "FINALIZED_MATCH_PATCH_FORBIDDEN",
+      },
+      COMBINED_STATUS_BEST_OF_FORBIDDEN: {
+        status: 422,
+        error: "Status meczu i bestOf zmieniaj oddzielnymi operacjami.",
+        code: "COMBINED_STATUS_BEST_OF_FORBIDDEN",
       },
       INVALID_BEST_OF: {
         status: 422,
@@ -2786,6 +2987,8 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
           matchId: lockedMatch.id,
           prevStatus: lockedMatch.status,
           prevNote: lockedMatch.note,
+          nextNote: saved.note,
+          nextRevision: saved.revision,
         },
       }, tx);
       return saved;
@@ -2839,7 +3042,7 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         actionType: "match_restored",
         description: `Przywrócono anulowany mecz ${matchLabel}`,
         matchId: lockedMatch.id,
-        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled" },
+        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled", nextStatus: "pending", nextRevision: saved.revision },
       }, tx);
       return saved;
     },
@@ -2897,6 +3100,13 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
           updatedAt: new Date(),
         })
         .where(eq(matchGamePicksTable.matchId, params.data.id));
+      const nextPicks = await tx.select({
+        gameNumber: matchGamePicksTable.gameNumber,
+        player1HeroId: matchGamePicksTable.player1HeroId,
+        player2HeroId: matchGamePicksTable.player2HeroId,
+        player1Side: matchGamePicksTable.player1Side,
+      }).from(matchGamePicksTable).where(eq(matchGamePicksTable.matchId, params.data.id))
+        .orderBy(matchGamePicksTable.gameNumber);
       const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
       const namePlayers = p1Ids.length > 0
         ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
@@ -2914,6 +3124,9 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
           player2Id: lockedMatch.player2Id,
           score1: lockedMatch.score1,
           score2: lockedMatch.score2,
+          nextRevision: saved.revision,
+          nextStatus: saved.status,
+          nextPicks,
         },
       }, tx);
       return saved;

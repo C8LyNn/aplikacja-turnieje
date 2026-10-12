@@ -187,3 +187,287 @@ test("migration upgrades existing results without changing them and is safe to r
   await database.pool.query(sql);
   assert.equal((await f.read()).revision, 2, "replaying migration must not reset versions");
 });
+
+
+test("undo-last restores an unchanged cancellation and preserves the prior note", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).patch(url).set(f.auth).send({ note: "Original operator note" }).expect(200);
+  await request(app).post(`${url}/cancel`).set(f.auth)
+    .send({ note: "Cancellation only" }).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  const restored = await f.read();
+  assert.equal(restored.status, "pending");
+  assert.equal(restored.note, "Original operator note");
+});
+
+test("undo-last refuses stale cancellation without changing data or action history", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth)
+    .send({ note: "Cancelled" }).expect(200);
+  // Simulate an out-of-band state change, as during drift or a legacy import.
+  await database.pool.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.match.id]);
+  const baseline = await f.snapshot();
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await f.snapshot(), baseline);
+});
+
+test("undo-last refuses stale restoration without overwriting a newer match status", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).post(`${url}/cancel`).set(f.auth).send({}).expect(200);
+  await request(app).post(`${url}/restore-cancelled`).set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "pending");
+  await database.pool.query("UPDATE matches SET status='postponed' WHERE id=$1", [f.match.id]);
+  const baseline = await f.snapshot();
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await f.snapshot(), baseline);
+});
+
+async function undoSnapshot(tournamentId: number, matchId: number) {
+  const [matchRows, tournamentRows, pickRows, actionRows] = await Promise.all([
+    database.pool.query("SELECT * FROM matches WHERE id=$1", [matchId]),
+    database.pool.query("SELECT * FROM tournaments WHERE id=$1", [tournamentId]),
+    database.pool.query("SELECT * FROM match_game_picks WHERE match_id=$1 ORDER BY game_number", [matchId]),
+    database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [tournamentId]),
+  ]);
+  return {
+    match: matchRows.rows,
+    featuredMatchId: tournamentRows.rows[0]?.featured_match_id,
+    picks: pickRows.rows,
+    actions: actionRows.rows,
+  };
+}
+
+test("undo-last safely restores BO while a pending match is unchanged", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).patch(url).set(f.auth).send({ bestOf: 3 }).expect(200);
+  assert.equal((await f.read()).bestOf, 3);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await f.read()).bestOf, 1);
+});
+
+test("undo-last rejects a stale BO change without modifying the match or log", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ bestOf: 3 }).expect(200);
+  await database.pool.query("UPDATE matches SET best_of=5 WHERE id=$1", [f.match.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last restores a featured match when no later change occurred", async () => {
+  const f = await fixture();
+  const url = `/api/tournaments/${f.id}`;
+  await request(app).patch(url).set(f.auth)
+    .send({ featuredMatchId: f.match.id }).expect(200);
+  let state = await undoSnapshot(f.id, f.match.id);
+  assert.equal(state.featuredMatchId, f.match.id);
+  await request(app).post(`${url}/undo-last`).set(f.auth).expect(200);
+  state = await undoSnapshot(f.id, f.match.id);
+  assert.equal(state.featuredMatchId, null);
+});
+
+test("undo-last rejects a stale featured match pointer", async () => {
+  const f = await fixture();
+  const matches = (await request(app).get(`/api/tournaments/${f.id}/matches`).expect(200)).body;
+  const otherMatchId = matches.find((m: { id: number }) => m.id !== f.match.id)?.id as number;
+  assert.ok(otherMatchId, "fixture must have a second match");
+  await request(app).patch(`/api/tournaments/${f.id}`).set(f.auth)
+    .send({ featuredMatchId: f.match.id }).expect(200);
+  await database.pool.query("UPDATE tournaments SET featured_match_id=$1 WHERE id=$2", [otherMatchId, f.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last restores swapped players and unmodified Deadlock picks", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id, player1_side) VALUES ($1,1,'hero-a','hero-b','archmother')",
+    [f.match.id],
+  );
+  const original = await undoSnapshot(f.id, f.match.id);
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  const swapped = await undoSnapshot(f.id, f.match.id);
+  assert.equal(swapped.match[0].player1_id, original.match[0].player2_id);
+  assert.equal(swapped.picks[0].player1_hero_id, "hero-b");
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  const restored = await undoSnapshot(f.id, f.match.id);
+  assert.equal(restored.match[0].player1_id, original.match[0].player1_id);
+  assert.equal(restored.match[0].player2_id, original.match[0].player2_id);
+  assert.equal(restored.picks[0].player1_hero_id, "hero-a");
+  assert.equal(restored.picks[0].player2_hero_id, "hero-b");
+  assert.equal(restored.picks[0].player1_side, "archmother");
+});
+
+test("undo-last rejects a swap when a pick was edited after swapping", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id, player1_side) VALUES ($1,1,'hero-a','hero-b','archmother')",
+    [f.match.id],
+  );
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query(
+    "UPDATE match_game_picks SET player1_hero_id='edited-later' WHERE match_id=$1 AND game_number=1",
+    [f.match.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last rejects a swap after the match revision changed", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query("UPDATE matches SET best_of=3 WHERE id=$1", [f.match.id]);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last supports an older BO action with no nextBestOf metadata", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ bestOf: 3 }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextBestOf' - 'nextRevision')::text WHERE tournament_id=$1 AND action_type='match_bo_changed'",
+    [f.id],
+  );
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await f.read()).bestOf, 1);
+});
+
+test("undo-last restores the last unfeatured match using the new history payload", async () => {
+  const f = await fixture();
+  const url = `/api/tournaments/${f.id}`;
+  await request(app).patch(url).set(f.auth).send({ featuredMatchId: f.match.id }).expect(200);
+  await request(app).patch(url).set(f.auth).send({ featuredMatchId: null }).expect(200);
+  assert.equal((await undoSnapshot(f.id, f.match.id)).featuredMatchId, null);
+  await request(app).post(`${url}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await undoSnapshot(f.id, f.match.id)).featuredMatchId, f.match.id);
+});
+
+test("legacy swap action without a pick snapshot refuses undo when picks exist", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id) VALUES ($1,1,'hero-a','hero-b')",
+    [f.match.id],
+  );
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextPicks' - 'nextRevision' - 'nextStatus')::text WHERE tournament_id=$1 AND action_type='match_players_swapped'",
+    [f.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last rejects ABA status changes that return to the same visible status", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ status: "in_progress" }).expect(200);
+  const initialRevision = (await f.read()).revision;
+  await database.pool.query("UPDATE matches SET status='postponed' WHERE id=$1", [f.match.id]);
+  await database.pool.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.match.id]);
+  assert.equal((await f.read()).status, "in_progress");
+  assert.ok((await f.read()).revision > initialRevision);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last refuses ABA cancellation when the match revision has changed", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth)
+    .send({ note: "Cancelled by organizer" }).expect(200);
+  const initialRevision = (await f.read()).revision;
+  await database.pool.query("UPDATE matches SET status='pending' WHERE id=$1", [f.match.id]);
+  await database.pool.query("UPDATE matches SET status='cancelled' WHERE id=$1", [f.match.id]);
+  assert.equal((await f.read()).status, "cancelled");
+  assert.ok((await f.read()).revision > initialRevision);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("undo-last accepts the current match-start status and restores pending", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ status: "in_progress" }).expect(200);
+  assert.equal((await f.read()).status, "in_progress");
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "pending");
+});
+
+test("undo-last reverses dedicated cancelled-match restoration without overwriting new data", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).post(`${url}/cancel`).set(f.auth)
+    .send({ note: "Cancelled" }).expect(200);
+  await request(app).post(`${url}/restore-cancelled`).set(f.auth).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+});
+
+test("undo-last does not overwrite a note edited after cancellation", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  await request(app).post(`${url}/cancel`).set(f.auth)
+    .send({ note: "Initial cancellation note" }).expect(200);
+  await request(app).patch(url).set(f.auth)
+    .send({ note: "Operator updated the note" }).expect(200);
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("old cancellation logs fail closed if cancellation changed the note", async () => {
+  const f = await fixture();
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth)
+    .send({ note: "New cancellation note" }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextNote' - 'nextRevision')::text WHERE tournament_id=$1 AND action_type='match_cancelled'",
+    [f.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
+
+test("PATCH refuses combined BO and status mutations without creating two undo actions", async () => {
+  const f = await fixture();
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).patch(`/api/matches/${f.match.id}`)
+    .set(f.auth).send({ status: "in_progress", bestOf: 3 }).expect(422);
+  assert.equal(rejected.body.code, "COMBINED_STATUS_BEST_OF_FORBIDDEN");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
