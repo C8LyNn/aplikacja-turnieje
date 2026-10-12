@@ -105,6 +105,8 @@ function Router() {
 
       <Route path="/ludology/statement-classification/compare" component={StatementClassificationPage} />
 
+      <Route path="/ludology/statement-classification/adjudication" component={StatementClassificationPage} />
+
       <Route path="/ludology/statement-classification/sources" component={StatementClassificationPage} />
 
       <Route path="/ludology/statement-classification/fragments" component={StatementClassificationPage} />
