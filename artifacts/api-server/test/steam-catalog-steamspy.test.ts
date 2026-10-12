@@ -34,6 +34,7 @@ test("SteamSpy candidate parser only accepts real positive numeric AppIDs and na
   assert.equal(parseSteamSpyAllPage(null), null);
   assert.equal(parseSteamSpyAllPage([]), null);
   assert.deepEqual(parseSteamSpyAllPage({}), []);
+  assert.equal(parseSteamSpyAllPage({ error: "Too many requests" }), null);
 });
 
 test("SteamSpy paging is a lossless sequence through a 1000-entry response", () => {
