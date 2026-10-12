@@ -6,6 +6,7 @@ import {
   canonicalCodingPair,
   latestCodingAdjudication,
   snapshotCoding,
+  snapshotExcerpt,
   validateAdjudicationInput,
 } from "./adjudication-protocol";
 import { checkResearchProjectIntegrity } from "./integrity";
@@ -41,6 +42,7 @@ const event = (overrides: Partial<CodingAdjudication> = {}): CodingAdjudication 
   ...input(), id: "review1", codebookId: "b", excerptId: "e", propositionId: "q",
   codingASnapshot: snapshotCoding(coding("ca", "a", -1)),
   codingBSnapshot: snapshotCoding(coding("cb", "b", 1)),
+  excerptSnapshot: snapshotExcerpt(fixture().excerpts[0]!),
   createdAt: "2026-10-12T14:00:00Z", ...overrides,
 });
 
@@ -120,4 +122,18 @@ test("review flags changed coder direction even while coders continue to disagre
   data.adjudications = [event()];
   data.codings[1]!.direction = 2;
   assert.match(adjudicationIssue(data, data.adjudications[0]!) ?? "", /zmienione/);
+});
+
+test("changing original excerpt text marks adjudication stale", () => {
+  const data = fixture();
+  data.adjudications = [event()];
+  data.excerpts[0]!.text = "modified original text";
+  assert.match(adjudicationIssue(data, data.adjudications[0]!) ?? "", /Fragment/);
+});
+
+test("downgrading verification invalidates a previously admissible review", () => {
+  const data = fixture();
+  data.adjudications = [event()];
+  data.excerpts[0]!.verificationStatus = "checked";
+  assert.ok(adjudicationIssue(data, data.adjudications[0]!));
 });
