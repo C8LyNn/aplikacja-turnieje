@@ -2461,7 +2461,9 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
                   (Number.isSafeInteger(prevFeaturedMatchId) && (prevFeaturedMatchId as number) > 0)) ||
                 !(expectedFeaturedMatchId === null ||
                   (Number.isSafeInteger(expectedFeaturedMatchId) && (expectedFeaturedMatchId as number) > 0)) ||
-                currentTournament.featuredMatchId !== expectedFeaturedMatchId) {
+                currentTournament.featuredMatchId !== expectedFeaturedMatchId ||
+                (lockedAction.actionType === "match_featured" && expectedFeaturedMatchId === null) ||
+                (lockedAction.actionType === "match_unfeatured" && expectedFeaturedMatchId !== null)) {
               throw new RevertMatchError("UNDO_ACTION_CHANGED");
             }
             if (prevFeaturedMatchId !== null) {
@@ -2520,7 +2522,9 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             )).for("update");
             if (lockedAction.actionType !== "match_players_swapped" ||
                 !currentMatch || currentMatch.status === "completed" ||
-                currentMatch.status === "cancelled" ||
+                (lockedPayload.nextStatus !== undefined
+                  ? currentMatch.status !== lockedPayload.nextStatus
+                  : currentMatch.status === "cancelled") ||
                 currentMatch.completedAt != null || currentMatch.resultType != null ||
                 currentMatch.player1Id !== originalP2 ||
                 currentMatch.player2Id !== originalP1 ||
@@ -3048,6 +3052,7 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
           score1: lockedMatch.score1,
           score2: lockedMatch.score2,
           nextRevision: saved.revision,
+          nextStatus: saved.status,
           nextPicks,
         },
       }, tx);
