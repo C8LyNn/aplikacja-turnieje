@@ -11,6 +11,8 @@ import {
 } from "@/components/tool-ui";
 import { ModuleHeader } from "@/components/portfolio-ui";
 import { computeCoderAgreementPairs } from "./coder-agreement";
+import { adjudicationIssue, latestCodingAdjudication, validateAdjudicationInput } from "./adjudication-protocol";
+import type { DirectionScore } from "./model";
 import { PILOT_CODEBOOK } from "./pilot-codebook";
 import { useResearchProject } from "./use-research-project";
 
@@ -30,11 +32,17 @@ function PageHeader({ section, title, description }: { section: string; title: s
 }
 
 export default function MethodologyView() {
-  const { data, addCoder, updateCoder } = useResearchProject();
+  const { data, addCoder, updateCoder, addAdjudication } = useResearchProject();
   const [coderName, setCoderName] = useState("");
   const [coderType, setCoderType] = useState<"human" | "ai">("human");
   const [editingCoderId, setEditingCoderId] = useState("");
   const [editingCoderName, setEditingCoderName] = useState("");
+  const [adjudicationTarget, setAdjudicationTarget] = useState("");
+  const [adjudicationReviewerId, setAdjudicationReviewerId] = useState("");
+  const [adjudicationDecision, setAdjudicationDecision] = useState<"resolved" | "deferred">("resolved");
+  const [adjudicationDirection, setAdjudicationDirection] = useState("na");
+  const [adjudicationRationale, setAdjudicationRationale] = useState("");
+  const [adjudicationError, setAdjudicationError] = useState("");
   const activeCodebook = data.codebooks.find((item) => item.id === PILOT_CODEBOOK.id);
   const propositions = activeCodebook
     ? data.propositions.filter((proposition) => proposition.codebookId === activeCodebook.id)
@@ -62,6 +70,37 @@ export default function MethodologyView() {
     if (!editingCoderName.trim()) return;
     updateCoder(coderId, { displayName: editingCoderName.trim() });
     setEditingCoderId("");
+  }
+
+
+  function openAdjudication(aId: string, bId: string) {
+    setAdjudicationTarget(JSON.stringify([aId, bId]));
+    setAdjudicationReviewerId("");
+    setAdjudicationDecision("resolved");
+    setAdjudicationDirection("na");
+    setAdjudicationRationale("");
+    setAdjudicationError("");
+  }
+
+  function submitAdjudication(aId: string, bId: string) {
+    const input = {
+      codingAId: aId,
+      codingBId: bId,
+      reviewerId: adjudicationReviewerId,
+      decision: adjudicationDecision,
+      direction: adjudicationDecision === "deferred" || adjudicationDirection === "na"
+        ? null
+        : Number(adjudicationDirection) as DirectionScore,
+      rationale: adjudicationRationale,
+    };
+    const error = validateAdjudicationInput(data, input);
+    if (error) {
+      setAdjudicationError(error);
+      return;
+    }
+    addAdjudication(input);
+    setAdjudicationTarget("");
+    setAdjudicationError("");
   }
 
   return (
@@ -190,6 +229,87 @@ export default function MethodologyView() {
                                 </div>
                               </div>
                               {source?.url && <a className="mt-2 inline-block text-xs font-semibold underline-offset-2 hover:underline" href={source.url} target="_blank" rel="noreferrer">Otwórz źródło ↗</a>}
+                              {(() => {
+                                const recordsA = data.codings.filter((record) =>
+                                  record.coderId === pair.coderAId &&
+                                  record.codebookId === activeCodebook?.id &&
+                                  record.excerptId === difference.excerptId &&
+                                  record.propositionId === difference.propositionId
+                                );
+                                const recordsB = data.codings.filter((record) =>
+                                  record.coderId === pair.coderBId &&
+                                  record.codebookId === activeCodebook?.id &&
+                                  record.excerptId === difference.excerptId &&
+                                  record.propositionId === difference.propositionId
+                                );
+                                if (recordsA.length !== 1 || recordsB.length !== 1) return null;
+                                const recordA = recordsA[0];
+                                const recordB = recordsB[0];
+                                if (!recordA || !recordB) return null;
+                                const key = JSON.stringify([recordA.id, recordB.id]);
+                                const latest = latestCodingAdjudication(data, recordA.id, recordB.id);
+                                const historyCount = data.adjudications.filter((event) =>
+                                  [event.codingAId, event.codingBId].sort().join("|") === [recordA.id, recordB.id].sort().join("|")
+                                ).length;
+                                const problem = latest ? adjudicationIssue(data, latest) : null;
+                                const availableReviewers = data.coders.filter((coder) =>
+                                  coder.type === "human" &&
+                                  coder.id !== pair.coderAId &&
+                                  coder.id !== pair.coderBId
+                                );
+                                return (
+                                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                                    {latest && (
+                                      <div className="text-xs text-muted-foreground">
+                                        Adjudykacja: <strong>{latest.decision === "resolved"
+                                          ? `rozstrzygnięto (${latest.direction === null ? "N/A" : latest.direction})`
+                                          : "odroczono"}</strong>
+                                        {" "}· {latest.createdAt} · {historyCount} zapisów w historii
+                                        {problem && <div className="mt-1 text-destructive">Wymaga przeglądu: {problem}</div>}
+                                        <div className="mt-1">{latest.rationale}</div>
+                                      </div>
+                                    )}
+                                    {adjudicationTarget !== key ? (
+                                      <ToolButton type="button" variant="ghost" onClick={() => openAdjudication(recordA.id, recordB.id)}>
+                                        {latest ? "Dodaj kolejną decyzję" : "Rozpatrz rozbieżność"}
+                                      </ToolButton>
+                                    ) : (
+                                      <div className="space-y-2 rounded-lg border border-border p-3">
+                                        <p className="text-xs text-muted-foreground">
+                                          Niezależny recenzent weryfikuje źródło, zapisuje uzasadnienie i nie modyfikuje ocen pierwotnych.
+                                        </p>
+                                        <ToolSelect value={adjudicationReviewerId} onChange={(e) => setAdjudicationReviewerId(e.target.value)}>
+                                          <option value="">Wybierz trzeciego recenzenta — człowieka</option>
+                                          {availableReviewers.map((coder) => <option key={coder.id} value={coder.id}>{coder.displayName}</option>)}
+                                        </ToolSelect>
+                                        {availableReviewers.length === 0 && <ToolNotice tone="danger">Dodaj osobnego recenzenta-człowieka w panelu „Koderzy”.</ToolNotice>}
+                                        <ToolSelect value={adjudicationDecision} onChange={(e) => setAdjudicationDecision(e.target.value as "resolved" | "deferred")}>
+                                          <option value="resolved">Rozstrzygnięcie</option>
+                                          <option value="deferred">Odroczenie — potrzebne dodatkowe dane</option>
+                                        </ToolSelect>
+                                        {adjudicationDecision === "resolved" && (
+                                          <ToolSelect value={adjudicationDirection} onChange={(e) => setAdjudicationDirection(e.target.value)}>
+                                            <option value="na">N/A — brak podstaw do oceny stanowiska</option>
+                                            <option value="-2">−2 — zdecydowanie odrzuca</option>
+                                            <option value="-1">−1 — raczej odrzuca</option>
+                                            <option value="0">0 — neutralne / mieszane</option>
+                                            <option value="1">+1 — raczej popiera</option>
+                                            <option value="2">+2 — zdecydowanie popiera</option>
+                                          </ToolSelect>
+                                        )}
+                                        <ToolTextarea rows={3} value={adjudicationRationale} onChange={(e) => setAdjudicationRationale(e.target.value)} placeholder="Obowiązkowe uzasadnienie: dlaczego ta ocena albo dlaczego odroczenie?" />
+                                        {adjudicationError && <ToolNotice tone="danger">{adjudicationError}</ToolNotice>}
+                                        {excerpt?.verificationStatus !== "verified" && <ToolNotice>Najpierw zweryfikuj fragment w Warsztacie źródeł. To warunek zapisu adjudykacji.</ToolNotice>}
+                                        <div className="flex flex-wrap gap-2">
+                                          <ToolButton type="button" variant="primary" onClick={() => submitAdjudication(recordA.id, recordB.id)}>Zapisz decyzję</ToolButton>
+                                          <ToolButton type="button" variant="ghost" onClick={() => setAdjudicationTarget("")}>Anuluj</ToolButton>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
                             </div>
                           );
                         })}
@@ -296,8 +416,8 @@ export default function MethodologyView() {
                 <p>Opublikowany model active/retired jest zamrożony. Zmiana osi, biegunów lub mapowań wymaga utworzenia nowej wersji draft, dzięki czemu można porównywać konkurencyjne modele na tych samych danych.</p>
               </div>
             </ToolSection>
-            <ToolSection title="Niezależne kodowanie" description="Docelowo ten sam materiał może być oceniany przez więcej niż jednego kodera.">
-              <div className="text-sm text-muted-foreground">Pozwoli to mierzyć zgodność między koderami, np. współczynnikiem α Krippendorffa. Zgodność nie zastępuje jednak walidacji konstruktu.</div>
+            <ToolSection title="Niezależne kodowanie i adjudykacja" description="Ten sam materiał jest kodowany niezależnie, zanim trzecia osoba rozstrzygnie rozbieżności.">
+              <div className="text-sm text-muted-foreground">Dwóch koderów najpierw ocenia ten sam, zweryfikowany fragment bez dostępu do wzajemnych ocen. Zgodność jest mierzona przed adjudykacją. Trzeci recenzent-człowiek sprawdza źródło i wybiera ocenę lub odroczenie, obowiązkowo podając uzasadnienie. Każda decyzja trafia do historii append-only; pierwotne kodowania i ich wskaźniki zgodności pozostają bez zmian. To protokół pilotażowy, nie certyfikat trafności konstruktu.</div>
             </ToolSection>
             <ToolSection title="AI" description="Automatyzacja może pomagać w wyszukiwaniu i proponowaniu kodów.">
               <ToolNotice>AI pozostaje narzędziem pomocniczym. Ostateczne kodowanie musi zachować identyfikowalnego kodera i pełny ślad do źródła.</ToolNotice>
