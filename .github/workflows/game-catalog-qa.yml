@@ -8,6 +8,7 @@ on:
       - codex/game-catalog-steamspy-expansion
       - codex/game-catalog-steamspy-auto-sessions
       - codex/game-catalog-discovery-unified
+      - codex/game-catalog-server-keyless-import
     paths:
       - "artifacts/api-server/**"
       - "artifacts/tournament-manager/**"
