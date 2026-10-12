@@ -302,7 +302,7 @@ export async function runCatalogImportStep(): Promise<boolean> {
     const temporary = error instanceof CatalogUpstreamTemporaryError
       ? error
       : error instanceof SteamSpySourceError && isTemporaryUpstreamStatus(error.status)
-        ? new CatalogUpstreamTemporaryError("SteamSpy")
+        ? new CatalogUpstreamTemporaryError("SteamSpy", error.retryAfterSeconds)
         : null;
     if (temporary) {
       // The lease guards retries as well as successful checkpoints.
