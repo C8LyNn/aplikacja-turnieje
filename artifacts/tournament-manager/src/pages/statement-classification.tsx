@@ -33,6 +33,7 @@ import ResearchWorkspace from "@/features/ludology/statement-classification/Rese
 import DimensionModelLab from "@/features/ludology/statement-classification/DimensionModelLab";
 import SamplingLab from "@/features/ludology/statement-classification/SamplingLab";
 import CorpusHealthLab from "@/features/ludology/statement-classification/CorpusHealthLab";
+import AuditComparisonLab from "@/features/ludology/statement-classification/AuditComparisonLab";
 import DiscussionLab from "@/features/ludology/statement-classification/DiscussionLab";
 import ComparisonLab from "@/features/ludology/statement-classification/ComparisonLab";
 import AdjudicationQueueLab from "@/features/ludology/statement-classification/AdjudicationQueueLab";
@@ -44,12 +45,12 @@ import { buildResearchQueue } from "@/features/ludology/statement-classification
 
 const BASE = "/ludology/statement-classification";
 
-type Section = "hub" | "overview" | "people" | "sampling" | "health" | "debates" | "compare" | "adjudication" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
+type Section = "hub" | "overview" | "people" | "sampling" | "health" | "audit-compare" | "debates" | "compare" | "adjudication" | "sources" | "fragments" | "coding" | "positions" | "map" | "methodology";
 
 function getSection(pathname: string): Section {
   const tail = pathname.slice(BASE.length).replace(/^\/+|\/+$/g, "");
   if (tail === "dimensions") return "map";
-  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "debates" || tail === "compare" || tail === "adjudication" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
+  if (tail === "overview" || tail === "people" || tail === "sampling" || tail === "health" || tail === "audit-compare" || tail === "debates" || tail === "compare" || tail === "adjudication" || tail === "sources" || tail === "fragments" || tail === "coding" || tail === "positions" || tail === "map" || tail === "methodology") {
     return tail;
   }
   return "hub";
@@ -82,6 +83,13 @@ const cards = [
     title: "Corpus Health",
     description: "Audyt kompletności, pokrycia, sprzeczności, stale rekonstrukcji i ryzyk przed publikacją.",
     href: `${BASE}/health`,
+    icon: ListChecks,
+  },
+  {
+    code: "AUDIT Δ",
+    title: "Historia audytu",
+    description: "Porównanie poprzedniego raportu korpusu z bieżącymi danymi, z blokadą niezgodnych metodologii.",
+    href: `${BASE}/audit-compare`,
     icon: ListChecks,
   },
   {
@@ -605,6 +613,7 @@ export default function StatementClassificationPage() {
         {section === "people" && <People />}
         {section === "sampling" && <SamplingLab />}
         {section === "health" && <CorpusHealthLab />}
+        {section === "audit-compare" && <AuditComparisonLab />}
         {section === "debates" && <DiscussionLab />}
         {section === "compare" && <ComparisonLab />}
         {section === "adjudication" && <AdjudicationQueueLab />}
