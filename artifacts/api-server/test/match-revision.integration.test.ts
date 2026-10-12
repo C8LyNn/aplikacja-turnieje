@@ -462,3 +462,12 @@ test("old cancellation logs fail closed if cancellation changed the note", async
   assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
 });
+
+test("PATCH refuses combined BO and status mutations without creating two undo actions", async () => {
+  const f = await fixture();
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).patch(`/api/matches/${f.match.id}`)
+    .set(f.auth).send({ status: "in_progress", bestOf: 3 }).expect(422);
+  assert.equal(rejected.body.code, "COMBINED_STATUS_BEST_OF_FORBIDDEN");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
