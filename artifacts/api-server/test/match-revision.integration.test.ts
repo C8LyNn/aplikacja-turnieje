@@ -187,3 +187,44 @@ test("migration upgrades existing results without changing them and is safe to r
   await database.pool.query(sql);
   assert.equal((await f.read()).revision, 2, "replaying migration must not reset versions");
 });
+
+
+test("undo-last restores an unchanged cancellation and preserves the prior note", async () => {
+  const f = await fixture();
+  const url = \`/api/matches/\${f.match.id}\`;
+  await request(app).patch(url).set(f.auth).send({ note: "Original operator note" }).expect(200);
+  await request(app).post(\`\${url}/cancel\`).set(f.auth)
+    .send({ note: "Cancellation only" }).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+  await request(app).post(\`/api/tournaments/\${f.id}/undo-last\`).set(f.auth).expect(200);
+  const restored = await f.read();
+  assert.equal(restored.status, "pending");
+  assert.equal(restored.note, "Original operator note");
+});
+
+test("undo-last refuses stale cancellation without changing data or action history", async () => {
+  const f = await fixture();
+  await request(app).post(\`/api/matches/\${f.match.id}/cancel\`).set(f.auth)
+    .send({ note: "Cancelled" }).expect(200);
+  // Simulate an out-of-band state change, as during drift or a legacy import.
+  await database.pool.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.match.id]);
+  const baseline = await f.snapshot();
+  const rejected = await request(app).post(\`/api/tournaments/\${f.id}/undo-last\`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await f.snapshot(), baseline);
+});
+
+test("undo-last refuses stale restoration without overwriting a newer match status", async () => {
+  const f = await fixture();
+  const url = \`/api/matches/\${f.match.id}\`;
+  await request(app).post(\`\${url}/cancel\`).set(f.auth).send({}).expect(200);
+  await request(app).post(\`\${url}/restore-cancelled\`).set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "pending");
+  await database.pool.query("UPDATE matches SET status='postponed' WHERE id=$1", [f.match.id]);
+  const baseline = await f.snapshot();
+  const rejected = await request(app).post(\`/api/tournaments/\${f.id}/undo-last\`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await f.snapshot(), baseline);
+});
