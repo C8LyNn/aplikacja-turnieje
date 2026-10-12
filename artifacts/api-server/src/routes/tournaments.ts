@@ -2231,6 +2231,19 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
   };
 }
 
+function requireUndoMatchId(
+  payload: Record<string, unknown>,
+  action: typeof actionLogTable.$inferSelect,
+): number {
+  const matchId = payload.matchId;
+  if (!Number.isSafeInteger(matchId) ||
+      (matchId as number) < 1 ||
+      action.matchId !== matchId) {
+    throw new RevertMatchError("UNDO_ACTION_CHANGED");
+  }
+  return matchId as number;
+}
+
 function sendRevertMatchError(
   error: RevertMatchError,
   res: import("express").Response,
@@ -2345,10 +2358,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 
   try {
     if (payload.type === "revert_match") {
-      const matchId = payload.matchId as number;
-      if (!Number.isInteger(matchId) || matchId < 1) {
-        throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
-      }
+      const matchId = requireUndoMatchId(payload, lastAction);
       const result = await revertMatch({
         matchId,
         expectedTournamentId: params.data.id,
@@ -2407,7 +2417,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 
         switch (lockedPayload.type) {
           case "restore_status": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevStatus = lockedPayload.prevStatus as string;
             // Legacy undo entries predate nextStatus. Infer only documented status transitions.
             const expectedStatus = lockedPayload.nextStatus ??
@@ -2438,7 +2448,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_best_of": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevBestOf = lockedPayload.prevBestOf;
             // Older actions contain the target BO only in the standard action description.
             const legacyNextBestOf = lockedAction.actionType === "match_bo_changed"
@@ -2508,7 +2518,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_cancelled_match": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const prevStatus = lockedPayload.prevStatus as string;
             const prevNote = (lockedPayload.prevNote as string | null) ?? null;
             // Old cancellation logs lack nextNote: undo only when the current note
@@ -2540,7 +2550,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           case "restore_players_swap": {
-            const matchId = lockedPayload.matchId as number;
+            const matchId = requireUndoMatchId(lockedPayload, lockedAction);
             const originalP1 = lockedPayload.player1Id ?? null;
             const originalP2 = lockedPayload.player2Id ?? null;
             const originalS1 = lockedPayload.score1 ?? null;
