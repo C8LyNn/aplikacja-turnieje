@@ -1,4 +1,5 @@
 name: Neoludology package QA
+# v3 synchronization validation
 
 on:
   push:
