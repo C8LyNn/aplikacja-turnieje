@@ -5,6 +5,11 @@ import type {
   ResearchProjectData,
 } from "./model";
 
+/** Canonical snapshot detects changes to the original coding after review. */
+export function snapshotCoding(coding: CodingRecord): string {
+  return JSON.stringify(coding);
+}
+
 export function canonicalCodingPair(aId: string, bId: string): string {
   return JSON.stringify([aId, bId].sort());
 }
@@ -96,11 +101,14 @@ export function adjudicationIssue(
     return "Odniesienia adjudykacji nie są zgodne z materiałem źródłowym.";
   }
   if (a.direction === b.direction) return "Adjudykacja nie ma obecnie dwóch sprzecznych ocen.";
+  if (record.codingASnapshot !== snapshotCoding(a) || record.codingBSnapshot !== snapshotCoding(b)) {
+    return "Kodowanie źródłowe zostało zmienione po adjudykacji; konieczny jest ponowny przegląd.";
+  }
   const reviewer = data.coders.find((item) => item.id === record.reviewerId);
   if (!reviewer || reviewer.type !== "human" || reviewer.id === a.coderId || reviewer.id === b.coderId) {
     return "Nie ma poprawnego niezależnego recenzenta.";
   }
-  if (!record.rationale.trim()) return "Adjudykacja nie ma uzasadnienia.";
+  if (typeof record.rationale !== "string" || !record.rationale.trim()) return "Adjudykacja nie ma uzasadnienia.";
   if (record.decision === "deferred" && record.direction !== null) {
     return "Odroczenie zawiera ocenę rozstrzygającą.";
   }
