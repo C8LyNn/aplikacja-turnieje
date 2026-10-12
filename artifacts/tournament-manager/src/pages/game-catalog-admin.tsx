@@ -303,6 +303,7 @@ export default function GameCatalogAdminPage() {
     return EMPTY_STEAM_DISCOVERY;
   });
   const [growthMessage, setGrowthMessage] = useState<string | null>(null);
+  const [bulkPaste, setBulkPaste] = useState("");
   const [adminKey, setAdminKey] = useState(() => window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -506,6 +507,33 @@ export default function GameCatalogAdminPage() {
       ...current.filter((item) => item.termId !== term.id),
       { termId: term.id, facet: "mechanic", slug: term.slug, label: term.label, role, position: current.length },
     ]);
+  }
+
+  function queuePastedSteamGames() {
+    const tokens = bulkPaste.trim().split(/[\s,;]+/).filter(Boolean);
+    if (!tokens.length || tokens.length > 200) {
+      setError("Wklej od 1 do 200 Steam AppID lub adresów gier.");
+      return;
+    }
+    const ids = tokens.map((token) => {
+      const match = token.match(/^(?:https?:\/\/store\.steampowered\.com\/app\/)?([1-9]\d*)(?:\/[^\s]*)?$/i);
+      const value = match ? Number(match[1]) : NaN;
+      return Number.isSafeInteger(value) && value <= 2_147_483_647 ? value : null;
+    });
+    if (ids.some((item) => item === null)) {
+      setError("Lista zawiera niepoprawny AppID lub adres Steam.");
+      return;
+    }
+    setDiscovery((current) => {
+      const combined = new Map(current.candidates.map((item) => [item.appId, item]));
+      for (const id of ids as number[]) {
+        if (!combined.has(id)) combined.set(id, { appId: id, name: `Steam AppID ${id}` });
+      }
+      return { ...current, candidates: [...combined.values()].slice(0, 200) };
+    });
+    setGrowthMessage(`Dodano do kolejki ${new Set(ids).size} AppID. Importuj po 10 zweryfikowanych gier.`);
+    setError(null);
+    setBulkPaste("");
   }
 
   async function discoverSteamGames() {
@@ -774,6 +802,17 @@ export default function GameCatalogAdminPage() {
               </ToolButton>
               <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => { setDiscovery(EMPTY_STEAM_DISCOVERY); setGrowthMessage(null); }}>
                 Od początku
+              </ToolButton>
+            </div>
+            <div className="mt-4">
+              <label htmlFor="steam-bulk-appids" className="mb-2 block text-sm font-medium">
+                Masz listę AppID? Wklej do 200 numerów lub adresów Steam, oddzielonych spacjami, przecinkami lub nowymi liniami.
+              </label>
+              <textarea id="steam-bulk-appids" value={bulkPaste} onChange={(event) => setBulkPaste(event.target.value)}
+                placeholder="570, 730, https://store.steampowered.com/app/620/"
+                className="min-h-20 w-full rounded-lg border border-border bg-background/60 p-3 text-sm outline-none focus:border-primary" />
+              <ToolButton type="button" disabled={busy || !bulkPaste.trim()} onClick={queuePastedSteamGames}>
+                Dodaj AppID do kolejki
               </ToolButton>
             </div>
             <div className="mt-3 text-sm text-muted-foreground">
