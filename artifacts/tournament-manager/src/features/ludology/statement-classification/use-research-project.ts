@@ -3,6 +3,7 @@ import type {
   ArgumentRelation,
   Coder,
   CodingRecord,
+  CodingAdjudication,
   DimensionModel,
   DimensionPropositionLink,
   DiscussionArgumentLink,
@@ -17,6 +18,7 @@ import type {
   SamplingPlan,
 } from "./model";
 import { PILOT_CODEBOOK, PILOT_PROPOSITIONS } from "./pilot-codebook";
+import { validateAdjudicationInput, type AdjudicationInput } from "./adjudication-protocol";
 import {
   canEditDimensionModelStructure,
   canTransitionDimensionModelStatus,
@@ -342,6 +344,26 @@ export function useResearchProject() {
         ...current,
         codings: current.codings.filter((coding) => coding.id !== codingId),
       }));
+    },
+    addAdjudication(input: AdjudicationInput) {
+      update((current) => {
+        const issue = validateAdjudicationInput(current, input);
+        if (issue) return current;
+        const a = current.codings.find((coding) => coding.id === input.codingAId);
+        const b = current.codings.find((coding) => coding.id === input.codingBId);
+        if (!a || !b) return current;
+        const next: CodingAdjudication = {
+          ...input,
+          id: createResearchId("adjudication"),
+          codebookId: a.codebookId,
+          excerptId: a.excerptId,
+          propositionId: a.propositionId,
+          rationale: input.rationale.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        // Append-only audit trail: a follow-up decision never erases its predecessor.
+        return { ...current, adjudications: [...current.adjudications, next] };
+      });
     },
     addDimensionModel(input: Omit<DimensionModel, "id" | "createdAt">) {
       const id = createResearchId("dimension_model");
