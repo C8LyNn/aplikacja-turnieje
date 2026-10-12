@@ -116,6 +116,22 @@ export type CodingRecord = {
   createdAt?: string;
 };
 
+/** Append-only adjudication audit event. Original coder observations are never edited. */
+export type CodingAdjudication = {
+  id: string;
+  codebookId: string;
+  excerptId: string;
+  propositionId: string;
+  codingAId: string;
+  codingBId: string;
+  reviewerId: string;
+  decision: "resolved" | "deferred";
+  /** null means N/A, not neutral 0. Deferred events always contain null. */
+  direction: DirectionScore | null;
+  rationale: string;
+  createdAt: string;
+};
+
 export type PositionAssessment = {
   id: string;
   personId: string;
@@ -208,7 +224,7 @@ export type ArgumentRelation = {
 };
 
 export type ResearchProjectData = {
-  schemaVersion: 7;
+  schemaVersion: 8;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -217,6 +233,7 @@ export type ResearchProjectData = {
   propositions: Proposition[];
   coders: Coder[];
   codings: CodingRecord[];
+  adjudications: CodingAdjudication[];
   assessments: PositionAssessment[];
   dimensionModels: DimensionModel[];
   dimensions: ResearchDimension[];
@@ -228,7 +245,7 @@ export type ResearchProjectData = {
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 7,
+  schemaVersion: 8,
   people: [],
   sources: [],
   arguments: [],
@@ -237,6 +254,7 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   propositions: [],
   coders: [],
   codings: [],
+  adjudications: [],
   assessments: [],
   dimensionModels: [],
   dimensions: [],
