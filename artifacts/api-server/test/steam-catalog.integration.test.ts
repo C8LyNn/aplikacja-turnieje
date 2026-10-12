@@ -817,6 +817,8 @@ describe("Steam catalog — real PostgreSQL API", () => {
     const previousFetch = globalThis.fetch;
     const previousKey = process.env.STEAM_WEB_API_KEY;
     const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
+    const { resetSteamSpyPageCacheForTests } = await import("../src/application/catalog/steam-catalog-steamspy");
+    resetSteamSpyPageCacheForTests();
     const ids: number[] = [];
     const calls: string[] = [];
     try {
@@ -873,6 +875,23 @@ describe("Steam catalog — real PostgreSQL API", () => {
       progress = await request(app).get("/api/steam-catalog/import-job").set(edit()).expect(200);
       assert.equal(progress.body.job.status, "completed");
       assert.equal(progress.body.job.ignored, 1);
+      assert.deepEqual(calls, ["spy-0", "details-1900701", "details-1900702"]);
+      // A new source page inside the shared 65-second cooldown must be
+      // postponed without pausing the job or dropping its durable cursor.
+      const third = await request(app).post("/api/steam-catalog/import-job")
+        .set(edit()).send({ maxGames: 1, source: "steamspy" }).expect(201);
+      ids.push(Number(third.body.job.id));
+      await database.pool.query(
+        "UPDATE steam_catalog_import_jobs SET source_page=1 WHERE id=$1", [ids[2]],
+      );
+      assert.equal(await runCatalogImportStep(), true);
+      const deferred = await rows<{
+        status: string; source_page: number; seconds_until_next: number;
+      }>("SELECT status,source_page,extract(epoch from next_run_at-now())::integer AS seconds_until_next " +
+          "FROM steam_catalog_import_jobs WHERE id=$1", [ids[2]]);
+      assert.equal(deferred[0].status, "running");
+      assert.equal(deferred[0].source_page, 1);
+      assert.ok(deferred[0].seconds_until_next >= 1);
       assert.deepEqual(calls, ["spy-0", "details-1900701", "details-1900702"]);
       const game = await rows<{ name: string; status: string }>(
         "SELECT name,status FROM steam_catalog_games WHERE steam_app_id=1900701",
