@@ -73,8 +73,9 @@ class MigrationSafetyTests(unittest.TestCase):
         self.assertIn("OWNER TO pg_database_owner", sql)
         for kind in ("SCHEMA", "TYPE", "TABLE", "SEQUENCE", "FUNCTION"):
             self.assertIn("ALTER " + kind, sql)
+        executable = "\n".join(line.split("--", 1)[0] for line in sql.splitlines())
         for forbidden in ("DROP TABLE", "DROP SCHEMA", "DELETE FROM", "TRUNCATE", "CASCADE"):
-            self.assertNotIn(forbidden, sql.upper())
+            self.assertNotIn(forbidden, executable.upper())
 
     def test_readiness_audit_sql_is_read_only(self):
         sql = FILE.with_name("neon-cutover-readiness-20261012.sql").read_text()
