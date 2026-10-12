@@ -103,6 +103,15 @@ export function parseResearchAuditSnapshot(raw: string): ResearchAuditReport {
       !textField(plan.version) || !textField(plan.name) || !textField(plan.status))) {
     throw new Error("Raport zawiera nieprawidłową definicję planu próbkowania.");
   }
+  if (value.instrumentSnapshots !== undefined) {
+    const snapshots = value.instrumentSnapshots;
+    if (!isObject(snapshots) || !textField(snapshots.codebook) ||
+        (snapshots.samplingPlan !== null && !textField(snapshots.samplingPlan)) ||
+        (plan === null && snapshots.samplingPlan !== null) ||
+        (plan !== null && snapshots.samplingPlan === null)) {
+      throw new Error("Nieprawidłowa migawka definicji narzędzi badawczych.");
+    }
+  }
   requireCounts(value.counts, CORPUS_METRICS.map(([key]) => key), "korpus");
   requireCounts(value.health, ["people", ...HEALTH_METRICS.map(([key]) => key)],
     "Corpus Health", ["samplingGaps"]);
@@ -166,6 +175,16 @@ export function compareResearchAudits(before: ResearchAuditReport, after: Resear
       (before.samplingPlan?.version ?? null) !== (after.samplingPlan?.version ?? null)) {
     blockingReasons.push("Zmieniono plan próbkowania albo sposób jego stosowania.");
   }
+  if (!before.instrumentSnapshots || !after.instrumentSnapshots) {
+    blockingReasons.push("Co najmniej jeden raport nie zawiera migawki definicji narzędzi. Wyeksportuj nową bazę i dopiero wtedy porównuj wyniki.");
+  } else {
+    if (before.instrumentSnapshots.codebook !== after.instrumentSnapshots.codebook) {
+      blockingReasons.push("Treść codebooka lub mikrostanowisk zmieniła się bez jednoznacznie nowej wersji.");
+    }
+    if (before.instrumentSnapshots.samplingPlan !== after.instrumentSnapshots.samplingPlan) {
+      blockingReasons.push("Treść planu próbkowania zmieniła się przy tym samym identyfikatorze lub numerze wersji.");
+    }
+  }
   if (Date.parse(before.generatedAt) > Date.parse(after.generatedAt)) {
     blockingReasons.push("Raport bazowy jest późniejszy od bieżącego zrzutu.");
   }
@@ -173,7 +192,7 @@ export function compareResearchAudits(before: ResearchAuditReport, after: Resear
   const notes = [
     "Różnica liczebności nie przesądza o poprawie ani pogorszeniu jakości badań.",
     "Rozbieżności są liczone dla par koderów, nie dla niezależnych fragmentów.",
-    "Zbieżność identyfikatorów codebooka i planu nie dowodzi niezmienności ich treści; narzędzia mogą być edytowane poza systemem.",
+    "Porównanie migawek wymaga dokładnej zgodności zapisanej treści narzędzi; nie dowodzi to niezależnie autentyczności raportów ani faktycznego stosowania reguł przez koderów.",
     "Raporty podlegają ręcznemu importowi i nie posiadają podpisu kryptograficznego ani niezależnej gwarancji autentyczności.",
   ];
   if (before.projectSchemaVersion !== after.projectSchemaVersion) {
