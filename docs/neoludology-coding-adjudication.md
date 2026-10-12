@@ -98,3 +98,33 @@ To porównanie dokładnych kanonicznych ciągów JSON, **nie kryptograficzny
 podpis** ani proof of provenance. Import zaufanych raportów nadal wymaga
 kontroli badacza. Migawka może zawierać niepublikowane szczegóły metodologii,
 dlatego eksport należy przejrzeć przed udostępnieniem zewnętrznym.
+
+
+## Diagnostyka różnic metodologicznych — field-level audit diff
+
+Historia audytu pokazuje teraz nie tylko blokadę porównywania niezgodnych
+instrumentów, ale też **konkretne zmienione pola** codebooka, mikrostanowisk
+i planu próbkowania. Po wczytaniu dwóch migawek zawierających
+`instrumentSnapshots` raport prezentuje dla każdej zmiany: instrument,
+identyfikator jednostki, pole, operację (dodanie/usunięcie/modyfikacja)
+oraz zapis wartości **przed → po**.
+
+W szczególności:
+
+- zmiana definicji lub przykładów jednego mikrostanowiska jest widoczna pod
+  jego stabilnym ID, bez mylenia jej ze zmianą innego mikrostanowiska;
+- dodanie/usunięcie mikrostanowiska pokazuje zestaw dodanych/usuniętych pól;
+- korekta progów planu próbkowania jest pokazana jako zmiana odpowiedniego pola;
+- niezwiązane zmiany korpusu i kolejności mikrostanowisk nie generują
+  fałszywych alarmów metodologicznych;
+- stare raporty bez migawki pozostają **nieporównywalne** i nie pokazują
+  zmyślonej listy zmian — bez dawnej definicji nie można jej odtworzyć.
+
+Plik JSON importowany do porównania podlega kontroli nie tylko zewnętrznego
+formatu, ale także wewnętrznego JSON definicji, unikalności identyfikatorów
+mikrostanowisk oraz zgodności wersji/ID z metadanymi raportu.
+
+**Diagnostyka nie znosi blokady porównywania wyników** przy rozbieżnych
+metodologiach. Lista różnic jest materiałem do manualnego przeglądu;
+nie interpretuje jakości badań, autentyczności dokumentów ani rzeczywistej
+praktyki koderów. Zawartość definicji może mieć charakter niepubliczny.
