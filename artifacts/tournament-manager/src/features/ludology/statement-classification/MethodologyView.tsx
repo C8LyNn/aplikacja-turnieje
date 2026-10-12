@@ -8,10 +8,11 @@ import {
   ToolPanel,
   ToolSection,
   ToolSelect,
+  ToolTextarea,
 } from "@/components/tool-ui";
 import { ModuleHeader } from "@/components/portfolio-ui";
 import { computeCoderAgreementPairs } from "./coder-agreement";
-import { adjudicationIssue, latestCodingAdjudication, validateAdjudicationInput } from "./adjudication-protocol";
+import { adjudicationIssue, canonicalCodingPair, latestCodingAdjudication, validateAdjudicationInput } from "./adjudication-protocol";
 import type { DirectionScore } from "./model";
 import { PILOT_CODEBOOK } from "./pilot-codebook";
 import { useResearchProject } from "./use-research-project";
@@ -249,7 +250,7 @@ export default function MethodologyView() {
                                 const key = JSON.stringify([recordA.id, recordB.id]);
                                 const latest = latestCodingAdjudication(data, recordA.id, recordB.id);
                                 const historyCount = data.adjudications.filter((event) =>
-                                  [event.codingAId, event.codingBId].sort().join("|") === [recordA.id, recordB.id].sort().join("|")
+                                  canonicalCodingPair(event.codingAId, event.codingBId) === canonicalCodingPair(recordA.id, recordB.id)
                                 ).length;
                                 const problem = latest ? adjudicationIssue(data, latest) : null;
                                 const availableReviewers = data.coders.filter((coder) =>
