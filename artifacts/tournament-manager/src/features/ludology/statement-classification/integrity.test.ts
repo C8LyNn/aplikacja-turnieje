@@ -159,3 +159,35 @@ test("integrity rejects invalid sampling plan thresholds", () => {
 
   assert.ok(checkResearchProjectIntegrity(data).some((issue) => issue.code === "invalid_sampling_plan"));
 });
+
+
+test("integrity validates debate links and duplicate mappings", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    people: [{ id: "p1", displayName: "P" }],
+    sources: [{ id: "s1", personId: "p1", title: "S", url: "https://s", sourceType: "video" as const }],
+    arguments: [{ id: "a1", sourceId: "s1", title: "A" }],
+    discussions: [{ id: "d1", title: "D", status: "draft" as const }],
+    discussionLinks: [
+      { id: "l1", discussionId: "d1", argumentId: "a1", role: "primary" as const },
+      { id: "l2", discussionId: "d1", argumentId: "a1", role: "response" as const },
+    ],
+  };
+
+  const codes = checkResearchProjectIntegrity(data).map((issue) => issue.code);
+  assert.ok(codes.includes("duplicate_discussion_link"));
+});
+
+test("integrity detects orphan debate references", () => {
+  const data = {
+    ...EMPTY_RESEARCH_PROJECT,
+    discussions: [{ id: "d1", title: "D", status: "draft" as const }],
+    discussionLinks: [
+      { id: "l1", discussionId: "missing", argumentId: "missing", role: "primary" as const },
+    ],
+  };
+
+  const codes = checkResearchProjectIntegrity(data).map((issue) => issue.code);
+  assert.ok(codes.includes("orphan_discussion_link_discussion"));
+  assert.ok(codes.includes("orphan_discussion_link_argument"));
+});
