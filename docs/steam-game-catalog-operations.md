@@ -314,6 +314,46 @@ establish the identity of the deployed commit or authorize writes.
 Confirm the staging deployment source SHA independently before the first
 5-game test import.
 
+## Auditing a real isolated Neon catalog smoke branch
+
+A dedicated read-only command now checks the **actual** game records,
+taxonomy coverage, and editor-state counters of a staging database. It never
+inserts, updates, deletes, or migrates data. It also refuses
+`CATALOG_PREFLIGHT_ENVIRONMENT=production` even if production read-only access
+is otherwise explicitly enabled. Run it only after an operator has verified
+the selected Neon branch's connection endpoint.
+
+For the isolated `game-catalog-smoke-20261012` branch, the expected
+evidence as of October 12, 2026 is five game records, 109 active taxonomy
+terms, 44 game-term assignments, and status counts
+`unclassified=0,review=5,ready=0`. The editorial assignments are **draft
+proposals for human review**, not approved facts or published catalog entries.
+
+Using a securely supplied, **branch-specific** PostgreSQL URL and the
+existing preflight identity settings, set:
+
+- `CATALOG_PREFLIGHT_ENVIRONMENT=staging`
+- `CATALOG_PREFLIGHT_EXPECTED_SCHEMA=public`
+- `CATALOG_PREFLIGHT_EXPECTED_DATABASE=tournament_manager`
+- `CATALOG_PREFLIGHT_EXPECTED_HOST` to the exact Neon endpoint hostname
+- `CATALOG_PREFLIGHT_DATABASE_URL` to the secret URL for that same branch
+- `CATALOG_AUDIT_EXPECTED_APPIDS=620,367520,413150,646570,1145360`
+- `CATALOG_AUDIT_EXPECTED_STATUS=review`
+- `CATALOG_AUDIT_MIN_TERMS=109`
+- `CATALOG_AUDIT_MIN_ASSIGNMENTS_PER_GAME=6`
+
+Then run `pnpm --filter @workspace/db audit:game-catalog-staging`
+from the repository root. The command reports only games, statuses,
+taxonomy counts, and check outcomes; it does not print credentials.
+A missing game, an insufficiently assigned game, an inconsistent counter,
+a database-identity mismatch, or an unexpected editorial state fails the gate.
+
+This audit **does not demonstrate** real Steam API importing or a
+successful public API deployment. Both still require separate staging
+verification. CI regression tests use a fake read-only PostgreSQL client;
+the live Neon smoke-branch integrity was independently verified by
+read-only SQL after its fixture and schema setup.
+
 ## Cross-replica SteamSpy cooldown (migration 0038)
 
 Apply `0038_steam_catalog_global_source_throttle.sql` after 0037, before deploying the importer. The same PostgreSQL table enforces a shared 65-second interval for uncached SteamSpy `request=all` calls across API replicas, including the manual discovery endpoint and the background worker. Cached pages are served from each process without new polling. Successful reservations survive restarts, and a failed upstream request still consumes its slot.
