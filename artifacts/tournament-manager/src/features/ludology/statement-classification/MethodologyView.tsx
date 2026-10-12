@@ -212,6 +212,12 @@ export default function MethodologyView() {
                 <p>Graf argumentacji zapisuje jawne, kierunkowe relacje: odpowiada na, wspiera, kwestionuje, doprecyzowuje i rozwija. Relacja opisuje strukturę publicznej argumentacji, ale sama nie oznacza, że którykolwiek argument jest prawdziwy, silniejszy lub reprezentatywny dla całej osoby.</p>
               </div>
             </ToolSection>
+            <ToolSection title="Comparison Lab" description="Porównanie osób odbywa się na poziomie tych samych mikrostanowisk i świeżych rekonstrukcji.">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>System porównuje kierunek, siłę rekonstrukcji i zaplecze dowodowe osobno dla każdego mikrostanowiska. Nie tworzy jednego wyniku podobieństwa ani automatycznej odległości ideologicznej.</p>
+                <p>Brak rekonstrukcji, status „niewystarczające dowody” i nieaktualna rekonstrukcja pozostają brakiem porównywalnych danych — nie są zastępowane zerem.</p>
+              </div>
+            </ToolSection>
             <ToolSection title="Corpus Health" description="Diagnostyka korpusu pokazuje ryzyka osobno zamiast redukować je do jednego wyniku.">
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Audyt rozdziela kompletność metadanych, weryfikację fragmentów, przypisanie do argumentów, pokrycie codebooka, nieaktualne rekonstrukcje, sprzeczności i luki planu próbkowania.</p>
