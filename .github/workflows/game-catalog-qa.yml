@@ -16,6 +16,15 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - ".github/workflows/game-catalog-qa.yml"
+  pull_request:
+    branches:
+      - codex/game-catalog-editor-reliability
+    paths:
+      - "artifacts/api-server/**"
+      - "artifacts/tournament-manager/**"
+      - "lib/game-catalog/**"
+      - "lib/db/**"
+      - ".github/workflows/game-catalog-qa.yml"
   workflow_dispatch:
 
 permissions:
