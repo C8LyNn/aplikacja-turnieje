@@ -108,11 +108,18 @@ test("isolated HTTP staging: migration, keyless import, pause/resume and counter
       "x-steam-catalog-admin-token": adminToken,
       "content-type": "application/json",
     };
+    type JobEnvelope = {
+      job: {
+        id: string; source: "steam" | "steamspy"; status: string;
+        pending: number; processed: number; inserted: number;
+        existing: number; ignored: number; failed: number;
+      };
+    };
     const send = async (path: string, body?: unknown) => {
       const response = await nativeFetch(origin + path, {
         method: "POST", headers, body: body === undefined ? "{}" : JSON.stringify(body),
       });
-      const payload = await response.json();
+      const payload = await response.json() as JobEnvelope;
       return { code: response.status, payload };
     };
     const readJob = async () => {
@@ -120,7 +127,7 @@ test("isolated HTTP staging: migration, keyless import, pause/resume and counter
         headers: { "x-steam-catalog-admin-token": adminToken },
       });
       assert.equal(response.status, 200);
-      return (await response.json()).job;
+      return (await response.json() as JobEnvelope).job;
     };
 
     globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
