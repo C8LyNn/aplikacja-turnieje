@@ -32,6 +32,15 @@ describe("private Neon staging target", () => {
       valid.replace(":" + secret + "@", "@"),
       valid.replace("sslmode=require", "sslmode=disable"),
       valid + "&options=-c%20default_transaction_read_only=off",
+      valid + "&host=production.example.invalid",
+      valid + "&hostaddr=127.0.0.1",
+      valid + "&user=postgres",
+      valid + "&dbname=production",
+      valid + "&service=production",
+      valid + "&sslrootcert=/tmp/sneaky.pem",
+      valid + "&sslmode=disable",
+      valid + "&channel_binding=disable",
+      valid + "#secret-fragment",
       valid.replace("postgresql://", "postgresql://user@"),
     ]) {
       assert.throws(() => stagingReadOnlyDatabaseUrl(candidate));
