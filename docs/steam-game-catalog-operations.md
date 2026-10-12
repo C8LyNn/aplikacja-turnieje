@@ -264,8 +264,8 @@ check only, **not proof that the public application is live**.
 After deploying the candidate catalog API to staging, run this separate
 check from the repository root:
 
-    CATALOG_PREFLIGHT_API_BASE_URL=https://your-staging.example
-    CATALOG_PREFLIGHT_EXPECTED_API_HOST=your-staging.example
+    export CATALOG_PREFLIGHT_API_BASE_URL=https://your-staging.example
+    export CATALOG_PREFLIGHT_EXPECTED_API_HOST=your-staging.example
     node scripts/preflight-game-catalog-api.mjs
 
 For Windows PowerShell set these two variables with the normal
