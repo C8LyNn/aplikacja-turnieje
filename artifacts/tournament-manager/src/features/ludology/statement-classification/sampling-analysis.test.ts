@@ -7,7 +7,7 @@ import {
 import type { ResearchProjectData, SamplingPlan } from "./model";
 
 const project = (): ResearchProjectData => ({
-  schemaVersion: 6,
+  schemaVersion: 7,
   people: [{ id: "p1", displayName: "P" }],
   sources: [
     {
@@ -61,6 +61,7 @@ const project = (): ResearchProjectData => ({
   samplingPlans: [],
   discussions: [],
   discussionLinks: [],
+  argumentRelations: [],
 });
 
 const plan: SamplingPlan = {
