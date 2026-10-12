@@ -152,3 +152,52 @@ test("current research data and original exports remain unchanged after comparis
   assert.equal(JSON.stringify(before), oldJSON);
   assert.equal(JSON.stringify(data), original);
 });
+
+test("editing proposition definition without version bump blocks comparison", () => {
+  const data = project();
+  const before = audit(data, first);
+  data.propositions[0]!.definition = "A substantively different coding rule";
+  const after = audit(data, second);
+  const comparison = compareResearchAudits(before, after);
+  assert.equal(comparison.compatible, false);
+  assert.equal(comparison.metrics.length, 0);
+  assert.match(comparison.blockingReasons.join(" "), /Treść codebooka/);
+});
+
+test("changing a sampling threshold without version bump blocks comparison", () => {
+  const data = project();
+  data.samplingPlans = [{
+    id: "plan", name: "Sampling", version: "1", status: "active",
+    minimumSourcesPerPerson: 1, minimumSourceTypesPerPerson: 1,
+    minimumPurposesPerPerson: 0, minimumPreparednessModesPerPerson: 0,
+    minimumScopesPerPerson: 0, minimumDatedSourceShare: null,
+    maximumSingleSourceTypeShare: null, minimumTemporalSpanYears: null,
+  }];
+  const before = audit(data, first, "book", "plan");
+  data.samplingPlans[0]!.minimumSourcesPerPerson = 4;
+  const after = audit(data, second, "book", "plan");
+  const comparison = compareResearchAudits(before, after);
+  assert.equal(comparison.compatible, false);
+  assert.match(comparison.blockingReasons.join(" "), /Treść planu/);
+});
+
+test("legacy v1 snapshots import, but cannot silently pass methodological comparability gate", () => {
+  const original = audit(project(), first);
+  const { instrumentSnapshots: _snapshots, ...legacy } = original;
+  const parsed = parseResearchAuditSnapshot(JSON.stringify(legacy));
+  assert.equal(parsed.instrumentSnapshots, undefined);
+  const comparison = compareResearchAudits(parsed, audit(project(), second));
+  assert.equal(comparison.compatible, false);
+  assert.equal(comparison.metrics.length, 0);
+  assert.match(comparison.blockingReasons.join(" "), /migawki definicji/);
+});
+
+test("parser rejects malformed or inconsistent instrument snapshots", () => {
+  const valid = audit(project(), first);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid, instrumentSnapshots: { codebook: null, samplingPlan: null },
+  })), /migawka/);
+  assert.throws(() => parseResearchAuditSnapshot(JSON.stringify({
+    ...valid, instrumentSnapshots: { codebook: "something", samplingPlan: "plan although none exists" },
+  })), /migawka/);
+});
