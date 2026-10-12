@@ -259,6 +259,31 @@ catalog branch without first identifying the authoritative deployment and
 database and backing up the actual data. This preflight is a readiness
 check only, **not proof that the public application is live**.
 
+### Public API release probe (no authentication, no writes)
+
+After deploying the candidate catalog API to staging, run this separate
+check from the repository root:
+
+    CATALOG_PREFLIGHT_API_BASE_URL=https://your-staging.example
+    CATALOG_PREFLIGHT_EXPECTED_API_HOST=your-staging.example
+    node scripts/preflight-game-catalog-api.mjs
+
+For Windows PowerShell set these two variables with the normal
+$env:VARIABLE = 'value' syntax before running the Node command. Do not
+send a catalog administrator token: all three endpoints are public GETs.
+The probe checks catalog list/pagination and global status counts, taxonomy,
+and the pending classification queue. It rejects HTML placeholders (even
+with HTTP 200), redirects, non-JSON responses and inconsistent counts.
+Exit codes follow the database preflight: 0 PASS, 2 failed readiness
+checks, 1 invalid settings/inspection failure.
+
+**Both gates must pass**: the database preflight proves the intended
+PostgreSQL schema/counters are ready, while the public API probe proves an
+HTTP service is responding with consistent catalog data. They do not
+establish the identity of the deployed commit or authorize writes.
+Confirm the staging deployment source SHA independently before the first
+5-game test import.
+
 ## Persistent no-key SteamSpy import (migration 0036)
 
 The persistent importer now supports two explicitly selected discovery sources:
