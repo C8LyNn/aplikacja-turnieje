@@ -35,7 +35,9 @@
     "preflight:tournament-engine-v2": "node ./scripts/preflight-tournament-engine-v2.mjs",
     "test:tournament-engine-v2-preflight": "node --test --test-concurrency=1 ./test/tournament-engine-v2-preflight.integration.test.mjs",
     "migrate:tournament-routing-persistence:preflight": "node ./scripts/preflight-tournament-routing-persistence-v2.mjs",
-    "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs"
+    "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs",
+    "preflight:game-catalog": "node ./scripts/preflight-game-catalog.mjs",
+    "test:game-catalog-preflight": "node --test ./test/game-catalog-preflight.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
