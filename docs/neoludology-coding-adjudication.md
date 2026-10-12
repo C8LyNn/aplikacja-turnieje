@@ -32,3 +32,23 @@ Procedura dotyczy **zgodności interpretacji jednostek fragment × mikrostanowis
 ## Potencjalny kolejny etap
 
 Osobny panel „Adjudication Queue” z filtrowaniem otwartych sporów oraz eksportem raportów metodologicznych, a następnie wersjonowany, prawdziwie odseparowany wieloużytkownikowy workflow koderów.
+
+## Raport audytowy korpusu — Research Audit Export
+
+W panelu `Corpus Health` badacz może wybrać konkretną wersję codebooka i opcjonalnie plan próbkowania. Dostępne są dwa formaty eksportu:
+
+- **Markdown (.md)** — czytelny raport dla recenzenta: jawny zakres i data zrzutu, liczebność korpusu, pokrycie danych, sygnały ostrzegawcze według osoby, zgodność koderów oraz statusy adjudykacji.
+- **JSON (.json)** — strukturalna migawka tych samych wskaźników, z identyfikatorami kontekstu, bez modyfikowania źródłowego projektu.
+
+Raport wykorzystuje istniejące funkcje Corpus Health, Adjudication Queue, Coder Agreement oraz kontroli integralności. **Nie tworzy automatycznego certyfikatu gotowości publikacyjnej**, nie sumuje jakości w jeden score i nie przypisuje stanowisk do wymiarów X/Y.
+
+Interpretacja liczebności:
+
+- `codingRecords` — liczba wpisów kodowania dla wybranej wersji codebooka;
+- `codedUnits` — liczba par fragment × mikrostanowisko, niezależnie od liczby koderów; to nie jest liczba niezależnych argumentów ani źródeł;
+- `review` — liczba **par koderów**, a nie liczba wypowiedzi;
+- `integrityIssues` — uwzględnia **cały lokalny projekt**, nie tylko wybrany codebook;
+- `samplingGaps` — nie jest oceniane bez jawnie wybranego planu;
+- `N/A` — brak wystarczającej podstawy do oceny, odmienny od neutralności `0`.
+
+Raport ma format `formatVersion: 1`, zawiera datę generowania i `schemaVersion` danych wejściowych. Nie zastępuje pełnego JSON backupu źródeł i historii ani nie podpisuje kryptograficznie danych. Eksportowane metadane mogą umożliwiać identyfikację badanych osób; przed udostępnieniem zewnętrznym badacz powinien przejrzeć raport i uprawnienia do materiału.
