@@ -7,11 +7,15 @@ on:
     paths:
       - scripts/neon-private-test-migration.py
       - scripts/test_neon_private_test_migration.py
+      - scripts/neon-owner-handoff-20261012.sql
+      - scripts/neon-cutover-readiness-20261012.sql
       - .github/workflows/neon-private-migration-check.yml
   pull_request:
     paths:
       - scripts/neon-private-test-migration.py
       - scripts/test_neon_private_test_migration.py
+      - scripts/neon-owner-handoff-20261012.sql
+      - scripts/neon-cutover-readiness-20261012.sql
       - .github/workflows/neon-private-migration-check.yml
   workflow_dispatch:
 
