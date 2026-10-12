@@ -77,7 +77,7 @@ describe("real HTTP staging-equivalent smoke on disposable local PostgreSQL", ()
       {
         cwd: process.cwd(),
         timeout: 90_000,
-        maxBuffer: 4_096,
+        maxBuffer: 128_000,
         env: {
           ...process.env,
           NODE_ENV: "test",
@@ -87,7 +87,9 @@ describe("real HTTP staging-equivalent smoke on disposable local PostgreSQL", ()
         },
       },
     );
-    const summary = JSON.parse(result.stdout.trim()) as {
+    const line = result.stdout.split("\n").find(item => item.startsWith("NEON_HTTP_SMOKE_RESULT="));
+    assert.ok(line, "Expected a single sanitized smoke summary");
+    const summary = JSON.parse(line.slice("NEON_HTTP_SMOKE_RESULT=".length)) as {
       result: string; checkedRoutes: number; skippedRouteGroups: number;
       rowCountsUnchanged: boolean;
     };
