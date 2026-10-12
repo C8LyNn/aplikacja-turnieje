@@ -220,3 +220,43 @@ test("roster undo rejects unexpected immutable player fields in the snapshot", a
   assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
   assert.deepEqual(await readState(), baseline);
 });
+
+test("roster undo refuses to delete a player altered after registration", async () => {
+  const f = await tournament(false);
+  const added = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Registered player" }).expect(201);
+  await database.pool.query(
+    "UPDATE players SET seed=12 WHERE id=$1", [added.body.id],
+  );
+  const read = async () => Promise.all([
+    database.pool.query("SELECT * FROM players WHERE tournament_id=$1", [f.id]),
+    database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [f.id]),
+  ]).then(([players, actions]) => ({ players: players.rows, actions: actions.rows }));
+  const baseline = await read();
+  const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
+  assert.deepEqual(await read(), baseline);
+});
+
+test("roster undo refuses to overwrite later edits not reflected in the action log", async () => {
+  const f = await tournament(false);
+  const added = await request(app).post(`/api/tournaments/${f.id}/players`)
+    .set(f.auth).send({ name: "Before" }).expect(201);
+  await request(app).patch(`/api/players/${added.body.id}`)
+    .set(f.auth).send({ name: "After" }).expect(200);
+  await database.pool.query(
+    "UPDATE players SET team_name='newer external change' WHERE id=$1",
+    [added.body.id],
+  );
+  const baseline = await database.pool.query(
+    "SELECT name, team_name FROM players WHERE id=$1", [added.body.id],
+  );
+  const denied = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(denied.body.code, "ROSTER_UNDO_UNAVAILABLE");
+  const unchanged = await database.pool.query(
+    "SELECT name, team_name FROM players WHERE id=$1", [added.body.id],
+  );
+  assert.deepEqual(unchanged.rows, baseline.rows);
+});
