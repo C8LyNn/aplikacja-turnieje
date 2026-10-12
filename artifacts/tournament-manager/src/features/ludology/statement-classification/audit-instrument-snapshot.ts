@@ -34,7 +34,7 @@ export function snapshotAuditInstruments(
   const propositions = data.propositions
     .filter((item) => item.codebookId === codebookId)
     .map((item) => ({ id: item.id, encoded: canonical(item) }))
-    .sort((a, b) => a.id.localeCompare(b.id) || a.encoded.localeCompare(b.encoded))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : a.encoded < b.encoded ? -1 : a.encoded > b.encoded ? 1 : 0))
     .map((item) => item.encoded);
   const plan = samplingPlanId
     ? data.samplingPlans.find((item) => item.id === samplingPlanId)
