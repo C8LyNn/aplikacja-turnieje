@@ -9,6 +9,12 @@ export type DimensionLinkRelevance = "core" | "supporting" | "exploratory";
 export type SamplingPlanStatus = "draft" | "active" | "retired";
 export type DiscussionStatus = "draft" | "active" | "closed" | "archived";
 export type DiscussionArgumentRole = "primary" | "response" | "follow_up" | "background";
+export type ArgumentRelationType =
+  | "responds_to"
+  | "supports"
+  | "challenges"
+  | "clarifies"
+  | "extends";
 export type PositionAssessmentStatus =
   | "insufficient_evidence"
   | "stable"
@@ -192,8 +198,17 @@ export type DiscussionArgumentLink = {
   order?: number;
 };
 
+export type ArgumentRelation = {
+  id: string;
+  discussionId: string;
+  fromArgumentId: string;
+  toArgumentId: string;
+  relation: ArgumentRelationType;
+  note?: string;
+};
+
 export type ResearchProjectData = {
-  schemaVersion: 6;
+  schemaVersion: 7;
   people: ResearchPerson[];
   sources: ResearchSource[];
   arguments: ResearchArgument[];
@@ -209,10 +224,11 @@ export type ResearchProjectData = {
   samplingPlans: SamplingPlan[];
   discussions: ResearchDiscussion[];
   discussionLinks: DiscussionArgumentLink[];
+  argumentRelations: ArgumentRelation[];
 };
 
 export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   people: [],
   sources: [],
   arguments: [],
@@ -228,6 +244,7 @@ export const EMPTY_RESEARCH_PROJECT: ResearchProjectData = {
   samplingPlans: [],
   discussions: [],
   discussionLinks: [],
+  argumentRelations: [],
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
