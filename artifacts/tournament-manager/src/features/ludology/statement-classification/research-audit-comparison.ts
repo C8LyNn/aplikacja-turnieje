@@ -128,7 +128,7 @@ export function parseResearchAuditSnapshot(raw: string): ResearchAuditReport {
   if (value.people.length !== (value.counts as Record<string, number>).people) {
     throw new Error("Niespójna liczba osób w raporcie.");
   }
-  return value as ResearchAuditReport;
+  return value as unknown as ResearchAuditReport;
 }
 
 function flagKey(flag: { severity: string; code: string }): string {
