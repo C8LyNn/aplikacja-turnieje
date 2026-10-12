@@ -1,0 +1,36 @@
+name: Neon private migration safety
+
+on:
+  push:
+    branches:
+      - codex/neon-migration-safety-20261012
+    paths:
+      - scripts/neon-private-test-migration.py
+      - scripts/test_neon_private_test_migration.py
+      - scripts/neon-owner-handoff-20261012.sql
+      - scripts/neon-cutover-readiness-20261012.sql
+      - .github/workflows/neon-private-migration-check.yml
+  pull_request:
+    paths:
+      - scripts/neon-private-test-migration.py
+      - scripts/test_neon_private_test_migration.py
+      - scripts/neon-owner-handoff-20261012.sql
+      - scripts/neon-cutover-readiness-20261012.sql
+      - .github/workflows/neon-private-migration-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-migration-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python syntax
+        run: python -m py_compile scripts/neon-private-test-migration.py scripts/test_neon_private_test_migration.py
+      - name: Offline security and isolation tests
+        run: python -m unittest discover -s scripts -p test_neon_private_test_migration.py -v
