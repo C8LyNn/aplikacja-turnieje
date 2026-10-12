@@ -3151,7 +3151,7 @@ export const UpdateMatchParams = zod.object({
 
 
 export const UpdateMatchBody = zod.object({
-  "status": zod.enum(['pending', 'in_progress', 'postponed', 'cancelled']).optional(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed']).optional(),
   "note": zod.string().optional(),
   "bestOf": zod.number().min(1).optional()
 })

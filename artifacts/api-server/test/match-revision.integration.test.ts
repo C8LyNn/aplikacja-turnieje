@@ -114,6 +114,35 @@ test("complete requires a positive integer expectedRevision for every result typ
   assert.deepEqual(await f.snapshot(), before);
 });
 
+test("PATCH cannot bypass dedicated match cancellation or restoration", async () => {
+  const f = await fixture();
+  const url = `/api/matches/${f.match.id}`;
+  const baseline = await f.snapshot();
+
+  const directCancel = await request(app).patch(url).set(f.auth)
+    .send({ status: "cancelled" }).expect(422);
+  assert.equal(directCancel.body.code, "MATCH_CANCELLATION_REQUIRES_DEDICATED_ACTION");
+  assert.deepEqual(await f.snapshot(), baseline);
+
+  await request(app).post(`${url}/cancel`).set(f.auth).send({ note: "operator cancelled" }).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+  const cancellationActions = await database.pool.query(
+    "SELECT count(*)::int AS count FROM action_log WHERE match_id=$1 AND action_type='match_cancelled'",
+    [f.match.id],
+  );
+  assert.equal(cancellationActions.rows[0].count, 1);
+
+  const cancelledSnapshot = await f.snapshot();
+  for (const status of ["pending", "in_progress", "postponed"] as const) {
+    const blocked = await request(app).patch(url).set(f.auth).send({ status }).expect(422);
+    assert.equal(blocked.body.code, "CANCELLED_MATCH_PATCH_FORBIDDEN");
+    assert.deepEqual(await f.snapshot(), cancelledSnapshot);
+  }
+
+  await request(app).post(`${url}/restore-cancelled`).set(f.auth).expect(200);
+  assert.equal((await f.read()).status, "pending");
+});
+
 test("BO, status, cancel, restore and revert invalidate forms; presentation fields do not", async () => {
   const f = await fixture();
   await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ note: "court note" }).expect(200);

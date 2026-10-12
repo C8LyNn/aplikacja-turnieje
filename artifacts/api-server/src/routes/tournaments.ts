@@ -2531,6 +2531,13 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     });
     return;
   }
+  if (rawBody.status === "cancelled") {
+    res.status(422).json({
+      error: "Anulowanie meczu wymaga dedykowanej operacji.",
+      code: "MATCH_CANCELLATION_REQUIRES_DEDICATED_ACTION",
+    });
+    return;
+  }
   if (rawBody.status === "completed") {
     res.status(422).json({
       error: "Ten status wymaga dedykowanego przypadku użycia.",
@@ -2559,6 +2566,9 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("MATCH_NOT_FOUND");
+      if (lockedMatch.status === "cancelled" && parsed.data.status != null) {
+        throw new Error("CANCELLED_MATCH_PATCH_FORBIDDEN");
+      }
       if (
         lockedMatch.status === "completed" &&
         (parsed.data.status != null || parsed.data.bestOf != null)
@@ -2604,6 +2614,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     if (!(error instanceof Error)) throw error;
     const responses: Record<string, { status: number; error: string; code?: string }> = {
       MATCH_NOT_FOUND: { status: 404, error: "Match not found" },
+      CANCELLED_MATCH_PATCH_FORBIDDEN: {
+        status: 422,
+        error: "Anulowany mecz można przywrócić wyłącznie przez dedykowaną operację.",
+        code: "CANCELLED_MATCH_PATCH_FORBIDDEN",
+      },
       FINALIZED_MATCH_PATCH_FORBIDDEN: {
         status: 422,
         error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
