@@ -153,6 +153,60 @@ are not a latency SLA. To inspect index usage in a target environment, compare
 `EXPLAIN (ANALYZE, BUFFERS)` with realistic search queries after
 `ANALYZE steam_catalog_games`.
 
+## Expanding the number of real games
+
+The original `POST /api/steam-catalog/import` imports one Steam AppID at
+a time. The catalogue now supports two additional **admin-protected** ways to
+grow without generating fictitious or unverified records:
+
+1. **Automatic Steam discovery:** `POST /api/steam-catalog/discover` with
+   `{"cursor":0,"pageSize":50}`. The server calls Steam
+   `IStoreService/GetAppList/v1` with game-only flags, compares the returned
+   AppIDs against `steam_catalog_games`, and returns only missing candidate
+   games plus `nextCursor`, `hasMore`, `scanned` and `alreadyInCatalog`.
+   Pass `nextCursor` in the next request; the listing is ordered by AppID.
+   Each fetch covers at most 100 IDs to avoid excessive network load. Steam's
+   **deprecated** `ISteamApps/GetAppList/v2` endpoint is not used.
+2. **Import verified batches:** `POST /api/steam-catalog/import-batch` with
+   `{"appIds":[570,730,620]}` (1–10 IDs per call). The server skips
+   existing IDs **before** calling Steam, fetches each missing product's
+   `appdetails` at a controlled pace, requires `type: "game"`, and
+   rejects DLC, demos, non-games, unavailable products and invalid responses.
+   Valid games are inserted with a unique Steam AppID constraint and
+   `unclassified` status; existing statuses, assignments and revisions
+   are never overwritten. A response reports inserted/existing/ignored/
+   failed counts, per-ID outcomes, and whether the batch was interrupted.
+   Failed/unprocessed IDs can be retried.
+
+**Credentials:** both endpoints require the existing
+`x-steam-catalog-admin-token` header. Discovery additionally needs a
+server-only `STEAM_WEB_API_KEY` environment variable containing a standard
+32-character hexadecimal Steam Web API key. Never store either key in Git.
+The discovery endpoint returns `503 STEAM_DISCOVERY_NOT_CONFIGURED`
+when the Steam key is absent. Batch import and the original individual
+AppID import do **not** require that Steam Web API key.
+
+**Browser workflow:** open *Szukaj gry* → *Rozbuduj katalog ze Steam*.
+Select *Pobierz propozycje ze Steam* or paste up to 200 AppIDs/Steam links
+and choose *Dodaj AppID do kolejki*. Then select *Importuj 10 kolejnych*
+repeatedly. The backlog and last discovery cursor persist in this browser's
+localStorage; its maximum is 200 pending candidates. `Od początku` resets
+local discovery progress **without deleting catalogue records**. If Steam
+temporarily rate-limits requests, remaining candidates stay queued. The
+import response is authoritative about how many games were **actually**
+added; fetching a page of candidates alone does not increase the database.
+
+**Operational limits:** do not run a rapid infinite loop over Steam
+appdetails. Steam may throttle or change its API behavior; a batch ends
+early on an upstream rate limit or server error. Start with a small
+verified import, then iterate at a sustainable cadence. Existing records
+are intentionally skipped rather than reimported; use the original single
+import action when you specifically want to refresh one game's Steam
+metadata while preserving its manual classification. Verify that the
+deployment database uses migrations `0029–0034` before importing.
+
+Steam reference: https://partner.steamgames.com/doc/webapi/IStoreService
+
 ## Search execution and post-import index maintenance
 
 The list endpoint still uses the Drizzle SQL builder and bound values, but
