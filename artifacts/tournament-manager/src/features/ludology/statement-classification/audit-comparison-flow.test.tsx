@@ -59,7 +59,9 @@ function mount(component: React.ReactElement) {
   return render(<Router hook={context().hook}>{component}</Router>);
 }
 function chooseBook() {
-  fireEvent.change(screen.getAllByRole("combobox")[0]!, { target: { value: "book-e2e" } });
+  const picker = screen.queryByRole("combobox", { name: "Codebook audytu korpusu" })
+    ?? screen.getByRole("combobox", { name: "Codebook aktualnego audytu" });
+  fireEvent.change(picker, { target: { value: "book-e2e" } });
 }
 async function exportAudit(): Promise<string> {
   mount(<CorpusHealthLab />);
