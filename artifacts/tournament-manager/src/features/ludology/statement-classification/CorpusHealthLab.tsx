@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ToolButton,
   ToolEmptyState,
   ToolNotice,
   ToolPanel,
@@ -12,6 +13,7 @@ import {
   corpusHealthTotals,
 } from "./corpus-health";
 import { useResearchProject } from "./use-research-project";
+import { buildResearchAuditReport, renderResearchAuditMarkdown, serializeResearchAuditReport } from "./research-audit-report";
 import { PILOT_CODEBOOK } from "./pilot-codebook";
 
 const BASE = "/ludology/statement-classification";
@@ -52,6 +54,28 @@ export default function CorpusHealthLab() {
   );
   const totals = corpusHealthTotals(rows);
 
+  function downloadAuditReport(format: "markdown" | "json") {
+    if (!codebookId || typeof window === "undefined" || typeof document === "undefined") return;
+    // Timestamp is a visible part of the exact snapshot. Export never mutates research data.
+    const generatedAt = new Date().toISOString();
+    const report = buildResearchAuditReport(data, { codebookId, samplingPlanId: samplingPlan?.id ?? null, generatedAt });
+    const body = format === "json"
+      ? serializeResearchAuditReport(report)
+      : renderResearchAuditMarkdown(report);
+    const extension = format === "json" ? "json" : "md";
+    const mime = format === "json" ? "application/json" : "text/markdown";
+    const filename = `neoludologia_audit_${generatedAt.slice(0, 10)}_${extension === "json" ? "data" : "report"}.${extension}`;
+    const blob = new Blob([body], { type: `${mime};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   return (
     <>
       <PageHeader />
@@ -82,6 +106,37 @@ export default function CorpusHealthLab() {
                 </option>
               ))}
             </ToolSelect>
+          </div>
+        </ToolPanel>
+
+        <ToolPanel
+          title="Eksport audytu badawczego"
+          description="Raport tworzy migawkę wybranej wersji codebooka i opcjonalnego planu próbkowania. Wykorzystuje te same liczniki, flagi oraz diagnostykę zgodności co pozostałe panele."
+        >
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Raport zawiera metryki dla całego korpusu, stan adjudykacji, pary koderów,
+              flagi Corpus Health dla każdej osoby i naruszenia integralności całego projektu.
+              Nie wystawia automatycznej zgody na publikację ani jednego zbiorczego wskaźnika.
+            </div>
+            {!samplingPlan && (
+              <ToolNotice>
+                Nie wybrano planu próbkowania — raport oznaczy ten obszar jako nieoceniany,
+                a nie jako spełniony.
+              </ToolNotice>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <ToolButton type="button" variant="primary" disabled={!codebookId} onClick={() => downloadAuditReport("markdown")}>
+                Pobierz raport Markdown
+              </ToolButton>
+              <ToolButton type="button" variant="ghost" disabled={!codebookId} onClick={() => downloadAuditReport("json")}>
+                Pobierz dane audytu JSON
+              </ToolButton>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Eksport może zawierać dane identyfikujące badane osoby i uwagi badacza.
+              Przejrzyj go przed udostępnieniem. Raport nie zastępuje pełnej kopii projektu JSON.
+            </p>
           </div>
         </ToolPanel>
 
