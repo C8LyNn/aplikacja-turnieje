@@ -1,4 +1,5 @@
 import type { ResearchProjectData } from "./model";
+import { adjudicationIssue } from "./adjudication-protocol";
 
 export type ResearchIntegrityIssue = {
   code:
@@ -22,6 +23,7 @@ export type ResearchIntegrityIssue = {
     | "orphan_assessment_reviewer"
     | "assessment_codebook_mismatch"
     | "duplicate_assessment"
+    | "invalid_adjudication"
     | "orphan_dimension_model_codebook"
     | "orphan_dimension_model"
     | "orphan_dimension_link_model"
@@ -62,6 +64,17 @@ function duplicateIdIssues(
     seen.add(entry.id);
   }
 
+  for (const adjudication of data.adjudications) {
+    const problem = adjudicationIssue(data, adjudication);
+    if (problem) {
+      issues.push({
+        code: "invalid_adjudication",
+        entityId: adjudication.id,
+        message: problem,
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -77,6 +90,7 @@ export function checkResearchProjectIntegrity(
     ...duplicateIdIssues("propositions", data.propositions),
     ...duplicateIdIssues("coders", data.coders),
     ...duplicateIdIssues("codings", data.codings),
+    ...duplicateIdIssues("adjudications", data.adjudications),
     ...duplicateIdIssues("assessments", data.assessments),
     ...duplicateIdIssues("dimensionModels", data.dimensionModels),
     ...duplicateIdIssues("dimensions", data.dimensions),
