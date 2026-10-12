@@ -19,6 +19,7 @@ const MIGRATIONS = [
   "0035_steam_catalog_import_jobs.sql",
   "0036_steam_catalog_import_job_sources.sql",
   "0037_steam_catalog_import_retry_backoff.sql",
+  "0038_steam_catalog_global_source_throttle.sql",
 ] as const;
 const MIGRATION_ROOT = new URL("../../../lib/db/migrations/", import.meta.url);
 let database: Db;
