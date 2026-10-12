@@ -340,3 +340,43 @@ test("undo-last rejects a swap after the match revision changed", async () => {
   assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
   assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
 });
+
+test("undo-last supports an older BO action with no nextBestOf metadata", async () => {
+  const f = await fixture();
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth)
+    .send({ bestOf: 3 }).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextBestOf' - 'nextRevision')::text WHERE tournament_id=$1 AND action_type='match_bo_changed'",
+    [f.id],
+  );
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await f.read()).bestOf, 1);
+});
+
+test("undo-last restores the last unfeatured match using the new history payload", async () => {
+  const f = await fixture();
+  const url = `/api/tournaments/${f.id}`;
+  await request(app).patch(url).set(f.auth).send({ featuredMatchId: f.match.id }).expect(200);
+  await request(app).patch(url).set(f.auth).send({ featuredMatchId: null }).expect(200);
+  assert.equal((await undoSnapshot(f.id, f.match.id)).featuredMatchId, null);
+  await request(app).post(`${url}/undo-last`).set(f.auth).expect(200);
+  assert.equal((await undoSnapshot(f.id, f.match.id)).featuredMatchId, f.match.id);
+});
+
+test("legacy swap action without a pick snapshot refuses undo when picks exist", async () => {
+  const f = await fixture();
+  await database.pool.query(
+    "INSERT INTO match_game_picks (match_id, game_number, player1_hero_id, player2_hero_id) VALUES ($1,1,'hero-a','hero-b')",
+    [f.match.id],
+  );
+  await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  await database.pool.query(
+    "UPDATE action_log SET undo_payload=(undo_payload::jsonb - 'nextPicks' - 'nextRevision' - 'nextStatus')::text WHERE tournament_id=$1 AND action_type='match_players_swapped'",
+    [f.id],
+  );
+  const baseline = await undoSnapshot(f.id, f.match.id);
+  const rejected = await request(app).post(`/api/tournaments/${f.id}/undo-last`)
+    .set(f.auth).expect(409);
+  assert.equal(rejected.body.code, "UNDO_ACTION_CHANGED");
+  assert.deepEqual(await undoSnapshot(f.id, f.match.id), baseline);
+});
