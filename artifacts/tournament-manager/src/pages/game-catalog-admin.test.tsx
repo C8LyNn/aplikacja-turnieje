@@ -261,6 +261,75 @@ test("pasted Steam AppIDs queue without Steam discovery API credentials", async 
   await waitFor(() => assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0"));
 });
 
+test("automatic Steam import processes queued AppIDs in consecutive batches and saves statistics", async () => {
+  const queued = Array.from({ length: 13 }, (_, i) => ({ appId: 2000 + i, name: `Game ${i}` }));
+  window.localStorage.setItem("steam-catalog-discovery-progress-v1", JSON.stringify({
+    cursor: 2012, hasMore: false, candidates: queued,
+  }));
+  mockCatalog([]);
+  const underlying = globalThis.fetch;
+  const requests: number[][] = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/steam-catalog/import-batch") {
+      const ids = JSON.parse(String(init?.body)).appIds as number[];
+      requests.push(ids);
+      return Response.json({
+        requested: ids.length, processed: ids.length, inserted: ids.length,
+        existing: 0, ignored: 0, failed: 0, rateLimited: false, aborted: false,
+        results: ids.map((appId) => ({ appId, status: "inserted" })),
+      });
+    }
+    return underlying(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Uruchom serię \(do 100 AppID\)/ }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-imported-total").textContent, "13"));
+  assert.deepEqual(requests.map((ids) => ids.length), [10, 3]);
+  assert.equal(screen.getByTestId("steam-candidate-count").textContent, "0");
+  const stored = JSON.parse(window.localStorage.getItem("steam-catalog-discovery-progress-v1") ?? "null");
+  assert.equal(stored.stats.inserted, 13);
+  assert.equal(stored.stats.batches, 2);
+  assert.equal(stored.cursor, 2012);
+});
+
+test("automatic Steam import can pause after a currently executing batch", async () => {
+  const queued = Array.from({ length: 15 }, (_, i) => ({ appId: 3000 + i, name: `Queued ${i}` }));
+  window.localStorage.setItem("steam-catalog-discovery-progress-v1", JSON.stringify({
+    cursor: 3014, hasMore: false, candidates: queued,
+  }));
+  mockCatalog([]);
+  const underlying = globalThis.fetch;
+  let resolveBatch!: (value: Response) => void;
+  let calls = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input) === "/api/steam-catalog/import-batch") {
+      calls++;
+      const ids = JSON.parse(String(init?.body)).appIds as number[];
+      return new Promise<Response>((resolve) => {
+        resolveBatch = resolve;
+        // Called once; control when the in-flight request finishes.
+        assert.equal(ids.length, 10);
+      });
+    }
+    return underlying(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.click(screen.getByRole("button", { name: /Uruchom serię \(do 100 AppID\)/ }));
+  const stop = await screen.findByRole("button", { name: /Zatrzymaj po bieżącej partii/ });
+  await waitFor(() => assert.equal(calls, 1));
+  fireEvent.click(stop);
+  resolveBatch(Response.json({
+    requested: 10, processed: 10, inserted: 10, existing: 0, ignored: 0,
+    failed: 0, rateLimited: false, aborted: false,
+    results: queued.slice(0, 10).map(({ appId }) => ({ appId, status: "inserted" })),
+  }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-candidate-count").textContent, "5"));
+  assert.equal(screen.getByTestId("steam-imported-total").textContent, "10");
+  assert.equal(calls, 1);
+});
+
 test("catalog filters games by classification status and title", async () => {
   mockCatalog([game(1, "Alpha", "ready"), game(2, "Beta", "review"), game(3, "Gamma")]);
   mount(`${BASE}/games`);
