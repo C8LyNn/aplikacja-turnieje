@@ -196,6 +196,28 @@ temporarily rate-limits requests, remaining candidates stay queued. The
 import response is authoritative about how many games were **actually**
 added; fetching a page of candidates alone does not increase the database.
 
+**Automated, resumable session:** the *Uruchom serię (do 100 AppID)*
+button verifies up to 100 candidate IDs per explicit click, fetching
+additional discovery pages when needed. Each session is bounded to at most
+20 Steam discovery pages and 100 verified candidates, with at most 10
+`appdetails` requests in each backend batch. It runs **only while that browser
+tab is open**; this is not a server-side or scheduled background worker.
+*Zatrzymaj po bieżącej partii* stops after the outstanding request finishes.
+Closing the tab during an API call may lose its **UI statistics for that call**,
+but the unique Steam AppID database constraint makes a subsequent retry
+idempotent. The browser checkpoints its cursor, pending AppIDs and counters
+after every completed API response, so refreshing the page resumes from the
+last confirmed result.
+
+The panel shows cumulative counts for **inserted, already existing, ignored,
+failed, scanned and completed batches**. These are local execution
+statistics, not a snapshot of every game currently in the database.
+They are also intentionally reset by *Od początku*. The public
+`GET /api/steam-catalog/games` response provides the authoritative
+global `counts.all` for a production catalog after importing. An interrupted
+or throttled session never blindly retries failed AppIDs in a tight loop;
+remaining candidates are preserved for a later manual restart.
+
 **Operational limits:** do not run a rapid infinite loop over Steam
 appdetails. Steam may throttle or change its API behavior; a batch ends
 early on an upstream rate limit or server error. Start with a small
