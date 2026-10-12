@@ -815,12 +815,44 @@ describe("Steam catalog — real PostgreSQL API", () => {
     }
   });
 
+  test("PostgreSQL grants only one SteamSpy poll reservation across parallel workers", async () => {
+    const { reserveGlobalSteamSpyPollSlot } = await import(
+      "../src/application/catalog/steam-catalog-source-throttle"
+    );
+    await database.pool.query(
+      "DELETE FROM steam_catalog_source_poll_limiter WHERE source='steamspy_all'",
+    );
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => reserveGlobalSteamSpyPollSlot(65_000)),
+    );
+    assert.equal(results.filter((wait) => wait === 0).length, 1);
+    assert.equal(results.filter((wait) => wait > 0).length, 11);
+    assert.ok(results.every((wait) => wait >= 0 && wait <= 65));
+    const [slot] = await rows<{ remaining: number }>(
+      "SELECT EXTRACT(EPOCH FROM (next_allowed_at-now()))::integer AS remaining " +
+      "FROM steam_catalog_source_poll_limiter WHERE source='steamspy_all'",
+    );
+    assert.ok(slot.remaining > 0 && slot.remaining <= 65);
+    // A controlled test-schema clock reset proves the next slot can be
+    // claimed after expiration, without sleeping for 65 seconds.
+    await database.pool.query(
+      "UPDATE steam_catalog_source_poll_limiter SET next_allowed_at=now()-interval '1 second' " +
+      "WHERE source='steamspy_all'",
+    );
+    assert.equal(await reserveGlobalSteamSpyPollSlot(65_000), 0);
+  });
+
   test("SteamSpy server jobs run without Steam key and persist queue across jobs", async () => {
     const previousFetch = globalThis.fetch;
     const previousKey = process.env.STEAM_WEB_API_KEY;
     const { runCatalogImportStep } = await import("../src/application/catalog/steam-catalog-import-jobs");
     const { resetSteamSpyPageCacheForTests } = await import("../src/application/catalog/steam-catalog-steamspy");
     resetSteamSpyPageCacheForTests();
+    // Tests share this disposable PostgreSQL schema, but must not share
+    // the prior test case's 65-second real clock reservation.
+    await database.pool.query(
+      "UPDATE steam_catalog_source_poll_limiter SET next_allowed_at = now() WHERE source = 'steamspy_all'",
+    );
     const ids: number[] = [];
     const calls: string[] = [];
     try {
@@ -997,6 +1029,11 @@ describe("Steam catalog — real PostgreSQL API", () => {
     try {
       delete process.env.STEAM_WEB_API_KEY;
       resetSteamSpyPageCacheForTests();
+    // Tests share this disposable PostgreSQL schema, but must not share
+    // the prior test case's 65-second real clock reservation.
+    await database.pool.query(
+      "UPDATE steam_catalog_source_poll_limiter SET next_allowed_at = now() WHERE source = 'steamspy_all'",
+    );
       globalThis.fetch = (async (resource: Parameters<typeof fetch>[0]) => {
         const url = new URL(String(resource));
         assert.equal(url.hostname, "steamspy.com");
