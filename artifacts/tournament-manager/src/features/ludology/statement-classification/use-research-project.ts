@@ -224,10 +224,22 @@ export function useResearchProject() {
       });
     },
     deleteDiscussionLink(discussionLinkId: string) {
-      update((current) => ({
-        ...current,
-        discussionLinks: current.discussionLinks.filter((link) => link.id !== discussionLinkId),
-      }));
+      update((current) => {
+        const link = current.discussionLinks.find((candidate) => candidate.id === discussionLinkId);
+        if (!link) return current;
+        return {
+          ...current,
+          discussionLinks: current.discussionLinks.filter((candidate) => candidate.id !== discussionLinkId),
+          argumentRelations: current.argumentRelations.filter(
+            (relation) =>
+              relation.discussionId !== link.discussionId ||
+              (
+                relation.fromArgumentId !== link.argumentId &&
+                relation.toArgumentId !== link.argumentId
+              ),
+          ),
+        };
+      });
     },
     addArgumentRelation(input: Omit<ArgumentRelation, "id">) {
       const id = createResearchId("argument_relation");
