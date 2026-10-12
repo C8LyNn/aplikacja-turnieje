@@ -125,8 +125,18 @@ export function parseResearchAuditSnapshot(raw: string): ResearchAuditReport {
       throw new Error("Raport zawiera nieprawidłowe rekordy osób.");
     }
   }
-  if (value.people.length !== (value.counts as Record<string, number>).people) {
+  const counts = value.counts as Record<string, number>;
+  const review = value.review as Record<string, number>;
+  const health = value.health as Record<string, number | null>;
+  if (value.people.length !== counts.people || health.people !== counts.people) {
     throw new Error("Niespójna liczba osób w raporcie.");
+  }
+  if (counts.verifiedExcerpts > counts.excerpts ||
+      counts.codedUnits > counts.codingRecords ||
+      counts.integrityIssues !== value.integrityIssues.length ||
+      review.total !== review.pending + review.deferred + review.blocked +
+        review.needs_review + review.resolved) {
+    throw new Error("Raport zawiera niespójne podsumowania liczebności.");
   }
   return value as unknown as ResearchAuditReport;
 }
