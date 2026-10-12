@@ -257,6 +257,50 @@ queued candidates, so fetching it repeatedly does not guarantee additional
 games. The local `scanned` counter measures candidates inspected, not
 newly inserted database rows.
 
+### Unofficial SteamSpy paginated discovery (no Steam Web API key)
+
+The admin-only `POST /api/steam-catalog/discover-steamspy` accepts
+`{"page":0,"offset":0,"pageSize":100}` and returns up to 100
+candidate AppIDs, `scanned`, `alreadyInCatalog`,
+`nextPage`, `nextOffset` and `hasMore`. This uses the public
+`https://steamspy.com/api.php?request=all&page=0` source,
+whose records are ranked by owners and contain up to 1,000 apps per page.
+The browser stores the separate SteamSpy `page/offset` cursor under
+`steam-catalog-steamspy-progress-v1`. It can queue up to 200 unique
+pending IDs and later use *Przetwórz kolejkę* to import them.
+
+SteamSpy is a **third-party, unofficial, best-effort discovery service**,
+not the authoritative source of game identity or classification.
+Candidates are filtered against the current database on every request,
+even on cache hits. Every candidate is revalidated via the official
+Steam Store `appdetails` endpoint before import, exactly as for the
+existing sources. We never use SteamSpy's names, genres, ratings, owner
+estimates or user tags as classification evidence or overwrite manual work.
+
+**Rate control:** SteamSpy documents **one `request=all` call per
+60 seconds** and refreshes the data only once per day. The backend uses a
+65-second minimum spacing between uncached fetches and a 24-hour,
+up-to-three-page in-memory cache. Multiple simultaneous requests for
+the *same* page share one fetch; another uncached page within the
+cooldown returns 429 `STEAMSPY_COOLDOWN` and a `Retry-After` header.
+Successful slices from the same cached page are immediate. After a
+server restart, cache/cooldown reset; in multi-instance deployments,
+add a distributed cooldown and cache before enabling this source at
+high volume. **Do not automatically bypass 429 or poll quickly.**
+
+This source cannot guarantee full historical coverage of Steam:
+it excludes apps not exposed by SteamSpy and may reorder pages between
+daily refreshes. Database uniqueness prevents duplicate imports, but
+page boundaries should not be treated as an immutable global inventory.
+Steam's official keyed AppID discovery is the preferred source for
+exhaustive listing. A small game catalogue can also use featured
+categories, which refresh more frequently without offering full paging.
+
+**Queue overflow fix:** the keyed single-page discovery action now
+requests no more IDs than the remaining slots in the 200-ID local
+queue. It no longer truncates the tail of a returned 50-ID page while
+advancing the saved AppID cursor.
+
 **Credentials:** both endpoints require the existing
 `x-steam-catalog-admin-token` header. Discovery additionally needs a
 server-only `STEAM_WEB_API_KEY` environment variable containing a standard
