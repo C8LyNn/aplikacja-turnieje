@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type {
+  ArgumentRelation,
   Coder,
   CodingRecord,
   DimensionModel,
@@ -98,6 +99,11 @@ export function useResearchProject() {
           codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
           assessments: current.assessments.filter((assessment) => assessment.personId !== personId),
           discussionLinks: current.discussionLinks.filter((link) => !argumentIds.has(link.argumentId)),
+          argumentRelations: current.argumentRelations.filter(
+            (relation) =>
+              !argumentIds.has(relation.fromArgumentId) &&
+              !argumentIds.has(relation.toArgumentId),
+          ),
         };
       });
     },
@@ -126,6 +132,11 @@ export function useResearchProject() {
           excerpts: current.excerpts.filter((excerpt) => excerpt.sourceId !== sourceId),
           codings: current.codings.filter((coding) => !excerptIds.has(coding.excerptId)),
           discussionLinks: current.discussionLinks.filter((link) => !argumentIds.has(link.argumentId)),
+          argumentRelations: current.argumentRelations.filter(
+            (relation) =>
+              !argumentIds.has(relation.fromArgumentId) &&
+              !argumentIds.has(relation.toArgumentId),
+          ),
         };
       });
     },
@@ -151,6 +162,11 @@ export function useResearchProject() {
           excerpt.argumentId === argumentId ? { ...excerpt, argumentId: undefined } : excerpt,
         ),
         discussionLinks: current.discussionLinks.filter((link) => link.argumentId !== argumentId),
+        argumentRelations: current.argumentRelations.filter(
+          (relation) =>
+            relation.fromArgumentId !== argumentId &&
+            relation.toArgumentId !== argumentId,
+        ),
       }));
     },
     addDiscussion(input: Omit<ResearchDiscussion, "id" | "createdAt">) {
@@ -177,6 +193,9 @@ export function useResearchProject() {
         ...current,
         discussions: current.discussions.filter((discussion) => discussion.id !== discussionId),
         discussionLinks: current.discussionLinks.filter((link) => link.discussionId !== discussionId),
+        argumentRelations: current.argumentRelations.filter(
+          (relation) => relation.discussionId !== discussionId,
+        ),
       }));
     },
     upsertDiscussionLink(
@@ -208,6 +227,59 @@ export function useResearchProject() {
       update((current) => ({
         ...current,
         discussionLinks: current.discussionLinks.filter((link) => link.id !== discussionLinkId),
+      }));
+    },
+    addArgumentRelation(input: Omit<ArgumentRelation, "id">) {
+      const id = createResearchId("argument_relation");
+      update((current) => {
+        const discussion = current.discussions.find(
+          (candidate) => candidate.id === input.discussionId,
+        );
+        const linkedArgumentIds = new Set(
+          current.discussionLinks
+            .filter((link) => link.discussionId === input.discussionId)
+            .map((link) => link.argumentId),
+        );
+        if (
+          !discussion ||
+          input.fromArgumentId === input.toArgumentId ||
+          !linkedArgumentIds.has(input.fromArgumentId) ||
+          !linkedArgumentIds.has(input.toArgumentId)
+        ) return current;
+
+        const duplicate = current.argumentRelations.some(
+          (relation) =>
+            relation.discussionId === input.discussionId &&
+            relation.fromArgumentId === input.fromArgumentId &&
+            relation.toArgumentId === input.toArgumentId &&
+            relation.relation === input.relation,
+        );
+        if (duplicate) return current;
+
+        return {
+          ...current,
+          argumentRelations: [...current.argumentRelations, { ...input, id }],
+        };
+      });
+      return id;
+    },
+    updateArgumentRelation(
+      argumentRelationId: string,
+      patch: Partial<Omit<ArgumentRelation, "id" | "discussionId" | "fromArgumentId" | "toArgumentId">>,
+    ) {
+      update((current) => ({
+        ...current,
+        argumentRelations: current.argumentRelations.map((relation) =>
+          relation.id === argumentRelationId ? { ...relation, ...patch } : relation,
+        ),
+      }));
+    },
+    deleteArgumentRelation(argumentRelationId: string) {
+      update((current) => ({
+        ...current,
+        argumentRelations: current.argumentRelations.filter(
+          (relation) => relation.id !== argumentRelationId,
+        ),
       }));
     },
     addExcerpt(input: Omit<ResearchExcerpt, "id">) {
