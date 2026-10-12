@@ -330,6 +330,45 @@ test("automatic Steam import can pause after a currently executing batch", async
   assert.equal(calls, 1);
 });
 
+test("persistent Steam import task can start, pause, resume and show server counts", async () => {
+  window.sessionStorage.setItem("tm_steam_catalog_admin_token", "integration-test-admin");
+  mockCatalog([]);
+  const underlying = globalThis.fetch;
+  let status = "running";
+  const paths: string[] = [];
+  const job = () => ({
+    id: "7", status, cursor: 123, pending: 4, hasMore: true,
+    maxGames: 1500, processed: 20, inserted: 11, existing: 5,
+    ignored: 4, failed: 0, scanned: 80, pauseRequested: false, lastError: null,
+  });
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.startsWith("/api/steam-catalog/import-job")) {
+      assert.equal(new Headers(init?.headers).get("x-steam-catalog-admin-token"), "integration-test-admin");
+      paths.push(url);
+      if (url.endsWith("/pause")) status = "paused";
+      if (url.endsWith("/resume")) status = "running";
+      if (init?.method === "POST" && url === "/api/steam-catalog/import-job") {
+        assert.deepEqual(JSON.parse(String(init.body)), { maxGames: 1500 });
+        return Response.json({ job: job() }, { status: 201 });
+      }
+      return Response.json({ job: job() });
+    }
+    return underlying(input, init);
+  }) as typeof fetch;
+  mount(`${BASE}/search`);
+  await screen.findByRole("heading", { name: "Szukaj gry" });
+  fireEvent.change(screen.getByLabelText("Maks. sprawdzonych AppID"), { target: { value: "1500" } });
+  fireEvent.click(screen.getByRole("button", { name: "Uruchom zadanie serwerowe" }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-server-inserted").textContent, "11"));
+  fireEvent.click(screen.getByRole("button", { name: "Wstrzymaj zadanie serwerowe" }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-server-job-status").textContent, "paused"));
+  fireEvent.click(screen.getByRole("button", { name: "Wznów zadanie serwerowe" }));
+  await waitFor(() => assert.equal(screen.getByTestId("steam-server-job-status").textContent, "running"));
+  fireEvent.click(screen.getByRole("button", { name: /Odśwież stan zadania/ }));
+  await waitFor(() => assert.equal(paths.length, 4));
+});
+
 test("catalog filters games by classification status and title", async () => {
   mockCatalog([game(1, "Alpha", "ready"), game(2, "Beta", "review"), game(3, "Gamma")]);
   mount(`${BASE}/games`);
