@@ -210,6 +210,55 @@ and rate-limit behavior must be observed on the actual deployment.
 Do not store the Steam key or administrator token in logs, source files
 or browser localStorage.
 
+## Read-only release preflight (before any staging/production import)
+
+Run the catalog database inspection **against the exact database you intend
+to deploy**. This is an opt-in, read-only gate; it does not apply migrations,
+start background jobs, import games, access tournament records or repair data.
+
+Configure the following environment variables in your **private** terminal
+or staging deployment secrets:
+
+- CATALOG_PREFLIGHT_DATABASE_URL — a read-only PostgreSQL connection URL
+  (separate from the app's writable DATABASE_URL, not printed to logs)
+- CATALOG_PREFLIGHT_EXPECTED_HOST — exact PostgreSQL hostname
+- CATALOG_PREFLIGHT_EXPECTED_DATABASE — exact database name
+- CATALOG_PREFLIGHT_EXPECTED_SCHEMA — normally public
+- CATALOG_PREFLIGHT_ENVIRONMENT — staging or production
+
+From the repository root, after installing locked dependencies:
+
+    pnpm --filter @workspace/db preflight:game-catalog
+
+The tool uses one repeatable-read **READ ONLY** transaction and rolls back
+on exit. It checks required tables/columns of migrations 0029–0036, the
+Steam AppID uniqueness index, the single-active-import index, all three
+status-counter triggers, and the equality of the counter and actual total.
+It prints a JSON report with check names, observed counts, and an overall
+passed flag. It never prints database passwords or complete connection
+strings. Exit codes: 0 = ready, 2 = schema/data check failed, 1 =
+invalid config or connection/inspection failure. **Do not bypass failures**.
+
+Production read-only inspection additionally requires the explicit setting
+CATALOG_PREFLIGHT_ALLOW_PRODUCTION=YES_READ_ONLY. This grants no write
+permission and does not authorize a production import. Prefer a separate
+PostgreSQL account with only SELECT and catalog introspection.
+
+After a successful read-only staging preflight: verify the actual deployed
+API, admin-token configuration and the correct database, then run an
+authenticated **staging-only** 5-AppID SteamSpy job. Compare the public
+catalog counts.all before and after; inspect the job's inserted,
+existing, ignored and lastError fields. Check stopping/restarting
+the server and resuming a paused job. The test can legitimately add zero
+games if the source contains records already imported or non-games.
+
+**Replit warning (2026-10-12):** a connected legacy Replit checkout was
+observed on an August 2026 commit with failed publication. Do not assume
+this is the current production backend, force-publish it, or swap it to the
+catalog branch without first identifying the authoritative deployment and
+database and backing up the actual data. This preflight is a readiness
+check only, **not proof that the public application is live**.
+
 ## Persistent no-key SteamSpy import (migration 0036)
 
 The persistent importer now supports two explicitly selected discovery sources:
