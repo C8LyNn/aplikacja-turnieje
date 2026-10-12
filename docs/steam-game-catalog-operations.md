@@ -235,6 +235,28 @@ grow without generating fictitious or unverified records:
    failed counts, per-ID outcomes, and whether the batch was interrupted.
    Failed/unprocessed IDs can be retried.
 
+**Additional discovery without a Steam Web API key:** the admin panel also offers
+*Pobierz nowości i popularne (bez klucza)*. It calls the protected
+`POST /api/steam-catalog/discover-featured` endpoint, which reads the public
+Steam Store featured-category JSON (new releases, top sellers, coming soon,
+specials) and returns deduplicated candidates not already in the database.
+This source is **a small rotating snapshot**, not a complete or paginated
+Steam game list. It never directly inserts a record or overwrites existing
+classification. The backend still validates each queued AppID using
+`appdetails` and requires `type: "game"` at import time. An invalid or
+throttled featured feed returns a distinct 502 or 429 error.
+
+Use *Przetwórz kolejkę (do 100 AppID)* to verify the already collected
+candidates **without calling the keyed app-list API**. This queue-only mode
+can process manual pasted AppIDs and featured games without
+`STEAM_WEB_API_KEY`; it keeps all normal 10-item batch checkpoints.
+Use *Uruchom serię (do 100 AppID)* only when the server has a
+Steam Web API key, because it continues requesting new app-list pages after
+the pending queue is exhausted. The featured snapshot may contain already
+queued candidates, so fetching it repeatedly does not guarantee additional
+games. The local `scanned` counter measures candidates inspected, not
+newly inserted database rows.
+
 **Credentials:** both endpoints require the existing
 `x-steam-catalog-admin-token` header. Discovery additionally needs a
 server-only `STEAM_WEB_API_KEY` environment variable containing a standard
