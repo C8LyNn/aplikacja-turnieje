@@ -56,5 +56,5 @@ test("snapshot without plan is null; invalid instrument references are rejected"
   const a = fixture();
   assert.equal(snapshotAuditInstruments(a, "book", null).samplingPlan, null);
   assert.throws(() => snapshotAuditInstruments(a, "nonexistent", null), /codebook/);
-  assert.throws(() => snapshotAuditInstruments(a, "book", "nonexistent"), /planu/);
+  assert.throws(() => snapshotAuditInstruments(a, "book", "nonexistent"), /plan próbkowania/);
 });
