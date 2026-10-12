@@ -40,9 +40,23 @@ export async function createCatalogImportJob(maxGames: number) {
     throw new Error("INVALID_JOB_LIMIT");
   }
   try {
-    const result = await pool.query<JobRow>(
-      "INSERT INTO steam_catalog_import_jobs (max_games) VALUES ($1) RETURNING *", [maxGames],
+    // Continue where the previous completed batch ended. The last discovery
+    // page may still contain unprocessed candidates; preserve both its cursor
+    // AND pending IDs so chaining 20k-ID jobs never skips or rescans them.
+    const previous = await pool.query<JobRow>(
+      "SELECT * FROM steam_catalog_import_jobs ORDER BY id DESC LIMIT 1",
     );
+    const last = previous.rows[0];
+    const canContinue = last?.status === "completed" &&
+      (last.has_more || last.pending.length > 0);
+    const cursor = canContinue ? last.steam_cursor : 0;
+    const pending = canContinue ? last.pending : [];
+    const hasMore = canContinue ? last.has_more : true;
+    const result = await pool.query<JobRow>(`
+      INSERT INTO steam_catalog_import_jobs
+        (max_games, steam_cursor, pending, has_more)
+      VALUES ($1,$2,$3::jsonb,$4) RETURNING *
+    `, [maxGames, cursor, JSON.stringify(pending), hasMore]);
     return view(result.rows[0]);
   } catch (error) {
     if ((error as { code?: string }).code === "23505") throw new Error("ACTIVE_JOB_EXISTS");
