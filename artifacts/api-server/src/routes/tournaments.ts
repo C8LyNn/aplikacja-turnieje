@@ -2501,8 +2501,13 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             const matchId = lockedPayload.matchId as number;
             const prevStatus = lockedPayload.prevStatus as string;
             const prevNote = (lockedPayload.prevNote as string | null) ?? null;
+            // Old cancellation logs lack nextNote: undo only when the current note
+            // still matches the pre-cancellation note, never overwrite unknown edits.
+            const expectedNote = lockedPayload.nextNote === undefined
+              ? prevNote : lockedPayload.nextNote;
             const [currentMatch] = await tx.select({
               status: matchesTable.status,
+              note: matchesTable.note,
               revision: matchesTable.revision,
               completedAt: matchesTable.completedAt,
               resultType: matchesTable.resultType,
@@ -2511,6 +2516,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
               eq(matchesTable.tournamentId, params.data.id),
             )).for("update");
             if (!currentMatch || currentMatch.status !== "cancelled" ||
+                currentMatch.note !== expectedNote ||
                 currentMatch.completedAt != null || currentMatch.resultType != null ||
                 (lockedPayload.nextRevision != null &&
                   currentMatch.revision !== lockedPayload.nextRevision)) {
@@ -2938,6 +2944,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
           matchId: lockedMatch.id,
           prevStatus: lockedMatch.status,
           prevNote: lockedMatch.note,
+          nextNote: saved.note,
           nextRevision: saved.revision,
         },
       }, tx);
