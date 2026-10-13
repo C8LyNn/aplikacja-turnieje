@@ -1,4 +1,8 @@
 import "./style.css";
+import { installPreviewTransport } from "./animation/previewTransport";
+import { eventPlaybackInstance, isTriggeredEffect, triggerPlaybackDurationMs } from "./animation/triggers";
+import { appendAlertCaption } from "./animation/alertText";
+import { installAlertDiagnostics } from "./animation/alertDiagnosticsPanel";
 
 import {
   installPack08UiQa,
@@ -52,6 +56,7 @@ import {
   selectEffect,
   subscribe,
   toggleEffect,
+  updateEffectTrigger,
 } from "./editor/state";
 
 import {
@@ -81,7 +86,7 @@ app.innerHTML = `
         <div class="ae-brand-mark">OBS</div>
 
         <div class="ae-brand-copy">
-          <span class="ae-dev-context">OBS / STREAM</span>
+          <span class="ae-dev-context">DEV / NARZ\u0118DZIA</span>
           <h1>Animated Effects</h1>
         </div>
       </div>
@@ -252,11 +257,110 @@ app.innerHTML = `
 
       <button
         type="button"
+        class="ae-button ae-button-secondary"
+        data-export-download
+        title="Pobierz kod widgetu i kopię edytowalnej sceny"
+      >
+        Pobierz ZIP
+      </button>
+
+      <button
+        type="button"
         data-export-close
       >
         \u00D7
       </button>
     </div>
+
+    <section class="export-profile-config" aria-label="Zapisane konfiguracje StreamElements">
+      <div class="export-profile-heading">
+        <strong>Zestawy animacji i zdarzeń</strong>
+        <span>Nowe · lokalne · przenośne</span>
+      </div>
+      <p>Zapisz całą scenę, przypisane warstwy i reguły StreamElements. Wczytanie wymaga potwierdzenia.</p>
+      <div class="export-profile-actions">
+        <label class="export-profile-name">Nazwa zestawu
+          <input type="text" data-profile-name value="Mój zestaw" maxlength="64" autocomplete="off" />
+        </label>
+        <button type="button" data-profile-save>Zapisz aktualny</button>
+      </div>
+      <div class="export-profile-actions">
+        <label class="export-profile-select-label">Zapisane zestawy
+          <select data-profile-select><option value="">Wybierz zapisany zestaw</option></select>
+        </label>
+        <button type="button" data-profile-load disabled>Wczytaj</button>
+        <button type="button" data-profile-export disabled>Pobierz JSON</button>
+        <button type="button" data-profile-delete disabled>Usuń</button>
+      </div>
+      <div class="export-profile-actions">
+        <button type="button" data-profile-import>Importuj JSON</button>
+        <input type="file" data-profile-file accept=".json,application/json" hidden />
+        <span class="export-profile-help">Pliki działają także w innej przeglądarce lub na drugim komputerze.</span>
+      </div>
+      <p class="export-profile-status" data-profile-status role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="export-trigger-config" data-single-trigger aria-label="Aktywacja efektów">
+      <strong>Uruchamianie animacji</strong>
+      <p>Wybierz, kiedy StreamElements ma uruchomić tę scenę. Tryb ciągły zachowuje poprzednie działanie.</p>
+      <div class="export-trigger-fields">
+        <label>
+          Zdarzenie
+          <select data-trigger-mode>
+            <option value="always">Zawsze aktywna</option>
+            <option value="chat-command">Komenda na czacie</option>
+            <option value="follower">Nowy obserwujący</option>
+            <option value="subscriber">Subskrypcja</option>
+            <option value="tip">Donacja</option>
+            <option value="cheer">Cheer / Bits</option>
+            <option value="raid">Raid</option>
+          </select>
+        </label>
+        <label data-trigger-command-field hidden>
+          Komenda (dostępna każdemu widzowi)
+          <input type="text" data-trigger-command value="!hype" maxlength="25" spellcheck="false" autocomplete="off" />
+        </label>
+        <label data-trigger-timing hidden>
+          Czas wyświetlania (s)
+          <input type="number" data-trigger-duration value="5" min="0.5" max="60" step="0.5" />
+        </label>
+        <label data-trigger-timing hidden>
+          Przerwa między aktywacjami (s)
+          <input type="number" data-trigger-cooldown value="10" min="0" max="300" step="1" />
+        </label>
+      </div>
+      <p class="export-trigger-note" data-trigger-info>Efekty startują po załadowaniu widgetu i pozostają aktywne.</p>
+    </section>
+
+    <section class="export-route-config" aria-label="Wiele reguł animacji">
+      <label class="export-route-toggle">
+        <input type="checkbox" data-multi-routes />
+        <span><strong>Wiele zdarzeń w jednym widżecie</strong><small>Przypisz różne efekty do komend i alertów bez instalowania kolejnych widgetów.</small></span>
+      </label>
+      <div data-route-workspace hidden>
+        <p class="export-route-description">Reguły są sprawdzane w kolejności od góry. Każda ma własny cooldown; najnowsza aktywowana scena zastępuje poprzednią.</p>
+        <div data-route-list class="export-route-list"></div>
+        <button type="button" data-add-route>+ Dodaj regułę</button>
+        <p class="export-route-note" data-route-warning role="status"></p>
+      </div>
+    </section>
+
+    <section class="export-simulator-config" aria-label="Symulator StreamElements">
+      <div class="export-simulator-heading">
+        <strong>Symulator StreamElements</strong>
+        <span>Ten sam kod co w eksporcie</span>
+      </div>
+      <p>Sprawdź działanie wybranej reguły, cooldownu i warstw bez podłączania konta. Podgląd pracuje w odizolowanej ramce — nie zapisuje zmian w scenie.</p>
+      <div class="export-simulator-toolbar">
+        <label>Zdarzenie do zasymulowania
+          <select data-simulator-event aria-label="Zdarzenie testowe"></select>
+        </label>
+        <button type="button" data-simulator-fire disabled>▶ Symuluj zdarzenie</button>
+        <button type="button" data-simulator-reset disabled>↻ Resetuj podgląd</button>
+      </div>
+      <div class="export-simulator-stage" data-simulator-frame aria-label="Podgląd animacji 16:9"></div>
+      <p class="export-simulator-status" data-simulator-status role="status" aria-live="polite">Podgląd uruchomi się po otwarciu eksportu.</p>
+    </section>
 
     <div class="export-section">
       <div class="export-section-header">
@@ -389,6 +493,14 @@ const preview =
   createPreview(
     previewHost,
   );
+const previewTransport = installPreviewTransport(
+  preview,
+  getRequiredElement<HTMLElement>(".ae-stage-panel"),
+);
+const alertDiagnostics = installAlertDiagnostics(
+  getRequiredElement<HTMLElement>(".ae-stage-panel"),
+  () => getEditorState().effects,
+);
 
 const effectDefinitions =
   getAllEffectDefinitions();
@@ -935,7 +1047,10 @@ function renderEffectLibrary(): void {
   );
 }
 
+const testTriggerTimeouts = new Map<string, number>();
 function renderPreview(): void {
+  for (const timeout of testTriggerTimeouts.values()) clearTimeout(timeout);
+  testTriggerTimeouts.clear();
   preview.replaceChildren();
 
   const state =
@@ -943,7 +1058,7 @@ function renderPreview(): void {
 
   state.effects.forEach(
     (effect) => {
-      if (!effect.enabled) {
+      if (!effect.enabled || isTriggeredEffect(effect)) {
         return;
       }
 
@@ -962,7 +1077,111 @@ function renderPreview(): void {
       temporaryPreviewEffect,
     );
   }
+  previewTransport.afterRender();
 }
+
+document.addEventListener("animated-effects:diagnostics-clear-preview", () => {
+  for (const timer of testTriggerTimeouts.values()) clearTimeout(timer);
+  testTriggerTimeouts.clear();
+  for (const element of Array.from(preview.children)) {
+    if ((element as HTMLElement).dataset.testTriggerId) element.remove();
+  }
+});
+
+// A test run renders only the selected event layer; it is not sent to
+// StreamElements and cannot change the scene or trigger real alerts.
+document.addEventListener("animated-effects:test-trigger", (event) => {
+  const detail = (event as CustomEvent<{ instanceId: string; diagnostic?: boolean }>).detail;
+  const instanceId = detail?.instanceId;
+  if (!instanceId) return;
+  const instance = getEditorState().effects.find((effect) => effect.instanceId === instanceId);
+  if (!instance || !instance.enabled || !isTriggeredEffect(instance)) return;
+
+  if (detail.diagnostic) {
+    // The workbench plays one queued alert at a time. Keep its preview
+    // aligned with the simulated queue even across different layers.
+    for (const timeout of testTriggerTimeouts.values()) clearTimeout(timeout);
+    testTriggerTimeouts.clear();
+    for (const element of Array.from(preview.children)) {
+      if ((element as HTMLElement).dataset.testTriggerId) element.remove();
+    }
+  }
+  const previous = Array.from(preview.children).find(
+    (element) => (element as HTMLElement).dataset?.testTriggerId === instanceId,
+  );
+  previous?.remove();
+  const timeout = testTriggerTimeouts.get(instanceId);
+  if (timeout !== undefined) clearTimeout(timeout);
+
+  const holder = document.createElement("div");
+  holder.dataset.testTriggerId = instanceId;
+  Object.assign(holder.style, {
+    position: "absolute",
+    inset: "0",
+    pointerEvents: "none",
+  });
+  preview.appendChild(holder);
+  renderEffect(holder, eventPlaybackInstance(instance));
+  const sampleListener = instance.trigger?.event ?? "follower-latest";
+  const sampleEvent = sampleListener === "message"
+    ? { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } }
+    : { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
+  const label = appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent, triggerPlaybackDurationMs(instance));
+  if (label && instance.trigger?.caption?.position === "custom") {
+    label.style.pointerEvents = "auto";
+    label.style.cursor = "grab";
+    label.style.touchAction = "none";
+    label.title = "Przeciągnij podpis, aby ustawić go na scenie";
+    let pointerId: number | null = null;
+    let xPercent = instance.trigger.caption.xPercent ?? 50;
+    let yPercent = instance.trigger.caption.yPercent ?? 75;
+    const move = (clientX: number, clientY: number): void => {
+      const rect = holder.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      xPercent = Math.max(25, Math.min(75, Math.round((clientX - rect.left) / rect.width * 100)));
+      yPercent = Math.max(10, Math.min(90, Math.round((clientY - rect.top) / rect.height * 100)));
+      label.style.left = xPercent + "%";
+      label.style.top = yPercent + "%";
+    };
+    label.addEventListener("pointerdown", (pointerEvent) => {
+      if (pointerEvent.button !== 0 || pointerId !== null) return;
+      pointerId = pointerEvent.pointerId;
+      label.setPointerCapture(pointerId);
+      label.style.cursor = "grabbing";
+      pointerEvent.preventDefault();
+      pointerEvent.stopPropagation();
+    });
+    label.addEventListener("pointermove", (pointerEvent) => {
+      if (pointerId !== pointerEvent.pointerId) return;
+      move(pointerEvent.clientX, pointerEvent.clientY);
+      pointerEvent.preventDefault();
+    });
+    label.addEventListener("pointerup", (pointerEvent) => {
+      if (pointerId !== pointerEvent.pointerId) return;
+      move(pointerEvent.clientX, pointerEvent.clientY);
+      if (label.hasPointerCapture(pointerId)) label.releasePointerCapture(pointerId);
+      pointerId = null;
+      label.style.cursor = "grab";
+      const trigger = getEditorState().effects.find((entry) => entry.instanceId === instanceId)?.trigger;
+      if (!trigger?.caption) return;
+      if (trigger.caption.xPercent === xPercent && trigger.caption.yPercent === yPercent) return;
+      updateEffectTrigger(instanceId, {
+        ...trigger,
+        caption: { ...trigger.caption, position: "custom", xPercent, yPercent },
+      });
+      // Redraw the test after the editor subscription refreshes the stage.
+      document.dispatchEvent(new CustomEvent("animated-effects:test-trigger", { detail: { instanceId } }));
+    });
+    label.addEventListener("pointercancel", () => { pointerId = null; label.style.cursor = "grab"; });
+  }
+  previewTransport.replay();
+  previewTransport.afterRender();
+
+  testTriggerTimeouts.set(instanceId, window.setTimeout(() => {
+    holder.remove();
+    testTriggerTimeouts.delete(instanceId);
+  }, triggerPlaybackDurationMs(instance)));
+});
 
 function renderLayers(): void {
   const state =
@@ -1186,6 +1405,7 @@ function renderEditor(): void {
   renderPreview();
   renderLayers();
   renderStatus();
+  alertDiagnostics.refresh();
 
   if (!isInspectorRangeDragging) {
     renderInspector(

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { JSDOM } from "jsdom";
 import type {
   Match,
   StageGroup,
@@ -510,7 +511,7 @@ for (const count of [1, 2, 5] as const) {
     assert.match(html, new RegExp(`${count} grup etapu`));
     for (const entry of groups)
       assert.match(html, new RegExp(`Grupa ${entry.groupKey}`));
-    const container = document.createElement("div");
+    const container = new JSDOM().window.document.createElement("div");
     container.innerHTML = html;
     assert.ok(container.firstElementChild?.classList.contains("grid-cols-[repeat(auto-fit,minmax(min(100%,36rem),1fr))]"), "group columns must fit the container, including the narrower Audience panel");
     const tables = container.querySelectorAll("table");

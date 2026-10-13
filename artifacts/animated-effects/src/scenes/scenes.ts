@@ -1,5 +1,7 @@
-import type { BlendMode, EditorState, EffectArea, EffectInstance, EffectSettings } from "../core/types";
+import type { BlendMode, EditorState, EffectArea, EffectCustomControl, EffectInstance, EffectSettings, FocusZone, SafeZone } from "../core/types";
 import { getEffectDefinition } from "../effects/registry";
+import { normalizedMotionTimeline } from "../animation/motion";
+import { normalizeEffectTrigger } from "../animation/triggers";
 
 export const SCENE_FORMAT = "animated-effects-scene";
 export const SCENE_VERSION = 1;
@@ -24,13 +26,24 @@ function finite(value: unknown, fallback: number, min: number, max: number): num
   return Number.isFinite(numeric) ? Math.min(max, Math.max(min, numeric)) : fallback;
 }
 
-function safeSettings(raw: unknown, defaults: EffectSettings): EffectSettings {
+function safeSettings(raw: unknown, defaults: EffectSettings, controls: EffectCustomControl[] = []): EffectSettings {
   const source = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
   const blendModes: BlendMode[] = ["normal","screen","lighten","multiply","overlay"];
   const areas: EffectArea[] = ["full","left","center","right","top","bottom"];
   const blendMode = blendModes.includes(source.blendMode as BlendMode) ? source.blendMode as BlendMode : defaults.blendMode;
   const area = areas.includes(source.area as EffectArea) ? source.area as EffectArea : defaults.area;
   const color = typeof source.color === "string" && /^#[0-9a-f]{6}$/i.test(source.color) ? source.color : defaults.color;
+  // Only restore keys declared by this effect; reject arbitrary scene JSON properties.
+  const rawCustom = source.custom && typeof source.custom === "object" && !Array.isArray(source.custom)
+    ? source.custom as Record<string, unknown> : {};
+  const controlMap = new Map(controls.map((control) => [control.key, control]));
+  const customKeys = new Set([...Object.keys(defaults.custom ?? {}), ...controls.map((control) => control.key)]);
+  const custom: Record<string, number> = {};
+  for (const key of customKeys) {
+    const control = controlMap.get(key);
+    const fallback = defaults.custom?.[key] ?? control?.defaultValue ?? 0;
+    custom[key] = finite(rawCustom[key], fallback, control?.min ?? -1000000, control?.max ?? 1000000);
+  }
   return {
     opacity: finite(source.opacity, defaults.opacity, 0, 100),
     scale: finite(source.scale, defaults.scale, 10, 400),
@@ -39,9 +52,10 @@ function safeSettings(raw: unknown, defaults: EffectSettings): EffectSettings {
     blur: finite(source.blur, defaults.blur, 0, 100), brightness: finite(source.brightness, defaults.brightness, 0, 500),
     hue: finite(source.hue, defaults.hue, -1080, 1080), color,
     colorize: typeof source.colorize === "boolean" ? source.colorize : defaults.colorize,
-    density: finite(source.density, defaults.density, 0, 200), blendMode, area,
+    density: finite(source.density, defaults.density, 0, 400), blendMode, area,
     zIndex: finite(source.zIndex, defaults.zIndex, -1000, 1000),
     speed: finite(source.speed, defaults.speed, 1, 500), intensity: finite(source.intensity, defaults.intensity, 0, 200),
+    custom: customKeys.size ? custom : undefined,
   };
 }
 
@@ -58,7 +72,9 @@ export function serializeScene(state: EditorState, name?: string): string {
 }
 
 export function parseScene(text: string, current: EditorState): { state: EditorState; warnings: string[]; name: string } {
-  const raw = JSON.parse(text) as Record<string, unknown>;
+  const parsed: unknown = JSON.parse(text);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Nieprawidłowy format sceny.");
+  const raw = parsed as Record<string, unknown>;
   if (raw.format !== SCENE_FORMAT) throw new Error("To nie jest plik Animated Effects Scene.");
   if (raw.version !== SCENE_VERSION) throw new Error(`Nieobsługiwana wersja sceny: ${String(raw.version)}.`);
   const warnings: string[] = [];
@@ -78,10 +94,12 @@ export function parseScene(text: string, current: EditorState): { state: EditorS
       instanceId, effectId,
       seed: finite(value.seed, Math.floor(Math.random() * 0xffffffff), 0, 0xffffffff),
       enabled: typeof value.enabled === "boolean" ? value.enabled : true,
-      settings: safeSettings(value.settings, definition.defaultSettings),
+      settings: safeSettings(value.settings, definition.defaultSettings, definition.customControls),
       label: typeof value.label === "string" ? value.label.trim().slice(0,80) || undefined : undefined,
       locked: value.locked === true,
       groupId: typeof value.groupId === "string" ? value.groupId : null,
+      timeline: value.timeline == null ? undefined : normalizedMotionTimeline(value.timeline, safeSettings(value.settings, definition.defaultSettings, definition.customControls)),
+      trigger: normalizeEffectTrigger(value.trigger),
     });
   }
   const resolution = raw.resolution && typeof raw.resolution === "object" ? raw.resolution as Record<string, unknown> : {};
@@ -96,7 +114,11 @@ export function parseScene(text: string, current: EditorState): { state: EditorS
   if (raw.palette && typeof raw.palette === "object") next.palette = { ...next.palette, ...raw.palette as EditorState["palette"] };
   if (raw.background && typeof raw.background === "object") next.background = { ...next.background, ...raw.background as EditorState["background"] };
   if (typeof raw.backgroundOnly === "boolean") next.backgroundOnly = raw.backgroundOnly;
-  return { state: next, warnings, name: typeof raw.name === "string" ? raw.name : "Imported Scene" };
+  const focusZones: FocusZone[] = ["none", "left", "center", "right", "top", "bottom"];
+  const safeZones: SafeZone[] = ["off", "left", "center", "right", "top", "bottom", "full"];
+  if (focusZones.includes(raw.focusZone as FocusZone)) next.focusZone = raw.focusZone as FocusZone;
+  if (safeZones.includes(raw.safeZone as SafeZone)) next.safeZone = raw.safeZone as SafeZone;
+  return { state: next, warnings, name: typeof raw.name === "string" ? raw.name.slice(0, 120) : "Imported Scene" };
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

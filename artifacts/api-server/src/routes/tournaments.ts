@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { deriveTournamentOperations } from "../application/operations/tournament-operations";
+import { deriveTournamentProgressionPreflight } from "../application/operations/tournament-progression-preflight";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable, tournamentGameConfigsTable } from "@workspace/db";
 import {
@@ -1987,70 +1989,42 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
   const tournament = access.tournament;
 
-  const players = await db
-    .select()
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-  const matches = await db
-    .select()
-    .from(matchesTable)
-    .where(eq(matchesTable.tournamentId, params.data.id));
-
-  const warnings: string[] = [];
-  let stepTitle = "";
-  let nextAction = "";
-
-  if (tournament.status === "draft") {
-    if (players.length === 0) {
-      stepTitle = "Krok 1/5: Dodaj zawodnikow";
-      nextAction = "Dodaj zawodnikow recznie lub wczytaj CSV. Wymagane minimum: 2.";
-    } else if (players.length < 2) {
-      stepTitle = "Krok 1/5: Wczytaj zawodnikow";
-      nextAction = `Dodaj jeszcze ${2 - players.length} zawodnika aby mozna bylo wystartowac.`;
-    } else {
-      stepTitle = "Krok 2/5: Sprawdz zawodnikow i start";
-      nextAction = `Masz ${players.length} zawodnikow. Sprawdz rozstawienie i kliknij Start.`;
-      const unseeded = players.filter((p) => !p.seed);
-      if (unseeded.length > 0) {
-        warnings.push(`${unseeded.length} zawodnikow bez rozstawienia.`);
-      }
+  // Never infer eligibility to start a stage from participant counts alone.
+  // Reuse the authoritative read-only stage-start readiness implementation.
+  const [players, matches, stages] = await Promise.all([
+    db.select().from(playersTable).where(eq(playersTable.tournamentId, tournament.id)),
+    db.select().from(matchesTable).where(eq(matchesTable.tournamentId, tournament.id)),
+    db.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId, tournament.id)),
+  ]);
+  const activeStage = stages.find(stage => stage.status === "active");
+  const plannedStage = !activeStage && [...stages]
+    .filter(stage => stage.status === "planned")
+    .sort((a, b) => a.position - b.position)[0];
+  let plannedStageReadiness: {ready: boolean; reasonCode: string; message: string} | null = null;
+  if (plannedStage && (tournament.status === "draft" || tournament.status === "active")) {
+    try {
+      plannedStageReadiness = await getStageStartReadiness({
+        tournamentId: tournament.id,
+        stageId: plannedStage.id,
+      });
+    } catch (error) {
+      if (!(error instanceof StageLifecycleError)) throw error;
+      plannedStageReadiness = {ready: false, reasonCode: error.code, message: error.message};
     }
-  } else if (tournament.status === "active") {
-    const pending = matches.filter((m) => m.status === "pending" || m.status === "postponed");
-    const live = matches.filter((m) => m.status === "in_progress");
-    const done = matches.filter((m) => m.status === "completed");
-
-    if (live.length > 0) {
-      stepTitle = "Krok 4/5: Mecz w toku";
-      nextAction = `${live.length} mecz(e) aktualnie grane. Wpisz wynik.`;
-    } else if (pending.length > 0) {
-      stepTitle = "Krok 3/5: Wpisuj wyniki";
-      nextAction = `${pending.length} mecz(e) oczekuje. Wybierz mecz i wpisz wynik.`;
-    } else {
-      if (tournament.format === "swiss" && (tournament.currentRound ?? 0) < (tournament.totalRounds ?? 0)) {
-        stepTitle = "Krok 4/5: Generuj nastepna runde";
-        nextAction = `Runda ${tournament.currentRound} zakonczona. Wygeneruj runde ${(tournament.currentRound ?? 0) + 1}.`;
-      } else {
-        stepTitle = "Krok 5/5: Zakonczenie";
-        nextAction = "Wszystkie mecze zakonczone. Mozesz zakonczyc turniej lub sprawdzic tabele.";
-      }
-    }
-
-    if (done.length > 0 && pending.length > 0) {
-      const progress = Math.round((done.length / matches.length) * 100);
-      warnings.push(`Postep rundy: ${progress}%`);
-    }
-  } else {
-    stepTitle = "Turniej zakonczony";
-    nextAction = "Sprawdz tabele koncową i exportuj wyniki.";
   }
-
-  res.json({ stepTitle, nextAction, warnings });
+  const operationsInput = { tournament, players, stages, matches, plannedStageReadiness };
+  const operations = deriveTournamentOperations(operationsInput);
+  const transitionPreview = deriveTournamentProgressionPreflight(operationsInput, operations);
+  res.json({
+    stepTitle: operations.recommendedAction.title,
+    nextAction: operations.recommendedAction.description,
+    warnings: operations.blockers.map(blocker => blocker.message),
+    operations: { ...operations, transitionPreview },
+  });
 });
 
 // ========== PLAYER ROUTES ==========

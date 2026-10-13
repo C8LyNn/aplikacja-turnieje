@@ -194,6 +194,416 @@ export const CreateTournamentBody = zod.object({
 })
 
 
+/**
+ * Public read-only plan generation. Returned plan must be revalidated at creation.
+ * @summary Preview a validated tournament template without creating anything
+ */
+export const previewTournamentPlanBodyParticipantCountMin = 2;
+export const previewTournamentPlanBodyParticipantCountMax = 128;
+
+
+
+export const PreviewTournamentPlanBody = zod.object({
+  "templateId": zod.enum(['quick_elimination', 'double_chance', 'everyone_plays', 'swiss', 'groups_to_playoffs', 'swiss_to_playoffs']),
+  "participantCount": zod.number().min(previewTournamentPlanBodyParticipantCountMin).max(previewTournamentPlanBodyParticipantCountMax),
+  "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)])
+})
+
+export const previewTournamentPlanResponseStagePlanInitialParticipantCountMin = 2;
+
+
+export const previewTournamentPlanResponseStagePlanStagesItemPositionMax = 10;
+
+
+export const previewTournamentPlanResponseStagePlanStagesItemParticipantCountMin = 2;
+
+
+export const previewTournamentPlanResponseStagePlanStagesItemAdvancingCountMin = 2;
+
+
+export const previewTournamentPlanResponseStagePlanStagesItemParticipantsPerGroupMin = 2;
+
+
+export const previewTournamentPlanResponseStagePlanStagesItemEntrySeedingMethodDefault = `preserve`;
+export const previewTournamentPlanResponseStagePlanStagesItemRandomSeedMax = 200;
+
+export const previewTournamentPlanResponseStagePlanStagesItemRandomRevealOrderDefault = `instant`;
+export const previewTournamentPlanResponseStagePlanStagesMax = 10;
+
+export const previewTournamentPlanResponseEstimatedTotalMatchesMin = 0;
+
+export const previewTournamentPlanResponseEstimatedMatchesMaximumMin = 0;
+
+
+
+export const PreviewTournamentPlanResponse = zod.object({
+  "version": zod.literal(1),
+  "templateId": zod.enum(['quick_elimination', 'double_chance', 'everyone_plays', 'swiss', 'groups_to_playoffs', 'swiss_to_playoffs']),
+  "label": zod.string(),
+  "stagePlan": zod.object({
+  "initialParticipantCount": zod.number().min(previewTournamentPlanResponseStagePlanInitialParticipantCountMin),
+  "stages": zod.array(zod.object({
+  "key": zod.string().min(1),
+  "position": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemPositionMax),
+  "name": zod.string().min(1),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
+  "participantCount": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemParticipantCountMin),
+  "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
+  "rounds": zod.number().min(1).optional(),
+  "advancingCount": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemAdvancingCountMin).optional().describe('Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.'),
+  "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
+  "participantsPerGroup": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
+  "qualifiersPerGroup": zod.number().min(1).optional().describe('Maximum qualifiers taken from each group. Smaller groups may qualify everyone.'),
+  "entrySeedingMethod": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']).default(previewTournamentPlanResponseStagePlanStagesItemEntrySeedingMethodDefault).describe('How incoming participants are converted into stage seeds.'),
+  "placementMethod": zod.enum(['standings_order', 'snake', 'random', 'standard']).optional().describe('Format-specific placement. Groups use snake\/random; brackets use standard\/random.'),
+  "resultSeedingMethod": zod.enum(['rank_bands', 'global_ranking']).optional().describe('How group qualifiers receive new seeds.'),
+  "randomSeed": zod.string().min(1).max(previewTournamentPlanResponseStagePlanStagesItemRandomSeedMax).optional().describe('Deterministic key required by random seeding or placement.'),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']).default(previewTournamentPlanResponseStagePlanStagesItemRandomRevealOrderDefault),
+  "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
+})).min(1).max(previewTournamentPlanResponseStagePlanStagesMax)
+}),
+  "stages": zod.array(zod.object({
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "participantCount": zod.number(),
+  "advancingCount": zod.number().nullable(),
+  "estimatedMatches": zod.number()
+})),
+  "estimatedTotalMatches": zod.number().min(previewTournamentPlanResponseEstimatedTotalMatchesMin),
+  "estimatedMatchesMaximum": zod.number().min(previewTournamentPlanResponseEstimatedMatchesMaximumMin),
+  "warnings": zod.array(zod.string()),
+  "advisory": zod.boolean(),
+  "requiresConfirmation": zod.boolean()
+})
+
+
+/**
+ * Does not modify any matches or authorize a correction. Requires organizer/support. The actual revert and re-complete operations must recheck the database transactionally.
+ * @summary Advisory, read-only score correction impact preview
+ */
+
+
+
+export const PreviewTournamentResultCorrectionParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+export const previewTournamentResultCorrectionBodyExpectedRevisionMin = 0;
+
+export const previewTournamentResultCorrectionBodyProposedScore1Min = 0;
+
+export const previewTournamentResultCorrectionBodyProposedScore2Min = 0;
+
+
+
+export const PreviewTournamentResultCorrectionBody = zod.object({
+  "matchId": zod.number().min(1),
+  "expectedRevision": zod.number().min(previewTournamentResultCorrectionBodyExpectedRevisionMin),
+  "proposedScore1": zod.number().min(previewTournamentResultCorrectionBodyProposedScore1Min),
+  "proposedScore2": zod.number().min(previewTournamentResultCorrectionBodyProposedScore2Min)
+})
+
+export const previewTournamentResultCorrectionResponseStandingsComparisonTwoDiffChangedRowsMin = 0;
+
+export const previewTournamentResultCorrectionResponseStandingsComparisonTwoDiffMovedRowsMin = 0;
+
+export const previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemCurrentSlotsMin = 2;
+export const previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemCurrentSlotsMax = 2;
+
+export const previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemHypotheticalSlotsMin = 2;
+export const previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemHypotheticalSlotsMax = 2;
+
+
+
+export const PreviewTournamentResultCorrectionResponse = zod.object({
+  "version": zod.literal(1),
+  "advisory": zod.boolean(),
+  "mutationPerformed": zod.boolean(),
+  "previewIsAuthorization": zod.boolean(),
+  "requiresTransactionalRecheck": zod.boolean(),
+  "state": zod.enum(['blocked', 'requires_review']),
+  "matchId": zod.number(),
+  "expectedRevision": zod.number(),
+  "stageName": zod.string().nullable(),
+  "existingResult": zod.object({
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerId": zod.number().nullable()
+}),
+  "proposedResult": zod.object({
+  "score1": zod.number(),
+  "score2": zod.number(),
+  "winnerId": zod.number().nullable(),
+  "winnerChanges": zod.boolean().nullable()
+}),
+  "issues": zod.array(zod.object({
+  "code": zod.string(),
+  "severity": zod.enum(['block', 'review']),
+  "message": zod.string()
+})),
+  "effects": zod.array(zod.object({
+  "code": zod.string(),
+  "certainty": zod.enum(['confirmed', 'conditional']),
+  "message": zod.string()
+})),
+  "downstreamMatchIds": zod.array(zod.number()),
+  "recommendedAction": zod.string(),
+  "standingsComparison": zod.union([zod.object({
+  "status": zod.literal("unavailable"),
+  "reasonCode": zod.string(),
+  "message": zod.string()
+}),zod.object({
+  "status": zod.literal("available"),
+  "stageId": zod.number(),
+  "stageName": zod.string(),
+  "stageFormat": zod.enum(['swiss', 'round_robin', 'group_stage']),
+  "scope": zod.enum(['stage', 'group']),
+  "scopeLabel": zod.string(),
+  "provisional": zod.boolean(),
+  "note": zod.string(),
+  "diff": zod.object({
+  "changedRows": zod.number().min(previewTournamentResultCorrectionResponseStandingsComparisonTwoDiffChangedRowsMin),
+  "movedRows": zod.number().min(previewTournamentResultCorrectionResponseStandingsComparisonTwoDiffMovedRowsMin),
+  "rows": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "beforeRank": zod.number(),
+  "afterRank": zod.number(),
+  "rankDelta": zod.number(),
+  "beforeMatchWins": zod.number(),
+  "afterMatchWins": zod.number(),
+  "beforeGameDiff": zod.number(),
+  "afterGameDiff": zod.number(),
+  "beforeBuchholz": zod.number().nullable(),
+  "afterBuchholz": zod.number().nullable(),
+  "changed": zod.boolean()
+})),
+  "qualifierImpact": zod.object({
+  "status": zod.enum(['projected', 'not_applicable']),
+  "cutoff": zod.number().nullable(),
+  "beforePlayerIds": zod.array(zod.number()),
+  "afterPlayerIds": zod.array(zod.number()),
+  "gainingPlayerIds": zod.array(zod.number()),
+  "losingPlayerIds": zod.array(zod.number())
+})
+})
+})]).optional().describe('Hypothetical projection; neither an authorization nor official rankings.'),
+  "bracketImpact": zod.union([zod.object({
+  "status": zod.literal("unavailable"),
+  "reasonCode": zod.string(),
+  "message": zod.string()
+}),zod.object({
+  "status": zod.literal("available"),
+  "stageId": zod.number(),
+  "stageName": zod.string(),
+  "format": zod.literal("single_elimination"),
+  "provisional": zod.boolean(),
+  "forecastScope": zod.literal("structure_only"),
+  "winnerChanges": zod.boolean(),
+  "sourceMatch": zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number()
+}),
+  "directSlot": zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "slot": zod.enum(['player1', 'player2']),
+  "currentPlayerId": zod.number().nullable(),
+  "hypotheticalPlayerId": zod.number(),
+  "matchingCurrentWinner": zod.boolean(),
+  "pristine": zod.boolean()
+}).nullable(),
+  "possibleDownstream": zod.array(zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "status": zod.string(),
+  "relation": zod.enum(['direct_slot', 'possible_later_match']),
+  "blocking": zod.boolean()
+})),
+  "issues": zod.array(zod.object({
+  "code": zod.string(),
+  "message": zod.string()
+})),
+  "chainComplete": zod.boolean(),
+  "finalRoundWinnerMayChange": zod.boolean(),
+  "note": zod.string()
+})]).optional().describe('Structural-only hypothetical SE dependency chain; never operation authorization.'),
+  "doubleEliminationImpact": zod.union([zod.object({
+  "status": zod.literal("unavailable"),
+  "reasonCode": zod.string(),
+  "message": zod.string()
+}),zod.object({
+  "status": zod.literal("available"),
+  "provisional": zod.boolean(),
+  "scope": zod.literal("double_elimination_routing_v2"),
+  "stageId": zod.number(),
+  "sourceMatchKey": zod.string(),
+  "winnerChanges": zod.boolean(),
+  "currentWinnerId": zod.number(),
+  "proposedWinnerId": zod.number(),
+  "planRevision": zod.number(),
+  "executionRevision": zod.number(),
+  "upstreamRoutes": zod.array(zod.object({
+  "routeKey": zod.string(),
+  "outcome": zod.enum(['winner', 'loser']),
+  "targetMatchKey": zod.string(),
+  "targetSlot": zod.union([zod.literal(1),zod.literal(2)])
+})),
+  "affectedMatches": zod.array(zod.object({
+  "matchKey": zod.string(),
+  "label": zod.string(),
+  "currentStatus": zod.string(),
+  "hypotheticalStatus": zod.string(),
+  "currentSlots": zod.array(zod.string().nullable()).min(previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemCurrentSlotsMin).max(previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemCurrentSlotsMax),
+  "hypotheticalSlots": zod.array(zod.string().nullable()).min(previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemHypotheticalSlotsMin).max(previewTournamentResultCorrectionResponseDoubleEliminationImpactTwoAffectedMatchesItemHypotheticalSlotsMax),
+  "existingCanonicalMatchId": zod.number().nullable(),
+  "canonicalMatchAlreadyCompleted": zod.boolean()
+})),
+  "invalidatedDecisions": zod.array(zod.object({
+  "matchKey": zod.string(),
+  "canonicalMatchId": zod.number().nullable(),
+  "canonicalMatchAlreadyCompleted": zod.boolean()
+})),
+  "currentChampionId": zod.number().nullable(),
+  "hypotheticalChampionId": zod.number().nullable(),
+  "warningCodes": zod.array(zod.string()),
+  "note": zod.string()
+})]).optional().describe('Hypothetical read-only DE routing-v2 evaluation; no mutation permission.'),
+  "previewGuard": zod.object({
+  "status": zod.enum(['stable_on_recheck', 'changed_during_read']),
+  "stageId": zod.number(),
+  "stageVersionVector": zod.string()
+}).optional().describe('Best-effort second read of all stage matches; NOT serializable transaction or execution permission.'),
+  "recoveryPlan": zod.object({
+  "version": zod.number(),
+  "kind": zod.literal("correction_recovery_playbook"),
+  "advisory": zod.boolean(),
+  "mutationPerformed": zod.boolean(),
+  "executable": zod.boolean(),
+  "permissionToExecute": zod.boolean(),
+  "status": zod.enum(['stale', 'blocked', 'no_change', 'manual_review']),
+  "risk": zod.enum(['none', 'moderate', 'high', 'critical']),
+  "matchId": zod.number(),
+  "expectedRevision": zod.number(),
+  "proposedScore": zod.object({
+  "score1": zod.number(),
+  "score2": zod.number()
+}),
+  "evidence": zod.object({
+  "stageId": zod.number(),
+  "stageVersionVector": zod.string().nullable(),
+  "doubleEliminationPlanRevision": zod.number().nullable(),
+  "doubleEliminationExecutionRevision": zod.number().nullable()
+}),
+  "affected": zod.object({
+  "knownDownstreamMatchIds": zod.array(zod.number()),
+  "possibleAffectedLogicalMatches": zod.number(),
+  "potentiallyInvalidatedCompletedResults": zod.number()
+}),
+  "blockerCodes": zod.array(zod.string()),
+  "approvalQuestions": zod.array(zod.string()),
+  "steps": zod.array(zod.object({
+  "id": zod.string(),
+  "phase": zod.enum(['inspect', 'authorize', 'manual', 'verify']),
+  "title": zod.string(),
+  "instruction": zod.string(),
+  "requiresOrganizerApproval": zod.boolean(),
+  "mutation": zod.boolean(),
+  "automaticExecutionAllowed": zod.boolean(),
+  "dependsOn": zod.array(zod.string())
+})),
+  "note": zod.string()
+}).optional().describe('Read-only non-executable, organizer-review-only plan for correction recovery. Not a permission or workflow trigger.'),
+  "boundedRevertCandidate": zod.object({
+  "supported": zod.boolean(),
+  "reasonCode": zod.string(),
+  "expectedCompletionActionId": zod.number().nullable()
+}).optional()
+}).describe('Read-only impact analysis; state requires_review never means permission to execute.')
+
+
+/**
+ * Advisory snapshot only; it does not approve proposals, execute routes or authorize mutations.
+ * @summary Read-only organizer/support status of qualification proposals and basket routing
+ */
+
+
+
+export const GetTournamentQualificationRoutingPreviewParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const getTournamentQualificationRoutingPreviewResponseSummarySourceStagesMin = 0;
+
+export const getTournamentQualificationRoutingPreviewResponseSummaryProposalsPendingMin = 0;
+
+export const getTournamentQualificationRoutingPreviewResponseSummaryProposalsApprovedMin = 0;
+
+export const getTournamentQualificationRoutingPreviewResponseSummaryRoutesTotalMin = 0;
+
+export const getTournamentQualificationRoutingPreviewResponseSummaryRoutesMaterializedMin = 0;
+
+
+
+export const GetTournamentQualificationRoutingPreviewResponse = zod.object({
+  "version": zod.literal(1),
+  "advisory": zod.boolean(),
+  "executionMustRevalidate": zod.boolean(),
+  "noMutationsPerformed": zod.boolean(),
+  "proposalFingerprintRevalidated": zod.boolean(),
+  "tournamentId": zod.number(),
+  "flowAuthority": zod.enum(['legacy', 'basket_v1']),
+  "state": zod.enum(['not_applicable', 'needs_attention', 'waiting_for_matches', 'prepare_qualification', 'review_qualification', 'route_qualifiers', 'review_next_stage', 'complete']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "summary": zod.object({
+  "sourceStages": zod.number().min(getTournamentQualificationRoutingPreviewResponseSummarySourceStagesMin),
+  "proposalsPending": zod.number().min(getTournamentQualificationRoutingPreviewResponseSummaryProposalsPendingMin),
+  "proposalsApproved": zod.number().min(getTournamentQualificationRoutingPreviewResponseSummaryProposalsApprovedMin),
+  "routesTotal": zod.number().min(getTournamentQualificationRoutingPreviewResponseSummaryRoutesTotalMin),
+  "routesMaterialized": zod.number().min(getTournamentQualificationRoutingPreviewResponseSummaryRoutesMaterializedMin)
+}),
+  "issues": zod.array(zod.object({
+  "code": zod.string(),
+  "message": zod.string(),
+  "severity": zod.enum(['block', 'attention']),
+  "stageId": zod.number().nullable(),
+  "routeId": zod.string().nullable()
+})),
+  "qualificationStages": zod.array(zod.object({
+  "stageId": zod.number(),
+  "stageName": zod.string(),
+  "stageStatus": zod.enum(['planned', 'active', 'completed']),
+  "proposalStatus": zod.enum(['missing', 'pending', 'approved', 'unknown']),
+  "proposalRevision": zod.number().nullable(),
+  "qualifierQuota": zod.number(),
+  "proposalEntries": zod.number(),
+  "routeCount": zod.number(),
+  "routeDone": zod.number(),
+  "nextAction": zod.enum(['wait', 'prepare_proposal', 'review_proposal', 'review_routes', 'review_next_stage']),
+  "routes": zod.array(zod.object({
+  "routeId": zod.string(),
+  "sourceBasketId": zod.string(),
+  "targetBasketId": zod.string(),
+  "sourceStageId": zod.number(),
+  "targetStageId": zod.number().nullable(),
+  "targetStageName": zod.string().nullable(),
+  "qualifierQuota": zod.number().nullable(),
+  "allocatedInProposal": zod.number(),
+  "proposalRevision": zod.number().nullable(),
+  "materialized": zod.boolean(),
+  "routedPlayerCount": zod.number(),
+  "state": zod.enum(['materialized', 'ready_for_review', 'waiting', 'blocked']),
+  "reason": zod.string()
+}))
+}))
+}).describe('Read-only organizer\/support preview. Revision is not a freshness check; execution must revalidate.')
+
+
 export const GetTournamentParams = zod.object({
   "id": zod.coerce.number()
 })
@@ -2954,16 +3364,413 @@ export const ImportTournamentBody = zod.object({
 
 
 /**
+ * @summary Persist organizer approval for guarded Round Robin revert (does not mutate match)
+ */
+
+
+
+export const PrepareControlledCorrectionIntentParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+
+
+
+export const prepareControlledCorrectionIntentBodyExpectedStageVersionVectorMin = 2;
+export const prepareControlledCorrectionIntentBodyExpectedStageVersionVectorMax = 80000;
+
+export const prepareControlledCorrectionIntentBodyProposedScore1Min = 0;
+
+export const prepareControlledCorrectionIntentBodyProposedScore2Min = 0;
+
+
+
+export const PrepareControlledCorrectionIntentBody = zod.object({
+  "operationId": zod.string().uuid(),
+  "matchId": zod.number().min(1),
+  "expectedRevision": zod.number().min(1),
+  "expectedCompletionActionId": zod.number().min(1),
+  "expectedStageVersionVector": zod.string().min(prepareControlledCorrectionIntentBodyExpectedStageVersionVectorMin).max(prepareControlledCorrectionIntentBodyExpectedStageVersionVectorMax),
+  "proposedScore1": zod.number().min(prepareControlledCorrectionIntentBodyProposedScore1Min),
+  "proposedScore2": zod.number().min(prepareControlledCorrectionIntentBodyProposedScore2Min),
+  "approvedByOrganizer": zod.boolean(),
+  "understandsRequiresResubmission": zod.boolean()
+})
+
+export const PrepareControlledCorrectionIntentResponse = zod.object({
+  "version": zod.number(),
+  "operationId": zod.string().uuid(),
+  "matchId": zod.number(),
+  "status": zod.enum(['approved', 'expired', 'reverted_requires_resubmission', 'corrected']),
+  "mutationPerformed": zod.boolean(),
+  "approvedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date().nullable(),
+  "revertActionId": zod.number().nullable(),
+  "matchRevision": zod.number().nullable(),
+  "completionActionId": zod.number().nullish(),
+  "correctedMatchRevision": zod.number().nullish(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Recover the durable approval/execution receipt after connection loss
+ */
+
+
+
+export const GetControlledCorrectionIntentParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "operationId": zod.coerce.string().uuid()
+})
+
+export const GetControlledCorrectionIntentResponse = zod.object({
+  "version": zod.number(),
+  "operationId": zod.string().uuid(),
+  "matchId": zod.number(),
+  "status": zod.enum(['approved', 'expired', 'reverted_requires_resubmission', 'corrected']),
+  "mutationPerformed": zod.boolean(),
+  "approvedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date().nullable(),
+  "revertActionId": zod.number().nullable(),
+  "matchRevision": zod.number().nullable(),
+  "completionActionId": zod.number().nullish(),
+  "correctedMatchRevision": zod.number().nullish(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Execute the approved, single-match revert with transactional receipt
+ */
+
+
+
+export const ExecuteControlledCorrectionIntentParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "operationId": zod.coerce.string().uuid()
+})
+
+export const ExecuteControlledCorrectionIntentResponse = zod.object({
+  "version": zod.number(),
+  "operationId": zod.string().uuid(),
+  "matchId": zod.number(),
+  "status": zod.enum(['approved', 'expired', 'reverted_requires_resubmission', 'corrected']),
+  "mutationPerformed": zod.boolean(),
+  "approvedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date().nullable(),
+  "revertActionId": zod.number().nullable(),
+  "matchRevision": zod.number().nullable(),
+  "completionActionId": zod.number().nullish(),
+  "correctedMatchRevision": zod.number().nullish(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Atomically revert and replace an approved Round Robin result in one transaction
+ */
+
+
+
+export const ExecuteAtomicCorrectionIntentParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "operationId": zod.coerce.string().uuid()
+})
+
+export const ExecuteAtomicCorrectionIntentResponse = zod.object({
+  "version": zod.number(),
+  "operationId": zod.string().uuid(),
+  "matchId": zod.number(),
+  "status": zod.enum(['approved', 'expired', 'reverted_requires_resubmission', 'corrected']),
+  "mutationPerformed": zod.boolean(),
+  "approvedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "completedAt": zod.coerce.date().nullable(),
+  "revertActionId": zod.number().nullable(),
+  "matchRevision": zod.number().nullable(),
+  "completionActionId": zod.number().nullish(),
+  "correctedMatchRevision": zod.number().nullish(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Snapshot-consistent, read-only SE correction readiness; never permits execution
+ */
+
+
+
+
+export const AssessSingleEliminationCorrectionReadinessParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "matchId": zod.coerce.number().min(1)
+})
+
+export const assessSingleEliminationCorrectionReadinessBodyScore1Min = 0;
+export const assessSingleEliminationCorrectionReadinessBodyScore1Max = 999999;
+
+export const assessSingleEliminationCorrectionReadinessBodyScore2Min = 0;
+export const assessSingleEliminationCorrectionReadinessBodyScore2Max = 999999;
+
+
+export const assessSingleEliminationCorrectionReadinessBodyExpectedStageVersionVectorMin = 2;
+export const assessSingleEliminationCorrectionReadinessBodyExpectedStageVersionVectorMax = 80000;
+
+
+
+
+export const AssessSingleEliminationCorrectionReadinessBody = zod.object({
+  "score1": zod.number().min(assessSingleEliminationCorrectionReadinessBodyScore1Min).max(assessSingleEliminationCorrectionReadinessBodyScore1Max),
+  "score2": zod.number().min(assessSingleEliminationCorrectionReadinessBodyScore2Min).max(assessSingleEliminationCorrectionReadinessBodyScore2Max),
+  "expectedMatchRevision": zod.number().min(1),
+  "expectedStageVersionVector": zod.string().min(assessSingleEliminationCorrectionReadinessBodyExpectedStageVersionVectorMin).max(assessSingleEliminationCorrectionReadinessBodyExpectedStageVersionVectorMax),
+  "expectedCompletionActionId": zod.number().min(1)
+})
+
+export const assessSingleEliminationCorrectionReadinessResponseImpactGraphDirectSuccessorCountMin = 0;
+
+export const assessSingleEliminationCorrectionReadinessResponseImpactGraphPotentialLaterMatchCountMin = 0;
+
+export const assessSingleEliminationCorrectionReadinessResponseImpactGraphStartedDownstreamCountMin = 0;
+
+export const assessSingleEliminationCorrectionReadinessResponseDiagnosticAssessmentIdRegExp = new RegExp('^[a-f0-9]{64}$');
+export const assessSingleEliminationCorrectionReadinessResponseDiagnosticIssueCountMin = 0;
+
+
+
+export const AssessSingleEliminationCorrectionReadinessResponse = zod.object({
+  "version": zod.literal(1),
+  "status": zod.enum(['candidate', 'blocked']),
+  "advisoryOnly": zod.boolean(),
+  "executionEnabled": zod.boolean(),
+  "writePerformed": zod.boolean(),
+  "matchId": zod.number(),
+  "expectedMatchRevision": zod.number().optional(),
+  "stageVersionVector": zod.string().optional(),
+  "originalWinnerId": zod.number().nullish(),
+  "hypotheticalWinnerId": zod.number().nullish(),
+  "dependentMatch": zod.object({
+
+}).passthrough().nullish(),
+  "requiredChecks": zod.array(zod.string()).optional(),
+  "issues": zod.array(zod.string()),
+  "reason": zod.string().optional(),
+  "impactRiskReport": zod.object({
+  "version": zod.literal(1),
+  "kind": zod.enum(['se_correction_impact_risk_report']),
+  "advisoryOnly": zod.boolean(),
+  "executionEnabled": zod.boolean(),
+  "writePerformed": zod.boolean(),
+  "matchId": zod.number(),
+  "status": zod.enum(['incomplete', 'requires_review', 'observational']),
+  "highestSeverity": zod.enum(['critical', 'high', 'medium', 'low']),
+  "items": zod.array(zod.object({
+
+}).passthrough()),
+  "note": zod.string()
+}).optional().describe('Conservative advisory risk report derived from bounded SE graph; not an execution approval.'),
+  "impactGraph": zod.object({
+  "version": zod.literal(1),
+  "kind": zod.enum(['se_correction_impact_graph']),
+  "advisoryOnly": zod.boolean(),
+  "executionEnabled": zod.boolean(),
+  "writePerformed": zod.boolean(),
+  "status": zod.enum(['outlined', 'review_required', 'incomplete']),
+  "matchId": zod.number(),
+  "stageId": zod.number().nullable(),
+  "changeType": zod.enum(['winner_change', 'score_only', 'unknown']),
+  "sourceRound": zod.number().nullish(),
+  "downstreamMatches": zod.array(zod.object({
+
+}).passthrough()),
+  "laterStages": zod.array(zod.object({
+
+}).passthrough()),
+  "directSuccessorCount": zod.number().min(assessSingleEliminationCorrectionReadinessResponseImpactGraphDirectSuccessorCountMin),
+  "potentialLaterMatchCount": zod.number().min(assessSingleEliminationCorrectionReadinessResponseImpactGraphPotentialLaterMatchCountMin),
+  "startedDownstreamCount": zod.number().min(assessSingleEliminationCorrectionReadinessResponseImpactGraphStartedDownstreamCountMin),
+  "warnings": zod.array(zod.string()),
+  "note": zod.string()
+}).optional().describe('Bounded, advisory-only forward SE impact graph from the same read-only snapshot. Future winners and cross-stage routing are NOT predicted.'),
+  "diagnostic": zod.object({
+  "version": zod.literal(1),
+  "kind": zod.enum(['se_correction_diagnostic']),
+  "advisoryOnly": zod.boolean(),
+  "executionEnabled": zod.boolean(),
+  "writePerformed": zod.boolean(),
+  "status": zod.enum(['candidate', 'blocked']),
+  "assessmentId": zod.string().regex(assessSingleEliminationCorrectionReadinessResponseDiagnosticAssessmentIdRegExp),
+  "validity": zod.enum(['snapshot_only']),
+  "matchId": zod.number(),
+  "expectedMatchRevision": zod.number(),
+  "issueCount": zod.number().min(assessSingleEliminationCorrectionReadinessResponseDiagnosticIssueCountMin),
+  "priorityCategory": zod.string().nullable(),
+  "blockers": zod.array(zod.object({
+
+}).passthrough()),
+  "recommendedNextActions": zod.array(zod.string()),
+  "note": zod.string()
+}).optional().describe('Human readable SE blockers and deterministic, snapshot-only correlation identifier; NOT execution permission.'),
+  "actionPlan": zod.object({
+  "version": zod.literal(1),
+  "kind": zod.enum(['se_correction_advisory_plan']),
+  "advisoryOnly": zod.boolean(),
+  "executionEnabled": zod.boolean(),
+  "writePerformed": zod.boolean(),
+  "state": zod.enum(['candidate', 'blocked']),
+  "changeType": zod.enum(['winner_change', 'score_only', 'unknown']),
+  "matchId": zod.number(),
+  "evidence": zod.object({
+
+}).passthrough(),
+  "score": zod.object({
+
+}).passthrough(),
+  "winner": zod.object({
+
+}).passthrough(),
+  "successor": zod.object({
+
+}).passthrough().nullable(),
+  "steps": zod.array(zod.object({
+
+}).passthrough()),
+  "blockerCodes": zod.array(zod.string()),
+  "note": zod.string()
+}).optional().describe('Advisory hypothetical SE recovery plan. NEVER authorization to execute.')
+})
+
+
+/**
+ * @summary Read-only Single Elimination correction structural safety (not permission to execute)
+ */
+
+
+
+
+export const GetSingleEliminationCorrectionSafetyParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "matchId": zod.coerce.number().min(1)
+})
+
+export const getSingleEliminationCorrectionSafetyQueryScore1Min = 0;
+
+export const getSingleEliminationCorrectionSafetyQueryScore2Min = 0;
+
+
+
+export const GetSingleEliminationCorrectionSafetyQueryParams = zod.object({
+  "score1": zod.coerce.number().min(getSingleEliminationCorrectionSafetyQueryScore1Min),
+  "score2": zod.coerce.number().min(getSingleEliminationCorrectionSafetyQueryScore2Min)
+})
+
+export const GetSingleEliminationCorrectionSafetyResponse = zod.object({
+  "version": zod.literal(1),
+  "status": zod.enum(['structurally_safe', 'blocked']),
+  "advisoryOnly": zod.literal(true),
+  "executionEnabled": zod.literal(false),
+  "matchId": zod.number(),
+  "priorWinnerId": zod.number().nullish(),
+  "proposedWinnerId": zod.number().nullish(),
+  "winnerChanges": zod.boolean().optional(),
+  "readVersion": zod.string().optional(),
+  "issues": zod.array(zod.string()),
+  "dependentMatch": zod.object({
+
+}).passthrough().nullish(),
+  "message": zod.string().optional()
+})
+
+
+/**
  * @summary Get tournament assistant snapshot
  */
 export const GetTournamentAssistantParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getTournamentAssistantResponseOperationsTransitionPreviewBlockersMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressCompletedMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressTotalMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressInProgressMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressPendingMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressPostponedMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressCancelledMin = 0;
+
+export const getTournamentAssistantResponseOperationsProgressPercentMin = 0;
+export const getTournamentAssistantResponseOperationsProgressPercentMax = 100;
+
+
+
 export const GetTournamentAssistantResponse = zod.object({
   "stepTitle": zod.string(),
   "nextAction": zod.string(),
-  "warnings": zod.array(zod.string()).optional()
+  "warnings": zod.array(zod.string()).optional(),
+  "operations": zod.object({
+  "version": zod.literal(1),
+  "tournamentId": zod.number(),
+  "phase": zod.enum(['draft', 'active', 'completed']),
+  "currentStageId": zod.number().nullable(),
+  "advisory": zod.boolean(),
+  "transitionPreview": zod.object({
+  "version": zod.literal(1),
+  "advisory": zod.boolean(),
+  "tournamentId": zod.number(),
+  "kind": zod.enum(['start_stage', 'complete_stage', 'swiss_next_round', 'review', 'none']),
+  "availability": zod.enum(['ready_for_review', 'blocked', 'not_applicable']),
+  "stageId": zod.number().nullable(),
+  "stageName": zod.string().nullable(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "blockers": zod.number().min(getTournamentAssistantResponseOperationsTransitionPreviewBlockersMin),
+  "requiresConfirmation": zod.boolean(),
+  "executionMustRevalidate": zod.boolean(),
+  "checks": zod.array(zod.object({
+  "code": zod.string(),
+  "status": zod.enum(['pass', 'block', 'review']),
+  "message": zod.string()
+})),
+  "effects": zod.array(zod.object({
+  "code": zod.string(),
+  "confidence": zod.enum(['derived', 'conditional']),
+  "message": zod.string()
+}))
+}).optional().describe('Read-only progression guidance; not an execution authorization.'),
+  "progress": zod.object({
+  "completed": zod.number().min(getTournamentAssistantResponseOperationsProgressCompletedMin),
+  "total": zod.number().min(getTournamentAssistantResponseOperationsProgressTotalMin),
+  "inProgress": zod.number().min(getTournamentAssistantResponseOperationsProgressInProgressMin),
+  "pending": zod.number().min(getTournamentAssistantResponseOperationsProgressPendingMin),
+  "postponed": zod.number().min(getTournamentAssistantResponseOperationsProgressPostponedMin),
+  "cancelled": zod.number().min(getTournamentAssistantResponseOperationsProgressCancelledMin),
+  "percent": zod.number().min(getTournamentAssistantResponseOperationsProgressPercentMin).max(getTournamentAssistantResponseOperationsProgressPercentMax).nullable()
+}),
+  "recommendedAction": zod.object({
+  "code": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "href": zod.string(),
+  "stageId": zod.number().nullable(),
+  "requiresConfirmation": zod.boolean(),
+  "availability": zod.enum(['ready', 'review', 'blocked'])
+}),
+  "blockers": zod.array(zod.object({
+  "code": zod.string(),
+  "message": zod.string(),
+  "stageId": zod.number().nullable(),
+  "severity": zod.enum(['blocking', 'warning'])
+}))
+}).optional().describe('Advisory, read-only guidance. Mutation endpoints remain authoritative.')
 })
 
 

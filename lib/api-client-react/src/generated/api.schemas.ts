@@ -760,28 +760,71 @@ export interface Tournament {
   presentationSettings?: TournamentPresentationSettings | null;
 }
 
-export type TournamentInputFormat = typeof TournamentInputFormat[keyof typeof TournamentInputFormat];
+export type TournamentTemplateRequestTemplateId = typeof TournamentTemplateRequestTemplateId[keyof typeof TournamentTemplateRequestTemplateId];
 
 
-export const TournamentInputFormat = {
-  single_elimination: 'single_elimination',
-  round_robin: 'round_robin',
+export const TournamentTemplateRequestTemplateId = {
+  quick_elimination: 'quick_elimination',
+  double_chance: 'double_chance',
+  everyone_plays: 'everyone_plays',
   swiss: 'swiss',
-  group_stage: 'group_stage',
-  double_elimination: 'double_elimination',
+  groups_to_playoffs: 'groups_to_playoffs',
+  swiss_to_playoffs: 'swiss_to_playoffs',
 } as const;
 
-/**
- * Tournament visibility mode
- */
-export type TournamentInputVisibility = typeof TournamentInputVisibility[keyof typeof TournamentInputVisibility];
+export type TournamentTemplateRequestBestOf = typeof TournamentTemplateRequestBestOf[keyof typeof TournamentTemplateRequestBestOf];
 
 
-export const TournamentInputVisibility = {
-  public_online: 'public_online',
-  private_online: 'private_online',
-  private_offline: 'private_offline',
+export const TournamentTemplateRequestBestOf = {
+  NUMBER_1: 1,
+  NUMBER_3: 3,
+  NUMBER_5: 5,
+  NUMBER_7: 7,
 } as const;
+
+export interface TournamentTemplateRequest {
+  templateId: TournamentTemplateRequestTemplateId;
+  /**
+     * @minimum 2
+     * @maximum 128
+     */
+  participantCount: number;
+  bestOf: TournamentTemplateRequestBestOf;
+}
+
+export interface TournamentTemplateFailure {
+  code: string;
+  error: string;
+}
+
+export type TournamentTemplatePreviewVersion = typeof TournamentTemplatePreviewVersion[keyof typeof TournamentTemplatePreviewVersion];
+
+
+export const TournamentTemplatePreviewVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type TournamentTemplatePreviewTemplateId = typeof TournamentTemplatePreviewTemplateId[keyof typeof TournamentTemplatePreviewTemplateId];
+
+
+export const TournamentTemplatePreviewTemplateId = {
+  quick_elimination: 'quick_elimination',
+  double_chance: 'double_chance',
+  everyone_plays: 'everyone_plays',
+  swiss: 'swiss',
+  groups_to_playoffs: 'groups_to_playoffs',
+  swiss_to_playoffs: 'swiss_to_playoffs',
+} as const;
+
+export type TournamentTemplatePreviewStagesItem = {
+  position: number;
+  name: string;
+  format: string;
+  participantCount: number;
+  /** @nullable */
+  advancingCount: number | null;
+  estimatedMatches: number;
+};
 
 export type TournamentStagePlanItemInputFormat = typeof TournamentStagePlanItemInputFormat[keyof typeof TournamentStagePlanItemInputFormat];
 
@@ -927,6 +970,44 @@ export interface TournamentStagePlanInput {
      */
   stages: TournamentStagePlanItemInput[];
 }
+
+export interface TournamentTemplatePreview {
+  version: TournamentTemplatePreviewVersion;
+  templateId: TournamentTemplatePreviewTemplateId;
+  label: string;
+  stagePlan: TournamentStagePlanInput;
+  stages: TournamentTemplatePreviewStagesItem[];
+  /** @minimum 0 */
+  estimatedTotalMatches: number;
+  /** @minimum 0 */
+  estimatedMatchesMaximum: number;
+  warnings: string[];
+  advisory: true;
+  requiresConfirmation: true;
+}
+
+export type TournamentInputFormat = typeof TournamentInputFormat[keyof typeof TournamentInputFormat];
+
+
+export const TournamentInputFormat = {
+  single_elimination: 'single_elimination',
+  round_robin: 'round_robin',
+  swiss: 'swiss',
+  group_stage: 'group_stage',
+  double_elimination: 'double_elimination',
+} as const;
+
+/**
+ * Tournament visibility mode
+ */
+export type TournamentInputVisibility = typeof TournamentInputVisibility[keyof typeof TournamentInputVisibility];
+
+
+export const TournamentInputVisibility = {
+  public_online: 'public_online',
+  private_online: 'private_online',
+  private_offline: 'private_offline',
+} as const;
 
 export interface TournamentInput {
   /** @minLength 1 */
@@ -1827,10 +1908,711 @@ export interface UndoResult {
   message: string;
 }
 
+export type CorrectionIntentReceiptStatus = typeof CorrectionIntentReceiptStatus[keyof typeof CorrectionIntentReceiptStatus];
+
+
+export const CorrectionIntentReceiptStatus = {
+  approved: 'approved',
+  expired: 'expired',
+  reverted_requires_resubmission: 'reverted_requires_resubmission',
+  corrected: 'corrected',
+} as const;
+
+export interface CorrectionIntentReceipt {
+  version: 1;
+  operationId: string;
+  matchId: number;
+  status: CorrectionIntentReceiptStatus;
+  mutationPerformed: boolean;
+  approvedAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+  revertActionId: number | null;
+  matchRevision: number | null;
+  completionActionId?: number | null;
+  correctedMatchRevision?: number | null;
+  message: string;
+}
+
+export type TournamentOperationsSnapshotVersion = typeof TournamentOperationsSnapshotVersion[keyof typeof TournamentOperationsSnapshotVersion];
+
+
+export const TournamentOperationsSnapshotVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type TournamentOperationsSnapshotPhase = typeof TournamentOperationsSnapshotPhase[keyof typeof TournamentOperationsSnapshotPhase];
+
+
+export const TournamentOperationsSnapshotPhase = {
+  draft: 'draft',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type TournamentProgressionPreflightVersion = typeof TournamentProgressionPreflightVersion[keyof typeof TournamentProgressionPreflightVersion];
+
+
+export const TournamentProgressionPreflightVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type TournamentProgressionPreflightKind = typeof TournamentProgressionPreflightKind[keyof typeof TournamentProgressionPreflightKind];
+
+
+export const TournamentProgressionPreflightKind = {
+  start_stage: 'start_stage',
+  complete_stage: 'complete_stage',
+  swiss_next_round: 'swiss_next_round',
+  review: 'review',
+  none: 'none',
+} as const;
+
+export type TournamentProgressionPreflightAvailability = typeof TournamentProgressionPreflightAvailability[keyof typeof TournamentProgressionPreflightAvailability];
+
+
+export const TournamentProgressionPreflightAvailability = {
+  ready_for_review: 'ready_for_review',
+  blocked: 'blocked',
+  not_applicable: 'not_applicable',
+} as const;
+
+export type TournamentProgressionPreflightChecksItemStatus = typeof TournamentProgressionPreflightChecksItemStatus[keyof typeof TournamentProgressionPreflightChecksItemStatus];
+
+
+export const TournamentProgressionPreflightChecksItemStatus = {
+  pass: 'pass',
+  block: 'block',
+  review: 'review',
+} as const;
+
+export type TournamentProgressionPreflightEffectsItemConfidence = typeof TournamentProgressionPreflightEffectsItemConfidence[keyof typeof TournamentProgressionPreflightEffectsItemConfidence];
+
+
+export const TournamentProgressionPreflightEffectsItemConfidence = {
+  derived: 'derived',
+  conditional: 'conditional',
+} as const;
+
+export type TournamentProgressionPreflightChecksItem = {
+  code: string;
+  status: TournamentProgressionPreflightChecksItemStatus;
+  message: string;
+};
+
+export type TournamentProgressionPreflightEffectsItem = {
+  code: string;
+  confidence: TournamentProgressionPreflightEffectsItemConfidence;
+  message: string;
+};
+
+/**
+ * Read-only progression guidance; not an execution authorization.
+ */
+export interface TournamentProgressionPreflight {
+  version: TournamentProgressionPreflightVersion;
+  advisory: true;
+  tournamentId: number;
+  kind: TournamentProgressionPreflightKind;
+  availability: TournamentProgressionPreflightAvailability;
+  /** @nullable */
+  stageId: number | null;
+  /** @nullable */
+  stageName: string | null;
+  title: string;
+  description: string;
+  /** @minimum 0 */
+  blockers: number;
+  requiresConfirmation: boolean;
+  executionMustRevalidate: true;
+  checks: TournamentProgressionPreflightChecksItem[];
+  effects: TournamentProgressionPreflightEffectsItem[];
+}
+
+export type TournamentOperationsSnapshotRecommendedActionAvailability = typeof TournamentOperationsSnapshotRecommendedActionAvailability[keyof typeof TournamentOperationsSnapshotRecommendedActionAvailability];
+
+
+export const TournamentOperationsSnapshotRecommendedActionAvailability = {
+  ready: 'ready',
+  review: 'review',
+  blocked: 'blocked',
+} as const;
+
+export type TournamentOperationsSnapshotBlockersItemSeverity = typeof TournamentOperationsSnapshotBlockersItemSeverity[keyof typeof TournamentOperationsSnapshotBlockersItemSeverity];
+
+
+export const TournamentOperationsSnapshotBlockersItemSeverity = {
+  blocking: 'blocking',
+  warning: 'warning',
+} as const;
+
+export type TournamentOperationsSnapshotProgress = {
+  /** @minimum 0 */
+  completed: number;
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  inProgress: number;
+  /** @minimum 0 */
+  pending: number;
+  /** @minimum 0 */
+  postponed: number;
+  /** @minimum 0 */
+  cancelled: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  percent: number | null;
+};
+
+export type TournamentOperationsSnapshotRecommendedAction = {
+  code: string;
+  title: string;
+  description: string;
+  href: string;
+  /** @nullable */
+  stageId: number | null;
+  requiresConfirmation: boolean;
+  availability: TournamentOperationsSnapshotRecommendedActionAvailability;
+};
+
+export type TournamentOperationsSnapshotBlockersItem = {
+  code: string;
+  message: string;
+  /** @nullable */
+  stageId: number | null;
+  severity: TournamentOperationsSnapshotBlockersItemSeverity;
+};
+
+/**
+ * Advisory, read-only guidance. Mutation endpoints remain authoritative.
+ */
+export interface TournamentOperationsSnapshot {
+  version: TournamentOperationsSnapshotVersion;
+  tournamentId: number;
+  phase: TournamentOperationsSnapshotPhase;
+  /** @nullable */
+  currentStageId: number | null;
+  advisory: true;
+  transitionPreview?: TournamentProgressionPreflight;
+  progress: TournamentOperationsSnapshotProgress;
+  recommendedAction: TournamentOperationsSnapshotRecommendedAction;
+  blockers: TournamentOperationsSnapshotBlockersItem[];
+}
+
 export interface AssistantSnapshot {
   stepTitle: string;
   nextAction: string;
   warnings?: string[];
+  operations?: TournamentOperationsSnapshot;
+}
+
+/**
+ * Hypothetical projection; neither an authorization nor official rankings.
+ */
+export type ResultCorrectionStandingsComparison = {
+  status: 'unavailable';
+  reasonCode: string;
+  message: string;
+} | {
+  status: 'available';
+  stageId: number;
+  stageName: string;
+  stageFormat: 'swiss' | 'round_robin' | 'group_stage';
+  scope: 'stage' | 'group';
+  scopeLabel: string;
+  provisional: true;
+  note: string;
+  diff: {
+  /** @minimum 0 */
+  changedRows: number;
+  /** @minimum 0 */
+  movedRows: number;
+  rows: ({
+  playerId: number;
+  playerName: string;
+  beforeRank: number;
+  afterRank: number;
+  rankDelta: number;
+  beforeMatchWins: number;
+  afterMatchWins: number;
+  beforeGameDiff: number;
+  afterGameDiff: number;
+  /** @nullable */
+  beforeBuchholz: number | null;
+  /** @nullable */
+  afterBuchholz: number | null;
+  changed: boolean;
+})[];
+  qualifierImpact: {
+  status: 'projected' | 'not_applicable';
+  /** @nullable */
+  cutoff: number | null;
+  beforePlayerIds: number[];
+  afterPlayerIds: number[];
+  gainingPlayerIds: number[];
+  losingPlayerIds: number[];
+};
+};
+};
+
+/**
+ * Structural-only hypothetical SE dependency chain; never operation authorization.
+ */
+export type EliminationBracketImpact = {
+  status: 'unavailable';
+  reasonCode: string;
+  message: string;
+} | {
+  status: 'available';
+  stageId: number;
+  stageName: string;
+  format: 'single_elimination';
+  provisional: true;
+  forecastScope: 'structure_only';
+  winnerChanges: boolean;
+  sourceMatch: {
+  matchId: number;
+  round: number;
+  matchNumber: number;
+};
+  /** @nullable */
+  directSlot: {
+  matchId: number;
+  round: number;
+  slot: 'player1' | 'player2';
+  /** @nullable */
+  currentPlayerId: number | null;
+  hypotheticalPlayerId: number;
+  matchingCurrentWinner: boolean;
+  pristine: boolean;
+} | null;
+  possibleDownstream: ({
+  matchId: number;
+  round: number;
+  matchNumber: number;
+  status: string;
+  relation: 'direct_slot' | 'possible_later_match';
+  blocking: boolean;
+})[];
+  issues: {
+  code: string;
+  message: string;
+}[];
+  chainComplete: boolean;
+  finalRoundWinnerMayChange: boolean;
+  note: string;
+};
+
+export type PreviewReadGuardStatus = typeof PreviewReadGuardStatus[keyof typeof PreviewReadGuardStatus];
+
+
+export const PreviewReadGuardStatus = {
+  stable_on_recheck: 'stable_on_recheck',
+  changed_during_read: 'changed_during_read',
+} as const;
+
+/**
+ * Best-effort second read of all stage matches; NOT serializable transaction or execution permission.
+ */
+export interface PreviewReadGuard {
+  status: PreviewReadGuardStatus;
+  stageId: number;
+  stageVersionVector: string;
+}
+
+/**
+ * Hypothetical read-only DE routing-v2 evaluation; no mutation permission.
+ */
+export type DoubleEliminationRoutingImpact = {
+  status: 'unavailable';
+  reasonCode: string;
+  message: string;
+} | {
+  status: 'available';
+  provisional: true;
+  scope: 'double_elimination_routing_v2';
+  stageId: number;
+  sourceMatchKey: string;
+  winnerChanges: boolean;
+  currentWinnerId: number;
+  proposedWinnerId: number;
+  planRevision: number;
+  executionRevision: number;
+  upstreamRoutes: ({
+  routeKey: string;
+  outcome: 'winner' | 'loser';
+  targetMatchKey: string;
+  targetSlot: 1 | 2;
+})[];
+  affectedMatches: ({
+  matchKey: string;
+  label: string;
+  currentStatus: string;
+  hypotheticalStatus: string;
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  currentSlots: (string | null)[];
+  /**
+     * @minItems 2
+     * @maxItems 2
+     */
+  hypotheticalSlots: (string | null)[];
+  /** @nullable */
+  existingCanonicalMatchId: number | null;
+  canonicalMatchAlreadyCompleted: boolean;
+})[];
+  invalidatedDecisions: ({
+  matchKey: string;
+  /** @nullable */
+  canonicalMatchId: number | null;
+  canonicalMatchAlreadyCompleted: boolean;
+})[];
+  /** @nullable */
+  currentChampionId: number | null;
+  /** @nullable */
+  hypotheticalChampionId: number | null;
+  warningCodes: string[];
+  note: string;
+};
+
+export type CorrectionRecoveryPlanStatus = typeof CorrectionRecoveryPlanStatus[keyof typeof CorrectionRecoveryPlanStatus];
+
+
+export const CorrectionRecoveryPlanStatus = {
+  stale: 'stale',
+  blocked: 'blocked',
+  no_change: 'no_change',
+  manual_review: 'manual_review',
+} as const;
+
+export type CorrectionRecoveryPlanRisk = typeof CorrectionRecoveryPlanRisk[keyof typeof CorrectionRecoveryPlanRisk];
+
+
+export const CorrectionRecoveryPlanRisk = {
+  none: 'none',
+  moderate: 'moderate',
+  high: 'high',
+  critical: 'critical',
+} as const;
+
+export type CorrectionRecoveryPlanProposedScore = {
+  score1: number;
+  score2: number;
+};
+
+export type CorrectionRecoveryPlanEvidence = {
+  stageId: number;
+  /** @nullable */
+  stageVersionVector: string | null;
+  /** @nullable */
+  doubleEliminationPlanRevision: number | null;
+  /** @nullable */
+  doubleEliminationExecutionRevision: number | null;
+};
+
+export type CorrectionRecoveryPlanAffected = {
+  knownDownstreamMatchIds: number[];
+  possibleAffectedLogicalMatches: number;
+  potentiallyInvalidatedCompletedResults: number;
+};
+
+export type CorrectionRecoveryPlanStepsItemPhase = typeof CorrectionRecoveryPlanStepsItemPhase[keyof typeof CorrectionRecoveryPlanStepsItemPhase];
+
+
+export const CorrectionRecoveryPlanStepsItemPhase = {
+  inspect: 'inspect',
+  authorize: 'authorize',
+  manual: 'manual',
+  verify: 'verify',
+} as const;
+
+export type CorrectionRecoveryPlanStepsItem = {
+  id: string;
+  phase: CorrectionRecoveryPlanStepsItemPhase;
+  title: string;
+  instruction: string;
+  requiresOrganizerApproval: boolean;
+  mutation: boolean;
+  automaticExecutionAllowed: false;
+  dependsOn: string[];
+};
+
+/**
+ * Read-only non-executable, organizer-review-only plan for correction recovery. Not a permission or workflow trigger.
+ */
+export interface CorrectionRecoveryPlan {
+  version: 1;
+  kind: 'correction_recovery_playbook';
+  advisory: true;
+  mutationPerformed: false;
+  executable: false;
+  permissionToExecute: false;
+  status: CorrectionRecoveryPlanStatus;
+  risk: CorrectionRecoveryPlanRisk;
+  matchId: number;
+  expectedRevision: number;
+  proposedScore: CorrectionRecoveryPlanProposedScore;
+  evidence: CorrectionRecoveryPlanEvidence;
+  affected: CorrectionRecoveryPlanAffected;
+  blockerCodes: string[];
+  approvalQuestions: string[];
+  steps: CorrectionRecoveryPlanStepsItem[];
+  note: string;
+}
+
+export interface BoundedRevertEligibility {
+  supported: boolean;
+  reasonCode: string;
+  /** @nullable */
+  expectedCompletionActionId: number | null;
+}
+
+export type ResultCorrectionImpactPreviewVersion = typeof ResultCorrectionImpactPreviewVersion[keyof typeof ResultCorrectionImpactPreviewVersion];
+
+
+export const ResultCorrectionImpactPreviewVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type ResultCorrectionImpactPreviewState = typeof ResultCorrectionImpactPreviewState[keyof typeof ResultCorrectionImpactPreviewState];
+
+
+export const ResultCorrectionImpactPreviewState = {
+  blocked: 'blocked',
+  requires_review: 'requires_review',
+} as const;
+
+export type ResultCorrectionImpactPreviewExistingResult = {
+  /** @nullable */
+  score1: number | null;
+  /** @nullable */
+  score2: number | null;
+  /** @nullable */
+  winnerId: number | null;
+};
+
+export type ResultCorrectionImpactPreviewProposedResult = {
+  score1: number;
+  score2: number;
+  /** @nullable */
+  winnerId: number | null;
+  /** @nullable */
+  winnerChanges: boolean | null;
+};
+
+export type ResultCorrectionImpactPreviewIssuesItemSeverity = typeof ResultCorrectionImpactPreviewIssuesItemSeverity[keyof typeof ResultCorrectionImpactPreviewIssuesItemSeverity];
+
+
+export const ResultCorrectionImpactPreviewIssuesItemSeverity = {
+  block: 'block',
+  review: 'review',
+} as const;
+
+export type ResultCorrectionImpactPreviewIssuesItem = {
+  code: string;
+  severity: ResultCorrectionImpactPreviewIssuesItemSeverity;
+  message: string;
+};
+
+export type ResultCorrectionImpactPreviewEffectsItemCertainty = typeof ResultCorrectionImpactPreviewEffectsItemCertainty[keyof typeof ResultCorrectionImpactPreviewEffectsItemCertainty];
+
+
+export const ResultCorrectionImpactPreviewEffectsItemCertainty = {
+  confirmed: 'confirmed',
+  conditional: 'conditional',
+} as const;
+
+export type ResultCorrectionImpactPreviewEffectsItem = {
+  code: string;
+  certainty: ResultCorrectionImpactPreviewEffectsItemCertainty;
+  message: string;
+};
+
+/**
+ * Read-only impact analysis; state requires_review never means permission to execute.
+ */
+export interface ResultCorrectionImpactPreview {
+  version: ResultCorrectionImpactPreviewVersion;
+  advisory: true;
+  mutationPerformed: false;
+  previewIsAuthorization: false;
+  requiresTransactionalRecheck: true;
+  state: ResultCorrectionImpactPreviewState;
+  matchId: number;
+  expectedRevision: number;
+  /** @nullable */
+  stageName: string | null;
+  existingResult: ResultCorrectionImpactPreviewExistingResult;
+  proposedResult: ResultCorrectionImpactPreviewProposedResult;
+  issues: ResultCorrectionImpactPreviewIssuesItem[];
+  effects: ResultCorrectionImpactPreviewEffectsItem[];
+  downstreamMatchIds: number[];
+  recommendedAction: string;
+  standingsComparison?: ResultCorrectionStandingsComparison;
+  bracketImpact?: EliminationBracketImpact;
+  doubleEliminationImpact?: DoubleEliminationRoutingImpact;
+  previewGuard?: PreviewReadGuard;
+  recoveryPlan?: CorrectionRecoveryPlan;
+  boundedRevertCandidate?: BoundedRevertEligibility;
+}
+
+export type QualificationRoutingPreviewVersion = typeof QualificationRoutingPreviewVersion[keyof typeof QualificationRoutingPreviewVersion];
+
+
+export const QualificationRoutingPreviewVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type QualificationRoutingPreviewFlowAuthority = typeof QualificationRoutingPreviewFlowAuthority[keyof typeof QualificationRoutingPreviewFlowAuthority];
+
+
+export const QualificationRoutingPreviewFlowAuthority = {
+  legacy: 'legacy',
+  basket_v1: 'basket_v1',
+} as const;
+
+export type QualificationRoutingPreviewState = typeof QualificationRoutingPreviewState[keyof typeof QualificationRoutingPreviewState];
+
+
+export const QualificationRoutingPreviewState = {
+  not_applicable: 'not_applicable',
+  needs_attention: 'needs_attention',
+  waiting_for_matches: 'waiting_for_matches',
+  prepare_qualification: 'prepare_qualification',
+  review_qualification: 'review_qualification',
+  route_qualifiers: 'route_qualifiers',
+  review_next_stage: 'review_next_stage',
+  complete: 'complete',
+} as const;
+
+export type QualificationRoutingPreviewSummary = {
+  /** @minimum 0 */
+  sourceStages: number;
+  /** @minimum 0 */
+  proposalsPending: number;
+  /** @minimum 0 */
+  proposalsApproved: number;
+  /** @minimum 0 */
+  routesTotal: number;
+  /** @minimum 0 */
+  routesMaterialized: number;
+};
+
+export type QualificationRoutingPreviewIssuesItemSeverity = typeof QualificationRoutingPreviewIssuesItemSeverity[keyof typeof QualificationRoutingPreviewIssuesItemSeverity];
+
+
+export const QualificationRoutingPreviewIssuesItemSeverity = {
+  block: 'block',
+  attention: 'attention',
+} as const;
+
+export type QualificationRoutingPreviewIssuesItem = {
+  code: string;
+  message: string;
+  severity: QualificationRoutingPreviewIssuesItemSeverity;
+  /** @nullable */
+  stageId: number | null;
+  /** @nullable */
+  routeId: string | null;
+};
+
+export type QualificationRoutingPreviewQualificationStagesItemStageStatus = typeof QualificationRoutingPreviewQualificationStagesItemStageStatus[keyof typeof QualificationRoutingPreviewQualificationStagesItemStageStatus];
+
+
+export const QualificationRoutingPreviewQualificationStagesItemStageStatus = {
+  planned: 'planned',
+  active: 'active',
+  completed: 'completed',
+} as const;
+
+export type QualificationRoutingPreviewQualificationStagesItemProposalStatus = typeof QualificationRoutingPreviewQualificationStagesItemProposalStatus[keyof typeof QualificationRoutingPreviewQualificationStagesItemProposalStatus];
+
+
+export const QualificationRoutingPreviewQualificationStagesItemProposalStatus = {
+  missing: 'missing',
+  pending: 'pending',
+  approved: 'approved',
+  unknown: 'unknown',
+} as const;
+
+export type QualificationRoutingPreviewQualificationStagesItemNextAction = typeof QualificationRoutingPreviewQualificationStagesItemNextAction[keyof typeof QualificationRoutingPreviewQualificationStagesItemNextAction];
+
+
+export const QualificationRoutingPreviewQualificationStagesItemNextAction = {
+  wait: 'wait',
+  prepare_proposal: 'prepare_proposal',
+  review_proposal: 'review_proposal',
+  review_routes: 'review_routes',
+  review_next_stage: 'review_next_stage',
+} as const;
+
+export type QualificationRoutingPreviewQualificationStagesItemRoutesItemState = typeof QualificationRoutingPreviewQualificationStagesItemRoutesItemState[keyof typeof QualificationRoutingPreviewQualificationStagesItemRoutesItemState];
+
+
+export const QualificationRoutingPreviewQualificationStagesItemRoutesItemState = {
+  materialized: 'materialized',
+  ready_for_review: 'ready_for_review',
+  waiting: 'waiting',
+  blocked: 'blocked',
+} as const;
+
+export type QualificationRoutingPreviewQualificationStagesItemRoutesItem = {
+  routeId: string;
+  sourceBasketId: string;
+  targetBasketId: string;
+  sourceStageId: number;
+  /** @nullable */
+  targetStageId: number | null;
+  /** @nullable */
+  targetStageName: string | null;
+  /** @nullable */
+  qualifierQuota: number | null;
+  allocatedInProposal: number;
+  /** @nullable */
+  proposalRevision: number | null;
+  materialized: boolean;
+  routedPlayerCount: number;
+  state: QualificationRoutingPreviewQualificationStagesItemRoutesItemState;
+  reason: string;
+};
+
+export type QualificationRoutingPreviewQualificationStagesItem = {
+  stageId: number;
+  stageName: string;
+  stageStatus: QualificationRoutingPreviewQualificationStagesItemStageStatus;
+  proposalStatus: QualificationRoutingPreviewQualificationStagesItemProposalStatus;
+  /** @nullable */
+  proposalRevision: number | null;
+  qualifierQuota: number;
+  proposalEntries: number;
+  routeCount: number;
+  routeDone: number;
+  nextAction: QualificationRoutingPreviewQualificationStagesItemNextAction;
+  routes: QualificationRoutingPreviewQualificationStagesItemRoutesItem[];
+};
+
+/**
+ * Read-only organizer/support preview. Revision is not a freshness check; execution must revalidate.
+ */
+export interface QualificationRoutingPreview {
+  version: QualificationRoutingPreviewVersion;
+  advisory: true;
+  executionMustRevalidate: true;
+  noMutationsPerformed: true;
+  proposalFingerprintRevalidated: false;
+  tournamentId: number;
+  flowAuthority: QualificationRoutingPreviewFlowAuthority;
+  state: QualificationRoutingPreviewState;
+  title: string;
+  description: string;
+  summary: QualificationRoutingPreviewSummary;
+  issues: QualificationRoutingPreviewIssuesItem[];
+  qualificationStages: QualificationRoutingPreviewQualificationStagesItem[];
 }
 
 export type BracketWinner = {
@@ -2819,7 +3601,394 @@ export interface TournamentStats {
   topPlayers?: TournamentStatsTopPlayersItem[];
 }
 
+export type PreviewTournamentResultCorrectionBody = {
+  /** @minimum 1 */
+  matchId: number;
+  /** @minimum 0 */
+  expectedRevision: number;
+  /** @minimum 0 */
+  proposedScore1: number;
+  /** @minimum 0 */
+  proposedScore2: number;
+};
+
 export type UndoLastAction404 = {
   error?: string;
+};
+
+export type PrepareControlledCorrectionIntentBody = {
+  operationId: string;
+  /** @minimum 1 */
+  matchId: number;
+  /** @minimum 1 */
+  expectedRevision: number;
+  /** @minimum 1 */
+  expectedCompletionActionId: number;
+  /**
+     * @minLength 2
+     * @maxLength 80000
+     */
+  expectedStageVersionVector: string;
+  /** @minimum 0 */
+  proposedScore1: number;
+  /** @minimum 0 */
+  proposedScore2: number;
+  approvedByOrganizer: true;
+  understandsRequiresResubmission: true;
+};
+
+export type AssessSingleEliminationCorrectionReadinessBody = {
+  /**
+     * @minimum 0
+     * @maximum 999999
+     */
+  score1: number;
+  /**
+     * @minimum 0
+     * @maximum 999999
+     */
+  score2: number;
+  /** @minimum 1 */
+  expectedMatchRevision: number;
+  /**
+     * @minLength 2
+     * @maxLength 80000
+     */
+  expectedStageVersionVector: string;
+  /** @minimum 1 */
+  expectedCompletionActionId: number;
+};
+
+export type AssessSingleEliminationCorrectionReadiness200Version = typeof AssessSingleEliminationCorrectionReadiness200Version[keyof typeof AssessSingleEliminationCorrectionReadiness200Version];
+
+
+export const AssessSingleEliminationCorrectionReadiness200Version = {
+  NUMBER_1: 1,
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200Status = typeof AssessSingleEliminationCorrectionReadiness200Status[keyof typeof AssessSingleEliminationCorrectionReadiness200Status];
+
+
+export const AssessSingleEliminationCorrectionReadiness200Status = {
+  candidate: 'candidate',
+  blocked: 'blocked',
+} as const;
+
+/**
+ * @nullable
+ */
+export type AssessSingleEliminationCorrectionReadiness200DependentMatch = { [key: string]: unknown } | null;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReportVersion = typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportVersion[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportVersion];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactRiskReportVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReportKind = typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportKind[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportKind];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactRiskReportKind = {
+  se_correction_impact_risk_report: 'se_correction_impact_risk_report',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReportStatus = typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportStatus[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportStatus];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactRiskReportStatus = {
+  incomplete: 'incomplete',
+  requires_review: 'requires_review',
+  observational: 'observational',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReportHighestSeverity = typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportHighestSeverity[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactRiskReportHighestSeverity];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactRiskReportHighestSeverity = {
+  critical: 'critical',
+  high: 'high',
+  medium: 'medium',
+  low: 'low',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReportItemsItem = { [key: string]: unknown };
+
+/**
+ * Conservative advisory risk report derived from bounded SE graph; not an execution approval.
+ */
+export type AssessSingleEliminationCorrectionReadiness200ImpactRiskReport = {
+  version: AssessSingleEliminationCorrectionReadiness200ImpactRiskReportVersion;
+  kind: AssessSingleEliminationCorrectionReadiness200ImpactRiskReportKind;
+  advisoryOnly: true;
+  executionEnabled: false;
+  writePerformed: false;
+  matchId: number;
+  status: AssessSingleEliminationCorrectionReadiness200ImpactRiskReportStatus;
+  highestSeverity: AssessSingleEliminationCorrectionReadiness200ImpactRiskReportHighestSeverity;
+  items: AssessSingleEliminationCorrectionReadiness200ImpactRiskReportItemsItem[];
+  note: string;
+};
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphVersion = typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphVersion[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphVersion];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactGraphVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphKind = typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphKind[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphKind];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactGraphKind = {
+  se_correction_impact_graph: 'se_correction_impact_graph',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphStatus = typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphStatus[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphStatus];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactGraphStatus = {
+  outlined: 'outlined',
+  review_required: 'review_required',
+  incomplete: 'incomplete',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphChangeType = typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphChangeType[keyof typeof AssessSingleEliminationCorrectionReadiness200ImpactGraphChangeType];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ImpactGraphChangeType = {
+  winner_change: 'winner_change',
+  score_only: 'score_only',
+  unknown: 'unknown',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphDownstreamMatchesItem = { [key: string]: unknown };
+
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraphLaterStagesItem = { [key: string]: unknown };
+
+/**
+ * Bounded, advisory-only forward SE impact graph from the same read-only snapshot. Future winners and cross-stage routing are NOT predicted.
+ */
+export type AssessSingleEliminationCorrectionReadiness200ImpactGraph = {
+  version: AssessSingleEliminationCorrectionReadiness200ImpactGraphVersion;
+  kind: AssessSingleEliminationCorrectionReadiness200ImpactGraphKind;
+  advisoryOnly: true;
+  executionEnabled: false;
+  writePerformed: false;
+  status: AssessSingleEliminationCorrectionReadiness200ImpactGraphStatus;
+  matchId: number;
+  /** @nullable */
+  stageId: number | null;
+  changeType: AssessSingleEliminationCorrectionReadiness200ImpactGraphChangeType;
+  /** @nullable */
+  sourceRound?: number | null;
+  downstreamMatches: AssessSingleEliminationCorrectionReadiness200ImpactGraphDownstreamMatchesItem[];
+  laterStages: AssessSingleEliminationCorrectionReadiness200ImpactGraphLaterStagesItem[];
+  /** @minimum 0 */
+  directSuccessorCount: number;
+  /** @minimum 0 */
+  potentialLaterMatchCount: number;
+  /** @minimum 0 */
+  startedDownstreamCount: number;
+  warnings: string[];
+  note: string;
+};
+
+export type AssessSingleEliminationCorrectionReadiness200DiagnosticVersion = typeof AssessSingleEliminationCorrectionReadiness200DiagnosticVersion[keyof typeof AssessSingleEliminationCorrectionReadiness200DiagnosticVersion];
+
+
+export const AssessSingleEliminationCorrectionReadiness200DiagnosticVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200DiagnosticKind = typeof AssessSingleEliminationCorrectionReadiness200DiagnosticKind[keyof typeof AssessSingleEliminationCorrectionReadiness200DiagnosticKind];
+
+
+export const AssessSingleEliminationCorrectionReadiness200DiagnosticKind = {
+  se_correction_diagnostic: 'se_correction_diagnostic',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200DiagnosticStatus = typeof AssessSingleEliminationCorrectionReadiness200DiagnosticStatus[keyof typeof AssessSingleEliminationCorrectionReadiness200DiagnosticStatus];
+
+
+export const AssessSingleEliminationCorrectionReadiness200DiagnosticStatus = {
+  candidate: 'candidate',
+  blocked: 'blocked',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200DiagnosticValidity = typeof AssessSingleEliminationCorrectionReadiness200DiagnosticValidity[keyof typeof AssessSingleEliminationCorrectionReadiness200DiagnosticValidity];
+
+
+export const AssessSingleEliminationCorrectionReadiness200DiagnosticValidity = {
+  snapshot_only: 'snapshot_only',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200DiagnosticBlockersItem = { [key: string]: unknown };
+
+/**
+ * Human readable SE blockers and deterministic, snapshot-only correlation identifier; NOT execution permission.
+ */
+export type AssessSingleEliminationCorrectionReadiness200Diagnostic = {
+  version: AssessSingleEliminationCorrectionReadiness200DiagnosticVersion;
+  kind: AssessSingleEliminationCorrectionReadiness200DiagnosticKind;
+  advisoryOnly: true;
+  executionEnabled: false;
+  writePerformed: false;
+  status: AssessSingleEliminationCorrectionReadiness200DiagnosticStatus;
+  /** @pattern ^[a-f0-9]{64}$ */
+  assessmentId: string;
+  validity: AssessSingleEliminationCorrectionReadiness200DiagnosticValidity;
+  matchId: number;
+  expectedMatchRevision: number;
+  /** @minimum 0 */
+  issueCount: number;
+  /** @nullable */
+  priorityCategory: string | null;
+  blockers: AssessSingleEliminationCorrectionReadiness200DiagnosticBlockersItem[];
+  recommendedNextActions: string[];
+  note: string;
+};
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanVersion = typeof AssessSingleEliminationCorrectionReadiness200ActionPlanVersion[keyof typeof AssessSingleEliminationCorrectionReadiness200ActionPlanVersion];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ActionPlanVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanKind = typeof AssessSingleEliminationCorrectionReadiness200ActionPlanKind[keyof typeof AssessSingleEliminationCorrectionReadiness200ActionPlanKind];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ActionPlanKind = {
+  se_correction_advisory_plan: 'se_correction_advisory_plan',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanState = typeof AssessSingleEliminationCorrectionReadiness200ActionPlanState[keyof typeof AssessSingleEliminationCorrectionReadiness200ActionPlanState];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ActionPlanState = {
+  candidate: 'candidate',
+  blocked: 'blocked',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanChangeType = typeof AssessSingleEliminationCorrectionReadiness200ActionPlanChangeType[keyof typeof AssessSingleEliminationCorrectionReadiness200ActionPlanChangeType];
+
+
+export const AssessSingleEliminationCorrectionReadiness200ActionPlanChangeType = {
+  winner_change: 'winner_change',
+  score_only: 'score_only',
+  unknown: 'unknown',
+} as const;
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanEvidence = { [key: string]: unknown };
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanScore = { [key: string]: unknown };
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanWinner = { [key: string]: unknown };
+
+/**
+ * @nullable
+ */
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanSuccessor = { [key: string]: unknown } | null;
+
+export type AssessSingleEliminationCorrectionReadiness200ActionPlanStepsItem = { [key: string]: unknown };
+
+/**
+ * Advisory hypothetical SE recovery plan. NEVER authorization to execute.
+ */
+export type AssessSingleEliminationCorrectionReadiness200ActionPlan = {
+  version: AssessSingleEliminationCorrectionReadiness200ActionPlanVersion;
+  kind: AssessSingleEliminationCorrectionReadiness200ActionPlanKind;
+  advisoryOnly: true;
+  executionEnabled: false;
+  writePerformed: false;
+  state: AssessSingleEliminationCorrectionReadiness200ActionPlanState;
+  changeType: AssessSingleEliminationCorrectionReadiness200ActionPlanChangeType;
+  matchId: number;
+  evidence: AssessSingleEliminationCorrectionReadiness200ActionPlanEvidence;
+  score: AssessSingleEliminationCorrectionReadiness200ActionPlanScore;
+  winner: AssessSingleEliminationCorrectionReadiness200ActionPlanWinner;
+  /** @nullable */
+  successor: AssessSingleEliminationCorrectionReadiness200ActionPlanSuccessor;
+  steps: AssessSingleEliminationCorrectionReadiness200ActionPlanStepsItem[];
+  blockerCodes: string[];
+  note: string;
+};
+
+export type AssessSingleEliminationCorrectionReadiness200 = {
+  version: AssessSingleEliminationCorrectionReadiness200Version;
+  status: AssessSingleEliminationCorrectionReadiness200Status;
+  advisoryOnly: true;
+  executionEnabled: false;
+  writePerformed: false;
+  matchId: number;
+  expectedMatchRevision?: number;
+  stageVersionVector?: string;
+  /** @nullable */
+  originalWinnerId?: number | null;
+  /** @nullable */
+  hypotheticalWinnerId?: number | null;
+  /** @nullable */
+  dependentMatch?: AssessSingleEliminationCorrectionReadiness200DependentMatch;
+  requiredChecks?: string[];
+  issues: string[];
+  reason?: string;
+  /** Conservative advisory risk report derived from bounded SE graph; not an execution approval. */
+  impactRiskReport?: AssessSingleEliminationCorrectionReadiness200ImpactRiskReport;
+  /** Bounded, advisory-only forward SE impact graph from the same read-only snapshot. Future winners and cross-stage routing are NOT predicted. */
+  impactGraph?: AssessSingleEliminationCorrectionReadiness200ImpactGraph;
+  /** Human readable SE blockers and deterministic, snapshot-only correlation identifier; NOT execution permission. */
+  diagnostic?: AssessSingleEliminationCorrectionReadiness200Diagnostic;
+  /** Advisory hypothetical SE recovery plan. NEVER authorization to execute. */
+  actionPlan?: AssessSingleEliminationCorrectionReadiness200ActionPlan;
+};
+
+export type GetSingleEliminationCorrectionSafetyParams = {
+/**
+ * @minimum 0
+ */
+score1: number;
+/**
+ * @minimum 0
+ */
+score2: number;
+};
+
+export type GetSingleEliminationCorrectionSafety200Version = typeof GetSingleEliminationCorrectionSafety200Version[keyof typeof GetSingleEliminationCorrectionSafety200Version];
+
+
+export const GetSingleEliminationCorrectionSafety200Version = {
+  NUMBER_1: 1,
+} as const;
+
+export type GetSingleEliminationCorrectionSafety200Status = typeof GetSingleEliminationCorrectionSafety200Status[keyof typeof GetSingleEliminationCorrectionSafety200Status];
+
+
+export const GetSingleEliminationCorrectionSafety200Status = {
+  structurally_safe: 'structurally_safe',
+  blocked: 'blocked',
+} as const;
+
+/**
+ * @nullable
+ */
+export type GetSingleEliminationCorrectionSafety200DependentMatch = { [key: string]: unknown } | null;
+
+export type GetSingleEliminationCorrectionSafety200 = {
+  version: GetSingleEliminationCorrectionSafety200Version;
+  status: GetSingleEliminationCorrectionSafety200Status;
+  advisoryOnly: true;
+  executionEnabled: false;
+  matchId: number;
+  /** @nullable */
+  priorWinnerId?: number | null;
+  /** @nullable */
+  proposedWinnerId?: number | null;
+  winnerChanges?: boolean;
+  readVersion?: string;
+  issues: string[];
+  /** @nullable */
+  dependentMatch?: GetSingleEliminationCorrectionSafety200DependentMatch;
+  message?: string;
 };
 

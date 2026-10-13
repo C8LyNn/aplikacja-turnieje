@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import { ExperimentalOrganizerGuard } from "@/features/experimental-tournaments/experimental-organizer-guard";
 import { ExperimentalTournamentShell } from "@/features/experimental-tournaments/experimental-tournament-shell";
+import { TournamentTemplatePlanner, type TemplatePlanSelection } from "@/features/experimental-tournaments/tournament-template-planner";
 import { PasswordField } from "@/components/password-field";
 import { ToolDisclosure, ToolNotice, ToolPanel, ToolSection } from "@/components/tool-ui";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,7 @@ function ExperimentalCreateForm() {
   const { storeOrgToken } = useAuth();
   const createTournament = useCreateTournament();
   const [initialDraft] = useState<DraftState>(() => readDraft());
+  const [selectedTemplatePlan, setSelectedTemplatePlan] = useState<TemplatePlanSelection | null>(null);
 
   const [name, setName] = useState(initialDraft.name ?? "");
   const [description, setDescription] = useState(initialDraft.description ?? "");
@@ -227,7 +229,7 @@ function ExperimentalCreateForm() {
 
   const readinessItems = [
     { label: "Nazwa", ready: !tournamentNameError(name), detail: name.trim() || "Wpisz nazwę turnieju" },
-    { label: "Format", ready: true, detail: FORMAT_SHORT_LABELS[format] },
+    { label: "Format", ready: true, detail: selectedTemplatePlan?.label ?? FORMAT_SHORT_LABELS[format] },
     {
       label: "Hasło organizatora",
       ready: !organizerPasswordError(organizerPassword),
@@ -254,6 +256,7 @@ function ExperimentalCreateForm() {
     setName("");
     setDescription("");
     setFormat("single_elimination");
+    setSelectedTemplatePlan(null);
     setMaxPlayers("");
     setSwissRounds("");
     setDefaultBestOf("1");
@@ -319,7 +322,7 @@ function ExperimentalCreateForm() {
     if (submitInFlightRef.current) return;
     submitInFlightRef.current = true;
 
-    const stagePlan =
+    const stagePlan = selectedTemplatePlan?.stagePlan ?? (
       entrySeedingMethod === "registration_order"
         ? undefined
         : buildSingleStageSeedingPlan(format, {
@@ -328,7 +331,8 @@ function ExperimentalCreateForm() {
             swissRounds: format === "swiss" ? parsedSwissRounds : undefined,
             entrySeedingMethod,
             randomRevealOrder,
-          });
+          })
+    );
 
     const payload: TournamentInput = {
       name: name.trim(),
@@ -423,6 +427,20 @@ function ExperimentalCreateForm() {
                 </div>
               </ToolSection>
 
+              <TournamentTemplatePlanner
+                selectedPlan={selectedTemplatePlan}
+                onClear={() => setSelectedTemplatePlan(null)}
+                onApply={(choice) => {
+                  setSelectedTemplatePlan(choice);
+                  setMaxPlayers(String(choice.participantCount));
+                  setDefaultBestOf(String(choice.bestOf));
+                  const first = choice.stagePlan.stages[0];
+                  setFormat(first.format === "group_stage" ? "round_robin" : first.format);
+                  setEntrySeedingMethod("registration_order");
+                  setSwissRounds("");
+                }}
+              />
+
               <ToolSection
                 title="Format"
                 description="Sposób rozgrywania meczów i podstawowe limity."
@@ -436,7 +454,7 @@ function ExperimentalCreateForm() {
                           <button
                             key={value}
                             type="button"
-                            onClick={() => setFormat(value)}
+                            onClick={() => { setSelectedTemplatePlan(null); setFormat(value); }}
                             aria-pressed={format === value}
                             className={`rounded-xl border p-3 text-left transition ${
                               format === value
@@ -465,7 +483,7 @@ function ExperimentalCreateForm() {
                       type="number"
                       min={2}
                       value={maxPlayers}
-                      onChange={(event) => setMaxPlayers(event.target.value)}
+                      onChange={(event) => { setSelectedTemplatePlan(null); setMaxPlayers(event.target.value); }}
                       placeholder="Bez limitu"
                       aria-invalid={showValidation && maxPlayersError ? true : undefined}
                     />
@@ -478,7 +496,7 @@ function ExperimentalCreateForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="experimental-best-of">Best of</Label>
-                    <Select value={defaultBestOf} onValueChange={setDefaultBestOf}>
+                    <Select value={defaultBestOf} onValueChange={(value) => { setSelectedTemplatePlan(null); setDefaultBestOf(value); }}>
                       <SelectTrigger id="experimental-best-of">
                         <SelectValue />
                       </SelectTrigger>
@@ -502,7 +520,7 @@ function ExperimentalCreateForm() {
                         min={1}
                         max={20}
                         value={swissRounds}
-                        onChange={(event) => setSwissRounds(event.target.value)}
+                        onChange={(event) => { setSelectedTemplatePlan(null); setSwissRounds(event.target.value); }}
                         placeholder="Automatycznie"
                         aria-invalid={showValidation && swissRoundsError ? true : undefined}
                       />
@@ -526,7 +544,7 @@ function ExperimentalCreateForm() {
                     <Select
                       value={entrySeedingMethod}
                       onValueChange={(value) =>
-                        setEntrySeedingMethod(value as SingleStageEntrySeedingMethod)
+                        (setSelectedTemplatePlan(null), setEntrySeedingMethod(value as SingleStageEntrySeedingMethod))
                       }
                     >
                       <SelectTrigger id="experimental-seeding-method">
@@ -576,7 +594,7 @@ function ExperimentalCreateForm() {
                             name="experimental-random-reveal"
                             value={option.value}
                             checked={randomRevealOrder === option.value}
-                            onChange={() => setRandomRevealOrder(option.value)}
+                            onChange={() => { setSelectedTemplatePlan(null); setRandomRevealOrder(option.value); }}
                             className="mt-1 accent-primary"
                           />
                           <span>
@@ -775,9 +793,15 @@ function ExperimentalCreateForm() {
                   <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Format
                   </dt>
-                  <dd className="mt-1 font-semibold">{FORMAT_INFO[format].label}</dd>
+                  <dd className="mt-1 font-semibold">{selectedTemplatePlan?.label ?? FORMAT_INFO[format].label}</dd>
                 </div>
 
+                {selectedTemplatePlan && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <dt className="text-xs font-semibold uppercase text-muted-foreground">Zatwierdzona propozycja</dt>
+                    <dd className="mt-1 font-semibold">{selectedTemplatePlan.label} · {selectedTemplatePlan.stagePlan.stages.length} etap(y)</dd>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

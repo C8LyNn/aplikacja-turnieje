@@ -6,12 +6,14 @@ import {
   playersTable,
   qualificationProposalsTable,
   resultHistoryTable,
+  tournamentCorrectionOperationsTable,
   stageParticipantsTable,
   stageBasketRouteExecutionsTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
+import { stageMatchVersionVector } from "../operations/tournament-preview-coherence";
 import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
@@ -74,6 +76,12 @@ export interface RevertMatchInput {
   matchId: number;
   expectedTournamentId?: number;
   expectedCompletionActionId?: number;
+  /** Pack 13: optional optimistic guards used only by controlled correction. */
+  expectedMatchRevision?: number;
+  expectedStageVersionVector?: string;
+  requireActiveRoundRobin?: boolean;
+  /** Pack 14 approval journal updated atomically in this transaction. */
+  correctionOperationId?: string;
   actor?: TournamentMutationActor;
 }
 
@@ -185,8 +193,9 @@ function completionLogMatches(action: typeof actionLogTable.$inferSelect, matchI
 export async function revertMatch(
   input: RevertMatchInput,
   testHooks: RevertMatchTestHooks = {},
+  transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
 ): Promise<RevertMatchResult> {
-  return db.transaction(async (tx) => {
+  const perform = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     const [matchReference] = await tx
       .select({
         tournamentId: matchesTable.tournamentId,
@@ -221,6 +230,9 @@ export async function revertMatch(
       )
       .for("update");
     if (!stage) throw new RevertMatchError("MATCH_NOT_FOUND");
+    if (input.requireActiveRoundRobin && (stage.format !== "round_robin" || stage.status !== "active" || tournament.status !== "active")) {
+      throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
     const tournamentStages = await tx
       .select()
       .from(tournamentStagesTable)
@@ -275,6 +287,16 @@ export async function revertMatch(
       .for("update");
     if (!match) throw new RevertMatchError("MATCH_NOT_FOUND");
     if (match.status !== "completed") throw new RevertMatchError("MATCH_NOT_COMPLETED");
+    if (input.expectedMatchRevision !== undefined && match.revision !== input.expectedMatchRevision) {
+      throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
+    if (input.expectedStageVersionVector !== undefined) {
+      const lockedStageMatches = await tx.select().from(matchesTable)
+        .where(eq(matchesTable.stageId, stage.id)).orderBy(matchesTable.id).for("update");
+      if (stageMatchVersionVector(lockedStageMatches, stage.id) !== input.expectedStageVersionVector) {
+        throw new RevertMatchError("CONCURRENT_MODIFICATION");
+      }
+    }
     const result = requireConsistentResult(match);
 
     const participantIds = [match.player1Id, match.player2Id].filter(
@@ -672,10 +694,28 @@ export async function revertMatch(
       })
       .returning();
 
+    if (input.correctionOperationId !== undefined) {
+      const [savedReceipt] = await tx.update(tournamentCorrectionOperationsTable)
+        .set({ status: "reverted_requires_resubmission", completedAt: new Date(),
+          revertActionId: revertAction.id, revertedMatchRevision: revertedMatch.revision })
+        .where(and(
+          eq(tournamentCorrectionOperationsTable.id, input.correctionOperationId),
+          eq(tournamentCorrectionOperationsTable.tournamentId, tournament.id),
+          eq(tournamentCorrectionOperationsTable.matchId, match.id),
+          eq(tournamentCorrectionOperationsTable.status, "approved"),
+          gt(tournamentCorrectionOperationsTable.expiresAt, new Date()),
+          eq(tournamentCorrectionOperationsTable.expectedRevision, match.revision),
+          eq(tournamentCorrectionOperationsTable.expectedCompletionActionId, completionAction.id),
+          eq(tournamentCorrectionOperationsTable.expectedStageVersionVector, input.expectedStageVersionVector!),
+        )).returning({ id: tournamentCorrectionOperationsTable.id });
+      if (!savedReceipt) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
+
     return {
       match: revertedMatch,
       completionAction: undoneCompletionAction,
       revertAction,
     };
-  });
+  };
+  return transaction ? perform(transaction) : db.transaction(perform);
 }

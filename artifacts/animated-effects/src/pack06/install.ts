@@ -653,7 +653,7 @@ function decorateLayers():void{
 
 function applySolo():void{
   const preview=document.querySelector<HTMLElement>("#effect-preview");if(!preview)return;
-  preview.classList.toggle("is-pack06-paused",paused);
+  // Pause is controlled by the shared preview transport (Web Animations API).
   preview.querySelectorAll<HTMLElement>(".effect-layer").forEach((layer)=>{const id=layer.dataset.instanceId;layer.style.display=soloIds.size===0||(id&&soloIds.has(id))?"":"none"});
 }
 
@@ -696,7 +696,8 @@ function addHeaderUi():void{
   <button id="pack06-save" class="ae-button ae-button-secondary" type="button">Zapisz scenę</button><button id="pack06-load" class="ae-button ae-button-secondary" type="button">Wczytaj</button><button id="pack06-recover" class="ae-button ae-button-secondary" type="button">Autozapis</button><button id="pack06-reroll-all" class="ae-button ae-button-secondary" type="button">🎲 Seedy</button><button id="pack06-media" class="ae-button ae-button-secondary" type="button">PNG / GIF</button>`;
   actions.prepend(group);
   document.querySelector("#pack06-undo")?.addEventListener("click",()=>undo());document.querySelector("#pack06-redo")?.addEventListener("click",()=>redo());
-  document.querySelector("#pack06-pause")?.addEventListener("click",()=>{paused=!paused;applySolo();updateStatus()});
+  document.querySelector("#pack06-pause")?.addEventListener("click",()=>document.dispatchEvent(new Event("animated-effects:transport-toggle")));
+  document.addEventListener("animated-effects:transport-state",(event)=>{const detail=(event as CustomEvent<{playing:boolean}>).detail;paused=!detail.playing;updateStatus()});
   document.querySelector("#pack06-reroll-all")?.addEventListener("click",()=>rerollAllEffects());document.querySelector("#pack06-media")?.addEventListener("click",()=>openMediaExport());
   const preset=document.querySelector<HTMLSelectElement>("#pack06-preset");preset?.addEventListener("change",()=>{const p=pack06ScenePresets.find((item)=>item.id===preset.value);if(p){applyEffectPreset(p.effects,`Preset: ${p.name}`);preset.value=""}});
   document.querySelector("#pack06-save")?.addEventListener("click",()=>downloadScene(getEditorState()));

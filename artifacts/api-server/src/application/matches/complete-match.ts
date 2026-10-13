@@ -173,15 +173,18 @@ function normalizeResult(params: {
   };
 }
 
+type MatchTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /** Completes one series_v1 result and every side effect in one transaction. */
 export async function completeMatch(
   input: CompleteMatchInput,
   testHooks: CompleteMatchTestHooks = {},
+  transaction?: MatchTransaction,
 ): Promise<typeof matchesTable.$inferSelect> {
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) {
     throw new CompleteMatchError("INVALID_MATCH_REVISION");
   }
-  return db.transaction(async (tx) => {
+  const perform = async (tx: MatchTransaction) => {
     const [matchReference] = await tx
       .select({
         tournamentId: matchesTable.tournamentId,
@@ -528,5 +531,6 @@ export async function completeMatch(
     }
 
     return updatedMatch;
-  });
+  };
+  return transaction ? perform(transaction) : db.transaction(perform);
 }

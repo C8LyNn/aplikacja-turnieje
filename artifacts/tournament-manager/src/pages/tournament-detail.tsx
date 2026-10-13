@@ -48,6 +48,7 @@ import { StageBasketsPanel } from "@/components/stage-baskets-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
+import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
@@ -702,6 +703,12 @@ export default function TournamentDetail() {
             step={nextStep}
             onAction={nextStep.kind === "planned_stage" && !capabilities.canManageLifecycle ? handleStart : undefined}
             pending={startTournament.isPending}
+          />
+        )}
+        {managementRole && (
+          <TournamentOperationsOverview
+            tournamentId={id}
+            enabled={readOk && preparedAuthId === id}
           />
         )}
         {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../src/styles.css" />
+  <title>Core Clash — Case Study — Jakub Powierski</title>
+  <meta name="description" content="Case study Core Clash: physics PvP, deckbuilding, event-driven abilities, balance and migration from HTML prototype to Unity/WebGL." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#case-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="../index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../../">Strona główna</a><a href="index.html">Case studies</a><a href="../decisions.html">Decyzje</a><a href="../about.html">O mnie</a><a href="../evidence.html">Materiały</a><a class="nav-cv" href="../resume.html">CV</a></nav></header>
+  <main id="case-content">
+    <section class="case-hero shell case-core"><p class="eyebrow">CASE STUDY · 2026 · ACTIVE PROTOTYPE</p><h1>Core Clash</h1><p class="case-lead">Fizyczna gra PvP oparta na kulkach, taliach i systemie zdarzeń. Projekt jest rozwijany iteracyjnie, a portfolio zachowuje kilka punktów kontrolnych procesu zamiast udawać, że jedna wersja jest finalna.</p><div class="fact-grid"><div><span>Obszar</span><b>Systems / Game Design</b></div><div><span>Rdzeń</span><b>physics PvP · deckbuilding</b></div><div><span>System</span><b>triggers · conditions · keywords</b></div><div><span>Platforma</span><b>HTML prototype → Unity / WebGL</b></div></div></section>
+
+    <section class="case-section shell"><div class="case-two-col"><div><p class="eyebrow">DESIGN DIRECTION</p><h2>Reguły mają być czytelne w ruchu, nie tylko na karcie.</h2></div><div class="case-copy"><p>Projekt łączy fizykę kulek z deckbuildingiem i zdarzeniowym systemem umiejętności. Największym ryzykiem jest powstanie zbyt wielu ukrytych wyjątków — dlatego kolejne iteracje porządkują znaczenie triggerów, warunków, keywordów i zachowanie obiektów w runtime.</p><p>Wczesna wersja HTML służyła do bardzo szybkiego prototypowania. Późniejsza ścieżka Unity koncentruje się na przenoszeniu mechanik, WebGL oraz przygotowaniu warstwy synchronizacji stanu.</p></div></div>
+      <div class="pdr-grid"><article><span>PROBLEM</span><h3>Dużo zachowań, mało miejsca na wyjątki.</h3><p>Efekty kul muszą być zrozumiałe bez znajomości kodu i bez ukrytych warunków.</p></article><article><span>DECISION</span><h3>Kontrakt zdarzeń + warunków.</h3><p>Trigger opisuje moment zdarzenia, condition doprecyzowuje sytuację. Keywordy powinny znaczyć to samo w całym systemie.</p></article><article><span>ITERATION</span><h3>Prototyp → audyt → migracja.</h3><p>HTML umożliwia szybkie testy designu, a Unity/WebGL staje się docelowym kierunkiem technicznym.</p></article></div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">ABILITY CONTRACT</p>
+      <h2 class="case-h2">Zdarzenie i warunek mają osobne odpowiedzialności.</h2>
+      <div class="trigger-contract">
+        <article><span>TRIGGER</span><h3>Kiedy system reaguje?</h3><p>Moment zdarzenia: np. spawn, hit, stop, launch, move, zone, zmiana HP albo turn.</p></article>
+        <div class="contract-plus">+</div>
+        <article><span>CONDITION</span><h3>W jakiej sytuacji efekt jest legalny?</h3><p>Typ celu, prędkość, HP, strefa, właściciel, kierunek lub inny parametr kontekstu.</p></article>
+        <div class="contract-eq">=</div>
+        <article class="contract-result"><span>EFFECT</span><h3>Co faktycznie się dzieje?</h3><p>Jednoznaczne zachowanie możliwe do opisania na karcie, w kodzie i w testach tym samym językiem.</p></article>
+      </div>
+    </section>
+
+    <section class="case-section shell"><p class="eyebrow">ARCHIVED PLAYABLE PROTOTYPE</p><h2 class="case-h2">V122 zachowana jako punkt kontrolny.</h2><div class="prototype-frame"><iframe title="Archiwalny prototyp Core Clash V122" src="../docs/evidence/core-clash-v122-archive.html" loading="lazy"></iframe></div><p class="metric-note">To archiwalny snapshot, nie deklaracja aktualnej wersji projektu. Jeżeli osadzenie iframe jest blokowane przez przeglądarkę, użyj linku poniżej.</p><div class="project-links"><a href="../docs/evidence/core-clash-v122-archive.html" target="_blank" rel="noreferrer">Otwórz V122 w nowej karcie ↗</a></div></section>
+
+    <section class="case-section shell"><p class="eyebrow">UNITY MIGRATION EVIDENCE</p><h2 class="case-h2">Migracja nie była tylko eksportem grafiki.</h2><div class="doc-map"><article><span>01</span><b>WebGL target</b><p>Przygotowanie builda do osadzenia na własnej stronie.</p></article><article><span>02</span><b>Authoritative snapshots</b><p>Synchronizacja stanu planszy i wykrywanie różnic.</p></article><article><span>03</span><b>Runtime reconciliation</b><p>Odtwarzanie brakujących obiektów i korekta stanu.</p></article><article><span>04</span><b>Command validation</b><p>Rozdzielenie komendy, walidacji i wykonania.</p></article><article><span>05</span><b>Deck / ball definitions</b><p>Rosnący katalog jednostek i zachowań.</p></article><article><span>06</span><b>Network bridge path</b><p>Przygotowanie pod dalszą integrację transportu sieciowego.</p></article></div></section>
+
+    <section class="case-section shell case-resources"><p class="eyebrow">SOURCE MATERIAL</p><h2 class="case-h2">Zachowane artefakty.</h2><div class="resource-grid"><a href="../docs/evidence/core-clash-v122-archive.html" target="_blank" rel="noreferrer"><span>HTML · LOCAL</span><b>Core Clash V122 — archived prototype</b></a><a href="../docs/evidence/core-clash-unity-readme.txt" target="_blank" rel="noreferrer"><span>README · LOCAL</span><b>Unity Starter / WebGL migration notes</b></a><a href="https://drive.google.com/file/d/1pGM-IrVwtA7SHvn13XbwgkqJjB_ChSWN/view" target="_blank" rel="noreferrer"><span>DRIVE</span><b>Archiwalny prototyp HTML</b></a></div></section>
+    <section class="case-section shell case-pagination" aria-label="Nawigacja między case studies"><a class="case-prev" href="bazul-aronis.html"><span>← POPRZEDNI</span><b>Bazul Aronis</b></a><a class="case-next" href="web-hub.html"><span>NASTĘPNY →</span><b>Personal Web Hub</b></a></section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="index.html">← Wszystkie case studies</a></footer>
+</body>
+</html>
