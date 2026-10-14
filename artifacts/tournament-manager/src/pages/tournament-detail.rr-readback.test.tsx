@@ -111,3 +111,25 @@ test("T100 F058-R13-04: unrelated SE/DE match snapshots do not invalidate stage 
   assert.equal(screen.getByTestId("rank-version").textContent, "1");
   assert.equal(reads, 0);
 });
+
+test("T100 F058-R13-05: terminal RR stage-only reopen triggers server detail readback", async () => {
+  let reads = 0;
+  const { rerender } = setup({
+    onRead: async () => { reads += 1; return { version: 2 }; },
+  });
+  await act(async () => {
+    rerender(1, rr.map(stage => ({ ...stage, status: "active", winnerId: null })));
+  });
+  await waitFor(() => assert.equal(screen.getByTestId("rank-version").textContent, "2"));
+  assert.equal(reads, 1, "stage lifecycle change alone must refresh selected RR participant records");
+});
+
+test("T100 F058-R13-06: denied/no-op backend change cannot synthesize an RR ranking", async () => {
+  let reads = 0;
+  const { rerender } = setup({
+    onRead: async () => { reads += 1; return { version: 2 }; },
+  });
+  await act(async () => { rerender(1); });
+  assert.equal(screen.getByTestId("rank-version").textContent, "1");
+  assert.equal(reads, 0, "rejected 409 / unchanged canonical snapshot must not fabricate a new state");
+});
