@@ -221,3 +221,16 @@ Next actions:
 - 00 does not self-certify runtime, register approvals on behalf of A60, or grant SWARM-006 production authority.
 
 **Signed for planning:** WEB-005-00 — R2 INTAKE RECONCILED / NEXT WAVE PLAN R1 / SOURCE-ONLY DISPATCH PERMITTED / PRODUCTION NO-GO.
+
+
+## ADDENDUM R1A — repository drift recheck before WAVE R8 dispatch (2026-10-14)
+
+The original plan remains the R2 intake baseline. **These later checks supersede stale SHA/status claims**:
+
+- **T017 NEW PR #40:** [#40](https://github.com/C8LyNn/aplikacja-turnieje/pull/40), HEAD \`f9ad033683d93e442c7915a840e7b3f8bfdbb933\`, OPEN DRAFT, three Pack17-only files. Author reports real isolated synthetic \`gate-contract.test.mjs\` **19/19 PASS**, but \`--full\` actual repository/PG16 **NOT_EXECUTED**, no Actions on HEAD and A60 independent QA pending. Treat T017 as **PATCH PROPOSED / QA**, not as an unimplemented task; do not start second Pack17 patch.
+- **T040 MP1 PR #39 advanced:** [#39](https://github.com/C8LyNn/aplikacja-turnieje/pull/39), HEAD \`16053ee132756ca05b6f2cd1f0cabae823905387\`, OPEN DRAFT, eight source/API/Zod/test files. PostgreSQL/HTTP typecheck and generated React client parity **NOT_VERIFIED**, historical CI stopped at baseline Pack19. Do not reopen MP1 implementation; A70 supports QA and designs MP2 global LIFO + direct Revert CAS separately.
+- **P07** is now the **conditional source candidate PR #40** instead of a purely future unspecified patch. Source-only manifests P01–P07 can be prepared by A10; all independent QA and integrated gates remain explicit.
+- **Concurrency**: T017 and T040 MP1 patches have been written; whether implementation lanes are actually released depends on A60 and A00 closeout. Source-only tasks T050/T051/T060/T080/T055/T110/T100 may start; no new implementation from their agents without an explicit slot assignment and approval.
+- **Documentation owner**: SWARM-007 defines Drive file paths, naming and acceptance receipts. This addendum does not assert any Drive folders or transfers exist.
+
+The owner-approved product policy decisions, no production/SQL/merge/paid CI, and composite SHA release NO-GO conditions remain unchanged.
