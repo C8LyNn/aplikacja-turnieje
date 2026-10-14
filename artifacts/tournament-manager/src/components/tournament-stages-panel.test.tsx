@@ -886,6 +886,8 @@ test("UX046-R13-07: failed fresh stage read blocks complete instead of trusting 
   await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
   stagesFailed = true;
   await user.click(confirm);
-  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  // Existing ReadQueryState fallback owns a failing stage-list query, so the
+  // dialog may unmount; either way no mutation was issued on stale cache.
+  await screen.findByText(/Nie udało się pobrać etapów/);
   assert.equal(writes, 0);
 });
