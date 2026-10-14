@@ -43,17 +43,12 @@ import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import {
   usePresentationTheme,
   resolvePresentationSettings,
 } from "@/lib/presentation-theme";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
-
-const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-};
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "SZKIC",
@@ -444,7 +439,24 @@ export default function TournamentAudience() {
         <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy." />
 
         {/* ══ FEATURED / LIVE MATCH ══ */}
-        {heroMatch ? (
+        {tournament?.status === "completed" ? (
+          /* ── TOURNAMENT COMPLETE STATE ── */
+          <section className="w-full max-w-2xl">
+            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+              <Trophy className="w-20 h-20 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,200,0,0.4)]" />
+              <h2 className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-tight">Turniej zakończony!</h2>
+              {winnerName && (
+                <div className="mt-2 text-xl text-white/60">
+                  Zwycięzca:{" "}
+                  <span className="text-white font-black text-2xl">{winnerName}</span>
+                </div>
+              )}
+              <Badge className="mt-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-sm px-4 py-1">
+                {STAGE_FORMAT_LABELS[tournament.format as keyof typeof STAGE_FORMAT_LABELS] ?? tournament.format}
+              </Badge>
+            </div>
+          </section>
+        ) : heroMatch ? (
           <section className="w-full max-w-5xl">
             {/* Status label */}
             <div className="flex items-center justify-center gap-3 mb-5">
@@ -552,23 +564,6 @@ export default function TournamentAudience() {
                   {heroResultLabel}{heroMatch.resultReason ? ` · ${heroMatch.resultReason}` : ""}
                 </div>
               )}
-            </div>
-          </section>
-        ) : tournament?.status === "completed" ? (
-          /* ── TOURNAMENT COMPLETE STATE ── */
-          <section className="w-full max-w-2xl">
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-              <Trophy className="w-20 h-20 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,200,0,0.4)]" />
-              <h2 className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-tight">Turniej zakończony!</h2>
-              {winnerName && (
-                <div className="mt-2 text-xl text-white/60">
-                  Zwycięzca:{" "}
-                  <span className="text-white font-black text-2xl">{winnerName}</span>
-                </div>
-              )}
-              <Badge className="mt-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-sm px-4 py-1">
-                {FORMAT_LABELS[tournament.format] ?? tournament.format}
-              </Badge>
             </div>
           </section>
         ) : (
@@ -694,7 +689,7 @@ export default function TournamentAudience() {
         {/* Format label at the very bottom */}
         {tournament?.format && (
           <p className="text-[11px] text-white/15 uppercase tracking-widest font-mono mt-2">
-            {FORMAT_LABELS[tournament.format] ?? tournament.format}
+            {STAGE_FORMAT_LABELS[tournament.format as keyof typeof STAGE_FORMAT_LABELS] ?? tournament.format}
           </p>
         )}
         </ReadQueryState>
