@@ -2,21 +2,21 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { TournamentStagesPanel } from "./tournament-stages-panel";
 import { OrganizerNextStep } from "./organizer-next-step";
 import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
-import type { Match, TournamentStage, StageStartReadiness } from "@workspace/api-client-react";
+import { getListTournamentStagesQueryKey, type Match, type TournamentStage, type StageStartReadiness } from "@workspace/api-client-react";
 
 const originalFetch = globalThis.fetch;
 const clients = new Set<QueryClient>();
 afterEach(() => { cleanup(); clients.forEach(client => client.clear()); clients.clear(); globalThis.fetch = originalFetch; });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const stage = (id: number, status = "planned") => ({ id, tournamentId: 1, stageKey: `stage-${id}`, name: id === 1 ? "Eliminacje" : "Finały", position: id,
-  status, format: "single_elimination", participantCount: 4, bestOf: 3, entrySeedingPolicy: "preserve", placementPolicy: "standard", groups: [] });
+  status, version: 1, format: "single_elimination", participantCount: 4, bestOf: 3, entrySeedingPolicy: "preserve", placementPolicy: "standard", groups: [] });
 const ready = (value = true) => ({ ready: value, reasonCode: value ? "READY" : "STAGE_PARTICIPANTS_INCONSISTENT",
   message: value ? "Etap gotowy." : "Brakuje uczestników i seedów.", participantCount: value ? 4 : 2, requiredParticipantCount: 4,
   missingSeeds: value ? [] : [3, 4], blockingMatches: 0, blockingGroups: 0, format: "single_elimination", basketValidation: { valid: true, problems: [] as { message: string }[] } });
@@ -731,4 +731,120 @@ test("ready roster does not bypass an unfinished sequential seeding ceremony", a
   await screen.findByRole("link", { name: "Przejdź do losowania" });
   assert.ok(screen.getByRole("button", { name: "Rozpocznij etap" }).matches(":disabled"));
   assert.ok(screen.getAllByText("Dokończ ceremonię losowania przed rozpoczęciem etapu.").length > 0);
+});
+
+
+// R13 UX046: these fixtures exercise the real TournamentStagesPanel under
+// QueryClient/Wouter, not a pure extracted comparison helper.
+test("UX046-R13-01: external completion/version change invalidates opened complete dialog, zero stale POST", async () => {
+  const stages = [stage(1, "active"), stage(2)];
+  let writes = 0;
+  const user = setup({ stages, intercept: async (_path, init) => {
+    if (init?.method === "POST") writes++;
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = await screen.findByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  stages[0] = { ...stage(1, "completed"), version: 2 };
+  const client = [...clients].at(-1)!;
+  await act(async () => { await client.invalidateQueries({ queryKey: getListTournamentStagesQueryKey(1) }); });
+  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  assert.ok(confirm.matches(":disabled"));
+  assert.equal(writes, 0);
+});
+
+test("UX046-R13-02: unchanged-status version bump invalidates start, reopen requires fresh readiness", async () => {
+  const stages = [stage(1, "completed"), stage(2)];
+  let writes = 0;
+  const user = setup({ stages, intercept: async (_path, init) => {
+    if (init?.method === "POST") writes++;
+    return undefined;
+  } });
+  await selectFinals(user);
+  await user.click(screen.getByRole("button", { name: "Rozpocznij etap" }));
+  const oldConfirm = screen.getByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(oldConfirm.matches(":disabled"), false));
+  stages[1] = { ...stage(2), version: 2 };
+  await act(async () => { await [...clients].at(-1)!.invalidateQueries({ queryKey: getListTournamentStagesQueryKey(1) }); });
+  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  assert.ok(oldConfirm.matches(":disabled"));
+  assert.equal(writes, 0);
+  await user.click(screen.getByRole("button", { name: "Anuluj" }));
+  await user.click(screen.getByRole("button", { name: "Rozpocznij etap" }));
+  const reopened = await screen.findByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(reopened.matches(":disabled"), false));
+  assert.equal(screen.queryByText(/Stan etapu zmienił się.*zamknij/i), null);
+});
+
+test("UX046-R13-03: refetch-on-confirm rejects server-changed stage even before polling sees version", async () => {
+  const stages = [stage(1, "active")];
+  let writes = 0;
+  let stageReads = 0;
+  const user = setup({ stages, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/stages") stageReads++;
+    if (init?.method === "POST") writes++;
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = screen.getByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  const before = stageReads;
+  // No explicit invalidate here: data in React Query is deliberately old.
+  stages[0] = { ...stage(1, "active"), version: 3 };
+  await user.click(confirm);
+  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  assert.ok(stageReads > before, "confirm must perform a new authoritative stage read");
+  assert.equal(writes, 0);
+});
+
+test("UX046-R13-04: same numeric stage ID under a new tournament cannot inherit A modal action", async () => {
+  const qa = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
+  clients.add(qa);
+  let writes = 0;
+  globalThis.fetch = async (input, init) => {
+    const path = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, "http://localhost").pathname;
+    if (init?.method === "POST") writes++;
+    if (path.endsWith("/stages")) return json([{ ...stage(1, "active"), tournamentId: Number(path.match(/\/tournaments\/(\d+)/)?.[1] ?? 0) }]);
+    if (path.endsWith("/stage-baskets")) return json({ flowAuthority: "legacy", baskets: [], routes: [], validation: { valid: true, problems: [] } });
+    if (path.endsWith("/qualification-preview")) return json({ qualifiers: [], ranking: [] });
+    if (path.endsWith("/readiness")) return json(ready());
+    if (path.endsWith("/stages/1")) return json({ stage: stage(1, "active"), participants: [], ranking: [], qualifiers: [], groups: [] });
+    return json({});
+  };
+  const loc = memoryLocation({ path: "/tournaments/101?tab=stages" });
+  const panel = (id: number) => <QueryClientProvider client={qa}><Router hook={loc.hook} searchHook={loc.searchHook}>
+    <TournamentStagesPanel tournamentId={id} tournamentStatus="active" matches={[]} canManage />
+  </Router></QueryClientProvider>;
+  const ui = render(panel(101));
+  const user = userEvent.setup();
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = screen.getByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  await act(async () => { loc.navigate("/tournaments/202?tab=stages"); ui.rerender(panel(202)); });
+  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  assert.ok(confirm.matches(":disabled"));
+  assert.equal(writes, 0);
+});
+
+test("UX046-R13-05: unchanged stage still submits start after a fresh status and readiness read", async () => {
+  const stages = [stage(1, "completed"), stage(2)];
+  let stageReads = 0;
+  let readinessReads = 0;
+  let writes = 0;
+  const user = setup({ stages, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/stages") stageReads++;
+    if (path === "/api/tournaments/1/stages/2/readiness") readinessReads++;
+    if (init?.method === "POST") { writes++; return json(stage(2, "active")); }
+    return undefined;
+  } });
+  await selectFinals(user);
+  await user.click(screen.getByRole("button", { name: "Rozpocznij etap" }));
+  const confirm = await screen.findByRole("button", { name: "Potwierdź rozpoczęcie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  const initialStages = stageReads, initialReady = readinessReads;
+  await user.click(confirm);
+  await waitFor(() => assert.equal(writes, 1));
+  assert.ok(stageReads > initialStages);
+  assert.ok(readinessReads > initialReady);
 });
