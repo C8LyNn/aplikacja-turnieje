@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireSteamCatalogAdmin } from "../application/catalog/steam-catalog-access";
 import { asc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -114,7 +115,7 @@ router.get("/steam-catalog/taxonomy", async (_req, res, next) => {
   }
 });
 
-router.post("/steam-catalog/taxonomy", async (req, res, next) => {
+router.post("/steam-catalog/taxonomy", requireSteamCatalogAdmin, async (req, res, next) => {
   try {
     const facet = String(req.body?.facet ?? "").trim();
     const label = String(req.body?.label ?? "").trim();
@@ -143,7 +144,7 @@ router.post("/steam-catalog/taxonomy", async (req, res, next) => {
   }
 });
 
-router.post("/steam-catalog/import", async (req, res, next) => {
+router.post("/steam-catalog/import", requireSteamCatalogAdmin, async (req, res, next) => {
   try {
     const appId = parseSteamAppId(req.body?.appId ?? req.body?.url);
     if (!appId) {
@@ -232,6 +233,7 @@ router.post("/steam-catalog/import", async (req, res, next) => {
 
 router.put(
   "/steam-catalog/games/:id/classification",
+  requireSteamCatalogAdmin,
   async (req, res, next) => {
     try {
       const gameId = Number(req.params.id);
