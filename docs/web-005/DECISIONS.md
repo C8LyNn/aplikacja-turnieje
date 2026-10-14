@@ -257,3 +257,19 @@ No merge, production SQL, paid rerun, deployment or SWARM-006 dispatch is author
 | **D120** | Owner final-only rule unchanged: WEB-005 completes accepted WEB-004 R2 backlog and independently reconciles source/runtime evidence before **ONE final handoff** to SWARM-006; SWARM-007 independent docs/Drive protocol | **SWARM006 HOLD; no new WEB-004 reports** |
 
 No merge/cherry-pick, integrated SHA, physical PG16 test authorization, paid CI rerun, SQL migration, production or release is implied by this documentation change.
+
+
+## R16 — R15 evidence recovery and four source blockers (2026-10-14)
+
+| ID | Decision | Status / authority |
+|---|---|---|
+| **D121** | R15 direct QA receipts are now verifiable: [A50 evidence index](./agent-reports/A50/WEB-005_A50_R15_RECEIPT.md) and [A60 independent QA](./agent-reports/A60/WEB-005_A60_R15_INDEPENDENT_QA.md) + [21-row matrix](./agent-reports/A60/WEB-005_A60_R15_PACKAGE_MATRIX.json). Do not continue reporting A50/A60 as lost or unlocated | **RECEIPTS RECOVERED; NOT NATIVE APP TEST PASS** |
+| **D122** | A50 R15 actual environment: Node22/Git available; no full checkout/pnpm/PG16/pwsh/Docker; 15 environment/launcher preflight calls, **zero app runtime tests**. A00/owner must supply a trusted execution host with clean per-SHA checkouts and explicit test GO; PG16 reset separate owner signoff | **P0 ENVIRONMENT BLOCKED** |
+| **D123** | A60 exact-head R15 independent source matrix: 17 narrowly/conditionally/offline-only source-scoped acceptances, **4 full-claim SOURCE_BLOCKED**: P08 PR41 Backup sourceBasketPosition, P09 PR42 roster global Undo LIFO, P20 PR53 noncanonical cache and provider test fixture, P21 PR54 historical RR403 whole-page denial | **NOT QA_ACCEPTED_FULL / RUNTIME 0 VERIFIED** |
+| **D124** | Publish one [WEB-005_WAVE_R16_AGENT_PROMPTS.md](./WEB-005_WAVE_R16_AGENT_PROMPTS.md) as complete common §0–§2 and 13 Axx instructions | **R16 READY FOR DISPATCH** |
+| **D125** | Authorize **exactly 3 small source-only amendment lanes**, with test-first and own existing draft branch only: A90 fixes P08/PR41 validation parity; A70 fixes P09/PR42 roster LIFO under lock; A100 fixes P20/PR53 cache S2B + provider fixture, with match→tournament ownership proof. No new PR by default, no cross-PR merge | **GO SOURCE-CODE ONLY; no runtime or release GO** |
+| **D126** | A120 P21 PR54 mixed historical RR403/valid DE+Overview is test-contract SOURCE-ONLY in R16; future exact code window after lane freed and independent QA | **CODE HOLD P21** |
+| **D127** | Existing owner/HQ signoffs remain open: T055 Basket CAS, Swiss terminal TS-A/TS-B, SE/Swiss/DE, Backup B2 portable history/legacy, Direct Revert strict CAS+Host, Steam/session policies. No agent may choose product semantics silently | **POLICY_OPEN** |
+| **D128** | Owner's final-only policy persists: WEB-005 must formally close accepted WEB-004 R2 backlog before one SWARM-006 transfer. No WEB-004 new reports; SWARM-007 continues communication/Drive architecture independently | **WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO** |
+
+No merge, cherry-pick, integration branch, database reset, production SQL/DDL, paid CI, staging/live, Replit integration or cross-swarm dispatch is authorized by this documentation update.
