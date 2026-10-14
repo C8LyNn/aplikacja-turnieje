@@ -78,3 +78,17 @@ No merge, deploy, Replit, production data/schema/secrets changes or paid CI disp
 | D036 | Allocate **T031-A30 — proxy-addr / trust proxy hardening** after T030 security PR #34 implementation handoff | **GO SOURCE-ONLY**. WEB-004 A80 SEC-013 / GHSA-jqcg-44mw-7w3h. No automatic T031 code changes or new branch until 00 reviews T030 QA and implementation capacity. |
 | D037 | Preserve PR #34 ownership and QA independence | **ENFORCED**. A60 must evaluate current HEAD `fae2eea2f22df3f1b02ad035a7db00bc411ea73f` (revalidate drift), PR34 is still OPEN DRAFT; T031 must use a separate branch and must not weaken 403/503 auth guarantees. |
 | D038 | Lockfile conflict coordination | **REQUIRED**. A30 and A10 T016 must agree on `pnpm-lock.yaml` ownership before implementation, and A50/A60 must provide isolated tests. |
+
+
+## WAVE R7 — end-R6 reconciliation decisions (2026-10-14)
+
+| ID | Decision | Gate |
+|---|---|---|
+| D039 | Record new T031/PR37 and T021/PR38 as source-ready candidate patches, not release-certified | ACCEPT IN BACKLOG / INDEPENDENT QA REQUIRED at exact HEAD |
+| D040 | A10 prepares SWARM-006 handoff delta P04/P05 for PR37/38 | GO PACKAGE-DESIGN ONLY, P04/P05 CONDITIONAL and never represented as QA-accepted without A60 |
+| D041 | A40 may implement strictly bounded T017 fail-closed test gate corrections | GO CODE-ONLY lane 1; no merging to PR36; isolated branch & no paid CI |
+| D042 | A70 may implement narrow T040 MP1 cancel/restore protections test-first | GO CODE-ONLY lane 2; future MP2/MP3/MP4 and DB/migrations need separate decisions |
+| D043 | Hold implementation slot 3 for new validated P0 findings from incoming consolidated WEB-004 report | ACTIVE CAPACITY RESERVATION; no invented findings |
+| D044 | A20/A30 transition PR38/PR37 into QA/fix-only until defect evidence, not broad new patch authoring | ACTIVE; no overlapping files or DB DDL |
+| D045 | SWARM-006 owns integrated candidate + release; SWARM-007 owns protocols, Google Drive folder architecture, records | REQUIRED OWNERSHIP BOUNDARY; WEB-005 is patch producer, not deployment owner |
+| D046 | Release gate stays NO-GO; no automatic merge/CI/production changes | BLOCKED pending full independently verified integrated test evidence and HQ decision |
