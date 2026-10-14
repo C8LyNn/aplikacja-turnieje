@@ -31,4 +31,9 @@ No edits to other agents' files, backend PR44/46/49, `tournament-host.tsx`, PR54
 
 **Next coordinator 00 action:** A50 test exact `8f959733258aed0cab15298dd0684ca068045e6f` with full checkout, report TAP/count/exits; A30 review match ownership and stale header risk; A60 independently assess revised exact SHA and partial/full security claim. If match-picks cache lacks proven ownership in a real view, issue a separate exclusive file-window for validated metadata or record HOLD; do not silently broaden PR53.
 
+
+## R17 automatic CI readback at revised exact HEAD
+
+GitHub Actions [run 38622961390](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38622961390), job `116054859202` at exact `8f959733258aed0cab15298dd0684ca068045e6f` completed **FAILURE** at **Pack 19 snapshot consistency tests**. Actual downloaded job log shows regex `/isolationLevel:"repeatable read",readOnly:true/` mismatching existing implementation `accessMode:"read only"`; later static/database release gates were SKIPPED. This workflow was automatically triggered by updating PR53; A100 did NOT manually rerun paid CI. **No targeted S2B RTL / typecheck was executed in this run**, and the failure is not a verdict that new S2B tests failed. PR35 carries the independent Pack19 correction. A50 direct per-SHA frontend test and A60 review remain pending.
+
 **FINAL STATUS:** `PATCH_REVISED / R16_ARTIFACTS_UNAVAILABLE / RUNTIME_NOT_EXECUTED / N2_PARTIAL_OWNERSHIP / QA_PENDING / RELEASE_NO_GO`.
