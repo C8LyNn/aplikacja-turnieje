@@ -1,0 +1,567 @@
+{
+  "meta": {
+    "task": "WEB-005-T050-T051-A80-R4",
+    "wave": "R11",
+    "sourceSHA": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "pr45SHA": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+    "level": "SYNTHETIC_FIXTURE_MODEL_ONLY",
+    "note": "Conditional assertions require signed owner/HQ policy; not PostgreSQL/TS runtime."
+  },
+  "swiss": [
+    {
+      "id": "SW5-R3",
+      "standings": [
+        1,
+        5,
+        3,
+        4,
+        2
+      ],
+      "history": [
+        {
+          "round": 1,
+          "p1": 1,
+          "p2": 2,
+          "winner": 1,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 1,
+          "p1": 3,
+          "p2": 4,
+          "winner": 3,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 1,
+          "p1": 5,
+          "p2": null,
+          "winner": 5,
+          "status": "completed",
+          "resultType": "bye"
+        },
+        {
+          "round": 2,
+          "p1": 1,
+          "p2": 3,
+          "winner": 1,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 2,
+          "p1": 5,
+          "p2": 2,
+          "winner": 5,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 2,
+          "p1": 4,
+          "p2": null,
+          "winner": 4,
+          "status": "completed",
+          "resultType": "bye"
+        }
+      ],
+      "bye": 2,
+      "greedy": [
+        [
+          1,
+          5
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          2,
+          null
+        ]
+      ],
+      "greedyRepeats": 1,
+      "zeroRepeatWitness": [
+        [
+          1,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          2,
+          null
+        ]
+      ],
+      "globalMinimumRepeat": 0
+    },
+    {
+      "id": "SW6-R3",
+      "standings": [
+        1,
+        5,
+        3,
+        4,
+        2,
+        6
+      ],
+      "history": [
+        {
+          "round": 1,
+          "p1": 1,
+          "p2": 2,
+          "winner": 1,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 1,
+          "p1": 3,
+          "p2": 4,
+          "winner": 3,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 1,
+          "p1": 5,
+          "p2": 6,
+          "winner": 5,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 2,
+          "p1": 1,
+          "p2": 3,
+          "winner": 1,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 2,
+          "p1": 5,
+          "p2": 2,
+          "winner": 5,
+          "status": "completed",
+          "resultType": "played"
+        },
+        {
+          "round": 2,
+          "p1": 4,
+          "p2": 6,
+          "winner": 4,
+          "status": "completed",
+          "resultType": "played"
+        }
+      ],
+      "bye": null,
+      "greedy": [
+        [
+          1,
+          5
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          6
+        ]
+      ],
+      "greedyRepeats": 1,
+      "zeroRepeatWitness": [
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "globalMinimumRepeat": 0
+    }
+  ],
+  "swissNegative": [
+    {
+      "id": "SW4-FORCED1",
+      "players": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "historicalPairs": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "minRepeats": 1,
+      "oneOptimalMatching": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "id": "SW4-EXHAUSTED",
+      "players": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "historicalPairs": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "minRepeats": 2,
+      "oneOptimalMatching": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ]
+    },
+    {
+      "id": "SW5-BYE-FIRST-FAIR",
+      "standings": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "priorByeIds": [
+        5
+      ],
+      "expectedBye": 4
+    },
+    {
+      "id": "SW5-BYE-EXHAUSTED",
+      "standings": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "priorByeIds": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "expectedBye": 5
+    },
+    {
+      "id": "SW4-NO-CONTEST",
+      "players": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "history": [
+        {
+          "p1": 1,
+          "p2": 2,
+          "status": "completed",
+          "resultType": "no_contest"
+        },
+        {
+          "p1": 3,
+          "p2": 4,
+          "status": "completed",
+          "resultType": "played"
+        }
+      ],
+      "currentSourcePolicy": "past encounter yes; standings Buchholz/points no for NC",
+      "conditionalNoRepeatWitness": [
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "policyRequired": true
+    },
+    {
+      "id": "SW4-CANCELLED",
+      "players": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "history": [
+        {
+          "p1": 1,
+          "p2": 2,
+          "status": "cancelled",
+          "resultType": null
+        }
+      ],
+      "currentSourcePolicy": "not a past completed encounter"
+    }
+  ],
+  "terminalSwiss": [
+    {
+      "id": "TS01",
+      "setup": "terminal completed Swiss4/2R final played",
+      "options": {
+        "deny": {
+          "status": 409,
+          "zeroWrites": true
+        },
+        "reopen": {
+          "status": 200,
+          "match": "pending",
+          "stage": "active",
+          "tournament": "active",
+          "stageWinnerId": null,
+          "tournamentWinnerId": null
+        }
+      }
+    },
+    {
+      "id": "TS02",
+      "setup": "terminal completed Swiss4/2R final no_contest",
+      "options": {
+        "deny": {
+          "status": 409,
+          "zeroWrites": true
+        },
+        "reopen": {
+          "status": 200,
+          "match": "pending",
+          "matchWinnerMayBeNull": true
+        }
+      }
+    },
+    {
+      "id": "TS03",
+      "setup": "system bye",
+      "anyPolicy": {
+        "status": 409,
+        "error": "SYSTEM_BYE_REVERT_BLOCKED",
+        "zeroWrites": true
+      }
+    },
+    {
+      "id": "TS04",
+      "setup": "stale Undo action overtaken during lock wait",
+      "anyPolicy": {
+        "status": 409,
+        "zeroWrites": true,
+        "owner": "A70/T040"
+      }
+    },
+    {
+      "id": "TS05",
+      "setup": "atomic reopen injected failure after match update",
+      "deny": {
+        "status": 409,
+        "zeroWrites": true
+      },
+      "reopen": {
+        "rollbackAll": true
+      }
+    },
+    {
+      "id": "TS06",
+      "setup": "8->4->terminal Swiss4",
+      "deny": {
+        "status": 409,
+        "zeroWrites": true
+      },
+      "reopen": {
+        "active": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "previouslyEliminated": [
+          5,
+          6,
+          7,
+          8
+        ]
+      }
+    }
+  ],
+  "se": [
+    {
+      "id": "SE4-R1-REVERT",
+      "r1": [
+        [
+          1,
+          2,
+          1
+        ],
+        [
+          3,
+          4,
+          3
+        ]
+      ],
+      "r2Before": [
+        1,
+        3,
+        "pending"
+      ],
+      "r2After": [
+        null,
+        3,
+        "pending"
+      ],
+      "currentRoundBefore": 2,
+      "afterIfActionable": 1,
+      "afterIfMaxGenerated": 2,
+      "policyRequired": true
+    }
+  ],
+  "de": [
+    {
+      "id": "DE4-GF-UPPER",
+      "seeds": {
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "D": 4
+      },
+      "upper": [
+        "A>D",
+        "B>C",
+        "A>B"
+      ],
+      "lower": [
+        "D>C",
+        "D>B"
+      ],
+      "GF": "A>D",
+      "reset": "bye",
+      "champion": "A",
+      "runnerUp": "D",
+      "rank3PlusConditional": [
+        "B",
+        "C"
+      ]
+    },
+    {
+      "id": "DE4-GF-RESET-UPPER",
+      "seeds": {
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "D": 4
+      },
+      "upper": [
+        "A>D",
+        "B>C",
+        "A>B"
+      ],
+      "lower": [
+        "D>C",
+        "D>B"
+      ],
+      "GF": "D>A",
+      "reset": "A>D",
+      "champion": "A",
+      "runnerUp": "D",
+      "rank3PlusConditional": [
+        "B",
+        "C"
+      ]
+    },
+    {
+      "id": "DE4-GF-RESET-LOWER",
+      "seeds": {
+        "A": 1,
+        "B": 2,
+        "C": 3,
+        "D": 4
+      },
+      "upper": [
+        "A>D",
+        "B>C",
+        "A>B"
+      ],
+      "lower": [
+        "D>C",
+        "D>B"
+      ],
+      "GF": "D>A",
+      "reset": "D>A",
+      "champion": "D",
+      "runnerUp": "A",
+      "rank3PlusConditional": [
+        "B",
+        "C"
+      ]
+    }
+  ]
+}
