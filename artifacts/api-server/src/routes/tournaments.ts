@@ -13,6 +13,7 @@ import {
 import {
   hashPassword,
   signVersionedOrganizerToken,
+  verifyOrganizerToken,
 } from "../auth";
 import { logAuditAction } from "./auth";
 import { NEW_CREDENTIAL_MIN_LENGTH } from "../application/auth/credential-rate-limit";
@@ -1367,8 +1368,42 @@ router.delete("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
+
+  // Keep the existing organizer-only entry gate. Authorization is rechecked
+  // against the *locked* credential version before any cascading deletion.
   if (!await requireOrganizer(req, res, params.data.id)) return;
-  await db.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
+  const suppliedToken = req.headers["x-organizer-token"];
+  const organizerToken = typeof suppliedToken === "string" ? suppliedToken : "";
+
+  const deleted = await db.transaction(async (tx) => {
+    const [tournament] = await tx
+      .select({
+        id: tournamentsTable.id,
+        organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+      })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, params.data.id))
+      .for("update");
+
+    if (!tournament) return false;
+    // Uses the existing signed-token verifier from the release baseline.
+    // Never logs or persists the token/hash, and never trusts pre-lock auth.
+    if (!verifyOrganizerToken(
+      organizerToken,
+      tournament.id,
+      tournament.organizerPasswordHash,
+    )) {
+      throw new TournamentMutationAuthorizationError();
+    }
+
+    await tx.delete(tournamentsTable).where(eq(tournamentsTable.id, tournament.id));
+    return true;
+  });
+
+  if (!deleted) {
+    res.status(404).json({ error: "Turniej nie istnieje" });
+    return;
+  }
   res.sendStatus(204);
 });
 
