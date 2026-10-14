@@ -130,531 +130,531 @@ export async function exportBackupV3(
   const { db } = await import("@workspace/db");
   const { loadCompiledRoutingPlanV2InTransaction } = await import("../routing/routing-plan-persistence");
   return db.transaction(async (tx): Promise<TournamentBackupV3 | null> => {
-    const [tournament] = await tx
-      .select()
-      .from(tournamentsTable)
-      .where(eq(tournamentsTable.id, tournamentId));
-    if (!tournament) return null;
-    await barrier?.afterTournamentRead?.();
-    const [
-      players,
-      stages,
-      groups,
-      memberships,
-      marvelRounds,
-      marvelGroups,
-      marvelGroupEntries,
-      stageBaskets,
-      stageBasketRoutes,
-      stageBasketAssignments,
-      matches,
-      history,
-      actions,
-      gameConfigs,
-      deadlockBanRows,
-      gamePickRows,
-    ] = [
-        await tx
-          .select()
-          .from(playersTable)
-          .where(eq(playersTable.tournamentId, tournamentId))
-          .orderBy(asc(playersTable.id)),
-        await tx
-          .select()
-          .from(tournamentStagesTable)
-          .where(eq(tournamentStagesTable.tournamentId, tournamentId))
-          .orderBy(asc(tournamentStagesTable.position)),
-        await tx
-          .select()
-          .from(stageGroupsTable)
-          .where(
-            inArray(
-              stageGroupsTable.stageId,
-              tx
-                .select({ id: tournamentStagesTable.id })
-                .from(tournamentStagesTable)
-                .where(eq(tournamentStagesTable.tournamentId, tournamentId)),
-            ),
-          )
-          .orderBy(asc(stageGroupsTable.stageId), asc(stageGroupsTable.position)),
-        await tx
-          .select()
-          .from(stageParticipantsTable)
-          .where(eq(stageParticipantsTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(stageParticipantsTable.stageId),
-            asc(stageParticipantsTable.stageSeed),
+  const [tournament] = await tx
+    .select()
+    .from(tournamentsTable)
+    .where(eq(tournamentsTable.id, tournamentId));
+  if (!tournament) return null;
+  await barrier?.afterTournamentRead?.();
+  const [
+    players,
+    stages,
+    groups,
+    memberships,
+    marvelRounds,
+    marvelGroups,
+    marvelGroupEntries,
+    stageBaskets,
+    stageBasketRoutes,
+    stageBasketAssignments,
+    matches,
+    history,
+    actions,
+    gameConfigs,
+    deadlockBanRows,
+    gamePickRows,
+  ] = [
+      await tx
+        .select()
+        .from(playersTable)
+        .where(eq(playersTable.tournamentId, tournamentId))
+        .orderBy(asc(playersTable.id)),
+      await tx
+        .select()
+        .from(tournamentStagesTable)
+        .where(eq(tournamentStagesTable.tournamentId, tournamentId))
+        .orderBy(asc(tournamentStagesTable.position)),
+      await tx
+        .select()
+        .from(stageGroupsTable)
+        .where(
+          inArray(
+            stageGroupsTable.stageId,
+            tx
+              .select({ id: tournamentStagesTable.id })
+              .from(tournamentStagesTable)
+              .where(eq(tournamentStagesTable.tournamentId, tournamentId)),
           ),
-        await tx
-          .select()
-          .from(marvelStageRoundsTable)
-          .where(eq(marvelStageRoundsTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(marvelStageRoundsTable.stageId),
-            asc(marvelStageRoundsTable.roundNumber),
+        )
+        .orderBy(asc(stageGroupsTable.stageId), asc(stageGroupsTable.position)),
+      await tx
+        .select()
+        .from(stageParticipantsTable)
+        .where(eq(stageParticipantsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(stageParticipantsTable.stageId),
+          asc(stageParticipantsTable.stageSeed),
+        ),
+      await tx
+        .select()
+        .from(marvelStageRoundsTable)
+        .where(eq(marvelStageRoundsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageRoundsTable.stageId),
+          asc(marvelStageRoundsTable.roundNumber),
+        ),
+      await tx
+        .select()
+        .from(marvelStageGroupsTable)
+        .where(eq(marvelStageGroupsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageGroupsTable.roundId),
+          asc(marvelStageGroupsTable.position),
+        ),
+      await tx
+        .select()
+        .from(marvelStageGroupEntriesTable)
+        .where(eq(marvelStageGroupEntriesTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(marvelStageGroupEntriesTable.roundId),
+          asc(marvelStageGroupEntriesTable.groupId),
+          asc(marvelStageGroupEntriesTable.groupSlot),
+        ),
+      await tx
+        .select()
+        .from(stageBasketsTable)
+        .where(eq(stageBasketsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(stageBasketsTable.stageId),
+          asc(stageBasketsTable.basketType),
+          asc(stageBasketsTable.displayOrder),
+        ),
+      await tx
+        .select()
+        .from(stageBasketRoutesTable)
+        .where(eq(stageBasketRoutesTable.tournamentId, tournamentId))
+        .orderBy(asc(stageBasketRoutesTable.id)),
+      await tx
+        .select()
+        .from(stageBasketParticipantsTable)
+        .where(eq(stageBasketParticipantsTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(stageBasketParticipantsTable.stageId),
+          asc(stageBasketParticipantsTable.basketId),
+          asc(stageBasketParticipantsTable.playerId),
+        ),
+      await tx
+        .select()
+        .from(matchesTable)
+        .where(eq(matchesTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(matchesTable.stageId),
+          asc(matchesTable.round),
+          asc(matchesTable.matchNumber),
+        ),
+      await tx
+        .select()
+        .from(resultHistoryTable)
+        .where(eq(resultHistoryTable.tournamentId, tournamentId))
+        .orderBy(
+          asc(resultHistoryTable.matchId),
+          asc(resultHistoryTable.revision),
+        ),
+      await tx
+        .select()
+        .from(actionLogTable)
+        .where(eq(actionLogTable.tournamentId, tournamentId))
+        .orderBy(desc(actionLogTable.createdAt)),
+      await tx
+        .select()
+        .from(tournamentGameConfigsTable)
+        .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId)),
+      await tx
+        .select()
+        .from(playerDeadlockBansTable)
+        .where(eq(playerDeadlockBansTable.tournamentId, tournamentId)),
+      await tx
+        .select()
+        .from(matchGamePicksTable)
+        .where(
+          inArray(
+            matchGamePicksTable.matchId,
+            tx
+              .select({ id: matchesTable.id })
+              .from(matchesTable)
+              .where(eq(matchesTable.tournamentId, tournamentId)),
           ),
-        await tx
-          .select()
-          .from(marvelStageGroupsTable)
-          .where(eq(marvelStageGroupsTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(marvelStageGroupsTable.roundId),
-            asc(marvelStageGroupsTable.position),
-          ),
-        await tx
-          .select()
-          .from(marvelStageGroupEntriesTable)
-          .where(eq(marvelStageGroupEntriesTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(marvelStageGroupEntriesTable.roundId),
-            asc(marvelStageGroupEntriesTable.groupId),
-            asc(marvelStageGroupEntriesTable.groupSlot),
-          ),
-        await tx
-          .select()
-          .from(stageBasketsTable)
-          .where(eq(stageBasketsTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(stageBasketsTable.stageId),
-            asc(stageBasketsTable.basketType),
-            asc(stageBasketsTable.displayOrder),
-          ),
-        await tx
-          .select()
-          .from(stageBasketRoutesTable)
-          .where(eq(stageBasketRoutesTable.tournamentId, tournamentId))
-          .orderBy(asc(stageBasketRoutesTable.id)),
-        await tx
-          .select()
-          .from(stageBasketParticipantsTable)
-          .where(eq(stageBasketParticipantsTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(stageBasketParticipantsTable.stageId),
-            asc(stageBasketParticipantsTable.basketId),
-            asc(stageBasketParticipantsTable.playerId),
-          ),
-        await tx
-          .select()
-          .from(matchesTable)
-          .where(eq(matchesTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(matchesTable.stageId),
-            asc(matchesTable.round),
-            asc(matchesTable.matchNumber),
-          ),
-        await tx
-          .select()
-          .from(resultHistoryTable)
-          .where(eq(resultHistoryTable.tournamentId, tournamentId))
-          .orderBy(
-            asc(resultHistoryTable.matchId),
-            asc(resultHistoryTable.revision),
-          ),
-        await tx
-          .select()
-          .from(actionLogTable)
-          .where(eq(actionLogTable.tournamentId, tournamentId))
-          .orderBy(desc(actionLogTable.createdAt)),
-        await tx
-          .select()
-          .from(tournamentGameConfigsTable)
-          .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId)),
-        await tx
-          .select()
-          .from(playerDeadlockBansTable)
-          .where(eq(playerDeadlockBansTable.tournamentId, tournamentId)),
-        await tx
-          .select()
-          .from(matchGamePicksTable)
-          .where(
-            inArray(
-              matchGamePicksTable.matchId,
-              tx
-                .select({ id: matchesTable.id })
-                .from(matchesTable)
-                .where(eq(matchesTable.tournamentId, tournamentId)),
-            ),
-          )
-          .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
-      ] as const;
-    // Load qualification proposals for all stages of this tournament.
-    const stageIdList = stages.map((s) => s.id);
-    const [qualificationProposals, qualificationProposalEntries, qualificationOutputRows] =
-      stageIdList.length === 0
-        ? [[], [], []] as const
-        : [
-            await tx
-              .select()
-              .from(qualificationProposalsTable)
-              .where(inArray(qualificationProposalsTable.stageId, stageIdList))
-              .orderBy(asc(qualificationProposalsTable.stageId)),
-            await tx
-              .select()
-              .from(qualificationProposalEntriesTable)
-              .where(inArray(qualificationProposalEntriesTable.stageId, stageIdList))
-              .orderBy(
-                asc(qualificationProposalEntriesTable.stageId),
-                asc(qualificationProposalEntriesTable.placementRank),
-              ),
-            await tx
-              .select()
-              .from(stageBasketsOutputPlayersTable)
-              .where(inArray(stageBasketsOutputPlayersTable.stageId, stageIdList))
-              .orderBy(
-                asc(stageBasketsOutputPlayersTable.stageId),
-                asc(stageBasketsOutputPlayersTable.finalRank),
-              ),
-          ] as const;
-
-    // Load route executions and their entries (Phase 3).
-    const routeExecutionRows =
-      stageBaskets.length === 0 || stageBasketRoutes.length === 0
-        ? []
-        : await tx
+        )
+        .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
+    ] as const;
+  // Load qualification proposals for all stages of this tournament.
+  const stageIdList = stages.map((s) => s.id);
+  const [qualificationProposals, qualificationProposalEntries, qualificationOutputRows] =
+    stageIdList.length === 0
+      ? [[], [], []] as const
+      : [
+          await tx
             .select()
-            .from(stageBasketRouteExecutionsTable)
-            .where(eq(stageBasketRouteExecutionsTable.tournamentId, tournamentId))
-            .orderBy(asc(stageBasketRouteExecutionsTable.id));
-    const routeEntryRows =
-      routeExecutionRows.length === 0
-        ? []
-        : await tx
+            .from(qualificationProposalsTable)
+            .where(inArray(qualificationProposalsTable.stageId, stageIdList))
+            .orderBy(asc(qualificationProposalsTable.stageId)),
+          await tx
             .select()
-            .from(stageBasketRouteEntriesTable)
-            .where(
-              inArray(
-                stageBasketRouteEntriesTable.executionId,
-                routeExecutionRows.map((r) => r.id),
-              ),
-            )
+            .from(qualificationProposalEntriesTable)
+            .where(inArray(qualificationProposalEntriesTable.stageId, stageIdList))
             .orderBy(
-              asc(stageBasketRouteEntriesTable.executionId),
-              asc(stageBasketRouteEntriesTable.sourceFinalRank),
-            );
+              asc(qualificationProposalEntriesTable.stageId),
+              asc(qualificationProposalEntriesTable.placementRank),
+            ),
+          await tx
+            .select()
+            .from(stageBasketsOutputPlayersTable)
+            .where(inArray(stageBasketsOutputPlayersTable.stageId, stageIdList))
+            .orderBy(
+              asc(stageBasketsOutputPlayersTable.stageId),
+              asc(stageBasketsOutputPlayersTable.finalRank),
+            ),
+        ] as const;
 
-    const gameConfig = gameConfigs[0];
-    let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2InTransaction>> | null = null;
-    try {
-      routingPlan = await loadCompiledRoutingPlanV2InTransaction(tx, { tournamentId });
-    } catch (error) {
-      if (!(error instanceof RoutingPlanPersistenceError) || error.code !== "ROUTING_PLAN_NOT_FOUND") {
-        throw error;
-      }
-    }
-    const routingExecutions = routingPlan == null
+  // Load route executions and their entries (Phase 3).
+  const routeExecutionRows =
+    stageBaskets.length === 0 || stageBasketRoutes.length === 0
       ? []
-      : await tx.select().from(tournamentRoutingExecutionsTable)
-        .where(eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId))
-        .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
-    const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
-    const parsedGameConfig = gameConfig
-      ? parseTournamentGameConfig({
-          gameId: gameConfig.gameId,
-          configVersion: gameConfig.configVersion,
-          config: gameConfig.config,
-        })
-      : null;
-    return {
-      schemaVersion: 3,
-      resultModelVersion: "series_v1",
-      rankingPolicy: "match_record_v1",
-      exportedAt: new Date().toISOString(),
-      tournament: {
-        name: tournament.name,
-        description: tournament.description ?? null,
-        ...(tournament.basketFlowAuthorityVersion === 1
-          ? { basketFlowAuthorityVersion: 1 as const }
-          : {}),
-        status: tournament.status,
-        maxPlayers: tournament.maxPlayers ?? null,
-        activeStageBackupId: tournament.activeStageId ?? null,
-        winnerBackupId: tournament.winnerId ?? null,
-        featuredMatchBackupId: tournament.featuredMatchId ?? null,
-        visibility:
-          tournament.visibility as TournamentBackupV3["tournament"]["visibility"],
-        ...(parsedGameConfig
-          ? { gameConfig: parsedGameConfig }
-          : {}),
-      },
-      players: players.map((player) => ({
-        backupId: player.id,
-        name: player.name,
-        rank: player.rank ?? null,
-        country: player.country ?? null,
-        teamName: player.teamName ?? null,
-        seed: player.seed ?? null,
-        status: player.status,
-      })),
-      stages: stages.map((stage) => ({
-        backupId: stage.id,
-        stageKey: stage.stageKey,
-        position: stage.position,
-        name: stage.name,
-        format: stage.format,
-        status: stage.status,
-        participantCount: stage.participantCount,
-        bestOf: stage.bestOf,
-        plannedRounds: stage.plannedRounds ?? null,
-        currentRound: stage.currentRound ?? null,
-        totalRounds: stage.totalRounds ?? null,
-        rankingPolicy: stage.rankingPolicy,
-        qualificationMode: stage.qualificationMode,
-        advancingCount: stage.advancingCount ?? null,
-        groupCount: stage.groupCount ?? null,
-        participantsPerGroup: stage.participantsPerGroup ?? null,
-        qualifiersPerGroup: stage.qualifiersPerGroup ?? null,
-        seedingPolicy: stage.seedingPolicy,
-        entrySeedingPolicy: stage.entrySeedingPolicy ?? "preserve",
-        resultSeedingPolicy: stage.resultSeedingPolicy ?? (stage.format === "group_stage" ? "rank_bands" : "standings_order"),
-        randomSeed: stage.randomSeed ?? null,
-        randomRevealOrder: stage.randomRevealOrder ?? "instant",
-        seedingAudit: (stage.seedingAudit as Record<string, unknown> | null) ?? null,
-        winnerBackupId: stage.winnerId ?? null,
-        version: stage.version,
-        createdAt: stage.createdAt.toISOString(),
-        startedAt: stage.startedAt?.toISOString() ?? null,
-        completedAt: stage.completedAt?.toISOString() ?? null,
-      })),
-      groups: groups.map((group) => ({
-        backupId: group.id,
-        stageBackupId: group.stageId,
-        groupKey: group.groupKey,
-        position: group.position,
-        participantCount: group.participantCount,
-        qualifiersCount: group.qualifiersCount,
-        createdAt: group.createdAt.toISOString(),
-      })),
-      stageParticipants: memberships.map((membership) => ({
-        backupId: membership.id,
-        stageBackupId: membership.stageId,
-        playerBackupId: membership.playerId,
-        stageSeed: membership.stageSeed,
-        groupBackupId: membership.groupId ?? null,
-        status: membership.status,
-        qualificationSource: membership.qualificationSource,
-        finalRank: membership.finalRank ?? null,
-        groupRank: membership.groupRank ?? null,
-        qualificationRank: membership.qualificationRank ?? null,
-        nextStageSeed: membership.nextStageSeed ?? null,
-        sourceStageParticipantBackupId:
-          membership.sourceStageParticipantId ?? null,
-        qualifiedAt: membership.qualifiedAt?.toISOString() ?? null,
-        createdAt: membership.createdAt.toISOString(),
-      })),
-      ...(marvelRounds.length === 0
-        ? {}
-        : {
-            marvelRounds: marvelRounds.map((round) => ({
-              backupId: round.id,
-              stageBackupId: round.stageId,
-              roundNumber: round.roundNumber,
-              participantCount: round.participantCount,
-              groupSize: round.groupSize,
-              advancingCount: round.advancingCount,
-              killLimit: round.killLimit,
-              regroupingStrategy: round.regroupingStrategy as
-                "paired_merge" | "random" | "manual",
-              status: round.status as "active" | "awaiting_manual" | "completed",
-              randomSeed: round.randomSeed ?? null,
-              createdAt: round.createdAt.toISOString(),
-              completedAt: round.completedAt?.toISOString() ?? null,
-            })),
-            marvelGroups: marvelGroups.map((group) => ({
-              backupId: group.id,
-              stageBackupId: group.stageId,
-              roundBackupId: group.roundId,
-              groupKey: group.groupKey,
-              position: group.position,
-              status: group.status as "pending" | "completed",
-              completedAt: group.completedAt?.toISOString() ?? null,
-              createdAt: group.createdAt.toISOString(),
-            })),
-            marvelGroupEntries: marvelGroupEntries.map((entry) => ({
-              backupId: entry.id,
-              stageBackupId: entry.stageId,
-              roundBackupId: entry.roundId,
-              groupBackupId: entry.groupId,
-              playerBackupId: entry.playerId,
-              sourceGroupBackupId: entry.sourceGroupId ?? null,
-              groupSlot: entry.groupSlot,
-              placement: entry.placement ?? null,
-              kills: entry.kills ?? null,
-              qualified: entry.qualified ?? null,
-              createdAt: entry.createdAt.toISOString(),
-              updatedAt: entry.updatedAt.toISOString(),
-            })),
-          }),
-      ...(stageBaskets.length === 0
-        ? {}
-        : {
-            stageBaskets: stageBaskets.map((basket) => ({
-              id: basket.id,
-              stageBackupId: basket.stageId,
-              type: basket.basketType as "input" | "output",
-              ordinal: basket.ordinal,
-              order: basket.displayOrder,
-              colorId: basket.colorId,
-              qualifierCount: basket.qualifierCount ?? null,
-              participantBackupIds: basket.basketType === "input"
-                ? stageBasketAssignments
-                  .filter((assignment) => assignment.basketId === basket.id)
-                  .map((assignment) => assignment.playerId)
-                : [],
-            })),
-            stageBasketRoutes: stageBasketRoutes.map((route) => ({
-              id: route.id,
-              sourceBasketId: route.sourceBasketId,
-              targetBasketId: route.targetBasketId,
-            })),
-          }),
-      matches: matches.map((match) => ({
-        backupId: match.id,
-        stageBackupId: match.stageId,
-        stageGroupBackupId: match.stageGroupId ?? null,
-        round: match.round,
-        matchNumber: match.matchNumber,
-        player1BackupId: match.player1Id ?? null,
-        player2BackupId: match.player2Id ?? null,
-        winnerBackupId: match.winnerId ?? null,
-        score1: match.score1 ?? null,
-        score2: match.score2 ?? null,
-        resultType: match.resultType ?? null,
-        resultReason: match.resultReason ?? null,
-        bestOf: match.bestOf,
-        status: match.status,
-        note: match.note ?? null,
-        routingMatchKey: match.routingMatchKey ?? null,
-        nextMatchBackupId: match.nextMatchId ?? null,
-        sortOrder: match.sortOrder ?? null,
-        scheduledAt: match.scheduledAt?.toISOString() ?? null,
-        completedAt: match.completedAt?.toISOString() ?? null,
-      })),
-      resultHistory: history.map((entry) => ({
-        matchBackupId: entry.matchId,
-        stageBackupId: entry.stageId,
-        revision: entry.revision,
-        round: entry.round,
-        matchNumber: entry.matchNumber,
-        player1BackupId: entry.player1Id ?? null,
-        player2BackupId: entry.player2Id ?? null,
-        winnerBackupId: entry.winnerId ?? null,
-        score1: entry.score1 ?? null,
-        score2: entry.score2 ?? null,
-        bestOf: entry.bestOf,
-        resultType: entry.resultType,
-        resultReason: entry.resultReason ?? null,
-        completedAt: entry.completedAt.toISOString(),
-        recordedAt: entry.recordedAt.toISOString(),
-      })),
-      actionLog: actions.map((action) => ({
-        actionType: action.actionType,
-        description: action.description,
-        stageBackupId: action.stageId ?? null,
-        matchBackupId: action.matchId ?? null,
-        canUndo:
-          UNDOABLE_ACTIONS.has(action.actionType) &&
-          !action.isUndone &&
-          action.undoPayload != null,
-        undoPayload: parseUndoPayload(action.undoPayload),
-        isUndone: action.isUndone,
-        createdAt: action.createdAt.toISOString(),
-      })),
-      ...(deadlockBanRows.length > 0
-        ? {
-            deadlockBans: deadlockBanRows.map((b) => ({
-              playerBackupId: b.playerId,
-              bannedHeroIds: b.bannedHeroIds ?? [],
-            })),
-          }
+      : await tx
+          .select()
+          .from(stageBasketRouteExecutionsTable)
+          .where(eq(stageBasketRouteExecutionsTable.tournamentId, tournamentId))
+          .orderBy(asc(stageBasketRouteExecutionsTable.id));
+  const routeEntryRows =
+    routeExecutionRows.length === 0
+      ? []
+      : await tx
+          .select()
+          .from(stageBasketRouteEntriesTable)
+          .where(
+            inArray(
+              stageBasketRouteEntriesTable.executionId,
+              routeExecutionRows.map((r) => r.id),
+            ),
+          )
+          .orderBy(
+            asc(stageBasketRouteEntriesTable.executionId),
+            asc(stageBasketRouteEntriesTable.sourceFinalRank),
+          );
+
+  const gameConfig = gameConfigs[0];
+  let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2InTransaction>> | null = null;
+  try {
+    routingPlan = await loadCompiledRoutingPlanV2InTransaction(tx, { tournamentId });
+  } catch (error) {
+    if (!(error instanceof RoutingPlanPersistenceError) || error.code !== "ROUTING_PLAN_NOT_FOUND") {
+      throw error;
+    }
+  }
+  const routingExecutions = routingPlan == null
+    ? []
+    : await tx.select().from(tournamentRoutingExecutionsTable)
+      .where(eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId))
+      .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
+  const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
+  const parsedGameConfig = gameConfig
+    ? parseTournamentGameConfig({
+        gameId: gameConfig.gameId,
+        configVersion: gameConfig.configVersion,
+        config: gameConfig.config,
+      })
+    : null;
+  return {
+    schemaVersion: 3,
+    resultModelVersion: "series_v1",
+    rankingPolicy: "match_record_v1",
+    exportedAt: new Date().toISOString(),
+    tournament: {
+      name: tournament.name,
+      description: tournament.description ?? null,
+      ...(tournament.basketFlowAuthorityVersion === 1
+        ? { basketFlowAuthorityVersion: 1 as const }
         : {}),
-      ...(gamePickRows.length > 0
-        ? {
-            gamePicks: gamePickRows.map((p) => ({
-              matchBackupId: p.matchId,
-              gameNumber: p.gameNumber,
-              player1HeroId: p.player1HeroId ?? null,
-              player2HeroId: p.player2HeroId ?? null,
-              player1Side: (p.player1Side as "archmother" | "hidden_king" | null) ?? null,
-            })),
-          }
+      status: tournament.status,
+      maxPlayers: tournament.maxPlayers ?? null,
+      activeStageBackupId: tournament.activeStageId ?? null,
+      winnerBackupId: tournament.winnerId ?? null,
+      featuredMatchBackupId: tournament.featuredMatchId ?? null,
+      visibility:
+        tournament.visibility as TournamentBackupV3["tournament"]["visibility"],
+      ...(parsedGameConfig
+        ? { gameConfig: parsedGameConfig }
         : {}),
-      ...(routingPlan == null
-        ? {}
-        : { routingPlan: routingPlan.plan as unknown as Record<string, unknown> }),
-      ...(routingExecutions.length === 0
-        ? {}
-        : {
-            routingExecutions: routingExecutions.map((execution) => ({
-              stageBackupId: stageBackupIdByKey.get(execution.stageKey)!,
-              revision: execution.revision,
-              state: execution.state as Record<string, unknown>,
-            })),
+    },
+    players: players.map((player) => ({
+      backupId: player.id,
+      name: player.name,
+      rank: player.rank ?? null,
+      country: player.country ?? null,
+      teamName: player.teamName ?? null,
+      seed: player.seed ?? null,
+      status: player.status,
+    })),
+    stages: stages.map((stage) => ({
+      backupId: stage.id,
+      stageKey: stage.stageKey,
+      position: stage.position,
+      name: stage.name,
+      format: stage.format,
+      status: stage.status,
+      participantCount: stage.participantCount,
+      bestOf: stage.bestOf,
+      plannedRounds: stage.plannedRounds ?? null,
+      currentRound: stage.currentRound ?? null,
+      totalRounds: stage.totalRounds ?? null,
+      rankingPolicy: stage.rankingPolicy,
+      qualificationMode: stage.qualificationMode,
+      advancingCount: stage.advancingCount ?? null,
+      groupCount: stage.groupCount ?? null,
+      participantsPerGroup: stage.participantsPerGroup ?? null,
+      qualifiersPerGroup: stage.qualifiersPerGroup ?? null,
+      seedingPolicy: stage.seedingPolicy,
+      entrySeedingPolicy: stage.entrySeedingPolicy ?? "preserve",
+      resultSeedingPolicy: stage.resultSeedingPolicy ?? (stage.format === "group_stage" ? "rank_bands" : "standings_order"),
+      randomSeed: stage.randomSeed ?? null,
+      randomRevealOrder: stage.randomRevealOrder ?? "instant",
+      seedingAudit: (stage.seedingAudit as Record<string, unknown> | null) ?? null,
+      winnerBackupId: stage.winnerId ?? null,
+      version: stage.version,
+      createdAt: stage.createdAt.toISOString(),
+      startedAt: stage.startedAt?.toISOString() ?? null,
+      completedAt: stage.completedAt?.toISOString() ?? null,
+    })),
+    groups: groups.map((group) => ({
+      backupId: group.id,
+      stageBackupId: group.stageId,
+      groupKey: group.groupKey,
+      position: group.position,
+      participantCount: group.participantCount,
+      qualifiersCount: group.qualifiersCount,
+      createdAt: group.createdAt.toISOString(),
+    })),
+    stageParticipants: memberships.map((membership) => ({
+      backupId: membership.id,
+      stageBackupId: membership.stageId,
+      playerBackupId: membership.playerId,
+      stageSeed: membership.stageSeed,
+      groupBackupId: membership.groupId ?? null,
+      status: membership.status,
+      qualificationSource: membership.qualificationSource,
+      finalRank: membership.finalRank ?? null,
+      groupRank: membership.groupRank ?? null,
+      qualificationRank: membership.qualificationRank ?? null,
+      nextStageSeed: membership.nextStageSeed ?? null,
+      sourceStageParticipantBackupId:
+        membership.sourceStageParticipantId ?? null,
+      qualifiedAt: membership.qualifiedAt?.toISOString() ?? null,
+      createdAt: membership.createdAt.toISOString(),
+    })),
+    ...(marvelRounds.length === 0
+      ? {}
+      : {
+          marvelRounds: marvelRounds.map((round) => ({
+            backupId: round.id,
+            stageBackupId: round.stageId,
+            roundNumber: round.roundNumber,
+            participantCount: round.participantCount,
+            groupSize: round.groupSize,
+            advancingCount: round.advancingCount,
+            killLimit: round.killLimit,
+            regroupingStrategy: round.regroupingStrategy as
+              "paired_merge" | "random" | "manual",
+            status: round.status as "active" | "awaiting_manual" | "completed",
+            randomSeed: round.randomSeed ?? null,
+            createdAt: round.createdAt.toISOString(),
+            completedAt: round.completedAt?.toISOString() ?? null,
+          })),
+          marvelGroups: marvelGroups.map((group) => ({
+            backupId: group.id,
+            stageBackupId: group.stageId,
+            roundBackupId: group.roundId,
+            groupKey: group.groupKey,
+            position: group.position,
+            status: group.status as "pending" | "completed",
+            completedAt: group.completedAt?.toISOString() ?? null,
+            createdAt: group.createdAt.toISOString(),
+          })),
+          marvelGroupEntries: marvelGroupEntries.map((entry) => ({
+            backupId: entry.id,
+            stageBackupId: entry.stageId,
+            roundBackupId: entry.roundId,
+            groupBackupId: entry.groupId,
+            playerBackupId: entry.playerId,
+            sourceGroupBackupId: entry.sourceGroupId ?? null,
+            groupSlot: entry.groupSlot,
+            placement: entry.placement ?? null,
+            kills: entry.kills ?? null,
+            qualified: entry.qualified ?? null,
+            createdAt: entry.createdAt.toISOString(),
+            updatedAt: entry.updatedAt.toISOString(),
+          })),
+        }),
+    ...(stageBaskets.length === 0
+      ? {}
+      : {
+          stageBaskets: stageBaskets.map((basket) => ({
+            id: basket.id,
+            stageBackupId: basket.stageId,
+            type: basket.basketType as "input" | "output",
+            ordinal: basket.ordinal,
+            order: basket.displayOrder,
+            colorId: basket.colorId,
+            qualifierCount: basket.qualifierCount ?? null,
+            participantBackupIds: basket.basketType === "input"
+              ? stageBasketAssignments
+                .filter((assignment) => assignment.basketId === basket.id)
+                .map((assignment) => assignment.playerId)
+              : [],
+          })),
+          stageBasketRoutes: stageBasketRoutes.map((route) => ({
+            id: route.id,
+            sourceBasketId: route.sourceBasketId,
+            targetBasketId: route.targetBasketId,
+          })),
+        }),
+    matches: matches.map((match) => ({
+      backupId: match.id,
+      stageBackupId: match.stageId,
+      stageGroupBackupId: match.stageGroupId ?? null,
+      round: match.round,
+      matchNumber: match.matchNumber,
+      player1BackupId: match.player1Id ?? null,
+      player2BackupId: match.player2Id ?? null,
+      winnerBackupId: match.winnerId ?? null,
+      score1: match.score1 ?? null,
+      score2: match.score2 ?? null,
+      resultType: match.resultType ?? null,
+      resultReason: match.resultReason ?? null,
+      bestOf: match.bestOf,
+      status: match.status,
+      note: match.note ?? null,
+      routingMatchKey: match.routingMatchKey ?? null,
+      nextMatchBackupId: match.nextMatchId ?? null,
+      sortOrder: match.sortOrder ?? null,
+      scheduledAt: match.scheduledAt?.toISOString() ?? null,
+      completedAt: match.completedAt?.toISOString() ?? null,
+    })),
+    resultHistory: history.map((entry) => ({
+      matchBackupId: entry.matchId,
+      stageBackupId: entry.stageId,
+      revision: entry.revision,
+      round: entry.round,
+      matchNumber: entry.matchNumber,
+      player1BackupId: entry.player1Id ?? null,
+      player2BackupId: entry.player2Id ?? null,
+      winnerBackupId: entry.winnerId ?? null,
+      score1: entry.score1 ?? null,
+      score2: entry.score2 ?? null,
+      bestOf: entry.bestOf,
+      resultType: entry.resultType,
+      resultReason: entry.resultReason ?? null,
+      completedAt: entry.completedAt.toISOString(),
+      recordedAt: entry.recordedAt.toISOString(),
+    })),
+    actionLog: actions.map((action) => ({
+      actionType: action.actionType,
+      description: action.description,
+      stageBackupId: action.stageId ?? null,
+      matchBackupId: action.matchId ?? null,
+      canUndo:
+        UNDOABLE_ACTIONS.has(action.actionType) &&
+        !action.isUndone &&
+        action.undoPayload != null,
+      undoPayload: parseUndoPayload(action.undoPayload),
+      isUndone: action.isUndone,
+      createdAt: action.createdAt.toISOString(),
+    })),
+    ...(deadlockBanRows.length > 0
+      ? {
+          deadlockBans: deadlockBanRows.map((b) => ({
+            playerBackupId: b.playerId,
+            bannedHeroIds: b.bannedHeroIds ?? [],
+          })),
+        }
+      : {}),
+    ...(gamePickRows.length > 0
+      ? {
+          gamePicks: gamePickRows.map((p) => ({
+            matchBackupId: p.matchId,
+            gameNumber: p.gameNumber,
+            player1HeroId: p.player1HeroId ?? null,
+            player2HeroId: p.player2HeroId ?? null,
+            player1Side: (p.player1Side as "archmother" | "hidden_king" | null) ?? null,
+          })),
+        }
+      : {}),
+    ...(routingPlan == null
+      ? {}
+      : { routingPlan: routingPlan.plan as unknown as Record<string, unknown> }),
+    ...(routingExecutions.length === 0
+      ? {}
+      : {
+          routingExecutions: routingExecutions.map((execution) => ({
+            stageBackupId: stageBackupIdByKey.get(execution.stageKey)!,
+            revision: execution.revision,
+            state: execution.state as Record<string, unknown>,
+          })),
+        }),
+    ...(routeExecutionRows.length === 0
+      ? {}
+      : {
+          routeExecutions: routeExecutionRows.map((execution) => {
+            const entries = routeEntryRows.filter(
+              (e) => e.executionId === execution.id,
+            );
+            return {
+              routeId: execution.routeId,
+              sourceBasketId: execution.sourceBasketId,
+              targetBasketId: execution.targetBasketId,
+              sourceProposalRevision: execution.sourceProposalRevision,
+              executedAt: execution.executedAt.toISOString(),
+              actorType: execution.actorType,
+              actorNick: execution.actorNick,
+              entries: entries.map((e) => ({
+                playerBackupId: e.playerId,
+                sourceBasketId: e.sourceBasketId,
+                sourceFinalRank: e.sourceFinalRank,
+                sourceBasketPosition: e.sourceBasketPosition,
+              })),
+            };
           }),
-      ...(routeExecutionRows.length === 0
-        ? {}
-        : {
-            routeExecutions: routeExecutionRows.map((execution) => {
-              const entries = routeEntryRows.filter(
-                (e) => e.executionId === execution.id,
-              );
-              return {
-                routeId: execution.routeId,
-                sourceBasketId: execution.sourceBasketId,
-                targetBasketId: execution.targetBasketId,
-                sourceProposalRevision: execution.sourceProposalRevision,
-                executedAt: execution.executedAt.toISOString(),
-                actorType: execution.actorType,
-                actorNick: execution.actorNick,
-                entries: entries.map((e) => ({
-                  playerBackupId: e.playerId,
-                  sourceBasketId: e.sourceBasketId,
-                  sourceFinalRank: e.sourceFinalRank,
-                  sourceBasketPosition: e.sourceBasketPosition,
-                })),
-              };
-            }),
+        }),
+    ...(qualificationProposals.length === 0
+      ? {}
+      : {
+          qualificationProposals: qualificationProposals.map((proposal) => {
+            const entries = qualificationProposalEntries.filter(
+              (e) => e.proposalId === proposal.id,
+            );
+            const output =
+              proposal.status === "approved"
+                ? qualificationOutputRows.filter(
+                    (o) => o.stageId === proposal.stageId,
+                  )
+                : [];
+            return {
+              stageBackupId: proposal.stageId,
+              revision: proposal.revision,
+              status: proposal.status as "pending" | "approved",
+              rankingFingerprint: proposal.rankingFingerprint,
+              createdAt: proposal.createdAt.toISOString(),
+              approvedAt: proposal.approvedAt?.toISOString() ?? null,
+              approvedByActorType: proposal.approvedByActorType ?? null,
+              approvedByActorNick: proposal.approvedByActorNick ?? null,
+              entries: entries.map((e) => ({
+                basketId: e.basketId,
+                playerBackupId: e.playerId,
+                placementRank: e.placementRank,
+                basketPosition: e.basketPosition,
+              })),
+              ...(output.length === 0
+                ? {}
+                : {
+                    output: output.map((o) => ({
+                      basketId: o.basketId,
+                      playerBackupId: o.playerId,
+                      finalRank: o.finalRank,
+                    })),
+                  }),
+            };
           }),
-      ...(qualificationProposals.length === 0
-        ? {}
-        : {
-            qualificationProposals: qualificationProposals.map((proposal) => {
-              const entries = qualificationProposalEntries.filter(
-                (e) => e.proposalId === proposal.id,
-              );
-              const output =
-                proposal.status === "approved"
-                  ? qualificationOutputRows.filter(
-                      (o) => o.stageId === proposal.stageId,
-                    )
-                  : [];
-              return {
-                stageBackupId: proposal.stageId,
-                revision: proposal.revision,
-                status: proposal.status as "pending" | "approved",
-                rankingFingerprint: proposal.rankingFingerprint,
-                createdAt: proposal.createdAt.toISOString(),
-                approvedAt: proposal.approvedAt?.toISOString() ?? null,
-                approvedByActorType: proposal.approvedByActorType ?? null,
-                approvedByActorNick: proposal.approvedByActorNick ?? null,
-                entries: entries.map((e) => ({
-                  basketId: e.basketId,
-                  playerBackupId: e.playerId,
-                  placementRank: e.placementRank,
-                  basketPosition: e.basketPosition,
-                })),
-                ...(output.length === 0
-                  ? {}
-                  : {
-                      output: output.map((o) => ({
-                        basketId: o.basketId,
-                        playerBackupId: o.playerId,
-                        finalRank: o.finalRank,
-                      })),
-                    }),
-              };
-            }),
-          }),
-    };
+        }),
+  };
   }, { isolationLevel: "repeatable read", readOnly: true });
 }
 
