@@ -6,7 +6,7 @@
 **AUTHORIZATION:** GO SOURCE-CODE ONLY / TEST-FIRST / DRAFT PR; no merge, SQL/migration, production/staging, paid manual CI or SWARM-006 dispatch.  
 **SOURCE BASE:** release/tournament-ops-20261013-01 @ **1fdc401d87c6bffe6bf7312dfc9db681b689dcf7**  
 **PR:** [#48](https://github.com/C8LyNn/aplikacja-turnieje/pull/48), **OPEN DRAFT, NOT MERGED**  
-**B3A IMPLEMENTATION HEAD:** **68991b393f87ded797b8578a0972bee47b8375a8**  
+**B3A IMPLEMENTATION HEAD:** **2a8a4c72cb4a3a37402a346fd0acc83b03b39be3**  
 **BRANCH:** fix/web-005/t060-b3a-consistent-v3-export-r11  
 **SEPARATE REPORT BRANCH:** docs/web-005/a90-r11-b3a-snapshot-handoff — does not alter PR #48.
 
@@ -19,7 +19,7 @@
 2. artifacts/api-server/test/stage-basket-route-execution.integration.test.ts — **+101 lines**, two deterministic new cases.
 
 **Implementation:**
-- Open one \`db.transaction(async tx => ..., { isolationLevel: "repeatable read", readOnly: true })\`, *before* selecting tournament root and close only after assembling the entire V3 return object.
+- Open one \`db.transaction(async tx => ..., { isolationLevel: "repeatable read", accessMode: "read only" })\`, *before* selecting tournament root and close only after assembling the entire V3 return object.
 - Use **tx** for tournament, stages, players, groups, matches, result_history, action_log, baskets, qualification proposals/entries/materialized outputs, route executions/entries, game picks/bans, game config, routing executions and nested stage/match ID subqueries.
 - Replace the exporter’s parallel \`Promise.all\` query dispatch with ordered sequential awaits on the same pinned PostgreSQL transaction/client. Keep original query \`orderBy\` clauses and V3 serializer mapping intact.
 - Use pre-existing \`loadCompiledRoutingPlanV2InTransaction(tx, { tournamentId })\` rather than the helper which opened another transaction. If plan is absent, retain the existing \`ROUTING_PLAN_NOT_FOUND\` handling; all other plan errors still propagate.
@@ -34,7 +34,7 @@
 | bff56604c1901f7b4613caef7c2c32456cbadda3 | First test-only commit (**RED definition**, not an executed failing test): race barrier after root read, second transaction changes tournament name, planned target stage name and source match note, commits, export resumes |
 | 83d9eb9ad95484f7c1411c0e043859ae535308dc | Implementation of a single read-only REPEATABLE READ tx |
 | 79ed19a6254a0d5a19aabb238fa750144ade3acb | Additional regression barrier: approval and route execution committed while export awaits |
-| 68991b393f87ded797b8578a0972bee47b8375a8 | Final whitespace-minimized source patch with explicit empty-tuple type hint (prior formatting commit not retained in final diff) |
+| 2a8a4c72cb4a3a37402a346fd0acc83b03b39be3 | Final whitespace-minimized source patch with explicit empty-tuple type hint (prior formatting commit not retained in final diff) |
 
 **B3A-RACE-01 / root, stage, match:** the exporter issues first SELECT for root in transaction E and suspends at afterTournamentRead. Concurrent writer W uses another pooled transaction to atomically UPDATE tournament.name, planned target stage.name, completed source match.note and COMMIT. Resume E: assert all three export fields remain their pre-W values. Then start new export E2: assert all three equal post-W values. This proves same-snapshot state, not post/pre hybrid if executed.
 
@@ -45,6 +45,8 @@
 **Pre/post metadata:** No produced backup JSON SHA-256 hashes are available because no test ran. A50 should hash *canonical JSON snapshot fields* from E, W and E2 and record before/after test evidence, rather than incorrectly claiming existing hashes. ExportedAt differs across exports and should be excluded from logical snapshot parity hashes.
 
 **Fail-closed / negative expectations:** neither race may expose a torn mixture of pre/post-commit records, return partial success on routing helper error, change DB records on the exporter side, or silently drop route receipts. B3A does **not** itself validate independently corrupted source data; any initial source corruption is B1/DB invariants or follow-up QA.
+
+**CI state checked after PR creation:** automatic GitHub Actions workflow run `38595557462` on prior PR HEAD `68991b393f87ded797b8578a0972bee47b8375a8` failed **Pack19 snapshot source regex** (job `115961241974`, 7 PASS / 1 FAIL in Pack19 source contract); later gates were skipped. Logs identify a regex mismatch against an existing Pack19 module's `accessMode:"read only"` syntax. This failure is **not B3A runtime evidence**. A new exact-SHA run on `2a8a4c72cb4a3a37402a346fd0acc83b03b39be3` was not evaluated at report time. No manual CI rerun initiated.
 
 ## 3. Execution status and reproducible A50 acceptance
 
@@ -90,7 +92,7 @@ A60 must independently inspect actual PR #48 HEAD/source diff, confirm the compl
 ## 5. Formal R11 disposition / handoff to A00
 
 **AGENT / TASK:** A90 / WEB-005-T060-A90-B3A-R4.  
-**BASE / HEAD / PR:** release 1fdc401d87c6bffe6bf7312dfc9db681b689dcf7 → 68991b393f87ded797b8578a0972bee47b8375a8 / [PR48](https://github.com/C8LyNn/aplikacja-turnieje/pull/48) **DRAFT OPEN**.  
+**BASE / HEAD / PR:** release 1fdc401d87c6bffe6bf7312dfc9db681b689dcf7 → 2a8a4c72cb4a3a37402a346fd0acc83b03b39be3 / [PR48](https://github.com/C8LyNn/aplikacja-turnieje/pull/48) **DRAFT OPEN**.  
 **ACTUAL CHANGES:** exporter and one PG16 integration test file; nothing else in code branch. Report is on a distinct documentation-only branch.  
 **TEST EVIDENCE:** two deterministic test definitions and existing positive round-trip, **NOT_EXECUTED** in A90 environment; no TAP, HTTP, CI or typecheck PASS, no pre/post result hashes.  
 **FINDING:** SOURCE_CONFIRMED export split-snapshot risk, PATCH_PROPOSED one-tx remedy, NOT_RUNTIME_VERIFIED.  
