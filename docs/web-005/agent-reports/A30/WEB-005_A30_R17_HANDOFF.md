@@ -56,3 +56,27 @@ pnpm typecheck
 - **Next owner:** `A100 (source-only S2B scoped branch if updated) → A50 actual tests → A60 independent source/runtimes → A00 closeout`. If no A100 commit, retain `SOURCE_FAIL_FULL_PRIVACY_SCOPE` and `RELEASE_NO_GO`.
 
 **A30 R17 signed peer / coordinator handoff:** `R16_ARTIFACTS_UNAVAILABLE; PR53_SOURCE_GAP_CONFIRMED; PR53_UNCHANGED_AT_REVIEW; A60_R15_SOURCE_FAIL_FULL_PRIVACY; RUNTIME_NOT_EXECUTED; NO_APPLICATION_CODE_CHANGE; SWARM006_HOLD; RELEASE_NO_GO`.
+
+
+---
+
+## 5. FINAL R17 LIVE UPDATE — newest A100 PR53 source (supersedes original #53 row)
+
+**Current pinned PR53 HEAD at final source review:** `8f959733258aed0cab15298dd0684ca068045e6f`, OPEN/DRAFT/UNMERGED; **old SHA** `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979` is historical R15/early-R17 evidence only. GitHub compare: **three R17 commits**, two test-first (6 new S2B test declarations and repaired legacy QueryClientProvider wrapper), one implementation change in `tournament-query-invalidation.ts`. The app has not been merged.
+
+**Actual changed blobs on latest HEAD:**
+- `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts` `626d31eb5b82d38c171f091f07990e00069de4ad` — now matches exact player-bans tuple, resolves 403 owner from ban tuple, snapshots known owned-match IDs from cached canonical tournament match list before eviction and removes only confirmed-tenant match picks; no global purge.
+- `artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx` `9367462da601b7a6b39e6b825984a27fae12cf16` — adds QueryClientProvider to existing two legal support session tests, new isolated QueryClient per test.
+- `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` `d11dc19728c7ce0211d515df03b5182f1e6bfea9` — six new R17 negative cases, **15 authored scenario instances total**, NONE VERIFIED EXECUTED.
+
+**A30 late peer verdict:** `PATCH_REVISED / SOURCE_REVIEWED_CONDITIONAL_FOR_KNOWN_OWNER / TEST_FIXTURE_SOURCE_FIXED / UNKNOWN_OWNER_CACHE_RESIDUAL / RUNTIME_NOT_EXECUTED / A60_NEW_SHA_PENDING / RELEASE_NO_GO`.
+
+**Positive source evidence:** real backend `GET /tournaments/:id/matches` enforces `checkViewerReadAuth` and returns enriched `mapMatch(m)` with `...m` including `tournamentId`; a successful, correctly scoped cached list is an appropriate source for match→tournament ownership. The new cache matcher checks strict `record.tournamentId === tid`, unique owner, and snapshots before removing A's canonical list.
+
+**Remaining acceptance blocker:** when no proven cached match owner exists, new code does **not** evict unscoped match-picks entries. New test explicitly expects unknown-owner picks cache retention. This avoids accidentally evicting unrelated B, but **does not demonstrate that old A picks can never be reused or rendered after logout, switch or 403**: the original `useMatchGamePicks(matchId)` hook still uses the same tenant-free key. A50/A60 must test an active `enabled:true` observer and route A→B with unknown ownership, late unabortable A response and 403 when canonical match list was removed, plus valid B. Any further fix needs A100's scoped code permission, not A30.
+
+**Exact-head CI evidence:** automatic runs `38622961390` and `38622702008` for `8f959733...` passed locked install + SE safety unit, then FAILED at **upstream Pack19**; downstream static/database gates were SKIPPED. Neither run proves a PR53 S2B RTL PASS or FAIL. A30 still executed **0 native application tests**. A60 R15 signed full-privacy FAIL applies to the **previous** SHA only; **independent A60 verdict on 8f959733... is pending**.
+
+**Revised full technical report (includes section 8 live delta):** [WEB-005_A30_R17_S2B_SECURITY.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/bed32dbd6936060a9bf01b2e3510788ebe528455/docs/web-005/agent-reports/A30/WEB-005_A30_R17_S2B_SECURITY.md).
+
+**Final A00 actions:** await the A100 newest patch readback, A50 actual frontend test receipt, A60 independently signed **new HEAD** QA. Keep R16 provenance `ARTIFACTS_UNAVAILABLE`; don't treat R16/old R15 source fail as an acceptance verdict for current PR53. **NO MERGE / NO DEPLOY / NO SWARM-006.**
