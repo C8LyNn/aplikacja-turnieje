@@ -1,0 +1,122 @@
+{
+  "project": "WEB-005",
+  "agent": "A100",
+  "wave": "R9",
+  "task": "WEB-005-T080-A100-S1-R2",
+  "source_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "execution_status": "NOT_EXECUTED",
+  "tests": [
+    {
+      "id": "S1-R9-PG01",
+      "scenario": "Valid support A passes pre-auth for bans; A blocked at tournament lock; B rotates support password then commits; resume A.",
+      "expected": "A `403` controlled, bans unchanged; no domain audit action committed.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG02",
+      "scenario": "Same with `game-picks/:gameNumber`.",
+      "expected": "A `403`; game picks unchanged, no side/ban drift.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG03",
+      "scenario": "Passwordless organizer token A passed pre-auth; B sets initial organizer password and commits before A lock.",
+      "expected": "A `403`, no mutation; **do not fabricate a nonexistent generic organizer rotation endpoint**.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG04",
+      "scenario": "Support session physically removed or version mismatched after pre-auth, before A lock.",
+      "expected": "`403`, no mutation; retain other current sessions per existing policy.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG05",
+      "scenario": "Organizer A tries `change-support-password`, `change-viewer-password`, visibility, viewer-password removal after its credential became obsolete via supported bootstrap scenario.",
+      "expected": "No change to credential hashes/versions/visibility; 403 for revoked A.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG06",
+      "scenario": "Organizer A tries tournament deletion queued behind its invalidation.",
+      "expected": "`403`; target and descendants present.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG07",
+      "scenario": "A obtains tournament lock and commits first; B's rotation waits and then commits.",
+      "expected": "Both allowed in A→B order, no deadlocks, resulting version revokes older token.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG08",
+      "scenario": "Valid current organizer/support performs bans, picks, roster, complete/revert, stage action.",
+      "expected": "Existing positive behavior remains; no regression in constraints/history.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG09",
+      "scenario": "Anonymous, viewer, wrong tournament token, expired-by-version support token attempt bans/picks.",
+      "expected": "403 and zero domain writes; no cross-tenant leakage.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG10",
+      "scenario": "Bans changed concurrently while delayed game-picks validation holds lock.",
+      "expected": "Serialized state; banned selection rejected 422, no illegal pick.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG11",
+      "scenario": "Intentional 422 invalid input after valid locked auth; induced DB exception before commit.",
+      "expected": "Zero domain delta; no partial audit/event; deterministic rollback.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG12",
+      "scenario": "Organizer/support race across two tournaments.",
+      "expected": "Only intended tournament affected; tenant-bound `sessionId`, token proof and `match/player.tournamentId`.",
+      "owner": "A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-PG13",
+      "scenario": "Correction intent approval delayed past organizer revocation.",
+      "expected": "Expected 403/no approval row if separately authorized; currently source gap, OWNERSHIP HOLD.",
+      "owner": "A00/A70 + A50/A60",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "id": "S1-R9-UNIT14",
+      "scenario": "Pure `organizer credentialVersion` equality, missing actor, changed hash/ID, support version mismatch.",
+      "expected": "Deny without awaiting DB write; no credential material logged.",
+      "owner": "A100 (later)",
+      "status": "NOT_EXECUTED",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    }
+  ]
+}
