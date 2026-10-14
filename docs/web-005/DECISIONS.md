@@ -168,3 +168,17 @@ No deployment, merge, migrations, paid CI or remote Drive transfer occurred in t
 | D077 | Publish one master prompt document **[WEB-005_WAVE_R9_AGENT_PROMPTS.md](./WEB-005_WAVE_R9_AGENT_PROMPTS.md)** for all 13 R9 roles, with exact stable agent sections | Agents receive the same short retrieval prompt and execute only their own Axx section |
 | D078 | R9 code execution scopes are narrow: A90/T060-B1, A70/T040-MP2A and A100/T080-S1; all other agents QA/docs/test-first source-only | Three-lane cap, per-file conflict holds, separate QA A60, no cross-swarm integration |
 | D079 | Wave prompts are immutable during the wave; later waves get separately versioned central docs | No agent may edit/promote its scope unilaterally; 00 reconciles completed reports and prepares R10 |
+
+
+## R10 — central wave dispatch / R9 reconciliation (2026-10-14)
+
+| ID | Decision | Gate |
+|---|---|---|
+| D080 | Confirm R9 yielded P08 PR #41 Backup V3 B1 HEAD e847cb705296a48ab5c68ece96776cd0e0bbb417 and P09 PR #42 Global Undo MP2A HEAD 1ae0ccb801f4177052bff1ec7041e55b8c992c8b | SOURCE PATCH CREATED / QA & real PG16 NOT_EXECUTED / DRAFT, do not reimplement |
+| D081 | A100 R9 T080-S1 remained docs-only HOLD because routes/tournaments.ts file ownership conflicted with A70 | SOURCE DESIGN READY; no phantom PR or implementation claim |
+| D082 | Publish one [WEB-005_WAVE_R10_AGENT_PROMPTS.md](./WEB-005_WAVE_R10_AGENT_PROMPTS.md) for all A00–A120 | Central §0–§2 + only matching AGENT Axx section, exact SHA preflight, separate agent reports |
+| D083 | R10 code-only lanes are **A100/T080-S1A**, **A80/T050-RR**, **A110/T110-UX042** | GO narrow source patches only, isolated branches, no policy change, 3-lane cap; A100 owns routes/tournaments.ts and A80 revert-match.ts after A70 R9 work freeze; conflict → HOLD |
+| D084 | R10 remaining agents maintain QA, tests, manifest P01–P09+ and policy/test-first plans | A50 physical PG16 preflight, A60 independent exact-SHA verdict; no runtime PASS from synthetic harness |
+| D085 | No SWARM-006 handoff until WEB-005 formally closes full approved backlog; WEB-004 no further audits now | FINAL-ONLY OWNER POLICY remains, SWARM-007 independent folder/communication architecture, RELEASE NO-GO |
+
+No integration, migrations, deployment, paid CI or production access is authorized by this wave planning documentation.
