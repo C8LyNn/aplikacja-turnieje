@@ -1022,4 +1022,43 @@ describe("Phase 3 — Basket Route Execution", () => {
     assert.equal(after.matches.find(m => m.backupId === sourceMatch.backupId)?.note, updatedMatchNote);
   });
 
+
+  // WEB-005 T060-B3A: materialized qualifier output and route entries are
+  // committed on another connection after the export root was already read.
+  test("Backup V3 export never mixes pre-approval and post-routing receipts", async () => {
+    const { exportBackupV3 } = await import("../src/application/backups/backup-v3");
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    const before = await exportBackupV3(fix.tournamentId);
+    assert.ok(before);
+    assert.equal(before.qualificationProposals, undefined);
+    assert.equal(before.routeExecutions, undefined);
+    let commits = 0;
+
+    const during = await exportBackupV3(fix.tournamentId, {
+      afterTournamentRead: async () => {
+        await approveProposal(fix);
+        const executed = await request(app)
+          .post("/api/tournaments/" + fix.tournamentId + "/stages/" + fix.sourceStageId + "/baskets/" + fix.outputBasketId + "/route/execute")
+          .set(fix.organizerHeaders)
+          .expect(200);
+        assert.equal(executed.body.routedPlayerCount, 2);
+        commits++;
+      },
+    });
+    assert.equal(commits, 1);
+    assert.ok(during);
+    assert.equal(during.qualificationProposals, undefined,
+      "the export must not see a proposal newer than the root snapshot");
+    assert.equal(during.routeExecutions, undefined,
+      "the export must not see a materialized receipt newer than the root snapshot");
+
+    const after = await exportBackupV3(fix.tournamentId);
+    assert.ok(after);
+    assert.equal(after.qualificationProposals?.length, 1);
+    assert.equal(after.qualificationProposals?.[0].status, "approved");
+    assert.equal(after.qualificationProposals?.[0].output?.length, 2);
+    assert.equal(after.routeExecutions?.length, 1);
+    assert.equal(after.routeExecutions?.[0].entries.length, 2);
+  });
+
 });
