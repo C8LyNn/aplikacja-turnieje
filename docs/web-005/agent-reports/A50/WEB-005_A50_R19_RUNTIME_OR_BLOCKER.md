@@ -32,7 +32,7 @@ Original signed independent A60 R18 review: [`WEB-005_A60_R18_INDEPENDENT_QA.md`
 | #41 / Backup B1 | `f03cf3d09988a04ba9c2856e205d21f994ff67f1` | `SOURCE_ACCEPTED_CONDITIONAL`, per-SHA PG16 still due | `NOT_EXECUTED` |
 | #42 / roster Undo | `021bed269f9ea8ac8ce53caeea44263c098aa2dd` | `SOURCE_ACCEPTED_CONDITIONAL`, global LIFO PG16 409/zero-write still due | `NOT_EXECUTED` |
 | #53 / private game-picks cache | `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` | **R18 signed an older head** `8710f7fe5946d7f62e366303a97722d4201fc96b`: scoped acceptance only, legacy untagged orphan rebind still unresolved | `NOT_EXECUTED`; `A60_R19_REVIEW_REQUIRED` |
-| #54 / historical RR403 and DE/Overview | `897e9a88e1108e29d710ea114ef438731c03f9c8` | **R18 signed an older head** `9866e5d2e73c99e01c2934a38ca1c62455efd2ed`: `SOURCE_BLOCKED` two-boundary issue | `NOT_EXECUTED`; `A60_R19_REVIEW_REQUIRED` |
+| #54 / historical RR403 and DE/Overview | `bfa9d075b431185aa8bbf87bf021d64dde8ae22f` | **R18 signed an older head** `9866e5d2e73c99e01c2934a38ca1c62455efd2ed`: `SOURCE_BLOCKED` two-boundary issue | `NOT_EXECUTED`; `A60_R19_REVIEW_REQUIRED` |
 
 **Moving refs notice:** PR #53 and PR #54 advanced repeatedly during R19 source readback. The exact SHAs in this document are a **point-in-time snapshot**, not an immutable certification of the live PR branch. Read HEAD again before any tests/A60 source signoff; never borrow R18 signed acceptance after a change. During R19 readback, #54 included a newly authored `artifacts/tournament-manager/src/components/stage-progress-view.rr-denied.test.tsx` plus `src/pages/tournament-detail.rr-readback.test.tsx`; #53 changed `src/lib/deadlock-bans-picks.ts` and source/cache test files. The presence of files or tests is `SOURCE_OBSERVED`, not `RUNTIME_VERIFIED`.
 
@@ -60,3 +60,8 @@ A60 R18 explicitly reported `NOT_READY` because PR54 two-boundary source privacy
 Only **after** independently verified source and 38-finding/policy closeout may A00 request separate written owner/HQ `HANDOFF_WITH_RUNTIME_TEST_DEBT` consent. That is not a release GO: SWARM-006 would have **hard release STOP** until actual composite test suite/PG16 passes. **No waiver, final handoff GO or SWARM-006 dispatch is made or implied by A50.**
 
 **Files changed by A50:** only `docs/web-005/agent-reports/A50/` on a dedicated documentation branch (machine receipts, environment proof, R19 report/handoff); application PR branches and release/main untouched. `RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+## R19 final readback addendum (point-in-time)
+
+After the original machine matrix publication, PR54 advanced again. The **last A50 readback** for PR54 is `bfa9d075b431185aa8bbf87bf021d64dde8ae22f` and for PR53 is `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34`. Matrix and this report were aligned to that readback; there is no freezing of those live branches. Independent A60 R19 QA was not present in the two checked publication paths at readback. Actual application tests remain **0**, with `exit/TAP=null`. Revalidate HEAD immediately before any native test or source certification.
