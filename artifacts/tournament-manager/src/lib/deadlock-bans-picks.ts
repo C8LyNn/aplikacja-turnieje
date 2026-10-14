@@ -101,8 +101,24 @@ export function useMatchGamePicks(
   const verifiedOwner = matchId
     ? getVerifiedMatchTournamentOwner(queryClient, matchId)
     : null;
+  const legacyKey = getMatchGamePicksQueryKey(matchId ?? 0);
+  // A legacy query may contain pre-revocation private data but no owner meta.
+  // Never bind a newly authorized observer to that exact old key: RQ can
+  // immediately serve its successful cached data before a fresh GET completes.
+  // The owner-scoped key is new, requires verified server DTO provenance and
+  // is separately removed on logout/401/403 by the auth cache guard.
+  const legacy = verifiedOwner !== null
+    ? queryClient.getQueryCache().find({ queryKey: legacyKey, exact: true })
+    : undefined;
+  const needsFreshVerifiedKey = !!legacy &&
+    legacy.meta?.web005VerifiedTournamentId !== verifiedOwner;
+  const safeQueryKey = verifiedOwner === null
+    ? getMatchGamePicksQueryKey(0)
+    : needsFreshVerifiedKey
+      ? ([...legacyKey, "verified-owner", verifiedOwner] as const)
+      : legacyKey;
   return useQuery<GamePickRecord[]>({
-    queryKey: getMatchGamePicksQueryKey(verifiedOwner === null ? 0 : matchId ?? 0),
+    queryKey: safeQueryKey,
     queryFn: () =>
       customFetch<GamePickRecord[]>(`/api/matches/${matchId}/game-picks`),
     meta: verifiedOwner === null ? undefined : { web005VerifiedTournamentId: verifiedOwner },
