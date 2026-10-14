@@ -3,7 +3,7 @@
   "task": "WEB-005-T133-A50-R18",
   "agent": "A50",
   "wave": "R18",
-  "timestamp_utc": "2026-10-14T19:51:00Z",
+  "timestamp_utc": "2026-10-14T19:53:00Z",
   "central_doc_blob": "fd08cedcbd2db3222e4a444403180414d1666f6c",
   "r17_independent_qa_blob": "cc6f24f582d216e99d8870d0e3519ff497fd8ad3",
   "release_baseline": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
@@ -379,7 +379,7 @@
     {
       "packet": "P20",
       "pr": 53,
-      "sha": "f400590b13e9b260232e822f7ea88fba7ea1224a",
+      "sha": "4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19",
       "baseline_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "pr_state": "OPEN_DRAFT_UNMERGED",
       "r17_signed_source_verdict": "SOURCE_BLOCKED",
@@ -425,7 +425,7 @@
     {
       "pr": 53,
       "old_sha": "8f959733258aed0cab15298dd0684ca068045e6f",
-      "new_sha": "f400590b13e9b260232e822f7ea88fba7ea1224a"
+      "new_sha": "4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19"
     },
     {
       "pr": 54,
@@ -433,5 +433,5 @@
       "new_sha": "9866e5d2e73c99e01c2934a38ca1c62455efd2ed"
     }
   ],
-  "head_notes": "Updates during R18 after initial matrix publication. A60 R18 report not yet in central branch at recheck. Always revalidate HEAD before runtime."
+  "head_notes": "PR53 repeatedly advanced during R18; this is a point-in-time HEAD snapshot, not a frozen ref. Mandatory live recheck before testing or A60 review."
 }
