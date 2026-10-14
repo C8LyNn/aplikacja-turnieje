@@ -16,7 +16,7 @@
 | T020 migration analysis branch | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` | no migration files changed |
 | T030 / PR #34 | `030d0f5f51df6731cff8135a793abc2d51b0b775` | OPEN DRAFT, 8 files, 11 commits |
 | T030 alternative / PR #33 | `79fc25971a53641a704fa052a2b8d937d140fa7d` | OPEN DRAFT, SUPERSEDED/HOLD |
-| T015 new branch | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` | created, no code changes yet |
+| T015 / PR #36 | `f6e94aae9239d578e23d5a8fb23a2446ea669a41` | OPEN DRAFT, 4 source-contract files, 1 commit |
 | PR #32 | release HEAD above | OPEN, 856 changed files, no merge |
 
 ## Wave 1 ownership and next gates
@@ -24,7 +24,7 @@
 | Task / agent | Branch / permitted scope | R3 state | Required next evidence |
 |---|---|---|---|
 | **T010-A10 / 10** | `fix/web-005/t010-pack19-contract`: Pack19 test only | **QA_REVIEW / CLOSEOUT**. Actual CI Pack19 green; PR #35 draft. | A60 source review of read-only/snapshot contract, fail-before/pass-after; handoff and acceptance. Do not edit Pack20–26. |
-| **T015-A40 / 40** | `fix/web-005/t015-pack20-26-contracts`: Pack20–26 source contracts only | **READY / P0 GO CONDITIONAL**. Branch created from release SHA, no fix yet. | Minimal robust assertions preserving both `repeatable read` and `accessMode: read only`; mandatory negative controls; exact before/after tests; independent A60. Pack20 failing, 21/25/26 source-stale. |
+| **T015-A40 / 40** | `fix/web-005/t015-pack20-26-contracts`: Pack20–26 source contracts only | **QA_REVIEW / TESTS_NOT_EXECUTED**. [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) created on `f6e94aae9239d578e23d5a8fb23a2446ea669a41`; Pack20/21/25/26 source contracts changed, Pack22–24 unchanged. | Minimal robust assertions preserving both `repeatable read` and `accessMode: read only`; mandatory negative controls; exact before/after tests; independent A60. Pack20 failing, 21/25/26 source-stale. |
 | **T020-A10 / 20** | `fix/web-005/t020-migration-reconciliation`: ledger/manifest/recovery analysis and isolated fixture contract | **PLAN_REVIEW / GO DESIGN ONLY**. Manifest proposal 0027–0040 external artefact, not in repo, PostgreSQL tests NOT_EXECUTED. | Verify raw source checksums; runner atomicity, embedded BEGIN/COMMIT in release 0031; history ledger/attestation; clean B26 / R30 / R31 / E30–E38 / MIXED safe test matrix. No DDL changes without second 00 approval. |
 | **T030-A10 / 30** | `fix/web-005/t030-steam-catalog-write-auth`: 3 Steam Catalog mutations, dedicated admin guard, scoped frontend, tests | **QA_REVIEW / PR #34 SELECTED**. Unit, DB-integrated HTTP, typecheck NOT_EXECUTED; PR #33 remains open HOLD. | A50 isolated execution of tests; A60 independent deny/no-write/allowed/GET QA and frontend token assessment. No server secret activation. |
 | **T131-A50 / 50** | no source implementation branch; runner/setup and isolation evidence | **READY / PRE-FLIGHT ONLY**; no independent runtime tests credited | Prove TEST_DATABASE_URL safe, TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA, isolated PostgreSQL16 & fixture; execute permitted tests only if environment verified; provide commands, exit codes and SHA to A60. No production connection. |
@@ -35,7 +35,7 @@
 ## Actual CI provenance and remaining blocks
 
 - [PR #35 run 38550541899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550541899), HEAD `7cb283aa...`: SE safety 23/23 PASS, Pack19 readiness 26/26 PASS, Pack19 source contract 8/8 PASS, Pack20 domain 15/15 PASS, **Pack20 source 6/7 FAIL** (stale `readOnly:true`). Pack21–26 and Pack17 `--full` SKIPPED.
-- Source review at same HEAD shows obsolete `readOnly:true` in Pack21, Pack25, Pack26; not yet runtime failures.
+- [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) / `f6e94aae9239d578e23d5a8fb23a2446ea669a41`: four source-contract test files changed (Pack20, 21, 25, 26). Downgrade regression controls added; Node/test suite **NOT_EXECUTED**. Commit message includes `[skip ci]`; no Actions run at this head observed.
 - [PR #34 run 38550962951](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550962951), HEAD `030d0f5f...`: CI Pack19 FAIL because PR34 branch does not include PR35 test fix. **Not evidence that T030 auth tests failed or passed.**
 - New independent T030 targeted unit, PostgreSQL HTTP integration, typecheck and public GET tests have **NOT_EXECUTED** status pending A50/A60.
 - Postgres migration clean install and upgrade tests **NOT_EXECUTED**. No live DB ledger or deployed SHA inspection authorized.
@@ -69,7 +69,7 @@
 ## Blockers
 
 - B001 full WEB-004 consolidated handoff absent.
-- B002 Pack20 fails real CI; Pack21/25/26 source-contract stale; Pack17/remaining gates skipped.
+- B002 Base PR35 Pack20 fails real CI; PR36 fixes Pack20/21/25/26 contracts in untested candidate; Pack17/remaining gates still unverified.
 - B003 competing 0030/0031 histories, unknown production migration ledger/checksums, embedded SQL transaction.
 - B004 owner-only Steam catalog production credential provisioning.
 - B005 production deployed SHA and migration history unknown; Replit frozen.
@@ -82,3 +82,10 @@
 ## Reporting / state semantics
 
 Workers return TASK, BASE_SHA, HEAD_SHA, BRANCH, PR, FILES_CHANGED, TESTS_RUN (exact command, environment, exit code), TESTS_NOT_RUN, A60_VERDICT, RISK, ROLLBACK, NEXT_OWNER, READY_FOR_ARCHIVE. Only actual runtime executions may be labeled PASS. SOURCE or historical CI is a separate evidence type; no implicit release GO or permission to merge/deploy.
+
+
+## R3 live-update addendum — T015
+
+- GitHub branch advanced during R3 coordinator checks from release baseline to `f6e94aae9239d578e23d5a8fb23a2446ea669a41`; compare shows 1 commit and 4 test files.
+- [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) is OPEN DRAFT; author reports source predicate/downgrade checks, but **actual Node suite, isolated PostgreSQL and paid CI NOT_EXECUTED**.
+- T015 status elevated to **QA_REVIEW**, not PASS or PR_READY for merge. Send to A60 with exact SHA; A50 should test if safe infrastructure becomes available.
