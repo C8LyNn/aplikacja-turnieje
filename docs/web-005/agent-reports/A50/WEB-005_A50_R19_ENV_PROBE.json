@@ -1,0 +1,60 @@
+{
+  "schema": "WEB005_A50_R19_PHYSICAL_ENV_PROBE_V1",
+  "task": "WEB-005-T133-A50-R19",
+  "agent": "A50",
+  "wave": "R19",
+  "observed_utc": "2026-10-14T20:22:10Z",
+  "host": "chatgpt_linux_container_not_user_PC",
+  "actual_commands": [
+    {
+      "command": "node --version",
+      "exit_code": 0,
+      "stdout": "v22.16.0",
+      "classification": "PRE_FLIGHT_ONLY"
+    },
+    {
+      "command": "git --version",
+      "exit_code": 0,
+      "stdout": "git version 2.47.3",
+      "classification": "PRE_FLIGHT_ONLY"
+    },
+    {
+      "command": "git -C /mnt/data rev-parse HEAD",
+      "exit_code": 128,
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+      "classification": "PRE_FLIGHT_ONLY"
+    }
+  ],
+  "binary_discovery": {
+    "pnpm": "NOT_PRESENT; NO_COMMAND_EXIT_CODE",
+    "corepack": "PRESENT; DID_NOT_EXECUTE_INSTALL",
+    "docker": "NOT_PRESENT; NO_COMMAND_EXIT_CODE",
+    "podman": "NOT_PRESENT; NO_COMMAND_EXIT_CODE",
+    "psql": "NOT_PRESENT; NO_COMMAND_EXIT_CODE",
+    "pwsh": "NOT_PRESENT; NO_COMMAND_EXIT_CODE"
+  },
+  "filesystem_search": {
+    "root": "/mnt/data",
+    "maxdepth": 3,
+    "checked": [
+      "pnpm-workspace.yaml",
+      "pnpm-lock.yaml",
+      ".git"
+    ],
+    "matching_paths": [],
+    "full_monorepo_detected": false
+  },
+  "independent_trusted_executor_connected": false,
+  "owner_test_run_GO_for_this_environment": false,
+  "full_checkout_at_pinned_PR_SHA": false,
+  "pnpm10_frozen_deps_installed": false,
+  "dedicated_PG16_proven": false,
+  "owner_exact_reset_consent": false,
+  "native_frontend_react_test_runs": 0,
+  "native_API_PG16_runs": 0,
+  "application_exit_codes": null,
+  "application_tap": null,
+  "application_screenshots": null,
+  "release_go": false,
+  "truth_classification": "ENV_BLOCKED_NOT_A_TARGET_TEST_FAIL_NOT_A_TARGET_TEST_PASS"
+}
