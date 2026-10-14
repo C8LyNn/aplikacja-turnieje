@@ -147,3 +147,35 @@ Verified at coordination time:
 - **Ownership:** A30 owns source-only security design for request-source plus lock dependency. Before editing `pnpm-lock.yaml` coordinate exclusive ownership with A10 T016 integration. A60 independently QA T030 and later T031; A50 test environment only.
 - **Acceptance:** a pinned-source R1 handoff with exact files, expected/actual negative tests, lock resolution, migration-free rollback, runtime/deployment evidence boundaries, and GO/STOP. No automatic paid CI, production secret access, GitHub merge, Replit or deploy.
 - **Concurrency:** T031 source-only while T030 in QA_REVIEW; it may enter implementation only after T030 handoff is complete and agent 00 authorizes capacity under the max-three-implementation-lanes rule.
+
+
+## WAVE R7 — AFTER R6 HANDOFF (2026-10-14)
+
+**R7 objective:** WEB-005 continues implementing independently testable fixes, while SWARM-006 owns integration/release and SWARM-007 owns communication protocols, file taxonomy and Google Drive archiving architecture. No automatic merge or deploy. Incoming full consolidated WEB-004 findings remain an intake dependency; do not assume an unverified issue list.
+
+**Fresh repository evidence:**
+- PR #35 Pack19: OPEN DRAFT `7cb283aa82273a1e22daf9051a82311eef53760c`, Pack19 scoped CI PASS; workflow later FAIL on Pack20.
+- PR #36 Pack20–26: OPEN DRAFT `85ad0b86136fc3491c9ef18663d9b01396179349`, A60 source acceptance reported; native repository suites/Pack17 --full NOT_EXECUTED.
+- PR #34 Steam Catalog: OPEN DRAFT `fae2eea2f22df3f1b02ad035a7db00bc411ea73f`, A60 source acceptance reported; HTTP/PG runtime NOT_EXECUTED.
+- **NEW PR #37** T031 Proxy Trust: OPEN DRAFT `fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7`, 5 files, dependency override `proxy-addr@2.0.8` and request-source tests; isolated HTTP/typecheck pending independent QA.
+- **NEW PR #38** T021 offline Migration Ledger Validator: OPEN DRAFT `2d36864f4d2f1c838073f387fd3c8efb3378c43b`, 7 new files, author reports 37/37 local Node tests, NO SQL/PG use. GH Actions run 38569859562 FAIL at baseline Pack19 before running validator tests.
+- PR #33 Steam Catalog alternative remains HOLD; PR #32 release remains open; release baseline unchanged `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.
+- A10/T018 package P01–P03 SOURCE_READY / QA_PENDING or conditional; A40/T017 SOURCE-ONLY audit identified fail-open/omitted Pack17 gates; A50/T133 source runner assembled but full application execution unproven; A70/T040 MP1→MP4 plan prepared.
+
+### R7 assignments and capacity
+
+| Owner | Work | Authorized scope | Gate |
+|---|---|---|---|
+| A10 | T018 R2: extend SWARM-006 package manifest with P04=PR37 and P05=PR38, **conditional only** | READ-ONLY/package handoff; preserve QA provenance and exact SHAs | No merge or integration by WEB-005 |
+| A20 | T021 R2: validator QA repair and test evidence | READ-ONLY until concrete A60 feedback; no runner/SQL/DDL | New PR38 source QA |
+| A30 | T031 R5: security QA repair and T032 session lifecycle outline (SEC-002/007/008) | T031 bugfix-only if independent QA requests; T032 design only | No unapproved lockfile conflict or additional implementation |
+| A40 | T017 R2: bounded Pack17 fail-closed gate repair | **Implementation lane 1 (GO code-only)** after checking A60 T015 source acceptance, isolated task branch, no CI billing | True repository suite still needed |
+| A50 | T133 R2: runner handoff/actual execution support for 006 with safe disposable Node22/pnpm10/PG16 | INFRA support, no production connections; no runtime PASS unless executed | Independent A60 checks evidence |
+| A60 | T130 R7: independent QA of PR37, PR38, T017 and MP1, maintain earlier PR35/36/34 exact SHA certifications | READ-ONLY independent QA | No reviewer-self-approval |
+| A70 | T040 R4: implement **MP1 cancel/restore bypass protections only** test-first as isolated code-only patch | **Implementation lane 2 (GO narrow code-only)**, don't port all #7/#27, no DB migration, no integration | Later MP2 Undo requires separate GO |
+
+**Reserve lane 3 for validated new P0 finding from the next WEB-004 consolidated handoff.** No additional implementation lanes until one is free. If new WEB-004 P0 overlaps A40/A70, coordinator reprioritizes before opening another patch.
+
+**SWARM-007 protocol handoff:** A10/A50/A60 prepare hashes, reports, artifact types, owners and status; do not invent Google Drive folders/links or manually assert created architecture. SWARM-007 owns actual Drive folder setup and information exchange standards. SWARM-006 alone owns assembled integration candidate, full integrated tests, staging and release process under HQ authorization.
+
+**NO-GO:** no integrated SHA, Pack17 --full/regression/HTTP/PG migrations uncertified, current PRs OPEN DRAFT; no deployment authorization.
