@@ -264,19 +264,21 @@ test("R18: hook persists verified A match owner metadata, logout evicts when lis
   b.unmount();
 });
 
-test("R18: match-only denied 403 uses saved owner metadata without list", async () => {
-  renderHook(() => useAuth(), { wrapper });
-  client.setQueryData(bPicks, [{ matchId: 801, player1HeroId: "B" }]);
-  client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "OLD A" }]);
-  await client.fetchQuery({
-    queryKey: aPicks,
-    meta: { web005VerifiedTournamentId: 7 },
-    staleTime: 0,
-    queryFn: async () => { throw Object.assign(new Error("denied"), { status: 403 }); },
-  }).catch(() => undefined);
-  assert.equal(client.getQueryData(aPicks), undefined);
-  assert.ok(client.getQueryData(bPicks));
-});
+for (const status of [401, 403] as const) {
+  test(`R18: match-only denied ${status} uses saved owner metadata without list`, async () => {
+    renderHook(() => useAuth(), { wrapper });
+    client.setQueryData(bPicks, [{ matchId: 801, player1HeroId: "B" }]);
+    client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "OLD A" }]);
+    await client.fetchQuery({
+      queryKey: aPicks,
+      meta: { web005VerifiedTournamentId: 7 },
+      staleTime: 0,
+      queryFn: async () => { throw Object.assign(new Error("denied"), { status }); },
+    }).catch(() => undefined);
+    assert.equal(client.getQueryData(aPicks), undefined);
+    assert.ok(client.getQueryData(bPicks));
+  });
+}
 
 test("R18: metadata-owned pending match A cannot refill after list disappears and logout", async () => {
   const auth = renderHook(() => useAuth(), { wrapper });
