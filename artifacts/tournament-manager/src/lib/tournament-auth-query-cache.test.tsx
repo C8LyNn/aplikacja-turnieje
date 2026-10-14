@@ -318,3 +318,37 @@ test("R18: match owner cannot be guessed from match numeric ID or mismatched DTO
   assert.equal(getVerifiedMatchTournamentOwner(client, 701), 7);
   assert.equal(getVerifiedMatchTournamentOwner(client, 7), null);
 });
+
+test("R18: enabled hook late HTTP response is not cached after owner list loss and logout", async () => {
+  const originalFetch = globalThis.fetch;
+  let complete!: (response: Response) => void;
+  let seen = 0;
+  globalThis.fetch = (async (input) => {
+    assert.ok(String(input).includes("/api/matches/701/game-picks"));
+    seen++;
+    return new Promise<Response>(resolve => { complete = resolve; });
+  }) as typeof fetch;
+  try {
+    const auth = renderHook(() => useAuth(), { wrapper });
+    act(() => auth.result.current.storeOrgToken(7, "synthetic-a"));
+    seedOwnership();
+    const hook = renderHook(() => useMatchGamePicks(701), { wrapper });
+    await waitFor(() => assert.equal(typeof complete, "function"));
+    assert.equal(seen, 1);
+    assert.equal(client.getQueryCache().find({ queryKey: aPicks })?.meta?.web005VerifiedTournamentId, 7);
+    client.removeQueries({ queryKey: getListMatchesQueryKey(7) });
+    act(() => auth.result.current.removeOrgToken(7));
+    await act(async () => {
+      complete(new Response(JSON.stringify([{ matchId: 701, gameNumber: 1, player1HeroId: "late-A" }]), {
+        status: 200, headers: { "content-type": "application/json" },
+      }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    assert.equal(client.getQueryData(aPicks), undefined);
+    assert.equal(hook.result.current.data, undefined);
+    hook.unmount();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
