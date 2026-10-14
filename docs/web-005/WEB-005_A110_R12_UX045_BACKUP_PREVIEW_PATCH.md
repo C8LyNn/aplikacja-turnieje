@@ -53,7 +53,7 @@ The original release baseline contains **two independent unguarded FileReader pa
 | Browser E2E `TournamentDetail` A→B | **NOT_EXECUTED** | Not an actual browser replay |
 | API/PG new C creation | **NOT_EXECUTED** | No isolated database authorization or test harness |
 | A60 independent QA | **PENDING** | No SOURCE_ACCEPTED / RUNTIME_VERIFIED claim |
-| GitHub Actions run [38600542147](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38600542147) | **IN_PROGRESS at inspection** | Auto-triggered after draft PR; no manual paid rerun by A110 |
+| GitHub Actions run [38600542147](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38600542147) | **FAIL / exit 1** | Auto-triggered, job 115978348803 Pack19 snapshot test 7 PASS / 1 FAIL: obsolete regex expects `readOnly:true`; existing release source uses `accessMode:"read only"`. Frontend UX045 tests were **NOT REACHED**. No manual paid rerun. |
 
 Commands for A50 with exact detached HEAD and **actual** installed frontend environment:
 
