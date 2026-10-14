@@ -113,3 +113,25 @@ Verified at coordination time:
 **Concurrency rule:** The newly assigned T016/T017/T132 begin as SOURCE-ONLY research/preflight and do NOT add active implementation lanes. Remaining implementations T015/T020/T030 hold existing scopes. Wave2 T040/T050/T060 implementation remains HOLD. No additional CI dispatch or paid run authorized.
 
 **Dispatch requirement:** This backlog records assignments, but messages must be pasted into their existing ChatGPT threads by the owner; no cross-thread message sending tool is available.
+
+
+## INCOMING WEB-004 REPORT — RESERVED TRIAGE CAPACITY (2026-10-14)
+
+**Incoming report:** WEB-004 follow-up audit in preparation. **Not yet received or assessed** by WEB-005. The number, severity and validity of findings are UNKNOWN. Do not create speculative implementation tasks or claim new findings as confirmed.
+
+### Intake workflow for the next WEB-004 handoff
+
+1. **Register source:** report name/version/date, WEB-004 issue ID, exact impacted branch/SHA, affected endpoint/workflow, reproduction, expected/actual, impact, severity, and evidence. Record every finding with independent cross-reference; preserve original ID.
+2. **Revalidate:** verify defect against a pinned current source (or authorized isolated runtime). Differentiate resolved-by-PR, duplicate, regression, present-on-release, main-only, editor-only, and unconfirmed/deployment-unknown. Never assume GitHub source is deployed on Replit.
+3. **Deduplicate and link:** route into existing T015/T016/T017/T020/T030/T040–T130 where appropriate; otherwise assign a *new* T-number after coordinator approval. Avoid duplicate fixes or same-file ownership.
+4. **Risk rank:** P0 security/data-loss/integrity and blocked production correctness; P1 important correctness/workflow; P2 UI/usability; P3 enhancements. Record exploitability, blast radius, dependency on migration/authorization, regression risk, and confidence.
+5. **Slotting and wave planning:** protect current P0 gates; maintain **max 3 active implementation lanes and 1 independent QA lane**. Reserve at least one future implementation slot for incoming critical findings **once an existing lane closes**. Supporting source-only triage does not consume an implementation slot but must not conflict with owners.
+6. **Handoff-to-fix contract:** owner, task and branch, base SHA, file ownership, preconditions, isolated tests, negative tests, exit criteria, rollback, independent A60 reviewer, explicit authorization. Retire/replace prior plans only through DECISIONS.md.
+7. **Report reconciliation:** produce `WEB-005-00-WEB004-NEXT-INTAKE-R1` with `NEW / DUPLICATE / ALREADY_FIXED_UNVERIFIED / NEEDS_REPRO / DEFERRED / BLOCKED` classification; a severity-ranked queue; impact on Wave2 and critical path.
+
+### Capacity and escalation
+
+- **No new agent threads yet** merely because a larger report is expected. Create specialists based on validated clusters and actual backlog after report arrival.
+- **Wave 2 remains HOLD** until the first-wave P0 release dependencies have been reviewed; urgent P0 findings can be analyzed immediately and coordinator may reprioritize before implementation.
+- Cross-cutting findings with same affected API/DB/UI should be grouped by shared owner and dependencies, not one agent per bug.
+- Preserve source-vs-runtime evidence, exact commit SHA, and no production/Replit access.
