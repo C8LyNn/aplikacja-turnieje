@@ -4,13 +4,16 @@
 **WAVE / TASK:** R11.1 / WEB-005-T060-A90-B3A-R4  
 **PERMISSION:** GO SOURCE-CODE ONLY / TEST-FIRST / DRAFT PR (L1)  
 **RELEASE BASE:** release/tournament-ops-20261013-01 @ \`1fdc401d87c6bffe6bf7312dfc9db681b689dcf7\`  
-**DELIVERED PR:** [#48 — B3A snapshot export](https://github.com/C8LyNn/aplikacja-turnieje/pull/48), \`fix/web-005/t060-b3a-consistent-v3-export-r11\`, **HEAD \`68991b393f87ded797b8578a0972bee47b8375a8\`**, OPEN DRAFT, not merged.  
+**DELIVERED PR:** [#48 — B3A snapshot export](https://github.com/C8LyNn/aplikacja-turnieje/pull/48), \`fix/web-005/t060-b3a-consistent-v3-export-r11\`, **HEAD \`2a8a4c72cb4a3a37402a346fd0acc83b03b39be3\`**, OPEN DRAFT, not merged.  
 **REPORT:** [WEB-005_A90_R11_B3A_SNAPSHOT_PATCH.md](./WEB-005_A90_R11_B3A_SNAPSHOT_PATCH.md) on independent docs branch.
 
 ## Changes
 - \`artifacts/api-server/src/application/backups/backup-v3.ts\`: replace independent exporter queries with single \`REPEATABLE READ READ ONLY\` transaction; all nested reads use the same \`tx\`, including \`loadCompiledRoutingPlanV2InTransaction\`; preserve V3 shape/ordering.
 - \`artifacts/api-server/test/stage-basket-route-execution.integration.test.ts\`: two deterministic race barriers with a second committed writer (root/stage/match mutation and approved proposal/route receipt mutation). Existing positive §22 round-trip unchanged.
 - First test commit \`bff56604c1901f7b4613caef7c2c32456cbadda3\` precedes implementation. No PR41/B1 cherry-pick, no B2 policy changes, no SQL/DDL, no shared routes or migrations.
+
+## CI dependency noted
+Automatic GitHub Actions run `38595557462` on earlier SHA `68991b393f87ded797b8578a0972bee47b8375a8` failed Pack19 regex source contract (later gates skipped). Separate from B3A acceptance; the corrected current PR head uses Drizzle `accessMode: \"read only\"`.
 
 ## Evidence
 - \`SOURCE_CONFIRMED\`: original export had no common DB snapshot.
