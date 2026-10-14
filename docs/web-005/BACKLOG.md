@@ -236,3 +236,11 @@ Verified at coordination time:
 **External work separation:** SWARM-006 is **not activated for WEB-005 until final WEB-005 closeout**; once handed over, SWARM-006 resolves cross-PR integration, runs full integrated CI/API/PG16/browser tests on a composite SHA, prepares controlled staging/release under HQ permission. SWARM-007 independently defines communication rules, creates Drive folder architecture and handles artifact/versioning protocols, without being assumed to have created remote folders.
 
 **Status:** `WEB005_IN_PROGRESS / SWARM006_FINAL_HANDOFF_DEFERRED`. No WEB-004 additional reports currently requested. This overrides earlier interim P01–P05/P01–P07 dispatch recommendations but does not discard their source-ready internal packages.
+
+## R9 continuation after finished specialist wave (2026-10-14)
+
+Canonical next wave: [WEB-005_NEXT_REMEDIATION_WAVE_R9.md](./WEB-005_NEXT_REMEDIATION_WAVE_R9.md).
+
+Existing P01–P07 are internal SOURCE_READY candidate draft PRs, not integrated. PR39 latest HEAD 16053ee132756ca05b6f2cd1f0cabae823905387; PR40 HEAD 9a8287271299a59fc9291b8d253299a8d109a35d. Author contract Pack17 24/24 and A50 harness 50/50 do **not** equal real PostgreSQL/API/frontend PASS.
+
+R9 proposed code-only slots: A90/T060-B1 Backup V3 fail-closed preclone validator P0; A70/T040-MP2A global Undo LIFO recheck under lock P0; A100/T080-S1 session revocation reauthorization after lock P1. Separate scoped agent order required for each. A80/A110/A120 remain source-only until policy and file owners resolved. A10 keeps manifest internal, A50 works on isolated test environment, A60 independent QA. SWARM-006 stays HOLD until full WEB-005 backlog closeout; WEB-004 asks no new reports.
