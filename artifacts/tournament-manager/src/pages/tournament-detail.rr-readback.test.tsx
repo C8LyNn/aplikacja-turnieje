@@ -80,26 +80,10 @@ test("T100 F058-R13-02: an older deferred stage read cannot overwrite a newer re
   assert.equal(screen.getByTestId("rank-version").textContent, "3", "late cancelled read must not restore N");
 });
 
-for (const forbidden of [401, 403]) {
-  test(`T100 F058-R13-03: forbidden RR detail ${forbidden} suppresses cached standings until a successful retry`, async () => {
-    let blocked = true;
-    let reads = 0;
-    const { rerender } = setup({
-      onRead: async () => {
-        reads += 1;
-        if (blocked) throw Object.assign(new Error("Forbidden"), { status: forbidden });
-        return { version: 2 };
-      },
-    });
-    await act(async () => { rerender(2); });
-    await screen.findByRole("alert");
-    assert.equal(screen.queryByTestId("rank-version"), null, "private cached version 1 must be unmounted");
-    blocked = false;
-    fireEvent.click(screen.getByRole("button", { name: /Spróbuj ponownie/ }));
-    await waitFor(() => assert.equal(screen.getByTestId("rank-version").textContent, "2"));
-    assert.equal(reads, 2);
-  });
-}
+// R19: 401/403 private RR participant suppression is now asserted against the
+// actual selected StageProgressView, in stage-progress-view.rr-denied.test.tsx.
+// The parent observer must stay mounted across all lawful tabs. The synthetic
+// StageRows below is deliberately NOT a security-authorized stage renderer.
 
 test("T100 F058-R13-04: unrelated SE/DE match snapshots do not invalidate stage details", async () => {
   let reads = 0;
