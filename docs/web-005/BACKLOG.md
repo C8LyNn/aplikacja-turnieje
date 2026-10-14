@@ -258,3 +258,16 @@ Authoritative agent assignments for R9 (13 roles, including A00) are stored in *
 **New R10 code-only lanes (max 3):** A100/T080-S1A organizer/support post-lock authorization and bans/game-picks, A80/T050 RR multi-stage revert eliminates accidental resurrection of prior-stage players, A110/T110-UX042 stale FileReader callback identity guard. A70 R9 PR42 frozen and yields routes/tournaments.ts and revert-match.ts ownership for R10 subject to coordinator conflict checks. A90 B1 QA + B2/B3 design only. A120 T100 patch-ready design only. A10 maintains internal P01–P09+ manifests; A50 real safe tests; A60 independent QA.
 
 **Owner boundary:** no WEB-004 new reports; WEB-005 completion before ONE final handoff to SWARM-006; no interim dispatch, merge, SQL migration or deploy. WEB-005 release remains NO-GO. Policy-sensitive T050 Swiss, SE, T055 CAS, DE and Backup B2/B3 remain on hold pending owner/HQ decisions.
+
+
+## WAVE R11 — central prompt packet and priority update (2026-10-14)
+
+**Central source:** [WEB-005_WAVE_R11_AGENT_PROMPTS.md](./WEB-005_WAVE_R11_AGENT_PROMPTS.md) with §§0–2 common rules and 13 AGENT Axx sections.
+
+R10 implementation is **source patches only** (NOT integrated): **P10 PR #43** T110 UX042 FileReader A→B, **P11 PR #44** T080 S1A organizer/support post-lock bans/picks, **P12 PR #45** T050 terminal RR reopening scope. All three OPEN DRAFT, actual app test and independent exact-SHA QA not yet proven. Earlier **P08 PR #41** Backup B1 and **P09 PR #42** global Undo LIFO also require isolated PostgreSQL 16 and independent acceptance. Existing **P01–P07** unchanged unless fresh HEAD proves otherwise; total **P01–P12 = 12 internal candidate patches**, not a release or integrated candidate.
+
+**R11 code lanes (GO narrow source-only, max 3):** A90/T060-B3A consistent repeatable-read export snapshot, A100/T080-S1B-D tournament DELETE post-lock auth, A120/T100 PR-A DE Details/format labels/completed overlay. Do not duplicate P08/P09/P10/P11/P12; no automatic merge or cherry-pick of previous drafts. Preserve file ownership and owner policies; HOLD on conflict.
+
+**P0 unblock work:** A50 physical disposable PG16 test environment and actual per-SHA execution, A60 independent source/runtime review PR41–45; if environment unavailable label BLOCKED and provide executable test prerequisites. A10 maintains rolling P01–P12+ internal manifest and metadata for SWARM-007. A20/A30/A40 maintain migration/security/CI gates; A70 MP2B and history source-only, A80 terminal Swiss/SE sports policy source-only, A110 T055 basket CAS and remaining UX source-only. **NO SWARM-006 activation until WEB-005 whole approved backlog completed**. No new WEB-004 audit cycle.
+
+**Release state: NO-GO.** Actual status != author's source code completion; no production/shared DB, no schema adoption, no CI billing, no Replit.
