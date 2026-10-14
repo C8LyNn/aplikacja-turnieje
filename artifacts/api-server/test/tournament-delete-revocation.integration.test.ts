@@ -89,15 +89,20 @@ async function makeFixture(): Promise<Fixture> {
 }
 
 async function snapshot(tournamentId: number) {
-  const [tournaments, players, stages, matches, histories, actions] = await Promise.all([
+  const [tournaments, players, stages, matches, histories, actions, supportSessions, auditActions] = await Promise.all([
     dbm.db.select().from(dbm.tournamentsTable).where(eq(dbm.tournamentsTable.id, tournamentId)),
     dbm.db.select().from(dbm.playersTable).where(eq(dbm.playersTable.tournamentId, tournamentId)),
     dbm.db.select().from(dbm.tournamentStagesTable).where(eq(dbm.tournamentStagesTable.tournamentId, tournamentId)),
     dbm.db.select().from(dbm.matchesTable).where(eq(dbm.matchesTable.tournamentId, tournamentId)),
     dbm.db.select().from(dbm.resultHistoryTable).where(eq(dbm.resultHistoryTable.tournamentId, tournamentId)),
     dbm.db.select().from(dbm.actionLogTable).where(eq(dbm.actionLogTable.tournamentId, tournamentId)),
+    // Exclude sessionToken from snapshots so assertion errors cannot reveal it.
+    dbm.db.select({ id: dbm.supportSessionsTable.id, lastActiveAt: dbm.supportSessionsTable.lastActiveAt })
+      .from(dbm.supportSessionsTable).where(eq(dbm.supportSessionsTable.tournamentId, tournamentId)),
+    dbm.db.select().from(dbm.authAuditLogTable)
+      .where(eq(dbm.authAuditLogTable.tournamentId, tournamentId)),
   ]);
-  return { tournaments, players, stages, matches, histories, actions };
+  return { tournaments, players, stages, matches, histories, actions, supportSessions, auditActions };
 }
 
 function deleteRequest(f: Fixture, headers: Headers) {
@@ -126,6 +131,7 @@ describe("T080-S1B-D DELETE tournament after organizer revocation", () => {
     assert.equal(initial.players.length, 2);
     assert.ok(initial.stages.length > 0 && initial.matches.length > 0);
     assert.ok(initial.histories.length > 0 && initial.actions.length > 0);
+    assert.equal(initial.supportSessions.length, 1);
 
     const locker = await dbm.pool.connect();
     let transactionOpen = false;
