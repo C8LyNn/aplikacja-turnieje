@@ -65,3 +65,7 @@ A50 must preserve exact SHA, real run/exit/TAP, DB fingerprint without secrets, 
 `routes/tournaments.ts` overlaps #39 (Cancel/Restore), #42 (MP2A), #44/#46 (auth), #51 (historical Undo); `revert-match.integration.test.ts` overlaps #51. No cherry-pick, rebase or merge of any. MP2B direct Revert CAS public API + Host decision remains POLICY_OPEN and untouched; no Undo malformed-history parser grafting from PR51, SQL migration, stage/Backup B2 policy, paid CI, production, staging, Replit or SWARM-006.
 
 **FINAL NEXT STEP TO 00:** decide whether to authorize an explicit expanded `tournament-roster.ts` ownership window for PR42. If YES, A70 would need a NEW precise code GO (none is implied by this handoff), followed by A50 isolated PG16 and A60 signed exact-SHA review. If NO, record P09 as BLOCKED with an owner-approved disposition before whole-backlog closeout. **RELEASE NO-GO; SWARM-006 HOLD.**
+
+## 7. R17 A60 report discovered after initial write
+
+Direct GitHub verification also located [A60 R17 handoff](../A60/WEB-005_A60_R17_HANDOFF.md) in the same central report directory. **Its P09 verdict `SOURCE_BLOCKED` refers to pre-R17 PR42 HEAD `1ae0ccb801f4177052bff1ec7041e55b8c992c8b`, not the present test-only HEAD `25b09f1a48a85ae882b817118f5d8c23bffbe383`.** Accordingly it corroborates the original defect but is not an independent review of the newly authored four tests. A60 must re-anchor to the current exact PR42 HEAD before source acceptance; no runtime receipt exists.
