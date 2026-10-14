@@ -358,3 +358,76 @@ test("R18: enabled hook late HTTP response is not cached after owner list loss a
     globalThis.fetch = originalFetch;
   }
 });
+
+
+/* R19 legacy untagged ownerless entry -> identity boundary -> verified rebind. */
+test("R19 legacy untagged picks cannot rebind or display old A after list recovery", async () => {
+  const originalFetch = globalThis.fetch;
+  let finishOld!: (value: { matchId: number; gameNumber: number; player1HeroId: string }[]) => void;
+  let finishNew!: (response: Response) => void;
+  let newReads = 0;
+  globalThis.fetch = (async (input) => {
+    assert.ok(String(input).includes("/api/matches/701/game-picks"));
+    newReads++;
+    return new Promise<Response>(resolve => { finishNew = resolve; });
+  }) as typeof fetch;
+  try {
+    const auth = renderHook(() => useAuth(), { wrapper });
+    act(() => auth.result.current.storeOrgToken(7, "synthetic-old-A"));
+    // Simulate a legacy, pre-R18 untagged query that retained private A data.
+    client.setQueryData(aPicks, [{ matchId: 701, gameNumber: 1, player1HeroId: "OLD_A_SECRET" }]);
+    client.setQueryData(bPicks, [{ matchId: 801, gameNumber: 1, player1HeroId: "PUBLIC_B" }]);
+    const legacy = client.getQueryCache().find({ queryKey: aPicks, exact: true });
+    assert.equal(legacy?.meta?.web005VerifiedTournamentId, undefined);
+    const oldPending = client.fetchQuery({
+      queryKey: aPicks,
+      staleTime: 0,
+      queryFn: () => new Promise<{ matchId: number; gameNumber: number; player1HeroId: string }[]>(
+        resolve => { finishOld = resolve; },
+      ),
+    }).catch(() => undefined);
+    await waitFor(() => assert.equal(typeof finishOld, "function"));
+
+    // Credential revoked with canonical owner-list absent: cannot guess and
+    // must preserve B. The ownerless raw A query remains in the cache.
+    client.removeQueries({ queryKey: getListMatchesQueryKey(7) });
+    act(() => auth.result.current.removeOrgToken(7));
+    assert.ok(client.getQueryData(aPicks));
+    act(() => auth.result.current.storeViewerToken(7, "synthetic-new-viewer"));
+    assert.ok(client.getQueryData(bPicks));
+
+    // A newly authorized match-list GET proves ownership of match 701, but
+    // it must NOT resurrect the old query's protected OLD_A_SECRET payload.
+    client.setQueryData(getListMatchesQueryKey(7), [{ id: 701, tournamentId: 7 }]);
+    const current = renderHook(() => useMatchGamePicks(701), { wrapper });
+    assert.equal(current.result.current.data, undefined);
+    await waitFor(() => assert.equal(typeof finishNew, "function"));
+    assert.equal(newReads, 1);
+    const selected = client.getQueryCache().getAll().filter(q =>
+      q.queryKey[0] === "matches" && q.queryKey[1] === 701 && q.queryKey[2] === "game-picks" &&
+      q.queryKey.length > 3,
+    );
+    assert.equal(selected.length, 1);
+    assert.equal(selected[0].meta?.web005VerifiedTournamentId, 7);
+
+    // A delayed old-identity completion may fill only the orphaned OLD key,
+    // never the current observer or freshly owner-scoped query.
+    finishOld([{ matchId: 701, gameNumber: 1, player1HeroId: "OLD_A_LATE" }]);
+    await oldPending;
+    assert.equal(current.result.current.data, undefined);
+    assert.deepEqual(client.getQueryData(bPicks), [{ matchId: 801, gameNumber: 1, player1HeroId: "PUBLIC_B" }]);
+
+    await act(async () => {
+      finishNew(new Response(JSON.stringify([
+        { matchId: 701, gameNumber: 1, player1HeroId: "NEW_AUTHORIZED", player2HeroId: null, player1Side: null, player2Side: null },
+      ]), { status: 200, headers: { "content-type": "application/json" } }));
+      await Promise.resolve();
+    });
+    await waitFor(() => assert.equal(current.result.current.data?.[0]?.player1HeroId, "NEW_AUTHORIZED"));
+    assert.deepEqual(client.getQueryData(bPicks), [{ matchId: 801, gameNumber: 1, player1HeroId: "PUBLIC_B" }]);
+    current.unmount();
+    auth.unmount();
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
