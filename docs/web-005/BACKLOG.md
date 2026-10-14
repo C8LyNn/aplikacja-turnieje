@@ -89,3 +89,27 @@ Workers return TASK, BASE_SHA, HEAD_SHA, BRANCH, PR, FILES_CHANGED, TESTS_RUN (e
 - GitHub branch advanced during R3 coordinator checks from release baseline to `f6e94aae9239d578e23d5a8fb23a2446ea669a41`; compare shows 1 commit and 4 test files.
 - [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) is OPEN DRAFT; author reports source predicate/downgrade checks, but **actual Node suite, isolated PostgreSQL and paid CI NOT_EXECUTED**.
 - T015 status elevated to **QA_REVIEW**, not PASS or PR_READY for merge. Send to A60 with exact SHA; A50 should test if safe infrastructure becomes available.
+
+
+## R4 assignment queue (2026-10-14) — FOR USER DISPATCH, NOT AUTOMATIC THREAD DELIVERY
+
+Verified at coordination time:
+- PR #35 / T010 remains OPEN DRAFT, HEAD `7cb283aa82273a1e22daf9051a82311eef53760c`; CI Pack19 green, Pack20 later failure.
+- PR #36 / T015 remains OPEN DRAFT, HEAD `f6e94aae9239d578e23d5a8fb23a2446ea669a41`; targeted Node/Pack17 execution not demonstrated.
+- PR #34 / T030 remains OPEN DRAFT, **updated HEAD `fae2eea2f22df3f1b02ad035a7db00bc411ea73f`**, 13 commits / 9 files; retest/re-review required. PR #33 remains HOLD.
+- Release SHA unchanged at `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.
+
+### New bounded assignments (not yet executed by thread workers)
+
+| Agent | New task / mode | Scope / hard dependency |
+|---|---|---|
+| 10 | **T016-A10 — CI Integration/Release Gate Mapping**; SOURCE-ONLY, no code integration | Inspect PR35/36 + PR34 dependencies, CI paths, Pack17 gating, define reproducible isolated integration plan; do not merge/cherry-pick/create integration branch without coordinator owner approval. Begins after T010 handoff is accepted. |
+| 50 | **T132-A50 — Safe Test Harness & Fixture Preparation**; SOURCE-ONLY/prep initially | Exact PostgreSQL 16 disposable fixture plan, test gates, scripts/protocol; no DB/DDL execution until isolation verified and authorized. Starts after T131 preflight handoff. Do not self-certify runtime tests. |
+| 40 | **T015-A40 closeout FIRST**, then optional **T017-A40 — Pack17 Gate Contract Audit** (read-only preflight) | No new task before A60 accepts PR36 or delegates targeted rework. T017 must not overlap A10 T016 (A40 owns technical Pack17 internals, A10 integration ordering). |
+| 20 | T020 migration ledger/runner historical scenario verification | No SQL migration implementation until coordinator accepts complete plan and isolated DB; preserve current task. |
+| 30 | T030 PR34 updated head `fae2eea2...`; targeted security QA and fixes only | No PR33 overlap; no production secrets, merge or Replit. |
+| 60 | T130 independently review exact PR34/35/36 SHA and plans | No implementation; return PASS/FAIL/BLOCKED/NOT_EXECUTED by exact source/test provenance. |
+
+**Concurrency rule:** The newly assigned T016/T017/T132 begin as SOURCE-ONLY research/preflight and do NOT add active implementation lanes. Remaining implementations T015/T020/T030 hold existing scopes. Wave2 T040/T050/T060 implementation remains HOLD. No additional CI dispatch or paid run authorized.
+
+**Dispatch requirement:** This backlog records assignments, but messages must be pasted into their existing ChatGPT threads by the owner; no cross-thread message sending tool is available.
