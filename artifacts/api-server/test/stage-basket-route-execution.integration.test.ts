@@ -1147,6 +1147,46 @@ describe("Phase 3 — Basket Route Execution", () => {
         "SELECT count(*)::int AS count FROM tournaments WHERE name=$1", [cloneName]);
       assert.deepEqual(after.rows, before.rows, scenario.name + ": no clone root");
     }
+
+    // Deliberately cause a PostgreSQL INT4 overflow only after the cloned
+    // tournament/stages were inserted. The existing V3 positive-number
+    // validator accepts this seed; the players.seed column is INTEGER.
+    // The clone transaction must roll back *all* prior inserts. No DDL needed.
+    const lateFailure = structuredClone(full);
+    lateFailure.players[0].seed = 2_147_483_648;
+    assert.doesNotThrow(() => validateBackupV3(lateFailure),
+      "late-failure fixture must pass preclone semantic validation");
+    const cloneName = lateFailure.tournament.name + " (kopia)";
+    const affectedTables = [
+      "tournaments", "tournament_stages", "players", "stage_participants",
+      "matches", "result_history", "action_log", "stage_baskets",
+      "qualification_proposals", "qualification_proposal_entries",
+      "stage_basket_output_players", "stage_basket_route_executions",
+      "stage_basket_route_entries",
+    ] as const;
+    const cloneCounts = async (): Promise<number[]> => {
+      const values: number[] = [];
+      for (const table of affectedTables) {
+        // Fixed allowlist table names; never include user input in identifiers.
+        const sql = table === "tournaments"
+          ? "SELECT count(*)::int AS count FROM tournaments WHERE name=$1"
+          : "SELECT count(*)::int AS count FROM " + table +
+            " WHERE tournament_id IN (SELECT id FROM tournaments WHERE name=$1)";
+        const result = await database.pool.query<{ count: number }>(sql, [cloneName]);
+        values.push(result.rows[0].count);
+      }
+      return values;
+    };
+    const beforeLate = await cloneCounts();
+    const lateResponse = await request(app)
+      .post("/api/tournaments/import")
+      .send({ backup: lateFailure, organizerPassword: "R17-Overflow-Only-Synthetic!" });
+    assert.ok(lateResponse.status >= 400,
+      "DB overflow must not return success: " + JSON.stringify(lateResponse.body));
+    assert.notEqual(lateResponse.body.code, "INVALID_BACKUP_V3",
+      "late failure must not be confused with a preclone validation error");
+    assert.deepEqual(await cloneCounts(), beforeLate,
+      "late DB error must roll back cloned root and all dependent tables");
   });
 
 });
