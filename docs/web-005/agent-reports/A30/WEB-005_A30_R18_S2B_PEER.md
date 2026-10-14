@@ -125,3 +125,21 @@ pnpm --filter @workspace/api-server typecheck
 
 **Signed A30 peer verdict on exact old/source HEAD at R18 intake:**  
 `PR53_SOURCE_BLOCKED_UNKNOWN_OWNER / SOURCE_ACCEPTED_KNOWN_OWNER_ONLY_BY_A60_R17 / NEW_A100_R18_SHA_NOT_YET_PUBLISHED / RUNTIME_NOT_EXECUTED / A50_PENDING / A60_NEW_SHA_PENDING / STEAM_PROXY_AUTH_CONDITIONAL / OWNER_POLICIES_OPEN / RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+---
+
+## 7. LIVE R18 A100 AMENDMENT CHECKPOINT (supersedes original PR53 SHA snapshot)
+
+**New A100 PR53 exact HEAD observed:** `fe381689c9ec20eadfe6312dda83b5c1f57328be` (OPEN/DRAFT/UNMERGED), **two R18 commits** versus R17 `8f959733258aed0cab15298dd0684ca068045e6f`. This is **in-progress implementation**, not an independently accepted fully secured source patch.
+
+**R18 diff at this checkpoint:**
+- `f400590b13e9b260232e822f7ea88fba7ea1224a`: adds five test-first `R18` scenarios to `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx`. New test blob `6357e6af447f12c9f73c6b613c3f51cfa718a2e6`; prior 15 scenario instances plus five = **20 authored test scenario instances**, **0 executed by A30**.
+- `fe381689c9ec20eadfe6312dda83b5c1f57328be`: modifies `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts`, blob `59319a93b9fcc709f3438a36bdb1a42c6b57f10f`: introduces `getVerifiedMatchTournamentOwner(queryClient, matchId)` scanning **successful** cached tournament-scoped canonical match-list queries and requiring exact `record.id===matchId && record.tournamentId===tid`, returning null on ambiguous ownership; adds `web005VerifiedTournamentId` typed query metadata acceptance for owner-A eviction and 401/403 failure after list loss; preserves legacy cached-list fallback and selective B retention.
+- **Critical omitted production change at observed HEAD:** `artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts` blob **UNCHANGED** `480cbf83e705e3ece91d9ae13635314b80fa47ac`. Its actual `useMatchGamePicks(matchId)` hook does **not call** `getVerifiedMatchTournamentOwner`, does **not** attach `meta: { web005VerifiedTournamentId: tid }`, and still constructs/reads tenant-free `["matches",mid,"game-picks"]`. The test `"R18: hook persists verified A match owner metadata..."` cannot be counted PASS; it **appears source-predicted to fail** until a corresponding hook change lands. The test `"unverified and ambiguously attributed matches cannot issue or display picks"` likewise requires hook fail-closed behavior absent from current production.
+- Metadata helper may only trust metadata set by the producing authenticated hook after unique server DTO ownership proof. Metadata manually injected in a unit test proves only the *consumer* path, not real query production; A60 must demand an integration of both halves and exact-SHA Test PASS.
+
+**R18 A30 current peer verdict on observed HEAD `fe381689…`:**  
+`PATCH_PARTIAL / META_EVICTION_SOURCE_PRESENT / FETCH_TIME_PRODUCER_ABSENT / SOURCE_BLOCKED_FULL_PRIVACY / TESTS_AUTHORED_NOT_EXECUTED / A60_NEW_SHA_PENDING / RELEASE_NO_GO`.
+
+**Remaining A100 checklist:** finish the separately authorized hook-scoped owner proof, ensure unknown/ambiguous ownership cannot fetch or return previously cached match data; preserve valid B/public, mutation invalidation, denied 403 and late response cleanup; re-run A50 targeted tests on **newer pinned HEAD** in a real executor. If no safe way to attach ownership within authorized file scope, stop and request `OWNER_DECISION_REQUIRED` rather than claim full repair. This newer checkpoint **supersedes** the R17 HEAD statement in sections 1–6 but does not retroactively alter A60 R17's verdict.
