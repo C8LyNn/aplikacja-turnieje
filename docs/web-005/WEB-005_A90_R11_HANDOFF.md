@@ -13,7 +13,7 @@
 - First test commit \`bff56604c1901f7b4613caef7c2c32456cbadda3\` precedes implementation. No PR41/B1 cherry-pick, no B2 policy changes, no SQL/DDL, no shared routes or migrations.
 
 ## CI dependency noted
-Automatic GitHub Actions run `38595557462` on earlier SHA `68991b393f87ded797b8578a0972bee47b8375a8` failed Pack19 regex source contract (later gates skipped). Separate from B3A acceptance; the corrected current PR head uses Drizzle `accessMode: \"read only\"`.
+Automatic GitHub Actions run `38596228642` at exact PR48 HEAD `2a8a4c72cb4a3a37402a346fd0acc83b03b39be3` FAILED at independent Pack19 source-regex test (later gates skipped); prior run `38595557462` also failed Pack19. Neither ran targeted B3A PG16 acceptance. The source patch uses Drizzle `accessMode: \"read only\"`.
 
 ## Evidence
 - \`SOURCE_CONFIRMED\`: original export had no common DB snapshot.
