@@ -485,3 +485,93 @@ describe("RevertMatch tournament finalization", () => {
     for (const removed of ["wins", "draws", "losses", "points"]) assert.equal(names.includes(removed), false);
   });
 });
+
+
+/**
+ * MP2A / OPS-01: a queued undo must not act on an action selected before a
+ * concurrent tournament mutation committed a newer undoable action.
+ * pg_blocking_pids proves X already reached the tournament row lock,
+ * avoiding timing-based sleeps or test-only HTTP hooks.
+ */
+async function waitUntilTournamentLockIsQueued(blockerPid: number): Promise<void> {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const observed = await database.pool.query(
+      "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid <> $1 AND $1 = ANY(pg_blocking_pids(pid))) AS queued",
+      [blockerPid],
+    );
+    if (observed.rows[0]?.queued === true) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+  }
+  throw new Error("MP2A_TEST_BARRIER_TIMEOUT: expected queued tournament lock waiter");
+}
+
+for (const target of ["revert_match", "restore_status"] as const) {
+  test("MP2A global LIFO: stale queued " + target + " returns 409 and never writes", async () => {
+    const f = await createFixture({ format: "single_elimination", bracket: true });
+    assert.ok(f.secondMatchId !== null);
+    if (target === "revert_match") {
+      assert.equal((await complete(f)).status, 200);
+    } else {
+      const started = await request(app).patch("/api/matches/" + f.matchId)
+        .set(f.organizerHeaders).send({ status: "in_progress" });
+      assert.equal(started.status, 200);
+    }
+
+    const before = await snapshot(f);
+    const initialAction = await database.pool.query(
+      "SELECT id,action_type,is_undone FROM action_log WHERE tournament_id=$1 AND undo_payload IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",
+      [f.tournamentId],
+    );
+    assert.equal(initialAction.rows[0]?.action_type,
+      target === "revert_match" ? "match_result_submitted" : "match_started");
+
+    const blocker = await database.pool.connect();
+    let committed = false;
+    let xPromise: Promise<Response> | undefined;
+    try {
+      await blocker.query("BEGIN");
+      const pid = await blocker.query("SELECT pg_backend_pid()::int AS pid");
+      await blocker.query("SELECT id FROM tournaments WHERE id=$1 FOR UPDATE", [f.tournamentId]);
+
+      // X sees the older candidate and queues behind B's tournament lock.
+      xPromise = undo(f);
+      await waitUntilTournamentLockIsQueued(pid.rows[0].pid);
+
+      // Y commits before X obtains its lock and must remain the latest.
+      await blocker.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.secondMatchId]);
+      const later = await blocker.query(
+        "INSERT INTO action_log (tournament_id,action_type,description,match_id,undo_payload) VALUES ($1,'match_started','MP2A newer action',$2,$3) RETURNING id",
+        [f.tournamentId, f.secondMatchId,
+          JSON.stringify({ type: "restore_status", matchId: f.secondMatchId, prevStatus: "pending" })],
+      );
+      const laterId: number = later.rows[0].id;
+      await blocker.query("COMMIT");
+      committed = true;
+
+      const rejected = await xPromise;
+      assertError(rejected, 409, "UNDO_ACTION_CHANGED");
+      const after = await snapshot(f);
+      assert.deepEqual(after.match, before.match);
+      assert.deepEqual(after.players, before.players);
+      assert.deepEqual(after.history, before.history);
+      assert.deepEqual(after.downstream, before.downstream);
+      assert.deepEqual(after.tournament, before.tournament);
+      assert.deepEqual(after.actions, before.actions);
+      const actionRows = await database.pool.query(
+        "SELECT id,action_type,is_undone FROM action_log WHERE tournament_id=$1 ORDER BY id",
+        [f.tournamentId],
+      );
+      assert.equal(actionRows.rows.length, 2, "one original and one newer action; X added none");
+      assert.deepEqual(actionRows.rows.map((r) => r.is_undone), [false, false]);
+      assert.equal(actionRows.rows[0].id, initialAction.rows[0].id);
+      assert.equal(actionRows.rows[1].id, laterId);
+      const second = await database.pool.query("SELECT status FROM matches WHERE id=$1", [f.secondMatchId]);
+      assert.equal(second.rows[0].status, "in_progress", "newer mutation remains committed");
+    } finally {
+      if (!committed) await blocker.query("ROLLBACK");
+      blocker.release();
+      if (xPromise) await xPromise.catch(() => undefined);
+    }
+  });
+}
