@@ -72,6 +72,11 @@ pnpm --filter @workspace/tournament-manager build
 
 **Note:** the focused command should be executed from the `artifacts/tournament-manager` package root, or adjust `PWD` and the import path; the standard `pnpm --filter @workspace/tournament-manager test` is the unambiguous supported command in repo package script. Capture exact working directory, CLI, SHA, Node/pnpm, stdout/stderr, exit code, failures and screenshots. Frontend-only mocked tests need no PostgreSQL instance. A50 may find test fixture issues and return focused revisions to A120 within explicit A00 scope, not grant automatic PASS.
 
+
+### R13 exact GitHub CI closeout (observed after PR creation)
+
+On **PR54 HEAD** `dbba0eb82920b4f324866b1b983e1211459f52ec`, automatic GitHub Actions run **`38606249912`** finished **`COMPLETED FAILURE`**; job **`correction-qa`** `115997784820` stopped at **step 8 Pack 19 snapshot consistency tests**. TAP Pack19 **7 PASS / 1 FAIL**, process **exit 1**. Decoded job logs explicitly show legacy test regex `/isolationLevel:"repeatable read",readOnly:true/` vs actual code `{isolationLevel:"repeatable read",accessMode:"read only"}`. The existing PR35 independently owns the test contract mismatch and is not merged into this release-based branch. Later CI gates were skipped, and **this run does not constitute frontend T100 test execution**. No manual rerun performed.
+
 ## 5. Exact source-only QA and outstanding independent checks
 
 **Author static invariants verified 10/10** on HEAD `dbba0eb82920b4f324866b1b983e1211459f52ec`: RR-only scope, exact stage detail key, snapshot revision, tournament standings invalidation, unchanged fingerprint skip, forbidden read suppression, existing denial first-paint check, retry path, wrapper across tabs and fixture IDs. **This is STATIC_SOURCE only, not typecheck/RTL/build/QA acceptance.**
