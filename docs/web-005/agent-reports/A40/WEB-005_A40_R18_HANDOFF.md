@@ -24,7 +24,7 @@ Source base `release/tournament-ops-20261013-01@1fdc401d87c6bffe6bf7312dfc9db681
 | P07 #40 | `9a8287271299a59fc9291b8d253299a8d109a35d` | unchanged | SOURCE_ACCEPTED scoped; Pack17 --full pending |
 | P08 #41 | `f03cf3d09988a04ba9c2856e205d21f994ff67f1` | R17 amended | SOURCE_ACCEPTED_CONDITIONAL, PG16 pending |
 | P09 #42 | **`021bed269f9ea8ac8ce53caeea44263c098aa2dd`** | R17 `25b09f1a48a85ae882b817118f5d8c23bffbe383` → R18 intermediate `d39a0c7e...` → latest new HEAD | **NEW A60 exact-SHA review mandatory** |
-| P20 #53 | **`3947508b70a5125a0d1b194be4bec4927740d382`** | R17 `8f959733258aed0cab15298dd0684ca068045e6f` → +4 R18 commits | **NEW A60 exact-SHA privacy review mandatory** |
+| P20 #53 | **`8710f7fe5946d7f62e366303a97722d4201fc96b`** | R17 `8f959733258aed0cab15298dd0684ca068045e6f` → +4 R18 commits | **NEW A60 exact-SHA privacy review mandatory** |
 | P21 #54 | **`9866e5d2e73c99e01c2934a38ca1c62455efd2ed`** | R17 `dbba0eb82920b4f324866b1b983e1211459f52ec` → +1 R18 test commit | **NEW A60 exact-SHA UI review mandatory** |
 
 Other per-SHA React test paths verified: #43 `96a6068f69027574ac76e18d4d5a2c444b5a914a`, #47 `f09a13623faca8d7ab29b09a2c5b43907c2acd0b`, #50 `5457a74187edc263730c3a4b25a663bdf5531ee9`, #52 `cce73ec47445102b216b3f8eceb4ec9de67eb1a7`. Inspected PRs remain OPEN/DRAFT/unmerged and still based on exact release.
