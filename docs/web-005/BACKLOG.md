@@ -135,3 +135,15 @@ Verified at coordination time:
 - **Wave 2 remains HOLD** until the first-wave P0 release dependencies have been reviewed; urgent P0 findings can be analyzed immediately and coordinator may reprioritize before implementation.
 - Cross-cutting findings with same affected API/DB/UI should be grouped by shared owner and dependencies, not one agent per bug.
 - Preserve source-vs-runtime evidence, exact commit SHA, and no production/Replit access.
+
+
+## T031-A30 — NEXT ASSIGNMENT / SECURITY PROXY TRUST (2026-10-14)
+
+**Status:** ASSIGNED FOR SOURCE-ONLY DESIGN AFTER T030 HANDOFF; CODE IMPLEMENTATION HOLD pending A60 T030 QA disposition and 00 explicit new-branch authorization. The external WEB-004 full follow-up report remains pending; SEC-013 is grounded in the available A80 R4 security register and independently checked upstream advisory. No production exploitation is claimed.
+
+- **Owner:** Agent 30 (security) on a new, isolated task branch **to be created only at authorized implementation start**, proposed `fix/web-005/t031-proxy-trust-hardening`, from pinned release baseline `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`. Do **not** add T031 changes to PR #34.
+- **Sources:** WEB-004 A80 R4 SEC-013 HIGH (conditional runtime preconditions), OBS-A80-R3-02, and upstream GHSA-jqcg-44mw-7w3h/CVE-2026-90711. Verify current lock dependency before editing; baseline `pnpm-lock.yaml` resolves `proxy-addr@2.0.7` under Express, patched `2.0.8`; `artifacts/api-server/src/http/request-source.ts` accepts broad /0 and mapped-IPv6 CIDRs, default `trust proxy=false`.
+- **Task:** map indirect dependency/upgrade paths; specify safe minimal lockfile upgrade and `TRUSTED_PROXY_CIDRS` validation; design regression tests for untrusted `X-Forwarded-For`, loopback/current trusted proxy, short IPv4-mapped IPv6 prefixes and /0 deny, without false claims of deployed config. Verify backwards compatibility.
+- **Ownership:** A30 owns source-only security design for request-source plus lock dependency. Before editing `pnpm-lock.yaml` coordinate exclusive ownership with A10 T016 integration. A60 independently QA T030 and later T031; A50 test environment only.
+- **Acceptance:** a pinned-source R1 handoff with exact files, expected/actual negative tests, lock resolution, migration-free rollback, runtime/deployment evidence boundaries, and GO/STOP. No automatic paid CI, production secret access, GitHub merge, Replit or deploy.
+- **Concurrency:** T031 source-only while T030 in QA_REVIEW; it may enter implementation only after T030 handoff is complete and agent 00 authorizes capacity under the max-three-implementation-lanes rule.
