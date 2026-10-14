@@ -9,42 +9,54 @@
 
 This A60 thread contains R15 work followed by the R17 instruction; no independent A60 R16 task execution, original report or output is present. Exact searches for `WEB-005_A60_R16_HANDOFF.md`, `WEB-005_A60_R16_INDEPENDENT_QA.md`, and `WEB-005_A60_R16_PACKAGE_MATRIX.json` found no original source in accessible conversation/library. GitHub central `docs/web-005/agent-reports/A60/` has no R16 original. Therefore **R16_ARTIFACTS_UNAVAILABLE**, not a retrospective `PATCH_COMPLETE` and not an invented R16 result. Actual R15 evidence is preserved at [A60 original R15 report](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R15_INDEPENDENT_QA.md) and [A60 signed R15 matrix](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R15_PACKAGE_MATRIX.json).
 
-Crucially, the three conditional R16 code lanes **never changed the GitHub HEAD in the R17 readback**: #41 `e847cb705296a48ab5c68ece96776cd0e0bbb417`; #42 `1ae0ccb801f4177052bff1ec7041e55b8c992c8b`; #53 `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979`. No patch can be source accepted without an actual diff and changed HEAD.
+At the first R17 readback the three R16 carryover PRs retained their R15 HEADs. They later received **new R17 commits during this A60 audit**. Section 2 records before/after SHA and independent verdicts. This is not evidence of an original A60 R16 artifact.
 
-## 2. Current 21-row independent SHA matrix
+## 2. Reconciled live R17 GitHub HEADs / 21-row matrix
 
-[WEB-005_A60_R17_PACKAGE_MATRIX.json](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R17_PACKAGE_MATRIX.json) records all 21 open, draft, unmerged source PRs #34–54 on their exact GitHub HEADs/base and independent evidence. All 17 previously scoped/conditional/offline source acceptances were carried forward **only because the HEAD did not change**; no full QA acceptance is implied. Four full-claim source blockers remain **P08, P09, P20, P21**. New PR count beyond #54 is zero in the recorded check. No integrated/composite SHA.
+**This section supersedes the initial R17 pre-patch snapshot.** Agents A90/A70/A100 pushed R17 test-first and application commits *during the A60 audit*. The historical R16 recovery remains `R16_ARTIFACTS_UNAVAILABLE` because these are **R17**, not original R16 deliverables.
 
-## 3. P08 / PR41 — backup QP/QPE/OP integrity
+All 21 PR #34–54 remain OPEN DRAFT/unmerged on release base `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`. Complete pinned HEADs and evidence: [A60 R17 21-row machine matrix](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R17_PACKAGE_MATRIX.json).
 
-**SHA:** `e847cb705296a48ab5c68ece96776cd0e0bbb417`. **SOURCE_BLOCKED_FULL_PARITY**.  
-**Source:** `artifacts/api-server/src/application/backups/backup-v3-flow-integrity.ts` Git blob `cfe3d87bbb412e6878c872ffc003b7583fb53b57`; receipt/arrival match key at line 144 uses `playerBackupId + ":" + sourceFinalRank`. The full `sourceBasketPosition` equivalence across approved QP/QPE/OP/output receipts remains unproven and not implemented for the failure path. Positive legal V3/legacy and corrupted-position preclone 400/zero-write tests have no actual isolated PG16 execution receipt.
+| Package / PR | R15/early R17 HEAD | Latest independently inspected R17 HEAD | SOURCE verdict |
+|---|---|---|---|
+| **P08 [#41](https://github.com/C8LyNn/aplikacja-turnieje/pull/41)** | `e847cb705296a48ab5c68ece96776cd0e0bbb417` | **`f03cf3d09988a04ba9c2856e205d21f994ff67f1`** | **SOURCE_ACCEPTED_CONDITIONAL** for QP/QPE/OP position parity; PG16 runtime NOT_EXECUTED |
+| **P09 [#42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42)** | `1ae0ccb801f4177052bff1ec7041e55b8c992c8b` | **`25b09f1a48a85ae882b817118f5d8c23bffbe383`** | **SOURCE_BLOCKED**: authored roster LIFO tests but global recheck absent in latest production |
+| **P20 [#53](https://github.com/C8LyNn/aplikacja-turnieje/pull/53)** | `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979` | **`8f959733258aed0cab15298dd0684ca068045e6f`** | **SOURCE_ACCEPTED narrow** for tuple bans and proven match ownership; **SOURCE_BLOCKED full privacy** for unknown-owner picks |
+| **P21 [#54](https://github.com/C8LyNn/aplikacja-turnieje/pull/54)** | unchanged | **`dbba0eb82920b4f324866b1b983e1211459f52ec`** | **SOURCE_BLOCKED_UI_SCOPE**; A120 source-only oracle |
 
-**A90/L1 test-first requirement:** verify valid proposal/output/route bijection, consistent legal legacy import and routes; alter only source basket position with otherwise matching rank/player/route; fail closed with typed 400, no tournament clone, no root/child rows; prove rollback on induced transactional failure; preserve prior imported data. One new commit to **existing** #41 branch and evidence of exact new SHA are required before A60 re-review.
+Seventeen prior scoped/conditional/offline source verdicts from R15 carry forward on identical commits. R17 gains one newly conditionally accepted source patch (P08), while **three package full-claims P09/P20/P21 remain SOURCE_BLOCKED**. No complete source+runtime QA acceptance and no composite SHA.
 
-## 4. P09 / PR42 — global LIFO includes roster Undo
+## 3. P08 / PR #41 — source position parity newly patched
 
-**SHA:** `1ae0ccb801f4177052bff1ec7041e55b8c992c8b`. **SOURCE_BLOCKED_GLOBAL_LIFO**.  
-**Source:** `artifacts/api-server/src/routes/tournaments.ts` Git blob `a0473fed687932a26275f2bef14864d196ed3bb7`. In `undo-last`, the `delete_player` and `restore_player` dispatch at lines ~2339–2350 calls `undoTournamentRosterAction`; unlike the other Undo branches it does not perform a tournament-global `lockLatestUndoableAction` selection under the shared transaction/lock.
+**HEAD:** `f03cf3d09988a04ba9c2856e205d21f994ff67f1`; `artifacts/api-server/src/application/backups/backup-v3-flow-integrity.ts` Git blob **`a8482fa7137f1d71817c8b4ec43da7d6292f8183`**.
 
-**A70/L2 test-first requirement:** deterministic X waits for tournament lock, Y writes newer undoable action, then X acquires lock and re-reads latest immutable action/revision: expected controlled 409 and **zero X writes** to player/match/stage/action-log/history; Y is preserved and may be lawfully undone next. Positive latest roster add/edit Undo remains atomic; unrelated tournament isolation and exception rollback hold. Same tournament lock/tx and no source scope outside #42.
+**Independent source acceptance (conditional):** QPE positions are checked for contiguous 1-based order within each output basket sorted by placement rank (around lines 58–79); route receipt `sourceBasketPosition` is compared against the matching approved QPE basket/player/final rank (around 153–184). `undefined` is rejected, but explicit `null` remains legal for the existing writer's export behavior. This addresses the reported narrow parity gap without arbitrarily redefining legacy `null` policy.
 
-## 5. P20 / PR53 — private cache and missing QueryClientProvider fixture
+The updated `stage-basket-route-execution.integration.test.ts` defines valid legacy-null and explicit non-null cases, malformed QPE position swap/gap/missing field and receipt position swap/mismatch/zero/missing scenarios; checks `400 INVALID_BACKUP_V3` and unchanged clone-root count. The tests are **authored, NOT_EXECUTED** on physical PG16. An induced late transactional rollback and child-table counts remain separate acceptance gates, and Backup B2 historical policy stays OPEN. **Verdict:** `SOURCE_ACCEPTED_CONDITIONAL / RUNTIME_NOT_EXECUTED / QA_NOT_ACCEPTED_FULL`.
 
-**SHA:** `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979`. **SOURCE_BLOCKED_FULL_PRIVACY**, although canonical URL-prefixed query eviction is source accepted only for that narrow scope.
+## 4. P09 / PR #42 — roster Undo global latest still absent
 
-- `src/lib/tournament-query-invalidation.ts` under `artifacts/tournament-manager`, blob `1d4365963192646dd918675a65f4496913f2873f`, lines 45–78 recognizes only `/api/tournaments/:id` URL query keys.
-- Actual `artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts`, blob `480cbf83e705e3ece91d9ae13635314b80fa47ac`, creates and uses `["tournaments", tournamentId, "player-bans"]` (lines 35/49) and `["matches", matchId, "game-picks"]` (38/96). They are outside that URL predicate. Match ownership must be mapped to tournament explicitly; global cache clear would corrupt unrelated public B isolation.
-- `artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx`, blob `2b1f7433b478de5dbb60459a9460055079d8b9b1`, lines 16–18 mounts `AuthProvider` without `QueryClientProvider`. New PR53 `AuthProvider` blob `8916545544d55fc8d7fbd146d0328e36543bebb7` unconditionally calls `useQueryClient()`. **Fixture mismatch is SOURCE_CONFIRMED; actual runtime FAIL/observed data leak is NOT established.**
+**HEAD:** `25b09f1a48a85ae882b817118f5d8c23bffbe383`. Newly authored test source `artifacts/api-server/test/revert-match.integration.test.ts` defines deterministic queued X / newer committed Y for both roster undo action types with `pg_blocking_pids` and positive lawful Undo cases. No app PG16 execution has been verified.
 
-**A100/L3 test-first requirement:** verify logout/token rotation and denied 401/403 evict actual A tuple bans and A-owned match picks as well as canonical keys, including pending late A response and enabled observers; prove unrelated public B cached data survive; map matchId→tournamentId without numeric assumption or global purge; fix legacy AuthProvider test fixture. Need native Node22/pnpm10 RTL/typecheck exact HEAD and owner-specific authorization. Old HEAD cannot be accepted as R16 patch.
+**Independent blocking finding:** `artifacts/api-server/src/application/players/tournament-roster.ts` at this HEAD has no `latestUndoable` tournament-global selection in `undoTournamentRosterAction` after `lockDraftTournament`; it only selects the previously chosen action by its `actionId` with `FOR UPDATE` then mutates player/log. `src/routes/tournaments.ts` still dispatches `delete_player/restore_player` to this separate function, bypassing the generic `lockLatestUndoableAction` guard. A temporary R17 commit with global latest recheck was subsequently undone in the final inspected HEAD. No new source acceptance follows from test definitions alone.
 
-## 6. P21 / PR54 — mixed historical RR403 / current DE or Overview
+**A70 required next source:** restore the global most recent undoable-action recheck under the same tournament lock/tx before any write; keep stale X 409 `UNDO_ACTION_CHANGED` zero-write, Y remains undoable and valid latest Undo succeeds. Test on authorized disposable PG16. **Verdict:** `SOURCE_BLOCKED_GLOBAL_LIFO / RUNTIME_NOT_EXECUTED`.
 
-**SHA:** `dbba0eb82920b4f324866b1b983e1211459f52ec`. **SOURCE_ACCEPTED_NARROW_RR_REFRESH / SOURCE_BLOCKED_UI_SCOPE**.  
-**Source:** `artifacts/tournament-manager/src/pages/tournament-detail.tsx`, blob `7d03d3ea7a14883fd7d6b0010eebd14c1f11d00d`. `RoundRobinReadbackBridge` checks all RR stage query errors with `rrStageIds.some` at line 163 and replaces the entire tab tree after any 401/403 at line 182, while wrapping all `TournamentDetail` tabs at lines 963–1855.
+## 5. P20 / PR #53 — noncanonical cache patch, partial privacy acceptance
 
-**A120 source-only oracle (no R17 code GO):** current lawful DE/Overview remains visible when an unrelated historical RR stage returns 403; only the denied private RR data are hidden, retry 200 restores current RR details, old deferred N cannot overwrite N+1, unchanged/non-RR poll does not cause refetch storm. Prior source-only [A120 acceptance contract](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A120/WEB-005_A120_R15_T100_ACCEPTANCE.md). No real browser or RTL execution was evidenced for PR54; no new PR54 code is authorized in R17.
+**HEAD:** `8f959733258aed0cab15298dd0684ca068045e6f`; `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts` blob **`626d31eb5b82d38c171f091f07990e00069de4ad`**.
+
+**SOURCE_ACCEPTED narrow:** the query matcher now recognizes `["tournaments", id, "player-bans"]` with exact tournament ID, as well as canonical `/api/tournaments/:id` prefix. For `["matches", matchId, "game-picks"]` it gets the cached `getListMatchesQueryKey(tournamentId)` list and checks each record's `tournamentId` before evicting only IDs owned by A; 401/403 match-only errors similarly resolve ownership only when a trusted cached list is present. The server's GET tournament matches maps `...m`, including `tournamentId`, so a legitimate list can supply this identity; numeric matchId equality is not presumed. `use-tournament-auth.test.tsx` now wraps `AuthProvider` in `QueryClientProvider`, resolving the source fixture mismatch. Six S2B negative tests were authored; no targeted React execution receipt is available.
+
+**Residual SOURCE_BLOCKED full privacy:** where no trusted `getListMatchesQueryKey(tid)` entry is present, a standalone previously fetched game-picks key cannot be attributed to the tournament and is **left cached** after logout/revocation; the authored 'unknown ownership' test explicitly asserts it stays. This is a potential retention of privileged cached data, not proven browser disclosure. A30/owner must decide a privacy-preserving attribution method at fetch-time or an explicitly bounded alternative that never purges public B; do not accept `FULL_PRIVACY` or use global query clear without owner approval. Also test late nonabortable A responses and active observers.
+
+**Verdict:** `SOURCE_ACCEPTED_CONDITIONAL_KNOWN_OWNER_ONLY / SOURCE_BLOCKED_FULL_PRIVACY_UNKNOWN_OWNER / RUNTIME_NOT_EXECUTED`.
+
+## 6. P21 / PR #54 — mixed RR403/DE remains source-only
+
+**HEAD:** `dbba0eb82920b4f324866b1b983e1211459f52ec`; `artifacts/tournament-manager/src/pages/tournament-detail.tsx` blob `7d03d3ea7a14883fd7d6b0010eebd14c1f11d00d`. Any historical RR stage detail 401/403 detected by `RoundRobinReadbackBridge` (around line 163) suppresses the entire `TournamentDetail` tab tree wrapped around 963–1855, including otherwise lawful DE/Overview, not just denied private RR records.
+
+A120 R15 [source-only acceptance oracle](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A120/WEB-005_A120_R15_T100_ACCEPTANCE.md) requires keeping lawful DE/Overview visible, hiding RR secrets and allowing 200 retry/N→N+1 without unrelated poll storms. No R17 PR54 code GO, no independent RTL/browser PASS. **Verdict:** `SOURCE_BLOCKED_UI_SCOPE / RUNTIME_NOT_EXECUTED`.
 
 ## 7. Execution / CI / provenance
 
@@ -70,4 +82,4 @@ WEB-004 R2 history remains **immutable 38 cases = 0 PASS / 3 external CI FAIL / 
 
 **GO:** only A70/A90/A100 within pre-authorized R17 L1–L3 source lanes, with their own PR branches and exclusive files. **STOP:** A60 code writes, extra PR lane, any merge/cherry-pick/rebase, composite branch, unapproved SQL reset, paid CI, staging/live or interim SWARM006 handoff.
 
-**FINAL:** `WEB-005-T130-A60-R17 — REPORT_PUBLISHED / R16_ARTIFACTS_UNAVAILABLE / THREE_CARRYOVER_PRS_UNCHANGED / FOUR_SOURCE_BLOCKERS / APP_RUNTIME_0_VERIFIED / RELEASE_NO_GO / SWARM006_HOLD`.
+**FINAL:** `WEB-005-T130-A60-R17 — REPORT_PUBLISHED / R16_ARTIFACTS_UNAVAILABLE / THREE_CARRYOVER_PRS_REVISED / P08_SOURCE_ACCEPTED_CONDITIONAL / P09_P20_P21_SOURCE_BLOCKED / APP_RUNTIME_0_VERIFIED / RELEASE_NO_GO / SWARM006_HOLD`.
