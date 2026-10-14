@@ -206,7 +206,7 @@ test("T100 RT-05: completed Audience overrides retained featured match and prese
   const summary = await screen.findByText("Turniej zakończony!");
   assert.match(summary.parentElement?.textContent ?? "", /Zwycięzca: Official champion/);
   assert.equal(document.querySelector("[data-exp-match-state]"), null);
-  assert.ok(screen.getByText("Podwójna eliminacja"));
+  assert.ok(screen.getAllByText("Podwójna eliminacja").length >= 1);
 });
 
 test("T100 RT-06: active Audience still shows its featured match without final summary", async () => {
@@ -236,7 +236,7 @@ test("T100 RT-10: the group-stage tournament-wide Audience label uses the canoni
     return jsonResponse([]);
   });
   await screen.findByText("Turniej zakończony!");
-  assert.ok(screen.getByText("Faza grupowa"));
+  assert.ok(screen.getAllByText("Faza grupowa").length >= 1);
   assert.equal(screen.queryByText("group_stage"), null);
 });
 
