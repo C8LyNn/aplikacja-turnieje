@@ -336,3 +336,18 @@ These documentation decisions DO NOT authorize merge/cherry-pick/composite integ
 | **D159** | Final-only SWARM-006 as owner directive: complete accepted WEB004 R2 backlog and source A60 + signed dispositions, then seek explicit FINAL_HANDOFF_GO. If no A50 test runtime, owner may separately authorize `HANDOFF_WITH_RUNTIME_TEST_DEBT` **only after source/policy/38-case closure**, with SWARM-006 composite testing hard release stop. | **WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO** |
 
 No merge/cherry-pick, composite branch, production SQL, paid CI rerun, shared DB reset, staging/live, or cross-swarm dispatch is authorized by this document.
+
+
+## R21 — R20 final independent source verdict and owner decision gate (2026-10-14)
+
+| ID | Verified event / binding decision | Status |
+|---|---|---|
+| **D160** | R20 A60 original [direct independent report](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R20_INDEPENDENT_QA.md) accepts **PR53** at `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` **SOURCE_ACCEPTED_SCOPED** (owner-qualified legacy cache rebind, not full orphan erasure) and **PR54** at `bfa9d075b431185aa8bbf87bf021d64dde8ae22f` **SOURCE_ACCEPTED_CONDITIONAL** (parent+selected RR denial vs lawful DE/Overview), with PR47 future integration dependency. PR41 and PR42 unchanged SOURCE_ACCEPTED_CONDITIONAL. | **R20 source milestone achieved, no FULL QA or runtime PASS.** |
+| **D161** | [A50 R20 exact report](./agent-reports/A50/WEB-005_A50_R20_RECEIPT.md) confirms 0 native application RTL/API/PG16 tests, full per-SHA checkout and pnpm10 missing; isolated test-only PG16 and written bounded reset authorization absent. | **TEST EXECUTOR OWNER ACTION REQUIRED**, no inferred runtime pass or paid CI authorization. |
+| **D162** | [A10 R20 original-case provenance](./agent-reports/A10/WEB-005_A10_R20_38_CASES_FINAL_ONLY.md) recovered secondary 29 of 38 historic case IDs, **9 original IDs unavailable** without authentic `WEB-004_A60_FINAL_ACCEPTANCE_MATRIX_R2.csv`; no original 38-case per-finding owner-signed disposition. | **SOURCE_PROVENANCE/OWNER SIGNOFF HOLD**; cannot fabricate missing IDs. |
+| **D163** | A80 R20 sport S1–S6 UNSIGNED, A110 T055 Basket D1–D6 UNSIGNED, A90 Backup B2 B1–B6 UNSIGNED, A70 MP2B UNSIGNED, Steam/session/legacy-cache residual undecided. | **POLICY_OPEN**; signed choice or specific risk-assessed owner-approved deferral required, no inferred approvals. |
+| **D164** | Publish one [WEB-005_R21_OWNER_DECISION_PACKET.md](./WEB-005_R21_OWNER_DECISION_PACKET.md), anchored in actual R20 domain agent alternatives; publish one [WEB-005_WAVE_R21_AGENT_PROMPTS.md](./WEB-005_WAVE_R21_AGENT_PROMPTS.md) for all 13 role sections. | **R21 OWNER SIGNOFF GATE READY**, no automatic source code GO. |
+| **D165** | If actual owner decisions do not arrive, R21 must report **WAIT_OWNER** and suspend repetitive speculative agent waves. If owner selects a policy requiring an unimplemented fix, A00 will write a new narrow separately authorized test-first code lane; signed policy does not retroactively implement it. | **NO REPEAT-AUDIT/NO GHOST PATCH**. |
+| **D166** | Only after WEB-004 original-case source and individually signed dispositions, approved backlog source code or exceptions and A60 readiness may A00 request one FINAL_HANDOFF_GO. No native tests may be transferred without separate named `HANDOFF_WITH_RUNTIME_TEST_DEBT` (SWARM-006 full composite QA mandatory release STOP). | **WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO**. |
+
+No merge/cherry-pick/composite, production SQL/shared database reset, billable CI, staging/live or SWARM-006 dispatch authorized.
