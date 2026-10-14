@@ -68,6 +68,9 @@ A50 runtime unblocker: a trusted owner-provided disposable PC/VM with separate c
 
 WEB-004 R2 history remains **immutable 38 cases = 0 PASS / 3 external CI FAIL / 33 BLOCKED / 2 NOT RUN**. Product owner/HQ must still sign T055 Basket CAS, Swiss terminal, SE currentRound, Swiss rematch/BYE, DE ranking, Backup B2 portability/revisions/legacy, Direct Revert CAS+Host, Steam missing-secret and auth TTL/digest/rotation. These are POLICY_OPEN, not A60 decisions.
 
+
+**R17 primary agent receipt reconciliation (read after A60 draft):** [A50 actual R17 execution receipt](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R17_RECEIPT.md) confirms Node/Git preflight only and **0 native application RTL/API/PG16 tests**; it precedes the live PR41/42/53 amendments, so no domain PASS is implied. [A70 R17 handoff](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A70/WEB-005_A70_R17_HANDOFF.md) confirms PR42 is intentionally **test-only** and that `tournament-roster.ts` is *outside* the original R16 A70 file ownership; A00/HQ must give **new explicit file-scope GO** before restoring the missing LIFO guard. [A100 R17 source result](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A100/WEB-005_A100_R17_PR53_S2B_RESULT.md) explicitly declares unknown-owner standalone picks as remaining outside scoped eviction; [A120 R17 oracle](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A120/WEB-005_A120_R17_PR54_TEST_ORACLE.md) details mixed RR/DE 403 tests; neither is runtime PASS.
+
 ## 8. Ranked A00 handoff
 
 | Priority | Owner | Exact next step | A60 decision |
