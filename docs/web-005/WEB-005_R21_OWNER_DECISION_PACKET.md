@@ -52,7 +52,7 @@ Przy każdej pozycji wpisz: *ID → wybrany wariant albo wyraźne OWNER_APPROVED
 | B5 nested IDs | strict modern rejection unknown/foreign IDs; legacy restricted import + warning/disable unsafe Undo; świadomie zaakceptowany fallback |
 | B6 error / rollback | strict modern 400 INVALID_BACKUP_V3 before clone + late atomic rollback; lub ograniczony owner-approved import z disabled unsafe Undo |
 
-**B1 = A — ZATWIERDZONE PRZEZ WŁAŚCICIELA:** nowy strict capability/version profil, zachowanie prawidłowych starszych V2/V3 przez bezpieczną testowaną ścieżkę zgodności. [Dokument decyzji Backup B1-A](./WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md). **B2=___ B3=___ B4=___ B5=___ B6=___ nadal WAIT_OWNER**; szczegółowa legacy positive compatibility matrix do weryfikacji po tych wyborach. B1-A sam nie autoryzuje kodu/importu/SQL.
+**BACKUP POLICY SELECTED:** B1=A bezpośrednio przez właściciela — [karta B1-A](./WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md). Następnie właściciel w tym samym wątku jawnie delegował A00 wszystkie kolejne pytania w temacie Backup V3, na podstawie czego A00 zatwierdził **B2=B, B3=A, B4=A, B5=A, B6=A** — [pełna karta delegowanych decyzji z warunkami i testami](./WEB-005_R21_OWNER_DELEGATED_BACKUP_B2_B6_DECISIONS.md). **B2–B6 są A00_DECIDED_UNDER_OWNER_BACKUP_DELEGATION, nie indywidualnymi wypowiedziami właściciela.** Backup B1–B6 policy closed; SOURCE_IMPLEMENTATION_PENDING; migracje, destrukcyjny SQL, testy, merge i handoff nieautoryzowane.
 
 ## 4. T040 MP2B — public Direct Revert CAS + Host
 
@@ -103,7 +103,7 @@ Komórki S1–S6 i warunkowa preferencja EXEC-B są odnotowane w karcie delegacj
 - [Formalna karta dotychczasowych decyzji sportowych i delegacji](./WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md).
 - **OWNER_EXPLICIT:** EXEC-B warunkowo; S1 TS-B; S2 S2-B; S3 SCORE_GROUP_FIRST; S4 stage-local BYE; S4-H-A NC/walkover counted, cancelled not counted.
 - **A00_DECIDED_UNDER_OWNER_DELEGATION:** S5 runner-up from decisive GF/reset; S6 places 3–N by second-loss elimination wave with shared positions. To nie jest osobny imienny podpis na każdą opcję ani kod już wdrożony.
-- **STILL WAIT_OWNER:** Backup B2–B6 (**B1=A OWNER_APPROVED**), MP2B public CAS, Steam/session, raw cache residual policy, oryginalny CSV/9 missing IDs lub dokładna decyzja dotyczącą pochodzenia, zaakceptowane 38-case dispositions i final handoff gate. **T055 D1–D6 = OWNER_APPROVED but CODE_NOT_STARTED.**
+- **STILL WAIT_OWNER:** MP2B public CAS/Host, Steam/session, raw cache residual policy, oryginalny CSV/9 missing IDs lub dokładna decyzja dotyczącą pochodzenia, zaakceptowane 38-case dispositions i final handoff gate. **T055 D1–D6 = OWNER_APPROVED but CODE_NOT_STARTED; Backup B1–B6 policy = SELECTED, implementation NOT_STARTED.**
 
 
 ## 10. T055 — owner-approved 6-part CAS contract (2026-10-14)
@@ -114,3 +114,8 @@ Komórki S1–S6 i warunkowa preferencja EXEC-B są odnotowane w karcie delegacj
 ## 11. Backup modern strict versus legal legacy — B1-A (2026-10-14)
 
 [Właścicielska decyzja B1-A](./WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md): nowe kopie Backup V3 mają rygorystyczny, jawnie rozpoznawany profil; historyczne legalne V2/V3 nadal są przywracalne przez bezpieczną kompatybilną ścieżkę, ale wadliwe kopie nie uzyskują przepustki tylko z powodu wieku. Owner wybrał to bezpośrednio w rozmowie. **NIE** wybrano jeszcze B2–B6, nie uruchomiono SQL, testów, nowej implementacji ani SWARM-006.
+
+
+## 12. Backup B2–B6 owner topic delegation, options closed (2026-10-14)
+
+Direct owner message: approval of A00's recommended Backup B2-B and delegation of further similar questions in the Backup V3 topic. [Full exact decisions/QA contract](./WEB-005_R21_OWNER_DELEGATED_BACKUP_B2_B6_DECISIONS.md): **B1=A OWNER_EXPLICIT, B2=B / B3=A / B4=A / B5=A / B6=A A00_DECIDED_UNDER_OWNER_BACKUP_DELEGATION**. Modern strict history parity, portable state revision, deterministic action provenance and strict recognized nested ID mapping, preclone 400/late full rollback; legal older V2/V3 imports preserved with fail-closed restrictions on unsafe Undo/Revert when provenance is absent. Future A90/A20/A70/A110 source implementation requires **separate narrow A00 GO** and A60 evidence. Remaining MP2B, Steam/session, PR53 raw cache, original WEB004 cases remain outside delegated Backup scope; final SWARM006 handoff stays HOLD.
