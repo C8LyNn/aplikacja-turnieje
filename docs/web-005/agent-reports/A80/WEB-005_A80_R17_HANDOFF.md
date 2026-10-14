@@ -25,7 +25,7 @@ In the A80 thread available to this run, the last real execution was R15 and nex
 | Central R17 instruction | docs/web-005/WEB-005_WAVE_R17_AGENT_PROMPTS.md blob **c2dd8c1e2e2e3b5e245db61877da99f59c77a0ff**, shared §0–§2 and AGENT A80 reviewed |
 | PR32 release → main | OPEN unmerged, release head **1fdc401d87c6bffe6bf7312dfc9db681b689dcf7**, main base **c50cc48e6fa508592bda3f4838111e9cff5af80c** |
 | [PR45](https://github.com/C8LyNn/aplikacja-turnieje/pull/45) P12 RR roster | OPEN DRAFT unmerged, **a7a87bc019731191dbfa44bee6939e3fa25e27f4**, base same release SHA |
-| [PR42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) P09 Global Undo | OPEN DRAFT unmerged; **FINAL CHECK HEAD ab828bd8ee08423e4062d5f7b85af21a64c1b892** (initial R17 preflight 1ae0ccb801f4177052bff1ec7041e55b8c992c8b, now superseded) |
+| [PR42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) P09 Global Undo | OPEN DRAFT unmerged; **LATER R17 CHECK HEAD 25b09f1a48a85ae882b817118f5d8c23bffbe383** (earlier R17 checks 1ae0ccb801f4177052bff1ec7041e55b8c992c8b then ab828bd8ee08423e4062d5f7b85af21a64c1b892; moving concurrent A70 work) |
 | [PR51](https://github.com/C8LyNn/aplikacja-turnieje/pull/51) malformed Undo | OPEN DRAFT unmerged, HEAD **2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a** |
 | PR45 GitHub reviews | Zero review events returned, but separate A60 R15 matrix **DOES certify scoped SOURCE_ACCEPTED_CONDITIONAL**, NOT native testing |
 | [PR45 GitHub Actions 38591289886](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38591289886) | FAILURE at inherited Pack19 snapshot consistency, later PG/release steps SKIPPED; not target feature PASS or FAIL |
@@ -85,6 +85,8 @@ During the final GitHub readback, **PR42 advanced independently of A80** from 1a
 - artifacts/api-server/test/revert-match.integration.test.ts (+156/-0).
 
 These files belong to **A70's own R17 L2**, not A80. No new workflow runs were returned for the new PR42 exact HEAD and zero GitHub review events were returned when checked. Any prior A60 source verdict on the old PR42 commit cannot be transferred to the new SHA. This observation does NOT establish source acceptance or native runtime PASS for PR42; it also does not modify the independent, conditional PR45 SHA verdict.
+
+**Additional subsequent GitHub observation:** PR42 advanced again, now HEAD **25b09f1a48a85ae882b817118f5d8c23bffbe383** (2 commits after ab828bd8ee08423e4062d5f7b85af21a64c1b892); compare showed source adjustments in tournament-roster.ts (+1/-20) and routes/tournaments.ts (+1/-1). No workflow run returned for that HEAD. This is an actively moving A70 lane, so its final SHA must be rechecked by A00/A60 at actual acceptance; the old A60 QA does not apply to the revised code. A80 did not edit it.
 
 **Final PR45 after this delta:** still a7a87bc019731191dbfa44bee6939e3fa25e27f4, OPEN DRAFT and unmerged. **Final PR51:** unchanged at 2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a. Ownership/conflict analysis therefore has a freshly revised A70 Undo dependency. Do not merge or retest a composed release from A80.
 
