@@ -160,15 +160,16 @@ export function RoundRobinReadbackBridge({
   // Important: TanStack Query can retain prior successful data after an error.
   // Hide StageProgressView on a forbidden RR detail response; never show stale
   // private participants behind an error banner in this organizer surface.
+  const hasDeniedRrDetail = () => rrStageIds.some(stageId => {
+    const error = queryClient.getQueryState(
+      getGetTournamentStageQueryKey(tournamentId, stageId),
+    )?.error as { status?: number; response?: { status?: number } } | null | undefined;
+    const code = error?.status ?? error?.response?.status;
+    return code === 401 || code === 403;
+  });
   useEffect(() => {
     const check = () => {
-      const blocked = rrStageIds.some(stageId => {
-        const error = queryClient.getQueryState(
-          getGetTournamentStageQueryKey(tournamentId, stageId),
-        )?.error as { status?: number; response?: { status?: number } } | null | undefined;
-        const code = error?.status ?? error?.response?.status;
-        return code === 401 || code === 403;
-      });
+      const blocked = hasDeniedRrDetail();
       setDenied(prev => prev === blocked ? prev : blocked);
     };
     const unsubscribe = queryClient.getQueryCache().subscribe(check);
@@ -176,7 +177,9 @@ export function RoundRobinReadbackBridge({
     return unsubscribe;
   }, [queryClient, rrIdKey, tournamentId]);
 
-  if (denied) {
+  // Synchronous check prevents a first-paint flash of previously cached data
+  // when an RR query was already forbidden before this component mounted.
+  if (rrStageIds.length > 0 && (denied || hasDeniedRrDetail())) {
     return (
       <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-card p-5 text-sm">
         <p>Dostęp do szczegółów etapu został odrzucony. Ukryto poprzednio pobraną klasyfikację.</p>
