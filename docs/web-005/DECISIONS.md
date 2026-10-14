@@ -242,3 +242,18 @@ No merge, production SQL, paid rerun, deployment or SWARM-006 dispatch is author
 | **D113** | Existing owner final-only policy persists: WEB-005 must formally finish accepted WEB-004 HANDOFF R2 remediation before one SWARM-006 transfer | SWARM-006 remains HOLD; no new WEB-004 reports; SWARM-007 maintains independent exchange/Drive architecture. |
 
 **NO-GO:** No R14 document authorizes merge, cherry-pick, an integration branch, manual paid CI, destructive SQL, live deployment, or cross-swarm dispatch.
+
+
+## R15 — R14 closure, observable QA and conditional S2B remediation (2026-10-14)
+
+| ID | Decision | Status |
+|---|---|---|
+| **D114** | Confirm R14 yielded no newly opened implementation PR. 21 candidates P01–P21 PR34–54 remain OPEN DRAFT/unmerged at current inspected SHAs; A10 R14 manifest confirms INTERNAL_BUFFER and no integrated candidate | **WEB005_IN_PROGRESS / RELEASE_NO_GO** |
+| **D115** | Publish a single [WEB-005_WAVE_R15_AGENT_PROMPTS.md](./WEB-005_WAVE_R15_AGENT_PROMPTS.md) for A00–A120; 13 agent-specific assignments, shared rules, report permalink requirement | **R15 READY** |
+| **D116** | **R15 P0 evidence and observability:** A50 must provide actual exact-SHA commands/results or one executable safe environment blocker; A60 must publish direct verifiable independent QA report+matrix. R14 direct A50/A60 final report not located in inspected control repo/available search; this is an evidence-access issue, not proof agents were idle | **RECEIPT_REQUIRED; do not invent PASS/QA** |
+| **D117** | Source-confirmed PR53 private cache predicate misses noncanonical player-bans `["tournaments",id,"player-bans"]` and match game-picks `["matches",matchId,"game-picks"]`, and old use-tournament-auth hook test mounts AuthProvider without QueryClientProvider. A100 R14 documents source mismatch, runtime leak/failure not reproduced. | **SECURITY SOURCE FINDING / A50 REPRO + A60 INDEPENDENT QA REQUIRED** |
+| **D118** | R15 permits **at most one conditional S2B source-code repair lane** for A100, **not automatically GO**. A00 must issue exact `R15-S2B-CODE-GO` only after independent A60 source FAIL or A50 reproducible result, explicit file ownership/test-first scope. No global match-cache purge or cross-PR merge | **CODE HOLD until gate** |
+| **D119** | Keep direct Revert CAS+Host, Basket CAS, terminal Swiss, SE/Swiss/DE, Backup B2 portability, Steam/session policy alternatives unsigned until owner/HQ signs | **POLICY_OPEN, no silent implementation** |
+| **D120** | Owner final-only rule unchanged: WEB-005 completes accepted WEB-004 R2 backlog and independently reconciles source/runtime evidence before **ONE final handoff** to SWARM-006; SWARM-007 independent docs/Drive protocol | **SWARM006 HOLD; no new WEB-004 reports** |
+
+No merge/cherry-pick, integrated SHA, physical PG16 test authorization, paid CI rerun, SQL migration, production or release is implied by this documentation change.
