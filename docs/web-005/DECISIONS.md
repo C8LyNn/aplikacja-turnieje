@@ -197,3 +197,18 @@ No integration, migrations, deployment, paid CI or production access is authoriz
 | **D092** | SWARM-006 receives a single handoff only after formal WEB-005 whole-backlog closeout and owner/HQ authorization | **ACTIVE**; all P01–P12+ are INTERNAL BUFFER, SWARM-007 information architecture independent |
 
 **NO-GO:** no integrated SHA, PG16/HTTP/frontend full runtime suite absent, all draft PRs unmerged, no production authorization. Documentation commits are not merge or deploy.
+
+
+## R12 — R11 closeout and central agent instructions (2026-10-14)
+
+| ID | Decision | State |
+|---|---|---|
+| **D093** | R11 produced PR #46 (T080 DELETE) `7f60849e389a7ed35fdd39dd5493c4c4c267d860`, #47 (T100 presentation) `f09a13623faca8d7ab29b09a2c5b43907c2acd0b` and #48 (T060 B3A MVCC) `2a8a4c72cb4a3a37402a346fd0acc83b03b39be3` | OPEN DRAFT / PATCH_PROPOSED / no new confirmed native app tests; no merge |
+| **D094** | Publish [WEB-005_WAVE_R12_AGENT_PROMPTS.md](./WEB-005_WAVE_R12_AGENT_PROMPTS.md) for all 13 agents A00–A120 | READY R12, shared §0–§2 then only own Axx section, individually report |
+| **D095** | R12 bounded source-only code lanes: **A70 malformed Undo payload**, **A100 post-lock password/visibility auth**, **A110 UX045 Backup preview async+credential hygiene** | GO only narrow code-only under file ownership & policy gates, max 3 parallel; no new product semantics |
+| **D096** | Preserve P01 PR35 Pack19 contract fix as sole existing fix; recent PR46–48 Actions fail old base Pack19 regex `readOnly:true` vs actual `accessMode:"read only"` | Root cause established from GitHub job logs; do not interpret upstream CI fail as target PG/React patch failure or duplicate P01; full integrated CI remains future SWARM-006 gate |
+| **D097** | A50 safe physical isolated PG16/Node/React execution and A60 independent exact-SHA review remain P0; all P01–P15+ tracked as INTERNAL_BUFFER | Runtime tests absent or unconfirmed for new patches; no PASS claims, no unsafe DB/paid CI |
+| **D098** | Continue source-only policy queue: terminal Swiss/SE/Swiss/DE, T055 Basket CAS, T060-B2 portability/history, MP2B strict public Revert/Host, Steam and session policies | POLICY_OPEN; no silent implementation |
+| **D099** | WEB-004 provides no new reports and SWARM-006 remains HOLD until formal closeout of all approved WEB-005 backlog | Owner final-only directive binding; SWARM-007 operates infrastructure separately |
+
+**Release:** NO-GO. No merge/cherry-pick, staging/live, production migration, Replit or SWARM-006 dispatch authorized by documentation updates.
