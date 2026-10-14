@@ -10,7 +10,7 @@
 - **PR #47:** https://github.com/C8LyNn/aplikacja-turnieje/pull/47 — OPEN DRAFT.
 - **HEAD:** `f09a13623faca8d7ab29b09a2c5b43907c2acd0b`.
 - **Branch:** `fix/web-005/t100-presentation-pr-a-r11`; 9 commits from release baseline, no cross-PR cherry-pick.
-- **Automatic CI #38596198607:** observed `in_progress` on final HEAD, outcome unverified. No manual paid CI.
+- **Automatic CI #38596198607:** COMPLETED FAILURE on final HEAD: `correction-qa` step Pack19, TAP 7/8 PASS / 1 FAIL, exit 1, later steps skipped; no T100/frontend test executed. See Pack19 source-contract test; A120 did not alter Pack19 or rerun CI. No manual paid CI.
 - **Current deployed/composite SHA:** UNKNOWN.
 
 ## ACTUAL CHANGES — 6 files only
@@ -22,7 +22,7 @@ Finding dispositions: **F052/F053/F055 = PATCH_PROPOSED**; **F054 = existing PR3
 ## TEST EVIDENCE — distinguish levels
 
 - Test source was committed **before** implementation (tests commits `f51e7f2`, `87275fd`, `d1b00de`).
-- 13/13 author static invariant checks on current exact SHA — **STATIC ONLY**.
+- 16/16 author static invariant checks on current exact SHA — **STATIC ONLY**.
 - React/RTL, typecheck, build, actual browser, API/DB: **NOT_EXECUTED by A120**; no application exit code; not a QA PASS.
 - No independent A60 review/approval claimed.
 - Existing winner-vs-standings test remains; additional DE retry 403/500, empty, delayed/stage-mismatch, Bracket format, completed/active Audience fixture cases added.
