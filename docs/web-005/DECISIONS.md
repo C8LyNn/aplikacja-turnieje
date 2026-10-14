@@ -147,3 +147,15 @@ No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part o
 | **D071** | Any emergency exception to final-only handoff (e.g. exceptional integrity/security hazard) requires explicit new owner/HQ decision | No implicit interim dispatch; no release bypass. |
 
 **Dispatch state:** `WEB005_IN_PROGRESS / SWARM006_FINAL_HANDOFF_DEFERRED`. Existing approvals remain bounded by task and implementation concurrency caps. A60 is independent; QA deficits, test environment absence, pending product policies and 38-case WEB-004 audit matrix must be explicitly tracked. Release stays NO-GO until SWARM-006 integrated gates and HQ authorization.
+
+## R9 — Source-design wave complete / next implementation lanes (2026-10-14)
+
+| ID | Decision | Gate |
+|---|---|---|
+| D072 | Register [WEB-005_NEXT_REMEDIATION_WAVE_R9.md](./WEB-005_NEXT_REMEDIATION_WAVE_R9.md) after source-only A80/A90/A100/A110/A120 reports | Accepted as coordinator PLAN, not execution evidence |
+| D073 | Source patch PR #40 latest HEAD 9a8287271299a59fc9291b8d253299a8d109a35d; PR #39 HEAD 16053ee132756ca05b6f2cd1f0cabae823905387 | Existing PR QA only; no reimplementation of T017 or MP1 |
+| D074 | Propose next three narrow code-only lanes: A90/T060-B1, A70/T040-MP2A, A100/T080-S1 | Agent-specific 00 GO required; avoid contested policies and overlapping files; max 3 lanes |
+| D075 | Carry source-only A80/T050+T051, A110/T055+T110, A120/T100 until file availability and policy decisions | NO unapproved code or invented runtime outcomes |
+| D076 | Keep A10 P01–P07 internal and continuously refreshed; no SWARM-006 activation before final WEB-005 closeout | Owner final-only directive remains binding |
+
+No deployment, merge, migrations, paid CI or remote Drive transfer occurred in this planning update.
