@@ -1,7 +1,7 @@
 # WEB-005 — R21 / PAKIET DECYZJI WŁAŚCICIELA / HQ
 
 **Data:** 2026-10-14, Europe/Warsaw  
-**Stan:** PARTIALLY RESOLVED — decyzje sportowe S1–S4 i warunkowa strategia EXEC-B zostały bezpośrednio wybrane przez właściciela w aktualnym wątku; S5–S6 zostały rozstrzygnięte przez A00 na podstawie jego jawnej delegacji. Pozostałe wybory nadal **WAIT_OWNER**. Brak implementacyjnego lub release GO. Dokument jest formularzem decyzji, NIE udziela automatycznie GO na kod, testy destrukcyjne, przekazanie SWARM-006, merge ani release.  
+**Stan:** PARTIALLY RESOLVED — decyzje sportowe S1–S4 i warunkowa strategia EXEC-B zostały bezpośrednio wybrane przez właściciela w aktualnym wątku; S5–S6 zostały rozstrzygnięte przez A00 na podstawie jego jawnej delegacji. T055 Basket CAS D1–D6 zostało dodatkowo zatwierdzone przez właściciela; **pozostałe nierozstrzygnięte wybory nadal WAIT_OWNER**. Brak implementacyjnego lub release GO. Dokument jest formularzem decyzji, NIE udziela automatycznie GO na kod, testy destrukcyjne, przekazanie SWARM-006, merge ani release.  
 **Koordynator:** WEB-005/A00, podlega jednej globalnej Queen/HQ.  
 **Źródła referencyjne:** R20 A80 sport, R20 A110 Basket CAS, R20 A90 Backup B2, R20 A70 public Revert CAS oraz R20 A60 independent QA; szczegółowe kontrakty w ich dokumentach. Rozstrzygnięcie wydaje rzeczywisty owner/HQ, nie agent.
 
@@ -22,7 +22,7 @@ Przy każdej pozycji wpisz: *ID → wybrany wariant albo wyraźne OWNER_APPROVED
 | D5 Roster/stage changes | każda relewantna zmiana unieważnia stary draft | dedykowany token + osobna atomowa walidacja stage/roster |
 | D6 UX losing editor | zachowaj draft, pokaż diff i wyraźny rebase/discard | zachowaj draft, wymuś reload/manual reconcile i ponowny opt-in save |
 
-**Do podpisu:** D1=___ D2=___ D3=___ D4=___ D5=___ D6=___; zaakceptowane konsekwencje migracji/kompatybilności=___.
+**ZATWIERDZONE PRZEZ WŁAŚCICIELA:** **D1=B**, **D2=B**, **D3=B**, **D4=A**, **D5=B**, **D6=B** zgodnie z [formalną kartą zatwierdzenia T055](./WEB-005_R21_OWNER_T055_BASKET_CAS_APPROVAL.md) (właściciel: „tak, może być”, odpowiedź na kompletną propozycję A00). Monotoniczny persisted revision; ETag/If-Match; stale 412/no-write; missing 428/no-write; pod-lock atomowa weryfikacja stage/roster; utrzymanie draftu + ręczne rozwiązanie konfliktu. Zatwierdzenie **nie jest** migracyjnym SQL/code GO, wymaga A20/A90 compatibility review i przyszłych testów A60.
 
 ## 2. T050/T051 — sześć decyzji sportowych
 
@@ -103,4 +103,9 @@ Komórki S1–S6 i warunkowa preferencja EXEC-B są odnotowane w karcie delegacj
 - [Formalna karta dotychczasowych decyzji sportowych i delegacji](./WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md).
 - **OWNER_EXPLICIT:** EXEC-B warunkowo; S1 TS-B; S2 S2-B; S3 SCORE_GROUP_FIRST; S4 stage-local BYE; S4-H-A NC/walkover counted, cancelled not counted.
 - **A00_DECIDED_UNDER_OWNER_DELEGATION:** S5 runner-up from decisive GF/reset; S6 places 3–N by second-loss elimination wave with shared positions. To nie jest osobny imienny podpis na każdą opcję ani kod już wdrożony.
-- **STILL WAIT_OWNER:** T055 D1–D6, Backup B2 B1–B6, MP2B public CAS, Steam/session, raw cache residual policy, oryginalny CSV/9 missing IDs lub dokładna decyzja dotycząca pochodzenia, zaakceptowane 38-case dispositions i final handoff gate.
+- **STILL WAIT_OWNER:** Backup B2 B1–B6, MP2B public CAS, Steam/session, raw cache residual policy, oryginalny CSV/9 missing IDs lub dokładna decyzja dotycząca pochodzenia, zaakceptowane 38-case dispositions i final handoff gate. **T055 D1–D6 = OWNER_APPROVED but CODE_NOT_STARTED.**
+
+
+## 10. T055 — owner-approved 6-part CAS contract (2026-10-14)
+
+[Direct owner approval and exact D1–D6 choices](./WEB-005_R21_OWNER_T055_BASKET_CAS_APPROVAL.md): `D1=B,D2=B,D3=B,D4=A,D5=B,D6=B`. Contrakt został zaakceptowany w tej samej rozmowie bezpośrednią odpowiedzią „tak, może być”. **A110 intake**: podpisać przyszłe acceptance tests i schema/Backup compatibility risk; **A00**: osobne precyzyjne GO kodowe po wyznaczeniu właścicieli plików. **No SQL migration, code implementation, release, merge or handoff authorized by this policy record.**
