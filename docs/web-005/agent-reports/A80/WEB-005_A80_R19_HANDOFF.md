@@ -25,8 +25,8 @@ GitHub publication is a durable A00-readable handoff; this agent has **not** cau
 | [P12 PR45 RR terminal](https://github.com/C8LyNn/aplikacja-turnieje/pull/45) | a7a87bc019731191dbfa44bee6939e3fa25e27f4 | **a7a87bc019731191dbfa44bee6939e3fa25e27f4** | OPEN DRAFT/unmerged; A80 owns source verification, no R19 patch |
 | [P09 PR42 Undo](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) | 021bed269f9ea8ac8ce53caeea44263c098aa2dd | **021bed269f9ea8ac8ce53caeea44263c098aa2dd** | OPEN DRAFT/unmerged, code frozen R19 A70 source-only |
 | [PR51 malformed Undo](https://github.com/C8LyNn/aplikacja-turnieje/pull/51) | 2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a | **2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a** | OPEN DRAFT/unmerged, separate shared-route dependency |
-| [P20 PR53 private query](https://github.com/C8LyNn/aplikacja-turnieje/pull/53) | 8710f7fe5946d7f62e366303a97722d4201fc96b | **8710f7fe5946d7f62e366303a97722d4201fc96b** | OPEN DRAFT/unmerged; R19 A100 owns conditional code lane, A30/A60 independently QA |
-| [P21 PR54 historical RR403](https://github.com/C8LyNn/aplikacja-turnieje/pull/54) | 9866e5d2e73c99e01c2934a38ca1c62455efd2ed | **9866e5d2e73c99e01c2934a38ca1c62455efd2ed** | OPEN DRAFT/unmerged; R19 A120 owns two-boundary code lane and PR47 child-file semantic dependency |
+| [P20 PR53 private query](https://github.com/C8LyNn/aplikacja-turnieje/pull/53) | 8710f7fe5946d7f62e366303a97722d4201fc96b | **d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34** (initial R19 8710f7fe5946d7f62e366303a97722d4201fc96b) | OPEN DRAFT/unmerged; R19 A100 owns conditional code lane, A30/A60 independently QA |
+| [P21 PR54 historical RR403](https://github.com/C8LyNn/aplikacja-turnieje/pull/54) | 9866e5d2e73c99e01c2934a38ca1c62455efd2ed | **897e9a88e1108e29d710ea114ef438731c03f9c8** (initial R19 9866e5d2e73c99e01c2934a38ca1c62455efd2ed) | OPEN DRAFT/unmerged; R19 A120 owns two-boundary code lane and PR47 child-file semantic dependency |
 
 **Evidence:**
 - [A60 independent R18 QA](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R18_INDEPENDENT_QA.md), blob **656a8850a6358e5b4b2517220a5fc55f99dc014f**.
@@ -38,6 +38,14 @@ GitHub publication is a durable A00-readable handoff; this agent has **not** cau
 - PR45 source file changed: artifacts/api-server/src/application/matches/revert-match.ts and dedicated test/round-robin-terminal-reopen.integration.test.ts; R10 docs only otherwise. Test blob **e429e8d04ef08f662dcff0239b8d30c2124a6bfc**. A80 R19 touched **none**.
 
 **Release classification:** PR45 is **not** RUNTIME_VERIFIED or QA_ACCEPTED_FULL; independent scoped A60 source acceptance is genuine but conditional. R19 new changes in PR53/54, if any after this snapshot, require *fresh A30/A60 exact-new-SHA reviews*. A80 does not approve them.
+
+### Post-publication GitHub SHA delta (concurrent A100/A120 lanes)
+
+After the initial R19 snapshot and publication, GitHub PR heads advanced **concurrently and independently of A80**:
+- **PR53 / P20** 8710f7fe5946d7f62e366303a97722d4201fc96b → **d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34**, 4 commits ahead / 0 behind. Compare paths: artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts (+17/-1), tournament-auth-query-cache.test.tsx (+78/-0), tournament-query-invalidation.ts (+15/-7). A100 owns this R19 lane.
+- **PR54 / P21** 9866e5d2e73c99e01c2934a38ca1c62455efd2ed → **897e9a88e1108e29d710ea114ef438731c03f9c8**, 4 commits ahead / 0 behind. Compare paths: artifacts/tournament-manager/src/components/stage-progress-view.rr-denied.test.tsx (+137/-0), stage-progress-view.tsx (+33/-9), pages/tournament-detail.rr-readback.test.tsx (+4/-20). A120 owns this R19 lane.
+
+**These are SOURCE PATCH DELTAS, not independent A60 R19 SOURCE_ACCEPTED and not runtime test PASS.** R18 A60's PR53 scoped review and PR54 source-blocked verdict applied to their older exact SHAs and must be re-evaluated by A30/A60 on the newer ones. A50 actual runtime remains unverified unless a new signed native receipt is produced. A80 made no code changes or integrations.
 
 ## 3. PR45 executable acceptance contract for A50/A60 — NOT EXECUTED
 
