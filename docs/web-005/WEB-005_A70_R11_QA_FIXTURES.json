@@ -1,0 +1,223 @@
+{
+  "schema": "web-005/a70/r11/qa-fixtures/v1",
+  "task": "WEB-005-T040-A70-R8",
+  "evidence": "SPECIFICATION_ONLY_NOT_EXECUTED",
+  "target": {
+    "pr": 42,
+    "sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+    "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+  },
+  "requirements": {
+    "physicalIsolatedPostgreSQL16": true,
+    "testSchemaPattern": "^tm_test_[a-z0-9_]+$",
+    "testDatabaseUrlEnvironment": "TEST_DATABASE_URL",
+    "resetConsent": "DROP_TM_TEST_SCHEMA",
+    "noSharedOrProductionDatabase": true
+  },
+  "snapshotTables": [
+    "matches",
+    "action_log",
+    "result_history",
+    "tournament_stages",
+    "tournaments",
+    "players",
+    "stage_participants",
+    "match_game_picks",
+    "tournament_correction_operations"
+  ],
+  "cases": [
+    {
+      "id": "B01",
+      "family": "MP2B",
+      "state": "completed current",
+      "input": {
+        "expectedMatchRevision": 7,
+        "expectedCompletionActionId": 1234
+      },
+      "expected": {
+        "status": 200,
+        "actionCountDelta": 1,
+        "undoneCompletionDelta": 1
+      }
+    },
+    {
+      "id": "B02",
+      "family": "MP2B",
+      "state": "completed current",
+      "input": {
+        "expectedMatchRevision": 7
+      },
+      "expected": {
+        "status": 422,
+        "code": "INVALID_REVERT_PRECONDITION",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "B04",
+      "family": "MP2B",
+      "state": "completed current",
+      "input": {
+        "expectedMatchRevision": 7.5,
+        "expectedCompletionActionId": 1234
+      },
+      "expected": {
+        "status": 422,
+        "code": "INVALID_REVERT_PRECONDITION",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "B05",
+      "family": "MP2B",
+      "state": "revision moved from 7 to 8 after operator opened confirmation",
+      "input": {
+        "expectedMatchRevision": 7,
+        "expectedCompletionActionId": 1234
+      },
+      "expected": {
+        "status": 409,
+        "code": "CONCURRENT_MODIFICATION",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "B07",
+      "family": "MP2B",
+      "state": "result A was reverted then result B completed with new completion action",
+      "input": {
+        "expectedMatchRevision": 7,
+        "expectedCompletionActionId": 1234
+      },
+      "expected": {
+        "status": 409,
+        "zeroWrite": true,
+        "preserveResultB": true
+      }
+    },
+    {
+      "id": "B08",
+      "family": "MP2B",
+      "state": "simultaneous identical requests with current CAS",
+      "input": {
+        "expectedMatchRevision": 7,
+        "expectedCompletionActionId": 1234
+      },
+      "expected": {
+        "statuses": [
+          200,
+          409
+        ],
+        "totalReverts": 1
+      }
+    },
+    {
+      "id": "H01",
+      "family": "MP2C",
+      "actionType": "match_started",
+      "persistedUndoPayload": "{bad json",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true,
+        "notHttp500": true
+      }
+    },
+    {
+      "id": "H02",
+      "family": "MP2C",
+      "actionType": "match_bo_changed",
+      "persistedUndoPayload": "null",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "H03",
+      "family": "MP2C",
+      "actionType": "match_cancelled",
+      "persistedUndoPayload": "{\"type\":\"revert_match\",\"matchId\":1234}",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "H04",
+      "family": "MP2C",
+      "actionType": "match_started",
+      "actionMatchId": 1234,
+      "persistedUndoPayload": "{\"type\":\"restore_status\",\"matchId\":9999,\"prevStatus\":\"pending\"}",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "H05",
+      "family": "MP2C",
+      "state": "latest malformed action A; older valid undoable B",
+      "actionType": "match_started",
+      "persistedUndoPayload": "[1,2]",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true,
+        "olderActionMustNotBeUndone": true
+      }
+    },
+    {
+      "id": "H07",
+      "family": "MP2C",
+      "actionType": "match_started",
+      "state": "legacy action lacking nextStatus but match is currently in_progress",
+      "persistedUndoPayload": "{\"type\":\"restore_status\",\"matchId\":1234,\"prevStatus\":\"pending\"}",
+      "expected": {
+        "status": 200,
+        "restoredStatus": "pending",
+        "requiresSafeLegacyRuntimeChecks": true
+      }
+    },
+    {
+      "id": "H12",
+      "family": "MP2C",
+      "actionType": "match_cancelled",
+      "state": "current note changed since cancellation",
+      "persistedUndoPayload": "{\"type\":\"restore_cancelled_match\",\"matchId\":1234,\"prevStatus\":\"pending\",\"prevNote\":\"original\",\"nextNote\":\"cancel note\"}",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "H13",
+      "family": "MP2C",
+      "actionType": "match_players_swapped",
+      "state": "old action lacks nextPicks but match has Deadlock picks rows",
+      "persistedUndoPayload": "{\"type\":\"restore_players_swap\",\"matchId\":1234,\"player1Id\":5,\"player2Id\":6,\"score1\":null,\"score2\":null}",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true
+      }
+    },
+    {
+      "id": "H16",
+      "family": "MP2C",
+      "actionType": "match_result_submitted",
+      "state": "X old completion action, Y commits globally newer undoable action under lock",
+      "persistedUndoPayload": "{\"type\":\"revert_match\",\"matchId\":1234}",
+      "expected": {
+        "status": 409,
+        "code": "UNDO_ACTION_CHANGED",
+        "zeroWrite": true,
+        "newerActionPreserved": true
+      }
+    }
+  ]
+}
