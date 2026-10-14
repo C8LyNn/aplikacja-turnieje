@@ -13,14 +13,14 @@
 - T030 / [PR #34](https://github.com/C8LyNn/aplikacja-turnieje/pull/34): `030d0f5f51df6731cff8135a793abc2d51b0b775`
 - Competing [PR #33](https://github.com/C8LyNn/aplikacja-turnieje/pull/33): `79fc25971a53641a704fa052a2b8d937d140fa7d`, SUPERSEDED/HOLD, not closed
 - T020 unchanged analysis branch: `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`
-- T015 branch created `fix/web-005/t015-pack20-26-contracts`: release base, no changes yet.
+- T015 branch `fix/web-005/t015-pack20-26-contracts`, [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36): `f6e94aae9239d578e23d5a8fb23a2446ea669a41`, one commit, 4 Pack source-contract files changed, no Node/Pack17 runtime tests.
 - T131 infrastructure agent has no assigned code branch. Environment preflight/support only.
 
 ## Binding coordinator decisions
 
 **T010:** Pack19 ownership stays A10; accepted as a real CI test pass **for Pack19**: SE 23/23, readiness 26/26, Pack19 contract 8/8. A60 must still review diff and contract. PR35 draft, NO MERGE. A10 should enter closeout not broaden scope.
 
-**T015:** A40 exclusively owns source contracts in `qa/pack20/**` through `qa/pack26/**`; no changes to Pack19, no backend behavior modification to please tests. Pack20 actual CI failure 6/7 due to stale `readOnly:true`; Pack21/25/26 source inspection reveals same obsolete assertion. Replace brittle source literals with robust Drizzle `accessMode:"read only"` + `isolationLevel:"repeatable read"` and absence-of-mutation controls; independent review A60. Other packs inspect but only change when necessary.
+**T015:** A40 has authored PR #36 and exclusively owns source contracts in `qa/pack20/**` through `qa/pack26/**`; no changes to Pack19, no backend behavior modification to please tests. Pack20 actual CI failure 6/7 due to stale `readOnly:true`; Pack21/25/26 source inspection reveals same obsolete assertion. Replace brittle source literals with robust Drizzle `accessMode:"read only"` + `isolationLevel:"repeatable read"` and absence-of-mutation controls; independent review A60. Other packs inspect but only change when necessary.
 
 **T020:** Conceptual manifest 0027–0040 acknowledged **only for test-fixture design**. 0027–0029 common; release 0030/0031; editor source 0030–0038 becomes canonical 0032–0040. Raw source SHA-256 and logical IDs are in `WEB-005_T020_A10_R2_TARGET_MANIFEST_PROPOSAL.json`; this is a non-GitHub source attachment, not executable migration. Before SQL authorization: independent raw source checksum verification; migration ledger/attestation; 0031 embedded `BEGIN/COMMIT` reconciliation with runner-atomicity; SQL render hash; clean + R30/R31 + E30–E38 historical upgrades; FK/triggers/idempotency/recovery; PostgreSQL 16 isolation. NO AUTOMATIC ADOPTION of unknown history; no SQL edits/prod execution.
 
@@ -35,7 +35,7 @@
 | Candidate | Independent checks | Current verified evidence |
 |---|---|---|
 | T010 `7cb283aa...` | Difference one source-contract line; Drizzle read-only & snapshot isolation; negative source controls; check PR35 CI | [Actions #38550541899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550541899) Pack19 PASS, Pack20 FAIL |
-| T015 `1fdc401d...` at dispatch | Source list Pack20/21/25/26, no weakened negative checks, exact diff + CI | No implementation or CI yet |
+| T015 `f6e94aae9239d578e23d5a8fb23a2446ea669a41` / PR36 | Source list Pack20/21/25/26, new negative regression controls, no Pack19 changes, exact diff; run Node tests when safe | Code authored (4 files), `[skip ci]`, runtime suites NOT_EXECUTED |
 | T020 R2 proposal | canonical source lineage/dep graph, runner ledger, explicit transactions, historical states and upgrade tests | Manifest source-only; DB tests NOT_EXECUTED |
 | T030 `030d0f5f...` | 403/503 matrix; anonymous/viewer/support/organizer denial; catalog admin success; 3 mutations; no DB changes or Steam requests on deny; public GET; frontend credential exposure/typecheck | [Actions #38550962951](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550962951) Pack19 FAIL because missing PR35; catalog-specific runtime tests NOT_EXECUTED |
 
@@ -83,3 +83,8 @@ Planned only on a separate, disposable, previously approved integration branch b
 ### How to dispatch
 
 The coordinator cannot insert messages into independent ChatGPT agent conversations via GitHub. The user/owner must provide this handoff link or copy the per-agent sections; creation of the T015 branch does not itself start an agent. All assignments are documented, not silently executed.
+
+
+## R3 live-update — independent QA intake T015
+
+New [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) opened during coordinator operation. HEAD `f6e94aae9239d578e23d5a8fb23a2446ea669a41`; 1 commit; modified Pack20/21/25/26 source-contract tests; Pack22–24, Pack19 and production code unchanged. Source-level check added for missing/downgraded repeatable-read/accessMode guards. **New Node/Pack17 tests NOT_EXECUTED**, and no workflow at this head. A60 should check this exact diff and the four negative controls. This supersedes the earlier statement that the T015 task branch was empty.
