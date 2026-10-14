@@ -67,6 +67,14 @@ test("public bracket keeps readable scale across refetch and fit never magnifies
   assert.equal(screen.getByTitle("Dopasuj do ekranu").textContent, "110%", "polling must not reset manual zoom or fit against content height");
 });
 
+test("T100 RT-04: active DE stage label wins over legacy tournament round-robin format", async () => {
+  const { requested } = mount("bracket", [stage(1, "completed", "round_robin"), stage(2, "active", "double_elimination")]);
+  await screen.findAllByText(/DE2 Alpha/);
+  assert.ok(screen.getByText(/Finał szkoleniowy.*Podwójna eliminacja/));
+  assert.ok(!screen.queryByText(/double_elimination/));
+  assert.ok(requested.some(url => url.endsWith("/stages/2/double-elimination")));
+});
+
 for (const view of Object.keys(views) as (keyof typeof views)[]) {
   test(`${view}: completed RR history is excluded from the active final`, async () => {
     mount(view);
