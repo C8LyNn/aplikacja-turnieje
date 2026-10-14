@@ -655,7 +655,7 @@ export async function exportBackupV3(
           }),
         }),
   };
-  }, { isolationLevel: "repeatable read", readOnly: true });
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
 export function validateBackupV3(backup: TournamentBackupV3): void {
