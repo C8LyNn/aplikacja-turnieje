@@ -1,0 +1,59 @@
+{
+  "schema": "WEB005_A50_R18_LOCAL_ENV_EVIDENCE_V1",
+  "task": "WEB-005-T133-A50-R18",
+  "agent": "A50",
+  "wave": "R18",
+  "observed_at_utc": "2026-10-14T19:48:36.512474+00:00",
+  "host": "current ChatGPT Linux container (not user PC)",
+  "actual_commands": [
+    {
+      "argv": [
+        "node",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "v22.16.0",
+      "stderr": "",
+      "classification": "ENV_ONLY"
+    },
+    {
+      "argv": [
+        "git",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "git version 2.47.3",
+      "stderr": "",
+      "classification": "ENV_ONLY"
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/mnt/data",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 128,
+      "stdout": "",
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+      "classification": "ENV_ONLY"
+    }
+  ],
+  "binary_availability": {
+    "pnpm": "MISSING_BINARY_NO_SUBPROCESS_EXIT_CODE",
+    "docker": "MISSING_BINARY_NO_SUBPROCESS_EXIT_CODE",
+    "podman": "MISSING_BINARY_NO_SUBPROCESS_EXIT_CODE",
+    "psql": "MISSING_BINARY_NO_SUBPROCESS_EXIT_CODE",
+    "pwsh": "MISSING_BINARY_NO_SUBPROCESS_EXIT_CODE"
+  },
+  "full_monorepo_checkout_mounted": false,
+  "authorized_pc_vm_shell_connected": false,
+  "physically_attested_disposable_pg16": false,
+  "owner_pg16_reset_consent": false,
+  "actual_native_frontend_tests": 0,
+  "actual_native_pg16_tests": 0,
+  "application_tap": null,
+  "application_exit_code": null,
+  "assertion": "No native app PASS/FAIL. GitHub source readback and workflow logs are not application runtime execution."
+}
