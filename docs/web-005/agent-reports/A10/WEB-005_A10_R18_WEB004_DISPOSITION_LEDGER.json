@@ -1,0 +1,717 @@
+{
+  "schema": "WEB005_A10_R18_WEB004_38_CASE_TRACEABILITY_V1",
+  "source_handoff": "WEB-004_TO_WEB-005_HANDOFF_R2_2026-10-14.md",
+  "source_matrix_required": "WEB-004_A60_FINAL_ACCEPTANCE_MATRIX_R2.csv",
+  "original_csv_access": "NOT_AVAILABLE_TO_A10",
+  "historical_aggregate": {
+    "PASS": 0,
+    "FAIL_EXTERNAL_CI": 3,
+    "BLOCKED": 33,
+    "NOT_RUN": 2
+  },
+  "warning": "Only 29 canonical IDs are directly known from older R9 source trace. The remaining 9 are unassigned slots, not fabricated case IDs; their original status distribution is only aggregate: 3 FAIL_EXTERNAL_CI and 6 BLOCKED. Cannot individually certify 38 without original CSV.",
+  "workstreams": [
+    {
+      "id": "OPS-01",
+      "title": "Global Undo latest-action LIFO",
+      "owner": "A70",
+      "related_packets": [
+        "P09",
+        "P18"
+      ],
+      "r18_source_disposition": "PATCH_REVISED_A60_NEW_HEAD_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "No native PG16 race proof",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "OPS-02",
+      "title": "Direct Revert CAS + historical Undo",
+      "owner": "A70",
+      "related_packets": [
+        "P09",
+        "P18"
+      ],
+      "r18_source_disposition": "POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "MP2B Direct Revert CAS/Host completion identity not authorized",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "OPS-03",
+      "title": "Generic PATCH Cancel/Restore bypass",
+      "owner": "A70",
+      "related_packets": [
+        "P06"
+      ],
+      "r18_source_disposition": "SOURCE_ACCEPTED_CONDITIONAL_QA_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "HTTP/PG runtime not executed",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "LIFE-01",
+      "title": "Terminal Swiss completed/pending invariant",
+      "owner": "A80",
+      "related_packets": [
+        "P12"
+      ],
+      "r18_source_disposition": "POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "TS-A deny vs TS-B reopen requires signature",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "LIFE-02",
+      "title": "RR/SE rewind and currentRound",
+      "owner": "A80",
+      "related_packets": [
+        "P12",
+        "P21"
+      ],
+      "r18_source_disposition": "PARTIAL_SOURCE_POLICY_OPEN",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "RR/SE policy and current P21 A60 review pending",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "DB-01",
+      "title": "Migration ledger 0030/31 identity",
+      "owner": "A20/A90",
+      "related_packets": [
+        "P05"
+      ],
+      "r18_source_disposition": "SQL_STOP",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "Offline source validator only; no PG16 adoption",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "DB-02",
+      "title": "Backup QP/QPE/OP approvals parity",
+      "owner": "A20/A90",
+      "related_packets": [
+        "P08"
+      ],
+      "r18_source_disposition": "SOURCE_ACCEPTED_CONDITIONAL",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "A60 R17 exact head accepted; physical clone PG16 pending",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "DB-03",
+      "title": "Backup result/history clone revisions",
+      "owner": "A20/A90",
+      "related_packets": [
+        "P08",
+        "P15"
+      ],
+      "r18_source_disposition": "POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "B2 history/revision/legacy portability contract",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "DB-04",
+      "title": "Coherent V3 export, stage triggers",
+      "owner": "A20/A90",
+      "related_packets": [
+        "P08",
+        "P15"
+      ],
+      "r18_source_disposition": "SOURCE_PATCH_QA_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "PG16 MVCC + trigger paths not executed",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "SPORT-01",
+      "title": "Swiss/DE rematch BYE placements",
+      "owner": "A80",
+      "related_packets": [
+        "P12",
+        "P14",
+        "P21"
+      ],
+      "r18_source_disposition": "POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "Swiss/SE/DE owner signoffs required",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "SEC-01",
+      "title": "Steam Catalog write auth 3 routes",
+      "owner": "A30/A100",
+      "related_packets": [
+        "P03"
+      ],
+      "r18_source_disposition": "SOURCE_ACCEPTED_CONDITIONAL",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "Missing-secret 403/503 policy and HTTP tests pending",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "SEC-02",
+      "title": "Organizer revoke race and private UI cache",
+      "owner": "A30/A100",
+      "related_packets": [
+        "P11",
+        "P13",
+        "P16",
+        "P20"
+      ],
+      "r18_source_disposition": "PARTIAL_SOURCE_NEW_HEAD_A60_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "P20 ownerless game-picks privacy review outstanding",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "SEC-03",
+      "title": "Proxy trusted CIDR and dependency",
+      "owner": "A30/A100",
+      "related_packets": [
+        "P04"
+      ],
+      "r18_source_disposition": "SOURCE_ACCEPTED_CONDITIONAL",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "HTTP/environment negatives pending",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "FE-01",
+      "title": "Basket PUT concurrent lost update CAS",
+      "owner": "A110",
+      "related_packets": [],
+      "r18_source_disposition": "SOURCE_GAP_POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "T055 409 vs 412 If-Match/version legacy; no dedicated code PR",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "FE-02",
+      "title": "CSV A→B backup preview stage modal Host draft",
+      "owner": "A110",
+      "related_packets": [
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "r18_source_disposition": "PARTIAL_SOURCE_POLICY_UNSIGNED",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "UX044 Host policy and actual RTL/browser pending",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "VIEW-01",
+      "title": "DE labels/overlay and RR standings",
+      "owner": "A120",
+      "related_packets": [
+        "P14",
+        "P21"
+      ],
+      "r18_source_disposition": "PARTIAL_SOURCE_NEW_HEAD_A60_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "P21 RR403 fixes need independent source/browser assessment",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    },
+    {
+      "id": "CI-01",
+      "title": "Pack19–26 and Pack17 full release gates",
+      "owner": "A40/A50/A60",
+      "related_packets": [
+        "P01",
+        "P02",
+        "P07"
+      ],
+      "r18_source_disposition": "SCOPED_SOURCE_ACCEPTED_FULL_GATE_PENDING",
+      "QA_STATUS": "RUNTIME_NOT_EXECUTED",
+      "owner_policy_decision_id": null,
+      "approved_waiver_url": null,
+      "formally_closed": false,
+      "blocker": "No composite SHA or complete Pack17/FE/API CI",
+      "manifest": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R18_FINAL_ONLY_MANIFEST.json"
+    }
+  ],
+  "original_case_slots": [
+    {
+      "row_slot": 1,
+      "original_id": "SW-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "NOT_RUN",
+      "owner": "A80/T051",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 2,
+      "original_id": "SW-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "NOT_RUN",
+      "owner": "A80/T051",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 3,
+      "original_id": "SE-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 4,
+      "original_id": "SE-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 5,
+      "original_id": "SE-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 6,
+      "original_id": "SE-04",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 7,
+      "original_id": "RR-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 8,
+      "original_id": "RR-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 9,
+      "original_id": "RR-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/T050",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 10,
+      "original_id": "BV3-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 11,
+      "original_id": "BV3-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 12,
+      "original_id": "BV3-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 13,
+      "original_id": "BV3-04",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 14,
+      "original_id": "BV3-05",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 15,
+      "original_id": "BV3-06",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A90/T060",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 16,
+      "original_id": "CC-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A70/T040",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 17,
+      "original_id": "CC-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A70/T040",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 18,
+      "original_id": "CC-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A70/T040",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 19,
+      "original_id": "CC-04",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A70/T040",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 20,
+      "original_id": "CC-05",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A70/T040",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 21,
+      "original_id": "PC-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A100/T080",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 22,
+      "original_id": "PC-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A100/T080",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 23,
+      "original_id": "PC-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A100/T080",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 24,
+      "original_id": "PC-04",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A100/T080",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 25,
+      "original_id": "PC-05",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A100/T080",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 26,
+      "original_id": "MF-01",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/A90/A120",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 27,
+      "original_id": "MF-02",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/A90/A120",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 28,
+      "original_id": "MF-03",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/A90/A120",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 29,
+      "original_id": "MF-04",
+      "verified_source": "WEB-005_A60_R9_WEB004_38_TRACEABILITY.json",
+      "original_qa_outcome": "BLOCKED",
+      "owner": "A80/A90/A120",
+      "source_fixed_full": false,
+      "runtime_accepted": false,
+      "owner_exception_url": null,
+      "disposition": "OPEN_QA_AND_OR_POLICY_PENDING"
+    },
+    {
+      "row_slot": 30,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 31,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 32,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 33,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 34,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 35,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 36,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 37,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    },
+    {
+      "row_slot": 38,
+      "original_id": null,
+      "verified_source": null,
+      "original_qa_outcome": null,
+      "owner": null,
+      "source_fixed_full": null,
+      "runtime_accepted": null,
+      "owner_exception_url": null,
+      "disposition": "UNIDENTIFIED_ORIGINAL_ROW_NEED_CANONICAL_38_CASE_CSV"
+    }
+  ],
+  "coverage": {
+    "canonical_workstreams": 17,
+    "original_case_slots": 38,
+    "identified_cases": 29,
+    "unidentified_cases": 9,
+    "formal_case_dispositions_accepted": 0,
+    "certification": "INCOMPLETE_38_CASE_LINEAGE"
+  },
+  "handoff": {
+    "owner_signed_exceptions": 0,
+    "SOURCE_CLOSEOUT": false,
+    "FINAL_HANDOFF_GO": false,
+    "SWARM006_DISPATCHED": false
+  }
+}
