@@ -212,3 +212,18 @@ No integration, migrations, deployment, paid CI or production access is authoriz
 | **D099** | WEB-004 provides no new reports and SWARM-006 remains HOLD until formal closeout of all approved WEB-005 backlog | Owner final-only directive binding; SWARM-007 operates infrastructure separately |
 
 **Release:** NO-GO. No merge/cherry-pick, staging/live, production migration, Replit or SWARM-006 dispatch authorized by documentation updates.
+
+
+## R13 — R12 closeout and central QA-first execution (2026-10-14)
+
+| Decision | Rule / status |
+|---|---|
+| **D100** | R12 yielded three **OPEN DRAFT** source patches: PR49 `99298b81501c3e7764d653604923522a19b9f05c` A100 password/visibility post-lock auth, PR50 `5457a74187edc263730c3a4b25a663bdf5531ee9` A110 backup-preview epoch/cache, PR51 `2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a` A70 malformed history Undo. Actual native PG/RTL execution and independent exact SHA QA not yet established; source tests authored, not PASS. |
+| **D101** | Publish one [WEB-005_WAVE_R13_AGENT_PROMPTS.md](./WEB-005_WAVE_R13_AGENT_PROMPTS.md) for A00 through A120, §§0–2 shared, per-agent Axx sections, QA-first prioritization. |
+| **D102** | Allocate at most **three conditional, narrow source-code-only R13 lanes**: A100/T080-S2A private auth-context cache invalidation; A110/T110-UX046 stale stage-lifecycle modal; A120/T100-PR-B external RR standings freshness. If source is already correct, `SOURCE_RECONCILED/NO_PR`, never speculative patch; file ownership and no cross-PR merge. |
+| **D103** | A50 isolated real frontend/PG16 test evidence and A60 independent source/runtime reviews of all P01–P18+ remain **P0 gating**, with priority PR41–51. Do not equate a created test to an executed test. |
+| **D104** | Old release Pack19 `readOnly:true` matcher vs actual `accessMode:"read only"` is already corrected by separate PR35; do not duplicate; standalone CI failures do not establish feature-specific negative result. Full integrated regression remains future SWARM-006 gate, not WEB-005 self-merge. |
+| **D105** | Owner/QH policy signatures still needed for terminal Swiss, Basket CAS, Backup B2 portability/history, direct public Revert CAS/Host rollout, sport rules and selected session/Steam behavior. NO unapproved product semantics. |
+| **D106** | WEB-005 finishes approved backlog before **one final handoff** to SWARM-006; no WEB-004 new report cycle, SWARM-007 information/file architecture independent. RELEASE NO-GO. |
+
+No merge, production SQL, paid rerun, deployment or SWARM-006 dispatch is authorized.
