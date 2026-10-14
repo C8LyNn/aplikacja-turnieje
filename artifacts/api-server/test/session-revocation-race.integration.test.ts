@@ -13,7 +13,7 @@ import {
 } from "./test-database";
 
 type Database = typeof import("@workspace/db");
-type Credentials = { "x-organizer-token"?: string; "x-support-token"?: string; "x-viewer-token"?: string };
+type Credentials = Record<string, string>;
 type Target = "bans" | "picks";
 type Principal = "organizer" | "support";
 
@@ -143,14 +143,14 @@ async function revokeUnderBarrier(
   const beforeRows = await rows(f, target);
   const locker = await database.pool.connect();
   let transactionOpen = false;
-  let pending: Promise<import("supertest").Response> | undefined;
+  let pending: Promise<{ status: number; body: { code?: string } }> | undefined;
   try {
     await locker.query("BEGIN");
     transactionOpen = true;
     await locker.query(`SELECT id FROM "${config.schema}".tournaments WHERE id = $1 FOR UPDATE`, [f.tournamentId]);
     // Start only AFTER the lock is held. Observing a PG row-lock waiter establishes
     // that the HTTP request has completed its initial auth and reached the lock.
-    pending = mutate(f, target, headers).then(response => response);
+    pending = mutate(f, target, headers).then(response => ({ status: response.status, body: response.body as { code?: string } }));
     await waitForQueuedTournamentLock();
     if (principal === "organizer") {
       await locker.query(
