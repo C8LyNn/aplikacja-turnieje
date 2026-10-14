@@ -25,7 +25,7 @@ In the A80 thread available to this run, the last real execution was R15 and nex
 | Central R17 instruction | docs/web-005/WEB-005_WAVE_R17_AGENT_PROMPTS.md blob **c2dd8c1e2e2e3b5e245db61877da99f59c77a0ff**, shared §0–§2 and AGENT A80 reviewed |
 | PR32 release → main | OPEN unmerged, release head **1fdc401d87c6bffe6bf7312dfc9db681b689dcf7**, main base **c50cc48e6fa508592bda3f4838111e9cff5af80c** |
 | [PR45](https://github.com/C8LyNn/aplikacja-turnieje/pull/45) P12 RR roster | OPEN DRAFT unmerged, **a7a87bc019731191dbfa44bee6939e3fa25e27f4**, base same release SHA |
-| [PR42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) P09 Global Undo | OPEN DRAFT unmerged, HEAD **1ae0ccb801f4177052bff1ec7041e55b8c992c8b** (R16 patch not visible at preflight) |
+| [PR42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) P09 Global Undo | OPEN DRAFT unmerged; **FINAL CHECK HEAD ab828bd8ee08423e4062d5f7b85af21a64c1b892** (initial R17 preflight 1ae0ccb801f4177052bff1ec7041e55b8c992c8b, now superseded) |
 | [PR51](https://github.com/C8LyNn/aplikacja-turnieje/pull/51) malformed Undo | OPEN DRAFT unmerged, HEAD **2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a** |
 | PR45 GitHub reviews | Zero review events returned, but separate A60 R15 matrix **DOES certify scoped SOURCE_ACCEPTED_CONDITIONAL**, NOT native testing |
 | [PR45 GitHub Actions 38591289886](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38591289886) | FAILURE at inherited Pack19 snapshot consistency, later PG/release steps SKIPPED; not target feature PASS or FAIL |
@@ -77,7 +77,18 @@ On trusted owner-provided PC/VM with full exact PR45 checkout **a7a87bc019731191
 
 **Existing synthetic evidence:** R15 A80 standalone in-memory model established 11 Swiss/BYE/NC/DE fixture checks, not app TS/PG. R17 A80 relied on existing fixture corpus without launching new synthetic test, and does not upgrade to RUNTIME_VERIFIED. R13 [18-case conditional acceptance matrix](../../WEB-005_A80_R13_CONDITIONAL_ACCEPTANCE_FIXTURES.json) remains policy-gated.
 
-## 7. Actual activity, GO/STOP and direct coordinator instruction
+## 7. Final recheck delta after first report publication (A70 concurrent PR42 change)
+
+During the final GitHub readback, **PR42 advanced independently of A80** from 1ae0ccb801f4177052bff1ec7041e55b8c992c8b to **ab828bd8ee08423e4062d5f7b85af21a64c1b892** (still OPEN DRAFT, unmerged). GitHub compare reports 4 commits ahead / 0 behind and three touched code/test files relative to the earlier HEAD:
+- artifacts/api-server/src/application/players/tournament-roster.ts (+20/-1);
+- artifacts/api-server/src/routes/tournaments.ts (+1/-1);
+- artifacts/api-server/test/revert-match.integration.test.ts (+156/-0).
+
+These files belong to **A70's own R17 L2**, not A80. No new workflow runs were returned for the new PR42 exact HEAD and zero GitHub review events were returned when checked. Any prior A60 source verdict on the old PR42 commit cannot be transferred to the new SHA. This observation does NOT establish source acceptance or native runtime PASS for PR42; it also does not modify the independent, conditional PR45 SHA verdict.
+
+**Final PR45 after this delta:** still a7a87bc019731191dbfa44bee6939e3fa25e27f4, OPEN DRAFT and unmerged. **Final PR51:** unchanged at 2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a. Ownership/conflict analysis therefore has a freshly revised A70 Undo dependency. Do not merge or retest a composed release from A80.
+
+## 8. Actual activity, GO/STOP and direct coordinator instruction
 
 **Performed R17 by A80:** read R17 and R16 central/common/agent instructions; confirm no verifiable R16 A80 report; read original R15 A80/A50/A60 reports and exact A60 matrix; recheck PR32/42/45/51 GitHub status/HEAD/diff/files/CI, policy DECISIONS, PR45 test source; publish recovered R16 status notice, R17 policy decision queue and this final handoff on control docs branch.
 
