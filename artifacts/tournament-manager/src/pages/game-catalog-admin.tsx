@@ -246,6 +246,7 @@ export default function GameCatalogAdminPage() {
   const [draft, setDraft] = useState<Assignment[]>([]);
   const [status, setStatus] = useState<Game["status"]>("unclassified");
   const [importValue, setImportValue] = useState("");
+  const [adminToken, setAdminToken] = useState("");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,6 +255,11 @@ export default function GameCatalogAdminPage() {
   const [perspective, setPerspective] = useState<Perspective>("gameplay");
 
   const selected = gameId ? games.find((game) => game.id === gameId) ?? null : null;
+
+  // Kept only in component memory: never put a privileged token into a URL,
+  // localStorage, sessionStorage, logs, or a frontend build-time variable.
+  const adminWriteHeaders = () =>
+    adminToken ? { "x-steam-catalog-admin-token": adminToken } : undefined;
 
   const termsByFacet = useMemo(() => {
     const map = new Map<Facet, Term[]>();
@@ -333,6 +339,7 @@ export default function GameCatalogAdminPage() {
     try {
       const body = await api<{ game: Game }>("/api/steam-catalog/import", {
         method: "POST",
+        headers: adminWriteHeaders(),
         body: JSON.stringify({ url: importValue.trim() }),
       });
       navigate(`${BASE}/games/${body.game.id}`);
@@ -350,6 +357,7 @@ export default function GameCatalogAdminPage() {
     try {
       await api(`/api/steam-catalog/games/${selected.id}/classification`, {
         method: "PUT",
+        headers: adminWriteHeaders(),
         body: JSON.stringify({
           status,
           assignments: draft.map((item, index) => ({ termId: item.termId, role: item.role, position: index })),
@@ -370,6 +378,7 @@ export default function GameCatalogAdminPage() {
     try {
       await api("/api/steam-catalog/taxonomy", {
         method: "POST",
+        headers: adminWriteHeaders(),
         body: JSON.stringify({ facet: newFacet, label: newLabel.trim() }),
       });
       setNewLabel("");
@@ -437,6 +446,26 @@ export default function GameCatalogAdminPage() {
       />
 
       {error && <div className="mb-4"><ToolNotice tone="danger">{error}</ToolNotice></div>}
+
+      {(screen === "search" || screen === "game") && (
+        <div className="mb-4">
+          <ToolPanel
+            title="Dostęp do edycji katalogu"
+            description="Import i zmiany klasyfikacji wymagają oddzielnego klucza redaktora. Token organizatora turnieju nie daje tych uprawnień. Klucz nie jest zapisywany w przeglądarce i znika po odświeżeniu strony."
+          >
+            <input
+              type="password"
+              aria-label="Klucz redaktora katalogu"
+              autoComplete="off"
+              spellCheck={false}
+              value={adminToken}
+              onChange={(event) => setAdminToken(event.target.value)}
+              placeholder="Klucz redaktora (tylko przy edycji)"
+              className="w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+            />
+          </ToolPanel>
+        </div>
+      )
 
       {screen === "home" && <ProjectHome />}
 
