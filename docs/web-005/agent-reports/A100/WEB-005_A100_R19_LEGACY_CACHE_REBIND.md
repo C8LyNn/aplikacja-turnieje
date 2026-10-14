@@ -74,7 +74,7 @@ pnpm exec node --import tsx --import ./test/setup-dom.mjs --test ./src/hooks/use
 pnpm typecheck
 ```
 
-Report exact SHA, cwd, Node/pnpm, frozen lock verification, counts, failures, zero skip, command exit, sanitised logs. Automatic baseline Pack19 CI may fail first due independent PR35 not integrated: this is **not** a substitute for targeted RTL.
+Report exact SHA, cwd, Node/pnpm, frozen lock verification, counts, failures, zero skip, command exit, sanitised logs. **Actual exact-HEAD automatic CI:** [run 38631806899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38631806899), job `116085315511`, completed **FAILURE on inherited Pack19**. Raw log shows test matcher `readOnly:true` against actual `accessMode:"read only"`; Pack20–26 and static/database gates skipped. PR35 owns the isolated matcher correction. These are **not** targeted R19 test results; RTL/typecheck still `NOT_EXECUTED` and A100 did not manually rerun paid CI.
 
 **A30/A60:** independently inspect **this exact HEAD** before signoff, not the R18 verdict. A00/HQ resolves any `OWNER_WAIVER_REQUIRED` for residual historical untagged storage and final handoff policy. Existing 38 historical WEB-004 cases and all 21 PR composite readiness belong to A00/A10/A60, not A100.
 
