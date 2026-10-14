@@ -1,32 +1,39 @@
 # WEB-005 / DECISIONS
 
-**Owner:** 00 — Implementation Lead; **date:** 2026-10-14. Decisions apply to the pinned baseline and may be revised explicitly after verified changes.
+**Owner:** 00 — Implementation Lead; **R3 date:** 2026-10-14. Read with `BACKLOG.md`. All refs verified against private GitHub repository. No production access.
 
-| ID | Decision | State | Rationale and revisit condition |
+| ID | Decision | State | Basis / condition |
 |---|---|---|---|
-| D001 | Replit FROZEN; no production calls/changes | ENFORCED | User instruction; no Replit tools, production DB/runtime/secrets, paid operations |
-| D002 | PR #32 must not be merged/deployed | STOP | Open; 856 files; 2 historical CI failures; incomplete regression/migration/auth |
-| D003 | T010 source-contract correction | GO CONDITIONAL | Pin SHA, minimal test diff, preserve `repeatable read` + `accessMode: read only`, independent A60 QA |
-| D004 | T020 source/ledger/manifest investigation | GO | No SQL execution on production |
-| D005 | T020 migration files or SQL execution | STOP UNTIL PLAN | Competing ordinals 0030/0031 and unknown migration ledger; require 00 approval and isolated DB |
-| D006 | T030 catalog write-route code hardening | GO CONDITIONAL | 3 mutating routes lack guard on release; use isolated tests; no production token operations |
-| D007 | T130 A60 QA preflight + review | GO | Cannot implement what it independently reviews |
-| D008 | T040 lifecycle/undo | HOLD | Prior PR #7 and stacked #27 OPEN/draft; reconcile first |
-| D009 | Full release gate, PR #32 certification | STOP | Pack19 historical FAILURE; Pack20–26 and Pack17 SKIPPED; manual/staging QA pending |
-| D010 | Production deployment, merge, runtime secret changes | OWNER/HQ APPROVAL REQUIRED | Explicit external decision after gates and Replit unfreeze |
-| D011 | WEB-004 handoff completeness | BLOCKED / B001 | Exact consolidated document not found; maintain provisional scope |
-| D012 | Four branches task/control created | COMPLETED | Readback required: all branch tips equal pinned release SHA before source edits |
-| D013 | Central registers on coordinator-only task branch | GO | Keep all non-implementation documents at `docs/web-005/` on `chore/web-005/t000-wave1-control`; no update to main/release |
+| D001 | Replit FROZEN, production config/DB/secrets untouched | ENFORCED | User instruction; no Replit tool calls |
+| D002 | PR #32 release merge and deploy | STOP | 856 files, incomplete gates, unresolved migration/auth |
+| D003 | T010 Pack19 minimal contract fix / PR #35 | QA_REVIEW GO | Verified CI Pack19 8/8 and unchanged read-only/snapshot intent; independent A60 to accept |
+| D004 | T020 ledger, manifest, preflight and recovery analysis | GO | Source-only; no SQL changes or database execution by 00 |
+| D005 | T020 proposed canonical manifest 0027–0040 | **CONCEPTUAL GO FOR FIXTURE DESIGN ONLY / IMPLEMENTATION STOP** | 0030–0031 release; 0032–0040 editor. Require raw checksums, ledger/canonical history, SQL BEGIN/COMMIT normalization, PostgreSQL16 clean and historical upgrade runs, independent A60, final 00 approval. |
+| D006 | T030 code hardening of catalog 3 writes | QA_REVIEW GO | Fail-closed role separation, no production secret |
+| D007 | T130-A60 independent QA | GO | Reviews, not implements, tested code |
+| D008 | T040–T060 wave2 and later waves | HOLD | Wave1 unresolved; PR #7 and #27 stacked |
+| D009 | CI release certification | STOP | Pack19 green **in PR35 only**; Pack20 real FAIL; rest skipped; T030 PR34 CI fails earlier Pack19 |
+| D010 | Any merge/release/deployment/prod token provisioning | OWNER/HQ APPROVAL REQUIRED | Never implied by PR or code review |
+| D011 | WEB-004 complete consolidated handoff | BLOCKED/B001 | Missing; provisional backlog |
+| D012 | Pinned release baseline | CONFIRMED | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` unchanged |
+| D013 | Central registers only on `chore/web-005/t000-wave1-control` | ENFORCED | Do not touch release/main |
+| **D014** | Assign T015-A40 to Pack20–26 source-contract repair | **GO CONDITIONAL** | Created `fix/web-005/t015-pack20-26-contracts` from pinned release; exclusive test contract ownership; no Pack19 overlap; actual CI proof required |
+| **D015** | Assign T131-A50 to isolated PostgreSQL16 + test-execution preflight | **GO PREFLIGHT** | Environment support, not implementation nor independent QA; no use of production DB |
+| **D016** | Keep T010-A10 confined to Pack19 closeout | **ENFORCED** | Free implementation slot to A40, A60 independent acceptance |
+| **D017** | Select PR #34 as preferred Steam Catalog security implementation | **DECIDED FOR QA ONLY** | Reference middleware matches editor; 403/503 distinction; deeper PostgreSQL HTTP/no-write fixture. Runtime tests not executed, merge STOP |
+| **D018** | Classify PR #33 as superseded alternative | **HOLD / OPEN** | Do not close or merge yet; decision documented |
+| **D019** | Integration ordering | **PLAN ONLY** | release baseline -> reviewed PR35 -> reviewed T015 -> QA-approved PR34 -> full isolated gates; T020 SQL separate |
+| **D020** | Dedicated integration branch | **BLOCKED** | Creation attempt blocked by tool safeguards. Do not bypass, no branch created, no code integration authorized |
+| **D021** | Maximum concurrent implementation lanes | **3** | T015/A40, T020/A20, T030/A30; T010 closeout only; T131 support; T130 QA |
+| **D022** | Wave1 release gate | **NO-GO** | CI red and missing runtime auth/integration/DB upgrades |
 
-## CI provenance
+## Confirmed CI evidence
 
-- [Actions push 38407345710](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38407345710): historical FAILURE, HEAD `1fdc401d...`.
-- [Actions PR 38407744200](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38407744200): historical FAILURE, Pack19 test expected literal `readOnly:true`; implementation uses `accessMode:"read only"`.
-- These are not new tests. No CI rerun approved (avoid unexpected costs).
+- [GitHub Actions 38550541899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550541899) at T010 `7cb283aa...`: safety 23/23, Pack19 readiness 26/26, Pack19 source 8/8, Pack20 domain 15/15 PASS; Pack20 source 6/7 FAIL; downstream SKIPPED.
+- [GitHub Actions 38550962951](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550962951) at T030 `030d0f5f...`: Pack19 FAIL because T010 change absent; unrelated to auth test correctness.
+- [PR #33](https://github.com/C8LyNn/aplikacja-turnieje/pull/33), [PR #34](https://github.com/C8LyNn/aplikacja-turnieje/pull/34), [PR #35](https://github.com/C8LyNn/aplikacja-turnieje/pull/35) remain OPEN draft.
+- Source R2 migration JSON `WEB-005_T020_A10_R2_TARGET_MANIFEST_PROPOSAL.json`: 14 canonical entries 0027–0040, raw SHA-256, logical ID and postconditions; `runtime_rendered_sha256=null` and historic ledger attestation absent; **not migration test PASS**.
 
-## Evidence boundaries
+## No unauthorized operations
 
-- Confirmed through read-only GitHub connector: refs/PR metadata, code, workflow and logs, release/editor migration paths and catalog auth divergence.
-- No production/staging runtime or database checked. Repository refs do not prove the deployed version.
-- No release merge, deployments, expensive CI re-runs, secrets read/write, or production mutations authorized.
-- The three implementation branches are empty from the pinned baseline as of branch creation; task execution awaits their corresponding agent runs.
+No modifications to main/release, no merges/cherry-picks/deployments or production SQL. No paid workflow was intentionally dispatched by 00. Source/CI evidence is not a claim about deployed Replit runtime.
