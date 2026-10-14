@@ -31,6 +31,12 @@ export function validateBackupV3FlowIntegrity(backup: TournamentBackupV3): strin
     const proposalPlayers = new Set<number>();
     const proposalRanks = new Set<number>();
     const basketPositions = new Set<string>();
+    // Approved output keeps global rank but omits basketPosition. The current
+    // proposal generator assigns per-basket positions 1..N in rank order.
+    const rankedPositionsByBasket = new Map<string, Array<{
+      placementRank: number;
+      basketPosition: number;
+    }>>();
 
     for (const entry of proposal.entries) {
       const basket = baskets.get(entry.basketId);
@@ -48,6 +54,12 @@ export function validateBackupV3FlowIntegrity(backup: TournamentBackupV3): strin
         errors.push("B1: duplicate qualification placement rank in stage " + proposal.stageBackupId);
       }
       proposalRanks.add(entry.placementRank);
+      const rankedPositions = rankedPositionsByBasket.get(entry.basketId) ?? [];
+      rankedPositions.push({
+        placementRank: entry.placementRank,
+        basketPosition: entry.basketPosition,
+      });
+      rankedPositionsByBasket.set(entry.basketId, rankedPositions);
       const positionKey = entry.basketId + ":" + entry.basketPosition;
       if (basketPositions.has(positionKey)) {
         errors.push("B1: duplicate qualification basket position " + positionKey);
@@ -55,6 +67,18 @@ export function validateBackupV3FlowIntegrity(backup: TournamentBackupV3): strin
       basketPositions.add(positionKey);
       const key = entry.basketId + ":" + entry.playerBackupId + ":" + entry.placementRank;
       expected.set(key, (expected.get(key) ?? 0) + 1);
+    }
+
+    // A swapped/missing position can otherwise survive QPE -> OP: OP only
+    // carries (basket, player, global finalRank), not basketPosition.
+    for (const [basketId, entries] of rankedPositionsByBasket) {
+      entries.sort((left, right) => left.placementRank - right.placementRank);
+      for (const [index, entry] of entries.entries()) {
+        if (!Number.isInteger(entry.basketPosition) ||
+            entry.basketPosition !== index + 1) {
+          errors.push("B1: qualification basket position disagrees with rank order for " + basketId);
+        }
+      }
     }
 
     if (proposal.status !== "approved" && (proposal.output?.length ?? 0) > 0) {
@@ -123,6 +147,12 @@ export function validateBackupV3FlowIntegrity(backup: TournamentBackupV3): strin
       errors.push("B1: execution proposal revision mismatch " + execution.routeId);
     }
     const sourceOutputs = (proposal.output ?? []).filter(output => output.basketId === source.id);
+    const sourcePositions = new Map(
+      proposal.entries.filter(entry => entry.basketId === source.id).map(entry => [
+        entry.playerBackupId + ":" + entry.placementRank,
+        entry.basketPosition,
+      ] as const),
+    );
     const expected = new Map<string, number>();
     const actual = new Map<string, number>();
     for (const output of sourceOutputs) {
@@ -142,6 +172,17 @@ export function validateBackupV3FlowIntegrity(backup: TournamentBackupV3): strin
         errors.push("B1: arrival source basket differs from receipt " + execution.routeId);
       }
       const key = entry.playerBackupId + ":" + entry.sourceFinalRank;
+      // Current route execution writes explicit null here, which is legal.
+      // A non-null receipt must match the exact QPE basket/player/global rank;
+      // undefined is a malformed missing field, not the legacy null sentinel.
+      if (entry.sourceBasketPosition === undefined ||
+          (entry.sourceBasketPosition !== null &&
+            (!Number.isInteger(entry.sourceBasketPosition) ||
+              entry.sourceBasketPosition < 1 ||
+              entry.sourceBasketPosition !== sourcePositions.get(key)))) {
+        errors.push("B1: route source basket position differs from qualification " +
+          execution.routeId + "/" + key);
+      }
       actual.set(key, (actual.get(key) ?? 0) + 1);
       const arrivalKey = target.stageBackupId + ":" + entry.playerBackupId;
       if (seenArrivals.has(arrivalKey)) {
