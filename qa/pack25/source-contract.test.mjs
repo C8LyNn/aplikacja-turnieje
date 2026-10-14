@@ -20,8 +20,18 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
   assert.doesNotMatch(server,/\b(?:tx|db)\s*\.\s*(?:insert|update|delete|execute)\s*\(/);
   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
 });
-test("server returns graph together with prior diagnostic and action plan",()=>{
-  assert.match(server,/return \{ \.\.\.result, actionPlan, diagnostic, impactGraph \}/);
+test("server returns graph and risk report with prior diagnostic and action plan",()=>{
+  const responseContract=/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}/;
+  assert.match(server,responseContract);
+  assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
+  for (const replacement of [
+    ', actionPlan, diagnostic, impactRiskReport }',
+    ', actionPlan, diagnostic, impactGraph }',
+  ]) {
+    const invalid=server.replace(/,\s*actionPlan,\s*diagnostic,\s*impactGraph,\s*impactRiskReport\s*\}/,replacement);
+    assert.notEqual(invalid,server);
+    assert.doesNotMatch(invalid,responseContract);
+  }
 });
 test("panel includes graph type and field",()=>{
   assert.match(ui,/type SeImpactGraph = \{/);
