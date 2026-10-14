@@ -66,6 +66,8 @@ The late failure fixture mutates **only synthetic data**, not database schema or
 
 **Source-state:** `PATCH_REVISED`; **independent verdict:** `A60_REVIEW_REQUIRED_ON_NEW_SHA`. The [A60 R15 source matrix](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R15_INDEPENDENT_QA.md) had `SOURCE_BLOCKED_FULL_QP_QPE_OP_PARITY` on **old** SHA `e847...`; do not carry an old verdict over the changed HEAD or self-approve.
 
+**Confirmed new-head automatic CI:** [run 38623319193](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38623319193), job `116056098551`, **FAIL at Pack 19 snapshot consistency tests**. The **Static and database release gates** step and Packs 20–26 were **SKIPPED**. The targeted B1 PG16 test was not executed by that workflow; no source acceptance or feature PASS/FAIL follows from the Pack19 failure. PR35 separately addresses the old matcher.
+
 **A50 environment:** original [R15 evidence](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R15_RECEIPT.md) reports no full checkout/pnpm or physical PG16 execution. **A90 actual application tests: NOT_EXECUTED**; typecheck `NOT_EXECUTED`; integration PG16 `NOT_EXECUTED`; no exit/TAP or positive evidence. Automatic GitHub Actions may start on commits, but Pack19 old release matcher was previously blocking native DB gates; only actual new SHA workflow records can be attributed to this patch, and a prior gate failure does not validate these tests.
 
 **A50 exact commands (only on owner-approved setup):**
