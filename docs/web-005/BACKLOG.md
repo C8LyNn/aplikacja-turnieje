@@ -216,3 +216,12 @@ Verified at coordination time:
 - T040/A70 MP1 **PR #39 advanced**: \`16053ee132756ca05b6f2cd1f0cabae823905387\`, 8 files including backend/API Zod; real PG16/HTTP + generated React parity pending. A70 source QA/MP2 design only until a new scoped GO.
 - A10 should track **P01–P07** with P06=PR39 and P07=PR40, all QA provenance explicit.
 - Proposed agents 80/90/100/110/120 are **SOURCE-ONLY** at start. Code lanes are not automatically freed merely by creating a draft PR.
+
+
+## Batch accumulation for SWARM-006 (owner decision, 2026-10-14)
+
+**Current direction:** collect **more substantive, compatible and independently QA-tracked** repair packages before activating SWARM-006 for a WEB-005 integration wave. Existing P01–P07 preparation is an internal buffer, **not a send-now instruction**. Keep per-PR SHA, test evidence, dependencies and rollback current as PRs evolve; add future P08+ from T050/T060/T080/T055/etc only when actual patches exist and receive the appropriate acceptance.
+
+**Batch-release trigger:** coordinator proposes one coherent batch after enough cross-module repairs reach independent source acceptance and safe test executability; owner/HQ then explicitly authorizes the SWARM-006 intake/integration wave. Do not require an arbitrary fixed number of PRs and do not wait forever for the entire open WEB-004 bug backlog. Escalate emergency/high-severity safety exceptions separately for owner decision.
+
+**Status:** `BATCH_BUFFERED_NOT_DISPATCHED`; production/release remains NO-GO; WEB-005 continues fixes/QA, SWARM-007 file-communication architecture remains independently planned.
