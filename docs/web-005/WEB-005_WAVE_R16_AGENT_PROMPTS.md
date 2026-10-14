@@ -236,7 +236,7 @@ Release source baseline \`release/tournament-ops-20261013-01\` @ \`1fdc401d87c6b
 
 **TASK:** \`WEB-005-T055-T110-A110-R16\` | MODE: SOURCE ONLY.
 
-1. Present R15 owner-signable D1–D6 T055 Basketball/Stage basket full PUT: version/token shape, 409 vs 412, legacy missing token, stage/roster invalidation, draft retention and conflict reconciliation. No unilateral decision, even if 409 is a common default.
+1. Present R15 owner-signable D1–D6 T055 konfiguracji koszyków etapów full PUT: version/token shape, 409 vs 412, legacy missing token, stage/roster invalidation, draft retention and conflict reconciliation. No unilateral decision, even if 409 is a common default.
 2. Recheck unchanged PR43 CSV, PR50 backup preview and PR52 stage modal statuses and A60 conditional exact-head verdict, give A50 RTL commands/known gaps, no rewrite.
 3. Host UX044 unsaved draft block-vs-retain owner decision remains; do not implement without signed semantics. Keep previously withdrawn StageBasketsPanel ordinary A→B and backup overwrite findings WITHDRAWN.
 4. Annotate PR43/50/54 shared \`tournament-detail.tsx\` and PR53 cache leakage intersection for future SWARM-006 integration only; no code.
