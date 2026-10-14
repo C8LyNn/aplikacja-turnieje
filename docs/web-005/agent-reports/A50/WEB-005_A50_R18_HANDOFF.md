@@ -17,7 +17,7 @@
 
 All 21 #34–54 PRs were individually read as OPEN DRAFT/unmerged and based on release SHA above; no composite integration SHA. Changed after A60 signed R17 source QA:
 - #42 old `25b09f1a48a85ae882b817118f5d8c23bffbe383` → new `021bed269f9ea8ac8ce53caeea44263c098aa2dd`.
-- #53 old `8f959733258aed0cab15298dd0684ca068045e6f` → new `f400590b13e9b260232e822f7ea88fba7ea1224a`.
+- #53 old `8f959733258aed0cab15298dd0684ca068045e6f` → new `4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19`.
 - #54 old `dbba0eb82920b4f324866b1b983e1211459f52ec` → new `9866e5d2e73c99e01c2934a38ca1c62455efd2ed`.
 - #41 remains `f03cf3d09988a04ba9c2856e205d21f994ff67f1`, R17 `SOURCE_ACCEPTED_CONDITIONAL` but runtime pending.
 
@@ -36,3 +36,6 @@ Connect A50 to **one trusted, approved PC or isolated VM exposing actual shell a
 **Alternative path is only an A00 proposal:** A00 may request **separate, explicit** owner/HQ runtime-debt-to-SWARM-006 consent after all source/policy backlog issues are closed/waived. A50 cannot authorize or transmit that final handoff. Even if owner signs, RELEASE NO-GO until downstream composite full QA passes.
 
 **FINAL:** `A50_R18_REPORT_PUBLISHED / NATIVE_APP_TESTS_NOT_EXECUTED / RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+> **R18 live recheck addendum:** PR #53 moved more than once during publication (including interim `f400590b13e9b260232e822f7ea88fba7ea1224a`). Last readback exact HEAD `4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19`. Revalidate on GitHub immediately before any execution or independent approval. No RTL was executed here.
