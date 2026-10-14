@@ -8,7 +8,7 @@
   "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
   "control_doc_blob": "c2dd8c1e2e2e3b5e245db61877da99f59c77a0ff",
   "prior_signed_matrix_path": "docs/web-005/agent-reports/A60/WEB-005_A60_R15_PACKAGE_MATRIX.json",
-  "r16_recovery_status": "R16_ARTIFACTS_UNAVAILABLE; NO A60 R16 WORK OR EXACT ORIGINAL RESULT VERIFIED; NO RETROSPECTIVE PASS",
+  "r16_recovery_status": "R16_ARTIFACTS_UNAVAILABLE; R17 PR41/42/53 HEAD advanced and source independently reclassified; native runtime NOT_EXECUTED",
   "r16_carryover_prs": [
     41,
     42,
@@ -17,7 +17,7 @@
   "r17_no_new_pr_over_54": true,
   "package_count": 21,
   "source_partial_acceptance_unchanged_count": 17,
-  "full_source_blockers_count": 4,
+  "full_source_blockers_count": 3,
   "actual_application_runtime_receipts_independently_verified": 0,
   "pure_unit_legacy_only": "A60 prior PR40 Pack17 pure Node contract 24/24 PASS exit0 at R14; NOT a full app QA result; NOT rerun R17",
   "web004_historical_immutable": {
@@ -201,31 +201,32 @@
     {
       "packet_id": "P08",
       "pr_number": 41,
-      "head_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417",
+      "head_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
       "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "branch": "fix/web-005/t060-b1-backup-v3-integrity-r9",
       "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/41",
       "open": true,
       "draft": true,
       "merged": false,
-      "source_verdict": "SOURCE_BLOCKED",
-      "source_scope_detail": "P08_QP_QPE_OP_SOURCE_BASKET_POSITION_PARITY",
-      "source_review_provenance": "A60_R17_INDEPENDENT_EXACT_SHA_RECHECK",
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_scope_detail": "B1_QP_QPE_OP_SOURCE_BASKET_POSITION_PARITY_PATCH_CONFIRMED",
+      "source_review_provenance": "A60_R17_REVIEW_CURRENT_HEAD_SOURCE_BLOB",
       "runtime_verdict": "NO_A50_EXACT_SHA_APPLICATION_RUNTIME_RECEIPT_FOUND; NOT_EXECUTED_OR_BLOCKED",
       "qa_accepted_full": false,
       "policy_status": "BLOCKED",
-      "blocker": "Receipt/arrival matching includes playerBackupId:sourceFinalRank but sourceBasketPosition full parity incomplete; valid legal legacy and malformed 400/zero-clone PG tests absent",
+      "blocker": "QPE 1-based per-basket ordering and non-null route receipt position match now coded; explicit null legal. PG legal V3/legacy and malformed 400/zero-clone not executed.",
       "file": "artifacts/api-server/src/application/backups/backup-v3-flow-integrity.ts",
-      "file_blob": "cfe3d87bbb412e6878c872ffc003b7583fb53b57",
+      "file_blob": "a8482fa7137f1d71817c8b4ec43da7d6292f8183",
       "owner": "A90",
       "code_lane": "L1_R17_CONDITIONAL",
       "integration_status": "NOT_INTEGRATED",
-      "release_gate": "NO_GO"
+      "release_gate": "NO_GO",
+      "code_lane_status": "PATCH_REVISED_SOURCE_ACCEPTED_CONDITIONAL_RUNTIME_PENDING"
     },
     {
       "packet_id": "P09",
       "pr_number": 42,
-      "head_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+      "head_sha": "25b09f1a48a85ae882b817118f5d8c23bffbe383",
       "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "branch": "fix/web-005/t040-mp2a-global-undo-lifo-r9",
       "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/42",
@@ -233,18 +234,19 @@
       "draft": true,
       "merged": false,
       "source_verdict": "SOURCE_BLOCKED",
-      "source_scope_detail": "P09_ROSTER_UNDO_GLOBAL_LIFO",
-      "source_review_provenance": "A60_R17_INDEPENDENT_EXACT_SHA_RECHECK",
+      "source_scope_detail": "P09_ROSTER_UNDO_TESTS_AUTHORED_PRODUCTION_GLOBAL_LIFO_GUARD_WITHDRAWN",
+      "source_review_provenance": "A60_R17_REVIEW_CURRENT_HEAD_NO_GLOBAL_ROSTER_GUARD",
       "runtime_verdict": "NO_A50_EXACT_SHA_APPLICATION_RUNTIME_RECEIPT_FOUND; NOT_EXECUTED_OR_BLOCKED",
       "qa_accepted_full": false,
       "policy_status": "BLOCKED",
-      "blocker": "Roster delete_player/restore_player routes to undoTournamentRosterAction without lockLatestUndoableAction recheck of tournament-wide newest undoable action",
+      "blocker": "Roster global LIFO race tests added but latest source tournament-roster.ts lacks global latestUndoable recheck inside transaction; separate undoTournamentRosterAction still used; PG NOT_EXECUTED.",
       "file": "artifacts/api-server/src/routes/tournaments.ts",
-      "file_blob": "a0473fed687932a26275f2bef14864d196ed3bb7",
+      "file_blob": "1a9184d92736b5c2bcca07bb0d3067a0f7b314ce",
       "owner": "A70",
       "code_lane": "L2_R17_CONDITIONAL",
       "integration_status": "NOT_INTEGRATED",
-      "release_gate": "NO_GO"
+      "release_gate": "NO_GO",
+      "code_lane_status": "PATCH_REVISED_TEST_FIRST_SOURCE_STILL_BLOCKED"
     },
     {
       "packet_id": "P10",
@@ -489,7 +491,7 @@
     {
       "packet_id": "P20",
       "pr_number": 53,
-      "head_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979",
+      "head_sha": "8f959733258aed0cab15298dd0684ca068045e6f",
       "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "branch": "fix/web-005/t080-s2a-private-auth-query-cache-r13",
       "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/53",
@@ -497,18 +499,19 @@
       "draft": true,
       "merged": false,
       "source_verdict": "SOURCE_BLOCKED",
-      "source_scope_detail": "P20_PRIVATE_CACHE_NONCANONICAL_KEYS_AND_FIXTURE",
-      "source_review_provenance": "A60_R17_INDEPENDENT_EXACT_SHA_RECHECK",
+      "source_scope_detail": "S2B_CANONICAL_AND_TUPLE_BANS_AND_KNOWN_OWNER_MATCH_PICKS_IMPLEMENTED_UNKNOWN_OWNER_RESIDUAL",
+      "source_review_provenance": "A60_R17_REVIEW_CURRENT_HEAD_PRIVACY_PARTIAL",
       "runtime_verdict": "NO_A50_EXACT_SHA_APPLICATION_RUNTIME_RECEIPT_FOUND; NOT_EXECUTED_OR_BLOCKED",
       "qa_accepted_full": false,
       "policy_status": "BLOCKED",
-      "blocker": "URL prefix /api/tournaments/:id fails tuple keys tournaments/id/player-bans and matches/matchId/game-picks; fixture AuthProvider without QueryClientProvider",
+      "blocker": "Player bans tuple fixed; game picks evicted only where canonical cached match list proves owner, unknown owner picks persist on logout. Fixture fixed; RTL NOT_EXECUTED. Full privacy claim requires A30 owner review.",
       "file": "artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts",
-      "file_blob": "1d4365963192646dd918675a65f4496913f2873f",
+      "file_blob": "626d31eb5b82d38c171f091f07990e00069de4ad",
       "owner": "A100",
       "code_lane": "L3_R17_CONDITIONAL",
       "integration_status": "NOT_INTEGRATED",
-      "release_gate": "NO_GO"
+      "release_gate": "NO_GO",
+      "code_lane_status": "PATCH_REVISED_PARTIAL_SOURCE_ACCEPTED_FULL_PRIVACY_BLOCKED"
     },
     {
       "packet_id": "P21",
@@ -534,5 +537,44 @@
       "integration_status": "NOT_INTEGRATED",
       "release_gate": "NO_GO"
     }
-  ]
+  ],
+  "source_patch_accepted_conditional_count": 1,
+  "latest_verified_heads": [
+    {
+      "pr": 41,
+      "sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+    },
+    {
+      "pr": 42,
+      "sha": "25b09f1a48a85ae882b817118f5d8c23bffbe383"
+    },
+    {
+      "pr": 53,
+      "sha": "8f959733258aed0cab15298dd0684ca068045e6f"
+    },
+    {
+      "pr": 54,
+      "sha": "dbba0eb82920b4f324866b1b983e1211459f52ec"
+    }
+  ],
+  "r17_live_delta": {
+    "pr41": {
+      "old": "e847cb705296a48ab5c68ece96776cd0e0bbb417",
+      "new": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "source_blob": "a8482fa7137f1d71817c8b4ec43da7d6292f8183",
+      "verdict": "SOURCE_ACCEPTED_CONDITIONAL_PG_REQUIRED"
+    },
+    "pr42": {
+      "old": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+      "new": "25b09f1a48a85ae882b817118f5d8c23bffbe383",
+      "source_blob": "1a9184d92736b5c2bcca07bb0d3067a0f7b314ce",
+      "verdict": "SOURCE_BLOCKED_ROSTER_GLOBAL_LIFO_GUARD_REMOVED"
+    },
+    "pr53": {
+      "old": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979",
+      "new": "8f959733258aed0cab15298dd0684ca068045e6f",
+      "source_blob": "626d31eb5b82d38c171f091f07990e00069de4ad",
+      "verdict": "SOURCE_BLOCKED_UNKNOWN_MATCH_OWNERSHIP_RESIDUAL"
+    }
+  }
 }
