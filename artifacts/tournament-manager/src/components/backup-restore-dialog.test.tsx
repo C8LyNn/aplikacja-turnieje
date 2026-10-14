@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
@@ -46,9 +46,13 @@ function renderDialog() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false }, queries: { retry: false } } });
   const loc = memoryLocation({ path: "/tournaments/101" });
   let posts = 0;
+  const postBodies: unknown[] = [];
   globalThis.fetch = async (_input, init) => {
-    if (init?.method === "POST") posts++;
-    return new Response(JSON.stringify({ error: "unexpected request" }), { status: 500, headers: { "content-type": "application/json" } });
+    if (init?.method === "POST") {
+      posts++;
+      postBodies.push(JSON.parse(String(init.body ?? "{}")));
+    }
+    return new Response(JSON.stringify({ error: "request intentionally rejected in test" }), { status: 422, headers: { "content-type": "application/json" } });
   };
   const view = (open: boolean) => (
     <QueryClientProvider client={client}>
@@ -58,7 +62,7 @@ function renderDialog() {
     </QueryClientProvider>
   );
   const ui = render(view(true));
-  return { ui, loc, view, getPosts: () => posts, client };
+  return { ui, loc, view, getPosts: () => posts, postBodies, client };
 }
 
 function select(name: string) {
@@ -135,4 +139,26 @@ test("UX045-DIALOG-04: current valid V3 backup keeps new-tournament restore butt
   fireEvent.change(screen.getByLabelText(/Nowe hasło organizatora/), { target: { value: "NEWPASSWORD123" } });
   assert.equal(restore.disabled, false);
   assert.equal(v.getPosts(), 0);
+});
+
+test("UX045-DIALOG-05: explicit B import uses only new B file and credentials; no silent A POST", async () => {
+  globalThis.FileReader = DeferredFileReader as unknown as typeof FileReader;
+  const v = renderDialog();
+  const a = select("A");
+  act(() => a.succeed(backup("A", "private_online")));
+  fireEvent.change(screen.getByLabelText(/Nowe hasło organizatora/), { target: { value: "A_OLD_SECRET_999" } });
+  const b = select("B");
+  act(() => { b.succeed(backup("B")); a.succeed(backup("A")); a.fail(); });
+  assert.equal(v.getPosts(), 0);
+  const restore = screen.getByRole("button", { name: /Przywróć jako nowy turniej/ }) as HTMLButtonElement;
+  assert.ok(restore.disabled);
+  fireEvent.change(screen.getByLabelText(/Nowe hasło organizatora/), { target: { value: "B_NEW_SECRET_123" } });
+  assert.equal(restore.disabled, false);
+  fireEvent.click(restore);
+  await waitFor(() => assert.equal(v.getPosts(), 1));
+  const body = JSON.stringify(v.postBodies[0]);
+  assert.match(body, /"name":"B"/);
+  assert.match(body, /B_NEW_SECRET_123/);
+  assert.doesNotMatch(body, /A_OLD_SECRET_999/);
+  assert.doesNotMatch(body, /"name":"A"/);
 });
