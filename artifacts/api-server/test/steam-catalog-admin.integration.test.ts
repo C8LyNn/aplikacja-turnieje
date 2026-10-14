@@ -32,12 +32,19 @@ function restore(name: keyof typeof originalEnv, value: string | undefined) {
 async function snapshot() {
   const result = await db.pool.query<{
     games: number; terms: number; assignments: number; fixture_status: string;
+    games_digest: string; terms_digest: string; assignments_digest: string;
   }>(`
     SELECT
       (SELECT count(*)::int FROM steam_catalog_games) AS games,
       (SELECT count(*)::int FROM steam_catalog_terms) AS terms,
       (SELECT count(*)::int FROM steam_catalog_game_terms) AS assignments,
-      (SELECT status FROM steam_catalog_games WHERE id = $1) AS fixture_status
+      (SELECT status FROM steam_catalog_games WHERE id = $1) AS fixture_status,
+      (SELECT md5(coalesce(jsonb_agg(to_jsonb(g) ORDER BY g.id)::text, '[]'))
+         FROM steam_catalog_games AS g) AS games_digest,
+      (SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.id)::text, '[]'))
+         FROM steam_catalog_terms AS t) AS terms_digest,
+      (SELECT md5(coalesce(jsonb_agg(to_jsonb(gt) ORDER BY gt.game_id, gt.term_id)::text, '[]'))
+         FROM steam_catalog_game_terms AS gt) AS assignments_digest
   `, [gameId]);
   return result.rows[0];
 }
