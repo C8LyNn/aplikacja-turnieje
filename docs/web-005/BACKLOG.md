@@ -325,3 +325,22 @@ R10 implementation is **source patches only** (NOT integrated): **P10 PR #43** T
 **Security gap to triage (from A100 R14):** PR53 auth query-cache eviction uses URL-prefix queryKey matcher; `["tournaments",id,"player-bans"]` and `["matches",matchId,"game-picks"]` are outside that matcher. Match key needs match→tournament ownership mapping before targeted eviction, not broad global purge. Existing `use-tournament-auth.test.tsx` wraps AuthProvider without QueryClientProvider required by PR53. These are SOURCE_CONFIRMED incompatibilities, **runtime user-data leakage / actual test failure still not executed/proven**. A100 S2B conditional one-lane CODE HOLD pending A60 independent source FAIL or A50 reproduction and explicit A00 `R15-S2B-CODE-GO`.
 
 **Owner decisions still blocking code:** T055 Basket CAS 409/412/version token; Swiss TS-A deny vs TS-B reopen, SE/Swiss/DE ranking; Backup B2 portable history/CAS/legacy; Direct Revert strict CAS+Host, Steam/session. A70/A80/A90/A110 prepare owner-signable choices, no guessed policy implementation. WEB-005 completes entire approved WEB-004 R2 backlog before single final SWARM-006 integration transfer; no new WEB-004 reports, no premature merge/release.
+
+
+## R16 — exact-source blockers remediation after R15 (2026-10-14)
+
+**Single central instruction set:** [WEB-005_WAVE_R16_AGENT_PROMPTS.md](./WEB-005_WAVE_R16_AGENT_PROMPTS.md). All 13 A00–A120 threads read §§0–2, only own AGENT Axx. Owner/A00 coordinates three small source-amendment lanes, file ownership and independent QA; no new PR count goal.
+
+**R15 actual outcome now proven from direct reports:** A50 [R15 evidence](./agent-reports/A50/WEB-005_A50_R15_RECEIPT.md) confirms 0 native application tests: full checkout/pnpm/disposable PG16 absent; 15 local environment/launcher invocations not app tests. A60 [signed source matrix](./agent-reports/A60/WEB-005_A60_R15_INDEPENDENT_QA.md) pins 21 draft PRs and documents **17 narrow/conditional/offline source acceptances + 4 full-claim SOURCE_BLOCKED**; current full QA accepted 0/21; unmerged and integrated_sha=null. Direct original A50/A60 R14 and R15 provenance is available on GitHub; don't claim missing reports.
+
+**R16 GO SOURCE-CODE ONLY, 3 exclusive existing-branch amendments:** 
+- **A90 P08 PR41** — close QP/QPE/OP sourceBasketPosition parity gap, preserve valid legacy positive, 400/no clone negative fixture, no Backup B2/B3A rework.
+- **A70 P09 PR42** — global latest Undo LIFO under tournament lock also for roster `delete_player/restore_player`; stale 409 zero-write, preserving lawful newest action and history; no public MP2B CAS.
+- **A100 P20 PR53** — noncanonical query keys `["tournaments",id,"player-bans"]`, `["matches",matchId,"game-picks"]` with **proof of match ownership**; repair existing AuthProvider test missing QueryClientProvider in narrow scope. No global cache purge, no session TTL redesign.
+All three source patches require new exact SHA and **fresh A60 independent acceptance**, then A50 actual runtime if execution is authorized. PR41/42/53 existing draft branches; no merge/cherry-pick or 3 new PRs.
+
+**P21 PR54 SOURCE-ONLY:** A120 builds mixed historical RR stage detail 403 + valid DE/Overview test-first repro to limit broad `RoundRobinReadbackBridge` whole-detail denial. Source blocked full claim; no code R16 as all slots occupied.
+
+**P0 infrastructure owner action:** provide A50 trusted shell access to clean complete per-SHA repo checkouts + Node22/pnpm10 and frozen dependencies for frontend RTL/typecheck; separately owner/A20 approved physically isolated disposable PG16 with bounded tm_test_* reset consent for backend integration. No real tests claimed until command/exit/TAP evidence. A60 reviews exact changed heads; A10 updates manifest receipts/checksums.
+
+**Other blockers:** 21 currently OPEN DRAFT/unmerged PRs, Pack19 old matcher fixed only in separate PR35, Pack17 full gate not run; potentially fragile TAP parser T017-QA-01 source-only test design; Basket CAS, Swiss/SE/DE, Backup B2, direct Revert+Host and Steam/session policies need signed owner/HQ disposition. WEB-005 remains not formally complete; **SWARM-006 is not activated until a single authorized final handoff.**
