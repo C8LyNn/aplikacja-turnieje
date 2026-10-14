@@ -464,7 +464,7 @@ export default function GameCatalogAdminPage() {
             />
           </ToolPanel>
         </div>
-      )
+      )}
 
       {screen === "home" && <ProjectHome />}
 
