@@ -305,3 +305,19 @@ No documentation decision here approves merge/cherry-pick/rebase to release/main
 | **D144** | Only explicit FINAL_HANDOFF_GO after closed/signed WEB-005 backlog, A10 manifest and A60 independent source verdict can activate SWARM-006. SWARM-006 owns integration, conflict resolution, composite QA/deploy separately. | SWARM-006 HOLD until fresh authorization; no WEB-004 new audit reports. |
 
 No merge/cherry-pick, production SQL/DDL, shared DB reset, paid CI run, Replit integration, staging or live deployment is authorized here.
+
+
+## R19 — independent R18 verdict and final source/privacy closure (2026-10-14)
+
+| ID | Decision | Gate |
+|---|---|---|
+| **D145** | Verify 21 existing PR #34–54 remain OPEN DRAFT/unmerged. New R18 HEADs PR42 `021bed269f9ea8ac8ce53caeea44263c098aa2dd`, PR53 `8710f7fe5946d7f62e366303a97722d4201fc96b`, PR54 `9866e5d2e73c99e01c2934a38ca1c62455efd2ed`; PR41 unchanged `f03cf3d09988a04ba9c2856e205d21f994ff67f1`. | 21 exact candidates, no composite SHA, not release accepted |
+| **D146** | [Independent A60 R18](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R18_INDEPENDENT_QA.md): PR41/PR42 source accepted conditional; PR53 source accepted only for newly verified owner and full legacy privacy review open; PR54 source blocked because production remains old global RR403 guard. | `FINAL_HANDOFF_NOT_READY` (independently signed) |
+| **D147** | [A50 R18](./agent-reports/A50/WEB-005_A50_R18_RECEIPT.md) records **zero native app RTL/API/PG16 tests**; missing full connected checkout/pnpm/test DB. PR35 Pack19 fixed source matcher is still isolated on separate draft. | `RUNTIME_NOT_EXECUTED` and full integrated CI NO-GO |
+| **D148** | Publish single [WEB-005_WAVE_R19_AGENT_PROMPTS.md](./WEB-005_WAVE_R19_AGENT_PROMPTS.md), 13 Axx sections, shared §§0–2, final-gate logic. | **R19 READY** |
+| **D149** | R19 grants **A120 limited exclusive edit rights to `stage-progress-view.tsx` and child tests on PR54 branch**, alongside own PR54 page+test, to close both legal DE/Overview and denied historical RR selected-stage privacy. PR47 branch unchanged; collision explicitly delegated to future SWARM-006 after authorized handoff. | `GO SOURCE-CODE L1 ONLY`, no merge/new PR |
+| **D150** | R19 grants A100 only bounded PR53 legacy orphan picks rebind test/fix on its existing query/auth files with proven ownership; unknown safe solution → HOLD and owner decision. | `CONDITIONAL GO SOURCE-CODE L2`; no global purge |
+| **D151** | A10/A00 must reconcile accepted WEB-004 R2 38 source-case IDs to actual 21 candidates and owner-signed disposition. Sport/Basket CAS/Backup B2/public Revert/Steam/session choices remain unsigned as of A60 R18. | **POLICY + HISTORIC BACKLOG HOLD**, no invented signatures |
+| **D152** | Only after all non-waived source/privacy and owner-policy/38-case disposition gates close may A00 request owner/HQ option A real tests before handoff or B explicit `HANDOFF_WITH_RUNTIME_TEST_DEBT` for future SWARM-006 integrator. Tests remain hard release stop in B. | **RUNTIME DEBT NOT WAIVED, FINAL_HANDOFF_GO=FALSE, SWARM006 HOLD** |
+
+These documentation decisions DO NOT authorize merge/cherry-pick/composite integration, production SQL, shared DB reset, paid CI, staging/live or actual SWARM-006 dispatch.
