@@ -1,63 +1,84 @@
 # WEB-005 / BACKLOG
 
-**Owner:** 00 — Implementation Lead (local coordinator; subordinate to global HQ Queen)  
-**Updated:** 2026-10-14  
-**Execution:** WAVE 1 — task branches created, implementation/test execution NOT YET VERIFIED  
-**Single source of truth:** this file + DECISIONS.md on `chore/web-005/t000-wave1-control` only. No automatic merge/deployment.
+**Owner:** 00 — Implementation Lead (local only; global Queen resides in separate HQ)  
+**Updated:** 2026-10-14 — WAVE 1 R3  
+**Scope:** WAVE 1 ONLY; no merge/deploy/Replit/prod; full WEB-004 consolidated handoff still missing (B001).  
+**Source of truth:** this file and DECISIONS.md, isolated in `chore/web-005/t000-wave1-control`.
 
-## Verified immutable references
+## Verified GitHub pins (R3)
 
-- `main`: `c50cc48e6fa508592bda3f4838111e9cff5af80c`
-- `release/tournament-ops-20261013-01`: `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`
-- `codex/game-catalog-editor-reliability`: `28da3ef94f3b30f90c1b3b70a88ab7f61462d99c`
-- [PR #32](https://github.com/C8LyNn/aplikacja-turnieje/pull/32): OPEN, unmerged; 856 changed files / 51 commits at verification.
-- Production deployed SHA/DB migration history: **UNKNOWN**; no Replit inspection authorized.
-- Full `WEB-004_TO_WEB-005_HANDOFF_R1_2026-10-14.md`: **NOT FOUND** (B001); this backlog is provisional.
+| Ref | SHA | State |
+|---|---|---|
+| main | `c50cc48e6fa508592bda3f4838111e9cff5af80c` | unchanged |
+| release/tournament-ops-20261013-01 | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` | unchanged, no wave 1 fixes included |
+| codex/game-catalog-editor-reliability | `28da3ef94f3b30f90c1b3b70a88ab7f61462d99c` | source reference only |
+| T010 / PR #35 | `7cb283aa82273a1e22daf9051a82311eef53760c` | OPEN DRAFT, one-file Pack19 fix |
+| T020 migration analysis branch | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` | no migration files changed |
+| T030 / PR #34 | `030d0f5f51df6731cff8135a793abc2d51b0b775` | OPEN DRAFT, 8 files, 11 commits |
+| T030 alternative / PR #33 | `79fc25971a53641a704fa052a2b8d937d140fa7d` | OPEN DRAFT, SUPERSEDED/HOLD |
+| T015 new branch | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` | created, no code changes yet |
+| PR #32 | release HEAD above | OPEN, 856 changed files, no merge |
 
-## Wave 1 ownership (task is not proof of agent execution)
+## Wave 1 ownership and next gates
 
-| Task / owner | Source scope | Exclusive task branch | State / authority | Acceptance evidence |
-|---|---|---|---|---|
-| T010 / 10 — A10 | `qa/pack19/source-contract.test.mjs`, readiness transaction contract + workflow QA | `fix/web-005/t010-pack19-contract` | READY / minimal code fix GO conditional | fail-before/pass-after, source/route semantics, Pack19–26, full gates as available, independent A60 |
-| T020 / 20 — A10 | `lib/db/migrations/` and migration runner/ledger research | `fix/web-005/t020-migration-reconciliation` | READY / ANALYSIS ONLY; SQL changes STOP pending 00 plan approval | unique manifest, upgrade matrix, recovery plan, isolated PostgreSQL16 test design, A60 |
-| T030 / 30 — A10 | `artifacts/api-server/src/routes/steam-game-catalog.ts` + narrowly required catalog access guard/tests | `fix/web-005/t030-steam-catalog-write-auth` | READY / code-only hardening GO conditional | three mutators denied for unauthorized actors, authorized catalog-admin preserved, tests/zero side effects, A60 |
-| T130 / 60 — A60 | review all three task diffs, CI/DB/security regression matrix | no implementation branch | READY / independent QA GO | commit-pinned independent verdict with exact tests and evidence |
-
-**State meaning:** READY means authorization and branch prepared. **No worker completion or new tests are asserted.**
-
-## Deferred work
-
-| Task | Priority | Topic | Status / dependency |
+| Task / agent | Branch / permitted scope | R3 state | Required next evidence |
 |---|---|---|---|
-| T040 | P0 | Match lifecycle / Undo / cancellation | BACKLOG; reconcile PR #7 then stacked PR #27, dependent on wave 1 |
-| T050 | P0/P1 | SE/DE, brackets, BYE, groups/baskets routing | BACKLOG; wave 1 dependency |
-| T060 | P0/P1 | Backup V3 / correction journal / restore | BACKLOG; migration strategy first |
-| T070 | P1 | Backend / API contracts | BACKLOG |
-| T080 | P1 | Privacy / sessions | BACKLOG |
-| T090 | P1 | Host / scoring / queue | BACKLOG |
-| T100 | P1/P2 | Standings / winners / projector | BACKLOG |
-| T110 | P2 | UX / polling / accessibility | BACKLOG |
-| T120 | P1 | Version / deployment readiness | BACKLOG; deployment requires owner permission |
+| **T010-A10 / 10** | `fix/web-005/t010-pack19-contract`: Pack19 test only | **QA_REVIEW / CLOSEOUT**. Actual CI Pack19 green; PR #35 draft. | A60 source review of read-only/snapshot contract, fail-before/pass-after; handoff and acceptance. Do not edit Pack20–26. |
+| **T015-A40 / 40** | `fix/web-005/t015-pack20-26-contracts`: Pack20–26 source contracts only | **READY / P0 GO CONDITIONAL**. Branch created from release SHA, no fix yet. | Minimal robust assertions preserving both `repeatable read` and `accessMode: read only`; mandatory negative controls; exact before/after tests; independent A60. Pack20 failing, 21/25/26 source-stale. |
+| **T020-A10 / 20** | `fix/web-005/t020-migration-reconciliation`: ledger/manifest/recovery analysis and isolated fixture contract | **PLAN_REVIEW / GO DESIGN ONLY**. Manifest proposal 0027–0040 external artefact, not in repo, PostgreSQL tests NOT_EXECUTED. | Verify raw source checksums; runner atomicity, embedded BEGIN/COMMIT in release 0031; history ledger/attestation; clean B26 / R30 / R31 / E30–E38 / MIXED safe test matrix. No DDL changes without second 00 approval. |
+| **T030-A10 / 30** | `fix/web-005/t030-steam-catalog-write-auth`: 3 Steam Catalog mutations, dedicated admin guard, scoped frontend, tests | **QA_REVIEW / PR #34 SELECTED**. Unit, DB-integrated HTTP, typecheck NOT_EXECUTED; PR #33 remains open HOLD. | A50 isolated execution of tests; A60 independent deny/no-write/allowed/GET QA and frontend token assessment. No server secret activation. |
+| **T131-A50 / 50** | no source implementation branch; runner/setup and isolation evidence | **READY / PRE-FLIGHT ONLY**; no independent runtime tests credited | Prove TEST_DATABASE_URL safe, TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA, isolated PostgreSQL16 & fixture; execute permitted tests only if environment verified; provide commands, exit codes and SHA to A60. No production connection. |
+| **T130-A60 / 60** | no implementation branch; independently review T010, T015, T020 and T030 | **ACTIVE / RELEASE NO-GO** | independently validate HEAD-pinned PR #35 and #34, migration proposal, T015; distinguish SOURCE, HISTORICAL_CI, TESTED and NOT_EXECUTED. |
 
-## Wave gates and status vocabulary
+**Concurrency:** three implementation/analysis lanes at most: 40=T015, 20=T020, 30=T030. Agent 10 completes closeout/QA only, no new implementation; 50 is environment support, 60 is independent QA.
 
-- Wave 1: T010 + T020 + T030 with T130 A60 in parallel; max 3 active implementations + 1 independent QA lane.
-- Wave 2 T040/T050/T060: HOLD until dependency and plan review; release remains NO MERGE / NO DEPLOY.
-- `SOURCE` (inspected code), `HISTORICAL_CI` (old actual jobs), `TESTED` (new executed tests), `STAGING`, `PRODUCTION_VERIFIED` are distinct.
-- `PASS | FAIL | BLOCKED | NOT_EXECUTED` must include commit SHA, command, fixture, exit code, expected/actual.
-- Lifecycle: `BACKLOG → READY → IN_PROGRESS → IMPLEMENTED → QA_REVIEW → PR_READY → ACCEPTED → ARCHIVED`; `MERGED`, `DEPLOYED` are separate states.
+## Actual CI provenance and remaining blocks
+
+- [PR #35 run 38550541899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550541899), HEAD `7cb283aa...`: SE safety 23/23 PASS, Pack19 readiness 26/26 PASS, Pack19 source contract 8/8 PASS, Pack20 domain 15/15 PASS, **Pack20 source 6/7 FAIL** (stale `readOnly:true`). Pack21–26 and Pack17 `--full` SKIPPED.
+- Source review at same HEAD shows obsolete `readOnly:true` in Pack21, Pack25, Pack26; not yet runtime failures.
+- [PR #34 run 38550962951](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550962951), HEAD `030d0f5f...`: CI Pack19 FAIL because PR34 branch does not include PR35 test fix. **Not evidence that T030 auth tests failed or passed.**
+- New independent T030 targeted unit, PostgreSQL HTTP integration, typecheck and public GET tests have **NOT_EXECUTED** status pending A50/A60.
+- Postgres migration clean install and upgrade tests **NOT_EXECUTED**. No live DB ledger or deployed SHA inspection authorized.
+
+## Selection and migrations
+
+- **T030 chosen draft for review: PR #34**, because compatible with editor-reference middleware and HTTP 403 (missing/bad client key)/503 (missing server configuration), plus deeper isolated DB state-fingerprint tests and public GET. **#33 SUPERSEDED/HOLD**, no close/merge without separate action.
+- **T020 proposed manifest 0027–0040:** 0027–0029 shared; 0030–0031 release corrections; 0032–0040 renumbered editor catalog lineage (former 0030–0038). Source-only manifest and validator not runtime proof. **GO** for verifying manifest and designing safe disposable fixtures; **STOP** for production DDL, migration runner changes, automatic historic adoption, and merging SQL pending attestation and operator decision.
+- Release 0031 has embedded BEGIN/COMMIT; fix/test transaction ownership before any migration implementation.
+
+## Integration strategy (PLAN ONLY)
+
+1. Pin release base `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` and record clean compare.
+2. On a **future dedicated disposable integration branch** apply independently accepted **PR #35 (Pack19)** by reviewed cherry-pick/patch (NOT into release/main).
+3. Then apply vetted **T015 (Pack20–26)**; run source contracts and unit suites in dependency order, verify full Pack17 `--full` with isolated PostgreSQL.
+4. Only after 00 selects and A60 approves, apply **PR #34 (Steam auth)**, never PR #33 as well; run negative/positive HTTP, no-write, public GET, typecheck, frontend regressions.
+5. Keep T020 SQL outside candidate until its own manifest and historical upgrade acceptance; never silently include catalog editor migrations.
+6. All staged commits and SHA logged; independent A60 gives gate verdict. No release/main merge; no Replit or production.
+
+**Integration branch creation attempt was blocked by tool safeguards during R3.** No integration branch exists and no cherry-pick, merge, tests or CI dispatch was performed. Re-attempt only by an approved/supported workflow after explicit resolution of tool restriction; do not work around it.
+
+## Deferred packages
+
+| Task | Status / dependency |
+|---|---|
+| T040 match Undo/cancel/stale-state | HOLD; PR #7 then stacked PR #27; Wave2 |
+| T050 SE/DE/Swiss/baskets/qualifications | HOLD; Wave2 |
+| T060 backup/restore/correction journal | HOLD; migration decision first; Wave2 |
+| T070 API, T080 auth/privacy, T090 Host, T100 standings, T110 UX, T120 version-readiness | BACKLOG; later waves |
 
 ## Blockers
 
-- **B001** Full WEB-004 handoff unavailable; current scope based on blueprint and selected original audit state files.
-- **B002** PR32 CI blocked in Pack19; later steps in known runs SKIPPED.
-- **B003** Release/editor 0030/0031 migration collision; database execution ledger UNKNOWN.
-- **B004** Catalog-admin secret activation requires owner approval. Code guard must fail closed.
-- **B005** Production deployed SHA and DB schema UNKNOWN; Replit frozen.
-- **B006** Independent green QA + staging/manual release readiness not demonstrated.
-- **B007** `main`, release, editor and newly-created branches not protected; no branch rules changed.
+- B001 full WEB-004 consolidated handoff absent.
+- B002 Pack20 fails real CI; Pack21/25/26 source-contract stale; Pack17/remaining gates skipped.
+- B003 competing 0030/0031 histories, unknown production migration ledger/checksums, embedded SQL transaction.
+- B004 owner-only Steam catalog production credential provisioning.
+- B005 production deployed SHA and migration history unknown; Replit frozen.
+- B006 no independent full DB/HTTP/typecheck/UX regression green.
+- B007 main/release/task branches not protected; no rules changed.
+- B008 PR #33/#34 duplicate (R3 decision to select #34, other on HOLD).
+- B009 isolated test execution capacity unproven; T131-A50 tasked with safe preflight.
+- B010 integration branch creation blocked by platform tool safeguards; future integration remains a plan.
 
-## Next intake contract
+## Reporting / state semantics
 
-Each worker returns `TASK`, `BASE_SHA`, `HEAD_SHA`, `BRANCH`, `FILES_CHANGED`, `TESTS_RUN` (command+exit), `TESTS_NOT_RUN`, `PR`, `SECURITY/REGRESSION_RISK`, `ROLLBACK`, `NEXT_OWNER`, `READY_FOR_ARCHIVE`.
-Coordinator 00 updates this register **only after real GitHub readback or a substantiated worker HANDOFF**, and obtains independent A60 review before ACCEPTED.
+Workers return TASK, BASE_SHA, HEAD_SHA, BRANCH, PR, FILES_CHANGED, TESTS_RUN (exact command, environment, exit code), TESTS_NOT_RUN, A60_VERDICT, RISK, ROLLBACK, NEXT_OWNER, READY_FOR_ARCHIVE. Only actual runtime executions may be labeled PASS. SOURCE or historical CI is a separate evidence type; no implicit release GO or permission to merge/deploy.
