@@ -1,0 +1,55 @@
+{
+  "task": "WEB-005-T133-A50-R12",
+  "evidence_level": "ENVIRONMENT_PREFLIGHT_ONLY",
+  "executed_at_utc": "2026-10-14T19:12:49.121406+00:00",
+  "host_platform": "Linux",
+  "checked_filesystem": "/mnt/data",
+  "actual_commands": [
+    {
+      "argv": [
+        "node",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "v22.16.0"
+    },
+    {
+      "argv": [
+        "git",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "git version 2.47.3"
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/mnt/data",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 128,
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git"
+    }
+  ],
+  "binary_discovery": {
+    "pnpm": "NOT_FOUND_NOT_RUN",
+    "docker": "NOT_FOUND_NOT_RUN",
+    "psql": "NOT_FOUND_NOT_RUN",
+    "pwsh": "NOT_FOUND_NOT_RUN"
+  },
+  "paths": {
+    "/mnt/data/WEB-005-A50-R16": false,
+    "/mnt/data/aplikacja-turnieje": false,
+    "/mnt/data/WEB-005-A50-R15": true
+  },
+  "isolated_pg16_attested": false,
+  "owner_reset_go": false,
+  "shell_to_user_PC": false,
+  "frontend_test_count": 0,
+  "pg_integration_test_count": 0,
+  "native_app_exit": null,
+  "native_app_tap": null,
+  "classification": "R17_ENV_BLOCKED_NOT_APP_FAIL_NOT_APP_PASS"
+}
