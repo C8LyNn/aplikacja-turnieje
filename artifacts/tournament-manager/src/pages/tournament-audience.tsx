@@ -229,7 +229,10 @@ export default function TournamentAudience() {
   const featuredMatch = tournament?.featuredMatchId
     ? matches?.find((m) => m.id === tournament.featuredMatchId)
     : null;
-  const heroMatch = featuredMatch ?? matches?.find((m) => m.status === "in_progress") ?? null;
+  // A finished tournament has no live hero; avoid fetching obsolete hero extras.
+  const heroMatch = tournament?.status === "completed"
+    ? null
+    : featuredMatch ?? matches?.find((m) => m.status === "in_progress") ?? null;
 
   const isHeroLive = heroMatch?.status === "in_progress";
   const isHeroDone = heroMatch?.status === "completed";
