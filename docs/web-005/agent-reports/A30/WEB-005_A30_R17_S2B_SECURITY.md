@@ -111,3 +111,34 @@ These PRs are **independent, not integrated with PR53 or one another**; backend 
 - **STOP:** code by A30, rebase/cherry-pick/merge, deployment, prod/DDL, unapproved paid CI, extra PR, SWARM-006. No release acceptance from this report.
 
 **SIGNED A30 SECURITY PEER — R17:** `SOURCE_GAP_CONFIRMED / R16_ARTIFACTS_UNAVAILABLE / PR53_UNCHANGED_AT_REVIEW / S2B_MATCH_TENANT_REQUIRED / A60_R15_SOURCE_FAIL_FULL_PRIVACY / APP_RUNTIME_NOT_EXECUTED / NEXT_A100+A50+A60→A00 / RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+---
+
+## 8. LATE R17 DELTA — supersedes the initial PR53 HEAD checkpoint above
+
+**Re-review timestamp:** 2026-10-14 Europe/Warsaw, immediately after concurrent A100 R17 push. **Latest verified code HEAD:** `8f959733258aed0cab15298dd0684ca068045e6f`, OPEN/DRAFT/UNMERGED. Comparison to initial `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979`: **3 new commits**, test-first (two) + production cache matcher revision (one). This section is the **current A30 security peer assessment**; sections 1–7 document the **earlier observed state** and remain historical evidence, not the new HEAD verdict.
+
+### R17 actual changed file/provenance
+
+- `artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx` now blob `9367462da601b7a6b39e6b825984a27fae12cf16`: original `AuthProvider` fixture is correctly nested in `QueryClientProvider` with an isolated fresh `QueryClient` per test and cleared afterward. The former structural wrapper source blocker **is corrected in source**, but its two legitimate support-session tests remain **NOT_EXECUTED**.
+- `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` now blob `d11dc19728c7ce0211d515df03b5182f1e6bfea9`: **six new test declarations** after the prior 9 scenario count, covering A logout and bans/owned picks versus B, 403 on bans and picks, late non-abortable picks response, unknown owner retained, 7/70 strict scope. **15 authored scenarios overall**, NOT 15 executed PASS.
+- `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts` now blob `626d31eb5b82d38c171f091f07990e00069de4ad`: S2B code now recognizes exact `["tournaments",tid,"player-bans"]`, maps tuple denial to tid, snapshots owned match IDs **before** evicting the authoritative URL match list, removes only `["matches",mid,"game-picks"]` entries whose owner it can confirm, and resolves denied match picks through a unique owner in cached tournament-scoped match lists.
+- Production `auth-context.tsx` blob `8916545544d55fc8d7fbd146d0328e36543bebb7` and Deadlock hook `deadlock-bans-picks.ts` blob `480cbf83e705e3ece91d9ae13635314b80fa47ac` remain unchanged.
+
+### A30 positive source assessment: scoped improvement, not final acceptance
+
+1. **Ban scope now SOURCE_CONFIRMED covered:** tuple length/type/exact tournamentId equality; strict positive integer extraction; 7 ≠ 70. URL-prefix path remains.
+2. **Match owner lookup now SOURCE_CONFIRMED guarded:** `ownedCachedMatchIds(queryClient,tid)` reads `getListMatchesQueryKey(tid)` and accepts a match only when `record.id` is positive safe integer **and** `record.tournamentId === tid`. Actual release `GET /tournaments/:id/matches` applies `checkViewerReadAuth` before returning DB results, and `mapMatch(m)` spreads the original match including `tournamentId`; this is a source-grounded possible ownership provenance, not mere equality of numeric match IDs.
+3. **No blanket wipe:** unknown/conflicting ownership returns no attribution. The successful known-owner path snapshots IDs before cancel/remove, which avoids losing owner evidence mid-purge. This preserves unrelated public B while a known private A is removed.
+4. **Fixture repaired at SOURCE:** unlike the old R15/R16 blocker, support auth tests now mount valid QueryClientProvider, but runtime success is still unverified.
+
+### A30 independent residual threat questions for A60 and A50
+
+- **U1 unknown ownership is intentionally retained:** new test `S2B N2: do not purge unknown-ownership match keys` explicitly asserts unknown-tenant `["matches",701,"game-picks"]` **remains in QueryClient**. This is a safe anti-overpurge policy only if no future query, observer, route or credential can reuse/render that old protected value without renewed authorization. Current `useMatchGamePicks(matchId)` still uses **the same globally keyed cache without tournament/credential epoch**. Therefore **complete privacy after auth downgrade is not yet SOURCE_ACCEPTED**; preserve original doubt as `RESIDUAL_UNKNOWN_OWNER_REUSE_RISK / STATIC_INFERRED`. Require **active observer and route-switch** proof that orphan data cannot reappear, or design a tenant-scoped producer key/auth epoch that makes unknown legacy entries inaccessible, rather than global removal.
+- **U2 ownership can expire:** cached `GET /tournaments/:id/matches` may be stale, absent, removed or never loaded when the standalone match-picks query returns 403. If absent, `tournamentIdForOwnedMatchError` cannot evict the cached picks entry. Test a 403 after parent match-list removal, cross-role switch, and match migrated/reassigned in synthetic fixtures (no live data). Do not attribute a match to wrong B.
+- **U3 test suite trust boundary:** new tests seed explicit `{id:701,tournamentId:7}` as accepted ownership; independently verify a real generated API match payload carries `tournamentId` (source suggests yes via `...m`). Test conflicts (same mid present under two owners) and no auth-scoped match list rather than accepting synthetic success alone.
+- **U4 active request & global headers:** original old `enabled:false` QueryObserver test is unchanged. New fixture uses `client.fetchQuery`, not a mounted active Host with `enabled:true` / forced late response. Global organizer/support/viewer token module variables remain separately updated by effects/page handlers, not synchronously cleared inside every AuthContext removal. A50 must verify outgoing post-logout header and stale UI reuse without storing/logging real secrets.
+- **U5 cancellation and denial runtime:** promise-cancel/remove sequencing and the 403 notification path require actual React/TanStack execution, not source claims. **No A30 native runtime tests executed**; PR53 CI in flight at the new R17 SHA, so no success asserted.
+
+**Revised current HEAD peer verdict:** `PATCH_REVISED / SOURCE_REVIEWED_CONDITIONAL_FOR_KNOWN_OWNER / TEST_FIXTURE_SOURCE_FIXED / UNKNOWN_OWNER_CACHE_RESIDUAL / RUNTIME_NOT_EXECUTED / A60_NEW_SHA_QA_PENDING / RELEASE_NO_GO`. Previous `SOURCE_FAIL` is the authoritative **A60 R15 verdict on the old 6a8f0c3… SHA only**; it must **not** be mechanically copied as A60 judgment of new 8f959733… HEAD. A30 suggests A60 test and reassess exact new SHA, with a targeted `U1/U2` independent privacy gate.
