@@ -133,3 +133,17 @@ No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part o
 | D065 | Batch readiness != release readiness | Each individual packet may be SOURCE_READY/QA_ACCEPTED while full integrated CI/PG16/browser/staging remain SWARM-006 future gates; never claim deployment readiness early. |
 
 **Operational consequence:** WEB-005/A10 maintains queue and packaging but does not send/activate SWARM-006 for this application until the owner requests a consolidated wave. SWARM-007 may continue designing report/folder architecture independently; do not claim files have already moved. No change to three implementation lane cap or existing approval restrictions.
+
+
+## R10 — Owner directive: complete WEB-005 before SWARM-006 handoff (2026-10-14)
+
+| ID | Decision | Status |
+|---|---|---|
+| **D066** | WEB-005 will **finish its approved entire repair backlog** before one final cross-swarm handoff to SWARM-006, rather than sending individual PRs or intermediate batches | **ACTIVE / supersedes the interim batch-dispatch proposal in D062–D064**. A10 maintains internal P01+ manifests; **no SWARM-006 dispatch until WEB-005 formal closeout**. |
+| **D067** | WEB-004 has concluded additional audit reports are **not needed now** | **ACTIVE**. Work exclusively from the received `WEB-004_TO_WEB-005_HANDOFF_R2_2026-10-14.md`, its indexed specialist evidence, the existing WEB-005 backlog and the valid QA countersign if supplied. No speculative additional WEB-004 campaign. |
+| **D068** | Define WEB-005 `FINISHED` by task closure and evidence, not arbitrary time/PR count | All approved P0/P1/P2 tasks either implemented and independently scoped-QA accepted or explicitly dispositioned `POLICY_OPEN`/`BLOCKED`/`WONT_FIX` by authorized owner; decisions and risks documented. Source review or draft PR alone does not mean completed. |
+| **D069** | A10 packages **one final handoff** only after local A60 quality reconciliation, 00 scope reconciliation and owner/HQ approval | SWARM-006 receives exact source/base HEAD SHAs, per-PR status, dependency graph, test evidence, unresolved limitations and rollback. SWARM-006 owns integration/composite SHA/full integrated QA and deployment proposal. |
+| **D070** | Existing P01–P07, QA evidence and documentation continue internally; SWARM-007 may independently develop Google Drive protocols/storage architecture | Internal preparation is allowed; **no implied cross-thread automatic transfer, merge, production access or release authorization**. |
+| **D071** | Any emergency exception to final-only handoff (e.g. exceptional integrity/security hazard) requires explicit new owner/HQ decision | No implicit interim dispatch; no release bypass. |
+
+**Dispatch state:** `WEB005_IN_PROGRESS / SWARM006_FINAL_HANDOFF_DEFERRED`. Existing approvals remain bounded by task and implementation concurrency caps. A60 is independent; QA deficits, test environment absence, pending product policies and 38-case WEB-004 audit matrix must be explicitly tracked. Release stays NO-GO until SWARM-006 integrated gates and HQ authorization.
