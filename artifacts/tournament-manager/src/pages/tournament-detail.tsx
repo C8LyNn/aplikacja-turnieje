@@ -81,9 +81,8 @@ const FORMAT_LABELS: Record<string, string> = {
  * Only changed RR snapshots invalidate that canonical stage detail and the
  * already existing tournament standings query. No rankings are calculated here.
  *
- * This component intentionally owns no auth/session cache policy (A100).
- * It does hide its own cached stage presentation after an explicit 401/403
- * from an RR Stage Details query, until a successful retry.
+ * It does not own auth/session cache policy (A100) or render selected-stage
+ * errors; StageProgressView redacts RR-only cached content on 401/403.
  */
 export function RoundRobinReadbackBridge({
   tournamentId,
@@ -105,7 +104,6 @@ export function RoundRobinReadbackBridge({
 }) {
   const queryClient = useQueryClient();
   const previous = useRef<{ tournamentId: number; entries: Map<number, string> } | null>(null);
-  const [denied, setDenied] = useState(false);
 
   const rrSnapshot = useMemo(() => {
     if (!stages || !matches) return null;
@@ -152,48 +150,10 @@ export function RoundRobinReadbackBridge({
     }
   }, [queryClient, rrSnapshot, tournamentId]);
 
-  const rrStageIds = useMemo(
-    () => (stages ?? []).filter(stage => stage.format === "round_robin").map(stage => stage.id),
-    [stages],
-  );
-  const rrIdKey = rrStageIds.join(",");
-  // Important: TanStack Query can retain prior successful data after an error.
-  // Hide StageProgressView on a forbidden RR detail response; never show stale
-  // private participants behind an error banner in this organizer surface.
-  const hasDeniedRrDetail = () => rrStageIds.some(stageId => {
-    const error = queryClient.getQueryState(
-      getGetTournamentStageQueryKey(tournamentId, stageId),
-    )?.error as { status?: number; response?: { status?: number } } | null | undefined;
-    const code = error?.status ?? error?.response?.status;
-    return code === 401 || code === 403;
-  });
-  useEffect(() => {
-    const check = () => {
-      const blocked = hasDeniedRrDetail();
-      setDenied(prev => prev === blocked ? prev : blocked);
-    };
-    const unsubscribe = queryClient.getQueryCache().subscribe(check);
-    check();
-    return unsubscribe;
-  }, [queryClient, rrIdKey, tournamentId]);
-
-  // Synchronous check prevents a first-paint flash of previously cached data
-  // when an RR query was already forbidden before this component mounted.
-  if (rrStageIds.length > 0 && (denied || hasDeniedRrDetail())) {
-    return (
-      <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-card p-5 text-sm">
-        <p>Dostęp do szczegółów etapu został odrzucony. Ukryto poprzednio pobraną klasyfikację.</p>
-        <Button type="button" variant="outline" onClick={() => {
-          void Promise.all(rrStageIds.map(stageId => queryClient.refetchQueries({
-            queryKey: getGetTournamentStageQueryKey(tournamentId, stageId),
-            exact: true, type: "all",
-          })));
-        }}>
-          Spróbuj ponownie
-        </Button>
-      </div>
-    );
-  }
+  // This observer ONLY invalidates canonical RR data when the parent snapshots
+  // change. StageProgressView handles errors for its own manually selected RR;
+  // denying an unrelated historical RR detail must not hide legal DE/Overview.
+  // Tournament-wide authorization remains governed by readOk/AuthProvider.
   return <>{children}</>;
 }
 
