@@ -1,0 +1,185 @@
+{
+  "project": "WEB-005",
+  "wave": "R9",
+  "agent": "A110",
+  "task_id": "WEB-005-T055-T110-A110-R2",
+  "source_document_blob_sha": "53404ff220806ff6c526d554fd06e237ae04c199",
+  "release_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "status": "CONTRACT_ONLY_NOT_EXECUTED",
+  "policy_basket": "409_OR_412_UNDECIDED",
+  "t055_fixture": {
+    "tournament_id": 42,
+    "status": "draft",
+    "stage_ids": [
+      501,
+      502
+    ],
+    "stage_versions": [
+      1,
+      1
+    ],
+    "base_config": "V0",
+    "editor_A_payload": "valid blue-to-green",
+    "editor_B_payload": "valid blue-to-red",
+    "expected": {
+      "successful_commits": 1,
+      "controlled_conflict_rejections": 1,
+      "db_writes_from_rejected_request": 0,
+      "loser_draft_retained": true
+    }
+  },
+  "t055_cases": [
+    {
+      "id": "BASKET-DUAL-01",
+      "setup": "Queue two PUTs V0 on distinct PG connections, allow either lock owner first",
+      "expected": "Exactly **one 200**, **one controlled stale 4xx** (`409` or `412`, policy open), final exact winner graph, losing editor draft intact"
+    },
+    {
+      "id": "BASKET-DUAL-02",
+      "setup": "A save V0→V1, B later PUT V0",
+      "expected": "B rejected, unchanged V1"
+    },
+    {
+      "id": "BASKET-DUAL-03",
+      "setup": "Barrier A holds tournament row lock, B waits; exchange winner order",
+      "expected": "Independent of order, exactly one commit"
+    },
+    {
+      "id": "BASKET-DUAL-04",
+      "setup": "V0→V1→V2 identical to V0 (ABA), late token V0",
+      "expected": "Reject despite content equality"
+    },
+    {
+      "id": "BASKET-DUAL-05",
+      "setup": "Old frontend PUT omits precondition",
+      "expected": "Reject fail-closed; no DB writes"
+    },
+    {
+      "id": "BASKET-DUAL-06",
+      "setup": "Stage starts after editor reads V0",
+      "expected": "Immutable/stale reject; no basket write"
+    },
+    {
+      "id": "BASKET-DUAL-07",
+      "setup": "Roster changes making draft invalid while open",
+      "expected": "Reject invalid draft, not silently accept missing-player assignments"
+    },
+    {
+      "id": "BASKET-DUAL-08",
+      "setup": "Stage added, removed or ID mismatch",
+      "expected": "Token/stage-set check rejects"
+    },
+    {
+      "id": "BASKET-DUAL-09",
+      "setup": "Inject DB error after first delete, before commit",
+      "expected": "Rollback ALL graph/stage/routing revisions; no partial graph"
+    },
+    {
+      "id": "BASKET-DUAL-10",
+      "setup": "Organizer token revoked after initial auth, before transaction lock",
+      "expected": "Backend reauthorization rejects; 0 writes"
+    },
+    {
+      "id": "BASKET-DUAL-11",
+      "setup": "V0 token from tournament A submitted to B",
+      "expected": "B rejects; 0 writes"
+    },
+    {
+      "id": "BASKET-DUAL-12",
+      "setup": "Concurrent GET during destructive full PUT",
+      "expected": "GET graph/token coherent; never assembled across distinct transactions"
+    }
+  ],
+  "t110_cases": [
+    {
+      "id": "FE-CSV-01",
+      "layer": "RTL/Wouter",
+      "setup": "A replace confirmed → same mounted tree B",
+      "expected": "No A CSV/confirmation under B, zero B mutation with A payload"
+    },
+    {
+      "id": "FE-CSV-02",
+      "layer": "RTL/deferred FileReader",
+      "setup": "A read pending → route B → resolve A",
+      "expected": "B text/error/result unchanged"
+    },
+    {
+      "id": "FE-CSV-03",
+      "layer": "RTL/deferred reads",
+      "setup": "A pending; B file selected and edited",
+      "expected": "Old A onload ignored, newest B intent persists"
+    },
+    {
+      "id": "FE-CSV-04",
+      "layer": "RTL",
+      "setup": "Close import A, then callback A",
+      "expected": "No preview/confirmation resurrection"
+    },
+    {
+      "id": "FE-HOST-01",
+      "layer": "Browser",
+      "setup": "Host unsaved 1:0 → Back/Forward/programmatic route",
+      "expected": "Blocking or scoped draft retention; no silent loss"
+    },
+    {
+      "id": "FE-HOST-02",
+      "layer": "Browser + RTL",
+      "setup": "Walkover/no-contest reason-only draft",
+      "expected": "Same protection despite no score"
+    },
+    {
+      "id": "FE-HOST-03",
+      "layer": "RTL",
+      "setup": "Focus vs actual mutation; success/discard",
+      "expected": "No false dirty on focus; guard cleared after save/discard"
+    },
+    {
+      "id": "FE-BACKUP-01",
+      "layer": "RTL",
+      "setup": "Backup A preview + credentials → B + late A callback",
+      "expected": "No A preview under B; credentials not re-used"
+    },
+    {
+      "id": "FE-BACKUP-02",
+      "layer": "RTL+HTTP/PG",
+      "setup": "Import A from B",
+      "expected": "New C created, B unchanged; new credential checks applied"
+    },
+    {
+      "id": "FE-BACKUP-03",
+      "layer": "RTL",
+      "setup": "private_online backup replaced by public_online backup",
+      "expected": "Fields re-evaluated; no stale viewer/support secret reuse"
+    },
+    {
+      "id": "FE-STAGE-01",
+      "layer": "RTL + browser",
+      "setup": "Complete modal S active/v5, refetch completed/v6",
+      "expected": "Modal closes/disables, no stale action; true race controlled by backend"
+    },
+    {
+      "id": "FE-STAGE-02",
+      "layer": "RTL + browser",
+      "setup": "Start modal planned/v5, A→B same numeric ID",
+      "expected": "Action bound to correct tournament/stage and latest version"
+    },
+    {
+      "id": "FE-PRIV-01",
+      "layer": "RTL/browser (A100 review)",
+      "setup": "Logout/revoke/401/403 with pending private reads and drafts",
+      "expected": "Gated private UI cleared/redacted; callbacks ignored"
+    }
+  ],
+  "execution": {
+    "test_run": false,
+    "exit_code": null,
+    "environment": "source-only review",
+    "runtime_verified": false
+  },
+  "release": {
+    "code_changes": false,
+    "merge": false,
+    "deploy": false,
+    "swarm_006": false
+  }
+}
