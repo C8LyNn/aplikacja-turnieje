@@ -624,6 +624,11 @@ async function createDraftRosterUndoFixture(kind: RosterUndoKind) {
   };
 }
 
+async function undoRoster(fixture: { tournamentId: number; organizerHeaders: Headers }): Promise<Response> {
+  return request(app).post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
+    .set(fixture.organizerHeaders).send({});
+}
+
 async function rosterUndoState(
   tournamentId: number,
   query: (statement: string, values: unknown[]) => Promise<{ rows: unknown[] }>,
@@ -661,9 +666,7 @@ for (const kind of ["delete_player", "restore_player"] as const) {
         [fixture.tournamentId]);
 
       // X observes old roster action before it can lock the draft tournament.
-      xPromise = request(app)
-        .post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
-        .set(fixture.organizerHeaders).send({});
+      xPromise = undoRoster(fixture);
       await waitUntilTournamentLockIsQueued(pid.rows[0].pid);
 
       // Y is a second legitimate roster addition, committed while X waits.
@@ -698,9 +701,7 @@ for (const kind of ["delete_player", "restore_player"] as const) {
       ]);
 
       // Newly latest Y remains undoable, proving no global Undo deadlock.
-      const current = await request(app)
-        .post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
-        .set(fixture.organizerHeaders).send({});
+      const current = await undoRoster(fixture);
       assert.equal(current.status, 200, current.text);
       const laterAfter = await database.pool.query("SELECT id FROM players WHERE id=$1",
         [laterPlayer.rows[0].id]);
@@ -714,9 +715,7 @@ for (const kind of ["delete_player", "restore_player"] as const) {
 
   test("MP2A roster LIFO: latest valid " + kind + " still undoes exactly once", async () => {
     const fixture = await createDraftRosterUndoFixture(kind);
-    const response = await request(app)
-      .post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
-      .set(fixture.organizerHeaders).send({});
+    const response = await undoRoster(fixture);
     assert.equal(response.status, 200, response.text);
     const action = await database.pool.query(
       "SELECT is_undone FROM action_log WHERE id=$1", [fixture.originalActionId]);
@@ -728,9 +727,7 @@ for (const kind of ["delete_player", "restore_player"] as const) {
     } else {
       assert.equal(player.rows[0]?.name, fixture.previousName);
     }
-    const repeated = await request(app)
-      .post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
-      .set(fixture.organizerHeaders).send({});
+    const repeated = await undoRoster(fixture);
     assert.notEqual(repeated.status, 200, "same roster action cannot be undone twice");
   });
 }
