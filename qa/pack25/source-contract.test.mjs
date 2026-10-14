@@ -21,20 +21,31 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
 });
 test("server returns graph and risk report with prior diagnostic and action plan",()=>{
-  const responseContract=/return\s*\{\s*\.\.\.result\s*,(?=[^{}]*\bactionPlan\b)(?=[^{}]*\bdiagnostic\b)(?=[^{}]*\bimpactGraph\b)(?=[^{}]*\bimpactRiskReport\b)[^{}]*\}\s*;/;
-  assert.match(server,responseContract);
-  const reordered=server.replace(/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}/,
-    'return { ...result, diagnostic, impactRiskReport, actionPlan, impactGraph }');
-  assert.notEqual(reordered,server);
-  assert.match(reordered,responseContract);
+  const required=["actionPlan","diagnostic","impactGraph","impactRiskReport"];
+  const responseFields = source => {
+    const matches=[...source.matchAll(/\breturn\s*\{\s*\.\.\.result\s*,([^{}]*)\}\s*;/g)];
+    assert.equal(matches.length,1,"expected one SE readiness response object");
+    return matches[0][1].split(",").map(field=>field.trim()).filter(Boolean);
+  };
+  const assertComplete = source => {
+    const fields=responseFields(source);
+    for(const field of required) assert.ok(fields.includes(field), "missing shorthand response field: "+field);
+  };
+  assertComplete(server);
+  const reorder=server.replace(/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}/,
+    "return { ...result, diagnostic, impactRiskReport, actionPlan, impactGraph }");
+  assert.notEqual(reorder,server);
+  assertComplete(reorder);
   assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
   for (const replacement of [
-    ', actionPlan, diagnostic, impactRiskReport }',
-    ', actionPlan, diagnostic, impactGraph }',
+    ", actionPlan, diagnostic, impactRiskReport }",
+    ", actionPlan, diagnostic, impactGraph }",
+    ", actionPlan, diagnostic, /* impactGraph */ impactRiskReport }",
+    ", actionPlan, diagnostic, impactGraph: undefined, impactRiskReport }",
   ]) {
     const invalid=server.replace(/,\s*actionPlan,\s*diagnostic,\s*impactGraph,\s*impactRiskReport\s*\}/,replacement);
     assert.notEqual(invalid,server);
-    assert.doesNotMatch(invalid,responseContract);
+    assert.throws(()=>assertComplete(invalid),assert.AssertionError);
   }
 });
 test("panel includes graph type and field",()=>{
