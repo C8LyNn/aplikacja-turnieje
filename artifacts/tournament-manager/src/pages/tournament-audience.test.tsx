@@ -184,6 +184,62 @@ test("completed Audience names the persisted winner, not the aggregate standings
   assertWinner();
 });
 
+test("T100 RT-05: completed Audience overrides retained featured match and preserves winnerId (not standings leader)", async () => {
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({
+      ...tournamentPayload(), format: "double_elimination", status: "completed", winnerId: 202, featuredMatchId: 901,
+    });
+    if (url.endsWith("/matches")) return jsonResponse([{
+      id: 901, tournamentId: 1, stageId: 21, round: 1, matchNumber: 1,
+      status: "completed", resultType: "played", bestOf: 1,
+      player1Id: 201, player2Id: 202, player1Name: "Prior leader", player2Name: "Official champion",
+      score1: 0, score2: 1, winnerId: 202,
+    }]);
+    if (url.endsWith("/standings")) return jsonResponse([
+      { playerId: 201, playerName: "Prior leader", rank: 1, matchWins: 5 },
+      { playerId: 202, playerName: "Official champion", rank: 2, matchWins: 3 },
+    ]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  const summary = await screen.findByText("Turniej zakończony!");
+  assert.match(summary.parentElement?.textContent ?? "", /Zwycięzca: Official champion/);
+  assert.equal(document.querySelector("[data-exp-match-state]"), null);
+  assert.ok(screen.getByText("Podwójna eliminacja"));
+});
+
+test("T100 RT-06: active Audience still shows its featured match without final summary", async () => {
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({ ...tournamentPayload(), status: "active", featuredMatchId: 901 });
+    if (url.endsWith("/matches")) return jsonResponse([{
+      id: 901, tournamentId: 1, stageId: 21, round: 1, matchNumber: 1,
+      status: "in_progress", resultType: null, bestOf: 1,
+      player1Id: 201, player2Id: 202, player1Name: "A", player2Name: "B",
+      score1: 0, score2: 0, winnerId: null,
+    }]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  await waitFor(() => assert.ok(document.querySelector('[data-exp-match-state="in_progress"]')));
+  assert.equal(screen.queryByText("Turniej zakończony!"), null);
+});
+
+test("T100 RT-10: the group-stage tournament-wide Audience label uses the canonical format map", async () => {
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({
+      ...tournamentPayload(), format: "group_stage", status: "completed", winnerId: null,
+    });
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  });
+  await screen.findByText("Turniej zakończony!");
+  assert.ok(screen.getByText("Faza grupowa"));
+  assert.equal(screen.queryByText("group_stage"), null);
+});
+
 describe("TournamentAudience — password gate regression", () => {
 
   test("private_online without viewer session shows password gate", async () => {
