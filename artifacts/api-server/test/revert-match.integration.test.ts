@@ -575,6 +575,19 @@ describe("T040 R12 historical Undo payload fail-closed HTTP", () => {
     assert.deepEqual(await fullUndoSnapshot(fixture), before);
   });
 
+  test("foreign featured match references are rejected without writing either tournament", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const other = await createFixture({ format: "round_robin", bracket: false });
+    await insertPersistedUndo(fixture, "match_featured", JSON.stringify({
+      type: "restore_featured", prevFeaturedMatchId: other.matchId,
+    }), fixture.matchId);
+    const before = await fullUndoSnapshot(fixture);
+    const otherBefore = await fullUndoSnapshot(other);
+    assertError(await undo(fixture), 409, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await fullUndoSnapshot(fixture), before);
+    assert.deepEqual(await fullUndoSnapshot(other), otherBefore);
+  });
+
   test("valid legacy match_started Undo still restores pending", async () => {
     const fixture = await createFixture({ format: "round_robin", bracket: false });
     const start = await request(app).patch("/api/matches/" + fixture.matchId)
