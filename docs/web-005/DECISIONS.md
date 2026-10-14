@@ -227,3 +227,18 @@ No integration, migrations, deployment, paid CI or production access is authoriz
 | **D106** | WEB-005 finishes approved backlog before **one final handoff** to SWARM-006; no WEB-004 new report cycle, SWARM-007 information/file architecture independent. RELEASE NO-GO. |
 
 No merge, production SQL, paid rerun, deployment or SWARM-006 dispatch is authorized.
+
+
+## R14 — R13 closure and independent QA stabilization (2026-10-14)
+
+| ID | Decision | Status / constraint |
+|---|---|---|
+| **D107** | Register R13 new open draft patches: PR #52 A110 UX046 modal @ `cce73ec47445102b216b3f8eceb4ec9de67eb1a7`, PR #53 A100 S2A cache @ `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979`, PR #54 A120 T100 PR-B RR @ `dbba0eb82920b4f324866b1b983e1211459f52ec` | **PATCH_PROPOSED, NOT MERGED**. Author reports state actual targeted RTL NOT_EXECUTED, independent A60 exact SHA QA not established by current readback. |
+| **D108** | 21 open draft PR #34–54 now constitute the WEB-005 internal candidate backlog | **Not 21 independently accepted patches and not an integrated build**. PR32 release→main separate, PR33 competing Steam source HOLD. |
+| **D109** | Adopt one [WEB-005_WAVE_R14_AGENT_PROMPTS.md](./WEB-005_WAVE_R14_AGENT_PROMPTS.md) for A00 plus A10–A120 | 13 unique agent sections, shared §0–§2 and per-agent reports. |
+| **D110** | R14 is **quality-gate first: zero preauthorized new source-code implementation lanes** | A50 must produce actual safe executable evidence or precise blocker, A60 must independently review exact SHA, A10 update manifest. Fix-specific code GO only after exact sourced FAIL, A00 decision and conflict ownership. |
+| **D111** | Existing PR35 Pack19 matcher fix is the sole acknowledged correction. CI on R13 PR52/53/54 fails at old baseline Pack19 matcher step, before target RTL suites | Do not duplicate PR35 nor claim the R13 feature tests ran; preserve full integrated release gates for later SWARM-006. |
+| **D112** | Escalate owner/HQ policies for Terminal Swiss, SE/Swiss/DE, Basket CAS, Backup B2 portability, Direct Revert CAS/Host rollout, Steam/session behavior | **POLICY_OPEN** until signed; no implementation by assumption. |
+| **D113** | Existing owner final-only policy persists: WEB-005 must formally finish accepted WEB-004 HANDOFF R2 remediation before one SWARM-006 transfer | SWARM-006 remains HOLD; no new WEB-004 reports; SWARM-007 maintains independent exchange/Drive architecture. |
+
+**NO-GO:** No R14 document authorizes merge, cherry-pick, an integration branch, manual paid CI, destructive SQL, live deployment, or cross-swarm dispatch.
