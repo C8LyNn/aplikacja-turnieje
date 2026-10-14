@@ -208,3 +208,11 @@ Verified at coordination time:
 **Testing:** isolated PostgreSQL16/Node22/pnpm10 (A50 preflight); 15 grouped suites Q01–Q15, notably global LIFO/CAS, terminal Swiss, RR/SE, backup QP/QPE/OP, history, MVCC, session/cache, basket CAS, generated API/client parity, Steam security, full Pack19–26 & Pack17 --full. Full acceptance per exact composite SHA is owned by SWARM-006; WEB-005 packages only.
 
 **Cross-swarm:** SWARM-006 owns integration, staging and eventual release proposal; SWARM-007 owns communication/Google Drive folder and report architecture, not WEB-005. No asserted Drive sync, deployment, merge, migration or production changes.
+
+
+### R8 coordination delta — latest T017 / T040 heads
+
+- T017/A40 **PR #40 now exists**: \`f9ad033683d93e442c7915a840e7b3f8bfdbb933\`, 3 Pack17-only files, author synthetic 19/19, full \`--full\` PG/CI NOT_EXECUTED. A40 is now QA/fix-only; do not duplicate implementation.
+- T040/A70 MP1 **PR #39 advanced**: \`16053ee132756ca05b6f2cd1f0cabae823905387\`, 8 files including backend/API Zod; real PG16/HTTP + generated React parity pending. A70 source QA/MP2 design only until a new scoped GO.
+- A10 should track **P01–P07** with P06=PR39 and P07=PR40, all QA provenance explicit.
+- Proposed agents 80/90/100/110/120 are **SOURCE-ONLY** at start. Code lanes are not automatically freed merely by creating a draft PR.
