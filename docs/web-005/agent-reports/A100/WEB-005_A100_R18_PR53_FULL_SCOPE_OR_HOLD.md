@@ -72,7 +72,7 @@ pnpm typecheck
 
 Capture `cwd`, exact HEAD, lock/dependencies, output/TAP, 0 skipped, command exit codes and an explicit A7/B8 privacy projection. Critical N2: with old list removed and A metadata retained, logout or 401/403 evicts A only; B remains; delayed enabled HTTP response never populates A; unknown-owner hook does not fetch/display. Re-run legacy two support cases. Browser check for legacy untagged retained cache if available.
 
-**GitHub Actions:** first checked automatic [run 38627584615](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38627584615) at final HEAD was `in_progress`; no conclusion inferred from a pending run. Older PR53 runs failed on unrelated inherited Pack19 `readOnly:true` matcher versus code `accessMode:"read only"` (fixed in independent draft PR #35), before targeted RTL. A100 has NOT manually rerun paid CI and does not treat any automatic CI status as app-R18 PASS.
+**GitHub Actions exact-HEAD readback:** automatic [run 38627584615](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38627584615), job `116070657303`, completed **FAILURE at Pack19 snapshot consistency tests**. The downloaded job log confirms stale regex `/isolationLevel:"repeatable read",readOnly:true/` versus existing `accessMode:"read only"`; Pack20–26 and static/database release gates were SKIPPED. This is **not** an R18 RTL/typecheck PASS or FAIL, because those targeted tests were not reached. Isolated draft PR #35 already contains the distinct Pack19 correction. A100 did NOT manually restart paid CI.
 
 ## 5. Independent gates, blockers and decision
 
