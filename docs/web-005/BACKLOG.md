@@ -431,3 +431,12 @@ All three source patches require new exact SHA and **fresh A60 independent accep
 **Actual remaining WAIT_OWNER / no speculative R22:** T055 Basket CAS six details and UX, Backup B2 six portable history/legacy choices, public Direct Revert strict CAS/Host cutover, Steam/session security semantics, PR53 legacy raw orphan cache risk, authentic WEB-004 original 38-case CSV (or exact provenance exception), signed per-finding disposition. A50 runtime tests remain 0; user selected test handoff only after formal source closeout and future final GO, SWARM-006 must execute composite tests before release.
 
 **Next action:** A00 gathers consequential owner decisions one at a time and records them in [R21 owner packet](./WEB-005_R21_OWNER_DECISION_PACKET.md). Open a new wave/code lane ONLY after concrete signed policy requiring implementation, not to repeat unchanged agent reports. **WEB005 IN_PROGRESS, SWARM006 HOLD, RELEASE NO-GO.**
+
+
+## R21 — T055 owner-approved CAS contract; implementation still pending (2026-10-14)
+
+Owner directly approved the preceding six-part A00 Basket optimistic concurrency proposal (“tak, może być”). [Formal T055 decision contract](./WEB-005_R21_OWNER_T055_BASKET_CAS_APPROVAL.md), [owner packet](./WEB-005_R21_OWNER_DECISION_PACKET.md), DECISIONS D174. **D1=B** persistent monotonic basketConfigRevision, **D2=B** GET ETag/PUT If-Match, **D3=B** stale 412 zero writes, **D4=A** missing 428 and malformed fail-closed, **D5=B** under-lock stage/roster atomic validity, **D6=B** preserve private local draft/manual reconciliation/fresh opt-in save. This removes **T055 policy** from WAIT_OWNER but DOES NOT make the source fixed.
+
+**Next technical task (NOT YET CODE-AUTHORIZED):** A110 specifies minimal backend/GET ETag/PUT compare-and-swap and UI draft conflict scope, A20 verifies persistent revision migration and physical PG16 test safety, A90 assesses Backup V3 and legacy compatibility; then A00 issues dedicated precise code GO. A60 independent QA/source+native tests still required. Historical full-graph unprotected PUT remains risk until implemented; production/shared SQL and release unauthorized.
+
+**Other owner WAIT_OWNER:** Backup V3 B2 B1–B6, public Direct Revert MP2B/Host, Steam/session credentials, raw ownerless game-picks cache retention policy, WEB004 authentic 38-case recovery/dispositions. User chose conditional EXEC-B SWARM-006 future test responsibility; no final handoff, no runtime PASS, no new broad wave.
