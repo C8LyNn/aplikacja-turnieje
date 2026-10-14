@@ -1,0 +1,224 @@
+{
+  "schema": "web005.a50.r15.local-process-evidence-public-summary/1",
+  "task": "WEB-005-T133-A50-R10",
+  "capture_date_utc": "2026-10-14T18:29:11Z",
+  "scope": "LOCAL_CURRENT_SESSION",
+  "actual_processes": 15,
+  "exit_counts": {
+    "0": 8,
+    "2": 2,
+    "127": 4,
+    "128": 1
+  },
+  "unexpected_exit_codes": 0,
+  "actual_frontend_api_pg_tests": 0,
+  "role": "A50",
+  "environment": {
+    "node": "v22.16.0",
+    "git": "2.47.3",
+    "pnpm": "NOT_INSTALLED",
+    "docker": "NOT_INSTALLED",
+    "psql": "NOT_INSTALLED",
+    "pwsh": "NOT_INSTALLED",
+    "full_checkout": "NOT_MOUNTED",
+    "safe_pg16": "NOT_PROVEN"
+  },
+  "native_application_exit_codes": null,
+  "native_application_tap": null,
+  "source_of_log_data": "Actual local subprocess execution; raw local stdout/stderr not uploaded to GitHub",
+  "runs": [
+    {
+      "name": "node22",
+      "exit_code": 0,
+      "command": [
+        "node",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "git_version",
+      "exit_code": 0,
+      "command": [
+        "git",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "pnpm_missing",
+      "exit_code": 127,
+      "command": [
+        "pnpm",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "docker_missing",
+      "exit_code": 127,
+      "command": [
+        "docker",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "psql_missing",
+      "exit_code": 127,
+      "command": [
+        "psql",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "pwsh_missing",
+      "exit_code": 127,
+      "command": [
+        "pwsh",
+        "--version"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "no_git_checkout",
+      "exit_code": 128,
+      "command": [
+        "git",
+        "-C",
+        "/mnt/data",
+        "rev-parse",
+        "HEAD"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR43_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "43",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR47_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "47",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR50_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "50",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR52_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "52",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR53_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "53",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR54_plan",
+      "exit_code": 0,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "54",
+        "--kind",
+        "target"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR53_execute_no_approval",
+      "exit_code": 2,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "53",
+        "--kind",
+        "target",
+        "--execute"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    },
+    {
+      "name": "frontend_PR53_execute_missing_checkout",
+      "exit_code": 2,
+      "command": [
+        "python3",
+        "/mnt/data/WEB-005-A50-R14/Run-R14-Frontend.py",
+        "--pr",
+        "53",
+        "--kind",
+        "target",
+        "--execute",
+        "--repo",
+        "/mnt/data/checkout-not-present",
+        "--out",
+        "/mnt/data/evidence-r15",
+        "--approval-file",
+        "/mnt/data/no-approval.json"
+      ],
+      "classification": "ENVIRONMENT_OR_PREFLIGHT_ONLY_NOT_APPLICATION",
+      "application_test": false
+    }
+  ]
+}
