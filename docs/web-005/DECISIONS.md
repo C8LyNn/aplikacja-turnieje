@@ -289,3 +289,19 @@ No merge, cherry-pick, integration branch, database reset, production SQL/DDL, p
 | **D136** | WEB-005 final-only owner directive persists: full accepted backlog and formal closeout before **one SWARM-006 integration handoff**; SWARM-007 is independent. | `WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO`. |
 
 No documentation decision here approves merge/cherry-pick/rebase to release/main, integration branch, production SQL, shared DB reset, paid CI, staging/live or cross-swarm dispatch.
+
+
+## R18 — R17 result, three remaining source blocks and final handoff policy (2026-10-14)
+
+| ID | Decision | Current gate |
+|---|---|---|
+| **D137** | After R17 the 21 source PR #34–54 remain OPEN DRAFT and unmerged; updated HEADs: PR41 `f03cf3d09988a04ba9c2856e205d21f994ff67f1`, PR42 `25b09f1a48a85ae882b817118f5d8c23bffbe383`, PR53 `8f959733258aed0cab15298dd0684ca068045e6f`. | Exact [A60 R17 independent QA](./agent-reports/A60/WEB-005_A60_R17_INDEPENDENT_QA.md), not a runtime release GO. |
+| **D138** | A60 R17 conditionally accepts PR41 parity source patch but **full-claim SOURCE_BLOCKED** remains for PR42 roster Undo, PR53 standalone unknown-owner picks, PR54 historical RR403 suppressing DE/Overview. | 3 source blockers; 0 A50 native app tests. |
+| **D139** | Publish one [WEB-005_WAVE_R18_AGENT_PROMPTS.md](./WEB-005_WAVE_R18_AGENT_PROMPTS.md) for 13 roles, QA/evidence and source closeout first. | R18 READY; no automatic SWARM-006 activation. |
+| **D140** | R18 authorizes 3 bounded **existing-PR source-code-only lanes**: A70/PR42 with newly explicit tournament-roster.ts ownership + route error map/tests; A100/PR53 fetch-time match→tournament ownership for safe scoped cache invalidation; A120/PR54 local historical RR403 UI. | GO code-only within identified files; no composite merge/new PR count target/production. |
+| **D141** | A90/PR41 remains source accepted conditional and PG test pending; A50 real frontend/PG test executor blocked absent trusted full checkout/pnpm/test-only PG16. | P0 independent A60 source review on new SHA and real A50 environment work. |
+| **D142** | Owner/HQ decision gate: T055 Basket CAS, T050/051 Swiss/SE/DE, T060-B2 Backup legacy/history, T040 public Direct Revert CAS+Host, Steam/session. No assumption of selection/waiver. | POLICY_OPEN until signed. |
+| **D143** | Preserve final-only SWARM-006 directive. Optional **explicit owner/HQ-approved runtime-test-debt transfer** may be requested *after* all approved WEB-005 backlog source fixes and dispositions are complete, with strict SWARM-006 composite full test stop gate before release. | No tacit waiver and no staging/live authorization; otherwise physical native tests must be executed before final transfer. |
+| **D144** | Only explicit FINAL_HANDOFF_GO after closed/signed WEB-005 backlog, A10 manifest and A60 independent source verdict can activate SWARM-006. SWARM-006 owns integration, conflict resolution, composite QA/deploy separately. | SWARM-006 HOLD until fresh authorization; no WEB-004 new audit reports. |
+
+No merge/cherry-pick, production SQL/DDL, shared DB reset, paid CI run, Replit integration, staging or live deployment is authorized here.
