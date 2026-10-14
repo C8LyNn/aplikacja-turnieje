@@ -271,3 +271,18 @@ R10 implementation is **source patches only** (NOT integrated): **P10 PR #43** T
 **P0 unblock work:** A50 physical disposable PG16 test environment and actual per-SHA execution, A60 independent source/runtime review PR41–45; if environment unavailable label BLOCKED and provide executable test prerequisites. A10 maintains rolling P01–P12+ internal manifest and metadata for SWARM-007. A20/A30/A40 maintain migration/security/CI gates; A70 MP2B and history source-only, A80 terminal Swiss/SE sports policy source-only, A110 T055 basket CAS and remaining UX source-only. **NO SWARM-006 activation until WEB-005 whole approved backlog completed**. No new WEB-004 audit cycle.
 
 **Release state: NO-GO.** Actual status != author's source code completion; no production/shared DB, no schema adoption, no CI billing, no Replit.
+
+
+## WAVE R12 — central prompts and evidence gate (2026-10-14)
+
+**Master R12 assignments (A00+A10–A120):** [WEB-005_WAVE_R12_AGENT_PROMPTS.md](./WEB-005_WAVE_R12_AGENT_PROMPTS.md). All agents read §0–§2 and their own Axx section. Do not regenerate/deduplicate previous source patches.
+
+**R11 result:** three new DRAFT PRs: #46 protected DELETE tournament (A100/T080-S1B-D), #47 presentation PR-A DE Details/format labels/completed overlay (A120/T100), #48 consistent `REPEATABLE READ READ ONLY` Backup V3 export (A90/T060-B3A). HEADs and PG/React acceptance are pinned in central R12 document. Together with P01–P12, **15 candidate PRs exist**, all open unmerged, not an integrated build.
+
+**CI R11 blocker:** automatic Actions on isolated new PRs failed at **old baseline Pack19 `qa/pack19/source-contract.test.mjs` matcher** requiring obsolete `readOnly:true` while release code uses `accessMode:"read only"`. P01 PR35 already fixes the matcher but has not been merged with other standalone PRs. Do not file second Pack19 patch or claim this is a B3A/DELETE/presentation app-test FAIL. A40/A50 verify exact GitHub job logs and proceed with appropriately scoped independent tests, **without creating WEB-005 composite integration branch**.
+
+**R12 GO SOURCE-CODE ONLY code lanes (max 3):** A70/T040 malformed historical Undo payload fail-closed, A100/T080 S1B-P post-lock support/viewer password+visibility writes, A110/T110 UX045 backup preview FileReader identity and stale new-credential form state. Strict files and policy stops. All other agents support source QA, fixture design, manifest, testing and policy decisions.
+
+**P0 global requirement:** A50 obtain actual safe Node/pnpm/isolated PG16 + frontend targeted exit evidence; A60 independently review exact PR HEAD, especially PR41–48. Reports/matrices classify `PATCH_PROPOSED` vs `RUNTIME_VERIFIED` and `BLOCKED`. A10 buffer P01–P15+ internally, confirms actual P13–P15 IDs using own R11 manifest, does not send SWARM-006.
+
+**Cross-swarm:** no extra WEB-004 reports; WEB-005 completes full accepted backlog before one final handoff; SWARM-006 inactive until formal closeout; SWARM-007 designs communication and Google Drive structure separately. Production/release NO-GO.
