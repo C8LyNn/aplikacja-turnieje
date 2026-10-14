@@ -13,9 +13,10 @@
 - Existing release→main PR #32: OPEN, unmerged, HEAD equals release base.
 - Patch branch: `fix/web-005/t100-presentation-pr-a-r11`.
 - **Draft PR #47:** https://github.com/C8LyNn/aplikacja-turnieje/pull/47
-- **Patch HEAD SHA:** `8fd5ce643f65d6e12d4ac8935082a614728dabf1` (OPEN DRAFT, not merged).
+- **Patch HEAD SHA:** `f09a13623faca8d7ab29b09a2c5b43907c2acd0b` (OPEN DRAFT, not merged).
+- Final incremental test-only commit `f09a13623faca8d7ab29b09a2c5b43907c2acd0b` fixes Audience label test expectations when summary and footer both display canonical format (no production behavior change).
 - Existing dependencies: PR #42/MP2A, #43/UX042, #44/S1A, #45/RR reopen remain independent; none cherry-picked.
-- Automatic GitHub Actions workflow `38595577625` observed `in_progress` at review; a pending job is neither PASS nor FAIL.
+- Automatic GitHub Actions workflow `38596198607` observed `in_progress` on final HEAD; no CI conclusion or application PASS accepted.
 - Composite integration SHA and production deployed SHA: UNKNOWN; no merge/release/production authorization.
 
 ## 2. Exact changed files — compare release base to PR #47
@@ -27,7 +28,7 @@
 | `pages/tournament-audience.tsx` | F053+F055: canonical tournament-wide labels; completed overlay first, no completed hero extras | `ffe5ce79bfb975c03bc934a0364502a80682bc4f` |
 | `components/stage-progress-view.test.tsx` | New RT-01, RT-02, RT-03 variants including 403/500, delayed/empty, stale stage identity | `ced3edc0bcd1c2d44948f2e9760f427b0eda493e` |
 | `pages/public-stage-views.test.tsx` | RT-04: active stage DE label with legacy tournament RR format | `20ad7265d80a849c697110c45c55618a236f94e4` |
-| `pages/tournament-audience.test.tsx` | RT-05/06/10; existing winnerId RT-07 test retained | `680f43c496162375be892263a1d10ebc3d159cad` |
+| `pages/tournament-audience.test.tsx` | RT-05/06/10; existing winnerId RT-07 test retained | `1bb5e1595520310b56736dbb297c2094a1bef7d1` |
 
 **File ownership:** all six paths are A120-authorized in R11 (§0.5). No backend, OpenAPI, DB schema, authentication, router, generated client, lockfile or shared infra changes.
 
@@ -64,7 +65,7 @@ No polling/invalidation code added to `StageProgressView`. Depends on A70/T040 (
 2. `87275fd193a3a532eba2355adae4491c65ee1a9e` — Audience tests.
 3. `d1b00de660c991f59efb43d9a38b55294cc6346c` — public Bracket label test.
 4. `a09d0e5b9313766884cfc6e838bdacbfdbc28831`, `cef1cbf6c0d949d416096194fb89aa8fbc2872de`, `d7feb39d77e625322c218ce3db3585fd2e8589bd` — F052/F053/F055 implementation.
-5. `879ea9e19c2390902e525218cc1a312aa881b5d8`, `8fd5ce643f65d6e12d4ac8935082a614728dabf1` — stop completed hero extras and extend negative DE fixture coverage.
+5. `879ea9e19c2390902e525218cc1a312aa881b5d8`, `f09a13623faca8d7ab29b09a2c5b43907c2acd0b` — stop completed hero extras and extend negative DE fixture coverage.
 
 **Static inspection actually performed:** 13 targeted source invariants passed 13/13 on PR HEAD (canonical hook, enabled scope, read-only flags, stage/tournament identity, 403 data hiding order, labels, completed overlay and hero, winnerId preservation, regression sources, no F058 polling). This is `STATIC SOURCE CHECK`, **not** application test PASS, not a Node/React runtime result.
 
