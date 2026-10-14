@@ -110,3 +110,14 @@ No merge, deploy, Replit, production data/schema/secrets changes or paid CI disp
 | D056 | Product release remains NO-GO | Composite SHA, complete native CI/PG16/HTTP/browser tests, A60 exact-SHA signoff and HQ authorization required |
 
 No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part of this coordinator intake.
+
+
+## R8 dispatch addendum
+
+| ID | Decision | State |
+|---|---|---|
+| D057 | Record T017 PR #40 source candidate SHA f9ad033683d93e442c7915a840e7b3f8bfdbb933 | QA_PENDING; native Pack17 \`--full\` and independent signoff missing |
+| D058 | Advance T040 MP1 PR #39 pinned HEAD to 16053ee132756ca05b6f2cd1f0cabae823905387 | QA_PENDING; MP2/MP3 not authorized to code |
+| D059 | Prepare P01–P07 manifests through A10 for SWARM-006 | GO READ-ONLY; P07=PR40, P06=PR39, neither integrated |
+| D060 | Dispatch proposed A80/A90/A100/A110/A120 for R2-derived NEW queues | GO SOURCE-ONLY; no speculative app runtime PASS, no automatic implementation slots |
+| D061 | Preserve 3-lane cap and independent A60 certification | NO new implementation without coordinator explicit assignment and policy resolution |
