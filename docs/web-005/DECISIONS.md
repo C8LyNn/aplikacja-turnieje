@@ -43,3 +43,17 @@ No modifications to main/release, no merges/cherry-picks/deployments or producti
 ## R3 live-update decision
 
 **D023 — T015 R1 handoff:** [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) created after coordinator registered task; accept for independent A60 review (GO QA), **STOP** integration/merge while tests remain NOT_EXECUTED. Latest HEAD `f6e94aae9239d578e23d5a8fb23a2446ea669a41`. No workflow dispatch without cost authorization.
+
+
+## R4 decisions — reuse completed specialists without exceeding Wave1 limits
+
+| ID | Decision | Status / qualification |
+|---|---|---|
+| D024 | Allocate T016-A10 to Agent 10 after T010 handoff | GO SOURCE-ONLY: map integration order, CI and Pack17 gates; no code merge or branch operations; A60 acceptance still required for PR35 |
+| D025 | Allocate T132-A50 to Agent 50 after T131 preflight | GO SOURCE-ONLY: concrete test harness/fixture plan; runtime DB operations require proved isolation and authorization |
+| D026 | Do not prematurely recycle Agent 40 | HOLD NEW T017 until independent QA/rework of PR36 completed; then Pack17 internal gate audit only, no Pack20–26 ownership collision |
+| D027 | PR34 HEAD advanced to `fae2eea2f22df3f1b02ad035a7db00bc411ea73f` | Requires renewed independent QA at exact head; prior evidence may not cover new commits |
+| D028 | Active implementation/analysis cap | THREE: T015/A40, T020/A20, T030/A30. T016/T132 preliminary read-only; T010 closeout, T130 independent QA. No Wave2 implementation |
+| D029 | User dispatch through existing worker threads | PENDING: no automatic delegation to other conversations; repo registration is not execution |
+
+No merge, deploy, Replit, production data/schema/secrets changes or paid CI dispatch were performed in this R4 assignment update.
