@@ -90,12 +90,12 @@ async function fixture(): Promise<Fixture> {
   };
 }
 
-function mutate(f: Fixture, target: Target, headers: Credentials) {
+function mutate(f: Fixture, target: Target, headers: Credentials, heroId = "haze") {
   return target === "bans"
     ? request(app).put(`/api/players/${f.playerId}/bans`).set(headers)
-        .send({ bannedHeroIds: ["haze"] })
+        .send({ bannedHeroIds: [heroId] })
     : request(app).put(`/api/matches/${f.matchId}/game-picks/1`).set(headers)
-        .send({ player1HeroId: "haze", player2HeroId: null });
+        .send({ player1HeroId: heroId, player2HeroId: null });
 }
 
 async function rows(f: Fixture, target: Target): Promise<unknown> {
@@ -150,7 +150,8 @@ async function revokeUnderBarrier(
     await locker.query(`SELECT id FROM "${config.schema}".tournaments WHERE id = $1 FOR UPDATE`, [f.tournamentId]);
     // Start only AFTER the lock is held. Observing a PG row-lock waiter establishes
     // that the HTTP request has completed its initial auth and reached the lock.
-    pending = mutate(f, target, headers).then(response => ({ status: response.status, body: response.body as { code?: string } }));
+    pending = mutate(f, target, headers, preparePreviousRow ? "abrams" : "haze")
+      .then(response => ({ status: response.status, body: response.body as { code?: string } }));
     await waitForQueuedTournamentLock();
     if (principal === "organizer") {
       await locker.query(
