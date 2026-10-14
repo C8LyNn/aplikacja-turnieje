@@ -8,9 +8,9 @@
 
 - **Release BASE:** `release/tournament-ops-20261013-01@1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`, unchanged.
 - **PR #47:** https://github.com/C8LyNn/aplikacja-turnieje/pull/47 — OPEN DRAFT.
-- **HEAD:** `8fd5ce643f65d6e12d4ac8935082a614728dabf1`.
-- **Branch:** `fix/web-005/t100-presentation-pr-a-r11`; 8 commits from release baseline, no cross-PR cherry-pick.
-- **Automatic CI #38595577625:** observed `in_progress`, outcome unverified. No manual paid CI.
+- **HEAD:** `f09a13623faca8d7ab29b09a2c5b43907c2acd0b`.
+- **Branch:** `fix/web-005/t100-presentation-pr-a-r11`; 9 commits from release baseline, no cross-PR cherry-pick.
+- **Automatic CI #38596198607:** observed `in_progress` on final HEAD, outcome unverified. No manual paid CI.
 - **Current deployed/composite SHA:** UNKNOWN.
 
 ## ACTUAL CHANGES — 6 files only
