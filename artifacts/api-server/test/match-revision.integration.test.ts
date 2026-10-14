@@ -158,3 +158,86 @@ test("migration upgrades existing results without changing them and is safe to r
   await database.pool.query(sql);
   assert.equal((await f.read()).revision, 2, "replaying migration must not reset versions");
 });
+
+
+test("MP1: generic PATCH cannot cancel or restore; rejection has zero DB writes", async () => {
+  const f = await fixture();
+  const url = "/api/matches/" + f.match.id;
+  const before = await f.snapshot();
+  const blocked = await request(app).patch(url).set(f.auth).send({ status: "cancelled" }).expect(422);
+  assert.equal(blocked.body.code, "MATCH_CANCELLATION_REQUIRES_DEDICATED_ACTION");
+  assert.deepEqual(await f.snapshot(), before);
+  const cancelled = await request(app).post(url + "/cancel").set(f.auth).send({ note: "operator" }).expect(200);
+  assert.equal(cancelled.body.status, "cancelled");
+  const afterCancel = await f.snapshot();
+  for (const status of ["pending", "in_progress", "postponed"]) {
+    const denied = await request(app).patch(url).set(f.auth).send({ status }).expect(422);
+    assert.equal(denied.body.code, "CANCELLED_MATCH_PATCH_FORBIDDEN");
+    assert.deepEqual(await f.snapshot(), afterCancel);
+  }
+  await request(app).patch(url).set(f.auth).send({ note: "display-only" }).expect(200);
+  assert.equal((await f.read()).status, "cancelled");
+  const restored = await request(app).post(url + "/restore-cancelled").set(f.auth).expect(200);
+  assert.equal(restored.body.status, "pending");
+  const actions = await database.pool.query(
+    "SELECT action_type FROM action_log WHERE match_id=$1 AND action_type IN ('match_cancelled', 'match_restored') ORDER BY id", [f.match.id]);
+  assert.deepEqual(actions.rows.map(r => r.action_type), ["match_cancelled", "match_restored"]);
+});
+
+test("MP1: CAS protects cancellation, restoration and ABA from stale requests", async () => {
+  const f = await fixture();
+  const url = "/api/matches/" + f.match.id;
+  const rev1 = (await f.read()).revision;
+  await request(app).patch(url).set(f.auth).send({ status: "in_progress" }).expect(200);
+  const before = await f.snapshot();
+  const stale = await request(app).post(url + "/cancel").set(f.auth)
+    .send({ expectedRevision: rev1 }).expect(409);
+  assert.equal(stale.body.code, "CONCURRENT_MODIFICATION");
+  assert.deepEqual(await f.snapshot(), before);
+  const rev2 = (await f.read()).revision;
+  const first = await request(app).post(url + "/cancel").set(f.auth)
+    .send({ expectedRevision: rev2 }).expect(200);
+  assert.equal(first.body.revision, rev2 + 1);
+  const rev3 = first.body.revision;
+  await request(app).post(url + "/restore-cancelled").set(f.auth)
+    .send({ expectedRevision: rev3 }).expect(200);
+  const rev4 = (await f.read()).revision;
+  await request(app).post(url + "/cancel").set(f.auth)
+    .send({ expectedRevision: rev4 }).expect(200);
+  const beforeABA = await f.snapshot();
+  const staleRestore = await request(app).post(url + "/restore-cancelled").set(f.auth)
+    .send({ expectedRevision: rev3 }).expect(409);
+  assert.equal(staleRestore.body.code, "CONCURRENT_MODIFICATION");
+  assert.deepEqual(await f.snapshot(), beforeABA);
+});
+
+test("MP1: simultaneous duplicate cancellation and restoration commit once each", async () => {
+  const f = await fixture();
+  const url = "/api/matches/" + f.match.id;
+  const r1 = (await f.read()).revision;
+  const cancellations = await Promise.all([0,1].map(() => request(app).post(url + "/cancel").set(f.auth)
+    .send({ expectedRevision: r1 })));
+  assert.deepEqual(cancellations.map(r => r.status).sort(), [200,409]);
+  assert.equal(cancellations.find(r => r.status === 409)?.body.code, "CONCURRENT_MODIFICATION");
+  const r2 = (await f.read()).revision;
+  const restorations = await Promise.all([0,1].map(() => request(app).post(url + "/restore-cancelled").set(f.auth)
+    .send({ expectedRevision: r2 })));
+  assert.deepEqual(restorations.map(r => r.status).sort(), [200,409]);
+  const actions = await database.pool.query(
+    "SELECT action_type, COUNT(*)::int AS count FROM action_log WHERE match_id=$1 AND action_type IN ('match_cancelled','match_restored') GROUP BY action_type ORDER BY action_type", [f.match.id]);
+  assert.deepEqual(actions.rows, [{action_type:"match_cancelled",count:1},{action_type:"match_restored",count:1}]);
+});
+
+test("MP1: invalid revision and invalid restore reject without any writes", async () => {
+  const f = await fixture();
+  const url = "/api/matches/" + f.match.id;
+  const before = await f.snapshot();
+  for (const endpoint of ["/cancel", "/restore-cancelled"]) {
+    const result = await request(app).post(url + endpoint).set(f.auth).send({expectedRevision:-1}).expect(422);
+    assert.equal(result.body.code, "INVALID_MATCH_REVISION");
+    assert.deepEqual(await f.snapshot(), before);
+  }
+  const invalid = await request(app).post(url + "/restore-cancelled").set(f.auth).send({}).expect(422);
+  assert.equal(invalid.body.code, "MATCH_NOT_CANCELLED");
+  assert.deepEqual(await f.snapshot(), before);
+});
