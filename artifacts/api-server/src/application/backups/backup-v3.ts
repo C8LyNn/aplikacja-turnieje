@@ -121,16 +121,21 @@ function remapUndoPayload(
   return remap(payload) as Record<string, unknown>;
 }
 
+/** @internal Optional test-only barrier for deterministic two-connection PG16 races.
+ * Not exposed by any HTTP route. */
 export async function exportBackupV3(
   tournamentId: number,
+  barrier?: Readonly<{ afterTournamentRead?: () => Promise<void> }>,
 ): Promise<TournamentBackupV3 | null> {
   const { db } = await import("@workspace/db");
-  const { loadCompiledRoutingPlanV2 } = await import("../routing/routing-plan-persistence");
-  const [tournament] = await db
+  const { loadCompiledRoutingPlanV2InTransaction } = await import("../routing/routing-plan-persistence");
+  return db.transaction(async (tx): Promise<TournamentBackupV3 | null> => {
+  const [tournament] = await tx
     .select()
     .from(tournamentsTable)
     .where(eq(tournamentsTable.id, tournamentId));
   if (!tournament) return null;
+  await barrier?.afterTournamentRead?.();
   const [
     players,
     stages,
@@ -148,32 +153,31 @@ export async function exportBackupV3(
     gameConfigs,
     deadlockBanRows,
     gamePickRows,
-  ] =
-    await Promise.all([
-      db
+  ] = [
+      await tx
         .select()
         .from(playersTable)
         .where(eq(playersTable.tournamentId, tournamentId))
         .orderBy(asc(playersTable.id)),
-      db
+      await tx
         .select()
         .from(tournamentStagesTable)
         .where(eq(tournamentStagesTable.tournamentId, tournamentId))
         .orderBy(asc(tournamentStagesTable.position)),
-      db
+      await tx
         .select()
         .from(stageGroupsTable)
         .where(
           inArray(
             stageGroupsTable.stageId,
-            db
+            tx
               .select({ id: tournamentStagesTable.id })
               .from(tournamentStagesTable)
               .where(eq(tournamentStagesTable.tournamentId, tournamentId)),
           ),
         )
         .orderBy(asc(stageGroupsTable.stageId), asc(stageGroupsTable.position)),
-      db
+      await tx
         .select()
         .from(stageParticipantsTable)
         .where(eq(stageParticipantsTable.tournamentId, tournamentId))
@@ -181,7 +185,7 @@ export async function exportBackupV3(
           asc(stageParticipantsTable.stageId),
           asc(stageParticipantsTable.stageSeed),
         ),
-      db
+      await tx
         .select()
         .from(marvelStageRoundsTable)
         .where(eq(marvelStageRoundsTable.tournamentId, tournamentId))
@@ -189,7 +193,7 @@ export async function exportBackupV3(
           asc(marvelStageRoundsTable.stageId),
           asc(marvelStageRoundsTable.roundNumber),
         ),
-      db
+      await tx
         .select()
         .from(marvelStageGroupsTable)
         .where(eq(marvelStageGroupsTable.tournamentId, tournamentId))
@@ -197,7 +201,7 @@ export async function exportBackupV3(
           asc(marvelStageGroupsTable.roundId),
           asc(marvelStageGroupsTable.position),
         ),
-      db
+      await tx
         .select()
         .from(marvelStageGroupEntriesTable)
         .where(eq(marvelStageGroupEntriesTable.tournamentId, tournamentId))
@@ -206,7 +210,7 @@ export async function exportBackupV3(
           asc(marvelStageGroupEntriesTable.groupId),
           asc(marvelStageGroupEntriesTable.groupSlot),
         ),
-      db
+      await tx
         .select()
         .from(stageBasketsTable)
         .where(eq(stageBasketsTable.tournamentId, tournamentId))
@@ -215,12 +219,12 @@ export async function exportBackupV3(
           asc(stageBasketsTable.basketType),
           asc(stageBasketsTable.displayOrder),
         ),
-      db
+      await tx
         .select()
         .from(stageBasketRoutesTable)
         .where(eq(stageBasketRoutesTable.tournamentId, tournamentId))
         .orderBy(asc(stageBasketRoutesTable.id)),
-      db
+      await tx
         .select()
         .from(stageBasketParticipantsTable)
         .where(eq(stageBasketParticipantsTable.tournamentId, tournamentId))
@@ -229,7 +233,7 @@ export async function exportBackupV3(
           asc(stageBasketParticipantsTable.basketId),
           asc(stageBasketParticipantsTable.playerId),
         ),
-      db
+      await tx
         .select()
         .from(matchesTable)
         .where(eq(matchesTable.tournamentId, tournamentId))
@@ -238,7 +242,7 @@ export async function exportBackupV3(
           asc(matchesTable.round),
           asc(matchesTable.matchNumber),
         ),
-      db
+      await tx
         .select()
         .from(resultHistoryTable)
         .where(eq(resultHistoryTable.tournamentId, tournamentId))
@@ -246,45 +250,45 @@ export async function exportBackupV3(
           asc(resultHistoryTable.matchId),
           asc(resultHistoryTable.revision),
         ),
-      db
+      await tx
         .select()
         .from(actionLogTable)
         .where(eq(actionLogTable.tournamentId, tournamentId))
         .orderBy(desc(actionLogTable.createdAt)),
-      db
+      await tx
         .select()
         .from(tournamentGameConfigsTable)
         .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId)),
-      db
+      await tx
         .select()
         .from(playerDeadlockBansTable)
         .where(eq(playerDeadlockBansTable.tournamentId, tournamentId)),
-      db
+      await tx
         .select()
         .from(matchGamePicksTable)
         .where(
           inArray(
             matchGamePicksTable.matchId,
-            db
+            tx
               .select({ id: matchesTable.id })
               .from(matchesTable)
               .where(eq(matchesTable.tournamentId, tournamentId)),
           ),
         )
         .orderBy(asc(matchGamePicksTable.matchId), asc(matchGamePicksTable.gameNumber)),
-    ]);
+    ] as const;
   // Load qualification proposals for all stages of this tournament.
   const stageIdList = stages.map((s) => s.id);
   const [qualificationProposals, qualificationProposalEntries, qualificationOutputRows] =
     stageIdList.length === 0
       ? [[], [], []]
-      : await Promise.all([
-          db
+      : [
+          await tx
             .select()
             .from(qualificationProposalsTable)
             .where(inArray(qualificationProposalsTable.stageId, stageIdList))
             .orderBy(asc(qualificationProposalsTable.stageId)),
-          db
+          await tx
             .select()
             .from(qualificationProposalEntriesTable)
             .where(inArray(qualificationProposalEntriesTable.stageId, stageIdList))
@@ -292,7 +296,7 @@ export async function exportBackupV3(
               asc(qualificationProposalEntriesTable.stageId),
               asc(qualificationProposalEntriesTable.placementRank),
             ),
-          db
+          await tx
             .select()
             .from(stageBasketsOutputPlayersTable)
             .where(inArray(stageBasketsOutputPlayersTable.stageId, stageIdList))
@@ -300,13 +304,13 @@ export async function exportBackupV3(
               asc(stageBasketsOutputPlayersTable.stageId),
               asc(stageBasketsOutputPlayersTable.finalRank),
             ),
-        ]);
+        ] as const;
 
   // Load route executions and their entries (Phase 3).
   const routeExecutionRows =
     stageBaskets.length === 0 || stageBasketRoutes.length === 0
       ? []
-      : await db
+      : await tx
           .select()
           .from(stageBasketRouteExecutionsTable)
           .where(eq(stageBasketRouteExecutionsTable.tournamentId, tournamentId))
@@ -314,7 +318,7 @@ export async function exportBackupV3(
   const routeEntryRows =
     routeExecutionRows.length === 0
       ? []
-      : await db
+      : await tx
           .select()
           .from(stageBasketRouteEntriesTable)
           .where(
@@ -329,9 +333,9 @@ export async function exportBackupV3(
           );
 
   const gameConfig = gameConfigs[0];
-  let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2>> | null = null;
+  let routingPlan: Awaited<ReturnType<typeof loadCompiledRoutingPlanV2InTransaction>> | null = null;
   try {
-    routingPlan = await loadCompiledRoutingPlanV2({ tournamentId });
+    routingPlan = await loadCompiledRoutingPlanV2InTransaction(tx, { tournamentId });
   } catch (error) {
     if (!(error instanceof RoutingPlanPersistenceError) || error.code !== "ROUTING_PLAN_NOT_FOUND") {
       throw error;
@@ -339,7 +343,7 @@ export async function exportBackupV3(
   }
   const routingExecutions = routingPlan == null
     ? []
-    : await db.select().from(tournamentRoutingExecutionsTable)
+    : await tx.select().from(tournamentRoutingExecutionsTable)
       .where(eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId))
       .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
   const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
@@ -651,6 +655,7 @@ export async function exportBackupV3(
           }),
         }),
   };
+  }, { isolationLevel: "repeatable read", readOnly: true });
 }
 
 export function validateBackupV3(backup: TournamentBackupV3): void {
