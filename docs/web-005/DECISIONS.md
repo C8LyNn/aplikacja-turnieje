@@ -182,3 +182,18 @@ No deployment, merge, migrations, paid CI or remote Drive transfer occurred in t
 | D085 | No SWARM-006 handoff until WEB-005 formally closes full approved backlog; WEB-004 no further audits now | FINAL-ONLY OWNER POLICY remains, SWARM-007 independent folder/communication architecture, RELEASE NO-GO |
 
 No integration, migrations, deployment, paid CI or production access is authorized by this wave planning documentation.
+
+
+## R11 — R10 closeout and centralized instructions (2026-10-14)
+
+| ID | Decision | Status |
+|---|---|---|
+| **D086** | Record R10 new P10=PR #43 UX042 (96a6068f69027574ac76e18d4d5a2c444b5a914a), P11=PR #44 S1A (2f0187b7242681c394c09058b5ef647667206bd6), P12=PR #45 RR reopen (a7a87bc019731191dbfa44bee6939e3fa25e27f4) | **SOURCE PATCH PROPOSED / OPEN DRAFT**; PG16/React actual tests and independent review not automatically proven; no merge |
+| **D087** | Publish [WEB-005_WAVE_R11_AGENT_PROMPTS.md](./WEB-005_WAVE_R11_AGENT_PROMPTS.md) as the only central R11 instruction set for 13 agents | **READY FOR R11**, shared §0–§2 + only assigned Axx; agents keep separate reports |
+| **D088** | R11 implementation source-only lanes: A90/T060-B3A consistent Backup V3 export snapshot; A100/T080-S1B-D guarded DELETE tournament; A120/T100 PR-A DE/labels/final overlay | **GO NARROW CODE-ONLY** subject to owner/file conflicts, max three lanes, no policy changes, separate isolated draft PRs |
+| **D089** | Urgent non-code priority: A50 safe disposable physical PostgreSQL16/API/React execution and A60 independent QA on PR #41–45 | **P0**; cannot claim app runtime PASS from authored fixtures or harness; no shared/prod DB |
+| **D090** | Keep MP2B direct Revert CAS, terminal Swiss, Swiss/DE sport rules, T055 Basket CAS, portable Backup revisions pending explicit product policy | **SOURCE-ONLY / POLICY OPEN**, no automatic implementation |
+| **D091** | WEB-004 Bug Hunting 002 report R2 remains sole audit input; no new WEB-004 reports requested | **ACTIVE** |
+| **D092** | SWARM-006 receives a single handoff only after formal WEB-005 whole-backlog closeout and owner/HQ authorization | **ACTIVE**; all P01–P12+ are INTERNAL BUFFER, SWARM-007 information architecture independent |
+
+**NO-GO:** no integrated SHA, PG16/HTTP/frontend full runtime suite absent, all draft PRs unmerged, no production authorization. Documentation commits are not merge or deploy.
