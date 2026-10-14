@@ -37,7 +37,7 @@ Verified original A60 R17 signed report [WEB-005_A60_R17_INDEPENDENT_QA.md](http
 | PR | R17 A60 reviewed SHA | Last R18 observed HEAD SHA | Status |
 |---|---|---|---|
 | #42 | `25b09f1a48a85ae882b817118f5d8c23bffbe383` | `021bed269f9ea8ac8ce53caeea44263c098aa2dd` | `PATCH_REVISED / A60_R18_EXACT_SHA_PENDING` |
-| #53 | `8f959733258aed0cab15298dd0684ca068045e6f` | `f400590b13e9b260232e822f7ea88fba7ea1224a` | `PATCH_REVISED / A60_R18_EXACT_SHA_PENDING` |
+| #53 | `8f959733258aed0cab15298dd0684ca068045e6f` | `4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19` | `PATCH_REVISED / A60_R18_EXACT_SHA_PENDING` |
 | #54 | `dbba0eb82920b4f324866b1b983e1211459f52ec` | `9866e5d2e73c99e01c2934a38ca1c62455efd2ed` | `PATCH_REVISED / A60_R18_EXACT_SHA_PENDING` |
 
 On actual current branch diffs, #42 changes `artifacts/api-server/src/application/players/tournament-roster.ts`, `src/routes/tournaments.ts`, `test/revert-match.integration.test.ts`; #53 changes `src/context/auth-context.tsx`, `src/hooks/use-tournament-auth.test.tsx`, `src/lib/tournament-query-invalidation.ts`, `src/lib/tournament-auth-query-cache.test.tsx`; #54 changes `src/pages/tournament-detail.tsx` plus `src/pages/tournament-detail.rr-readback.test.tsx`. Source existence and authored tests do **NOT** constitute application runtime PASS. `WEB-005_A60_R18_INDEPENDENT_QA.md` not found in central docs at A50 recheck. Full 21 packet matrix [WEB-005_A50_R18_TEST_MATRIX.json](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a50-r18-evidence-20261014/docs/web-005/agent-reports/A50/WEB-005_A50_R18_TEST_MATRIX.json) pins latest observed SHA and marks changed PRs QA-pending. Authors may push further commits; re-read live HEAD before executor and A60 QA.
@@ -63,3 +63,6 @@ Runtime debt is **known and explicit**: zero per-PR native runtime receipts in t
 **Non-changes:** no application code, PR merges, cherry-picks/rebases, paid CI reruns, SQL/DDL/migrations, shared DB resets, deployment, staging, real user backups, secret logs, or SWARM-006 dispatch. This A50 work only reads GitHub and publishes scoped documentation.
 
 **Final disposition:** `R18_A50_EVIDENCE_PUBLISHED / ENV_BLOCKED / APP_TESTS_NOT_EXECUTED / OWNER_EXECUTOR_REQUIRED / RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+> **R18 live recheck addendum:** PR #53 moved more than once during publication (including interim `f400590b13e9b260232e822f7ea88fba7ea1224a`). Last readback exact HEAD `4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19`. Revalidate on GitHub immediately before any execution or independent approval. No RTL was executed here.
