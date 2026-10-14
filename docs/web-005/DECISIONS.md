@@ -376,3 +376,19 @@ No merge/cherry-pick/composite, production SQL/shared database reset, billable C
 | **D173** | [A60 R21 final independent gate](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R21_OWNER_SIGNOFF_INDEPENDENT_QA.md) = HANDOFF_NOT_READY. A10 21 current source candidates pinned, A50 0 native app tests, original WEB004 nine IDs missing and 38 dispositions incomplete. Crucially, several agent R21 WAIT_OWNER reports read the owner packet **before** the later user S1–S4/EXEC-B decisions and A00 S5/S6 delegation were recorded. | [A00 R21 authoritative closeout](./agent-reports/A00/WEB-005_A00_R21_CLOSEOUT_GATE.md) preserves completed sporting choices D167–D172; it does not ask for those decisions again. Remaining Basket T055, Backup B2, MP2B public CAS/Host, Steam/session and raw legacy cache, historic original CSV/dispositions still WAIT_OWNER. No R22 repeated-report wave; no SWARM006 dispatch. |
 
 No implied code GO or application QA PASS. `WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO`.
+
+
+## R21 — owner approves T055 Basket CAS D1–D6 (2026-10-14)
+
+**D174 — T055/UX047 owner decision, directly approved:** owner responded “tak, może być” to A00's fully specified stage-basket concurrency policy. Exact [decision and QA contract](./WEB-005_R21_OWNER_T055_BASKET_CAS_APPROVAL.md) and [updated R21 owner packet](./WEB-005_R21_OWNER_DECISION_PACKET.md).
+
+| Contract cell | Owner-approved choice | Authorization classification |
+|---|---|---|
+| **D1=B** | Monotonic persisted `basketConfigRevision`, review schema and Backup V3 compatibility | `OWNER_EXPLICIT`, DB migration **NOT authorized** |
+| **D2=B** | GET ETag and required PUT If-Match based on coherent basket graph snapshot | `OWNER_EXPLICIT` |
+| **D3=B** | Old If-Match returns **412** STAGE_BASKET_CONFIGURATION_STALE, zero writes | `OWNER_EXPLICIT` |
+| **D4=A** | Missing token returns **428**; malformed token fail-closed 4xx; legacy must upgrade, no unprotected PUT | `OWNER_EXPLICIT` |
+| **D5=B** | Basket revision plus atomic after-lock revalidation of any relevant stage/roster mutation before full-graph writes | `OWNER_EXPLICIT` |
+| **D6=B** | Preserve editor draft and require manual reconcile/reload with fresh token and explicit opt-in retry | `OWNER_EXPLICIT` |
+
+**Implementation STOP:** Current backend and frontend have NO accepted code patch implementing T055 CAS; request future separate exclusive file-scope test-first GO with A110 + A20 schema/PG and A90 Backup compatibility, and independent A60 exact-source/runtime QA. No R21 code, SQL/DDL, paid CI, merge/staging/live or final SWARM006 GO. **T055 policy closed, T055 implementation pending**. Other owner questions: Backup B2, Direct Revert MP2B, Steam/session, legacy raw cache, original 38-case dispositions.
