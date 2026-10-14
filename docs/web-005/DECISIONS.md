@@ -92,3 +92,21 @@ No merge, deploy, Replit, production data/schema/secrets changes or paid CI disp
 | D044 | A20/A30 transition PR38/PR37 into QA/fix-only until defect evidence, not broad new patch authoring | ACTIVE; no overlapping files or DB DDL |
 | D045 | SWARM-006 owns integrated candidate + release; SWARM-007 owns protocols, Google Drive folder architecture, records | REQUIRED OWNERSHIP BOUNDARY; WEB-005 is patch producer, not deployment owner |
 | D046 | Release gate stays NO-GO; no automatic merge/CI/production changes | BLOCKED pending full independently verified integrated test evidence and HQ decision |
+
+
+## WEB-004 HANDOFF R2 — WAVE NEXT INTAKE (2026-10-14)
+
+| ID | Coordinator decision | Status/gate |
+|---|---|---|
+| D047 | Receive [WEB-005_WAVE_NEXT_IMPLEMENTATION_PLAN_R1.md](./WEB-005_WAVE_NEXT_IMPLEMENTATION_PLAN_R1.md) as canonical R2-to-implementation mapping | ACCEPTED FOR PLANNING; WEB-004 A60 cross-report QA COUNTERSIGN PENDING |
+| D048 | Deduplicate OPS-01/02/03 under T040 and recognize NEW PR #39 MP1 at 3e0a2dd64d03df5a85b7875af7dc012c796d01b3 | EXISTING; PR39 OPEN DRAFT / native PostgreSQL NOT_EXECUTED; MP2 direct Revert CAS/global LIFO separate GO |
+| D049 | Preserve existing T017/T020/T021/T030/T031/T130/T133 work | EXISTING; no second implementation for CI, Steam, proxy, migration ledger |
+| D050 | Register T050/T051 sport+lifecycle, T060 Backup V3, T080 privacy/auth, T055 basket CAS, T110 frontend async, T100 presentation | NEW / SOURCE-ONLY DESIGN; proposed owners A80/A90/A100/A110/A120; no code implementation permission |
+| D051 | Reserve next implementation slot for P0 T060-B1 after independent contract/PG16 readiness | HOLD UNTIL EXPLICIT GO; maximum 3 parallel implementations and one independent QA lane |
+| D052 | Distinguish SOURCE-CONFIRMED, STATIC-INFERRED, HYPOTHESIS, POLICY OPEN, WITHDRAWN, MAIN-ONLY | REQUIRED; prior A60 final 38 counters provisional and no runtime PASS asserted |
+| D053 | Request owner/HQ policy decisions: SWISS/RR/DE, terminal Swiss, SE currentRound, Cancel CAS, Basket CAS, Steam 403/503, Backup portable revisions, private cache | POLICY OPEN; behavioral changes blocked without signed outcome |
+| D054 | Packet manifest P01–P06 conditional, including PR39; future packet IDs only after independent patches exist | SWARM-006 integration ownership; WEB-005 does not merge or deploy |
+| D055 | SWARM-007 stores/report-architecture after establishing conventions; WEB-005 supplies identifiers and provenance | No fabricated Drive folders or automatic conversation transfer |
+| D056 | Product release remains NO-GO | Composite SHA, complete native CI/PG16/HTTP/browser tests, A60 exact-SHA signoff and HQ authorization required |
+
+No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part of this coordinator intake.
