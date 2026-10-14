@@ -34,7 +34,8 @@
 | bff56604c1901f7b4613caef7c2c32456cbadda3 | First test-only commit (**RED definition**, not an executed failing test): race barrier after root read, second transaction changes tournament name, planned target stage name and source match note, commits, export resumes |
 | 83d9eb9ad95484f7c1411c0e043859ae535308dc | Implementation of a single read-only REPEATABLE READ tx |
 | 79ed19a6254a0d5a19aabb238fa750144ade3acb | Additional regression barrier: approval and route execution committed while export awaits |
-| 2a8a4c72cb4a3a37402a346fd0acc83b03b39be3 | Final whitespace-minimized source patch with explicit empty-tuple type hint (prior formatting commit not retained in final diff) |
+| 68991b393f87ded797b8578a0972bee47b8375a8 | Whitespace-minimized source patch with explicit empty-tuple type hint (final code diff keeps original formatting) |
+| 2a8a4c72cb4a3a37402a346fd0acc83b03b39be3 | Correct PostgreSQL Drizzle `accessMode: "read only"` option (runtime/typecheck still unverified) |
 
 **B3A-RACE-01 / root, stage, match:** the exporter issues first SELECT for root in transaction E and suspends at afterTournamentRead. Concurrent writer W uses another pooled transaction to atomically UPDATE tournament.name, planned target stage.name, completed source match.note and COMMIT. Resume E: assert all three export fields remain their pre-W values. Then start new export E2: assert all three equal post-W values. This proves same-snapshot state, not post/pre hybrid if executed.
 
@@ -46,7 +47,7 @@
 
 **Fail-closed / negative expectations:** neither race may expose a torn mixture of pre/post-commit records, return partial success on routing helper error, change DB records on the exporter side, or silently drop route receipts. B3A does **not** itself validate independently corrupted source data; any initial source corruption is B1/DB invariants or follow-up QA.
 
-**CI state checked after PR creation:** automatic GitHub Actions workflow run `38595557462` on prior PR HEAD `68991b393f87ded797b8578a0972bee47b8375a8` failed **Pack19 snapshot source regex** (job `115961241974`, 7 PASS / 1 FAIL in Pack19 source contract); later gates were skipped. Logs identify a regex mismatch against an existing Pack19 module's `accessMode:"read only"` syntax. This failure is **not B3A runtime evidence**. A new exact-SHA run on `2a8a4c72cb4a3a37402a346fd0acc83b03b39be3` was not evaluated at report time. No manual CI rerun initiated.
+**CI state verified for exact PR head:** automatic GitHub Actions workflow run `38596228642` on `2a8a4c72cb4a3a37402a346fd0acc83b03b39be3` **FAILED**, job `115963545435`: Pack19 snapshot consistency tests failed, later gates skipped, no B3A PG16/API acceptance test ran. Prior run `38595557462` on `68991b393f87ded797b8578a0972bee47b8375a8` failed at the same independent Pack19 source-regex test (7 PASS / 1 FAIL). Log on prior run shows old Pack19 `accessMode:"read only"` mismatched an expected source regex for `readOnly:true` — this is an existing Pack19 owner/QA finding, **not B3A runtime failure**. No manual CI was triggered by A90.
 
 ## 3. Execution status and reproducible A50 acceptance
 
