@@ -960,4 +960,79 @@ describe("Phase 3 — Basket Route Execution", () => {
     assert.equal(exec2.status, 200, `idempotent re-execute: ${JSON.stringify(exec2.body)}`);
     assert.equal(exec2.body.routedPlayerCount, 2);
   });
+
+  // WEB-005-T060-B1 / test-first negative fixtures.
+  // PostgreSQL 16 with isolated tm_test_* schema is required for execution.
+  test("Backup V3 B1: qualification and route corruption rejects before clone", async () => {
+    const { validateBackupV3, BackupV3ValidationError } =
+      await import("../src/application/backups/backup-v3");
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    await approveProposal(fix);
+    await request(app)
+      .post("/api/tournaments/" + fix.tournamentId + "/stages/" + fix.sourceStageId + "/baskets/" + fix.outputBasketId + "/route/execute")
+      .set(fix.organizerHeaders)
+      .expect(200);
+    const exported = await request(app)
+      .get("/api/tournaments/" + fix.tournamentId + "/export")
+      .set(fix.organizerHeaders)
+      .expect(200);
+    const valid = exported.body as import("@workspace/api-zod").TournamentBackupV3;
+    assert.ok(valid.qualificationProposals?.[0]?.output?.length === 2);
+    assert.ok(valid.routeExecutions?.[0]?.entries.length === 2);
+    assert.doesNotThrow(() => validateBackupV3(valid), "valid approval and route must remain importable");
+
+    const scenarios: Array<{
+      name: string;
+      mutate: (copy: import("@workspace/api-zod").TournamentBackupV3) => void;
+    }> = [
+      { name: "missing approved output", mutate: b => { b.qualificationProposals![0].output!.pop(); } },
+      { name: "wrong approved output player", mutate: b => { b.qualificationProposals![0].output![0].playerBackupId = fix.playerIds[1]; } },
+      { name: "wrong approved output rank", mutate: b => { b.qualificationProposals![0].output![0].finalRank += 20; } },
+      { name: "output in target input basket", mutate: b => { b.qualificationProposals![0].output![0].basketId = fix.targetInputBasketId; } },
+      { name: "orphaned source proposal", mutate: b => { b.qualificationProposals = []; } },
+      { name: "pending proposal has materialised output", mutate: b => {
+        const p = b.qualificationProposals![0];
+        p.status = "pending"; p.approvedAt = null; p.approvedByActorType = null; p.approvedByActorNick = null;
+      } },
+      { name: "stale source proposal revision", mutate: b => { b.routeExecutions![0].sourceProposalRevision += 1; } },
+      { name: "incomplete arrival set", mutate: b => { b.routeExecutions![0].entries.pop(); } },
+      { name: "wrong execution target", mutate: b => { b.routeExecutions![0].targetBasketId = fix.outputBasketId; } },
+      { name: "wrong entry source basket", mutate: b => { b.routeExecutions![0].entries[0].sourceBasketId = fix.targetInputBasketId; } },
+      { name: "extra arrival not in approved output", mutate: b => {
+        b.routeExecutions![0].entries.push({
+          ...b.routeExecutions![0].entries[0],
+          playerBackupId: fix.playerIds[1],
+          sourceFinalRank: 99,
+        });
+      } },
+      { name: "duplicate arrival", mutate: b => {
+        b.routeExecutions![0].entries.push({ ...b.routeExecutions![0].entries[0] });
+      } },
+    ];
+    for (const scenario of scenarios) {
+      const corrupted = structuredClone(valid);
+      scenario.mutate(corrupted);
+      assert.throws(
+        () => validateBackupV3(corrupted),
+        (error: unknown) => error instanceof BackupV3ValidationError,
+        scenario.name,
+      );
+      const cloneName = corrupted.tournament.name + " (kopia)";
+      const before = await database.pool.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM tournaments WHERE name = $1",
+        [cloneName],
+      );
+      const response = await request(app)
+        .post("/api/tournaments/import")
+        .send({ backup: corrupted, organizerPassword: "R9-B1-Only-Synthetic!" });
+      assert.equal(response.status, 400, scenario.name + ": " + JSON.stringify(response.body));
+      assert.equal(response.body.code, "INVALID_BACKUP_V3", scenario.name);
+      const after = await database.pool.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM tournaments WHERE name = $1",
+        [cloneName],
+      );
+      assert.deepEqual(after.rows, before.rows, scenario.name + ": no committed clone");
+    }
+  });
+
 });
