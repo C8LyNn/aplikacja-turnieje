@@ -117,7 +117,7 @@ test("B4 action provenance: portable total order even when timestamps tie", () =
   b.actionLog.push({
     actionType: "stage_metadata_changed", description: "Synthetic metadata",
     stageBackupId: 3, matchBackupId: 21, canUndo: false,
-    undoPayload: { matchId: 21 }, isUndone: false,
+    undoPayload: { matchId: 21, winnerId: 11, nested: { player1Id: 11 } }, isUndone: false,
     createdAt: b.actionLog[0].createdAt,
   });
   b.strictPolicy.actionOrder.push({
@@ -148,14 +148,14 @@ test("B5 recognized nested foreign, absent or malformed IDs reject; unknown opaq
   const lawful = modernSpecimen();
   lawful.actionLog[0].undoPayload.nested = {
     player1Id: 11, diagnosticCounter: 999_999,
-  };
+  } as typeof lawful.actionLog[0]["undoPayload"]["nested"];
   assert.doesNotThrow(() => validateStrictBackupV3Policy(lawful));
   for (const p of [
     { matchId: 9999 }, { nested: { winnerId: 9999 } },
     { playerId: "11" }, { list: [{ prevFeaturedMatchId: 10000 }] },
   ]) {
     const copy = modernSpecimen();
-    copy.actionLog[0].undoPayload = p as typeof copy.actionLog[0]["undoPayload"];
+    copy.actionLog[0].undoPayload = p as unknown as typeof copy.actionLog[0]["undoPayload"];
     rejectsInvalid(copy, "recognized nested ID cannot silently keep a foreign/original ID");
   }
 });
