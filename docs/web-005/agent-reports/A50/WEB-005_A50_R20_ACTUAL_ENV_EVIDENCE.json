@@ -1,0 +1,67 @@
+{
+  "schema": "WEB005_A50_R20_ACTUAL_ENVIRONMENT_PRECHECK_V1",
+  "task": "WEB-005-T133-A50-R20",
+  "mode": "SAFE_TEST_ONLY",
+  "date_utc": "2026-10-14T20:45:33Z",
+  "runtime_host": "ChatGPT Linux container, not user's approved PC/VM",
+  "real_commands": [
+    {
+      "command": "node --version",
+      "exit_code": 0,
+      "stdout": "v22.16.0",
+      "native_application_test": false
+    },
+    {
+      "command": "git --version",
+      "exit_code": 0,
+      "stdout": "git version 2.47.3",
+      "native_application_test": false
+    },
+    {
+      "command": "git -C /mnt/data rev-parse HEAD",
+      "exit_code": 128,
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git",
+      "native_application_test": false
+    }
+  ],
+  "path_probe": {
+    "command": "find /mnt/data -maxdepth 4 ( -name pnpm-workspace.yaml -o -name pnpm-lock.yaml -o -name .git ) -print",
+    "observed_matches": [],
+    "complete_monorepo_checkout_found": false
+  },
+  "binary_discovery": {
+    "node": "/opt/nvm/versions/node/v22.16.0/bin/node",
+    "git": "/usr/bin/git",
+    "corepack": "/opt/nvm/versions/node/v22.16.0/bin/corepack",
+    "pnpm": null,
+    "docker": null,
+    "podman": null,
+    "psql": null,
+    "pwsh": null
+  },
+  "not_invoked_due_to_missing_binary": [
+    "pnpm",
+    "docker",
+    "podman",
+    "psql",
+    "pwsh"
+  ],
+  "database_environment": {
+    "TEST_DATABASE_URL": "UNSET",
+    "DATABASE_URL": "UNSET",
+    "TEST_DATABASE_SCHEMA": "UNSET"
+  },
+  "owner_granted_live_shell": false,
+  "owner_written_pg16_reset_approval": false,
+  "test_checkout_full_pinned": false,
+  "dependency_install_approved_and_present": false,
+  "application_commands_executed": 0,
+  "application_test_exit_code": null,
+  "application_TAP": null,
+  "application_pass": null,
+  "application_fail": null,
+  "application_skip": null,
+  "sql_snapshot": null,
+  "app_runtime_verdict": "NOT_EXECUTED_ENV_BLOCKED",
+  "note": "No PLAN-only test launcher was created; actual safe preflight and code readback must not be reported as native application runtime PASS."
+}
