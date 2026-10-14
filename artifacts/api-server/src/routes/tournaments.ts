@@ -2225,10 +2225,10 @@ function parseHistoricalUndoPayload(
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const payload = raw as Record<string, unknown>;
   if (payload.type !== expectedType) return null;
-  const positiveId = (value: unknown) => Number.isSafeInteger(value) && (value as number) > 0;
+  const positiveId = (value: unknown) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
   const optionalId = (value: unknown) => value == null || positiveId(value);
   const optionalScore = (value: unknown) =>
-    value == null || (Number.isSafeInteger(value) && (value as number) >= 0);
+    value == null || (typeof value === "number" && Number.isSafeInteger(value) && value >= 0);
   const statuses = ["pending", "in_progress", "postponed", "cancelled"];
   const requiresMatch = !["delete_player", "restore_player", "restore_featured"].includes(expectedType);
   if (requiresMatch && (!positiveId(payload.matchId) || action.matchId !== payload.matchId)) return null;
@@ -2240,7 +2240,7 @@ function parseHistoricalUndoPayload(
     if (!statuses.includes(payload.prevStatus as string) ||
         (payload.nextStatus !== undefined && !statuses.includes(payload.nextStatus as string))) return null;
   } else if (expectedType === "restore_best_of") {
-    if (!Number.isSafeInteger(payload.prevBestOf) ||
+    if (typeof payload.prevBestOf !== "number" || !Number.isSafeInteger(payload.prevBestOf) ||
         (payload.prevBestOf as number) < 1 || (payload.prevBestOf as number) % 2 !== 1) return null;
   } else if (expectedType === "restore_featured") {
     if (!optionalId(payload.prevFeaturedMatchId) || !optionalId(action.matchId)) return null;
