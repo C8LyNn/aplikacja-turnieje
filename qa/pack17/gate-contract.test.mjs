@@ -14,6 +14,11 @@ test('all three subprocess summaries verified',()=>assert.deepEqual(assertComple
 test('malformed duplicate summary field rejected',()=>assert.throws(()=>assertCompleteTap(tap(2,2,0,'# pass 2\n')),/duplicate TAP/));
 test('todos rejected',()=>assert.throws(()=>assertCompleteTap(tap(2,2).replace('# todo 0','# todo 1')),/not a complete PASS/));
 test('cancelled rejected',()=>assert.throws(()=>assertCompleteTap(tap(2,2).replace('# cancelled 0','# cancelled 1')),/not a complete PASS/));
+test('extra TAP header before passing summary rejected',()=>assert.throws(()=>assertCompleteTap('TAP version 13\n'+tap(2,2)),/Incomplete TAP/));
+test('extra TAP header after passing summary rejected',()=>assert.throws(()=>assertCompleteTap(tap(2,2)+'TAP version 13\n'),/Incomplete TAP/));
+test('multi-process extra TAP header rejected',()=>assert.throws(()=>assertCompleteTap(tap(2,2)+tap(1,1)+'TAP version 13\n',2),/Incomplete TAP/));
+test('header without own summary cannot borrow the next process summary',()=>assert.throws(()=>assertCompleteTap('TAP version 13\n'+tap(2,2)+'# tests 3\n# pass 3\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n',2),/lacks mandatory/));
+test('summary before any TAP header is rejected',()=>assert.throws(()=>assertCompleteTap('# tests 2\n'+tap(2,2)),/summary before TAP header/));
 test('valid isolated DB config accepted without exposing credentials',()=>assert.deepEqual(assertSafeTestDatabaseEnv(valid),{schema:'tm_test_pack17',databaseName:'tournament_test'}));
 test('missing database URL rejected',()=>assert.throws(()=>assertSafeTestDatabaseEnv({...valid,TEST_DATABASE_URL:''}),/TEST_DATABASE_URL/));
 test('wrong reset consent rejected',()=>assert.throws(()=>assertSafeTestDatabaseEnv({...valid,TEST_DATABASE_RESET:''}),/reset consent/));
