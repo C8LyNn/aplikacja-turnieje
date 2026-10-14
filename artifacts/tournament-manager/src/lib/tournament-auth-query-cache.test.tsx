@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import React, { type ReactNode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import {
   isTournamentAuthQuery,
@@ -125,4 +125,29 @@ test("manual eviction aborts delayed queries rather than allowing old response r
   complete("OLD SECRET");
   await old;
   assert.equal(client.getQueryData(["/api/tournaments/9/standings"]), undefined);
+});
+
+
+test("active React Query observer no longer renders private A after logout or navigation to B", async () => {
+  const result = renderHook(({ id }: { id: number }) => {
+    const auth = useAuth();
+    const read = useQuery({
+      queryKey: ["/api/tournaments/" + id],
+      queryFn: async () => ({ privateField: "unexpected network data" }),
+      enabled: false,
+    });
+    return { auth, data: read.data };
+  }, { initialProps: { id: 7 }, wrapper });
+
+  act(() => result.result.current.auth.storeOrgToken(7, "token-A"));
+  act(() => {
+    client.setQueryData(["/api/tournaments/7"], { privateField: "SECRET A" });
+    client.setQueryData(["/api/tournaments/8"], { privateField: "authorized B" });
+  });
+  await waitFor(() => assert.equal(result.result.current.data?.privateField, "SECRET A"));
+  act(() => result.result.current.auth.removeOrgToken(7));
+  await waitFor(() => assert.equal(result.result.current.data, undefined));
+  result.rerender({ id: 8 });
+  await waitFor(() => assert.equal(result.result.current.data?.privateField, "authorized B"));
+  assert.equal(client.getQueryData(["/api/tournaments/7"]), undefined);
 });
