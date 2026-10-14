@@ -299,3 +299,16 @@ R10 implementation is **source patches only** (NOT integrated): **P10 PR #43** T
 **Conditional small frontend code lanes:** A100/T080-S2A privacy cache after auth logout/revocation, A110/T110-UX046 stale stage modal, A120/T100-PR-B RR external standings freshness. **Code only upon source-confirmed gap; otherwise NO_NEW_PATCH**. No fourth code lane; no unapproved sport/basket/backup/API policy changes. A70/A80/A90 source-only policy/QA work; A10 P01–P18 internal manifest, A20 migration readiness, A30 security review, A40 CI gate.
 
 **Final boundary unchanged:** no more WEB-004 reports, no intermediate SWARM-006 packets. Finish approved WEB-005 backlog, independently validate and obtain owner policy dispositions, then seek authorization for ONE final SWARM-006 handoff. SWARM-007 Drive/communication infrastructure remains separate. Release NO-GO.
+
+
+## R14 — QUALITY GATE / 2026-10-14
+
+**Master 13-agent R14:** [WEB-005_WAVE_R14_AGENT_PROMPTS.md](./WEB-005_WAVE_R14_AGENT_PROMPTS.md). Each A00/A10–A120 thread reads §0–§2 and its own `AGENT Axx` scope.
+
+**R13 new source patches:** PR52 A110 UX046 stale stage modal HEAD `cce73ec47445102b216b3f8eceb4ec9de67eb1a7` (7 authored RTL); PR53 A100 S2A private auth cache HEAD `6a8f0c3e5775eb056df75ebdd7b33df7cbc78979` (9 authored React tests); PR54 A120 RR canonical readback HEAD `dbba0eb82920b4f324866b1b983e1211459f52ec` (6 authored RTL). **Targeted runtime tests NOT_EXECUTED per author reports; A60 final independent exact-SHA acceptance not established.** All three OPEN DRAFT, not merged. Existing PR34–51 remain open draft. Thus **21 internal draft source candidates PR34–54**, excluding unrelated release PR32 and alternative HOLD PR33. No composite HEAD; no release acceptance.
+
+**GitHub CI:** automatic runs 38605694664/38606179795/38606249912 FAIL on prior `Pack 19 snapshot consistency tests`, before R13 target tests. This is the old release matcher `readOnly:true` vs current source `accessMode:"read only"`; existing separate PR35 corrects matcher. Do not invent a second patch or count the blocked CI stage as a feature-specific test verdict; full integrated gates are not waived.
+
+**R14 control:** No automatically authorized code lanes; A50 P0 exact SHA frontend + physically isolated PG16 tests or executable blocker; A60 P0 independent source/runtime per-packet matrix; A10 current P01–P21+ manifest + conflict/dependency DAG. A00 requests owner/HQ decisions (Swiss terminal, SE/Swiss/DE, Basket CAS, Backup B2, Direct Revert CAS, Steam/session) and reconciles entire WEB-004 R2 backlog. A20/A30/A40 source/security/CI QA and A70/A80/A90/A100/A110/A120 narrow owner-source support. Separate new scoped code GO only for confirmed independent FAIL, not draft accumulation.
+
+**Final-only boundary:** No WEB-004 report cycle; WEB-005 completes approved scope and independent QA before one consolidated handoff to SWARM-006, which alone integrates and prepares release later. SWARM-007 handles communications/Drive architecture independently. **RELEASE NO-GO / SWARM-006 HOLD.**
