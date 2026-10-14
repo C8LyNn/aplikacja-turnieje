@@ -179,3 +179,32 @@ Verified at coordination time:
 **SWARM-007 protocol handoff:** A10/A50/A60 prepare hashes, reports, artifact types, owners and status; do not invent Google Drive folders/links or manually assert created architecture. SWARM-007 owns actual Drive folder setup and information exchange standards. SWARM-006 alone owns assembled integration candidate, full integrated tests, staging and release process under HQ authorization.
 
 **NO-GO:** no integrated SHA, Pack17 --full/regression/HTTP/PG migrations uncertified, current PRs OPEN DRAFT; no deployment authorization.
+
+
+## WAVE NEXT — WEB-004 BUG HUNTING 002 HANDOFF R2 (2026-10-14)
+
+**Canonical detailed plan:** [WEB-005_WAVE_NEXT_IMPLEMENTATION_PLAN_R1.md](./WEB-005_WAVE_NEXT_IMPLEMENTATION_PLAN_R1.md). WEB-004 A00 final source consolidation accepted for triage, **WEB-004 A60 final cross-report countersign pending**. No unexecuted test counts as PASS. New verified PR #39 is **T040 MP1 Cancel/Restore** at SHA **3e0a2dd64d03df5a85b7875af7dc012c796d01b3**: 6 changed files, OPEN DRAFT, PostgreSQL/React parity NOT_EXECUTED, CI #38573071825 FAIL at baseline Pack19; **do not reimplement MP1**.
+
+### Existing tasks — deduplicated
+- **T017/A40, T018/A10, T130/A60, T133/A50:** full CI/Pack17/PG/browser gates; no shared-SHA runtime PASS.
+- **T020/T021/A20:** migration 0027–0040 ledger/0030–0031, PR #38 offline validator only, no SQL GO.
+- **T030/T031/A30:** Steam auth PR #34 (PR #33 alternative HOLD) and proxy PR #37; require HTTP/PG/security independent QA.
+- **T040/A70:** MP1 PR #39 proposed; MP2 GLOBAL UNDO LIFO including revert_match and direct Revert CAS, MP3 Host/codegen, MP4 regression **not yet authorized as code**.
+- **Partial main-only/source-mitigated/withdrawn IDs:** preserve as regression only; A52-F001/F002, BIZ-21-09/12 WITHDRAWN; BIZ-21-18 corrected source on release; don't create duplicate fixes.
+
+### New R2 task queue — source-only until scoped GO
+| Task | Priority | Agent | Source IDs / purpose | Readiness/dependency |
+|---|---|---|---|---|
+| **T050** stage lifecycle | P0 gate/P1 | **80 proposed** | A52-F022 terminal Swiss, A52-F019 RR restore, A52-F018 SE pointer | terminal Swiss/SE policies and no simultaneous revert-match.ts edits with A70 |
+| **T051** sporting rules | P1 | **80 proposed** | BIZ-21-17 Swiss non-rematches, BIZ-21-19 DE 2–N, BIZ-21-18 RR retest only | sign Swiss/RR/DE rules, deterministic fixtures |
+| **T060** Backup V3 | **P0** | **90 proposed** | A51-F034 approved output/routes, F037 match/history, F020=A50-F026 snapshot, revision/legacy | PG16 + backup policy, conflict-map with T040/T020; candidate next implementation lane 3 only after GO |
+| **T080** session/privacy | P1 | **100 proposed** | SEC-021/006 revocation races, SEC-022=UX-030 private cache | separate backend/frontend PR, policy TTL/token if needed |
+| **T055** basket CAS | P1 | **110 proposed** | UX-047 lost-update; atomic versioned PUT 409/412, retained draft | POLICY-BASKET, stage DB version |
+| **T110** frontend async | P1/P2 | **110 proposed** | UX-042 FileReader, UX-044 Host drafts, UX-045 new backup preview, UX-046 modal | exclude withdrawn direct basket-panel draft transfer/backup overwrite claim |
+| **T100** presentation | P2 | **120 proposed** | A20 F052/F053/F055/F058; F054 source-retention QA only | after lifecycle semantics and browser fixtures |
+
+**Operating cap:** A40/T017 and A70/T040 retain current implementation lanes (until confirmed closed); **lane 3 reserved for T060-B1** and requires separate explicit implementation GO. New proposed agents may perform source-only design or test contracts without touching implementations; don't silently create extra code lanes. A60 remains the single independent QA lane. Source report R2 final 38 rows: 0 PASS / 3 external-CI FAIL / 33 BLOCKED / 2 NOT RUN; do not overwrite with the older 29-case draft.
+
+**Testing:** isolated PostgreSQL16/Node22/pnpm10 (A50 preflight); 15 grouped suites Q01–Q15, notably global LIFO/CAS, terminal Swiss, RR/SE, backup QP/QPE/OP, history, MVCC, session/cache, basket CAS, generated API/client parity, Steam security, full Pack19–26 & Pack17 --full. Full acceptance per exact composite SHA is owned by SWARM-006; WEB-005 packages only.
+
+**Cross-swarm:** SWARM-006 owns integration, staging and eventual release proposal; SWARM-007 owns communication/Google Drive folder and report architecture, not WEB-005. No asserted Drive sync, deployment, merge, migration or production changes.
