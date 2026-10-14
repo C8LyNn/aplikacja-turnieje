@@ -848,3 +848,44 @@ test("UX046-R13-05: unchanged stage still submits start after a fresh status and
   assert.ok(stageReads > initialStages);
   assert.ok(readinessReads > initialReady);
 });
+
+test("UX046-R13-06: unchanged active stage completes after fresh version preflight", async () => {
+  const stages = [stage(1, "active")];
+  let stageReads = 0;
+  let writes = 0;
+  const user = setup({ stages, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/stages") stageReads++;
+    if (path.endsWith("/complete") && init?.method === "POST") {
+      writes++;
+      stages[0] = { ...stage(1, "completed"), version: 2 };
+      return json(stages[0]);
+    }
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = await screen.findByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  const before = stageReads;
+  await user.click(confirm);
+  await waitFor(() => assert.equal(writes, 1));
+  assert.ok(stageReads > before);
+});
+
+test("UX046-R13-07: failed fresh stage read blocks complete instead of trusting cached eligibility", async () => {
+  const stages = [stage(1, "active")];
+  let stagesFailed = false;
+  let writes = 0;
+  const user = setup({ stages, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/stages" && stagesFailed)
+      return json({ error: "temporary read failure" }, 503);
+    if (init?.method === "POST") writes++;
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Zakończ etap" }));
+  const confirm = await screen.findByRole("button", { name: "Potwierdź zakończenie etapu" });
+  await waitFor(() => assert.equal(confirm.matches(":disabled"), false));
+  stagesFailed = true;
+  await user.click(confirm);
+  await screen.findByText(/Stan etapu zmienił się.*zamknij/i);
+  assert.equal(writes, 0);
+});
