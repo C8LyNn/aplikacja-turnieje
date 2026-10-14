@@ -143,3 +143,32 @@ pnpm --filter @workspace/api-server typecheck
 `PATCH_PARTIAL / META_EVICTION_SOURCE_PRESENT / FETCH_TIME_PRODUCER_ABSENT / SOURCE_BLOCKED_FULL_PRIVACY / TESTS_AUTHORED_NOT_EXECUTED / A60_NEW_SHA_PENDING / RELEASE_NO_GO`.
 
 **Remaining A100 checklist:** finish the separately authorized hook-scoped owner proof, ensure unknown/ambiguous ownership cannot fetch or return previously cached match data; preserve valid B/public, mutation invalidation, denied 403 and late response cleanup; re-run A50 targeted tests on **newer pinned HEAD** in a real executor. If no safe way to attach ownership within authorized file scope, stop and request `OWNER_DECISION_REQUIRED` rather than claim full repair. This newer checkpoint **supersedes** the R17 HEAD statement in sections 1–6 but does not retroactively alter A60 R17's verdict.
+
+
+---
+
+## 8. LIVE R18 A100 SOURCE IMPLEMENTATION CHECKPOINT (supersedes `7 partial SHA)
+
+**New exact PR53 HEAD:** `3947508b70a5125a0d1b194be4bec4927740d382` (OPEN / DRAFT / UNMERGED), two commits since `fe381689c9ec20eadfe6312dda83b5c1f57328be`:
+
+- `f304e32882692697d0bbf0e7f6b3482fa4c381b1` — hook-side fetch-time owner attribution;
+- `3947508b70a5125a0d1b194be4bec4927740d382` — strict match-picks key validator for metadata eviction.
+
+**Source blobs:**
+- `artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts` blob `59fbc215607fd82f55dc5af6d938310cc9f2ef69`: `useMatchGamePicks` now calls `getVerifiedMatchTournamentOwner(queryClient,matchId)`. If no unique proven owner, it uses disabled key `["matches",0,"game-picks"]` and `enabled:false`; if proof present, it attaches `meta.web005VerifiedTournamentId=owner` **at useQuery creation**. This addresses the previously omitted producing-hook change. `useSetMatchGamePick` still invalidates the original match-ID key; mutation/positive parity must be tested.
+- `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts` blob `955409d1456f13f3f291215712a1afcf322ad094`: metadata-aware owner eviction and denied 401/403 lookup persists; `isGamePicksQueryKey` now verifies exact three-element key, positive safe integer match ID and literal `game-picks` before accepting query meta. The fallback from cached authorized tournament match list remains scoped; no global match purge.
+- `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` blob `6357e6af447f12c9f73c6b613c3f51cfa718a2e6`: five new R18 tests added on top of 15 earlier authored scenarios, including owner metadata at hook creation, 403 after canonical list removal, delayed response after removal, fail-closed unknown/ambiguous match and mismatched DTO. **Authored, NOT_EXECUTED**.
+
+**A30 source-positive conditional assessment:** \`FETCH_TIME_OWNER_METADATA_PRESENT / UNATTRIBUTED_FETCH_DISABLED / OWNER_A_EVICTION_AND_403_HANDLER_PRESENT / BOUNDARY_EXACT_MATCH_KEY / NO_BROAD_PURGE\`. This is a substantive correction of `7's `PRODUCER_ABSENT` blocker; do NOT carry the intermediate `fe381…` verdict forward as the latest state.
+
+**Two outstanding independent QA/security questions:**
+
+1. **Legacy untagged key upgrade / credential epoch.** When a stale older `["matches",mid,"game-picks"]` cache entry survives a credential downgrade because its canonical match-list owner was absent, a *subsequent valid* owner list for the same match can cause the new hook to reuse **that same match-only query key**. The query is then supplied new meta, but the old data might already be visible before a fresh authorized GET (`staleTime=10_000`) unless old entry was removed or session/role epoch changes the key. **This is `STATIC_INFERRED`, not a demonstrated UI disclosure.** A50/A60 require a synthetic sequence: seed orphan cached PRIVATE_A_ONLY under old key → remove A token with owner list absent → authenticate limited role/other context → introduce a valid scoped match list → mount active enabled:true hook → verify no old value renders before authorized re-fetch. Reusing the same global match key solely after adding owner meta is not automatically equivalent to credential-epoch isolation.
+2. **Current-view/owner correspondence:** `getVerifiedMatchTournamentOwner` scans all **successful cached** tournament match lists, without receiving current Host `tournamentId` as a parameter. A unique cached A match may be attributed to A even when the Host is navigating B or its A auth has just been revoked, if an old successful list survives. Check exact route/Host match membership, A→B navigation and auth readiness; ensure fetch never uses credentials from wrong tenant. No actual cross-tenant exploit is claimed.
+
+**Additional gates:** actively mounted `enabled:true` observer with late unabortable A response; negative 403 when parent canonical list deleted; stale module-global API token headers; no accidental removal of valid B, public GET unchanged; legal supported support/organizer viewer flows; final exact-SHA TypeScript + RTL TAP/exit. Existing authored tests do not cover the full legacy-epoch scenario by themselves. Owner/HQ policy on token expiry/rotation is distinct.
+
+**Updated A30 peer status on `3947508b…`:**  
+`PATCH_REVISED / SOURCE_REVIEWED_CONDITIONAL_FETCH_OWNER_PRESENT / RESIDUAL_LEGACY_KEY_EPOCH_REUSE_STATIC_INFERRED / WRONG_VIEW_CONTEXT_HYPOTHESIS / A50_RTL_NOT_EXECUTED / A60_NEW_SHA_PENDING / RELEASE_NO_GO`.
+
+**Important:** A60 R17's independent `SOURCE_BLOCKED_FULL_PRIVACY_UNKNOWN_OWNER` was on **`8f959733…`**. It is historic, not a valid independent verdict for this latest `3947508b…`; A60 must review and sign the changed source. A30 cannot self-promote to SOURCE_ACCEPTED.
