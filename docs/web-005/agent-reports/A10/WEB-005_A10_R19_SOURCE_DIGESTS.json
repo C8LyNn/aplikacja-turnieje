@@ -1,0 +1,114 @@
+{
+  "schema": "WEB005_A10_R19_SOURCE_DELTA_SHA256_V1",
+  "task": "WEB-005-T018-A10-R19",
+  "algorithm": "SHA256 UTF8 file bytes; SHA1 GitHub blob",
+  "source": "GitHub connector fetch_file(ref=exact pinned HEAD)",
+  "recomputed_file_count": 11,
+  "packets": [
+    {
+      "pr": 53,
+      "head_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "old_r18_sha": "8710f7fe5946d7f62e366303a97722d4201fc96b",
+      "files": [
+        {
+          "path": "artifacts/tournament-manager/src/context/auth-context.tsx",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "8916545544d55fc8d7fbd146d0328e36543bebb7",
+          "sha256_utf8": "9fcb92272eff20494f180b134c7507dfff9b1c6c6ab9d076d4683c4d1d01e43b",
+          "bytes_utf8": 4168,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "9367462da601b7a6b39e6b825984a27fae12cf16",
+          "sha256_utf8": "e0807258aef6e30af6feeb6dc242c3c13c299a5a0c942c76ecd239185f7e634c",
+          "bytes_utf8": 3709,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "1a5404e8a0dccf12063d6efb6248c2253cafee4a",
+          "sha256_utf8": "7a9cff453317c9e95cbd09c0a977067fe0c4573fa2809febe1d30527ed7e11ea",
+          "bytes_utf8": 6238,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "2196851691735e560b36099caa3d33ac649ccf84",
+          "sha256_utf8": "80e4d0a531210737c40199d8db97c875c20996c29046a1c6ae2cb45d462d39ab",
+          "bytes_utf8": 21999,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "e2c12c88c051f20f08474ee0dc9f877207923624",
+          "sha256_utf8": "c97bc3ca0c78a579e5695e1054ccce6f2a1645d6609e4e4dc53f1acd254f1569",
+          "bytes_utf8": 9661,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R13_HANDOFF.md",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "b5689db3691ef7fc258d40d861e421dcac3458cd",
+          "sha256_utf8": "cb15047060d60023886dbf120aeed41a15bba051975077235f6f3265086098ee",
+          "bytes_utf8": 4795,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R13_T080_S2A_PATCH_OR_HOLD.md",
+          "source_commit_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+          "git_blob_sha1": "4820b4a61e19c15d59cd14619ab8ec827b926783",
+          "sha256_utf8": "794b6dd5b6094a24b6a66262f9895d2affc9adab3f6b79e6d437343647609518",
+          "bytes_utf8": 8512,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        }
+      ]
+    },
+    {
+      "pr": 54,
+      "head_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "old_r18_sha": "9866e5d2e73c99e01c2934a38ca1c62455efd2ed",
+      "files": [
+        {
+          "path": "artifacts/tournament-manager/src/components/stage-progress-view.rr-denied.test.tsx",
+          "source_commit_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+          "git_blob_sha1": "eb282e0812c6daf9db8a2de04e5e9aca6308fe0b",
+          "sha256_utf8": "4971f8bd3e1d7ad90fb2ec7229b866079266493d7438f3f4d0a6caf22ab3e2f8",
+          "bytes_utf8": 5807,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/components/stage-progress-view.tsx",
+          "source_commit_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+          "git_blob_sha1": "2c50b5915572ec3721ad709ffd18ec58a597273f",
+          "sha256_utf8": "850dd72cf8be32c482dd2cabf8ee1b65b71b47e16f232a98cc01b96bc209cc23",
+          "bytes_utf8": 10070,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.rr-readback.test.tsx",
+          "source_commit_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+          "git_blob_sha1": "b5775b1305dabda8cdf6f5f482639be62c05b345",
+          "sha256_utf8": "c521cfdd355c7db249e7344759e5af508906a10164036056b50ce7987b48d6d3",
+          "bytes_utf8": 8332,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.tsx",
+          "source_commit_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+          "git_blob_sha1": "a3565b6638f9def4ee9aebb0126444c15a613338",
+          "sha256_utf8": "cf3df0e0018aab5a71f052022b32a03f7ed38c0ebd1c0e182856e70d947a6198",
+          "bytes_utf8": 99222,
+          "provenance": "GITHUB_FETCH_FILE_AT_EXACT_R19_HEAD"
+        }
+      ]
+    }
+  ],
+  "application_tests": "NOT_EXECUTED",
+  "R19_source_QA": "A60_NEW_HEAD_PENDING",
+  "hash_validation": "SHA256 implementation self-test abc PASS"
+}
