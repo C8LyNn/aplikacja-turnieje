@@ -367,3 +367,12 @@ No merge/cherry-pick/composite, production SQL/shared database reset, billable C
 | **D172** | Owner delegation **does NOT encompass** Basket concurrency, Backup V3 portability/history, public Direct Revert CAS/Host rollout, Steam/session security, risk acceptance of raw legacy cache, historical WONT_FIX/38-case signatures, paid CI, physical PG reset, merge, deployment or final SWARM-006 authorization. | All non-sport owner decisions remain `WAIT_OWNER/POLICY_OPEN`; WEB005_IN_PROGRESS / RELEASE_NO_GO / SWARM006_HOLD. |
 
 **Implementation boundary:** R21 central document [WEB-005_WAVE_R21_AGENT_PROMPTS.md](./WEB-005_WAVE_R21_AGENT_PROMPTS.md) remains code-free. A80/A00 must derive future source task/fixtures from selected policies; existing PRs are not claimed to implement new sport behavior. No automatic SWARM006 handoff.
+
+
+## R21 — final agent closeout reconciled with later owner answers (2026-10-14)
+
+| ID | Verified state | Decision |
+|---|---|---|
+| **D173** | [A60 R21 final independent gate](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R21_OWNER_SIGNOFF_INDEPENDENT_QA.md) = HANDOFF_NOT_READY. A10 21 current source candidates pinned, A50 0 native app tests, original WEB004 nine IDs missing and 38 dispositions incomplete. Crucially, several agent R21 WAIT_OWNER reports read the owner packet **before** the later user S1–S4/EXEC-B decisions and A00 S5/S6 delegation were recorded. | [A00 R21 authoritative closeout](./agent-reports/A00/WEB-005_A00_R21_CLOSEOUT_GATE.md) preserves completed sporting choices D167–D172; it does not ask for those decisions again. Remaining Basket T055, Backup B2, MP2B public CAS/Host, Steam/session and raw legacy cache, historic original CSV/dispositions still WAIT_OWNER. No R22 repeated-report wave; no SWARM006 dispatch. |
+
+No implied code GO or application QA PASS. `WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO`.
