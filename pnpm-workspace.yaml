@@ -75,6 +75,8 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # T031: pin patched transitive proxy-addr for Express trust-proxy parsing.
+  proxy-addr: 2.0.8
   # Replit uses linux-x64; local verification also supports Windows x64.
   # Other native targets stay excluded to keep the install surface minimal.
   "esbuild>@esbuild/darwin-arm64": "-"
