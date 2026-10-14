@@ -86,3 +86,11 @@ Require synthetic data, actual CLI exit/TAP/log; full typed API and React hooks 
 **Immediate A00/A10:** register PR55 as **NEW** R22 test source candidate (not one of 21 historical), request independent A60 R22 review **on `c3a4ea00ba933cbab36b3582859cb3eff20f0204`**. A20 to decide schema revision and physical isolated PG16 safety; A90 to review Backup V3; A50 to execute only with written physical go and complete clean checkout; A00 to issue separately owned future CAS L1/L2 implementation GO. **Until then: source CAS not fixed, PR55 draft RED-design, QA pending.**
 
 **A110 author signoff (not independent QA):** `A110_R22_L3_TEST_SOURCE_DELIVERED / PR55_DRAFT_NEW / EXACT_HEAD_PINNED / TEST_RUNTIME_NOT_EXECUTED / SCHEMA_BACKUP_GATE_OPEN / NO_MERGE / RELEASE_NO_GO / SWARM006_HOLD`.
+
+## 6. R22 automatic CI outcome on PR55 — upstream gate, NOT CAS test execution
+
+A new **automatic** GitHub Actions workflow [run 38646040840](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38646040840) triggered for **PR55 exact HEAD `c3a4ea00ba933cbab36b3582859cb3eff20f0204`**. Run `completed / failure`; [job 116133014455](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38646040840/job/116133014455) `correction-qa`.
+
+Actual job steps: checkout/pnpm/Node/locked install/SE safety unit **success**; **Pack 19 snapshot consistency tests failed** on the known **old regex requiring `isolationLevel:"repeatable read",readOnly:true`** while release code uses **`accessMode:"read only"`**. Pack20–26 and static/database release gates were **skipped**. Workflow did **NOT** execute `stage-basket-cas.integration.test.ts`, so neither RED runtime result nor GREEN/PASS is evidenced for CAS. Existing separate **PR35** owns the Pack19 source matcher correction; do not duplicate it in PR55.
+
+**Actions taken:** inspected workflow jobs and actual failing job log only; **no manual rerun**, no CI bypass, no merge. Classification `CI_UPSTREAM_PACK19_FAILURE / CAS_TEST_NOT_EXECUTED / RUNTIME_UNVERIFIED`. A60 R22 should review source/test code independently on PR55 exact HEAD and distinguish this automatic upstream failure from the fail-first contract itself.
