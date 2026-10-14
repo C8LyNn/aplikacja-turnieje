@@ -1,7 +1,7 @@
 # WEB-005 — R21 / PAKIET DECYZJI WŁAŚCICIELA / HQ
 
 **Data:** 2026-10-14, Europe/Warsaw  
-**Stan:** DRAFT FOR OWNER SIGNOFF, **ZERO podpisanych decyzji** w dostępnych raportach R20. Dokument jest formularzem decyzji, NIE udziela automatycznie GO na kod, testy destrukcyjne, przekazanie SWARM-006, merge ani release.  
+**Stan:** PARTIALLY RESOLVED — decyzje sportowe S1–S4 i warunkowa strategia EXEC-B zostały bezpośrednio wybrane przez właściciela w aktualnym wątku; S5–S6 zostały rozstrzygnięte przez A00 na podstawie jego jawnej delegacji. Pozostałe wybory nadal **WAIT_OWNER**. Brak implementacyjnego lub release GO. Dokument jest formularzem decyzji, NIE udziela automatycznie GO na kod, testy destrukcyjne, przekazanie SWARM-006, merge ani release.  
 **Koordynator:** WEB-005/A00, podlega jednej globalnej Queen/HQ.  
 **Źródła referencyjne:** R20 A80 sport, R20 A110 Basket CAS, R20 A90 Backup B2, R20 A70 public Revert CAS oraz R20 A60 independent QA; szczegółowe kontrakty w ich dokumentach. Rozstrzygnięcie wydaje rzeczywisty owner/HQ, nie agent.
 
@@ -37,7 +37,7 @@ Przy każdej pozycji wpisz: *ID → wybrany wariant albo wyraźne OWNER_APPROVED
 | S5 DE GF runner-up | przegrany decydującego rozegranego GF/reset wraz z zasadami walkover/BYE; lub opisany wariant alternatywny |
 | S6 DE places 3–N | wspólne miejsca wg elimination wave; wave+stageSeed tie-break; global seed; jawny kontrakt niestandardowy |
 
-**Do podpisu:** S1=___ S2=___ S3=___ S4=___ S5=___ S6=___; test fixtures/rollback=___.
+**Rozstrzygnięte — źródło i dokładne reguły:** [WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md](./WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md). S1=TS-B (bezpośredni wybór właściciela), S2=S2-B MAX_GENERATED + actionableRound (właściciel), S3=S3-B SCORE_GROUP_FIRST (właściciel), S4=S4-A stage-local BYE + S4-H-A formal NC/walkover counted, cancelled not counted (właściciel), S5=decydujący GF/reset runner-up (A00 under owner delegation), S6=elimination wave shared ranks (A00 under delegation). **SPORT_POLICY_SELECTED**, lecz nowe zachowanie nadal wymaga osobnego implementacyjnego GO i niezależnych testów.
 
 ## 3. T060 B2 — portable Backup V3 / history / Undo
 
@@ -87,12 +87,20 @@ A50 R20 wykazał **0** natywnych React/API/PG16 testów — brak podłączonego 
 - **EXEC-A (preferowane):** właściciel zapewnia zaufany PC/VM z pełnymi per-SHA checkoutami, Node22/pnpm10; osobno fizycznie izolowaną test-only PG16, TEST_DATABASE_URL i **oddzielną jawną zgodę na zakres destrukcyjnego resetu**. A50 wykonuje testy; A60 weryfikuje receipts.
 - **EXEC-B (dług testowy do SWARM-006):** dopiero **po** zamknięciu source/policy/oryginalnych przypadków owner podpisuje HANDOFF_WITH_RUNTIME_TEST_DEBT i FINAL_HANDOFF_GO. SWARM-006 przejmuje każdy niewykonany test z dokładnym SHA, pełne composite QA/CI, 403/409/backup/Undo/React regresje i hard RELEASE NO-GO aż do rzeczywistych PASS. EXEC-B nie pozwala na natychmiastowe wdrożenie.
 
-**Do podpisu:** EXEC=A/B/DEFER___; TEST_RESET_GO osobno___; FINAL_HANDOFF_GO osobno dopiero po gate___.
+**Wybor właściciela w bieżącej rozmowie:** **EXEC=B**, warunkowe przejęcie niewykonanych testów przez SWARM-006 **dopiero po formalnym zamknięciu WEB-005** i przy utrzymaniu pełnych testów jako twardej blokady deploymentu. Zapis w [karcie decyzji](./WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md). **NIE** jest to FINAL_HANDOFF_GO, niezależne A60 signoff, realny test PASS ani zgoda na DB reset; po source/policy/38-case closure koordynator ma wystawić oddzielny finalny wniosek z exact debt inventory i uzyskać jego formalne zatwierdzenie. TEST_RESET_GO osobno___; FINAL_HANDOFF_GO osobno dopiero po gate___.
 
 ## 8. Decyzje wciąż nierozstrzygnięte
 
-ŻADNA komórka powyżej nie jest automatycznie zatwierdzona. A00 po otrzymaniu rzeczywistych decyzji ma przenieść wybory do wersjonowanego DECISIONS.md, przypisać przyszłe zadania implementacyjne, zaktualizować podpisaną 38-case mapę, uzyskać A60 gate i dopiero potem przedłożyć jednorazowy formalny wniosek o przekazanie SWARM-006. Nie scalaj 21 PR-ów w WEB-005.
+Komórki S1–S6 i warunkowa preferencja EXEC-B są odnotowane w karcie delegacji; **pozostałe komórki nadal nie są zatwierdzone**. A00 po otrzymaniu rzeczywistych decyzji ma przenieść wybory do wersjonowanego DECISIONS.md, przypisać przyszłe zadania implementacyjne, zaktualizować podpisaną 38-case mapę, uzyskać A60 gate i dopiero potem przedłożyć jednorazowy formalny wniosek o przekazanie SWARM-006. Nie scalaj 21 PR-ów w WEB-005.
 
 **OWNER/HQ:** podpis / rola / data / permalink do odpowiedzi: ______________________
 
 **STATUS:** OWNER_SIGNOFF_REQUIRED / WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO.
+
+
+## 9. Odnotowane później wybory właściciela i delegacja game designu (2026-10-14)
+
+- [Formalna karta dotychczasowych decyzji sportowych i delegacji](./WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md).
+- **OWNER_EXPLICIT:** EXEC-B warunkowo; S1 TS-B; S2 S2-B; S3 SCORE_GROUP_FIRST; S4 stage-local BYE; S4-H-A NC/walkover counted, cancelled not counted.
+- **A00_DECIDED_UNDER_OWNER_DELEGATION:** S5 runner-up from decisive GF/reset; S6 places 3–N by second-loss elimination wave with shared positions. To nie jest osobny imienny podpis na każdą opcję ani kod już wdrożony.
+- **STILL WAIT_OWNER:** T055 D1–D6, Backup B2 B1–B6, MP2B public CAS, Steam/session, raw cache residual policy, oryginalny CSV/9 missing IDs lub dokładna decyzja dotycząca pochodzenia, zaakceptowane 38-case dispositions i final handoff gate.
