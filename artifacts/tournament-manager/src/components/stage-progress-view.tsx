@@ -3,12 +3,16 @@ import {
   type Bracket,
   type Match,
   useGetTournamentStage,
+  useGetDoubleEliminationStage,
   useListTournamentStages,
+  getGetDoubleEliminationStageQueryKey,
   getGetTournamentStageQueryKey,
   getListTournamentStagesQueryKey,
 } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { BracketView } from "@/components/bracket-view";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
+import { Button } from "@/components/ui/button";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import {
@@ -81,6 +85,19 @@ export function StageProgressView({
   );
 
   const selected = stages.find((s) => s.id === selectedStageId);
+  // A selected DE stage has a dedicated canonical bracket graph. Keep this hook
+  // unconditional and key it by stage identity: a previous stage cannot bleed in.
+  const deStageId =
+    selected?.format === "double_elimination" && selected.status !== "planned"
+      ? selected.id
+      : 0;
+  const deQuery = useGetDoubleEliminationStage(tournamentId, deStageId, {
+    query: {
+      enabled: tournamentId > 0 && deStageId > 0,
+      retry: false,
+      queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, deStageId),
+    },
+  });
 
   const selectedMatches = useMemo(
     () =>
@@ -180,6 +197,66 @@ export function StageProgressView({
               <StageGroupTables
                 details={detailQuery.data}
                 matches={selectedMatches}
+              />
+            );
+          }
+
+          if (selected.format === "double_elimination") {
+            // Never substitute generic SE matches for the canonical DE graph.
+            // A cached DE response with a failed refresh must not leak private
+            // stage results or be misrepresented as a successful current read.
+            if (deQuery.error) {
+              return (
+                <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-card p-5 text-sm">
+                  <p>Nie udało się pobrać drabinki podwójnej eliminacji.</p>
+                  <Button type="button" variant="outline" disabled={deQuery.isFetching}
+                    onClick={() => { void deQuery.refetch(); }}>
+                    Spróbuj ponownie
+                  </Button>
+                </div>
+              );
+            }
+            if (deQuery.isLoading || deQuery.isFetching && !deQuery.data) {
+              return (
+                <div role="status" className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Ładowanie drabinki podwójnej eliminacji…
+                </div>
+              );
+            }
+            if (!deQuery.data) {
+              return (
+                <div className="rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
+                  Brak danych drabinki podwójnej eliminacji.
+                </div>
+              );
+            }
+            if (
+              detailQuery.data.stage.id !== selected.id ||
+              deQuery.data.stageId !== selected.id ||
+              deQuery.data.tournamentId !== tournamentId
+            ) {
+              return (
+                <div role="alert" className="rounded-lg border border-destructive/40 bg-card p-5 text-sm">
+                  Dane drabinki nie odpowiadają wybranemu etapowi. Odśwież widok.
+                </div>
+              );
+            }
+            if (deQuery.data.matches.length === 0) {
+              return (
+                <div className="rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
+                  Brak meczów w tym etapie.
+                </div>
+              );
+            }
+            return (
+              <DoubleEliminationBracket
+                key={selected.id}
+                tournamentId={tournamentId}
+                stageId={selected.id}
+                state={deQuery.data}
+                canManage={false}
+                canReset={false}
               />
             );
           }
