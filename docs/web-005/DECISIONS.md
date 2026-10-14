@@ -17,7 +17,7 @@
 | D011 | WEB-004 complete consolidated handoff | BLOCKED/B001 | Missing; provisional backlog |
 | D012 | Pinned release baseline | CONFIRMED | `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7` unchanged |
 | D013 | Central registers only on `chore/web-005/t000-wave1-control` | ENFORCED | Do not touch release/main |
-| **D014** | Assign T015-A40 to Pack20–26 source-contract repair | **GO CONDITIONAL** | Created `fix/web-005/t015-pack20-26-contracts` from pinned release; exclusive test contract ownership; no Pack19 overlap; actual CI proof required |
+| **D014** | Assign T015-A40 to Pack20–26 source-contract repair | **GO CONDITIONAL** | Branch now `f6e94aae9239d578e23d5a8fb23a2446ea669a41`, PR #36 OPEN DRAFT; exclusive contracts Pack20/21/25/26; no Pack19 overlap; test suites not executed; A60 acceptance required |
 | **D015** | Assign T131-A50 to isolated PostgreSQL16 + test-execution preflight | **GO PREFLIGHT** | Environment support, not implementation nor independent QA; no use of production DB |
 | **D016** | Keep T010-A10 confined to Pack19 closeout | **ENFORCED** | Free implementation slot to A40, A60 independent acceptance |
 | **D017** | Select PR #34 as preferred Steam Catalog security implementation | **DECIDED FOR QA ONLY** | Reference middleware matches editor; 403/503 distinction; deeper PostgreSQL HTTP/no-write fixture. Runtime tests not executed, merge STOP |
@@ -31,9 +31,15 @@
 
 - [GitHub Actions 38550541899](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550541899) at T010 `7cb283aa...`: safety 23/23, Pack19 readiness 26/26, Pack19 source 8/8, Pack20 domain 15/15 PASS; Pack20 source 6/7 FAIL; downstream SKIPPED.
 - [GitHub Actions 38550962951](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38550962951) at T030 `030d0f5f...`: Pack19 FAIL because T010 change absent; unrelated to auth test correctness.
+- [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) HEAD `f6e94aae9239d578e23d5a8fb23a2446ea669a41`: new source-contract repair commit `[skip ci]`, 4 files, **Node/Pack17 NOT_EXECUTED**.
 - [PR #33](https://github.com/C8LyNn/aplikacja-turnieje/pull/33), [PR #34](https://github.com/C8LyNn/aplikacja-turnieje/pull/34), [PR #35](https://github.com/C8LyNn/aplikacja-turnieje/pull/35) remain OPEN draft.
 - Source R2 migration JSON `WEB-005_T020_A10_R2_TARGET_MANIFEST_PROPOSAL.json`: 14 canonical entries 0027–0040, raw SHA-256, logical ID and postconditions; `runtime_rendered_sha256=null` and historic ledger attestation absent; **not migration test PASS**.
 
 ## No unauthorized operations
 
 No modifications to main/release, no merges/cherry-picks/deployments or production SQL. No paid workflow was intentionally dispatched by 00. Source/CI evidence is not a claim about deployed Replit runtime.
+
+
+## R3 live-update decision
+
+**D023 — T015 R1 handoff:** [PR #36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) created after coordinator registered task; accept for independent A60 review (GO QA), **STOP** integration/merge while tests remain NOT_EXECUTED. Latest HEAD `f6e94aae9239d578e23d5a8fb23a2446ea669a41`. No workflow dispatch without cost authorization.
