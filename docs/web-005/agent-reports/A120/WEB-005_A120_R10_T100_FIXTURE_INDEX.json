@@ -1,0 +1,167 @@
+{
+  "artifact": "WEB-005_A120_R10_T100_FIXTURE_INDEX.json",
+  "task": "WEB-005-T100-A120-R3",
+  "wave": "R10",
+  "release_baseline_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "mode": "SYNTHETIC_READONLY_SCENARIOS_NOT_EXECUTABLE_API_FIXTURES",
+  "schema_complete": false,
+  "real_data": false,
+  "notes": "Use generated @workspace/api-client-react types to expand mandatory fields; only mock local GET. Never use production IDs/tokens/mutations. See prior R9 full template. Test status: NOT_EXECUTED.",
+  "scenarios": {
+    "DE-DETAILS-21": {
+      "tournament_id": 9001,
+      "stage_id": 21,
+      "previous_stage_id": 20,
+      "stage_format": "double_elimination",
+      "de_revision": 4,
+      "graphs": [
+        "upper",
+        "lower",
+        "grand_final",
+        "grand_final_reset"
+      ],
+      "url": "/api/tournaments/9001/stages/21/double-elimination",
+      "expect": "read_only_current_stage_only"
+    },
+    "DE-ERROR-21": {
+      "url": "/api/tournaments/9001/stages/21/double-elimination",
+      "responses": [
+        "deferred",
+        "HTTP_500",
+        "HTTP_200_after_manual_retry"
+      ],
+      "security_variant": "HTTP_403_no_private_result",
+      "expect": "loading_error_retry_recovery"
+    },
+    "DE-SWITCH-21": {
+      "before_stage_id": 20,
+      "after_stage_id": 21,
+      "response_order": [
+        "/stages/21 successful",
+        "/stages/20 late successful"
+      ],
+      "expect": "no_stage20_players_in_stage21"
+    },
+    "LABEL-MIXED": {
+      "tournament_format": "round_robin",
+      "stage_format": "double_elimination",
+      "stage_label": "Podwójna eliminacja",
+      "separate_terminal_tournament_format": "double_elimination",
+      "expect": "stage_and_tournament_labels_use_distinct_semantics"
+    },
+    "FINAL-FEATURED": {
+      "tournament_id": 9002,
+      "status": "completed",
+      "winnerId": 202,
+      "featuredMatchId": 901,
+      "standing_leader_playerId": 201,
+      "expect": "final_banner_winner_202_no_hero"
+    },
+    "ACTIVE-FEATURED": {
+      "tournament_id": 9002,
+      "status": "active",
+      "winnerId": null,
+      "featuredMatchId": 901,
+      "expect": "hero_visible_no_final_banner"
+    },
+    "RR-REOPEN-4": {
+      "tournament_id": 9003,
+      "stage_id": 31,
+      "stage_format": "round_robin",
+      "before": "completed",
+      "after": "active_only_after_signed_server_readback",
+      "reject_variant": "HTTP_409_no_change",
+      "expect": "authoritative_detail_status_rank_and_participants"
+    },
+    "RR-8TO4-4": {
+      "tournament_id": 9004,
+      "previous_stage_id": 40,
+      "current_stage_id": 41,
+      "current_participant_ids": [
+        401,
+        402,
+        403,
+        404
+      ],
+      "excluded_participant_ids": [
+        405,
+        406,
+        407,
+        408
+      ],
+      "expect": "no_eliminated_player_reactivation"
+    },
+    "RR-DELAY-4": {
+      "tournament_id": 9003,
+      "stage_id": 31,
+      "GET_order": [
+        "/stages updated",
+        "/matches updated",
+        "/stages/31 delayed_or_500",
+        "/stages/31 successful"
+      ],
+      "expect": "no_freshness_misrepresentation_then_convergence"
+    }
+  },
+  "react_cases": {
+    "RT-T100-01": [
+      "DE-DETAILS-21",
+      "A"
+    ],
+    "RT-T100-02": [
+      "DE-SWITCH-21",
+      "A"
+    ],
+    "RT-T100-03": [
+      "DE-ERROR-21",
+      "A"
+    ],
+    "RT-T100-04": [
+      "LABEL-MIXED",
+      "A"
+    ],
+    "RT-T100-05": [
+      "FINAL-FEATURED",
+      "A"
+    ],
+    "RT-T100-06": [
+      "ACTIVE-FEATURED",
+      "A"
+    ],
+    "RT-T100-07": [
+      "FINAL-FEATURED",
+      "A_EXISTING_RETENTION"
+    ],
+    "RT-T100-08": [
+      "RR-REOPEN-4",
+      "B_BLOCKED"
+    ],
+    "RT-T100-09": [
+      "RR-DELAY-4",
+      "B_BLOCKED"
+    ],
+    "RT-T100-10": [
+      "LABEL-MIXED",
+      "A"
+    ]
+  },
+  "browser_cases": {
+    "BR-T100-01": [
+      "DE-DETAILS-21",
+      "LABEL-MIXED"
+    ],
+    "BR-T100-02": [
+      "RR-REOPEN-4",
+      "RR-8TO4-4"
+    ],
+    "BR-T100-03": [
+      "FINAL-FEATURED",
+      "ACTIVE-FEATURED"
+    ],
+    "BR-T100-04": [
+      "DE-SWITCH-21",
+      "RR-DELAY-4"
+    ]
+  },
+  "test_results": "NOT_EXECUTED"
+}
