@@ -37,7 +37,7 @@
     },
     {
       "pr": 54,
-      "sha": "897e9a88e1108e29d710ea114ef438731c03f9c8",
+      "sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
       "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "state": "open",
       "draft": true,
@@ -478,7 +478,7 @@
       "current_PR_state": "OPEN_DRAFT_UNMERGED",
       "source_verdict_from_R18": "SOURCE_ACCEPTED_SCOPED_FULL_PRIVACY_REVIEW_OPEN",
       "source_verdict_valid_on_current_sha": false,
-      "source_recheck_need": "A60_R19_NEW_HEAD_REVIEW_REQUIRED",
+      "source_recheck_need": "NEW_EXACT_SHA_INDEPENDENT_A60_R19_QA_REQUIRED",
       "test_domain": "FRONTEND_REACT_RTL",
       "targeted_test_files": [
         "artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx",
@@ -498,11 +498,11 @@
       "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/54",
       "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "r18_a60_signed_sha": "9866e5d2e73c99e01c2934a38ca1c62455efd2ed",
-      "r19_last_observed_sha": "897e9a88e1108e29d710ea114ef438731c03f9c8",
+      "r19_last_observed_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
       "current_PR_state": "OPEN_DRAFT_UNMERGED",
       "source_verdict_from_R18": "SOURCE_BLOCKED",
       "source_verdict_valid_on_current_sha": false,
-      "source_recheck_need": "A60_R19_NEW_HEAD_REVIEW_REQUIRED",
+      "source_recheck_need": "NEW_EXACT_SHA_INDEPENDENT_A60_R19_QA_REQUIRED",
       "test_domain": "FRONTEND_REACT_RTL",
       "targeted_test_files": [
         "artifacts/tournament-manager/src/components/stage-progress-view.rr-denied.test.tsx",
@@ -516,5 +516,7 @@
       "owner_policy_signed": false,
       "release_gate": "NO_GO"
     }
-  ]
+  ],
+  "last_head_readback_note": "This is a point-in-time GitHub readback; PR54 advanced during R19. Re-fetch before test or A60 verdict.",
+  "last_observed_git_utc": "2026-10-14T20:28:29.392Z"
 }
