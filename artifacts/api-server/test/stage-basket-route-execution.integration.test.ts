@@ -960,4 +960,66 @@ describe("Phase 3 — Basket Route Execution", () => {
     assert.equal(exec2.status, 200, `idempotent re-execute: ${JSON.stringify(exec2.body)}`);
     assert.equal(exec2.body.routedPlayerCount, 2);
   });
+
+  // WEB-005 T060-B3A / test-first: the writer commits strictly between
+  // exporter root read and the remaining table reads, on a second pg client.
+  // The export must be fully pre-commit (not a hybrid).
+  test("Backup V3 export uses one repeatable-read snapshot across root, stage and match", async () => {
+    const { exportBackupV3 } = await import("../src/application/backups/backup-v3");
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    const baseline = await exportBackupV3(fix.tournamentId);
+    assert.ok(baseline);
+    const sourceMatch = baseline.matches.find(m => m.stageBackupId === fix.sourceStageId);
+    const targetStage = baseline.stages.find(s => s.backupId === fix.targetStageId);
+    assert.ok(sourceMatch);
+    assert.ok(targetStage);
+
+    const suffix = randomUUID().slice(0, 8);
+    const updatedTournamentName = "B3A-root-" + suffix;
+    const updatedStageName = "B3A-stage-" + suffix;
+    const updatedMatchNote = "B3A-match-" + suffix;
+    let barrierCount = 0;
+
+    const during = await exportBackupV3(fix.tournamentId, {
+      afterTournamentRead: async () => {
+        barrierCount++;
+        // The exporter has already selected the root. This separately
+        // committed transaction updates three tables before export proceeds.
+        await database.db.transaction(async tx => {
+          await tx.update(database.tournamentsTable)
+            .set({ name: updatedTournamentName })
+            .where(eq(database.tournamentsTable.id, fix.tournamentId));
+          await tx.update(database.tournamentStagesTable)
+            .set({ name: updatedStageName })
+            .where(eq(database.tournamentStagesTable.id, fix.targetStageId));
+          await tx.update(database.matchesTable)
+            .set({ note: updatedMatchNote })
+            .where(eq(database.matchesTable.id, sourceMatch.backupId));
+        });
+      },
+    });
+    assert.equal(barrierCount, 1, "writer committed exactly once during export");
+    assert.ok(during);
+
+    // The root was read before the writer committed; a valid REPEATABLE READ
+    // export must also contain the stage and match from that same old state.
+    assert.equal(during.tournament.name, baseline.tournament.name);
+    assert.equal(
+      during.stages.find(s => s.backupId === fix.targetStageId)?.name,
+      targetStage.name,
+      "stage name must not come from a later snapshot",
+    );
+    assert.equal(
+      during.matches.find(m => m.backupId === sourceMatch.backupId)?.note,
+      sourceMatch.note,
+      "match note must not come from a later snapshot",
+    );
+
+    const after = await exportBackupV3(fix.tournamentId);
+    assert.ok(after);
+    assert.equal(after.tournament.name, updatedTournamentName);
+    assert.equal(after.stages.find(s => s.backupId === fix.targetStageId)?.name, updatedStageName);
+    assert.equal(after.matches.find(m => m.backupId === sourceMatch.backupId)?.note, updatedMatchNote);
+  });
+
 });
