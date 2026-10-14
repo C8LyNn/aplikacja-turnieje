@@ -321,3 +321,18 @@ No merge/cherry-pick, production SQL/DDL, shared DB reset, paid CI run, Replit i
 | **D152** | Only after all non-waived source/privacy and owner-policy/38-case disposition gates close may A00 request owner/HQ option A real tests before handoff or B explicit `HANDOFF_WITH_RUNTIME_TEST_DEBT` for future SWARM-006 integrator. Tests remain hard release stop in B. | **RUNTIME DEBT NOT WAIVED, FINAL_HANDOFF_GO=FALSE, SWARM006 HOLD** |
 
 These documentation decisions DO NOT authorize merge/cherry-pick/composite integration, production SQL, shared DB reset, paid CI, staging/live or actual SWARM-006 dispatch.
+
+
+## R20 — R19 closeout source-acceptance and original WEB004 provenance (2026-10-14)
+
+| ID | Recorded decision / evidence | Status |
+|---|---|---|
+| **D153** | R19 two existing-draft source changes verified: PR53 `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` (verified-owner namespace for historical orphan game picks); PR54 `bfa9d075b431185aa8bbf87bf021d64dde8ae22f` (selected RR local deny 401/403 + legal DE/Overview), no new PR count, 21 existing OPEN DRAFT/unmerged. | **PATCH_REVISED; exact A60 R19 signed review not located by A00**, not source PASS |
+| **D154** | [A50 R19 receipt](./agent-reports/A50/WEB-005_A50_R19_RECEIPT.md) explicitly states zero React/API/PG16 native application tests, missing actual connected checkout/pnpm/isolated PG16; old Pack19 source matcher block persists in standalone branches, PR35 already fixes it separately. | **RUNTIME_NOT_EXECUTED / P0 OWNER EXECUTOR REQUIRED** |
+| **D155** | [A10 R19 lineage](./agent-reports/A10/WEB-005_A10_R19_FINAL_ONLY_PACKAGE_AND_38_CASES.md) pins 21 PRs, 29 verified historical WEB004 case IDs, nine original IDs unavailable without canonical WEB-004_A60_FINAL_ACCEPTANCE_MATRIX_R2.csv. 38-slot owner signoff incomplete; do not invent IDs. | **HISTORIC_BACKLOG_NOT_SIGNED / ORIGINAL_SOURCE_LOOKUP_REQUIRED** |
+| **D156** | Publish one [WEB-005_WAVE_R20_AGENT_PROMPTS.md](./WEB-005_WAVE_R20_AGENT_PROMPTS.md) with shared §0–§2 and all 13 A00–A120 roles. R20 is independent source QA / owner policy / original-case traceability, **zero automatic app code lanes**. | **R20 READY** |
+| **D157** | A60 must review new exact PR53/54 HEAD, distinguish raw cache orphan risk from visible leak, verify PR54 RR/DE child safeguards and PR47 semantic collision, issue independent handoff verdict. A30 security peer and A50 actual tests separate. | **A60 CURRENT EXACT-SHA P0 GATE** |
+| **D158** | Pending owner/HQ policy: T055 Basket CAS, terminal Swiss and SE/DE rules, Backup V3 B2 history/legacy, Direct Revert MP2B+Host, Steam absent-secret, session TTL/digest, legacy raw cache. No signoff assumed. | **POLICY_OPEN / NO SILENT IMPLEMENTATION** |
+| **D159** | Final-only SWARM-006 as owner directive: complete accepted WEB004 R2 backlog and source A60 + signed dispositions, then seek explicit FINAL_HANDOFF_GO. If no A50 test runtime, owner may separately authorize `HANDOFF_WITH_RUNTIME_TEST_DEBT` **only after source/policy/38-case closure**, with SWARM-006 composite testing hard release stop. | **WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO** |
+
+No merge/cherry-pick, composite branch, production SQL, paid CI rerun, shared DB reset, staging/live, or cross-swarm dispatch is authorized by this document.
