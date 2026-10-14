@@ -13,5 +13,4 @@ export const MatchUpdateStatus = {
   pending: 'pending',
   in_progress: 'in_progress',
   postponed: 'postponed',
-  cancelled: 'cancelled',
 } as const;
