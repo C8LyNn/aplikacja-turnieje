@@ -18,17 +18,20 @@ All live PRs below were inspected OPEN, DRAFT, not merged, based individually on
 | P02 | [#36](https://github.com/C8LyNn/aplikacja-turnieje/pull/36) | `85ad0b86136fc3491c9ef18663d9b01396179349` | Existing Pack20–26 contracts; A60 R17 scoped source accepted |
 | P07 | [#40](https://github.com/C8LyNn/aplikacja-turnieje/pull/40) | `9a8287271299a59fc9291b8d253299a8d109a35d` | A60 R17 source accepted scoped; Pack17 --full NOT_EXECUTED |
 | P08 | [#41](https://github.com/C8LyNn/aplikacja-turnieje/pull/41) | `f03cf3d09988a04ba9c2856e205d21f994ff67f1` | A60 R17 SOURCE_ACCEPTED_CONDITIONAL; PG16 pending |
-| P09 | [#42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) | **`d39a0c7ef7e32d8554a7d41c4fb33fb9c725b410`** | **R18 new HEAD**, replacing R17 `25b09f1a48a85ae882b817118f5d8c23bffbe383`; old SOURCE_BLOCKED verdict cannot be transferred; A60 review pending |
+| P09 | [#42](https://github.com/C8LyNn/aplikacja-turnieje/pull/42) | **`021bed269f9ea8ac8ce53caeea44263c098aa2dd`** | **R18 new HEAD**, replacing R17 `25b09f1a48a85ae882b817118f5d8c23bffbe383`; old SOURCE_BLOCKED verdict cannot be transferred; A60 review pending |
 | P10 | [#43](https://github.com/C8LyNn/aplikacja-turnieje/pull/43) | `96a6068f69027574ac76e18d4d5a2c444b5a914a` | React CSV |
 | P14 | [#47](https://github.com/C8LyNn/aplikacja-turnieje/pull/47) | `f09a13623faca8d7ab29b09a2c5b43907c2acd0b` | React DE/Audience |
 | P17 | [#50](https://github.com/C8LyNn/aplikacja-turnieje/pull/50) | `5457a74187edc263730c3a4b25a663bdf5531ee9` | React Backup preview |
 | P19 | [#52](https://github.com/C8LyNn/aplikacja-turnieje/pull/52) | `cce73ec47445102b216b3f8eceb4ec9de67eb1a7` | React stage lifecycle |
-| P20 | [#53](https://github.com/C8LyNn/aplikacja-turnieje/pull/53) | `8f959733258aed0cab15298dd0684ca068045e6f` | A60 R17 SOURCE_ACCEPTED_CONDITIONAL_KNOWN_OWNER_ONLY, UNKNOWN_OWNER_PICKS_SOURCE_BLOCKED |
-| P21 | [#54](https://github.com/C8LyNn/aplikacja-turnieje/pull/54) | `dbba0eb82920b4f324866b1b983e1211459f52ec` | A60 R17 RR refresh scoped accepted, mixed RR403 UI SOURCE_BLOCKED |
+| P20 | [#53](https://github.com/C8LyNn/aplikacja-turnieje/pull/53) | **`3947508b70a5125a0d1b194be4bec4927740d382`** | **R18 new HEAD, A60 new-SHA review pending**; old R17 known-owner-only verdict cannot be inherited |
+| P21 | [#54](https://github.com/C8LyNn/aplikacja-turnieje/pull/54) | **`9866e5d2e73c99e01c2934a38ca1c62455efd2ed`** | **R18 new HEAD (additional tests), A60 new-SHA review pending**; old R17 verdict cannot be inherited |
 
 **Independent original A60 R17 QA:** [A60 R17 signed report](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R17_INDEPENDENT_QA.md), blob `ceb3591d61aed746e36bb86aa8a4c5cf16e5f30d`; [21-packet matrix](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A60/WEB-005_A60_R17_PACKAGE_MATRIX.json), blob `cc6f24f582d216e99d8870d0e3519ff497fd8ad3`. Separate [A50 R17 receipt](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R17_RECEIPT.md), blob `da3b9892a2675748263091c6193306c61995ce27`, records Node/Git preflight only, no complete checkout/pnpm/physically isolated PG16 and **0 native RTL/API/PG16 executions**. A40 does not turn scoped source acceptance or authored tests into runtime PASS.
 
-**R18 scope warning:** At inspected new PR42 HEAD, `tournament-roster.ts` blob `b47bc6e1452173fbc65b236909efe01aebf76116` now visibly contains `latestUndoable` under `undoTournamentRosterAction`; no runtime/semantic endorsement by A40, and R17's A60 verdict cannot classify this new HEAD. Independent new exact-SHA A60 review is required.
+**R18 scope warning:** At inspected R18 PR42 intermediate HEAD `d39a0c7ef7e32d8554a7d41c4fb33fb9c725b410`, `tournament-roster.ts` blob `b47bc6e1452173fbc65b236909efe01aebf76116` now visibly contains `latestUndoable` under `undoTournamentRosterAction`; no runtime/semantic endorsement by A40, and R17's A60 verdict cannot classify this new HEAD. Independent new exact-SHA A60 review is required.
+
+
+**Concurrent R18 HEAD readback at report finalization:** PR42 progressed from an intermediate `d39a0c7ef7e32d8554a7d41c4fb33fb9c725b410` to **`021bed269f9ea8ac8ce53caeea44263c098aa2dd`** (+1 commit, route status handling); PR53 from `8f959733258aed0cab15298dd0684ca068045e6f` to **`3947508b70a5125a0d1b194be4bec4927740d382`** (+4 commits, ownership logic and tests); PR54 from `dbba0eb82920b4f324866b1b983e1211459f52ec` to **`9866e5d2e73c99e01c2934a38ca1c62455efd2ed`** (+1 commit, tests). These are separate author lanes; A40 neither authored nor approved them. **All new heads demand fresh A60 exact-SHA review, native tests still NOT_EXECUTED by A40.**
 
 ## 2. CI obstruction: SOURCE_CONFIRMED, not target-feature FAIL
 
@@ -53,7 +56,7 @@ Native GitHub workflow `.github/workflows/tournament-correction-ci.yml`, blob `e
 
 ~~~powershell
 $branch = 'fix/web-005/t080-s2a-private-auth-query-cache-r13' # example PR53
-$sha    = '8f959733258aed0cab15298dd0684ca068045e6f'
+$sha    = '3947508b70a5125a0d1b194be4bec4927740d382'
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -gt 0) { throw 'STOP: repository not clean' }
 git fetch origin $branch
@@ -71,11 +74,11 @@ $env:TSX_TSCONFIG_PATH = (Resolve-Path './artifacts/tournament-manager/test/tsco
 **Exact targeted commands (from repository root, with matching HEAD, one branch at a time; paths are relative to filtered package cwd):**
 
 ~~~powershell
-# PR53 current R17 HEAD 8f959733258aed0cab15298dd0684ca068045e6f
+# PR53 current R18 HEAD 3947508b70a5125a0d1b194be4bec4927740d382
 # Critical both newly authored cache tests and existing AuthProvider compatibility fixture:
 pnpm --filter @workspace/tournament-manager exec node --import tsx --import ./test/setup-dom.mjs --test --test-reporter=tap src/lib/tournament-auth-query-cache.test.tsx src/hooks/use-tournament-auth.test.tsx
 
-# PR54 HEAD dbba0eb82920b4f324866b1b983e1211459f52ec
+# PR54 current R18 HEAD 9866e5d2e73c99e01c2934a38ca1c62455efd2ed
 pnpm --filter @workspace/tournament-manager exec node --import tsx --import ./test/setup-dom.mjs --test --test-reporter=tap src/pages/tournament-detail.rr-readback.test.tsx
 
 # PR52 HEAD cce73ec47445102b216b3f8eceb4ec9de67eb1a7
@@ -111,7 +114,7 @@ $env:TEST_DATABASE_RESET='DROP_TM_TEST_SCHEMA'
 # PR41 f03cf3d09988a04ba9c2856e205d21f994ff67f1  (Backup B1)
 pnpm --filter @workspace/api-server exec node --import tsx --test --test-concurrency=1 --test-reporter=tap test/stage-basket-route-execution.integration.test.ts
 
-# PR42 d39a0c7ef7e32d8554a7d41c4fb33fb9c725b410  (Undo roster, new R18 SHA)
+# PR42 021bed269f9ea8ac8ce53caeea44263c098aa2dd  (Undo roster, latest R18 SHA)
 pnpm --filter @workspace/api-server exec node --import tsx --test --test-concurrency=1 --test-reporter=tap test/revert-match.integration.test.ts
 
 # PR39 (Cancel/Restore, obtain exact HEAD again before execution)
