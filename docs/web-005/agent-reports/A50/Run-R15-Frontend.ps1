@@ -19,7 +19,7 @@ $Targets = @{
   54 = @{SHA='dbba0eb82920b4f324866b1b983e1211459f52ec';Files=@('src/pages/tournament-detail.rr-readback.test.tsx')}
 }
 $t = $Targets[$PR]
-if ($Suite -eq 'existing-auth' -and $PR -ne 53) { Write-Error 'existing-auth suite is only for PR53'; exit 2 }
+if ($Suite -eq 'existing-auth' -and $PR -ne 53) { [Console]::Error.WriteLine('BLOCKED: existing-auth suite is only for PR53'); exit 2 }
 $files = if ($Suite -eq 'existing-auth') { @('src/hooks/use-tournament-auth.test.tsx') } else { @($t.Files) }
 $CmdArgs = if ($Suite -in @('target','existing-auth')) {
   @('exec','node','--import','tsx','--import','./test/setup-dom.mjs','--test','--test-reporter=tap') + $files
@@ -29,7 +29,7 @@ if (-not $Execute) {
   [pscustomobject]@{pr=$PR;sha=$t.SHA;suite=$Suite;command=('pnpm ' + ($CmdArgs -join ' '));status='PLAN_ONLY_NOT_EXECUTED'} | ConvertTo-Json
   exit 0
 }
-function Stop-Test([string]$Why) { Write-Error ('BLOCKED: ' + $Why); exit 2 }
+function Stop-Test([string]$Why) { [Console]::Error.WriteLine('BLOCKED: ' + $Why); exit 2 }
 if (-not $Repo -or -not $OutDir -or -not $ApprovalFile) { Stop-Test 'Require -Repo, -OutDir and -ApprovalFile' }
 if (-not (Test-Path -LiteralPath $Repo -PathType Container)) { Stop-Test 'Full checkout absent' }
 $root = (Resolve-Path -LiteralPath $Repo).Path
