@@ -20,7 +20,7 @@ type ResolvedTournamentActor = TournamentActor;
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type TournamentMutationActor =
-  | { type: "organizer"; credentialVersion?: string }
+  | { type: "organizer"; tournamentId?: number; credentialVersion?: string }
   | Extract<TournamentActor, { type: "support" }>;
 
 export class TournamentMutationAuthorizationError extends Error {
@@ -40,6 +40,7 @@ export function getTournamentMutationActor(
     // Comparing with the locked row prevents an already-revoked organizer write.
     return {
       type: "organizer",
+      tournamentId: access.tournament.id,
       credentialVersion: organizerCredentialFingerprint(
         access.tournament.id,
         access.tournament.organizerPasswordHash,
@@ -61,7 +62,7 @@ export async function revalidateTournamentMutationActor(
       tournament.id,
       tournament.organizerPasswordHash,
     );
-    if (!actor.credentialVersion || actor.credentialVersion !== expected) {
+    if (actor.tournamentId !== tournament.id || !actor.credentialVersion || actor.credentialVersion !== expected) {
       throw new TournamentMutationAuthorizationError();
     }
     return;
