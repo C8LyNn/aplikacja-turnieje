@@ -6,7 +6,7 @@
 **AUTHORITY:** `docs/web-005/WEB-005_WAVE_R11_AGENT_PROMPTS.md` §0–§2, AGENT A100 (`3e3b2ea04b6c7ce47986bff89c835a767e710cd4` blob).  
 **GO MODE:** SOURCE-CODE ONLY / TEST-FIRST / Draft PR; exclusive ownership of the **DELETE route only**.  
 **SOURCE BASE:** `release/tournament-ops-20261013-01` @ `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.  
-**CODE+TEST PATCH SHA:** `0fa29b695adffd4239f72de8ad55976e207c95e6` (the code changes below).  
+**CODE+TEST PATCH SHA:** `55776965d6ca52cf74fc600bbddc2048ea27e977` (the code changes below).  
 **BRANCH:** `fix/web-005/t080-s1b-delete-post-lock-r11`.  
 **PR:** [#46](https://github.com/C8LyNn/aplikacja-turnieje/pull/46) — OPEN DRAFT / not merged.  
 **STATE:** `PATCH_PROPOSED`, `SOURCE_CONFIRMED` diff, `NOT_EXECUTED` real tests, `SOURCE_ACCEPTED_PENDING`, `RUNTIME_VERIFIED_PENDING`, `RELEASE_NO_GO`.
@@ -26,7 +26,7 @@
 | `artifacts/api-server/src/routes/tournaments.ts` | Import existing `verifyOrganizerToken` and update only the DELETE handler. First `requireOrganizer` preserves role gate; then a single `db.transaction` locks `tournaments.id` with `FOR UPDATE`, verifies the original signed organizer token **against the locked row**, then `tx.delete(tournamentsTable)` in that transaction. Revalidation error aborts the transaction before any delete; lock-missing row gives 404, approved deletion gives pre-existing 204. |
 | `artifacts/api-server/test/tournament-delete-revocation.integration.test.ts` | Add 5 actual-HTTP/PG16 tests as contracts, test-first commit `48cfea0df0ddf42ca05271403f3cb969dd586bcd`. No test execution claim. |
 
-**Diff at source patch SHA:** only two files: DELETE-route import + 35-line guarded section (36 additions, 1 deletion), 203 lines new integration test. GitHub compare at base→patch: ahead 2, behind 0. No changes to `access-policy.ts`, `auth.ts`, any other auth endpoints, frontend, OpenAPI or SQL.
+**Diff at source patch SHA:** only two files: DELETE-route import + 35-line guarded section (36 additions, 1 deletion), 209 lines new integration test. GitHub compare at base→patch: ahead 2, behind 0. No changes to `access-policy.ts`, `auth.ts`, any other auth endpoints, frontend, OpenAPI or SQL.
 
 ### Locking and revocation linearization
 
@@ -43,13 +43,13 @@
 
 | Test ID | Scenario | Expected |
 |---|---|---|
-| R11-A100-D01 | A organizer passes initial authorization; B holds tournament row lock; A queues; B changes organizer hash inside transaction and commits; A resumes | **403**, stable code, tournament + players + stages + matches + result_history + action_log all retained; only B's organizer hash change allowed |
+| R11-A100-D01 | A organizer passes initial authorization; B holds tournament row lock; A queues; B changes organizer hash inside transaction and commits; A resumes | **403**, stable code, tournament + players + stages + matches + result_history + action_log + support session + auth audit all retained; only B's organizer hash change allowed |
 | R11-A100-D02 | Current organizer, valid token | **204**, corresponding tournament and dependent snapshots all empty afterward (authorized cascade) |
 | R11-A100-D03 | Support / viewer / anonymous DELETE | **403**, no domain record changes |
 | R11-A100-D04 | Organizer token from tournament Y used on tournament X | **403**, no record changes in X |
 | R11-A100-D05 | Organizer token invalidated before HTTP DELETE begins | **403**, no record changes |
 
-**Fixture:** synthetic 2-player tournament created through isolated PostgreSQL16, real HTTP start and match completion generate persisted stage, match, result history and action log. A supporter session is synthetic and tournament scoped. Test D01 acquires `FOR UPDATE` in one pool client, issues HTTP DELETE, waits until `pg_stat_activity` reports a real `wait_event_type='Lock'` query on the tournament table, then updates the credential hash through the lock-owning client and commits. If the lock-waiter cannot be observed, the test throws `DELETE_RACE_NOT_EXERCISED` and cannot be counted PASS. Snapshot compares domain tables with timestamps, exempting **only the B-authored credential rotation**. No arbitrary sleep alone determines race order.
+**Fixture:** synthetic 2-player tournament created through isolated PostgreSQL16, real HTTP start and match completion generate persisted stage, match, result history and action log. A supporter session is synthetic and tournament scoped. Test D01 acquires `FOR UPDATE` in one pool client, issues HTTP DELETE, waits until `pg_stat_activity` reports a real `wait_event_type='Lock'` query on the tournament table, then updates the credential hash through the lock-owning client and commits. If the lock-waiter cannot be observed, the test throws `DELETE_RACE_NOT_EXERCISED` and cannot be counted PASS. Snapshot compares domain tables plus synthetic support-session timestamps and auth audit, omitting sessionToken from assertions; exempting **only the B-authored credential rotation**. No arbitrary sleep alone determines race order.
 
 ### A50 approved isolated test run recipe
 
