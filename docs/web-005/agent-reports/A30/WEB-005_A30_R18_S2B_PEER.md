@@ -172,3 +172,19 @@ pnpm --filter @workspace/api-server typecheck
 `PATCH_REVISED / SOURCE_REVIEWED_CONDITIONAL_FETCH_OWNER_PRESENT / RESIDUAL_LEGACY_KEY_EPOCH_REUSE_STATIC_INFERRED / WRONG_VIEW_CONTEXT_HYPOTHESIS / A50_RTL_NOT_EXECUTED / A60_NEW_SHA_PENDING / RELEASE_NO_GO`.
 
 **Important:** A60 R17's independent `SOURCE_BLOCKED_FULL_PRIVACY_UNKNOWN_OWNER` was on **`8f959733…`**. It is historic, not a valid independent verdict for this latest `3947508b…`; A60 must review and sign the changed source. A30 cannot self-promote to SOURCE_ACCEPTED.
+
+
+---
+
+## 9. LATEST R18 TEST-ONLY DELTA (supersedes `8 pinned HEAD for tests)
+
+**New observed PR53 HEAD:** `62fbdfae556e9dc48d40e00708a2954611c782d5`, OPEN/DRAFT/UNMERGED. Comparison from `3947508b70a5125a0d1b194be4bec4927740d382` = **two further TEST-ONLY commits**:
+
+- `4b0e293dcb9e4d752f9fbe45913d7fbc66b1dc19` — adds an **enabled:true real useMatchGamePicks hook** with delayed mocked fetch, verifies owner metadata on active query and no late A cache repopulation after canonical A match-list removal and logout.
+- `62fbdfae556e9dc48d40e00708a2954611c782d5` — parameterizes metadata-owned denied-fetch assertions for **401 and 403**.
+- Only `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` changed in this delta, new Git blob `3a1f8f19d6b71e3aacd2e5b2fef971b5756da033`. Production blobs remain `59fbc215607fd82f55dc5af6d938310cc9f2ef69` (Deadlock hooks) and `955409d1456f13f3f291215712a1afcf322ad094` (cache invalidation) from `3947508b…`.
+
+**A30 appraisal:** positive for **test coverage breadth**, but `AUTHORED_TESTS_NOT_RUNTIME_PASS`. A50 must independently execute with exact SHA/TAP/exit; A60 must independently confirm this exact source. The credential-epoch/legacy preexisting cache issue (`8, U1) and wrong-view cached tenant (`8, U2) remain **targeted acceptance questions**, not claimed exploited. The new real enabled hook test covers one late response, but not all orphan legacy cache rehydration paths.
+
+**Current reviewed security peer disposition on `62fbdfae…`:**  
+`PATCH_REVISED / FETCH_TIME_OWNER_PRESENT / META_EVICTION_SOURCE_PRESENT / ENABLED_FETCH_LATE_RESPONSE_TEST_AUTHORED / DENIED_401_403_TESTS_AUTHORED / LEGACY_EPOCH_QA_REQUIRED / A50_NATIVE_NOT_EXECUTED / A60_R18_PENDING / RELEASE_NO_GO`.
