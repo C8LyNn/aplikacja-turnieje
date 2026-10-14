@@ -125,7 +125,7 @@ These observations are from release source and generated V3 public types, not ne
 
 **Test acceptance:** physically isolated, explicitly approved disposable PG16 with \`TEST_DATABASE_URL\`, \`TEST_DATABASE_SCHEMA=tm_test_*\`, known destructive \`DROP SCHEMA\` scope, Node22/pnpm10 verified; A50 records real commands, exit code, TAP counts, actor isolation, negative HTTP and clone-count checks. A60 independent review on exact HEAD. Neither writer's fixture definitions nor Pack19 pre-gate CI error make B2 pass.
 
-**Rollback/reversibility:** pure preclone strict validation must leave zero committed rows when rejected; transaction errors must roll back all clone-owned tables, including action_history and qualification routes. Release of a stricter acceptance contract requires owner-approved compatibility messaging and a supported recovery path; no silent data loss.
+**Rollback/reversibility:** pure preclone strict validation must leave zero committed rows when rejected; transaction errors must roll back all clone-owned tables, including action_log and qualification routes. Release of a stricter acceptance contract requires owner-approved compatibility messaging and a supported recovery path; no silent data loss.
 
 ## 7. R13 closeout / handoff matrix
 
