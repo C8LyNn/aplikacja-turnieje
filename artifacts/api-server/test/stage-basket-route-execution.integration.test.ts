@@ -1088,8 +1088,9 @@ describe("Phase 3 — Basket Route Execution", () => {
         b.qualificationProposals![0].entries[1].basketPosition = 20;
       } },
       { name: "QPE missing basket position", mutate: b => {
-        delete (b.qualificationProposals![0].entries[0] as
-          Partial<typeof b.qualificationProposals[0]["entries"][number]>).basketPosition;
+        delete (b.qualificationProposals![0].entries[0] as {
+          basketPosition?: number;
+        }).basketPosition;
       } },
       { name: "route position swapped for same source players and ranks", mutate: b => {
         const entries = b.routeExecutions![0].entries;
@@ -1103,8 +1104,9 @@ describe("Phase 3 — Basket Route Execution", () => {
         b.routeExecutions![0].entries[0].sourceBasketPosition = 0;
       } },
       { name: "route position missing rather than explicit legacy null", mutate: b => {
-        delete (b.routeExecutions![0].entries[0] as
-          Partial<typeof b.routeExecutions[0]["entries"][number]>).sourceBasketPosition;
+        delete (b.routeExecutions![0].entries[0] as {
+          sourceBasketPosition?: number | null;
+        }).sourceBasketPosition;
       } },
     ];
     for (const scenario of cases) {
