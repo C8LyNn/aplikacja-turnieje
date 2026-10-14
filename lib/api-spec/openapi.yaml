@@ -2044,8 +2044,18 @@ paths:
                 $ref: "#/components/schemas/Match"
         "404":
           description: Not found
-        "400":
-          description: Cannot cancel match in current state
+        "409":
+          description: Concurrent modification or duplicate cancellation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Match is completed, stage is inactive, or payload violates cancel policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /matches/{id}/restore-cancelled:
     post:
@@ -2058,6 +2068,12 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRestoreCancelledInput"
       responses:
         "200":
           description: Match restored
@@ -2067,8 +2083,18 @@ paths:
                 $ref: "#/components/schemas/Match"
         "404":
           description: Not found
-        "400":
-          description: Match is not cancelled
+        "409":
+          description: Stale match revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Match is not cancelled, stage inactive or invalid result state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
 
   /matches/{id}/swap-players:
     post:
@@ -3652,6 +3678,18 @@ components:
       properties:
         note:
           type: string
+        expectedRevision:
+          type: integer
+          minimum: 1
+          description: Optional during MP1 legacy Host compatibility; MP3 will require it.
+
+    MatchRestoreCancelledInput:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 1
+          description: Optional during MP1 legacy Host compatibility; MP3 will require it.
 
     ReorderMatchesInput:
       type: object
@@ -3667,7 +3705,7 @@ components:
       properties:
         status:
           type: string
-          enum: [pending, in_progress, postponed, cancelled]
+          enum: [pending, in_progress, postponed]
         note:
           type: string
         bestOf:
