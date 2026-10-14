@@ -12,7 +12,7 @@ test('Pack20 action plan never grants permission or performs writes',()=>{
 });
 test('Readiness endpoint keeps a read-only repeatable-read transaction',()=>{
   const s=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
+  assert.match(s,/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/);
   assert.match(s,/deriveSeCorrectionActionPlan\(/);
   assert.doesNotMatch(s,/\.insert\(|\.update\(|\.delete\(/);
 });
@@ -42,4 +42,20 @@ test('No unexpected SE mutation route was added',()=>{
   const s=get('artifacts/api-server/src/routes/index.ts');
   assert.doesNotMatch(s,/tournament-se-correction-execute/);
   assert.ok(existsSync('artifacts/api-server/src/domain/tournament/se-correction-action-plan.ts'));
+});
+
+test('Pack20 snapshot contract rejects missing or downgraded transaction protections',()=>{
+  const source=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
+  const contract=/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/;
+  assert.match(source,contract);
+  for (const [pattern,replacement] of [
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, 'isolationLevel:"read committed"'],
+    [/\baccessMode\s*:\s*["']read only["']/, 'accessMode:"read write"'],
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, ''],
+    [/\baccessMode\s*:\s*["']read only["']/, ''],
+  ]) {
+    const invalid=source.replace(pattern,replacement);
+    assert.notEqual(invalid,source);
+    assert.doesNotMatch(invalid,contract);
+  }
 });

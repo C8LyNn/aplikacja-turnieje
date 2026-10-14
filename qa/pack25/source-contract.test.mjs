@@ -11,12 +11,13 @@ const engine=read("artifacts/api-server/src/domain/tournament/se-correction-impa
 test("Pack25 output is generated from consistent existing SE readiness transaction",()=>{
   assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
   assert.match(server,/matchId:match\.id,stage,stages,stageMatches:matches,actionPlan/);
-  assert.match(server,/\{isolationLevel:"repeatable read",readOnly:true\}/);
+  assert.match(server,/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/);
 });
 test("no extra write route; reuses organizer access and read-only endpoint",()=>{
   assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
   assert.match(server,/se-correction-readiness/);
   assert.doesNotMatch(engine,/\b(?:insert|update|delete)\s*\(/);
+  assert.doesNotMatch(server,/\b(?:tx|db)\s*\.\s*(?:insert|update|delete|execute)\s*\(/);
   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
 });
 test("server returns graph together with prior diagnostic and action plan",()=>{
