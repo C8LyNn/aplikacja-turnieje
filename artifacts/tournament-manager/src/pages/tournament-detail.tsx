@@ -50,6 +50,7 @@ import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavig
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
+import { useTournamentCsvFileReader } from "@/hooks/use-tournament-csv-file-reader";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
@@ -250,7 +251,29 @@ export default function TournamentDetail() {
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
   const [csvConfirmReplace, setCsvConfirmReplace] = useState(false);
   const [csvResult, setCsvResult] = useState<any>(null);
+  const [csvFileError, setCsvFileError] = useState<string | null>(null);
   const csvFileRef = useRef<HTMLInputElement>(null);
+  const csvReader = useTournamentCsvFileReader(id, {
+    onLoad: (contents) => {
+      setCsvText(contents);
+      setCsvResult(null);
+      setCsvConfirmReplace(false);
+      setCsvFileError(null);
+    },
+    onError: () => setCsvFileError("Nie udało się odczytać pliku CSV. Wybierz plik ponownie."),
+  });
+
+  // TournamentDetail may be reused by the router; A's CSV state must not become B's.
+  useEffect(() => {
+    csvReader.invalidate();
+    setShowCsvImport(false);
+    setCsvText("");
+    setCsvMode("append");
+    setCsvConfirmReplace(false);
+    setCsvResult(null);
+    setCsvFileError(null);
+    if (csvFileRef.current) csvFileRef.current.value = "";
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Edit player state
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
@@ -518,13 +541,8 @@ export default function TournamentDetail() {
   const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setCsvText(ev.target?.result as string ?? "");
-      setCsvResult(null);
-      setCsvConfirmReplace(false);
-    };
-    reader.readAsText(file);
+    setCsvFileError(null);
+    csvReader.read(file);
     if (csvFileRef.current) csvFileRef.current.value = "";
   };
 
@@ -538,10 +556,12 @@ export default function TournamentDetail() {
   };
 
   const resetCsvImport = () => {
+    csvReader.invalidate();
     setShowCsvImport(false);
     setCsvText("");
     setCsvResult(null);
     setCsvConfirmReplace(false);
+    setCsvFileError(null);
     setCsvMode("append");
   };
 
@@ -1009,7 +1029,7 @@ export default function TournamentDetail() {
                           )}
                           <div className="flex gap-2 pt-1">
                             <Button size="sm" variant="outline" onClick={resetCsvImport}>Zamknij</Button>
-                            <Button size="sm" variant="ghost" onClick={() => { setCsvResult(null); setCsvText(""); }}>
+                            <Button size="sm" variant="ghost" onClick={() => { csvReader.invalidate(); setCsvResult(null); setCsvText(""); setCsvFileError(null); }}>
                               Importuj kolejnych
                             </Button>
                           </div>
@@ -1050,9 +1070,10 @@ export default function TournamentDetail() {
                               </Button>
                               <span className="text-xs text-muted-foreground">lub wklej ręcznie poniżej</span>
                             </div>
+                            {csvFileError && <p role="alert" className="text-xs text-destructive">{csvFileError}</p>}
                             <Textarea
                               value={csvText}
-                              onChange={(e) => { setCsvText(e.target.value); setCsvConfirmReplace(false); }}
+                              onChange={(e) => { csvReader.invalidate(); setCsvText(e.target.value); setCsvConfirmReplace(false); setCsvFileError(null); }}
                               rows={6}
                               placeholder={"name,team,seed\nProPlayer,TeamAlpha,1\nNoobSlayer,TeamBeta,2"}
                               className="font-mono text-xs"
