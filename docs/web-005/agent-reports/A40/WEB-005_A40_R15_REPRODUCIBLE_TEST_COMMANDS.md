@@ -39,8 +39,9 @@ This is a **PowerShell** runbook; commands below are grounded in repository scri
 $branch = 'fix/web-005/t110-ux046-stage-modal-r13'  # example: PR #52
 $sha = 'cce73ec47445102b216b3f8eceb4ec9de67eb1a7'
 
-git status --short
+$dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0) { throw 'Git status failed' }
+if ($dirty.Count -ne 0) { throw 'STOP: working tree is not clean' }
 git fetch origin $branch
 if ($LASTEXITCODE -ne 0) { throw 'Fetch failed' }
 git -c advice.detachedHead=false switch --detach $sha
