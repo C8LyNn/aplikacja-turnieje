@@ -4,6 +4,8 @@ import React, { type ReactNode } from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/auth-context";
+import { getListMatchesQueryKey } from "@workspace/api-client-react";
+import { getPlayerBansQueryKey, getMatchGamePicksQueryKey } from "./deadlock-bans-picks";
 import {
   isTournamentAuthQuery,
   removeTournamentAuthQueries,
@@ -150,4 +152,94 @@ test("active React Query observer no longer renders private A after logout or na
   result.rerender({ id: 8 });
   await waitFor(() => assert.equal(result.result.current.data?.privateField, "authorized B"));
   assert.equal(client.getQueryData(["/api/tournaments/7"]), undefined);
+});
+
+/* R17 S2B targeted negative contracts; tests added before production fix. */
+const aPicks = getMatchGamePicksQueryKey(701);
+const bPicks = getMatchGamePicksQueryKey(801);
+const aBans = getPlayerBansQueryKey(7);
+const bBans = getPlayerBansQueryKey(8);
+const seedOwnership = () => {
+  // A trusted, already-authorized tournament-scoped match-list response;
+  // matchId and tournamentId are deliberately different.
+  client.setQueryData(getListMatchesQueryKey(7), [{ id: 701, tournamentId: 7 }]);
+  client.setQueryData(getListMatchesQueryKey(8), [{ id: 801, tournamentId: 8 }]);
+};
+
+test("S2B N1: logout evicts A noncanonical bans and owned picks but keeps B", () => {
+  const hook = renderHook(() => useAuth(), { wrapper });
+  act(() => hook.result.current.storeOrgToken(7, "synthetic-a"));
+  seedOwnership();
+  client.setQueryData(aBans, [{ playerId: 71, tournamentId: 7, bannedHeroIds: ["fictional-a"] }]);
+  client.setQueryData(bBans, [{ playerId: 81, tournamentId: 8, bannedHeroIds: ["fictional-b"] }]);
+  client.setQueryData(aPicks, [{ matchId: 701, gameNumber: 1, player1HeroId: "fictional-a" }]);
+  client.setQueryData(bPicks, [{ matchId: 801, gameNumber: 1, player1HeroId: "fictional-b" }]);
+  act(() => hook.result.current.removeOrgToken(7));
+  assert.equal(client.getQueryData(aBans), undefined);
+  assert.equal(client.getQueryData(aPicks), undefined);
+  assert.equal(client.getQueryData(getListMatchesQueryKey(7)), undefined);
+  assert.equal(client.getQueryData(getListMatchesQueryKey(8)) instanceof Array, true);
+  assert.equal(client.getQueryData(bBans) instanceof Array, true);
+  assert.equal(client.getQueryData(bPicks) instanceof Array, true);
+});
+
+test("S2B N1: revoked 403 bans read evicts A tuple cache and leaves public B", async () => {
+  renderHook(() => useAuth(), { wrapper });
+  client.setQueryData(aBans, [{ tournamentId: 7, bannedHeroIds: ["stale-a"] }]);
+  client.setQueryData(bBans, [{ tournamentId: 8, bannedHeroIds: ["public-b"] }]);
+  await client.fetchQuery({
+    queryKey: aBans, staleTime: 0,
+    queryFn: async () => { throw Object.assign(new Error("denied"), { status: 403 }); },
+  }).catch(() => undefined);
+  assert.equal(client.getQueryData(aBans), undefined);
+  assert.ok(client.getQueryData(bBans));
+});
+
+test("S2B N2: denied 403 owned game-picks read evicts only A's match key", async () => {
+  renderHook(() => useAuth(), { wrapper });
+  seedOwnership();
+  client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "stale-a" }]);
+  client.setQueryData(bPicks, [{ matchId: 801, player1HeroId: "valid-b" }]);
+  await client.fetchQuery({
+    queryKey: aPicks, staleTime: 0,
+    queryFn: async () => { throw Object.assign(new Error("denied"), { status: 403 }); },
+  }).catch(() => undefined);
+  assert.equal(client.getQueryData(aPicks), undefined);
+  assert.ok(client.getQueryData(bPicks));
+});
+
+test("S2B N2: late non-abortable A picks response cannot reinsert after logout", async () => {
+  const auth = renderHook(() => useAuth(), { wrapper });
+  act(() => auth.result.current.storeOrgToken(7, "synthetic-a"));
+  seedOwnership();
+  let finish!: (v: { matchId: number; player1HeroId: string }[]) => void;
+  const pending = client.fetchQuery({
+    queryKey: aPicks,
+    queryFn: () => new Promise<{ matchId: number; player1HeroId: string }[]>(resolve => { finish = resolve; }),
+  }).catch(() => undefined);
+  await waitFor(() => assert.equal(typeof finish, "function"));
+  act(() => auth.result.current.removeOrgToken(7));
+  finish([{ matchId: 701, player1HeroId: "late-old-a" }]);
+  await pending;
+  assert.equal(client.getQueryData(aPicks), undefined);
+});
+
+test("S2B N2: do not purge unknown-ownership match keys or another tournament", () => {
+  const auth = renderHook(() => useAuth(), { wrapper });
+  act(() => auth.result.current.storeOrgToken(7, "synthetic-a"));
+  client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "ownership-not-proven" }]);
+  client.setQueryData(bPicks, [{ matchId: 801, player1HeroId: "valid-b" }]);
+  act(() => auth.result.current.removeOrgToken(7));
+  // No trusted tournament-scoped match list exists, therefore no
+  // affirmative attribution. Escalate this residual instead of global purge.
+  assert.ok(client.getQueryData(aPicks));
+  assert.ok(client.getQueryData(bPicks));
+});
+
+test("S2B N1: strict tournament tuple scope 7 versus 70 and 8", () => {
+  assert.equal(isTournamentAuthQuery(getPlayerBansQueryKey(7), 7), true);
+  assert.equal(isTournamentAuthQuery(getPlayerBansQueryKey(70), 7), false);
+  assert.equal(isTournamentAuthQuery(getPlayerBansQueryKey(8), 7), false);
+  assert.equal(tournamentIdFromAuthQuery(aBans), 7);
+  assert.equal(tournamentIdFromAuthQuery(bBans), 8);
 });
