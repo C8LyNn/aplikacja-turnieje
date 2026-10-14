@@ -225,3 +225,14 @@ Verified at coordination time:
 **Batch-release trigger:** coordinator proposes one coherent batch after enough cross-module repairs reach independent source acceptance and safe test executability; owner/HQ then explicitly authorizes the SWARM-006 intake/integration wave. Do not require an arbitrary fixed number of PRs and do not wait forever for the entire open WEB-004 bug backlog. Escalate emergency/high-severity safety exceptions separately for owner decision.
 
 **Status:** `BATCH_BUFFERED_NOT_DISPATCHED`; production/release remains NO-GO; WEB-005 continues fixes/QA, SWARM-007 file-communication architecture remains independently planned.
+
+
+## Final-only integration protocol — owner directive 2026-10-14
+
+**Supersedes the earlier "send after meaningful batch" suggestion:** WEB-005 must first complete the accepted remediation backlog originating from WEB-004 HANDOFF R2. WEB-004 confirmed that no additional audit report cycle is currently required; do **not** solicit or invent new WEB-004 tickets. Continue implementation and isolated test/independent QA, including P01–P07 and queued T040/T050/T051/T060/T080/T055/T110/T100, respecting agreed task priorities and bounded concurrency.
+
+**Closeout checklist:** (1) every accepted task has a disposition with task owner and exact PR SHA or owner-signed `BLOCKED`/`POLICY_OPEN`/`WONT_FIX`, (2) A60 independently judges scoped source/runtime evidence without claiming unavailable tests passed, (3) approved product policy decisions and known unresolved risks are enumerated, (4) A10 maintains exact-source final manifest and conflict/dependency/rollback plan, (5) 00 authors a consolidated `WEB-005_FINAL_HANDOFF_TO_SWARM-006` and requests owner/HQ final transfer authorization. Do not equate a draft PR or partial local harness test with closed implementation.
+
+**External work separation:** SWARM-006 is **not activated for WEB-005 until final WEB-005 closeout**; once handed over, SWARM-006 resolves cross-PR integration, runs full integrated CI/API/PG16/browser tests on a composite SHA, prepares controlled staging/release under HQ permission. SWARM-007 independently defines communication rules, creates Drive folder architecture and handles artifact/versioning protocols, without being assumed to have created remote folders.
+
+**Status:** `WEB005_IN_PROGRESS / SWARM006_FINAL_HANDOFF_DEFERRED`. No WEB-004 additional reports currently requested. This overrides earlier interim P01–P05/P01–P07 dispatch recommendations but does not discard their source-ready internal packages.
