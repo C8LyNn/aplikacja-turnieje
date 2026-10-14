@@ -1,4 +1,4 @@
-import { and, asc, count, eq, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, ne, sql } from "drizzle-orm";
 import {
   actionLogTable,
   db,
@@ -16,6 +16,7 @@ export type TournamentRosterErrorCode =
   | "PLAYER_NOT_FOUND"
   | "ROSTER_LOCKED"
   | "ROSTER_UNDO_UNAVAILABLE"
+  | "UNDO_ACTION_CHANGED"
   | "DUPLICATE_PLAYER_NAME"
   | "PLAYER_LIMIT_REACHED"
   | "CSV_INVALID_HEADER"
@@ -28,6 +29,7 @@ const ERROR_MESSAGES: Record<TournamentRosterErrorCode, string> = {
   PLAYER_NOT_FOUND: "Gracz nie istnieje.",
   ROSTER_LOCKED: "Składu nie można zmieniać po rozpoczęciu turnieju.",
   ROSTER_UNDO_UNAVAILABLE: "Ta operacja składu nie może już zostać cofnięta.",
+  UNDO_ACTION_CHANGED: "Istnieje nowsza operacja do cofnięcia. Odśwież historię działań.",
   DUPLICATE_PLAYER_NAME: "Gracz o tej nazwie już istnieje w turnieju.",
   PLAYER_LIMIT_REACHED: "Osiągnięto limit graczy turnieju.",
   CSV_INVALID_HEADER:
@@ -225,6 +227,23 @@ export async function undoTournamentRosterAction(input: {
       .for("update");
     if (!action?.undoPayload)
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+
+    // T040 R17 / MP2A: roster Undo owns this SAME transaction and already
+    // holds the draft tournament lock. Recheck globally latest undoable action
+    // here, before any player/action-log write. Never trust the pre-lock
+    // candidate chosen by POST /undo-last when another writer committed Y.
+    const [latestUndoable] = await tx
+      .select({ id: actionLogTable.id })
+      .from(actionLogTable)
+      .where(and(
+        eq(actionLogTable.tournamentId, input.tournamentId),
+        eq(actionLogTable.isUndone, false),
+        sql`${actionLogTable.undoPayload} IS NOT NULL`,
+      ))
+      .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+      .limit(1);
+    if (latestUndoable?.id !== action.id)
+      throw new TournamentRosterError("UNDO_ACTION_CHANGED");
 
     let payload: Record<string, unknown>;
     try {
