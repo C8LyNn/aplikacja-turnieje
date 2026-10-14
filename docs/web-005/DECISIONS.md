@@ -392,3 +392,10 @@ No implied code GO or application QA PASS. `WEB005_IN_PROGRESS / SWARM006_HOLD /
 | **D6=B** | Preserve editor draft and require manual reconcile/reload with fresh token and explicit opt-in retry | `OWNER_EXPLICIT` |
 
 **Implementation STOP:** Current backend and frontend have NO accepted code patch implementing T055 CAS; request future separate exclusive file-scope test-first GO with A110 + A20 schema/PG and A90 Backup compatibility, and independent A60 exact-source/runtime QA. No R21 code, SQL/DDL, paid CI, merge/staging/live or final SWARM006 GO. **T055 policy closed, T055 implementation pending**. Other owner questions: Backup B2, Direct Revert MP2B, Steam/session, legacy raw cache, original 38-case dispositions.
+
+
+## R21 — Backup B1-A direct owner selection (2026-10-14)
+
+**D175 — T060/B1 Modern versus Legacy, directly approved by project owner.** The user explicitly selected **B1-A** in this conversation: **new Backup V3 producers must emit a distinguishable strict capability/version profile; existing legitimate historic V2/V3 backups remain restorable through a safe, validated compatibility path**. Corrupt, malicious or structurally inconsistent older imports do not bypass fail-closed preclone/rollback safeguards merely because they are old. Preserve legal optional fields and empty arrays where the historical contract permits; exact degradation of unsafe Undo/Revert remains dependent on B2–B5.
+
+**Formal accepted decision:** [WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md](./WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md), reflected in [R21 owner packet](./WEB-005_R21_OWNER_DECISION_PACKET.md). Status `B1_OWNER_APPROVED_A / B2_B3_B4_B5_B6_WAIT_OWNER`. Owner policy approval != existing source fixed, legacy corpus QA, PG16 test PASS, migration/DDL permission, app code GO, merge, paid CI, release or SWARM-006 final handoff authorization. A90/A20 later verify T055 basketConfigRevision portability/restore compatibility; A60 independent QA after code work. 21 existing draft PRs remain separate pending formal integration.
