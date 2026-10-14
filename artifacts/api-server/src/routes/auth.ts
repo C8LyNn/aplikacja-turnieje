@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword, signVersionedOrganizerToken, verifyOrgani
 import {
   requireOrganizer as requireOrganizerAccess,
   requireTournamentWrite,
+  TournamentMutationAuthorizationError,
 } from "../access-policy";
 import {
   AUTH_DUMMY_PASSWORD_HASH,
@@ -54,6 +55,23 @@ function sendCredentialError(res: Response, error: unknown): boolean {
 
 function extractOrganizerToken(req: Request): string {
   return (req.headers["x-organizer-token"] as string) ?? "";
+}
+
+// Source-baseline verifier, deliberately independent of unmerged PR #44.
+// Initial requireOrganizerAccess remains the role gate. This check is called
+// only after SELECT tournaments FOR UPDATE, before any protected mutation.
+function revalidateLockedOrganizer(
+  req: Request,
+  tournamentId: number,
+  organizerPasswordHash: string | null,
+): void {
+  const token = req.headers["x-organizer-token"];
+  if (
+    typeof token !== "string" ||
+    !verifyOrganizerToken(token, tournamentId, organizerPasswordHash)
+  ) {
+    throw new TournamentMutationAuthorizationError();
+  }
 }
 
 function extractSupportToken(req: Request): string {
@@ -390,11 +408,15 @@ router.post("/tournaments/:id/auth/change-support-password", async (req, res) =>
   const newHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
     const [t] = await tx
-      .select({ supportPasswordVersion: tournamentsTable.supportPasswordVersion })
+      .select({
+        supportPasswordVersion: tournamentsTable.supportPasswordVersion,
+        organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+      })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!t) throw new Error("Tournament disappeared during support password rotation");
+    revalidateLockedOrganizer(req, id, t.organizerPasswordHash);
     await tx
       .update(tournamentsTable)
       .set({
@@ -467,11 +489,15 @@ router.post("/tournaments/:id/auth/change-viewer-password", async (req, res) => 
   const newHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
     const [t] = await tx
-      .select({ viewerPasswordVersion: tournamentsTable.viewerPasswordVersion })
+      .select({
+        viewerPasswordVersion: tournamentsTable.viewerPasswordVersion,
+        organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+      })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!t) throw new Error("Tournament disappeared during viewer password rotation");
+    revalidateLockedOrganizer(req, id, t.organizerPasswordHash);
     await tx
       .update(tournamentsTable)
       .set({
@@ -518,11 +544,15 @@ router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
 
   await db.transaction(async (tx) => {
     const [tournament] = await tx
-      .select({ viewerPasswordVersion: tournamentsTable.viewerPasswordVersion })
+      .select({
+        viewerPasswordVersion: tournamentsTable.viewerPasswordVersion,
+        organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+      })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!tournament) throw new Error("Tournament disappeared during visibility change");
+    revalidateLockedOrganizer(req, id, tournament.organizerPasswordHash);
     await tx
       .update(tournamentsTable)
       .set({
@@ -547,11 +577,13 @@ router.delete("/tournaments/:id/auth/viewer-password", async (req, res) => {
       .select({
         viewerPasswordVersion: tournamentsTable.viewerPasswordVersion,
         visibility: tournamentsTable.visibility,
+        organizerPasswordHash: tournamentsTable.organizerPasswordHash,
       })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!tournament) throw new Error("Tournament disappeared during viewer password removal");
+    revalidateLockedOrganizer(req, id, tournament.organizerPasswordHash);
     if (tournament.visibility === "private_online") {
       privateOnline = true;
       return;
