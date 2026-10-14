@@ -7,6 +7,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
+import { getVerifiedMatchTournamentOwner } from "./tournament-query-invalidation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,11 +93,20 @@ export function useMatchGamePicks(
   matchId: number | null | undefined,
   options?: { enabled?: boolean },
 ) {
+  const queryClient = useQueryClient();
+  // Match IDs alone are not tenant identity. The successful authenticated
+  // tournament-specific match list contains each match's own tournamentId.
+  // Capture this proof in query meta BEFORE the standalone picks GET; when
+  // unavailable do not fetch/cache an unowned private response.
+  const verifiedOwner = matchId
+    ? getVerifiedMatchTournamentOwner(queryClient, matchId)
+    : null;
   return useQuery<GamePickRecord[]>({
-    queryKey: getMatchGamePicksQueryKey(matchId ?? 0),
+    queryKey: getMatchGamePicksQueryKey(verifiedOwner === null ? 0 : matchId ?? 0),
     queryFn: () =>
       customFetch<GamePickRecord[]>(`/api/matches/${matchId}/game-picks`),
-    enabled: (options?.enabled ?? true) && !!matchId,
+    meta: verifiedOwner === null ? undefined : { web005VerifiedTournamentId: verifiedOwner },
+    enabled: (options?.enabled ?? true) && !!matchId && verifiedOwner !== null,
     staleTime: 10_000,
   });
 }
