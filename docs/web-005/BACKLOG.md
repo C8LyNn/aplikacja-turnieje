@@ -249,3 +249,12 @@ R9 proposed code-only slots: A90/T060-B1 Backup V3 fail-closed preclone validato
 ## Central wave prompts: R9
 
 Authoritative agent assignments for R9 (13 roles, including A00) are stored in **[WEB-005_WAVE_R9_AGENT_PROMPTS.md](./WEB-005_WAVE_R9_AGENT_PROMPTS.md)**. All participating agents read §0–§2, then only their agent-ID section. A90/T060-B1, A70/T040-MP2A and A100/T080-S1 are the three narrowly scoped implementation lanes; all other agents perform QA, evidence, policy/test-design or manifest work. Existing PR #34–40 must not be implemented again. WEB-005 completes its approved backlog before a single final handoff; SWARM-006 remains HOLD. No new WEB-004 audit campaign requested.
+
+
+## WEB-005 WAVE R10 — central agent prompts and resumed implementation (2026-10-14)
+
+**Source:** [WEB-005_WAVE_R10_AGENT_PROMPTS.md](./WEB-005_WAVE_R10_AGENT_PROMPTS.md) — one central dispatch document for A00+A10–A120. R9 created P08=PR #41 (Backup V3 B1, HEAD e847cb705296a48ab5c68ece96776cd0e0bbb417) and P09=PR #42 (Undo LIFO MP2A, HEAD 1ae0ccb801f4177052bff1ec7041e55b8c992c8b), **both draft, PG16 runtime NOT_EXECUTED, independent QA pending**. A100/S1 was BLOCKED in R9 due to routes/tournaments.ts file ownership and has documentation only.
+
+**New R10 code-only lanes (max 3):** A100/T080-S1A organizer/support post-lock authorization and bans/game-picks, A80/T050 RR multi-stage revert eliminates accidental resurrection of prior-stage players, A110/T110-UX042 stale FileReader callback identity guard. A70 R9 PR42 frozen and yields routes/tournaments.ts and revert-match.ts ownership for R10 subject to coordinator conflict checks. A90 B1 QA + B2/B3 design only. A120 T100 patch-ready design only. A10 maintains internal P01–P09+ manifests; A50 real safe tests; A60 independent QA.
+
+**Owner boundary:** no WEB-004 new reports; WEB-005 completion before ONE final handoff to SWARM-006; no interim dispatch, merge, SQL migration or deploy. WEB-005 release remains NO-GO. Policy-sensitive T050 Swiss, SE, T055 CAS, DE and Backup B2/B3 remain on hold pending owner/HQ decisions.
