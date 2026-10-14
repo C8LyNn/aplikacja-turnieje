@@ -649,7 +649,8 @@ export function TournamentStagesPanel({
   const lifecycleModalStale = !!actionSnapshot && (
     actionSnapshot.tournamentId !== tournamentId ||
     actionSnapshot.tournamentStatus !== tournamentStatus ||
-    actionSnapshot.stageId !== actionStage?.id ||
+    !actionStage ||
+    actionSnapshot.stageId !== actionStage.id ||
     actionSnapshot.version !== actionStage.version ||
     actionSnapshot.status !== actionStage.status
   );
@@ -1141,7 +1142,7 @@ export function TournamentStagesPanel({
             </DialogDescription>
           </DialogHeader>
           {lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {!lifecycleModalStale && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           {previewQuery.isLoading && (
             <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1164,7 +1165,7 @@ export function TournamentStagesPanel({
           )}
 
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setConfirmOpen(false)}>
+            <Button variant="outline" disabled={pending || lifecycleChecking} onClick={() => { setConfirmOpen(false); setActionSnapshot(null); }}>
               Anuluj
             </Button>
             <Button
@@ -1196,9 +1197,9 @@ export function TournamentStagesPanel({
               if (actionStage && stageRequiresSequentialCeremony(actionStage)) void actionCeremony.refetch();
             }}>Ponów sprawdzenie gotowości</Button>
           )}
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {!lifecycleModalStale && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setStartConfirmOpen(false)}>Anuluj</Button>
+            <Button variant="outline" disabled={pending || lifecycleChecking} onClick={() => { setStartConfirmOpen(false); setActionSnapshot(null); }}>Anuluj</Button>
             <Button disabled={pending || lifecycleChecking || lifecycleModalStale || !actionSnapshot || !mayStartAction || !!actionStartBlockedReason} onClick={start}>{pending ? "Uruchamianie…" : "Potwierdź rozpoczęcie etapu"}</Button>
           </DialogFooter>
         </DialogContent>
