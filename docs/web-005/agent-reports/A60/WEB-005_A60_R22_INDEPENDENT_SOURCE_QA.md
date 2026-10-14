@@ -1,0 +1,39 @@
+# WEB-005 — A60 R22 INDEPENDENT SOURCE QA / NO-NEW-CANDIDATE RECEIPT
+
+**Task:** `WEB-005-T130-A60-R22` · **Agent:** A60 Independent QA & Release Gates · **Authority:** STRICT QA / application READ-ONLY, own docs-only publication.
+**Master:** `WEB-005_WAVE_R22_AGENT_PROMPTS.md` Git blob `f616bca63a441bc2a4eead64ff67586e57e2b6ca`.
+**Release base:** `release/tournament-ops-20261013-01@1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.
+
+## 1. Actual GitHub state at independent readback
+
+Queried all current pull requests (REST list state=all) and R22 branch search; **21/21 existing PR #34–54 are OPEN DRAFT, unmerged and unchanged since signed A60 R21 21-row gate**. No PR #55+ in the returned collection; R22-specific branch searches for `r22`, `swiss`, `backup-strict`, `t055` returned no matches. Checked A80/A90/A110/A50 R22 handoff paths on central docs branch: **NOT_FOUND at assessment**. These statements are a time-bound GitHub snapshot, **not proof that other agents have not worked off-repo or will not publish later**. No new R22 code SHA, changed-path diff, new PR or native test receipt was available to A60 for L1/L2/L3; consequently **no R22 source acceptance is issued**.
+
+**Inherited unchanged source verdicts only:** PR53 `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` SOURCE_ACCEPTED_SCOPED (orphan raw cache policy remains open), PR54 `bfa9d075b431185aa8bbf87bf021d64dde8ae22f` SOURCE_ACCEPTED_CONDITIONAL (future PR47 child overlap), PR41 `f03cf3d09988a04ba9c2856e205d21f994ff67f1` and PR42 `021bed269f9ea8ac8ce53caeea44263c098aa2dd` SOURCE_ACCEPTED_CONDITIONAL; remaining 17 inherit exactly the limited R18–R21 verdict on immutable HEAD. Not a composite, integration, runtime or release pass. [R21 A60 independent QA](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R21_OWNER_SIGNOFF_INDEPENDENT_QA.md). See [R22 delta machine matrix](./WEB-005_A60_R22_DELTA_MATRIX.json).
+
+## 2. R22 scoped lanes: blockers and exact future QA oracle
+
+### L1 / A80 — Swiss S3/S4 (NO_NEW_CANDIDATE)
+
+Release baseline `artifacts/api-server/src/domain/tournament/swiss.ts` blob `aa00b4ef445aaff7eb48152eb5d6c2063befbf7a` and `test/swiss.test.ts` blob `f0ebfb25d80cd7ea52a71cb71237677699ba0e7d` inspected at release SHA. Existing source greedily chooses first non-rematch after standings order, with rematch fallback; it does not solve a score-group-primary global objective. Existing BYE uses `priorBye: Set` from supplied `previousMatches` and lacks stage identity itself; absent stage-scoped caller contract, cross-stage BYEs cannot be ruled out. It also uses nonzero `resultType` on completed matches to build previous pairings; this can include NC/walkover if modeled that way, excludes cancelled status. **This is release baseline behavior, NOT evaluation of unpublished R22 code.**
+
+Mandatory new-candidate acceptance: S3 minimize score-group deviation first, then rematches *within equally optimal score cost* (not unrestricted no-rematch greedy); bounded deterministic solver and documented fallback; stable seeds/tie-break; S4 never repeated BYE while stage-eligible player has none, fair least-count selection after all used, prior stages excluded, no off-stage contamination; S4-H completed NC/walkovers count previous opponents, cancelled don't; scoring/SOS/Buchholz unchanged unless separately specified. Negative+positive fixtures for adversarial pairing graphs, equal points, odd 5/7 players, all-BYE exhaustion, 5/6 Swiss and varied input order. Need new A80 PR and exact HEAD before independent source acceptance.
+
+### L2 / A90 — pure strict Backup V3 validator (NO_NEW_CANDIDATE)
+
+No new pure module/test path or PR R22 available. Required audit on future exact SHA: attacker removes strict marker or required fields => **no silent downgrade to permissive legacy**; legitimate historic V2/V3 (including legal `resultHistory:[]`, `actionLog:[]`, `undoPayload:null`) retain limited compatibility; malformed known IDs, contradictory present history and wrong capability fail closed. Match state revision and `resultHistory.revision` are distinct; completion action total order and remap rules must be consistent. A pure standalone validator **cannot certify existing import/export wiring, pre-clone 400 `INVALID_BACKUP_V3`, actual rollback after partial clone, safe legacy Undo/Revert degradation or PG16 integrity**. These are future separately GO-authorized integration + physical tests. Existing PR41/48 MUST NOT be silently modified by L2.
+
+### L3 / A110 — Basket T055 fail-first typed contract (NO_PUBLISHED_ARTIFACT)
+
+Owner-approved D1=B monotonic persisted `basketConfigRevision`, D2=B ETag/If-Match, D3=B stale 412/no writes, D4=A missing 428/no writes, D5=B locked stage/roster check, D6=B preserve client draft/manual reconcile. R22 permits acceptance tests/API DTO specification **only**, not production PUT/DDL/migration. Therefore tests authored (if delivered later) do not prove real CAS. Required failing precondition adversarial scenarios: simultaneous editors A/B at V0 (one V1, other 412 no writes), absent 428, malformed 4xx, roster/stage stale 412, ETag/version monotonic/ABA, rollback/tenant isolation, UI draft preserved without automatic retry. No published A110 R22 contract was verified at readback.
+
+## 3. Owner decisions actually approved, and still-open gates
+
+R22 source documents independently fetched: [Sport S1–S6 & S4-H](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R21_OWNER_DELEGATED_SPORT_DECISIONS.md) (owner explicit S1–S4, A00 owner-delegated S5/S6); [Basket T055](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R21_OWNER_T055_BASKET_CAS_APPROVAL.md) (D1=B D2=B D3=B D4=A D5=B D6=B); [Backup B1](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R21_OWNER_BACKUP_B1_COMPATIBILITY_APPROVAL.md) (owner explicit B1=A); [Backup B2–B6](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R21_OWNER_DELEGATED_BACKUP_B2_B6_DECISIONS.md) (A00 owner-delegated choices). **Do not mark these policies unsigned, ask again, or misrepresent delegated choices as direct owner quotations.** The approved EXEC-B is conditional future intent only.
+
+**Still blocking:** public MP2B Direct Revert CAS+Host deployment choice, Steam absent-secret 403/503, session TTL/digest, legacy PR53 raw orphan retention/erasure policy, authentic WEB-004 original 38 per-case provenance and individual dispositions (29 secondary IDs, 9 unverified original IDs). Source implementations of TS-B, actionableRound, DE rankings, T055 real CAS and integrated modern strict Backup remain pending separate future code GO and exact-SHA QA; policy selection is not implementation.
+
+**Runtime:** latest directly verified A50 R21 receipt = **0 native app executions** (no fully connected pinned checkout/pnpm/physically isolated owner-authorized PG16); no R22 exact app command/exit/TAP receipt located in checked central path. A60 did not execute native React/API/PG16 or stages/live. R22 runtime status `NOT_EXECUTED_OR_NOT_VERIFIED`, NOT PASS. Owner EXEC-B only after source/case/policy closeout + separate final signed test-debt & handoff GO; composite full tests remain SWARM-006 HARD RELEASE STOP.
+
+## 4. Final R22 independent decision
+
+**`NO_NEW_R22_SOURCE_CANDIDATES_VERIFIED / QA_PENDING_L1_L2_L3 / HANDOFF_NOT_READY / SWARM006_HOLD / RELEASE_NO_GO`.** Return to A60 for an independent exact-SHA review **after** A80/A90 publish new own PR+paths+negative/positive tests and A110 publishes fail-first contract, with A50 receipts if any. No merge, production migration, unapproved paid CI, SQL, integration branch or SWARM-006 launch. R22 report is a truthful *intermediate source QA gate*, not final code acceptance.
