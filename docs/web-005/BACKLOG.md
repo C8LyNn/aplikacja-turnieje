@@ -244,3 +244,8 @@ Canonical next wave: [WEB-005_NEXT_REMEDIATION_WAVE_R9.md](./WEB-005_NEXT_REMEDI
 Existing P01–P07 are internal SOURCE_READY candidate draft PRs, not integrated. PR39 latest HEAD 16053ee132756ca05b6f2cd1f0cabae823905387; PR40 HEAD 9a8287271299a59fc9291b8d253299a8d109a35d. Author contract Pack17 24/24 and A50 harness 50/50 do **not** equal real PostgreSQL/API/frontend PASS.
 
 R9 proposed code-only slots: A90/T060-B1 Backup V3 fail-closed preclone validator P0; A70/T040-MP2A global Undo LIFO recheck under lock P0; A100/T080-S1 session revocation reauthorization after lock P1. Separate scoped agent order required for each. A80/A110/A120 remain source-only until policy and file owners resolved. A10 keeps manifest internal, A50 works on isolated test environment, A60 independent QA. SWARM-006 stays HOLD until full WEB-005 backlog closeout; WEB-004 asks no new reports.
+
+
+## Central wave prompts: R9
+
+Authoritative agent assignments for R9 (13 roles, including A00) are stored in **[WEB-005_WAVE_R9_AGENT_PROMPTS.md](./WEB-005_WAVE_R9_AGENT_PROMPTS.md)**. All participating agents read §0–§2, then only their agent-ID section. A90/T060-B1, A70/T040-MP2A and A100/T080-S1 are the three narrowly scoped implementation lanes; all other agents perform QA, evidence, policy/test-design or manifest work. Existing PR #34–40 must not be implemented again. WEB-005 completes its approved backlog before a single final handoff; SWARM-006 remains HOLD. No new WEB-004 audit campaign requested.
