@@ -57,3 +57,15 @@ No modifications to main/release, no merges/cherry-picks/deployments or producti
 | D029 | User dispatch through existing worker threads | PENDING: no automatic delegation to other conversations; repo registration is not execution |
 
 No merge, deploy, Replit, production data/schema/secrets changes or paid CI dispatch were performed in this R4 assignment update.
+
+
+## Incoming WEB-004 follow-up — capacity policy
+
+| ID | Decision | State / trigger |
+|---|---|---|
+| D030 | Treat upcoming WEB-004 follow-up as **unverified intake**, not authorized implementations | ACTIVE; no report received yet |
+| D031 | Reserve flexible capacity for new P0/P1 findings in future allocation | ACTIVE; first close or pause lower-priority lane, then schedule within max 3 implementation + 1 independent QA |
+| D032 | Link all new WEB-004 finding IDs to existing WEB-005 task ownership before creating agents/PRs | REQUIRED when report arrives; record duplicates and any already-patched-but-not-tested |
+| D033 | New Wave2 task count, specialist roles and sequencing | DEFER until report contents, severity, dependencies and regression scope verified |
+| D034 | Source-of-truth intake output | Coordinator must update BACKLOG.md and DECISIONS.md and produce WEB-005-00-WEB004-NEXT-INTAKE-R1 after actual handoff |
+| D035 | Existing security/release restrictions persist despite new discoveries | NO REPLIT, NO PROD, NO AUTO-MERGE/DEPLOY, no unauthorized paid CI or test DB access |
