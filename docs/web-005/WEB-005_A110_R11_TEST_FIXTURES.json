@@ -1,0 +1,166 @@
+{
+  "project": "WEB-005",
+  "wave": "R11",
+  "agent": "A110",
+  "task": "WEB-005-T055-T110-A110-R4",
+  "mode": "SOURCE_ONLY",
+  "source": {
+    "release_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "pr43_head_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+    "pr43_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/43"
+  },
+  "execution": {
+    "executed": false,
+    "runtime_verified": false,
+    "exit_code": null,
+    "independent_QA": "PENDING"
+  },
+  "cases": [
+    {
+      "id": "P10-RTL-01",
+      "priority": "P0",
+      "layer": "existing test, run target",
+      "action": "deferred FileReader A, same-component rerender B, resolve A.onload and A.onerror after abort",
+      "expected": "B CSV text/error/result unchanged; reader aborted; no A state into B"
+    },
+    {
+      "id": "P10-RTL-02",
+      "priority": "P0",
+      "layer": "existing test, run target",
+      "action": "A has replace confirmation then render B",
+      "expected": "B confirmation false and CSV cleared"
+    },
+    {
+      "id": "P10-RTL-03",
+      "priority": "P0",
+      "layer": "existing test, run target",
+      "action": "A read pending; B selects old and then newer file; manual B typing while reader pending",
+      "expected": "only current B user intent retained"
+    },
+    {
+      "id": "P10-RTL-04",
+      "priority": "P0",
+      "layer": "existing test, run target",
+      "action": "close CSV modal and unmount while reader is pending, deliver callbacks after abort",
+      "expected": "no UI resurrection / React state update from stale callback"
+    },
+    {
+      "id": "P10-RTL-05",
+      "priority": "P1",
+      "layer": "existing test, run target",
+      "action": "read current file error then successful new selection",
+      "expected": "scoped error clears on successful selection"
+    },
+    {
+      "id": "P10-PAGE-01",
+      "priority": "P0",
+      "layer": "NEW TEST REQUIRED real TournamentDetail RTL/Wouter",
+      "action": "mount real TournamentDetail at A with mocked authenticated queries; FileReader pending; navigate via router A to B without unmount; deliver A.onLoad",
+      "expected": "no CSV value, preview, error or replace confirmation in B"
+    },
+    {
+      "id": "P10-PAGE-02",
+      "priority": "P0",
+      "layer": "NEW TEST REQUIRED real TournamentDetail RTL/Wouter",
+      "action": "A CSV import replace confirmed; SPA route B; set B CSV deliberately",
+      "expected": "B must require B-specific replacement confirmation, no B POST with A CSV"
+    },
+    {
+      "id": "P10-PAGE-03",
+      "priority": "P0",
+      "layer": "NEW TEST REQUIRED real TournamentDetail/HTTP interception",
+      "action": "A file pending; B file selected; call original A.onload/onerror; click B Import",
+      "expected": "captured B import request data.csv equals B file ONLY; no cross-tournament A content"
+    },
+    {
+      "id": "P10-PAGE-04",
+      "priority": "P1",
+      "layer": "NEW TEST REQUIRED real TournamentDetail",
+      "action": "A pending; close modal; late callback; reopen modal",
+      "expected": "empty fresh import and no late A error"
+    },
+    {
+      "id": "P10-BROWSER-01",
+      "priority": "P0",
+      "layer": "NEW TEST REQUIRED browser/E2E",
+      "action": "Wouter navigate A->B, defer A FileReader event across actual browser interaction",
+      "expected": "no A file content, success/error result or A replace confirmation under B; no cross-tournament request"
+    },
+    {
+      "id": "UX044-BROWSER-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "unsaved score draft then browser Back/Forward & programmatic SPA navigation",
+      "expected": "approved guard or identity-scoped draft retention; no silent loss"
+    },
+    {
+      "id": "UX044-BROWSER-02",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "reason-only walkover or no-contest draft, no score changes, then navigation",
+      "expected": "same dirty protection as score, without spurious guard for pristine selection"
+    },
+    {
+      "id": "UX045-RTL-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "select backup A; defer FileReader; select backup B; deliver A.onLoad/onError after B",
+      "expected": "preview only B; no A error/preview resurfacing; new credentials cannot silently carry across context"
+    },
+    {
+      "id": "UX045-RTL-02",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "close backup dialog then deferred reader callback, reopen",
+      "expected": "no stale preview or preserved secrets"
+    },
+    {
+      "id": "UX045-HTTP-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "backup import from existing B",
+      "expected": "returns distinct newly created tournament C and its token; existing B unchanged; new credentials validated"
+    },
+    {
+      "id": "UX046-RTL-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "open complete stage v5 active, refetch same id completed v6",
+      "expected": "confirm disabled/closed; no stale mutation request"
+    },
+    {
+      "id": "UX046-RTL-02",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "open start stage in tournament A, route B has same numeric stage id",
+      "expected": "no action to B until explicit new B modal opened"
+    },
+    {
+      "id": "UX046-HTTP-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST only",
+      "action": "another editor changes stage between final UI check and mutate request",
+      "expected": "backend owns actual transition check; no illegal write; server response observed not invented"
+    },
+    {
+      "id": "T055-PG-01",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST isolated PG16 only after POLlCY-BASKET",
+      "action": "two authorized editor sessions GET V0, concurrent full PUT with V0, orchestrated locks",
+      "expected": "one commit, one policy selected 409/412 reject, exact winner state, zero writes by loser, loser draft retained"
+    },
+    {
+      "id": "T055-PG-02",
+      "priority": "P1",
+      "layer": "FUTURE PATCH TEST isolated PG16 only after POLlCY-BASKET",
+      "action": "client omits token, wrong stage set, legacy default first save, ABA, GET under concurrent writer",
+      "expected": "fail closed on precondition; coherent graph+token snapshot, monotonic revision behavior"
+    }
+  ],
+  "prohibited": [
+    "no_execute_DB_or_paid_CI",
+    "no_PR43_modifications",
+    "no_merge",
+    "no_SWARM006"
+  ]
+}
