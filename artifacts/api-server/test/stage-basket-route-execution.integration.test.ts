@@ -1076,6 +1076,24 @@ describe("Phase 3 — Basket Route Execution", () => {
     }
     assert.doesNotThrow(() => validateBackupV3(full),
       "explicit non-null matching positions are legal");
+    const restored = await request(app)
+      .post("/api/tournaments/import")
+      .send({ backup: full, organizerPassword: "R17-Position-Positive-Synthetic!" });
+    assert.ok(restored.status >= 200 && restored.status < 300,
+      "matching non-null source positions must import: " + JSON.stringify(restored.body));
+    const newTournamentId = restored.body.tournament.id as number;
+    const importedPositions = await database.pool.query<{
+      source_basket_position: number | null;
+    }>(
+      "SELECT source_basket_position FROM stage_basket_route_entries " +
+      "WHERE tournament_id=$1 ORDER BY source_final_rank", [newTournamentId]);
+    assert.deepEqual(
+      importedPositions.rows.map(row => row.source_basket_position),
+      full.routeExecutions![0].entries
+        .slice().sort((left, right) => left.sourceFinalRank - right.sourceFinalRank)
+        .map(entry => entry.sourceBasketPosition),
+      "explicit source position must survive restore",
+    );
 
     const cases: Array<{ name: string;
       mutate: (backup: import("@workspace/api-zod").TournamentBackupV3) => void }> = [
