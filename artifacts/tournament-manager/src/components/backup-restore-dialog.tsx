@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useScopedBackupPreview } from "@/hooks/use-scoped-backup-preview";
 import { useLocation } from "wouter";
 import { FileUp, X } from "lucide-react";
 import {
@@ -11,16 +12,19 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
-import {
-  parseTournamentBackupFile,
-  type TournamentBackupFile,
-} from "@/lib/backup-file";
+import type { TournamentBackupFile } from "@/lib/backup-file";
 
-export function BackupRestoreDialog(props: {
+export function BackupRestoreDialog({ open, onClose }: {
   open: boolean;
   onClose: () => void;
 }) {
-  const { open, onClose } = props;
+  const [location] = useLocation();
+  if (!open) return null;
+  // A route change or close/reopen owns a fresh preview and credential form.
+  return <BackupRestoreDialogContent key={location} onClose={onClose} />;
+}
+
+function BackupRestoreDialogContent({ onClose }: { onClose: () => void }) {
   const [location, navigate] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
   const { storeOrgToken } = useAuth();
@@ -32,13 +36,16 @@ export function BackupRestoreDialog(props: {
   const [viewerPassword, setViewerPassword] = useState("");
   const [supportPassword, setSupportPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  if (!open) return null;
+  const previewReader = useScopedBackupPreview(location, {
+    onPreview: value => { setBackup(value); setError(null); },
+    onError: message => { setBackup(null); setError(message); },
+  });
 
   const visibility = backup?.tournament.visibility;
   const privateOnline = visibility === "private_online";
 
   const resetAndClose = () => {
+    previewReader.invalidate();
     setBackup(null);
     setOrganizerPassword("");
     setViewerPassword("");
@@ -49,20 +56,15 @@ export function BackupRestoreDialog(props: {
   };
 
   const selectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    previewReader.invalidate();
     setError(null);
     setBackup(null);
+    // New credentials are specific to the newly selected backup, never reused.
+    setOrganizerPassword("");
+    setViewerPassword("");
+    setSupportPassword("");
     const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const parsed = parseTournamentBackupFile(String(reader.result ?? ""));
-      if (!parsed.ok) {
-        setError(parsed.error);
-        return;
-      }
-      setBackup(parsed.backup);
-    };
-    reader.readAsText(file);
+    if (file) previewReader.read(file);
   };
 
   const restore = () => {
