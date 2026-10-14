@@ -286,3 +286,16 @@ R10 implementation is **source patches only** (NOT integrated): **P10 PR #43** T
 **P0 global requirement:** A50 obtain actual safe Node/pnpm/isolated PG16 + frontend targeted exit evidence; A60 independently review exact PR HEAD, especially PR41–48. Reports/matrices classify `PATCH_PROPOSED` vs `RUNTIME_VERIFIED` and `BLOCKED`. A10 buffer P01–P15+ internally, confirms actual P13–P15 IDs using own R11 manifest, does not send SWARM-006.
 
 **Cross-swarm:** no extra WEB-004 reports; WEB-005 completes full accepted backlog before one final handoff; SWARM-006 inactive until formal closeout; SWARM-007 designs communication and Google Drive structure separately. Production/release NO-GO.
+
+
+## R13 — centralized agent wave (2026-10-14)
+
+**Master R13:** [WEB-005_WAVE_R13_AGENT_PROMPTS.md](./WEB-005_WAVE_R13_AGENT_PROMPTS.md) — 13 exact agent sections, shared §0–§2, conditions/GO/STOP, immutable SHA and individual R13 reports.
+
+**R12 actual new drafts:** PR #49 (A100 T080-S1B-P, POST-lock password/visibility, 17 authored PG tests), PR #50 (A110 UX045 backup-preview scope/epoch + password hygiene, 10 authored RTL), PR #51 (A70 T040 historical malformed Undo fail-closed, 17 authored PG cases). HEADs exact in central R13 file. Combined with P01–P15, total **18 unmerged draft patches PR34–51**; PR32 release→main and competing PR33 remain separate. There is **no composite SHA** and no demonstrated app-level acceptance on all drafts. R12 reports are author/source evidence, not native test execution.
+
+**R13 operating priority:** emphasize **actual targeted runtime test execution** A50 (frontend without DB first; disposable physically isolated PG16 only after safe preflight) and independent A60 source/PG/RTL acceptance across existing PRs. Author synthetic tests do not count as native app PASS. Unrelated automated CI Pack19 old matcher failure persists on release-derived draft branches; PR35 already fixes it; full integration gates cannot be waived.
+
+**Conditional small frontend code lanes:** A100/T080-S2A privacy cache after auth logout/revocation, A110/T110-UX046 stale stage modal, A120/T100-PR-B RR external standings freshness. **Code only upon source-confirmed gap; otherwise NO_NEW_PATCH**. No fourth code lane; no unapproved sport/basket/backup/API policy changes. A70/A80/A90 source-only policy/QA work; A10 P01–P18 internal manifest, A20 migration readiness, A30 security review, A40 CI gate.
+
+**Final boundary unchanged:** no more WEB-004 reports, no intermediate SWARM-006 packets. Finish approved WEB-005 backlog, independently validate and obtain owner policy dispositions, then seek authorization for ONE final SWARM-006 handoff. SWARM-007 Drive/communication infrastructure remains separate. Release NO-GO.
