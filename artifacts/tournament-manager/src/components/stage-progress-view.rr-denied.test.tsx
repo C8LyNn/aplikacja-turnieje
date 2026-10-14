@@ -42,7 +42,7 @@ afterEach(() => {
 
 function mount(initialSelectedStageId: number, httpStatus: 401 | 403) {
   const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: 60000 } },
+    defaultOptions: { queries: { retry: false, staleTime: 0, gcTime: 60000 } },
   });
   clients.add(client);
   const rrKey = getGetTournamentStageQueryKey(77, 31);
