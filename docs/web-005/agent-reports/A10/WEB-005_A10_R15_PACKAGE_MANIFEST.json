@@ -1,0 +1,1752 @@
+{
+  "schema": "web005.a10.internal-qa-receipts/15.0",
+  "task": "WEB-005-T018-A10-R10",
+  "mode": "INTERNAL_DOCS_ONLY",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "control_document": {
+    "path": "docs/web-005/WEB-005_WAVE_R15_AGENT_PROMPTS.md",
+    "blob_sha": "e6950cbff7e521ed9b3ff774e7787e8d598a966d",
+    "branch": "chore/web-005/t000-wave1-control"
+  },
+  "release": {
+    "ref": "release/tournament-ops-20261013-01",
+    "sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "integrated_sha": null
+  },
+  "inherited_from": "WEB-005_A10_R14_PACKAGE_MANIFEST.json",
+  "inheritance_note": "91 checksums unchanged because all 21 exact HEAD and release base matched GitHub readback; source files not re-downloaded in R15",
+  "evidence_rules": {
+    "source_acceptance": "A60_R13_LOCAL_MATRIX_VERDICT_WITHOUT_DIRECT_PUBLIC_URL",
+    "a50_receipt": "NULL_IF_NO_DIRECT_MATCHED_REPORT_URL_COMMAND_ENV_EXIT",
+    "a60_url": "NULL_IF_NO_DIRECT_PUBLISHED_GITHUB_SOURCE_VERDICT",
+    "runtime_full": "NO_COMPLETE_APP_EVIDENCE",
+    "tests_executed_by_A10": "NOT_EXECUTED"
+  },
+  "package_count": 21,
+  "counts": {
+    "source_ready": 21,
+    "source_accepted_broad_conditional": 18,
+    "source_not_accepted": 3,
+    "qa_accepted_full": 0,
+    "runtime_verified_full": 0,
+    "explicit_policy_open_flags_inherited": 4,
+    "a50_verified_direct_receipts": 0,
+    "a60_verified_direct_urls": 0,
+    "checksum_entries": 91,
+    "distinct_paths": 82,
+    "file_overlap_pairs": 14
+  },
+  "known_blocker": "PR53 private query keys player-bans/match game-picks and AuthProvider fixture without QueryClientProvider; source-confirmed risk, no A50 runtime failure established",
+  "critical_ci_gate": "Pack19 legacy matcher for isolated PR52-54; PR35 fix remains unmerged",
+  "unresolved_overlaps": [
+    {
+      "pair": [
+        "P06",
+        "P09"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P06",
+        "P11"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P06",
+        "P13"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P06",
+        "P18"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P08",
+        "P15"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/application/backups/backup-v3.ts",
+        "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P09",
+        "P11"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P09",
+        "P13"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P09",
+        "P18"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/revert-match.integration.test.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P10",
+        "P17"
+      ],
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    },
+    {
+      "pair": [
+        "P10",
+        "P21"
+      ],
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    },
+    {
+      "pair": [
+        "P11",
+        "P13"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P11",
+        "P18"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P13",
+        "P18"
+      ],
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "pair": [
+        "P17",
+        "P21"
+      ],
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "id": "P01",
+      "pr": 35,
+      "owner": "WEB-005/A10",
+      "scope": "Pack 19 Drizzle source contract",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "source_branch": "fix/web-005/t010-pack19-contract",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/35",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "qa/pack19/source-contract.test.mjs"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "qa/pack19/source-contract.test.mjs",
+          "sha256": "4654b7f7e8facaa9ef2028e98d188b89c51d927042415dd9512f509e7ffa42f8",
+          "git_blob_sha1": "5726986dca6a6fd7309bb883eb1106d2d19fb14e",
+          "source_sha": "7cb283aa82273a1e22daf9051a82311eef53760c"
+        }
+      ],
+      "dependencies": [],
+      "risk": "CI test-only; baseline matcher obsolete; release full CI still red",
+      "rollback": "Before integration discard candidate. After authorized isolated merge revert P01 merge-commit with validated parent, or rebuild new candidate without P01; do not revert release directly without 00.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P02",
+      "pr": 36,
+      "owner": "WEB-005/A40",
+      "scope": "Pack 20,21,25,26 source contracts",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "source_branch": "fix/web-005/t015-pack20-26-contracts",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/36",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "qa/pack20/source-contract.test.mjs",
+        "qa/pack21/source-contract.test.mjs",
+        "qa/pack25/source-contract.test.mjs",
+        "qa/pack26/source-contract.test.mjs"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "qa/pack20/source-contract.test.mjs",
+          "sha256": "f627b244d3ff6c5fc0d45e15802c927d880800bc2e924ff1169c46a484c143d6",
+          "git_blob_sha1": "39c06cb006760a85d33d79765004e2ab6b3b20c4",
+          "source_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+        },
+        {
+          "path": "qa/pack21/source-contract.test.mjs",
+          "sha256": "3c6935845fd4c60f44815c39b4e5b7fec14f2ddbd746c53cf1a9938aa97272ce",
+          "git_blob_sha1": "5d3f09fe52dc5636a82cb2860bd6a91e848f5962",
+          "source_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+        },
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "sha256": "b1eae70dc5d98472c4b4eb6bf36b27841f3c306717cb7e0cda55ff3f64e50175",
+          "git_blob_sha1": "8d8e8b3a1c89ba86bb65441dd90c1c07cc555503",
+          "source_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+        },
+        {
+          "path": "qa/pack26/source-contract.test.mjs",
+          "sha256": "e90da20259d202ff36e573c12b2498c62a184a39727a1b14468efcdea17c0001",
+          "git_blob_sha1": "8ea89ee0720038eccd344536e286ab03236b6775",
+          "source_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+        }
+      ],
+      "dependencies": [
+        "WEB005-P01:CI_ORDER_ONLY"
+      ],
+      "risk": "Current HEAD has [skip ci]; Pack25 response spoof guard added in 4th commit; full repository CI not verified",
+      "rollback": "Rebuild candidate without P02, or with owner approval revert P02 integration merge commit; P02 has 4 commits, reverting HEAD alone is insufficient.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P03",
+      "pr": 34,
+      "owner": "WEB-005/A30",
+      "scope": "Steam Catalog write authorization",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "source_branch": "fix/web-005/t030-steam-catalog-write-auth",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/34",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "owner_policy_id": null,
+      "policy_open_inherited": true,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/application/catalog/steam-catalog-access.ts",
+        "artifacts/api-server/src/routes/steam-game-catalog.ts",
+        "artifacts/api-server/test/steam-catalog-access.test.ts",
+        "artifacts/api-server/test/steam-catalog-admin-middleware.test.ts",
+        "artifacts/api-server/test/steam-catalog-admin.integration.test.ts",
+        "artifacts/tournament-manager/src/pages/game-catalog-admin.tsx",
+        "docs/WEB-005-T030-A10-R1.md",
+        "docs/WEB-005-T030-A10-R2.md",
+        "docs/WEB-005-T030-A10-R3.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/application/catalog/steam-catalog-access.ts",
+          "sha256": "f5f7c369e60f6365469f1a03eef9e63432ff233cb1c6d5f51d04904cda2ad729",
+          "git_blob_sha1": "feff5ff50443f40ae8f3e51ebe4f34b524ad2638",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "artifacts/api-server/src/routes/steam-game-catalog.ts",
+          "sha256": "f84dbd24da4e51e0c3f781c64493b9e0394037ecf06284b0c4e6218862c92947",
+          "git_blob_sha1": "b637a4530b352c1b127a8129569a0108f81a3f75",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "artifacts/api-server/test/steam-catalog-access.test.ts",
+          "sha256": "ebf33c1b7f4dd9959d427531863b9fe085c0fc95f0054debd8f1c0dbef354f4b",
+          "git_blob_sha1": "ea0b43f1e63607fc693c3eb3e364014bb0a01ef1",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "artifacts/api-server/test/steam-catalog-admin-middleware.test.ts",
+          "sha256": "2cf4165d3289af5752d2c5570f83e2a015fe27b406ae76c7a76b21bc5043c1ad",
+          "git_blob_sha1": "fe9eced1ae5f3a3b45725b60c8e078ee5287501d",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "artifacts/api-server/test/steam-catalog-admin.integration.test.ts",
+          "sha256": "58bf2066baae244ab95bfcb8db9768f5e821ec4da7ccaa30af23439d7a3fa821",
+          "git_blob_sha1": "acccac903d197a3b480e26f3afc37e6a2a3a4327",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/game-catalog-admin.tsx",
+          "sha256": "33e0ab08e175f7d42452c7f83b98e6e538333adbd0e5de5d4de1c137bb1fabb5",
+          "git_blob_sha1": "fb490f2aca7fa328168e0c219ab402d31be65d6f",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "docs/WEB-005-T030-A10-R1.md",
+          "sha256": "195d823189b678904c4ab07d8a5414adfecd1757ad00cf2eb90f5d522785b3a5",
+          "git_blob_sha1": "fec91eb2df2a5c298c5f08495204689ae0dd56da",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "docs/WEB-005-T030-A10-R2.md",
+          "sha256": "a1d554d3ffe401a367ac5acc723daf1ca5112f8f51ed884b79018d9ec607362e",
+          "git_blob_sha1": "77ef66e78fb156db881c804693929b146ca2eabf",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        },
+        {
+          "path": "docs/WEB-005-T030-A10-R3.md",
+          "sha256": "83dfa1808a164b10ab8fb978d2a4d9e439e4d101a3c62e2a5bf309bc5648a7b9",
+          "git_blob_sha1": "4da3db08811d7e45aa4f6043ed6ede45b270ef44",
+          "source_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+        }
+      ],
+      "dependencies": [
+        "WEB005-P01:CI_ORDER_ONLY",
+        "WEB005-P02:CI_ORDER_ONLY"
+      ],
+      "risk": "Auth middleware is security-critical; missing/wrong server token must fail closed; targeted PG integration, UI typecheck and browser credential lifecycle not yet evidenced",
+      "rollback": "NEVER naked-revert as release safety measure: reverting can reopen three unauthenticated catalog writes. First get A30+00-approved server-side read-only lockdown/containment; then independently validate and only then consider authorized rollback.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P04",
+      "pr": 37,
+      "owner": "WEB-005/A30",
+      "scope": "Proxy Security: proxy-addr 2.0.8 and trusted CIDR hardening",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "source_branch": "fix/web-005/t031-proxy-trust-hardening",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/37",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/http/request-source.ts",
+        "artifacts/api-server/test/request-source.test.ts",
+        "docs/WEB-005-T031-A30-R4.md",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/http/request-source.ts",
+          "sha256": "4cc4e3fab93ce833ff9847f1db796411049b5b836feb873cec08373692ee01b5",
+          "git_blob_sha1": "aa57e6bcf713a164ad63e7918eb44c81fef1be92",
+          "source_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+        },
+        {
+          "path": "artifacts/api-server/test/request-source.test.ts",
+          "sha256": "6514acd056638ab381e7f58a599a1427197f9ab35ad293a50cf814a7297bdf39",
+          "git_blob_sha1": "a13fe59ba8abc65760b83e7b3dcefa70a990c6d6",
+          "source_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+        },
+        {
+          "path": "docs/WEB-005-T031-A30-R4.md",
+          "sha256": "d2599d56fabc0bb56670bdba2264c5f4f229271634c405f8ba6f68e5d25d5c4a",
+          "git_blob_sha1": "511d897194ac4cb5facae18591d765bd015c3797",
+          "source_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+        },
+        {
+          "path": "pnpm-lock.yaml",
+          "sha256": "661b4ff8481641a9d842c90a51f594194b09afd5102101a558ac13ca6f40592f",
+          "git_blob_sha1": "df9b656ed118dfe3df2752c10553f83795ff02cd",
+          "source_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+        },
+        {
+          "path": "pnpm-workspace.yaml",
+          "sha256": "270f377a0e5a99dc1410ff6d549d3276ce007bf450a7d9a7b62d98716b2ea3c6",
+          "git_blob_sha1": "5f3fb75908b46fab375dce2f892bb9c3b049baf6",
+          "source_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+        }
+      ],
+      "dependencies": [
+        "WEB005-P01:CI_VALIDATION_ORDER_ONLY",
+        "WEB005-P02:CI_VALIDATION_ORDER_ONLY"
+      ],
+      "risk": "SEC-013 proxy-addr@2.0.7 source dependency. New strict CIDR policy could reject existing reverse-proxy topology. Workspace and lockfile global shared assets; re-resolve dependency graph after adding any later patches.",
+      "rollback": "Before integration: discard candidate. After integration: do NOT blindly revert to vulnerable proxy-addr 2.0.7 or permissive /0 ranges; A30+00 must approve fail-closed proxy isolation/config remediation and run rate-limit/security tests.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P05",
+      "pr": 38,
+      "owner": "WEB-005/A20",
+      "scope": "Offline fail-closed migration-ledger validator; proposal canonical 0027–0040",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "source_branch": "feat/web-005/t021-migration-ledger-validator",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/38",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_OFFLINE",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "owner_policy_id": null,
+      "policy_open_inherited": true,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "lib/db/migration-ledger-validator/README.md",
+        "lib/db/migration-ledger-validator/manifest.proposal.json",
+        "lib/db/migration-ledger-validator/source-snapshots.editor.json",
+        "lib/db/migration-ledger-validator/synthetic-fixtures.json",
+        "lib/db/migration-ledger-validator/synthetic-history.json",
+        "lib/db/migration-ledger-validator/validate.mjs",
+        "lib/db/migration-ledger-validator/validate.test.mjs"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "lib/db/migration-ledger-validator/README.md",
+          "sha256": "3c35c6c55dc6cd7bb0a8a43ca8105d1b07732c5224f63b774d5b7203b02e79c6",
+          "git_blob_sha1": "d68102bf577b6e78216032efb0cd996097cf34d8",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/manifest.proposal.json",
+          "sha256": "261efafcb8bebbc9c98631a99c9410e4e6e2751480bd7d6ba7e9c773661dc51b",
+          "git_blob_sha1": "28f493263a2cbfb919db1f99b220058175b46ba0",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/source-snapshots.editor.json",
+          "sha256": "6f5cd72fb6a072133d622b3d77fa1ff98e532f515cb7309d9ef5d07d82cfb026",
+          "git_blob_sha1": "d73453363928c31bd452c1fa30ac726613708e17",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-fixtures.json",
+          "sha256": "2c2be4ae115fbcd18c62ed45bcb7c1e67f26e198a9af6c641eda1b90cf0dd55c",
+          "git_blob_sha1": "55ba08be665b12158205473fabe16901d7926667",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-history.json",
+          "sha256": "0b59d6fc3eb0db564c92c87b8be0438914e61ccf11494944651d7fa025448ef1",
+          "git_blob_sha1": "f7898bdec530e91ec5215f464e1461512c4233be",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.mjs",
+          "sha256": "0f16bcc92fdc219441546ebc8712cd56ce78f011c7ec441077893cc4d26c2e6d",
+          "git_blob_sha1": "430e8be535489b0bb000ffbf5d8c6f8ee1fb5a8e",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.test.mjs",
+          "sha256": "c07cdb50f22c29ecb499536f1cd0ab32574dca05a6674130e6edddf3d92139ab",
+          "git_blob_sha1": "96c3d6b5d3f7ff9c10c154de0dc7c04374f61917",
+          "source_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+        }
+      ],
+      "dependencies": [
+        "T020_APPROVED_MIGRATION_CONTRACT:REQUIRED_FOR_SQL_ONLY"
+      ],
+      "risk": "Manifest is PROPOSAL_ONLY_NOT_APPROVED; canonical identities, original editor aliases 0030/0031 and source digests must not authorize SQL, DDL or legacy adoption. Offline code is not integrated with live migration runner or Pack17 gates.",
+      "rollback": "Before integration discard candidate. After integration revert or rebuild excluding 7 validator-only files; no SQL or DB state to roll back (this package never applies migrations). Keep separate T020 migration authorization blocked.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P06",
+      "pr": 39,
+      "owner": "WEB-005/A70",
+      "scope": "Cancel/Restore MP1; PATCH bypass blocked; OpenAPI + Zod/type parity partial",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "source_branch": "fix/web-005/t040-mp1-cancel-restore-20261014",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/39",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "owner_policy_id": null,
+      "policy_open_inherited": true,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/match-revision.integration.test.ts",
+        "lib/api-spec/openapi.yaml",
+        "lib/api-zod/src/generated/api.ts",
+        "lib/api-zod/src/generated/types/index.ts",
+        "lib/api-zod/src/generated/types/matchCancelInput.ts",
+        "lib/api-zod/src/generated/types/matchRestoreCancelledInput.ts",
+        "lib/api-zod/src/generated/types/matchUpdateStatus.ts"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/routes/tournaments.ts",
+          "sha256": "b5679fca6f2006bf1625c3852dbcf6e5161ab63347823fcb11aea1fba99b7ed6",
+          "git_blob_sha1": "c9f33d4e604a4d70f49cdf8b2cc9409ef80b4043",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "artifacts/api-server/test/match-revision.integration.test.ts",
+          "sha256": "2789b8a0ca9a3599905e34ef43a82edd391581ffdd2e1217be649eaa326a3ce4",
+          "git_blob_sha1": "21fe0be1c47e4f470ac6e09eacff6c597f36b7c7",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-spec/openapi.yaml",
+          "sha256": "a31b39b7703e5b3a581819989178b20f355dc860ee633dbcf52dd3f72d7607b8",
+          "git_blob_sha1": "56790d649e491878c077166cba7fa75595a4b420",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-zod/src/generated/api.ts",
+          "sha256": "492354af944c7bc0faca37703d6f29b7c098558085874a787e26d30997357ffe",
+          "git_blob_sha1": "fda74d7fb47d250bfe156230053530d56ff4b2cd",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-zod/src/generated/types/index.ts",
+          "sha256": "e606841d726792eebce089a4e8627de133d2ca91977bffc20f6c3d919f37ce3f",
+          "git_blob_sha1": "67b13579dd6396e0830221e34129a657a8874a1c",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-zod/src/generated/types/matchCancelInput.ts",
+          "sha256": "8ee47b543d4c8b14480f9d64e17de94b1be61c3acd6fb9f753ed571fe43e4fdd",
+          "git_blob_sha1": "3439beaf220ea9db9f70d15b237dc69512fbeea0",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-zod/src/generated/types/matchRestoreCancelledInput.ts",
+          "sha256": "5fdf945b4cbb7ff683eaa8f72138b0bc4500b64506d41ab7bd65695cbfa23eca",
+          "git_blob_sha1": "77d6cd040b9955b1013809f0504ec09004928e36",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        },
+        {
+          "path": "lib/api-zod/src/generated/types/matchUpdateStatus.ts",
+          "sha256": "c84950f0bd2881462c30632718928a643bc2e4d67b17fbf240d7d585f62f0763",
+          "git_blob_sha1": "627d205ad1c707d5106a99f7e3b2e3db5384a3fc",
+          "source_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+        }
+      ],
+      "dependencies": [
+        "WEB005-P01:CI_VALIDATION",
+        "WEB005-P02:CI_VALIDATION",
+        "T040_MP2_UNDO:PROHIBITED_IN_MP1",
+        "T040_MP3_HOST:CONTRACT_DEPENDENCY_TO_COMPLETE_MANDATORY_CAS",
+        "T020_MATCH_REVISION_SCHEMA:TEST_PREFLIGHT"
+      ],
+      "risk": "Cancel/Restore now controls match lifecycle, generic PATCH denies cancellation/reopening, expectedRevision optional for legacy Host (product/compat decision). OpenAPI/Zod generator/types changed but lib/api-client-react files NOT changed; deterministic codegen and complete React client parity NOT PROVEN. Undo payload additions must not be assumed MP2 compatibility. PostgreSQL fixture and A60 independent QA absent.",
+      "rollback": "Rebuild disposable integration candidate excluding P06; if already integrated use approved revert with API/Host compatibility verification; no schema revert within P06. Never revert only OpenAPI or Zod leaving API mismatch.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P09",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P11",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P13",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P18",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P07",
+      "pr": 40,
+      "owner": "WEB-005/A40",
+      "scope": "Pack17 fail-closed gate contract; TAP strictness and full frontend+API build",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "source_branch": "fix/web-005/t017-pack17-fail-closed",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/40",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "qa/pack17/gate-contract.mjs",
+        "qa/pack17/gate-contract.test.mjs",
+        "qa/pack17/run-gates.mjs"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "qa/pack17/gate-contract.mjs",
+          "sha256": "bccf617eb0d16fba0389da944723924c00e0f9e11a81fd8b1c4b0ef80cd6fa52",
+          "git_blob_sha1": "eae350a60a684d7b14af3e481baf7bd6c4a2b2fc",
+          "source_sha": "9a8287271299a59fc9291b8d253299a8d109a35d"
+        },
+        {
+          "path": "qa/pack17/gate-contract.test.mjs",
+          "sha256": "ffa8b6056bf0ebd3ab0426b9960330c5b3e1dda496ca56b7d2e2b0abcd622e14",
+          "git_blob_sha1": "f59a65509009fbdf74a38239693238704b1af583",
+          "source_sha": "9a8287271299a59fc9291b8d253299a8d109a35d"
+        },
+        {
+          "path": "qa/pack17/run-gates.mjs",
+          "sha256": "182376fd3ed91151a96940aa311c5307cf25863b914c648be8f4a591b5fe02a5",
+          "git_blob_sha1": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043",
+          "source_sha": "9a8287271299a59fc9291b8d253299a8d109a35d"
+        }
+      ],
+      "dependencies": [
+        "WEB005-P01:CI_ORDER",
+        "WEB005-P02:CI_ORDER",
+        "WEB005-P03:API_AUTH_RUNTIME",
+        "WEB005-P04:LOCKED_PNPM_DEPENDENCY",
+        "WEB005-P05:LEDGER_VALIDATOR_SEPARATE",
+        "WEB005-P06:MP1_PG16_RUNTIME"
+      ],
+      "risk": "Pack17 --full now enforces TAP counts, rejects skipped/todo/zero/missing, requires NODE_ENV=test and physical isolated DB preflight external to runner, adds full frontend tests and API build. Local author 24/24 byte-identical source mirror tests and mock mode only; full real PG not executed. Existing workflow runs Pack17 step after earlier Packs; skipped upstream is release STOP.",
+      "rollback": "Before integration discard candidate. After integration revert P07 isolated Pack17 files with new 00-approved/QA-tested fail-closed replacement; reverting to exit-zero false PASS is unsafe.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P08",
+      "pr": 41,
+      "owner": "WEB-005/A90",
+      "scope": "Backup V3 preclone fail-closed integrity",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417",
+      "source_branch": "fix/web-005/t060-b1-backup-v3-integrity-r9",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/41",
+      "source_ready": true,
+      "source_verdict": "SOURCE_CONFIRMED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/application/backups/backup-v3-flow-integrity.ts",
+        "artifacts/api-server/src/application/backups/backup-v3.ts",
+        "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts",
+        "docs/web-005/WEB-005_A90_R9_HANDOFF.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-flow-integrity.ts",
+          "sha256": "0f157a80154f4adb0d142f23490a27255d2d200ecb2902b2488c73fbfd6a574f",
+          "git_blob_sha1": "cfe3d87bbb412e6878c872ffc003b7583fb53b57",
+          "source_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417"
+        },
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "sha256": "8e3259ad473d886af5ec3006776e4f758f537c794341fe90dd45c0f994d7ab24",
+          "git_blob_sha1": "701b9b01ab2d7fda134e6fdc67c3d01d236b9a3e",
+          "source_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417"
+        },
+        {
+          "path": "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts",
+          "sha256": "b171b13102e40193e42c5cae038bd9418b92b8dad228054a97dd5917bab67b81",
+          "git_blob_sha1": "d0a291dd4caef26b1029d512937beae7685800a0",
+          "source_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A90_R9_HANDOFF.md",
+          "sha256": "b37f687e96e057669785a8793d0959ddd01f6ce696a51604d0564c12c38786f0",
+          "git_blob_sha1": "68e92e4675b644599b3f90e87c0480756bde731f",
+          "source_sha": "e847cb705296a48ab5c68ece96776cd0e0bbb417"
+        }
+      ],
+      "dependencies": [
+        "P05:SCHEMA_LEDGER_CONTRACT",
+        "T020:POSTGRESQL_SCHEMA_PREFLIGHT",
+        "T040:ACTION_LOG_HISTORY_SEMANTICS_B2_FUTURE"
+      ],
+      "risk": "approved QP/QPE/OP output and route receipt cardinality; reject BEFORE clone; 12 authored PG16 corrupt fixtures NOT_EXECUTED",
+      "rollback": "Before integration drop from future candidate. After explicitly authorized integration, rebuild candidate without B1 or 00/A90-approved revert; verify backup import consistency and do not silently drop malformed route receipt data.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P15",
+          "paths": [
+            "artifacts/api-server/src/application/backups/backup-v3.ts",
+            "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P09",
+      "pr": 42,
+      "owner": "WEB-005/A70",
+      "scope": "Global undo LIFO under tournament mutation lock",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+      "source_branch": "fix/web-005/t040-mp2a-global-undo-lifo-r9",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/42",
+      "source_ready": true,
+      "source_verdict": "SOURCE_CONFIRMED_PARTIAL;SCOPE_BLOCKED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/revert-match.integration.test.ts",
+        "docs/web-005/WEB-005_A70_R9_MP2A_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/routes/tournaments.ts",
+          "sha256": "5f33dc9e1fb8cbf77596dd7eb940dd2ac0492f797e1b916f6757f518b4f3b702",
+          "git_blob_sha1": "a0473fed687932a26275f2bef14864d196ed3bb7",
+          "source_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b"
+        },
+        {
+          "path": "artifacts/api-server/test/revert-match.integration.test.ts",
+          "sha256": "6fdefb5acb46d08a88a7e59f30aa590c123c0840494b0b824ee1659c23aef4f5",
+          "git_blob_sha1": "00b3427b2a82819d53135c6f56ab8fe8f7bbd27b",
+          "source_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A70_R9_MP2A_PATCH.md",
+          "sha256": "82e16d2ff007822b3239b093e8867d4c13ab1f32394271ccf7dfa4e2dce577b2",
+          "git_blob_sha1": "56de0834df51b94e7a0fac8f680e907f699f8b12",
+          "source_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b"
+        }
+      ],
+      "dependencies": [
+        "P06:SHARED_TOURNAMENTS_ROUTE_AND_MP1_ACTION_LOG",
+        "T080-S1A:SHARED_ROUTE_OWNER_A100",
+        "T050-RR:REVERT_SEMANTICS_REVIEW_A80"
+      ],
+      "risk": "global undo stale action and revert_match request check including two authored PG16 deterministic races NOT_EXECUTED",
+      "rollback": "Before integration drop from future candidate. After authorized integration revert the whole PR42 patch or rebuild candidate excluding MP2A; verify latest legal undo, global LIFO, action history, rollback zero-write and MP1 regression. Do not change routes/tournaments.ts concurrently with A100.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P06",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P11",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P13",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P18",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts",
+            "artifacts/api-server/test/revert-match.integration.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P10",
+      "pr": 43,
+      "owner": "WEB-005/A110",
+      "scope": "CSV FileReader stale callback tournament-route identity guard",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "source_branch": "fix/web-005/t110-ux042-file-reader-r10",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/43",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/hooks/use-tournament-csv-file-reader.test.tsx",
+        "artifacts/tournament-manager/src/hooks/use-tournament-csv-file-reader.ts",
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/hooks/use-tournament-csv-file-reader.test.tsx",
+          "sha256": "2aa58620c1fb202adc4765b72aebcfd378aa7d2afcf132f7cdd200f4c74afb26",
+          "git_blob_sha1": "8f30ce89a6bc02add6fd6f930752da835dcd990d",
+          "source_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/hooks/use-tournament-csv-file-reader.ts",
+          "sha256": "57d5ebcb1dae0addb9223da5883d15b4b3ecdcdfad7e584edbcd7fa9e5bd7fa0",
+          "git_blob_sha1": "82465e4fe28817a035a0b38f537d59bea39fb5ea",
+          "source_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.tsx",
+          "sha256": "a8db4e8197f80d343af4da725c3b82471150527ea020614daef85f8dce080540",
+          "git_blob_sha1": "7bb3b97d3a46c168ee85d07de948cded0667f2d7",
+          "source_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+        }
+      ],
+      "dependencies": [
+        "A50:FRONTEND_RTL_ACTUAL_EXECUTION",
+        "A60:INDEPENDENT_FRONTEND_QA",
+        "T055:BASKET_CAS_POLICY_UNRELATED_NOT_INCLUDED",
+        "T110:UX044_UX045_UX046_STILL_FUTURE"
+      ],
+      "risk": "Delayed FileReader A->B callback, active-reader and epoch identity, aborted callbacks, clear stale CSV import modal; five authored RTL test definitions never executed. Browser A->B exploit not reproduced.",
+      "rollback": "If future authorized candidate is faulty, exclude P10 in next candidate or revert approved frontend-only commit sequence after verifying scoped CSV import route navigation and new selection; do not roll back unrelated T055/backend.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P17",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        },
+        {
+          "packet": "P21",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P11",
+      "pr": 44,
+      "owner": "WEB-005/A100",
+      "scope": "Post-lock organizer revocation and Deadlock bans/game-picks guard",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "source_branch": "fix/web-005/t080-s1a-revocation-lock-r10",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/44",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/access-policy.ts",
+        "artifacts/api-server/src/auth.ts",
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/session-revocation-race.integration.test.ts",
+        "docs/web-005/WEB-005_A100_R10_HANDOFF.md",
+        "docs/web-005/WEB-005_A100_R10_T080_S1A_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/access-policy.ts",
+          "sha256": "814b92d8f11a3cf633f9d63c40eb8df8ff6337de6c8b5a015e469ae8fcd0ffc2",
+          "git_blob_sha1": "5e0fc658515a19015bfda3745144232eb9b80b36",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        },
+        {
+          "path": "artifacts/api-server/src/auth.ts",
+          "sha256": "9d24d189d7d5481e0f3cc6cc465f5ec8ef07c812fea30813a91ddc27a88613c5",
+          "git_blob_sha1": "1a6d8cad569c598bfdeb7f209b1e54403092f937",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        },
+        {
+          "path": "artifacts/api-server/src/routes/tournaments.ts",
+          "sha256": "172735e28c3bfc876a3953cb7d4edb98e8589fb11d26ed067080a817ba94d147",
+          "git_blob_sha1": "635a9a7b315755ba2fd9745102186f4a5ba6271e",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        },
+        {
+          "path": "artifacts/api-server/test/session-revocation-race.integration.test.ts",
+          "sha256": "dc0e46125e0316624be5bcf5916e25024b8e6267f0c5288516a720df48023bca",
+          "git_blob_sha1": "e3f1e1952e1aba228c88a47e412e6fb9284f8362",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R10_HANDOFF.md",
+          "sha256": "4e4345d4ede2f9a3cc1672648995a4862dfebbf112a7780eefa5a092640b25c8",
+          "git_blob_sha1": "274980db02221485056de1ae1e804045fc8b7cf9",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R10_T080_S1A_PATCH.md",
+          "sha256": "b742a0ea3aa87bbb368a4a064c4ffa4182d18d113642b26ef4252abaf43ca8bf",
+          "git_blob_sha1": "eab0283e89d88c495de2a1c50f7e5ae5998a765d",
+          "source_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+        }
+      ],
+      "dependencies": [
+        "P06:SHARED_ROUTE_API",
+        "P09:SHARED_ROUTE_AND_UNDO_CONTRACT",
+        "A50:DISPOSABLE_PG16",
+        "A60:INDEPENDENT_REVIEW"
+      ],
+      "risk": "HTTP organizer/support revocation between initial authorization and tournament mutation lock; 403 no writes; deterministic PG16 barrier tests authored not executed. Shared route ownership P06/P09.",
+      "rollback": "Exclude from future isolated candidate or A100/A30-reviewed revert after explicit 00 authority, with post-lock revoked credential 403/zero writes and positive organizer/support operations retested; never remove auth fail-closed behavior without replacement.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P06",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P09",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P13",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P18",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P12",
+      "pr": 45,
+      "owner": "WEB-005/A80",
+      "scope": "Terminal Round Robin reopen stage roster only",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "source_branch": "fix/web-005/t050-rr-stage-roster-reopen-r10",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/45",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/application/matches/revert-match.ts",
+        "artifacts/api-server/test/round-robin-terminal-reopen.integration.test.ts",
+        "docs/web-005/WEB-005_A80_R10_HANDOFF.md",
+        "docs/web-005/WEB-005_A80_R10_T050_RR_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/application/matches/revert-match.ts",
+          "sha256": "c03ae3d9174100fcadf306dc5f48926ffe0c79177a784dee8ac5607ec00055b3",
+          "git_blob_sha1": "956e934fbdf0494cbb32db0751ed058eecc0c835",
+          "source_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+        },
+        {
+          "path": "artifacts/api-server/test/round-robin-terminal-reopen.integration.test.ts",
+          "sha256": "eebcc31afdb1ef177e9e72abffe69cf2799d1496cfe1a6cc7184dbc455f6c377",
+          "git_blob_sha1": "e429e8d04ef08f662dcff0239b8d30c2124a6bfc",
+          "source_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A80_R10_HANDOFF.md",
+          "sha256": "4ef465d3b4e2fc162ba36f2d695d49b6c22052a1150212918e873b1ab32caded",
+          "git_blob_sha1": "ba29fdb3cf7fc10be4d053224b7da6bcb8c1e5a0",
+          "source_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A80_R10_T050_RR_PATCH.md",
+          "sha256": "e1ab0d9fb390dc288377bce717f1027cb84f864c9b8ce9f2526358ceb206d571",
+          "git_blob_sha1": "3edca5749fceb1b876577877d1da9bfdb185d041",
+          "source_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+        }
+      ],
+      "dependencies": [
+        "P09:UNDO_REVERT_MATCH_SEMANTICS",
+        "P06:MP1_LIFECYCLE_REGRESSION",
+        "A50:DISPOSABLE_PG16",
+        "A60:INDEPENDENT_REVIEW"
+      ],
+      "risk": "old revertMatch broad player tournament predicate could reactivate eliminated prior-stage players. PG16 SE8→RR4 fixture authored but not executed; interacts semantically with P09 Undo and future CAS.",
+      "rollback": "Exclude P12 from future isolated candidate or authorized A80-approved revert after RR multi-stage lifecycle PG16 regression; preserve terminal stage roster, eliminated players status, winnerId, result_history and action_log. Avoid independent rollback that regresses prior stage eligibility.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P13",
+      "pr": 46,
+      "owner": "WEB-005/A100",
+      "scope": "Revalidate organizer after tournament lock before DELETE",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "source_branch": "fix/web-005/t080-s1b-delete-post-lock-r11",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/46",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "owner_policy_id": null,
+      "policy_open_inherited": true,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/tournament-delete-revocation.integration.test.ts",
+        "docs/web-005/WEB-005_A100_R11_HANDOFF.md",
+        "docs/web-005/WEB-005_A100_R11_T080_S1B_DELETE_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/routes/tournaments.ts",
+          "sha256": "bb68e12293bb100f5001a797afa8d6951568bba4ca1a9c275d71614f5d5639a7",
+          "git_blob_sha1": "184e279b33f0f68daaa90b69529b907e4a0623b3",
+          "source_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+        },
+        {
+          "path": "artifacts/api-server/test/tournament-delete-revocation.integration.test.ts",
+          "sha256": "9e17dc5c0281132c8af69d7c309d70094c81afa350ae517df542d29102197578",
+          "git_blob_sha1": "27f93c6002ff4794931ea8e62289db858daf05c7",
+          "source_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R11_HANDOFF.md",
+          "sha256": "c229f40e17c3b057a04d8562ce149900a3c53a53eab3dec1a0e3a9bcd2a351f6",
+          "git_blob_sha1": "61908e5d3957a2be8b33196e331407d45758504d",
+          "source_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R11_T080_S1B_DELETE_PATCH.md",
+          "sha256": "eb498a5171dad4012ce95aa4239936865986d9646e9d48282d6091922b80ebf9",
+          "git_blob_sha1": "8245b2e76efbe03b14163501f622932c18fde004",
+          "source_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+        }
+      ],
+      "dependencies": [
+        "P06:SHARED_TOURNAMENTS_ROUTER",
+        "P09:UNDO_LIFO_SHARED_ROUTER",
+        "P11:POST_LOCK_AUTH_SEMANTIC_PARITY",
+        "A50:PHYSICAL_PG16",
+        "A60:INDEPENDENT_QA",
+        "A30:SECURITY_REVIEW"
+      ],
+      "risk": "DELETE tournament TOCTOU revocation: new locked credential recheck before destructive cascade; same tournaments.ts path as P06/P09/P11. Real PG16 negative race and legal cascading deletion suite not executed; no reviewed integration. Existing SUPPORT_SESSION_EXPIRED code reused by author for organizer revocation pending policy.",
+      "rollback": "Before authorized integrated candidate omit P13. In future approved integrated tree, revert only in separately QA-verified revision while preserving post-lock organizer revocation fail-closed and delete cascade semantics. Security regression possible if revert restores pre-lock-only auth; require A30/A60/00.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P06",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P09",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P11",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P18",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P14",
+      "pr": 47,
+      "owner": "WEB-005/A120",
+      "scope": "Presentation DE Details, format labels and completed overlay",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "source_branch": "fix/web-005/t100-presentation-pr-a-r11",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/47",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/components/stage-progress-view.test.tsx",
+        "artifacts/tournament-manager/src/components/stage-progress-view.tsx",
+        "artifacts/tournament-manager/src/pages/public-stage-views.test.tsx",
+        "artifacts/tournament-manager/src/pages/tournament-audience.test.tsx",
+        "artifacts/tournament-manager/src/pages/tournament-audience.tsx",
+        "artifacts/tournament-manager/src/pages/tournament-bracket.tsx"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/components/stage-progress-view.test.tsx",
+          "sha256": "461f0a2cdaa4db51f0fa4f526e268cc0a369f7e40911cc3fdd5c9bbb527c8cff",
+          "git_blob_sha1": "ced3edc0bcd1c2d44948f2e9760f427b0eda493e",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/components/stage-progress-view.tsx",
+          "sha256": "80b2cff564eb827b2dd9a4c2f9edd8adac94c197e54fffb76cb6e8c0a71fed98",
+          "git_blob_sha1": "fd95b1fa4812e3af14a95c8146410dcb7aae4fa6",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/public-stage-views.test.tsx",
+          "sha256": "7015e04df1a4efe42edd447b0a80049c9485c00cb10b749f4128c30047a0b287",
+          "git_blob_sha1": "20ad7265d80a849c697110c45c55618a236f94e4",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-audience.test.tsx",
+          "sha256": "63ec827c361547b4e8987ebc22bf74fb83ccd915de711d78c7dbe4e17e980abd",
+          "git_blob_sha1": "1bb5e1595520310b56736dbb297c2094a1bef7d1",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-audience.tsx",
+          "sha256": "251af503df0f1cc4adb161924ceeedca92a11c7e98eeff5ee892b70c1bc9ff3f",
+          "git_blob_sha1": "ffe5ce79bfb975c03bc934a0364502a80682bc4f",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-bracket.tsx",
+          "sha256": "0d62253db18e7146b19382043299663ce82786cfb4ce291cd127253bec66e1c0",
+          "git_blob_sha1": "0062293dcdfc7660068930cfaf3ed6623efe82c5",
+          "source_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+        }
+      ],
+      "dependencies": [
+        "P06:LIFECYCLE_DE_STATE",
+        "P12:RR_REOPEN_SEMANTICS",
+        "A50:REAL_FRONTEND_SUITE",
+        "A60:SOURCE_REVIEW"
+      ],
+      "risk": "DE stage details, read-only errors/late responses, audience completed state, stage-format labels; FE RTL/typecheck/browser NOT_EXECUTED. F058 RR refresh and policy explicitly excluded.",
+      "rollback": "Before integration omit candidate. After approved integrated rollout, only controlled frontend rollback preserving existing winnerId and no unguarded private DE leakage; A120+A60+00 required.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P15",
+      "pr": 48,
+      "owner": "WEB-005/A90",
+      "scope": "Backup V3 consistent MVCC read-only export snapshot",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "source_branch": "fix/web-005/t060-b3a-consistent-v3-export-r11",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/48",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL;R11_P0_CONFIG_FIXED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/application/backups/backup-v3.ts",
+        "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "sha256": "abcf1aae3261f0cddbc4ba5311d5d541c5f2d6071e16a141e1543aa52776ba0d",
+          "git_blob_sha1": "7302ebe53a4634b873a4f42f65da86870e9acabf",
+          "source_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+        },
+        {
+          "path": "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts",
+          "sha256": "cf58574eb0e1b7cf42c02350e36880dcbc1898cce2416e0aa90970d3555e9b1a",
+          "git_blob_sha1": "ea463803b72e55e6664c0c59b578e6ba32a8b0ed",
+          "source_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+        }
+      ],
+      "dependencies": [
+        "P08:BACKUP_V3_B1_SAME_TWO_FILES",
+        "P05:MIGRATION_LEDGER_SCHEMA",
+        "A50:ISOLATED_PG16",
+        "A60:INDEPENDENT_REVIEW"
+      ],
+      "risk": "Direct collision with P08 in backup-v3.ts and route integration test. Single read-only repeatable read snapshot; no native PostgreSQL16 execution; B1 import invariant must be preserved. B2/legacy history semantics excluded.",
+      "rollback": "Before integration omit candidate. Future rollback only after approved backup export+import snapshot/race tests, never silently revert to mixed-read inconsistent export or discard B1 validator; A90/A60/00 authorization.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P08",
+          "paths": [
+            "artifacts/api-server/src/application/backups/backup-v3.ts",
+            "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P16",
+      "pr": 49,
+      "owner": "A100",
+      "scope": "Password/visibility post-lock auth",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "source_branch": "fix/web-005/t080-s1b-password-visibility-r12",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/routes/auth.ts",
+        "artifacts/api-server/test/auth-organizer-revocation-r12.integration.test.ts",
+        "docs/web-005/WEB-005_A100_R12_HANDOFF.md",
+        "docs/web-005/WEB-005_A100_R12_S1B_PASSWORD_VISIBILITY_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/routes/auth.ts",
+          "sha256": "b3c8d6971594b437189959bfc4949c83da128c0faf6d870197f9040ef426b541",
+          "git_blob_sha1": "ee7573b4f2a6a6fa196472e067f6716f51f1e2cc",
+          "source_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+        },
+        {
+          "path": "artifacts/api-server/test/auth-organizer-revocation-r12.integration.test.ts",
+          "sha256": "96ae1caf695fb9275e50530a311a7eedc755ebdc1aadae536b6a5e50de07829d",
+          "git_blob_sha1": "a85523d2b809e13815d7b7c62e891c865ef12d47",
+          "source_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R12_HANDOFF.md",
+          "sha256": "886ff8261cbbad8e954004e8012af5e2aed87986f79827fe63da155903d624f3",
+          "git_blob_sha1": "5f54d7b000ee0b69563a39470a06fb5054072381",
+          "source_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R12_S1B_PASSWORD_VISIBILITY_PATCH.md",
+          "sha256": "b8611d41a06922337ace1024bd19993a3dd374821d5dc1a9e9ac0f70e2c49b4b",
+          "git_blob_sha1": "7629f1a3ec79b67c45aa8fae53d2b3c11fd41a75",
+          "source_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+        }
+      ],
+      "dependencies": [],
+      "risk": "R12 conditional; conflict review and independent QA required",
+      "rollback": "Before any integration drop candidate patch; after authorized composition execute dependency-aware inverse with A00/A60 approval; never revert security controls without substitute containment.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P17",
+      "pr": 50,
+      "owner": "A110",
+      "scope": "Backup preview identity and credential hygiene",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "source_branch": "fix/web-005/t110-ux045-backup-preview-r12",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/components/backup-restore-dialog.test.tsx",
+        "artifacts/tournament-manager/src/components/backup-restore-dialog.tsx",
+        "artifacts/tournament-manager/src/hooks/use-scoped-backup-preview.test.tsx",
+        "artifacts/tournament-manager/src/hooks/use-scoped-backup-preview.ts",
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/components/backup-restore-dialog.test.tsx",
+          "sha256": "0f6f0597233adf3ece787cc9865697efe00e47993185a6449cab30e9f72e1374",
+          "git_blob_sha1": "f802502a462255051a42086866fd95ac65f24b07",
+          "source_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/components/backup-restore-dialog.tsx",
+          "sha256": "ca82840468d254b5a948e5ea6e6c1e7f5164b397eddc5de85c1569e52508d3da",
+          "git_blob_sha1": "bf92be39bb56998d3ddf8fffdc8ef0b61926fdf0",
+          "source_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/hooks/use-scoped-backup-preview.test.tsx",
+          "sha256": "5b97ed121097b71803bd104b0494ecbed2f90e5a2a80a62122767f83cddbe80c",
+          "git_blob_sha1": "1cc9e2c9032b7ed0412c19e76e0227e0a82ce96f",
+          "source_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/hooks/use-scoped-backup-preview.ts",
+          "sha256": "0dbb0177888dfcb3706b8c49a17cfd89ded07643024ef8aa398696283a34a62f",
+          "git_blob_sha1": "623f4012c570b8389c14216e8f5a5f7071b37b62",
+          "source_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.tsx",
+          "sha256": "db150e87e7d55285d6b057d22e28a7b7483fa18e865f714b2a28016d7cbc7df9",
+          "git_blob_sha1": "a0c0fba3c87f9d4e870f110413ca021654be6576",
+          "source_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+        }
+      ],
+      "dependencies": [],
+      "risk": "R12 conditional; conflict review and independent QA required",
+      "rollback": "Before any integration drop candidate patch; after authorized composition execute dependency-aware inverse with A00/A60 approval; never revert security controls without substitute containment.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P10",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        },
+        {
+          "packet": "P21",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P18",
+      "pr": 51,
+      "owner": "A70",
+      "scope": "Historical malformed Undo payload fail-closed",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "source_branch": "fix/web-005/t040-hist-parse-r12",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/revert-match.integration.test.ts",
+        "docs/web-005/WEB-005_A70_R12_HANDOFF.md",
+        "docs/web-005/WEB-005_A70_R12_HIST_PAYLOAD_PATCH.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/api-server/src/routes/tournaments.ts",
+          "sha256": "957371fefaef4a85d4c46809022c7ab2e27c02ff13e6f569bb782893a03f7932",
+          "git_blob_sha1": "d0b5cd7e9009051e8988f09f7a9a1297ed00c414",
+          "source_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+        },
+        {
+          "path": "artifacts/api-server/test/revert-match.integration.test.ts",
+          "sha256": "17ff02bec7925ce8f27051afb713ecf1c6c77b9f7561c7ab37a71e4b219359fa",
+          "git_blob_sha1": "b3b5a40454c24c0c5c48e940c8ae042a93f097cc",
+          "source_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A70_R12_HANDOFF.md",
+          "sha256": "c87fd58db8d29e7abc938573a5b13e9562f1e50ed58c6db1422099e5856197a3",
+          "git_blob_sha1": "4a80f817dd3b67f73f4d66d46a6d3131d4655d63",
+          "source_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A70_R12_HIST_PAYLOAD_PATCH.md",
+          "sha256": "d3093e3814c4e8c87f66899a682561e892560249b5bdb8b1e64cbdd094666eaa",
+          "git_blob_sha1": "a35b04ff2f4b094e26b2548eeb2eda3ec1e874dd",
+          "source_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+        }
+      ],
+      "dependencies": [],
+      "risk": "R12 conditional; conflict review and independent QA required",
+      "rollback": "Before any integration drop candidate patch; after authorized composition execute dependency-aware inverse with A00/A60 approval; never revert security controls without substitute containment.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P06",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P09",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts",
+            "artifacts/api-server/test/revert-match.integration.test.ts"
+          ]
+        },
+        {
+          "packet": "P11",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        },
+        {
+          "packet": "P13",
+          "paths": [
+            "artifacts/api-server/src/routes/tournaments.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "P19",
+      "pr": 52,
+      "owner": "WEB-005/A110",
+      "scope": "Stage lifecycle modal stale snapshot/revalidation guard",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "source_branch": "fix/web-005/t110-ux046-stage-modal-r13",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/52",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/components/tournament-stages-panel.test.tsx",
+        "artifacts/tournament-manager/src/components/tournament-stages-panel.tsx"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/components/tournament-stages-panel.test.tsx",
+          "sha256": "cf270c9d4606023352c8a4d27fcf17cab9ce15a0acf0573752f15e3ec1201bc7",
+          "git_blob_sha1": "b391124f0d0a8ebcb369a6d199467dcd62cfef2d",
+          "source_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/components/tournament-stages-panel.tsx",
+          "sha256": "447839fa794392346b3cd11895b95bfd989d195ca1b489e594e71ce5ed576e43",
+          "git_blob_sha1": "efe8da984c2c730e198554219a88f7b400700ee2",
+          "source_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+        }
+      ],
+      "dependencies": [],
+      "risk": "stale stage version, tournament cross-route stage IDs, 503 preflight, status/version UX and repeat submission",
+      "rollback": "Revert only from a separately authorized integration SHA with lifecycle/backend compatibility confirmed; preintegration drop candidate.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P20",
+      "pr": 53,
+      "owner": "WEB-005/A100",
+      "scope": "Auth-dependent private React Query cache invalidation",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979",
+      "source_branch": "fix/web-005/t080-s2a-private-auth-query-cache-r13",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/53",
+      "source_ready": true,
+      "source_verdict": "SOURCE_ACCEPTED_CONDITIONAL_FOR_PREFIXED_QUERIES;RESIDUAL_SCOPE_GAP",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/context/auth-context.tsx",
+        "artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx",
+        "artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts",
+        "docs/web-005/WEB-005_A100_R13_HANDOFF.md",
+        "docs/web-005/WEB-005_A100_R13_T080_S2A_PATCH_OR_HOLD.md"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/context/auth-context.tsx",
+          "sha256": "9fcb92272eff20494f180b134c7507dfff9b1c6c6ab9d076d4683c4d1d01e43b",
+          "git_blob_sha1": "8916545544d55fc8d7fbd146d0328e36543bebb7",
+          "source_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx",
+          "sha256": "d66a699f9fd83d4430fdc790883f76a97417c2d57c91823f2e96ba1d1452b662",
+          "git_blob_sha1": "ec4b98ae6d7d6860176f65d4c7945557f983ddbb",
+          "source_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts",
+          "sha256": "551a3c1e2197b8aff2405f6caa1776eedb2aaefc667a400339ab89e4679b512b",
+          "git_blob_sha1": "1d4365963192646dd918675a65f4496913f2873f",
+          "source_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R13_HANDOFF.md",
+          "sha256": "cb15047060d60023886dbf120aeed41a15bba051975077235f6f3265086098ee",
+          "git_blob_sha1": "b5689db3691ef7fc258d40d861e421dcac3458cd",
+          "source_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979"
+        },
+        {
+          "path": "docs/web-005/WEB-005_A100_R13_T080_S2A_PATCH_OR_HOLD.md",
+          "sha256": "794b6dd5b6094a24b6a66262f9895d2affc9adab3f6b79e6d437343647609518",
+          "git_blob_sha1": "4820b4a61e19c15d59cd14619ab8ec827b926783",
+          "source_sha": "6a8f0c3e5775eb056df75ebdd7b33df7cbc78979"
+        }
+      ],
+      "dependencies": [],
+      "risk": "privacy/cache leakage for unscoped player or match keys; late response with old token; 401/403 observers; public cache preserved",
+      "rollback": "Do not restore private cache leakage on rollback; new isolated QA-approved replacement required.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": []
+    },
+    {
+      "id": "P21",
+      "pr": 54,
+      "owner": "WEB-005/A120",
+      "scope": "Round Robin canonical stage-details readback/refetch",
+      "source_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
+      "source_branch": "fix/web-005/t100-rr-readback-r13",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/54",
+      "source_ready": true,
+      "source_verdict": "SOURCE_CONFIRMED_PARTIAL;P1_UI_SCOPE_REVIEW_REQUIRED",
+      "source_qa_basis": "WEB-005_A60_R13_PACKAGE_MATRIX.json",
+      "source_qa_exact_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
+      "a50_test_report_url": null,
+      "a50_exact_sha_command_exit": null,
+      "a60_source_verdict_url": null,
+      "a60_exact_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
+      "owner_policy_id": null,
+      "policy_open_inherited": false,
+      "qa_accepted": false,
+      "runtime_verified_full": false,
+      "source_changed_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.rr-readback.test.tsx",
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ],
+      "source_checksum_entries": [
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.rr-readback.test.tsx",
+          "sha256": "4c3c56d35b309edb49aa8564fc3e6565ecb0b0d2b50c8016d2f0be57aff97b94",
+          "git_blob_sha1": "21eaad81248eb26c9430dfcd77ccb261ca11f191",
+          "source_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec"
+        },
+        {
+          "path": "artifacts/tournament-manager/src/pages/tournament-detail.tsx",
+          "sha256": "b38760127665a09c34527999ef60d4ce5120fd72c1a06d81f167a320f95c529d",
+          "git_blob_sha1": "7d03d3ea7a14883fd7d6b0010eebd14c1f11d00d",
+          "source_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec"
+        }
+      ],
+      "dependencies": [],
+      "risk": "readback stale response, 401/403 hidden private RR details, RR/non-RR fetch storms, page collision with PR43 and PR50",
+      "rollback": "Before merge drop draft; after release restore only with verified canonical RR and privacy invalidation behavior.",
+      "source_receipt": "INHERITED_R14_EXACT_HEAD_MATCH_R15",
+      "integration_status": "NOT_MERGED",
+      "cross_file_conflicts": [
+        {
+          "packet": "P10",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        },
+        {
+          "packet": "P17",
+          "paths": [
+            "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+          ]
+        }
+      ]
+    }
+  ],
+  "swarm007_requirements": {
+    "fields": [
+      "artifact_id",
+      "owner",
+      "version",
+      "source_sha",
+      "checksums",
+      "qa_verdict",
+      "qa_verdict_url",
+      "a50_test_url",
+      "retention",
+      "custody_receipt",
+      "drive_archive_receipt"
+    ],
+    "drive_folder_uri": null,
+    "archive_receipt": null,
+    "automatic_sync_claimed": false
+  },
+  "handoff_gate": {
+    "recipient": "SWARM-006",
+    "single_final_only": true,
+    "authorization": "REQUIRES_WEB005_FINAL_CLOSEOUT_AND_OWNER_HQ_GO",
+    "state": "STOP_NOT_DISPATCHED"
+  },
+  "meta_integrity": {
+    "json_schema_only": true,
+    "not_application_test": true
+  }
+}
