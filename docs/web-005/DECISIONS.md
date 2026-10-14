@@ -121,3 +121,15 @@ No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part o
 | D059 | Prepare P01–P07 manifests through A10 for SWARM-006 | GO READ-ONLY; P07=PR40, P06=PR39, neither integrated |
 | D060 | Dispatch proposed A80/A90/A100/A110/A120 for R2-derived NEW queues | GO SOURCE-ONLY; no speculative app runtime PASS, no automatic implementation slots |
 | D061 | Preserve 3-lane cap and independent A60 certification | NO new implementation without coordinator explicit assignment and policy resolution |
+
+
+## R9 — WEB-005 batch handoff policy (owner direction, 2026-10-14)
+
+| ID | Decision | State / effect |
+|---|---|---|
+| D062 | Owner prefers batching **multiple coherent, verified WEB-005 fix packages** before activating SWARM-006 for a new WEB-005 integration wave | **ACTIVE.** Do not initiate SWARM-006 intake/integration merely because P01–P05 or P01–P07 source manifests exist. |
+| D063 | A10 continues maintaining rolling packet manifests P01+ as individual PRs mature, but marks the cross-swarm send `BATCH_BUFFERED_NOT_DISPATCHED` | Source reports, SHA pinning and per-package QA continue; no automatic handoff or integration authorization. |
+| D064 | Trigger a WEB-005→SWARM-006 integration wave only on the owner's/coordinator's explicit authorization of a **meaningful, compatible, independently reviewed batch** with clear dependencies, tests and rollback | No arbitrary mandatory count; prefer a coherent release milestone to an endless wait or a small unrelated PR set. Critical security or integrity fixes may warrant an explicit exception approved by owner/HQ. |
+| D065 | Batch readiness != release readiness | Each individual packet may be SOURCE_READY/QA_ACCEPTED while full integrated CI/PG16/browser/staging remain SWARM-006 future gates; never claim deployment readiness early. |
+
+**Operational consequence:** WEB-005/A10 maintains queue and packaging but does not send/activate SWARM-006 for this application until the owner requests a consolidated wave. SWARM-007 may continue designing report/folder architecture independently; do not claim files have already moved. No change to three implementation lane cap or existing approval restrictions.
