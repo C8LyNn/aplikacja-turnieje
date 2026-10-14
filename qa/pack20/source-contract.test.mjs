@@ -12,7 +12,7 @@ test('Pack20 action plan never grants permission or performs writes',()=>{
 });
 test('Readiness endpoint keeps a read-only repeatable-read transaction',()=>{
   const s=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
-  assert.match(s,/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/);
+  assert.match(s,/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
   assert.match(s,/deriveSeCorrectionActionPlan\(/);
   assert.doesNotMatch(s,/\.insert\(|\.update\(|\.delete\(/);
 });
@@ -46,13 +46,18 @@ test('No unexpected SE mutation route was added',()=>{
 
 test('Pack20 snapshot contract rejects missing or downgraded transaction protections',()=>{
   const source=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
-  const contract=/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/;
+  const contract=/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/;
   assert.match(source,contract);
+  const reordered=source.replace(/isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']/, 'accessMode:"read only", isolationLevel:"repeatable read"');
+  assert.notEqual(reordered,source);
+  assert.match(reordered,contract);
   for (const [pattern,replacement] of [
     [/\bisolationLevel\s*:\s*["']repeatable read["']/, 'isolationLevel:"read committed"'],
     [/\baccessMode\s*:\s*["']read only["']/, 'accessMode:"read write"'],
     [/\bisolationLevel\s*:\s*["']repeatable read["']/, ''],
     [/\baccessMode\s*:\s*["']read only["']/, ''],
+    [/\baccessMode\s*:\s*["']read only["']/, 'accessMode:"read only",accessMode:"read write"'],
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, 'isolationLevel:"repeatable read",isolationLevel:"read committed"'],
   ]) {
     const invalid=source.replace(pattern,replacement);
     assert.notEqual(invalid,source);

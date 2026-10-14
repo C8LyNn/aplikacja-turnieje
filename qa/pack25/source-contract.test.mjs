@@ -11,7 +11,7 @@ const engine=read("artifacts/api-server/src/domain/tournament/se-correction-impa
 test("Pack25 output is generated from consistent existing SE readiness transaction",()=>{
   assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
   assert.match(server,/matchId:match\.id,stage,stages,stageMatches:matches,actionPlan/);
-  assert.match(server,/\},\s*\{\s*isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']\s*\}\s*\)/);
+  assert.match(server,/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
 });
 test("no extra write route; reuses organizer access and read-only endpoint",()=>{
   assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
@@ -21,8 +21,12 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
 });
 test("server returns graph and risk report with prior diagnostic and action plan",()=>{
-  const responseContract=/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}/;
+  const responseContract=/return\s*\{\s*\.\.\.result\s*,(?=[^{}]*\bactionPlan\b)(?=[^{}]*\bdiagnostic\b)(?=[^{}]*\bimpactGraph\b)(?=[^{}]*\bimpactRiskReport\b)[^{}]*\}\s*;/;
   assert.match(server,responseContract);
+  const reordered=server.replace(/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}/,
+    'return { ...result, diagnostic, impactRiskReport, actionPlan, impactGraph }');
+  assert.notEqual(reordered,server);
+  assert.match(reordered,responseContract);
   assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
   for (const replacement of [
     ', actionPlan, diagnostic, impactRiskReport }',
