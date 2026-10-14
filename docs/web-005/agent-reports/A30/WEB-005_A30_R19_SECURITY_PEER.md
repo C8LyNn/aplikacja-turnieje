@@ -1,7 +1,7 @@
 # WEB-005 — A30 R19 Security Peer / PR53 legacy orphan picks
 
 **Task** `WEB-005-T030-T031-A30-R19` · **Agent** A30 Security Implementation · **Role** scoped security peer, NOT independent A60 QA · **Mode** STRICT SOURCE READ-ONLY · **Date** 2026-10-14 Europe/Warsaw.  
-**Authority:** [central R19.1 ``0–`2 + AGENT A30](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_WAVE_R19_AGENT_PROMPTS.md), Git blob `076b14ca7ea953c818309502cce322c7dd6a7bef`.  
+**Authority:** [central R19.1 §§0–§2 + AGENT A30](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_WAVE_R19_AGENT_PROMPTS.md), Git blob `076b14ca7ea953c818309502cce322c7dd6a7bef`.  
 **Repo/base:** `C8LyNn/aplikacja-turnieje`, `release/tournament-ops-20261013-01@1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.  
 **Primary target:** [PR #53](https://github.com/C8LyNn/aplikacja-turnieje/pull/53), `fix/web-005/t080-s2a-private-auth-query-cache-r13`, initial R19 head `8710f7fe5946d7f62e366303a97722d4201fc96b`, OPEN DRAFT UNMERGED. **R19 A100 code/test delta at this initial evidence checkpoint: ZERO new verified commits.** A later PR HEAD must be separately reviewed before certification.  
 **Independently signed prior QA:** [A60 R18](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R18_INDEPENDENT_QA.md), Git blob `656a8850a6358e5b4b2517220a5fc55f99dc014f`; `SOURCE_ACCEPTED_SCOPED_FOR_NEW_PROVEN_OWNERSHIP / FULL_PRIVACY_REVIEW_OPEN` for this exact baseline PR53 head; [A60 handoff gate](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R18_FINAL_HANDOFF_READINESS.md) `HANDOFF_NOT_READY`. No current native frontend/PG tests in [A50 R18 receipt](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R18_RECEIPT.md).
@@ -96,3 +96,52 @@ These fixes are **separate** release-based PRs, **not integrated** with PR53. Th
 - **STOP:** app code by A30, merge/rebase/cherry-pick, new PR, paid CI run, shared/production DB, Replit, staging/live, SWARM-006 dispatch. **RELEASE NO-GO**. A final owner/HQ `FINAL_HANDOFF_GO` and, if applicable, explicit `HANDOFF_WITH_RUNTIME_TEST_DEBT` cannot be presumed.
 
 **A30 signed initial R19 checkpoint:** `PR53_R19_HEAD_UNCHANGED_AT_INTAKE / LEGACY_UNTAGGED_RETENTION_SOURCE_CONFIRMED / REBIND_UI_EXPOSURE_STATIC_INFERRED_NOT_OBSERVED / A100_R19_FOCUSED_TEST_PENDING / A60_NEW_SHA_PENDING / A50_APP_NATIVE_0 / SOURCE_REVIEW_ONLY / SWARM006_HOLD`.
+
+
+---
+
+## 6. LIVE R19 A100 PATCH REVIEW — supersedes initial old-HEAD/no-R19-patch statement
+
+**Independent A30 readback at current R19 checkpoint:** PR53 `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34`, OPEN/DRAFT/UNMERGED, base remains `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`. Compared with prior `8710f7fe5946d7f62e366303a97722d4201fc96b`: **4 R19 commits**:
+1. `ffa9a18897863bd76b9121d093bfc82da2fedc16` — test-first legacy untagged rebind, B preserved, delayed old completion.
+2. `72d268ee31e4d87072a992ae3f2bd08c0173ef4b` — hook produces segregated key for legacy untagged rebind.
+3. `1747a9a09368e9b5bf82afd9cd718bc61d4f1490` — scoped invalidation of new verified-owner key on logout and denied 401/403.
+4. `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` — strengthen positive test ensuring fresh guarded A query evicts while B is retained.
+
+**Exact updated app Git blobs:**
+
+- `artifacts/tournament-manager/src/lib/deadlock-bans-picks.ts`: `1a5404e8a0dccf12063d6efb6248c2253cafee4a`.
+- `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts`: `e2c12c88c051f20f08474ee0dc9f877207923624`.
+- `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx`: `2196851691735e560b36099caa3d33ac649ccf84` (439 lines).
+
+### A30 source proof of the bounded correction
+
+1. The original producer still computes authoritative `verifiedOwner` from a successful tournament-scoped match list with an explicitly matching `{id,tournamentId}`. No numeric owner guess. Unknown/ambiguous owner disables query with placeholder `["matches",0,"game-picks"]`.
+2. **Legacy detection before query binding:** the hook looks for the **exact raw legacy** `["matches",matchId,"game-picks"]` in the QueryCache. If present with missing/mismatched `web005VerifiedTournamentId` metadata, it **does not use the old raw key**, instead creates a separately addressed `["matches",matchId,"game-picks","verified-owner",verifiedOwner]`. React Query's identity is the key; therefore the existing legacy raw query's old data is **not the new query's cached data**. This directly addresses the source-rebind path described in `1–`2.
+3. On new fetch, metadata records verified owner and `enabled` requires proven ownership. A legit fresh read receives new API result; original legacy untagged payload may remain cached internally, but **is not selected by this new hook** when key segregation applies. **In-memory retention is not an observed display leak and is not equivalent to deleting the legacy secret.** Any hard retention/deletion policy beyond scoped eviction remains an explicit A00/HQ risk decision.
+4. Invalidation now recognizes only exact raw 3-tuple and exact 5-tuple `["matches",mid,"game-picks","verified-owner",positiveOwner]`. Given `meta.web005VerifiedTournamentId`, the previously captured A identity is purged on logout or 401/403 even if match-list proof was later evicted. `useSetMatchGamePick` calls `invalidateQueries` on the old 3-tuple prefix, which by TanStack Query prefix-matching semantics **also matches** the new five-segment owner namespace; positive actual mutation/refetch parity still needs runtime.
+5. Only narrow keyed scope is touched; unrelated B=8 private-authorized/public cache is not globally purged. A successful current A/B list alone is not authorization proof across all roles; the backend remains the 403 authorization arbiter.
+
+### Newly authored focused test (NOT_EXECUTED)
+
+R19 `"legacy untagged picks cannot rebind or display old A after list recovery"` now seeds legacy `OLD_A_SECRET` and B `PUBLIC_B`, simulates old A in-flight query, removes A credential without parent list, supplies a new viewer credential and recovered matching list, mounts actual `useMatchGamePicks(701)` and expects:
+
+- `data===undefined` before a new authorized HTTP response,
+- owner-scoped **five-element** key with owner meta 7, original three-element orphan segregated,
+- late old-identity completion cannot update the new observer,
+- new HTTP payload `NEW_AUTHORIZED` is shown instead of old A payload,
+- public B remains,
+- removal of new viewer credential evicts the newly scoped query, B remains.
+
+This is a meaningful test-first source contract; **it has not been run by A30 or A50**. No TAP count/exit and no browser screenshot is claimed. The R19 test separately exercises old in-flight completion as well as a new mocked response but does not independently prove all real Host route and global token edge cases.
+
+### Residual A60 acceptance questions (narrow)
+
+- **SCOPE:** Source correction matches the intended **legacy rebind** issue; check query/meta compatibility with old raw entries, and whether old raw entries with already owner-matching metadata or stale successful parent list can appear after an auth epoch change. This is a *conditional* additional check, not a confirmed bypass.
+- **HOST & EPOCH:** `getVerifiedMatchTournamentOwner(queryClient, matchId)` scans all successful cached tournament lists without current Host tournament context. The actual Host sets `focusedMatchId` from its currently fetched matches, lowering but not eliminating stale-role/route race uncertainty. Ensure A→B route, supported viewer/support/organizer and module-global header lifecycle do not display A values under B.
+- **REAL RTL:** A50 must run this new exact `d1aebf…` commit tests + prior auth hook/typecheck, report real result. A60 needs an independently signed **new SHA** source verdict, distinguishing `SOURCE_ACCEPTED_SCOPED` from `RUNTIME_VERIFIED`.
+
+**A30 current security peer disposition at the pinned `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34` HEAD:**  
+`PATCH_REVISED / LEGACY_REBIND_SOURCE_RECONCILED_SCOPED / OLD_UNTAGGED_CACHE_RETENTION_REMAINS / NO_KNOWN_BACKEND_BYPASS / NO_OBSERVED_UI_LEAK / RUNTIME_NOT_EXECUTED / A60_R19_INDEPENDENT_QA_PENDING / RELEASE_NO_GO / SWARM006_HOLD`.
+
+**Source verdict authority:** this is an A30 *peer* recommendation, **not** an A60 release acceptance or permission to dispatch SWARM-006. A later HEAD needs its own review; do not automatically transfer this assessment.
