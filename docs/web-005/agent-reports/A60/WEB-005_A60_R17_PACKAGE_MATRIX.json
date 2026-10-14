@@ -246,7 +246,8 @@
       "code_lane": "L2_R17_CONDITIONAL",
       "integration_status": "NOT_INTEGRATED",
       "release_gate": "NO_GO",
-      "code_lane_status": "PATCH_REVISED_TEST_FIRST_SOURCE_STILL_BLOCKED"
+      "code_lane_status": "PATCH_REVISED_TEST_FIRST_SOURCE_STILL_BLOCKED",
+      "owner_action": "A70 R17 source reports tournament-roster.ts OUTSIDE original R16 file authorization; A00/HQ must issue precise expanded file-ownership GO before any production code edit. Existing test-only changes are not source acceptance."
     },
     {
       "packet_id": "P10",
@@ -576,5 +577,10 @@
       "source_blob": "626d31eb5b82d38c171f091f07990e00069de4ad",
       "verdict": "SOURCE_BLOCKED_UNKNOWN_MATCH_OWNERSHIP_RESIDUAL"
     }
-  }
+  },
+  "a50_r17_receipt_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R17_RECEIPT.md",
+  "a70_r17_handoff_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A70/WEB-005_A70_R17_HANDOFF.md",
+  "a100_r17_result_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A100/WEB-005_A100_R17_PR53_S2B_RESULT.md",
+  "a120_r17_oracle_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A120/WEB-005_A120_R17_PR54_TEST_ORACLE.md",
+  "native_app_test_executions_authoritatively_reported_a50_r17": 0
 }
