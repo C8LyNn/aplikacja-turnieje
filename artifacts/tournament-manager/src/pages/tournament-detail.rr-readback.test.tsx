@@ -133,3 +133,60 @@ test("T100 F058-R13-06: denied/no-op backend change cannot synthesize an RR rank
   assert.equal(screen.getByTestId("rank-version").textContent, "1");
   assert.equal(reads, 0, "rejected 409 / unchanged canonical snapshot must not fabricate a new state");
 });
+
+/**
+ * R18 / MIX-01–02 fail-first oracle: a historical RR resource denial is not a
+ * denial of the lawful current DE or Overview views. The cached private RR
+ * payload is deliberately present in React Query, but never mounted by these
+ * lawful view fixtures. Do not "fix" this by bypassing a real tournament-wide
+ * auth denial. StageProgressView's manually selected RR denial is a separate
+ * child-owned privacy contract, documented for A00/A60.
+ */
+for (const forbidden of [401, 403]) {
+  test(`T100-R18-MIX-${forbidden}: old RR31 denial must not blank lawful DE32 and Overview`, async () => {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: 60000 } },
+    });
+    clients.add(client);
+    const historyKey = getGetTournamentStageQueryKey(77, 31);
+    client.setQueryData(historyKey, {
+      stage: { id: 31, tournamentId: 77, format: "round_robin" },
+      participants: [{ playerId: 701, playerName: "RR_STALE_PRIVATE_RANK_701", finalRank: 1 }],
+    });
+    await assert.rejects(
+      client.fetchQuery({
+        queryKey: historyKey,
+        queryFn: async () => { throw Object.assign(new Error("Historical RR forbidden"), { status: forbidden }); },
+        staleTime: 0,
+        retry: false,
+      }),
+      (err: unknown) => (err as {status?: number}).status === forbidden,
+    );
+    assert.equal(client.getQueryState(historyKey)?.status, "error", "fixture must carry a real cached 401/403 state");
+    assert.ok(client.getQueryData(historyKey), "fixture must retain the earlier authorized private RR payload");
+
+    render(
+      <QueryClientProvider client={client}>
+        <RoundRobinReadbackBridge
+          tournamentId={77}
+          stages={[
+            { id: 31, format: "round_robin", status: "completed", winnerId: 701 },
+            { id: 32, format: "double_elimination", status: "active", winnerId: null },
+          ]}
+          matches={[
+            { id: 3101, stageId: 31, revision: 7, status: "completed", winnerId: 701 },
+            { id: 3201, stageId: 32, revision: 1, status: "pending", winnerId: null },
+          ]}
+        >
+          <section aria-label="Overview-77" data-testid="lawful-overview">Overview-77: valid tournament stats</section>
+          <section aria-label="DE32" data-testid="lawful-de">DE32: Upper Lower Grand Final Reset</section>
+        </RoundRobinReadbackBridge>
+      </QueryClientProvider>,
+    );
+
+    assert.ok(screen.getByTestId("lawful-overview"), "historical RR denial must not hide lawful Overview");
+    assert.ok(screen.getByTestId("lawful-de"), "historical RR denial must not hide lawful DE");
+    assert.equal(screen.queryByText("RR_STALE_PRIVATE_RANK_701"), null, "old forbidden RR rows must not leak into other tabs");
+    assert.equal(screen.queryByRole("alert"), null, "no full-tabs RR alert for unrelated lawful views");
+  });
+}
