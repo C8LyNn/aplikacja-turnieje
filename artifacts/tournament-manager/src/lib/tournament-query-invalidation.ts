@@ -129,11 +129,20 @@ function ownedPickMeta(query: { meta?: Record<string, unknown> }): number | null
     ? owner : null;
 }
 
-function isGamePicksQueryKey(queryKey: readonly unknown[]): queryKey is readonly ["matches", number, "game-picks"] {
-  return queryKey.length === 3 && queryKey[0] === "matches" &&
-    typeof queryKey[1] === "number" &&
-    Number.isSafeInteger(queryKey[1]) && queryKey[1] > 0 &&
-    queryKey[2] === "game-picks";
+type GamePicksQueryKey =
+  | readonly ["matches", number, "game-picks"]
+  | readonly ["matches", number, "game-picks", "verified-owner", number];
+
+function isGamePicksQueryKey(queryKey: readonly unknown[]): queryKey is GamePicksQueryKey {
+  if (queryKey[0] !== "matches" || typeof queryKey[1] !== "number" ||
+      !Number.isSafeInteger(queryKey[1]) || queryKey[1] <= 0 ||
+      queryKey[2] !== "game-picks") return false;
+  // The optional verified-owner namespace is used only to quarantine
+  // an untagged legacy result from a newly proven match identity.
+  return queryKey.length === 3 ||
+    (queryKey.length === 5 && queryKey[3] === "verified-owner" &&
+      typeof queryKey[4] === "number" &&
+      Number.isSafeInteger(queryKey[4]) && queryKey[4] > 0);
 }
 
 function isOwnedMatchPicksKey(queryKey: readonly unknown[], matchIds: ReadonlySet<number>): boolean {
@@ -149,8 +158,7 @@ function tournamentIdForOwnedMatchError(
   queryClient: QueryClient,
   queryKey: readonly unknown[],
 ): number | null {
-  if (queryKey.length !== 3 || queryKey[0] !== "matches" ||
-      typeof queryKey[1] !== "number" || queryKey[2] !== "game-picks") return null;
+  if (!isGamePicksQueryKey(queryKey)) return null;
   const matchId = queryKey[1];
   let owner: number | null = null;
   for (const query of queryClient.getQueryCache().getAll()) {
