@@ -60,6 +60,11 @@ Capture real exact SHA, lock/deps evidence, TAP counts/skips, exit codes, test l
 - `POLICY_OPEN`: token TTL/hash/digest/organizer rotation; no changes made. Read gate/Host cross-page local states and missing match metadata require separate authorized owner file window if A60 considers them blocking. This narrow patch does NOT prove comprehensive frontend private-data isolation.
 - **No production DB/SQL, paid CI rerun, staging/live, integration, data exports or SWARM-006.** Rollback: revert three R17 commits on PR53 branch before any later integration; release unchanged.
 
+
+## R17 automatic CI readback at revised exact HEAD
+
+GitHub Actions [run 38622961390](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38622961390), job `116054859202` at exact `8f959733258aed0cab15298dd0684ca068045e6f` completed **FAILURE** at **Pack 19 snapshot consistency tests**. Actual downloaded job log shows regex `/isolationLevel:"repeatable read",readOnly:true/` mismatching existing implementation `accessMode:"read only"`; later static/database release gates were SKIPPED. This workflow was automatically triggered by updating PR53; A100 did NOT manually rerun paid CI. **No targeted S2B RTL / typecheck was executed in this run**, and the failure is not a verdict that new S2B tests failed. PR35 carries the independent Pack19 correction. A50 direct per-SHA frontend test and A60 review remain pending.
+
 **Final author verdict:** `PATCH_REVISED / SOURCE_CONFIRMED_SCOPED / R16_ARTIFACTS_UNAVAILABLE / N1_TEST_AUTHORED / N2_CONDITIONAL_OWNERSHIP / N3_FIXTURE_AUTHORED / NATIVE_RTL_NOT_EXECUTED / A30_A50_A60_PENDING / RELEASE_NO_GO`.
 
 **NEXT A00:** acknowledge permalink + revised PR53 SHA; dispatch A50 exact-SHA RTL/typecheck, A30 source/privacy peer and A60 source acceptance. Explicitly decide whether missing match-list metadata merits a separate narrowly reserved Host/typed-query GO. Do not activate SWARM-006.
