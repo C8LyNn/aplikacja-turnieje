@@ -3,7 +3,7 @@
   "task": "WEB-005-T133-A50-R18",
   "agent": "A50",
   "wave": "R18",
-  "timestamp_utc": "2026-10-14T19:50:00Z",
+  "timestamp_utc": "2026-10-14T19:51:00Z",
   "central_doc_blob": "fd08cedcbd2db3222e4a444403180414d1666f6c",
   "r17_independent_qa_blob": "cc6f24f582d216e99d8870d0e3519ff497fd8ad3",
   "release_baseline": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
@@ -379,13 +379,13 @@
     {
       "packet": "P20",
       "pr": 53,
-      "sha": "8f959733258aed0cab15298dd0684ca068045e6f",
+      "sha": "f400590b13e9b260232e822f7ea88fba7ea1224a",
       "baseline_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "pr_state": "OPEN_DRAFT_UNMERGED",
       "r17_signed_source_verdict": "SOURCE_BLOCKED",
       "r17_signed_sha": "8f959733258aed0cab15298dd0684ca068045e6f",
-      "source_verdict_current_sha": "SOURCE_BLOCKED",
-      "changed_since_R17": false,
+      "source_verdict_current_sha": "PENDING_INDEPENDENT_A60_R18_EXACT_SHA",
+      "changed_since_R17": true,
       "r18_a50_native_execution": "NOT_EXECUTED",
       "native_exit_code": null,
       "tap": null,
@@ -399,13 +399,13 @@
     {
       "packet": "P21",
       "pr": 54,
-      "sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
+      "sha": "9866e5d2e73c99e01c2934a38ca1c62455efd2ed",
       "baseline_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
       "pr_state": "OPEN_DRAFT_UNMERGED",
       "r17_signed_source_verdict": "SOURCE_BLOCKED",
       "r17_signed_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
-      "source_verdict_current_sha": "SOURCE_BLOCKED",
-      "changed_since_R17": false,
+      "source_verdict_current_sha": "PENDING_INDEPENDENT_A60_R18_EXACT_SHA",
+      "changed_since_R17": true,
       "r18_a50_native_execution": "NOT_EXECUTED",
       "native_exit_code": null,
       "tap": null,
@@ -415,5 +415,23 @@
       ],
       "reason": "MISSING_FULL_REPO_CHECKOUT_PNPM10_AND_AUTHORIZED_EXECUTOR"
     }
-  ]
+  ],
+  "priority_change_prs": [
+    {
+      "pr": 42,
+      "old_sha": "25b09f1a48a85ae882b817118f5d8c23bffbe383",
+      "new_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+    },
+    {
+      "pr": 53,
+      "old_sha": "8f959733258aed0cab15298dd0684ca068045e6f",
+      "new_sha": "f400590b13e9b260232e822f7ea88fba7ea1224a"
+    },
+    {
+      "pr": 54,
+      "old_sha": "dbba0eb82920b4f324866b1b983e1211459f52ec",
+      "new_sha": "9866e5d2e73c99e01c2934a38ca1c62455efd2ed"
+    }
+  ],
+  "head_notes": "Updates during R18 after initial matrix publication. A60 R18 report not yet in central branch at recheck. Always revalidate HEAD before runtime."
 }
