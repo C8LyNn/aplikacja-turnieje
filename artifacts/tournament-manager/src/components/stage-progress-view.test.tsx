@@ -120,3 +120,35 @@ test("T100 RT-02: a late old-stage detail cannot replace the selected DE graph",
   assert.equal(screen.queryByText("Historyczny RR Gracz"), null);
   assert.ok(requested.some(path => path.endsWith("/stages/21/double-elimination")));
 });
+
+test("T100 RT-03 loading/empty variant: delayed DE GET shows progress, empty canonical graph is explicit", async () => {
+  let releaseGraph: ((response: Response) => void) | undefined;
+  const waiting = new Promise<Response>(resolve => { releaseGraph = resolve; });
+  mount(async input => {
+    const path = String(input);
+    if (path.endsWith("/stages")) return json([stage(21, "double_elimination", "active")]);
+    if (path.endsWith("/stages/21")) return json({ stage: stage(21, "double_elimination", "active"), groups: [], participants: [], ranking: [], qualifiers: [] });
+    if (path.endsWith("/stages/21/double-elimination")) return waiting;
+    return json({}, 404);
+  });
+  await screen.findByText("Ładowanie drabinki podwójnej eliminacji…");
+  await act(async () => {
+    releaseGraph?.(json({ ...graph(), matches: [] }));
+    await waiting;
+  });
+  await screen.findByText("Brak meczów w tym etapie.");
+  assert.equal(screen.queryByText("Upper Bracket"), null);
+});
+
+test("T100 RT-02 isolation variant: a mismatched canonical DE stage identity is rejected", async () => {
+  mount(async input => {
+    const path = String(input);
+    if (path.endsWith("/stages")) return json([stage(21, "double_elimination", "active")]);
+    if (path.endsWith("/stages/21")) return json({ stage: stage(21, "double_elimination", "active"), groups: [], participants: [], ranking: [], qualifiers: [] });
+    if (path.endsWith("/stages/21/double-elimination")) return json({ ...graph(), stageId: 99 });
+    return json({}, 404);
+  });
+  await screen.findByRole("alert");
+  assert.ok(screen.getByText(/Dane drabinki nie odpowiadają wybranemu etapowi/));
+  assert.equal(screen.queryByText("Upper Bracket"), null);
+});
