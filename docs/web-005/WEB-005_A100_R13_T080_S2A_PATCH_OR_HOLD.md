@@ -38,7 +38,7 @@ Prior frozen A100 backend PRs: #44 @ 2f0187b7242681c394c09058b5ef647667206bd6, #
 
 ## 3. Authored test matrix, no runtime claim
 
-The new test file contains **10** generated Node/RTL test scenarios:
+The new test file contains **9** generated Node/RTL test cases:
 1. Exact query-key scope: tournament 7 versus 70, stages, queries, invalid identifiers.
 2. Explicit organizer logout removes tournament A cache while retaining public B.
 3. Organizer token A-to-B replacement evicts A-authorized cached payload.
@@ -47,8 +47,7 @@ The new test file contains **10** generated Node/RTL test scenarios:
 6. 401 after prior cached authorized query evicts stale private result but preserves B.
 7. 403 after prior cached authorized query has same fail-closed behavior.
 8. Explicit helper cancellation prevents a delayed standings query from repopulating.
-9. A live React Query observer stops rendering A payload after logout.
-10. After navigation to B the observer gets B's cached value without A's result.
+9. A live React Query observer stops rendering A payload after logout, then shows B's authorized cached value on navigation without reusing A data.
 
 No test count is a PASS count. No test environment for this agent includes a verified checkout with installed pnpm dependencies, so targeted RTL, existing regression suites, TS typecheck and browser E2E are **NOT_EXECUTED** (no actual exit codes).
 
