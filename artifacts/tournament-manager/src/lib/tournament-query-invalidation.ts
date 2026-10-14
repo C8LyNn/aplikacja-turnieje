@@ -129,12 +129,15 @@ function ownedPickMeta(query: { meta?: Record<string, unknown> }): number | null
     ? owner : null;
 }
 
-function isOwnedMatchPicksKey(queryKey: readonly unknown[], matchIds: ReadonlySet<number>): boolean {
-  return queryKey.length === 3 &&
-    queryKey[0] === "matches" &&
+function isGamePicksQueryKey(queryKey: readonly unknown[]): queryKey is readonly ["matches", number, "game-picks"] {
+  return queryKey.length === 3 && queryKey[0] === "matches" &&
     typeof queryKey[1] === "number" &&
-    matchIds.has(queryKey[1]) &&
+    Number.isSafeInteger(queryKey[1]) && queryKey[1] > 0 &&
     queryKey[2] === "game-picks";
+}
+
+function isOwnedMatchPicksKey(queryKey: readonly unknown[], matchIds: ReadonlySet<number>): boolean {
+  return isGamePicksQueryKey(queryKey) && matchIds.has(queryKey[1]);
 }
 
 /**
@@ -179,7 +182,7 @@ export function removeTournamentAuthQueries(
     const metaOwner = ownedPickMeta(query);
     // Metadata, when present, takes precedence over any later changed list.
     if (metaOwner !== null) {
-      return metaOwner === tournamentId && isOwnedMatchPicksKey(query.queryKey, new Set([Number(query.queryKey[1])]));
+      return metaOwner === tournamentId && isGamePicksQueryKey(query.queryKey);
     }
     return isOwnedMatchPicksKey(query.queryKey, ownedMatchIds);
   };
@@ -201,10 +204,8 @@ export function subscribeToTournamentAuthDenials(queryClient: QueryClient): () =
     } | null;
     const status = error?.status ?? error?.response?.status;
     if (status !== 401 && status !== 403) return;
-    const matchMetaOwner = isOwnedMatchPicksKey(
-      event.query.queryKey,
-      new Set([Number(event.query.queryKey[1])]),
-    ) ? ownedPickMeta(event.query) : null;
+    const matchMetaOwner = isGamePicksQueryKey(event.query.queryKey)
+      ? ownedPickMeta(event.query) : null;
     const tournamentId = tournamentIdFromAuthQuery(event.query.queryKey) ??
       matchMetaOwner ??
       tournamentIdForOwnedMatchError(queryClient, event.query.queryKey);
