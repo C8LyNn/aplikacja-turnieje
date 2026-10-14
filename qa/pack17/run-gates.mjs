@@ -1,49 +1,92 @@
 #!/usr/bin/env node
-/** Pack 17 explicit release gate. Does not install, migrate production or deploy.
- * Invoke from repo root: node qa/pack17/run-gates.mjs --static|--integration|--full
- * Database tests call the repo's existing safe-reset helper, which refuses non-test URLs.
+/** Pack 17: explicit, fail-closed code/PG release gates. No deploy or prod migrations.
+ * --static is a deliberately incomplete check and is NEVER release approval.
+ * Always run from monorepo root; full DB execution needs approved isolated TEST PG16.
  */
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { URL } from 'node:url';
-const mode=process.argv[2]??'--static';
-const supported=new Set(['--static','--integration','--full']);
-if(!supported.has(mode)){console.error('Usage: node qa/pack17/run-gates.mjs --static|--integration|--full');process.exit(2);}
-if(!existsSync('pnpm-workspace.yaml')||!existsSync('artifacts/api-server/package.json')){
-  console.error('BLOCKED: invoke in tournament monorepo root');process.exit(2);
+import { assertCompleteTap, assertSafeTestDatabaseEnv } from './gate-contract.mjs';
+
+const mode = process.argv[2];
+if (process.argv.length !== 3 || !['--static', '--integration', '--full'].includes(mode)) {
+  console.error('Usage: node qa/pack17/run-gates.mjs --static|--integration|--full (mode required)');
+  process.exit(2);
 }
-const run=(name,cmd,args)=>{
-  console.log(`\n>>> GATE ${name}`);
-  const result=spawnSync(cmd,args,{stdio:'inherit',shell:process.platform==='win32',env:process.env});
-  if(result.error||result.status!==0){console.error(`BLOCKED: ${name} failed`,result.error?.message??`exit ${result.status}`);process.exit(result.status||1);}
-  console.log(`PASS ${name}`);
-};
-const pnpm=(name,...args)=>run(name,'pnpm',args);
-run('source contracts','node',['--test','qa/pack17/source-contract.test.mjs']);
-if(mode==='--static'){
- console.log('STATIC GATE PASS. DATABASE / FULL BUILD NOT EXECUTED. Release remains BLOCKED.');
- process.exit(0);
+if (!existsSync('pnpm-workspace.yaml') || !existsSync('artifacts/api-server/package.json')) {
+  console.error('BLOCKED: invoke from tournament monorepo root');
+  process.exit(2);
 }
-const url=process.env.TEST_DATABASE_URL;
-if(process.env.TEST_DATABASE_RESET!=='DROP_TM_TEST_SCHEMA'||!url){
- console.error('BLOCKED: require TEST_DATABASE_URL and TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA');process.exit(2);
+
+const required = {
+  '--static': ['source contracts', 'gate fail-closed contracts'],
+  '--integration': ['source contracts', 'gate fail-closed contracts', 'PostgreSQL atomic correction'],
+  '--full': [
+    'source contracts', 'gate fail-closed contracts', 'PostgreSQL atomic correction', 'workspace typecheck',
+    'API unit tests', 'API integration tests', 'frontend tests',
+    'API build', 'frontend build',
+  ],
+}[mode];
+const completed = [];
+
+function run(name, cmd, args, { tapSummaries = 0 } = {}) {
+  if (name !== required[completed.length]) {
+    console.error('BLOCKED: omitted/out-of-order Pack17 gate: expected ' + required[completed.length] + ', got ' + name);
+    process.exit(2);
+  }
+  console.log('\n>>> GATE ' + name);
+  // Capture TAP from nested Node test processes. Inherited stdio loses skip counts.
+  // A truncated output buffer is an error (fail closed), not a PASS.
+  const result = spawnSync(cmd, args, {
+    encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+    shell: process.platform === 'win32', env: process.env,
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.error || result.signal || result.status !== 0) {
+    console.error('BLOCKED: ' + name + ' execution failed', result.error?.message ?? ('exit ' + result.status + '; signal ' + (result.signal ?? 'none')));
+    process.exit(result.status || 1);
+  }
+  if (tapSummaries) {
+    try {
+      const evidence = assertCompleteTap(result.stdout, tapSummaries);
+      console.log('VERIFIED TAP: ' + evidence.tests + ' executed, ' + evidence.summaries + ' complete summary(s), no skips/todo');
+    } catch (e) {
+      console.error('BLOCKED: ' + name + ' lacks complete test evidence: ' + e.message);
+      process.exit(1);
+    }
+  }
+  completed.push(name);
+  console.log('PASS ' + name);
 }
-let parsed;
-try{parsed=new URL(url);}catch{console.error('BLOCKED: invalid TEST_DATABASE_URL');process.exit(2);}
-const schema=process.env.TEST_DATABASE_SCHEMA??'tm_test_access';
-const databaseName=decodeURIComponent(parsed.pathname.replace(/^\//,''));
-if(!['postgres:','postgresql:'].includes(parsed.protocol)||!databaseName.toLowerCase().includes('test')||
- `${parsed.hostname}/${databaseName}`.toLowerCase().includes('prod')||!/^tm_test_[a-z0-9_]+$/.test(schema)){
- console.error('BLOCKED: expected nonproduction PostgreSQL database whose name contains test, with isolated tm_test_* schema');process.exit(2);
+function pnpm(name, args, config) { run(name, 'pnpm', args, config); }
+function assertAllGatesCompleted() {
+  if (completed.length !== required.length) {
+    console.error('BLOCKED: only ' + completed.length + '/' + required.length + ' required Pack17 gates completed');
+    process.exit(1);
+  }
 }
-// Test runner deliberately does not accept a URL on argv or print credentials.
-pnpm('actual PostgreSQL atomic-correction suite','--filter','@workspace/api-server','exec','node','--import','tsx','--test','test/tournament-atomic-correction-postgresql.integration.test.ts');
-if(mode==='--integration'){
- console.log('TARGETED PG INTEGRATION PASS. Full workspace/build/browser still needed. Release remains BLOCKED.');
- process.exit(0);
+
+run('source contracts', 'node', ['--test', '--test-reporter=tap', 'qa/pack17/source-contract.test.mjs'], { tapSummaries: 1 });
+run('gate fail-closed contracts', 'node', ['--test', '--test-reporter=tap', 'qa/pack17/gate-contract.test.mjs'], { tapSummaries: 1 });
+if (mode === '--static') {
+  assertAllGatesCompleted();
+  console.log('STATIC-ONLY PASS. No PostgreSQL, backend/frontend runtime or full release checks. RELEASE STOP.');
+  process.exit(0);
 }
-pnpm('full repository typecheck','run','typecheck');
-pnpm('full API unit test suite','--filter','@workspace/api-server','run','test:unit');
-pnpm('full API integration test suite','--filter','@workspace/api-server','run','test:integration');
-pnpm('full frontend build','--filter','@workspace/tournament-manager','run','build');
-console.log('CODE / PG GATES PASS. Manual browser QA and production release approval still required.');
+try { assertSafeTestDatabaseEnv(process.env); }
+catch (e) { console.error(e.message); process.exit(2); }
+// Integration tests use the existing isolated-schema reset helper and PostgreSQL 16.
+pnpm('PostgreSQL atomic correction', ['--filter', '@workspace/api-server', 'exec', 'node', '--import', 'tsx', '--test', 'test/tournament-atomic-correction-postgresql.integration.test.ts'], { tapSummaries: 1 });
+if (mode === '--integration') {
+  assertAllGatesCompleted();
+  console.log('TARGETED PG PASS. Workspace/build/browser gates NOT EXECUTED. RELEASE STOP.');
+  process.exit(0);
+}
+pnpm('workspace typecheck', ['run', 'typecheck']);
+pnpm('API unit tests', ['--filter', '@workspace/api-server', 'run', 'test:unit'], { tapSummaries: 3 });
+pnpm('API integration tests', ['--filter', '@workspace/api-server', 'run', 'test:integration'], { tapSummaries: 1 });
+pnpm('frontend tests', ['--filter', '@workspace/tournament-manager', 'run', 'test'], { tapSummaries: 1 });
+pnpm('API build', ['--filter', '@workspace/api-server', 'run', 'build']);
+pnpm('frontend build', ['--filter', '@workspace/tournament-manager', 'run', 'build']);
+assertAllGatesCompleted();
+console.log('PACK17 CODE/PG GATES PASS. Manual browser QA, combined-PR validation and release approval still required.');
