@@ -159,3 +159,12 @@ No merge/cherry-pick, production access, SQL DDL or paid CI dispatched as part o
 | D076 | Keep A10 P01–P07 internal and continuously refreshed; no SWARM-006 activation before final WEB-005 closeout | Owner final-only directive remains binding |
 
 No deployment, merge, migrations, paid CI or remote Drive transfer occurred in this planning update.
+
+
+## R9 prompt distribution standard (2026-10-14)
+
+| ID | Decision | Scope |
+|---|---|---|
+| D077 | Publish one master prompt document **[WEB-005_WAVE_R9_AGENT_PROMPTS.md](./WEB-005_WAVE_R9_AGENT_PROMPTS.md)** for all 13 R9 roles, with exact stable agent sections | Agents receive the same short retrieval prompt and execute only their own Axx section |
+| D078 | R9 code execution scopes are narrow: A90/T060-B1, A70/T040-MP2A and A100/T080-S1; all other agents QA/docs/test-first source-only | Three-lane cap, per-file conflict holds, separate QA A60, no cross-swarm integration |
+| D079 | Wave prompts are immutable during the wave; later waves get separately versioned central docs | No agent may edit/promote its scope unilaterally; 00 reconciles completed reports and prepares R10 |
