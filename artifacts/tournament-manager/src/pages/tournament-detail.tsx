@@ -12,6 +12,7 @@ import {
   getGetTournamentQueryKey, getGetTournamentStatsQueryKey, getListPlayersQueryKey,
   getGetTournamentBracketQueryKey, getListMatchesQueryKey, getGetTournamentStandingsQueryKey,
   getGetResultsHistoryQueryKey, getGetTournamentAssistantQueryKey, getListTournamentStagesQueryKey,
+  getGetTournamentStageQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useState, useEffect, useMemo, useRef } from "react";
 import { BracketView } from "@/components/bracket-view";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
@@ -71,6 +72,127 @@ const FORMAT_LABELS: Record<string, string> = {
   group_stage: "Faza grupowa",
   double_elimination: "Podwójna eliminacja",
 };
+
+/**
+ * RR presentation-only bridge for external organizer/host writes.
+ *
+ * Parent /matches and /stages already poll; a fresh query result there does not
+ * refetch an independently cached StageProgressView /stages/:id detail query.
+ * Only changed RR snapshots invalidate that canonical stage detail and the
+ * already existing tournament standings query. No rankings are calculated here.
+ *
+ * This component intentionally owns no auth/session cache policy (A100).
+ * It does hide its own cached stage presentation after an explicit 401/403
+ * from an RR Stage Details query, until a successful retry.
+ */
+export function RoundRobinReadbackBridge({
+  tournamentId,
+  stages,
+  matches,
+  children,
+}: {
+  tournamentId: number;
+  stages?: ReadonlyArray<{
+    id: number; format: string; status: string; winnerId?: number | null;
+    currentRound?: number | null; totalRounds?: number | null;
+  }>;
+  matches?: ReadonlyArray<{
+    id: number; stageId?: number | null; revision?: number | null; status: string;
+    score1?: number | null; score2?: number | null;
+    winnerId?: number | null; resultType?: string | null;
+  }>;
+  children: ReactNode;
+}) {
+  const queryClient = useQueryClient();
+  const previous = useRef<{ tournamentId: number; entries: Map<number, string> } | null>(null);
+  const [denied, setDenied] = useState(false);
+
+  const rrSnapshot = useMemo(() => {
+    if (!stages || !matches) return null;
+    return stages
+      .filter(stage => stage.format === "round_robin")
+      .map(stage => {
+        const matchEpoch = matches
+          .filter(match => match.stageId === stage.id)
+          .map(match => [
+            match.id, match.revision ?? null, match.status, match.score1 ?? null,
+            match.score2 ?? null, match.winnerId ?? null, match.resultType ?? null,
+          ])
+          .sort((left, right) => Number(left[0]) - Number(right[0]));
+        return [stage.id, JSON.stringify([
+          stage.status, stage.winnerId ?? null,
+          stage.currentRound ?? null, stage.totalRounds ?? null, matchEpoch,
+        ])] as const;
+      });
+  }, [matches, stages]);
+
+  // A fresh external match revision, result or stage lifecycle transition
+  // invalidates only RR detail keys; mounted consumers re-read canonical API.
+  // A static 5-second parent poll must NOT invalidate unchanged snapshots.
+  useEffect(() => {
+    if (!rrSnapshot) return;
+    const entries = new Map<number, string>(rrSnapshot);
+    const old = previous.current;
+    previous.current = { tournamentId, entries };
+    if (!old || old.tournamentId !== tournamentId) return;
+    let changed = false;
+    for (const [stageId, fingerprint] of entries) {
+      if (!old.entries.has(stageId) || old.entries.get(stageId) === fingerprint) continue;
+      changed = true;
+      void queryClient.invalidateQueries({
+        queryKey: getGetTournamentStageQueryKey(tournamentId, stageId),
+        exact: true,
+      });
+    }
+    if (changed) {
+      void queryClient.invalidateQueries({
+        queryKey: getGetTournamentStandingsQueryKey(tournamentId),
+        exact: true,
+      });
+    }
+  }, [queryClient, rrSnapshot, tournamentId]);
+
+  const rrStageIds = useMemo(
+    () => (stages ?? []).filter(stage => stage.format === "round_robin").map(stage => stage.id),
+    [stages],
+  );
+  const rrIdKey = rrStageIds.join(",");
+  // Important: TanStack Query can retain prior successful data after an error.
+  // Hide StageProgressView on a forbidden RR detail response; never show stale
+  // private participants behind an error banner in this organizer surface.
+  useEffect(() => {
+    const check = () => {
+      const blocked = rrStageIds.some(stageId => {
+        const error = queryClient.getQueryState(
+          getGetTournamentStageQueryKey(tournamentId, stageId),
+        )?.error as { status?: number; response?: { status?: number } } | null | undefined;
+        const code = error?.status ?? error?.response?.status;
+        return code === 401 || code === 403;
+      });
+      setDenied(prev => prev === blocked ? prev : blocked);
+    };
+    const unsubscribe = queryClient.getQueryCache().subscribe(check);
+    check();
+    return unsubscribe;
+  }, [queryClient, rrIdKey, tournamentId]);
+
+  if (denied) {
+    return (
+      <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-card p-5 text-sm">
+        <p>Dostęp do szczegółów etapu został odrzucony. Ukryto poprzednio pobraną klasyfikację.</p>
+        <Button type="button" variant="outline" onClick={() => {
+          void Promise.all(rrStageIds.map(stageId => queryClient.refetchQueries({
+            queryKey: getGetTournamentStageQueryKey(tournamentId, stageId),
+            exact: true, type: "all",
+          })));
+        }}>
+          Spróbuj ponownie
+        </Button>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
 
 export default function TournamentDetail() {
   const { id, isExperimental } = useTournamentRoute("detail");
@@ -1461,14 +1583,16 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="bracket" className="pt-4">
-              <StageProgressView
-                tournamentId={id}
-                activeStageId={tournament.activeStageId}
-                matches={matches ?? []}
-                playerBansMap={isDeadlock ? playerBansMap : undefined}
-                matchPicksMap={isDeadlock ? matchPicksMap : undefined}
-                marvelEnabled={tournament.gameConfig?.gameId === "marvel"}
-              />
+              <RoundRobinReadbackBridge tournamentId={id} stages={stages} matches={matches}>
+                <StageProgressView
+                  tournamentId={id}
+                  activeStageId={tournament.activeStageId}
+                  matches={matches ?? []}
+                  playerBansMap={isDeadlock ? playerBansMap : undefined}
+                  matchPicksMap={isDeadlock ? matchPicksMap : undefined}
+                  marvelEnabled={tournament.gameConfig?.gameId === "marvel"}
+                />
+              </RoundRobinReadbackBridge>
           </TabsContent>
 
           <TabsContent value="history" className="pt-6">
