@@ -88,6 +88,47 @@ function ownedCachedMatchIds(queryClient: QueryClient, tournamentId: number): Se
   return owned;
 }
 
+/**
+ * Read only successfully cached, tenant-scoped match list GETs and demand
+ * explicit matching tournamentId on each match DTO. This proof is captured
+ * when the game-picks hook is created, not reconstructed from matchId.
+ * Conflicting list owners must not be trusted.
+ */
+export function getVerifiedMatchTournamentOwner(
+  queryClient: QueryClient,
+  matchId: number,
+): number | null {
+  if (!Number.isSafeInteger(matchId) || matchId <= 0) return null;
+  let result: number | null = null;
+  for (const query of queryClient.getQueryCache().getAll()) {
+    if (query.queryKey.length !== 1 || typeof query.queryKey[0] !== "string" ||
+        query.state.status !== "success") continue;
+    const match = /^\/api\/tournaments\/([1-9]\d*)\/matches$/.exec(query.queryKey[0]);
+    if (!match) continue;
+    const tournamentId = Number(match[1]);
+    if (!Number.isSafeInteger(tournamentId)) continue;
+    if (!Array.isArray(query.state.data)) continue;
+    const proven = query.state.data.some((value: unknown) => {
+      if (!value || typeof value !== "object") return false;
+      const record = value as { id?: unknown; tournamentId?: unknown };
+      return record.id === matchId && record.tournamentId === tournamentId;
+    });
+    if (!proven) continue;
+    if (result !== null && result !== tournamentId) return null;
+    result = tournamentId;
+  }
+  return result;
+}
+
+/** Metadata is only assigned by useMatchGamePicks after the DTO owner check. */
+const PICK_OWNER_META = "web005VerifiedTournamentId";
+
+function ownedPickMeta(query: { meta?: Record<string, unknown> }): number | null {
+  const owner = query.meta?.[PICK_OWNER_META];
+  return typeof owner === "number" && Number.isSafeInteger(owner) && owner > 0
+    ? owner : null;
+}
+
 function isOwnedMatchPicksKey(queryKey: readonly unknown[], matchIds: ReadonlySet<number>): boolean {
   return queryKey.length === 3 &&
     queryKey[0] === "matches" &&
@@ -133,9 +174,15 @@ export function removeTournamentAuthQueries(
 ): void {
   // Snapshot match ownership BEFORE removing the list that proves it.
   const ownedMatchIds = ownedCachedMatchIds(queryClient, tournamentId);
-  const predicate = (query: { queryKey: readonly unknown[] }) =>
-    isTournamentAuthQuery(query.queryKey, tournamentId) ||
-    isOwnedMatchPicksKey(query.queryKey, ownedMatchIds);
+  const predicate = (query: { queryKey: readonly unknown[]; meta?: Record<string, unknown> }) => {
+    if (isTournamentAuthQuery(query.queryKey, tournamentId)) return true;
+    const metaOwner = ownedPickMeta(query);
+    // Metadata, when present, takes precedence over any later changed list.
+    if (metaOwner !== null) {
+      return metaOwner === tournamentId && isOwnedMatchPicksKey(query.queryKey, new Set([Number(query.queryKey[1])]));
+    }
+    return isOwnedMatchPicksKey(query.queryKey, ownedMatchIds);
+  };
   void queryClient.cancelQueries({ predicate }, { silent: true });
   queryClient.removeQueries({ predicate });
 }
@@ -154,7 +201,12 @@ export function subscribeToTournamentAuthDenials(queryClient: QueryClient): () =
     } | null;
     const status = error?.status ?? error?.response?.status;
     if (status !== 401 && status !== 403) return;
+    const matchMetaOwner = isOwnedMatchPicksKey(
+      event.query.queryKey,
+      new Set([Number(event.query.queryKey[1])]),
+    ) ? ownedPickMeta(event.query) : null;
     const tournamentId = tournamentIdFromAuthQuery(event.query.queryKey) ??
+      matchMetaOwner ??
       tournamentIdForOwnedMatchError(queryClient, event.query.queryKey);
     if (tournamentId === null) return;
     removeTournamentAuthQueries(queryClient, tournamentId);
