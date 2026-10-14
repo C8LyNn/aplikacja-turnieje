@@ -50,7 +50,7 @@ The generated [`TournamentStage` API model](https://github.com/C8LyNn/aplikacja-
 | Real Wouter/browser route A→B | `NOT_EXECUTED` | JSX fixture defined, browser E2E unverified |
 | PG16/mutation | `NOT_EXECUTED` | No authorized isolated DB, no backend change |
 | Independent A60 | `PENDING` | No exact-SHA SOURCE_ACCEPTED |
-| Auto GitHub Actions run [38605694664](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38605694664) | `IN_PROGRESS` **at first inspection** | No manual CI rerun. Release baseline still has historical Pack19 matcher; if it fails, inspect logs rather than attributing failure to UX046 |
+| Auto GitHub Actions run [38605694664](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38605694664) | **FAIL / exit 1** | Exact PR52 HEAD, job `115995862418` `correction-qa`; **Pack19 source-contract** 7 PASS / 1 FAIL. Matcher expected `readOnly:true`, source used `accessMode:"read only"`. Subsequent frontend UX046 tests **NOT REACHED**; no manual CI rerun. |
 
 **A50 deterministic commands on immutable PR52 HEAD** (run in genuine checkout with Node22/pnpm10, log versions, exact SHA, commands, exit/TAP pass/fail/skip counts):
 
