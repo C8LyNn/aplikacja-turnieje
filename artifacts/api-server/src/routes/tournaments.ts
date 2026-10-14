@@ -348,7 +348,7 @@ function sendTournamentRosterError(
 ): void {
   const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND"
     ? 404
-    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME" || error.code === "UNDO_ACTION_CHANGED"
+    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME"
       ? 409
       : 422;
   res.status(status).json({ error: error.message, code: error.code });
