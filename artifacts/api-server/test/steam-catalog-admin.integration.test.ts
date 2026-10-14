@@ -118,6 +118,8 @@ describe("T030 Steam Catalog authorization on real router and isolated PostgreSQ
     const original = await snapshot();
     delete process.env.STEAM_CATALOG_ADMIN_TOKEN;
     try {
+      assert.equal((await request(app).get("/api/steam-catalog/games")).status, 200);
+      assert.equal((await request(app).get("/api/steam-catalog/taxonomy")).status, 200);
       for (const mutation of mutations) {
         const response = await mutate(mutation, HEADERS());
         assert.equal(response.status, 503, response.text);
@@ -159,6 +161,8 @@ describe("T030 Steam Catalog authorization on real router and isolated PostgreSQ
           const response = await mutate(mutation, headers);
           assert.equal(response.status, 403, `${actorName}: ${mutation.path}: ${response.text}`);
           assert.equal(response.body.code, "STEAM_CATALOG_ADMIN_REQUIRED");
+          assert.equal(response.text.includes(ADMIN), false, "Server must not echo its admin key");
+          assert.equal(response.text.includes(INVALID_ADMIN), false, "Server must not echo submitted keys");
           assert.deepEqual(await snapshot(), original, `${actorName}: unauthorized DB mutation`);
         }
       }
