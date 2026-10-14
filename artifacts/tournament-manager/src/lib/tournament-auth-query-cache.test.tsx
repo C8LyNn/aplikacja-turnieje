@@ -5,9 +5,10 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/auth-context";
 import { getListMatchesQueryKey } from "@workspace/api-client-react";
-import { getPlayerBansQueryKey, getMatchGamePicksQueryKey } from "./deadlock-bans-picks";
+import { getPlayerBansQueryKey, getMatchGamePicksQueryKey, useMatchGamePicks } from "./deadlock-bans-picks";
 import {
   isTournamentAuthQuery,
+  getVerifiedMatchTournamentOwner,
   removeTournamentAuthQueries,
   tournamentIdFromAuthQuery,
 } from "./tournament-query-invalidation";
@@ -242,4 +243,78 @@ test("S2B N1: strict tournament tuple scope 7 versus 70 and 8", () => {
   assert.equal(isTournamentAuthQuery(getPlayerBansQueryKey(8), 7), false);
   assert.equal(tournamentIdFromAuthQuery(aBans), 7);
   assert.equal(tournamentIdFromAuthQuery(bBans), 8);
+});
+
+/* R18 trusted fetch-time match owner metadata — authored before code change. */
+test("R18: hook persists verified A match owner metadata, logout evicts when list is gone", () => {
+  const auth = renderHook(() => useAuth(), { wrapper });
+  act(() => auth.result.current.storeOrgToken(7, "synthetic-a"));
+  seedOwnership();
+  const a = renderHook(() => useMatchGamePicks(701, { enabled: false }), { wrapper });
+  const b = renderHook(() => useMatchGamePicks(801, { enabled: false }), { wrapper });
+  assert.equal(client.getQueryCache().find({ queryKey: aPicks })?.meta?.web005VerifiedTournamentId, 7);
+  assert.equal(client.getQueryCache().find({ queryKey: bPicks })?.meta?.web005VerifiedTournamentId, 8);
+  client.setQueryData(aPicks, [{ matchId: 701, gameNumber: 1, player1HeroId: "A-only" }]);
+  client.setQueryData(bPicks, [{ matchId: 801, gameNumber: 1, player1HeroId: "public-B" }]);
+  client.removeQueries({ queryKey: getListMatchesQueryKey(7) });
+  act(() => auth.result.current.removeOrgToken(7));
+  assert.equal(client.getQueryData(aPicks), undefined);
+  assert.ok(client.getQueryData(bPicks));
+  a.unmount();
+  b.unmount();
+});
+
+test("R18: match-only denied 403 uses saved owner metadata without list", async () => {
+  renderHook(() => useAuth(), { wrapper });
+  client.setQueryData(bPicks, [{ matchId: 801, player1HeroId: "B" }]);
+  client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "OLD A" }]);
+  await client.fetchQuery({
+    queryKey: aPicks,
+    meta: { web005VerifiedTournamentId: 7 },
+    staleTime: 0,
+    queryFn: async () => { throw Object.assign(new Error("denied"), { status: 403 }); },
+  }).catch(() => undefined);
+  assert.equal(client.getQueryData(aPicks), undefined);
+  assert.ok(client.getQueryData(bPicks));
+});
+
+test("R18: metadata-owned pending match A cannot refill after list disappears and logout", async () => {
+  const auth = renderHook(() => useAuth(), { wrapper });
+  act(() => auth.result.current.storeOrgToken(7, "synthetic-a"));
+  seedOwnership();
+  let resolve!: (v: { matchId: number; player1HeroId: string }[]) => void;
+  const old = client.fetchQuery({
+    queryKey: aPicks,
+    meta: { web005VerifiedTournamentId: 7 },
+    queryFn: () => new Promise<{ matchId: number; player1HeroId: string }[]>(finish => { resolve = finish; }),
+  }).catch(() => undefined);
+  await waitFor(() => assert.equal(typeof resolve, "function"));
+  client.removeQueries({ queryKey: getListMatchesQueryKey(7) });
+  act(() => auth.result.current.removeOrgToken(7));
+  resolve([{ matchId: 701, player1HeroId: "late-old-A" }]);
+  await old;
+  assert.equal(client.getQueryData(aPicks), undefined);
+});
+
+test("R18: unverified and ambiguously attributed matches cannot issue or display picks", () => {
+  // Legacy unknown-owner cache entry must not be displayed by a new hook.
+  client.setQueryData(aPicks, [{ matchId: 701, player1HeroId: "untrusted" }]);
+  const unknown = renderHook(() => useMatchGamePicks(701), { wrapper });
+  assert.equal(unknown.result.current.data, undefined);
+  assert.equal(client.getQueryCache().find({ queryKey: aPicks })?.meta?.web005VerifiedTournamentId, undefined);
+  unknown.unmount();
+  client.setQueryData(getListMatchesQueryKey(7), [{ id: 701, tournamentId: 7 }]);
+  client.setQueryData(getListMatchesQueryKey(8), [{ id: 701, tournamentId: 8 }]);
+  assert.equal(getVerifiedMatchTournamentOwner(client, 701), null);
+  const ambiguous = renderHook(() => useMatchGamePicks(701), { wrapper });
+  assert.equal(ambiguous.result.current.data, undefined);
+  ambiguous.unmount();
+});
+
+test("R18: match owner cannot be guessed from match numeric ID or mismatched DTO", () => {
+  client.setQueryData(getListMatchesQueryKey(7), [{ id: 701, tournamentId: 8 }]);
+  assert.equal(getVerifiedMatchTournamentOwner(client, 701), null);
+  client.setQueryData(getListMatchesQueryKey(7), [{ id: 701, tournamentId: 7 }]);
+  assert.equal(getVerifiedMatchTournamentOwner(client, 701), 7);
+  assert.equal(getVerifiedMatchTournamentOwner(client, 7), null);
 });
