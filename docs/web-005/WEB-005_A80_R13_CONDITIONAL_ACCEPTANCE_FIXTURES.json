@@ -1,0 +1,353 @@
+{
+  "schema": "WEB-005/A80/R13/CONDITIONAL_ACCEPTANCE/v1",
+  "meta": {
+    "task": "WEB-005-T050-T051-A80-R6",
+    "mode": "SOURCE_ONLY",
+    "baseline_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "pr45_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+    "pr42_sha": "1ae0ccb801f4177052bff1ec7041e55b8c992c8b",
+    "fixture_ref": "docs/web-005/WEB-005_A80_R11_DETERMINISTIC_FIXTURES.json",
+    "fixture_blob": "a44147b1da905509277395f7fcaee6331cbd7844",
+    "evidence": "SOURCE_CONTRACT_AND_MODEL_ONLY",
+    "application_runtime": "NOT_EXECUTED",
+    "schema_safety": "Disposable, owner-authorized physically isolated PG16 database with TEST_DATABASE_SCHEMA=tm_test_*; do not run on shared/production databases"
+  },
+  "preflight": [
+    "Checkout exact PR45 SHA; no composed SHA accepted as equivalent",
+    "Use Node22, pnpm10 and locked installed dependencies",
+    "Verify dedicated TEST_DATABASE_URL contains test DB name; unique tm_test_* schema and explicit reset-scope authorization",
+    "Record redacted DB fingerprint, test code SHA, migrations, command, process exit, passed/failed/skipped"
+  ],
+  "cases": [
+    {
+      "id": "RR13-01",
+      "name": "SE8 to terminal RR4 real lifecycle",
+      "execution": "PG16_HTTP",
+      "policy": "EXISTING_PR45",
+      "setup": {
+        "formatSequence": [
+          "SE8 top4",
+          "RR4 terminal"
+        ],
+        "registered": 8,
+        "sourceCompletedMatches": 4,
+        "rrMatches": 6
+      },
+      "assertions": [
+        "exactly four RR stage members are the top four source qualifiers",
+        "before revert tournament and stage completed with one champion",
+        "global statuses prior to revert are exactly 1 winner plus 7 eliminated"
+      ],
+      "evidenceRequired": [
+        "pre/post full players+stage_participants snapshots",
+        "stage status/version/winner ID",
+        "match revision/result history",
+        "action_log"
+      ]
+    },
+    {
+      "id": "RR13-02",
+      "name": "Terminal RR scoped reactivation",
+      "execution": "PG16_HTTP",
+      "policy": "EXISTING_PR45",
+      "setup": "revert last terminal RR match after completeStage",
+      "assertions": [
+        "direct Revert returns 200 in standalone PR45 under current API behavior",
+        "target match pending, winner null",
+        "terminal stage active, completedAt null, winner null",
+        "tournament active, winner null, activeStageId equals terminal RR stage",
+        "RR stage 4 members globally active with unchanged stage_seed",
+        "all four prior nonqualifiers remain globally eliminated; their earlier-stage rows unchanged",
+        "no new/removed result_history; original completion action undone once; exactly one Revert action"
+      ],
+      "note": "derive prior nonqualifiers by set difference of registered players and RR stage participants, not numeric player IDs"
+    },
+    {
+      "id": "RR13-03",
+      "name": "Terminal RR re-finalization",
+      "execution": "PG16_HTTP",
+      "policy": "EXISTING_PR45",
+      "setup": "recomplete reverted RR match and stage",
+      "assertions": [
+        "tournament and RR terminal stage completed again with same champion ID",
+        "exactly one global winner and all 4 prior nonqualifiers eliminated",
+        "result_history contains two revisions for corrected match",
+        "no duplicate completion/revert audit events"
+      ]
+    },
+    {
+      "id": "RR13-04",
+      "name": "Prior-stage qualifier trigger projection",
+      "execution": "PG16_SQL_OBSERVATION",
+      "policy": "EXISTING_PR45",
+      "setup": "snapshot first-stage qualified and excluded participant rows before/after terminal revert",
+      "assertions": [
+        "any status/seed changes in stage1 previous qualifiers explicitly reported and attributed to compatibility trigger only if supported",
+        "all nonqualifier rows unchanged"
+      ],
+      "note": "Source migration 0002/0006 may sync global players statuses into first-stage membership; do not assert all first-stage rows are unchanged"
+    },
+    {
+      "id": "RR13-05",
+      "name": "Undo-last and direct Revert are not interchangeable without approval",
+      "execution": "INDEPENDENT_SEPARATE_BRANCHES",
+      "policy": "DIRECT_REVERT_POLICY_OPEN",
+      "setup": "stage_completed audit action follows last result completion",
+      "assertions": [
+        "PR45 standalone direct-Revert 200 contract is not silently applied to PR42/PR51 Undo-last",
+        "record latest action ID and precedence across branches",
+        "do not merge branches in WEB-005"
+      ],
+      "status": "HOLD_POLICY"
+    },
+    {
+      "id": "TS13-01",
+      "name": "Terminal Swiss played result revert",
+      "execution": "PG16_HTTP_FUTURE",
+      "policy": "POLICY-TERMINAL-SWISS",
+      "setup": "Swiss4 2 rounds completed, terminal stage/tournament finalized, last required played match",
+      "conditionalExpected": {
+        "TS_A_DENY_409": [
+          "HTTP 409 approved domain code",
+          "no writes to match/result_history/action_log/stage/tournament/players/stage_participants",
+          "all winner IDs/statuses/versions/timestamps unchanged"
+        ],
+        "TS_B_ATOMIC_REOPEN": [
+          "HTTP 200",
+          "match pending; stage+tournament active and winner IDs null",
+          "terminal activeStageId restored",
+          "terminal roster active, no resurrection of earlier-stage nonqualifiers",
+          "one canonical compensation/undo history according to separately signed audit semantics",
+          "rollback all tables on any failure"
+        ]
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "TS13-02",
+      "name": "Terminal Swiss completed no-contest with null match winner",
+      "execution": "PG16_HTTP_FUTURE",
+      "policy": "POLICY-TERMINAL-SWISS",
+      "setup": "last completed terminal match resultType no_contest; match winner null but ranking champion determined across stage",
+      "conditionalExpected": {
+        "TS_A_DENY_409": [
+          "409 zero writes"
+        ],
+        "TS_B_ATOMIC_REOPEN": [
+          "successful atomic reopening may not assume match.winnerId equals tournament.winnerId; preserve history"
+        ]
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "TS13-03",
+      "name": "Swiss system BYE fail-closed",
+      "execution": "PG16_HTTP_FUTURE",
+      "policy": "SYSTEM_BYE_EXISTING",
+      "setup": "attempt revert a system-generated completed BYE",
+      "assertions": [
+        "409 protected system-bye error",
+        "all tables unchanged"
+      ],
+      "status": "SOURCE_CONTRACT"
+    },
+    {
+      "id": "TS13-04",
+      "name": "Swiss atomic rollback failpoint",
+      "execution": "PG16_FAULT_INJECTION_FUTURE",
+      "policy": "POLICY-TERMINAL-SWISS",
+      "setup": "injected fault after match reset and before stage/tournament reopen",
+      "conditionalExpected": {
+        "TS_A_DENY_409": [
+          "guard rejects before any mutable step"
+        ],
+        "TS_B_ATOMIC_REOPEN": [
+          "transaction rollback restores exact pre-revert snapshot including audit history, versions and activeStageId"
+        ]
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "SE13-01",
+      "name": "SE currentRound pointer after feeder revert",
+      "execution": "PG16_HTTP_FUTURE",
+      "policy": "POLICY-SE-ROUND",
+      "setup": "SE4 R1 winner1 P1, winner2 P3, generated R2 pending [P1,P3]; revert R1 first match",
+      "conditionalExpected": {
+        "EARLIEST_ACTIONABLE": [
+          "R2 player1 cleared, player2 remains P3",
+          "stage+tournament currentRound=1"
+        ],
+        "MAX_GENERATED": [
+          "R2 player1 cleared, player2 remains P3",
+          "stage+tournament currentRound=2",
+          "separate actionable round projection equals 1"
+        ]
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "SW13-01",
+      "name": "Swiss5 avoidable repeat",
+      "execution": "TS_UNIT_FUTURE",
+      "policy": "POLICY-SWISS",
+      "setup": "R11 SW5-R3 fixture",
+      "sourceGreedy": {
+        "bye": 2,
+        "pairs": [
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "rematches": 1
+      },
+      "minimumRematches": 0,
+      "witness": [
+        [
+          1,
+          4
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "SW13-02",
+      "name": "Swiss6 avoidable repeat",
+      "execution": "TS_UNIT_FUTURE",
+      "policy": "POLICY-SWISS",
+      "setup": "R11 SW6-R3 fixture",
+      "sourceGreedy": {
+        "bye": null,
+        "pairs": [
+          [
+            1,
+            5
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            6
+          ]
+        ],
+        "rematches": 1
+      },
+      "minimumRematches": 0,
+      "witness": [
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          5
+        ]
+      ],
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "SW13-03",
+      "name": "Swiss rematch forced fallback",
+      "execution": "TS_UNIT_FUTURE",
+      "policy": "POLICY-SWISS",
+      "setup": "SW4-FORCED1 / SW4-EXHAUSTED",
+      "optimum": {
+        "forced1": 1,
+        "exhausted2": 2
+      },
+      "assertions": [
+        "deterministic minimum/approved fallback",
+        "each active entrant exactly once",
+        "no ghost or duplicate BYE"
+      ],
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "SW13-04",
+      "name": "Swiss BYE + NC vs cancelled",
+      "execution": "TS_UNIT_FUTURE",
+      "policy": "POLICY-SWISS",
+      "setup": "SW5-BYE-FIRST-FAIR, SW5-BYE-EXHAUSTED, SW4-NO-CONTEST, SW4-CANCELLED",
+      "currentSourceExpected": {
+        "firstAvailableBye": 4,
+        "allPriorByesRepeat": 5,
+        "completedNoContestCountsAsPriorOpponent": true,
+        "cancelledCountsAsPriorOpponent": false
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "DE13-01",
+      "name": "Grand Final upper wins, reset bye",
+      "execution": "PG16_API_FUTURE",
+      "policy": "POLICY-DE-GF",
+      "setup": "DE4-GF-UPPER",
+      "conditionalExpected": {
+        "champion": "A",
+        "runnerUp": "D",
+        "rank3Plus": "signature required"
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "DE13-02",
+      "name": "Grand Final reset, upper wins",
+      "execution": "PG16_API_FUTURE",
+      "policy": "POLICY-DE-GF",
+      "setup": "DE4-GF-RESET-UPPER",
+      "conditionalExpected": {
+        "champion": "A",
+        "runnerUp": "D",
+        "rank3Plus": "signature required"
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "DE13-03",
+      "name": "Grand Final reset, lower wins",
+      "execution": "PG16_API_FUTURE",
+      "policy": "POLICY-DE-GF",
+      "setup": "DE4-GF-RESET-LOWER",
+      "conditionalExpected": {
+        "champion": "D",
+        "runnerUp": "A",
+        "rank3Plus": "signature required"
+      },
+      "status": "POLICY_OPEN"
+    },
+    {
+      "id": "RR13-06",
+      "name": "RR stageSeed already source-corrected regression",
+      "execution": "PG16_HTTP_FUTURE",
+      "policy": "EXISTING_RELEASE",
+      "setup": "RR3 circular 1-1-1 tied record, global players.seed opposite stage_participants.stage_seed",
+      "assertions": [
+        "tie-break by stage_seed not global seed",
+        "same rank order across preview, final stage, public standings if contract prescribes"
+      ],
+      "status": "REGRESSION_ONLY"
+    }
+  ],
+  "evidenceSummary": {
+    "authorOfflineModel": "11 deterministic checks passed (Code Mode JS only)",
+    "nativeTypeScript": "NOT_EXECUTED",
+    "nativePG16": "NOT_EXECUTED",
+    "independentA60": "PENDING",
+    "mergeOrDeploy": "NOT_AUTHORIZED"
+  }
+}
