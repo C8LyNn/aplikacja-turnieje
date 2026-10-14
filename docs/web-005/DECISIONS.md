@@ -69,3 +69,12 @@ No merge, deploy, Replit, production data/schema/secrets changes or paid CI disp
 | D033 | New Wave2 task count, specialist roles and sequencing | DEFER until report contents, severity, dependencies and regression scope verified |
 | D034 | Source-of-truth intake output | Coordinator must update BACKLOG.md and DECISIONS.md and produce WEB-005-00-WEB004-NEXT-INTAKE-R1 after actual handoff |
 | D035 | Existing security/release restrictions persist despite new discoveries | NO REPLIT, NO PROD, NO AUTO-MERGE/DEPLOY, no unauthorized paid CI or test DB access |
+
+
+## Next security assignment to Agent 30
+
+| ID | Decision | Status |
+|---|---|---|
+| D036 | Allocate **T031-A30 — proxy-addr / trust proxy hardening** after T030 security PR #34 implementation handoff | **GO SOURCE-ONLY**. WEB-004 A80 SEC-013 / GHSA-jqcg-44mw-7w3h. No automatic T031 code changes or new branch until 00 reviews T030 QA and implementation capacity. |
+| D037 | Preserve PR #34 ownership and QA independence | **ENFORCED**. A60 must evaluate current HEAD `fae2eea2f22df3f1b02ad035a7db00bc411ea73f` (revalidate drift), PR34 is still OPEN DRAFT; T031 must use a separate branch and must not weaken 403/503 auth guarantees. |
+| D038 | Lockfile conflict coordination | **REQUIRED**. A30 and A10 T016 must agree on `pnpm-lock.yaml` ownership before implementation, and A50/A60 must provide isolated tests. |
