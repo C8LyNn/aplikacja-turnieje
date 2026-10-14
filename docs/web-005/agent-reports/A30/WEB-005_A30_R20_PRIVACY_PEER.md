@@ -1,7 +1,7 @@
 # WEB-005 — A30 R20 / PR53 Exact-SHA Privacy Peer
 
 **Task:** WEB-005-T030-T031-A30-R20 · **Agent:** A30 Security Implementation · **Mode:** SOURCE READ ONLY · **Date:** 2026-10-14 Europe/Warsaw.  
-**Authority:** [R20 central ``0–`2, AGENT A30](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_WAVE_R20_AGENT_PROMPTS.md), Git blob `dabf0146a08ef8488400df9268b52210662cbb63`.  
+**Authority:** [R20 central sections 0–2, AGENT A30](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_WAVE_R20_AGENT_PROMPTS.md), Git blob `dabf0146a08ef8488400df9268b52210662cbb63`.  
 **Project:** C8LyNn/aplikacja-turnieje. **Base:** `release/tournament-ops-20261013-01@1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`.  
 **PR:** [#53](https://github.com/C8LyNn/aplikacja-turnieje/pull/53), `fix/web-005/t080-s2a-private-auth-query-cache-r13`.  
 **HEAD checked R20:** `d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34`, OPEN/DRAFT/UNMERGED, same release base. **Change since R19:** none at review; R18→R19 `8710f7fe5946d7f62e366303a97722d4201fc96b` → `d1aebfca…` = four commits, three modified files (+110/-8 based on GitHub compare: +17/-1, +78/-0, +15/-7). **A30 R20 application code writes: ZERO**.
