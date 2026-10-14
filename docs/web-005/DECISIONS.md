@@ -273,3 +273,19 @@ No merge/cherry-pick, integrated SHA, physical PG16 test authorization, paid CI 
 | **D128** | Owner's final-only policy persists: WEB-005 must formally close accepted WEB-004 R2 backlog before one SWARM-006 transfer. No WEB-004 new reports; SWARM-007 continues communication/Drive architecture independently | **WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO** |
 
 No merge, cherry-pick, integration branch, database reset, production SQL/DDL, paid CI, staging/live, Replit integration or cross-swarm dispatch is authorized by this documentation update.
+
+
+## R17 — R16 delivery reconciliation and deferred code verification (2026-10-14)
+
+| ID | Decision | Status |
+|---|---|---|
+| **D129** | Owner states R16 agent threads completed. GitHub verification at control snapshot finds **no R16 agent-reports in central agent folders**, no R16 docs branches among returned branches, and **unchanged heads of PR41 / PR42 / PR53** relative to R15. | `R16_THREAD_DONE_CLAIM / R16_DELIVERY_NOT_VERIFIED`. Missing publication is not proof the agents did no work. |
+| **D130** | Publish [WEB-005_WAVE_R17_AGENT_PROMPTS.md](./WEB-005_WAVE_R17_AGENT_PROMPTS.md) for 13 agents, shared §0–§2 and exact Axx sections. | `R17_READY`, initial gate = publish R16 direct receipts or explain `PUBLICATION_BLOCKED`. |
+| **D131** | Conditionally carry over **the same three narrow R16 code scopes** on each agent's **existing PR**: A90 P08/PR41 QP/QPE/OP `sourceBasketPosition`, A70 P09/PR42 roster global Undo LIFO, A100 P20/PR53 noncanonical private query cache and test fixture. No additional lane, duplicate PR or cross-PR merge. | `GO_CODE_ONLY_CONDITIONAL`; if R16 patch already exists, only publish/verify and send for A60 source QA. |
+| **D132** | A120 P21/PR54 historical RR detail 403 vs lawful DE/Overview is test-contract/source-only during R17. | `CODE_HOLD` until free lane and separate GO. |
+| **D133** | A50 real tests still blocked by absent actual shell/checkout/pnpm/disposable PG16; A00/owner must provide one trusted executable path and explicit permission, separate test DB isolation/reset consent. | `P0_INFRA_BLOCKER`; no application test PASS inferred from planner/harness. |
+| **D134** | A60 original 21-packet R15 source matrix persists until newer exact-SHA independent verdict; don't carry acceptances across amended source. | 17 narrow/conditional/offline source scopes, 4 full-claim source blockers at R15; `QA_ACCEPTED_FULL=NO`. |
+| **D135** | Existing policy signoffs (Basket, Swiss/SE/DE, Backup B2, public Direct Revert CAS, Steam/session) remain owner/HQ decisions; no new WEB-004 report request. | `POLICY_OPEN`, no silent product semantics. |
+| **D136** | WEB-005 final-only owner directive persists: full accepted backlog and formal closeout before **one SWARM-006 integration handoff**; SWARM-007 is independent. | `WEB005_IN_PROGRESS / SWARM006_HOLD / RELEASE_NO_GO`. |
+
+No documentation decision here approves merge/cherry-pick/rebase to release/main, integration branch, production SQL, shared DB reset, paid CI, staging/live or cross-swarm dispatch.
