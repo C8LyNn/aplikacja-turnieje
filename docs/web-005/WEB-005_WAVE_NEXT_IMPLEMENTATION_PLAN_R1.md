@@ -234,3 +234,16 @@ The original plan remains the R2 intake baseline. **These later checks supersede
 - **Documentation owner**: SWARM-007 defines Drive file paths, naming and acceptance receipts. This addendum does not assert any Drive folders or transfers exist.
 
 The owner-approved product policy decisions, no production/SQL/merge/paid CI, and composite SHA release NO-GO conditions remain unchanged.
+
+
+## ADDENDUM R1B — Owner-finalized execution boundary (2026-10-14)
+
+**This addendum supersedes R1/R1A recommendations for interim SWARM-006 intake or batching by package count.** Owner directs WEB-005 to finish all accepted work based on WEB-004 Bug Hunting 002 HANDOFF R2 before the single final handoff. WEB-004 has stated that no further reports are presently necessary. No new audit campaign/report sourcing should be requested.
+
+- WEB-005 continues all source-confirmed, policy-approved repairs, test evidence and independent A60 scoped QA until the backlog is dispositioned. Open policy questions remain owner decisions; blocked/not-reproduced findings must not be claimed fixed.
+- A10 maintains P01+ manifest continuously **inside WEB-005 only**, including all later patches and exact refreshed commit SHAs. No interim package transfer/activation request to SWARM-006.
+- Formal completion = approved tasks fixed and independently validated at achievable scope, or explicitly marked blocked/policy-open/not-fix with owner-approved disposition; precise deficits carried to final handoff. 00 must compile final closure matrix and request final handoff authorization.
+- SWARM-006 starts WEB-005 integration only **after** this closure decision, then alone produces integrated SHA and complete cross-module runtime/release evidence. No merge, Replit, paid CI, production SQL or deploy is newly authorized by the final-only policy.
+- SWARM-007 continues infrastructure standards and Google Drive folder/archival architecture; no fictitious automatic inter-thread communications/archives.
+
+**Current state remains WEB005_IN_PROGRESS / RELEASE NO-GO.**
