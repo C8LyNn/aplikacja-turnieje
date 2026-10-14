@@ -425,6 +425,11 @@ test("R19 legacy untagged picks cannot rebind or display old A after list recove
     });
     await waitFor(() => assert.equal(current.result.current.data?.[0]?.player1HeroId, "NEW_AUTHORIZED"));
     assert.deepEqual(client.getQueryData(bPicks), [{ matchId: 801, gameNumber: 1, player1HeroId: "PUBLIC_B" }]);
+    // A later credential change must also evict the fresh owner-scoped key;
+    // the orphan raw legacy key is not incorrectly used as a substitute.
+    act(() => auth.result.current.removeViewerToken(7));
+    assert.equal(client.getQueryData(selected[0].queryKey), undefined);
+    assert.deepEqual(client.getQueryData(bPicks), [{ matchId: 801, gameNumber: 1, player1HeroId: "PUBLIC_B" }]);
     current.unmount();
     auth.unmount();
   } finally {
