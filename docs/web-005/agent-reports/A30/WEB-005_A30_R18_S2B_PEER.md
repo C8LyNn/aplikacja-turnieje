@@ -147,7 +147,7 @@ pnpm --filter @workspace/api-server typecheck
 
 ---
 
-## 8. LIVE R18 A100 SOURCE IMPLEMENTATION CHECKPOINT (supersedes `7 partial SHA)
+## 8. LIVE R18 A100 SOURCE IMPLEMENTATION CHECKPOINT (supersedes section 7 partial SHA)
 
 **New exact PR53 HEAD:** `3947508b70a5125a0d1b194be4bec4927740d382` (OPEN / DRAFT / UNMERGED), two commits since `fe381689c9ec20eadfe6312dda83b5c1f57328be`:
 
@@ -159,7 +159,7 @@ pnpm --filter @workspace/api-server typecheck
 - `artifacts/tournament-manager/src/lib/tournament-query-invalidation.ts` blob `955409d1456f13f3f291215712a1afcf322ad094`: metadata-aware owner eviction and denied 401/403 lookup persists; `isGamePicksQueryKey` now verifies exact three-element key, positive safe integer match ID and literal `game-picks` before accepting query meta. The fallback from cached authorized tournament match list remains scoped; no global match purge.
 - `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` blob `6357e6af447f12c9f73c6b613c3f51cfa718a2e6`: five new R18 tests added on top of 15 earlier authored scenarios, including owner metadata at hook creation, 403 after canonical list removal, delayed response after removal, fail-closed unknown/ambiguous match and mismatched DTO. **Authored, NOT_EXECUTED**.
 
-**A30 source-positive conditional assessment:** \`FETCH_TIME_OWNER_METADATA_PRESENT / UNATTRIBUTED_FETCH_DISABLED / OWNER_A_EVICTION_AND_403_HANDLER_PRESENT / BOUNDARY_EXACT_MATCH_KEY / NO_BROAD_PURGE\`. This is a substantive correction of `7's `PRODUCER_ABSENT` blocker; do NOT carry the intermediate `fe381…` verdict forward as the latest state.
+**A30 source-positive conditional assessment:** \`FETCH_TIME_OWNER_METADATA_PRESENT / UNATTRIBUTED_FETCH_DISABLED / OWNER_A_EVICTION_AND_403_HANDLER_PRESENT / BOUNDARY_EXACT_MATCH_KEY / NO_BROAD_PURGE\`. This corrects the previous section 7 PRODUCER_ABSENT blocker; do NOT carry the intermediate `fe381…` verdict forward as the latest state.
 
 **Two outstanding independent QA/security questions:**
 
@@ -176,7 +176,7 @@ pnpm --filter @workspace/api-server typecheck
 
 ---
 
-## 9. LATEST R18 TEST-ONLY DELTA (supersedes `8 pinned HEAD for tests)
+## 9. LATEST R18 TEST-ONLY DELTA (supersedes section 8 pinned HEAD for tests)
 
 **New observed PR53 HEAD:** `62fbdfae556e9dc48d40e00708a2954611c782d5`, OPEN/DRAFT/UNMERGED. Comparison from `3947508b70a5125a0d1b194be4bec4927740d382` = **two further TEST-ONLY commits**:
 
@@ -184,7 +184,22 @@ pnpm --filter @workspace/api-server typecheck
 - `62fbdfae556e9dc48d40e00708a2954611c782d5` — parameterizes metadata-owned denied-fetch assertions for **401 and 403**.
 - Only `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` changed in this delta, new Git blob `3a1f8f19d6b71e3aacd2e5b2fef971b5756da033`. Production blobs remain `59fbc215607fd82f55dc5af6d938310cc9f2ef69` (Deadlock hooks) and `955409d1456f13f3f291215712a1afcf322ad094` (cache invalidation) from `3947508b…`.
 
-**A30 appraisal:** positive for **test coverage breadth**, but `AUTHORED_TESTS_NOT_RUNTIME_PASS`. A50 must independently execute with exact SHA/TAP/exit; A60 must independently confirm this exact source. The credential-epoch/legacy preexisting cache issue (`8, U1) and wrong-view cached tenant (`8, U2) remain **targeted acceptance questions**, not claimed exploited. The new real enabled hook test covers one late response, but not all orphan legacy cache rehydration paths.
+**A30 appraisal:** positive for **test coverage breadth**, but `AUTHORED_TESTS_NOT_RUNTIME_PASS`. A50 must independently execute with exact SHA/TAP/exit; A60 must independently confirm this exact source. The credential-epoch/legacy preexisting cache issue (section 8, U1) and wrong-view cached tenant (section 8, U2) remain **targeted acceptance questions**, not claimed exploited. The new real enabled hook test covers one late response, but not all orphan legacy cache rehydration paths.
 
 **Current reviewed security peer disposition on `62fbdfae…`:**  
 `PATCH_REVISED / FETCH_TIME_OWNER_PRESENT / META_EVICTION_SOURCE_PRESENT / ENABLED_FETCH_LATE_RESPONSE_TEST_AUTHORED / DENIED_401_403_TESTS_AUTHORED / LEGACY_EPOCH_QA_REQUIRED / A50_NATIVE_NOT_EXECUTED / A60_R18_PENDING / RELEASE_NO_GO`.
+
+
+---
+
+## 10. FINAL R18 PR53 exact HEAD security peer checkpoint
+
+**Reviewed PR53 HEAD:** `8710f7fe5946d7f62e366303a97722d4201fc96b`, OPEN/DRAFT/UNMERGED. One R18 **test-only** commit after `62fbdfae556e9dc48d40e00708a2954611c782d5`, changing only `artifacts/tournament-manager/src/lib/tournament-auth-query-cache.test.tsx` (blob `37f7a9923e9081b4fd4340f1833790f9abd28813`). New test mounts the `useAuth` and `useMatchGamePicks` hooks inside **one AuthProvider observer** for the enabled pending HTTP response/logout regression. It does not change production code.
+
+**Cumulative PR53 delta compared with A60 R17 `8f959733258aed0cab15298dd0684ca068045e6f`: seven R18 commits** in the **same PR53 branch**, changing the Deadlock hooks, cache invalidation and S2B tests. Production blobs remain `59fbc215607fd82f55dc5af6d938310cc9f2ef69` (hook-side owner proof and metadata; unowned fetch disabled) and `955409d1456f13f3f291215712a1afcf322ad094` (scoped metadata-owner eviction on logout and 401/403 with fallback). The exact R18 HEAD has **no independent A60 R18 acceptance at this checkpoint** and no A50 native frontend exit.
+
+**A30 SOURCE_REVIEWED_CONDITIONAL** for the current implementation: verified match→tournament proof comes from successful, scoped canonical match-list response at hook creation; query metadata survives deletion of that parent list; no guess based on numeric match ID; unknown or conflicting owner disables private picks GET; no global A/B eviction. Negative authored tests now include active enabled pending fetch, denied 401/403, unknown/ambiguous owners, strict 7/70 and preservation of B. **Authored ≠ executed.**
+
+**Still require explicit independent QA decisions:** (a) seed a legacy untagged `["matches",mid,"game-picks"]` with PRIVATE_A_ONLY when no cached parent list exists; change roles/credentials, then establish a valid owner list and mount the hook. The same match-ID-only key could yield that old cached data before authorization-epoch freshness is proven (`STATIC_INFERRED`, not measured). (b) unique cached owner A selected while a Host for B is active; prove current page/tenant and header-scoped authorization is not confused. Include legitimate public B, support/private_offline and active real UI observer. These are test acceptance risks, not asserted production exploits.
+
+**Current R18 peer disposition:** `PATCH_REVISED / SOURCE_REVIEWED_CONDITIONAL_FETCH_OWNER / LEGACY_AUTH_EPOCH_RISK_STATIC_INFERRED / A50_APP_TESTS_NOT_EXECUTED / A60_NEW_EXACT_SHA_PENDING / RELEASE_NO_GO / SWARM006_HOLD`. No application code commits by A30. Another A100 HEAD requires new QA.
