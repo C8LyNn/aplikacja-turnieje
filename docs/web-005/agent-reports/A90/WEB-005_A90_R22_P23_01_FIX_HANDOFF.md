@@ -56,7 +56,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @workspace/api-server run typecheck
 pnpm --filter @workspace/api-server exec node --import tsx --test ./test/backup-v3-strict-policy.test.ts
 ~~~
-Record actual shell exit, TAP pass/fail and test names; do not infer 6 new TAP PASS from authored bodies. Automatic workflow for final HEAD [run 38698700862](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38698700862) was observed **in_progress**, not an asserted successful CI. Do not initiate manually paid CI.
+Record actual shell exit, TAP pass/fail and test names; do not infer 6 new TAP PASS from authored bodies. Automatic workflow for final HEAD [run 38698700862](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38698700862) is now **completed FAILURE** in job `116301422802`, failed at **Pack 19 snapshot consistency tests**; the **Static and database release gates were SKIPPED**. This is an upstream CI contract blocker, **NOT** a targeted PR56 BYE unit PASS or FAIL. No manual paid CI rerun.
 
 ## 4. Required independent follow-ups and stops
 
