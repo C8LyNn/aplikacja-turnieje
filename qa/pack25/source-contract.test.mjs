@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 const read = p => readFileSync(path.join(process.cwd(),p),"utf8");
+const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, '');
 const server=read("artifacts/api-server/src/routes/tournament-se-correction-readiness.ts");
 const ui=read("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
 const spec=read("lib/api-spec/openapi.yaml");
@@ -11,7 +12,7 @@ const engine=read("artifacts/api-server/src/domain/tournament/se-correction-impa
 test("Pack25 output is generated from consistent existing SE readiness transaction",()=>{
   assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
   assert.match(server,/matchId:match\.id,stage,stages,stageMatches:matches,actionPlan/);
-  assert.match(server,/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
+  assert.match(withoutComments(server),/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
 });
 test("no extra write route; reuses organizer access and read-only endpoint",()=>{
   assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
