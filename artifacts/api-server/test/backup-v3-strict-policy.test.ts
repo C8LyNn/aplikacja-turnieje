@@ -326,12 +326,16 @@ test("P23-01 forged, missing, stale or undoable system BYE action fails closed",
 
 test("P23-01 manual played and non-BYE results may not masquerade as a system BYE", () => {
   const played = modernSpecimen();
-  played.actionLog[0].actionType = "system_bye_assigned";
-  played.actionLog[0].canUndo = false;
-  played.actionLog[0].isUndone = false;
-  played.actionLog[0].undoPayload = null as unknown as typeof played.actionLog[0]["undoPayload"];
-  played.strictPolicy.completionActions = [];
-  rejectsInvalid(played, "manual played result still requires active typed manual completion");
+  const impostor = {
+    ...played,
+    actionLog: [{
+      ...played.actionLog[0],
+      actionType: "system_bye_assigned", canUndo: false,
+      undoPayload: null, isUndone: false,
+    }],
+    strictPolicy: { ...played.strictPolicy, completionActions: [] },
+  };
+  rejectsInvalid(impostor, "manual played result still requires active typed manual completion");
 
   // No broad 'resultType != played' bypass for NC/walkover.
   for (const resultType of ["walkover", "no_contest"]) {
