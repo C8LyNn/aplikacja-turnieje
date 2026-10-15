@@ -5,14 +5,6 @@
 @import "./experimental-tournaments.css";
 @plugin "@tailwindcss/typography";
 
-@font-face {
-  font-family: 'Valve Pulp Bold';
-  src: url('/fonts/valvepulp-bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
