@@ -77,7 +77,8 @@ test("CORPUS v1 is an explicit immutable list of test obligations (no implied ru
 test("BI-01-STRIP: strict marker stripped but envelope/modern fields remain => 400 preclone", async () => {
   const signedShape = untrustedStrictEnvelope();
   delete signedShape.backup.strictPolicy;
-  deny(...Object.values(await ingress(signedShape)).slice(0, 2));
+  const {result,writes} = await ingress(signedShape);
+  deny(result,writes);
 });
 
 test("BI-02-UNKNOWN-ISSUER: unrecognized keyId/issuer => 400; no self-signed trust", async () => {
