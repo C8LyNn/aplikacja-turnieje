@@ -218,7 +218,7 @@ export function validateStrictBackupV3Policy(
     if (action.actionType !== "system_bye_assigned") continue;
     const id = action.matchBackupId;
     const match = positiveInt(id) ? matchById.get(id) : undefined;
-    if (!match || !legalSystemByeIds.has(id) ||
+    if (!positiveInt(id) || !match || !legalSystemByeIds.has(id) ||
         action.stageBackupId !== match.stageBackupId ||
         action.canUndo !== false || action.undoPayload !== null ||
         action.isUndone !== false) {
