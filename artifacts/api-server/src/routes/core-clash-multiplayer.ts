@@ -62,6 +62,8 @@ const rooms = new Map<string, CoreClashRoom>();
 const ROOM_TTL_MS = 45 * 60 * 1_000;
 const MATCHMAKING_STALE_MS = 8_000;
 const PUBLIC_WAITING_STALE_MS = 90_000;
+const PLAYER_CONNECTED_MS = 5_000;
+const PLAYER_RECONNECT_GRACE_MS = 45_000;
 const SNAPSHOT_MAX_APPROX_BYTES = 1_500_000;
 const REPLAY_CHUNK_MAX_APPROX_BYTES = 1_500_000;
 const MAX_REPLAY_ACTIONS = 16;
@@ -100,6 +102,29 @@ function cleanupRooms(): void {
       rooms.delete(id);
       continue;
     }
+
+    const participants = (["player", "cpu"] as const)
+      .map((side) => room.players[side])
+      .filter((player): player is RoomPlayer => Boolean(player));
+
+    if (participants.length === 2) {
+      const stalePlayers = participants.filter(
+        (player) => timestamp - player.lastSeenAt > PLAYER_RECONNECT_GRACE_MS,
+      );
+      if (stalePlayers.length === 2) {
+        rooms.delete(id);
+        continue;
+      }
+      if (stalePlayers.length === 1) {
+        if (room.matchmaking) {
+          rooms.delete(id);
+        } else {
+          resetPublicRoomAfterLeave(room, stalePlayers[0]);
+        }
+        continue;
+      }
+    }
+
     if (room.status !== "waiting" || playerCount(room) !== 1) continue;
     const host = room.players.player;
     if (!host) {
@@ -143,12 +168,15 @@ function latestReplay(room: CoreClashRoom): ReplayAction | null {
 }
 
 function roomView(room: CoreClashRoom, includeDecks = false) {
+  const timestamp = now();
   const mapPlayer = (player?: RoomPlayer) =>
     player
       ? {
           name: player.name,
           side: player.side,
           ready: player.ready,
+          connected: timestamp - player.lastSeenAt <= PLAYER_CONNECTED_MS,
+          reconnectGraceMs: Math.max(0, PLAYER_RECONNECT_GRACE_MS - (timestamp - player.lastSeenAt)),
           ...(includeDecks ? { deck: player.deck } : {}),
         }
       : null;
@@ -411,10 +439,21 @@ export function createCoreClashMultiplayerRouter(): IRouter {
     }
 
     try {
+      const browserId = cleanBrowserId(req.body?.browserId);
+      const sameBrowserAlreadyPresent = (["player", "cpu"] as const).some(
+        (side) => room.players[side]?.browserId === browserId,
+      );
+      if (sameBrowserAlreadyPresent) {
+        res.status(409).json({
+          error: "Ta przeglądarka jest już uczestnikiem tego pokoju.",
+          code: "SAME_BROWSER_SESSION",
+        });
+        return;
+      }
       const player = joinRoom(
         room,
         cleanText(req.body?.playerName, "Gracz 2", 24),
-        cleanBrowserId(req.body?.browserId),
+        browserId,
       );
       res.json({
         room: roomView(room, true),
@@ -447,6 +486,7 @@ export function createCoreClashMultiplayerRouter(): IRouter {
           room.matchmaking &&
           room.status === "waiting" &&
           playerCount(room) === 1 &&
+          room.players.player?.browserId !== browserId &&
           (room.players.player?.lastSeenAt ?? 0) >= freshCutoff,
       )
       .sort((a, b) => a.createdAt - b.createdAt)[0];
