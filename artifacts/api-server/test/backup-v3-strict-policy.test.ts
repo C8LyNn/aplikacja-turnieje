@@ -169,3 +169,175 @@ test("B6 typed INVALID_BACKUP_V3 is a pure error, not an HTTP/SQL transaction cl
       error.code === "INVALID_BACKUP_V3" && error.issues.length > 0,
   );
 });
+
+
+/**
+ * P23-01: The REAL Swiss startup and next-round writer completes a system BYE,
+ * inserts matching resultHistory and writes system_bye_assigned (never a
+ * phantom match_result_submitted, undo token or active manual completion).
+ */
+function systemByeSpecimen() {
+  const base = modernSpecimen();
+  return {
+    ...base,
+    matches: [{
+      ...base.matches[0],
+      player2BackupId: null as number | null,
+      winnerBackupId: 11,
+      score1: null as number | null,
+      score2: null as number | null,
+      resultType: "bye",
+      resultReason: "system_bye",
+    }],
+    resultHistory: [{
+      ...base.resultHistory[0],
+      revision: 1,
+      player2BackupId: null as number | null,
+      winnerBackupId: 11,
+      score1: null as number | null,
+      score2: null as number | null,
+      resultType: "bye",
+      resultReason: "system_bye",
+    }],
+    actionLog: [{
+      ...base.actionLog[0],
+      actionType: "system_bye_assigned",
+      canUndo: false,
+      undoPayload: null as Record<string, unknown> | null,
+      isUndone: false,
+    }],
+    strictPolicy: {
+      ...base.strictPolicy,
+      matchStateRevisions: [{ matchBackupId: 21, stateRevision: 1 }],
+      completionActions: [],
+    },
+  };
+}
+
+test("P23-01 legal system BYE: actual Swiss history and non-undoable action are accepted", () => {
+  const bye = systemByeSpecimen();
+  assert.equal(bye.matches[0].status, "completed");
+  assert.equal(bye.matches[0].resultType, "bye");
+  assert.equal(bye.matches[0].resultReason, "system_bye");
+  assert.equal(bye.matches[0].player2BackupId, null);
+  assert.equal(bye.actionLog[0].actionType, "system_bye_assigned");
+  assert.equal(bye.actionLog[0].undoPayload, null);
+  assert.equal(bye.actionLog[0].canUndo, false);
+  assert.equal(bye.strictPolicy.completionActions.length, 0);
+  assert.doesNotThrow(() => validateStrictBackupV3Policy(bye));
+});
+
+test("P23-01 legal mixed completed played + system BYE keeps disjoint provenance", () => {
+  const played = modernSpecimen();
+  const bye = systemByeSpecimen();
+  const hybrid = {
+    ...played,
+    matches: [played.matches[0], {
+      ...bye.matches[0], backupId: 22, round: 2,
+    }],
+    resultHistory: [played.resultHistory[0], {
+      ...bye.resultHistory[0], matchBackupId: 22, round: 2,
+    }],
+    actionLog: [played.actionLog[0], {
+      ...bye.actionLog[0], matchBackupId: 22,
+    }],
+    strictPolicy: {
+      ...played.strictPolicy,
+      matchStateRevisions: [
+        played.strictPolicy.matchStateRevisions[0],
+        { matchBackupId: 22, stateRevision: 1 },
+      ],
+      actionOrder: [
+        played.strictPolicy.actionOrder[0],
+        { sourceActionIndex: 1, portableActionId: "act-system-bye", ordinal: 2 },
+      ],
+    },
+  };
+  assert.doesNotThrow(() => validateStrictBackupV3Policy(hybrid));
+  // A system action must never be promoted to a second manual completion.
+  hybrid.strictPolicy.completionActions.push({
+    sourceActionIndex: 1, matchBackupId: 22, historyRevision: 1, active: true,
+  });
+  rejectsInvalid(hybrid, "system BYE may not acquire an active manual completion token");
+});
+
+test("P23-01 completed system BYE missing/mismatched latest history fails closed", () => {
+  const noHistory = systemByeSpecimen();
+  noHistory.resultHistory = [];
+  rejectsInvalid(noHistory, "system BYE requires genuine history");
+  const wrongHistory = systemByeSpecimen();
+  wrongHistory.resultHistory[0].winnerBackupId = 12;
+  rejectsInvalid(wrongHistory, "system BYE history winner contradiction rejects");
+});
+
+test("P23-01 forged system BYE entrants, winner, score and reason are rejected even if history matches", () => {
+  for (const mutate of [
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.matches[0].player2BackupId = 12;
+      b.resultHistory[0].player2BackupId = 12;
+    },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.matches[0].winnerBackupId = 12;
+      b.resultHistory[0].winnerBackupId = 12;
+    },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.matches[0].player1BackupId = 12;
+      b.resultHistory[0].player1BackupId = 12;
+    },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.matches[0].score1 = 1;
+      b.resultHistory[0].score1 = 1;
+    },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.matches[0].resultReason = "other_reason";
+      b.resultHistory[0].resultReason = "other_reason";
+    },
+  ]) {
+    const b = systemByeSpecimen();
+    mutate(b);
+    rejectsInvalid(b, "forged BYE cannot gain a system-completion exception");
+  }
+});
+
+test("P23-01 forged, missing, stale or undoable system BYE action fails closed", () => {
+  for (const mutate of [
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].actionType = "match_result_submitted"; },
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].matchBackupId = 999; },
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].stageBackupId = 77; },
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].canUndo = true; },
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].undoPayload = { matchId: 21 }; },
+    (b: ReturnType<typeof systemByeSpecimen>) => { b.actionLog[0].isUndone = true; },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.actionLog = [];
+      b.strictPolicy.actionOrder = [];
+    },
+    (b: ReturnType<typeof systemByeSpecimen>) => {
+      b.actionLog.push({ ...b.actionLog[0] });
+      b.strictPolicy.actionOrder.push({
+        sourceActionIndex: 1, portableActionId: "duplicate-system-bye", ordinal: 2,
+      });
+    },
+  ]) {
+    const b = systemByeSpecimen();
+    mutate(b);
+    rejectsInvalid(b, "exactly one valid, non-undoable system BYE action is required");
+  }
+});
+
+test("P23-01 manual played and non-BYE results may not masquerade as a system BYE", () => {
+  const played = modernSpecimen();
+  played.actionLog[0].actionType = "system_bye_assigned";
+  played.actionLog[0].canUndo = false;
+  played.actionLog[0].isUndone = false;
+  played.actionLog[0].undoPayload = null as unknown as typeof played.actionLog[0]["undoPayload"];
+  played.strictPolicy.completionActions = [];
+  rejectsInvalid(played, "manual played result still requires active typed manual completion");
+
+  // No broad 'resultType != played' bypass for NC/walkover.
+  for (const resultType of ["walkover", "no_contest"]) {
+    const b = systemByeSpecimen();
+    b.matches[0].resultType = resultType;
+    b.resultHistory[0].resultType = resultType;
+    rejectsInvalid(b, "unsupported forged system resolution is not a completed BYE");
+  }
+});
