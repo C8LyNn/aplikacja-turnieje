@@ -7,9 +7,30 @@
   "profiles": [
     {
       "profile": "CompositeA40",
-      "sha": null,
+      "sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
       "require_explicit_exact_sha": true,
-      "why": "No GitHub-backed first composite A40 SHA verified at publication. Must be supplied by A40/A00, present in authorized local source repository."
+      "why": "Verified A40 composite PR60 exact SHA; no protected merge. Safety: no Pack17 --full or PG16.",
+      "pr": 60,
+      "pinned_branch": "integration/web-005/r23c-composite-b1-20261015",
+      "source_manifest_blob": "43dfdab3c0e347e3b04bb0aa600810c279c66f2d",
+      "included_prs": [
+        35,
+        36,
+        40,
+        56,
+        57,
+        58
+      ],
+      "included_file_count": 14,
+      "suites": [
+        "Pack19to26",
+        "Pack17Pure",
+        "BackupStrict",
+        "BackupProfile",
+        "Swiss",
+        "ApiTypecheck",
+        "FrontendUnit"
+      ]
     },
     {
       "profile": "PR36",
@@ -80,5 +101,17 @@
     "frozen_lockfile": "required; pnpm install --frozen-lockfile only with -AllowInstall",
     "test_go": "-AuthorizeRun explicit"
   },
-  "no_live_tests_executed_by_A50": true
+  "no_live_tests_executed_by_A50": true,
+  "composite_a40_automatic_ci": {
+    "run": 38736073793,
+    "job": 116425579970,
+    "sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "pack19_26": "SUCCESS",
+    "pack17_source_pure": "PASS",
+    "pack17_pg16_atomic": "8/8 PASS IN AUTOMATIC EPHEMERAL CI ONLY",
+    "pack17_workspace_typecheck": "SUCCESS IN AUTOMATIC CI",
+    "pack17_api_integration": "EXIT_1",
+    "later_frontend_build_gates": "NOT_EXECUTED",
+    "manual_ci_retriggered": false
+  }
 }
