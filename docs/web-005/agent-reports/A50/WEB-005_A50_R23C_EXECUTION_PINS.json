@@ -1,0 +1,84 @@
+{
+  "schema": "WEB005.A50.R23C.EXECUTOR_PINS/1",
+  "task": "WEB-005-T131-A50-R23C-NATIVE-EXECUTOR",
+  "date": "2026-10-15",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "profiles": [
+    {
+      "profile": "CompositeA40",
+      "sha": null,
+      "require_explicit_exact_sha": true,
+      "why": "No GitHub-backed first composite A40 SHA verified at publication. Must be supplied by A40/A00, present in authorized local source repository."
+    },
+    {
+      "profile": "PR36",
+      "pr": 36,
+      "sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "suites": [
+        "Pack19to26",
+        "ApiTypecheck"
+      ]
+    },
+    {
+      "profile": "PR56",
+      "pr": 56,
+      "sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "suites": [
+        "BackupStrict",
+        "ApiTypecheck"
+      ]
+    },
+    {
+      "profile": "PR57",
+      "pr": 57,
+      "sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "suites": [
+        "Swiss",
+        "ApiTypecheck"
+      ]
+    },
+    {
+      "profile": "PR58",
+      "pr": 58,
+      "sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "suites": [
+        "BackupProfile",
+        "ApiTypecheck"
+      ]
+    }
+  ],
+  "ci_prerequisites": [
+    {
+      "pr": 35,
+      "sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "purpose": "Pack19 source contract matching fix, isolated, not merged"
+    },
+    {
+      "pr": 36,
+      "sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "purpose": "Pack20/21/25/26 source contracts, isolated"
+    }
+  ],
+  "forbidden": [
+    "Pack17 --full",
+    "Basket CAS integration test",
+    "resetTestSchema",
+    "dropTestSchema",
+    "SQL/DDL/PG16",
+    "paid CI",
+    "merge/rebase/cherry-pick",
+    "deploy"
+  ],
+  "runtime_preflight_only": {
+    "node": "22.x",
+    "pnpm": "10.x",
+    "powershell": "7+",
+    "git": "installed",
+    "full_local_repo": "required",
+    "isolated_fresh_clone": "script creates",
+    "frozen_lockfile": "required; pnpm install --frozen-lockfile only with -AllowInstall",
+    "test_go": "-AuthorizeRun explicit"
+  },
+  "no_live_tests_executed_by_A50": true
+}
