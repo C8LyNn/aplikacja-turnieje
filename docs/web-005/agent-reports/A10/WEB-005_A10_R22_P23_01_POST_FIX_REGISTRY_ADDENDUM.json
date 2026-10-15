@@ -1,0 +1,216 @@
+{
+  "schema": "WEB005_A10_R22_P23_01_POST_FIX_APPEND_ONLY_V1",
+  "task": "WEB-005-T018-A10-R22-P23-01-CLOSEOUT",
+  "agent": "A10",
+  "date": "2026-10-15 Europe/Warsaw",
+  "mode": "APPEND_ONLY_DOCS_ONLY",
+  "repository": "C8LyNn/aplikacja-turnieje",
+  "documentation_branch": "chore/web-005/t000-wave1-control",
+  "history_policy": "APPEND_ONLY; older P01-P24 and 96 historical file digests not overwritten",
+  "immutable_registry_predecessors": {
+    "r22_late_delta_json_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_LATE_DELTA_REGISTRY.json",
+    "r22_late_delta_markdown_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_LATE_DELTA_REGISTRY.md",
+    "r22_late_delta_json_blob_sha1": "25cc2d206768123e4f73e4a20483ef41ddeb9471",
+    "r22_late_delta_markdown_blob_sha1": "435655b9d211ac90d28443d3b34e31b4ef988185",
+    "original_P23_remains_in_historical_manifest": true
+  },
+  "packet": "P23",
+  "source_pr": 56,
+  "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/56",
+  "pr_state": "OPEN_DRAFT_UNMERGED",
+  "release_base": {
+    "ref": "release/tournament-ops-20261013-01",
+    "sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+  },
+  "original_revision": {
+    "revision": "P23_R22_INITIAL",
+    "head_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+    "classification_at_original_intake": "SOURCE_QA_PENDING",
+    "files": [
+      {
+        "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+        "git_blob_sha1": "c663c3d8347f22caf9375ae48a6f7670a6629d34",
+        "sha256": "030e852b52b3ba6cb031dedf3791e7f35ac6721215d30f2ca5851928b189d2b8",
+        "size_bytes": 12058,
+        "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/77707092202ca79277de7bc57cc4e37e4c033171/artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts"
+      },
+      {
+        "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+        "git_blob_sha1": "fdd1f5a7efc95f87ef4fcf38eb0393563bf56adc",
+        "sha256": "aa687172a7b0b68a5b3f30b60e17c74872ee4e09c4e3281945903087a5e00dea",
+        "size_bytes": 7930,
+        "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/77707092202ca79277de7bc57cc4e37e4c033171/artifacts/api-server/test/backup-v3-strict-policy.test.ts"
+      }
+    ],
+    "historical_preservation": "Do not rewrite original entry or reinterpret the original SHA's QA gate"
+  },
+  "appended_revision": {
+    "revision": "P23-01_POST_FIX",
+    "head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "branch": "fix/web-005/t060-b2-strict-policy-core-r22",
+    "compare_previous_url": "https://github.com/C8LyNn/aplikacja-turnieje/compare/77707092202ca79277de7bc57cc4e37e4c033171...a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "compare_release_url": "https://github.com/C8LyNn/aplikacja-turnieje/compare/1fdc401d87c6bffe6bf7312dfc9db681b689dcf7...a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "ahead_of_original": 4,
+    "behind_original": 0,
+    "changed_existing_paths_only": 2,
+    "changed_files": [
+      {
+        "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+        "git_blob_sha1": "595c68b87a5361623bef6293519ed668e9d4e493",
+        "sha256": "98530f871f27a9851fe89571f56fd6c9313816f1b8f0c4baea8986ca9350c2d6",
+        "size_bytes": 13944,
+        "lines": 325,
+        "delta_additions": 42,
+        "delta_deletions": 2,
+        "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/a7f71a7e7efdabd479b358a3cee80bc6359c4321/artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts"
+      },
+      {
+        "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+        "git_blob_sha1": "d1242b84c9b2db269ab6864459d8d11656d4fe8c",
+        "sha256": "11aa4c9754829771ab40ad39bbbdd4e100591f958bad7407ba42f137b9eac59f",
+        "size_bytes": 14470,
+        "lines": 347,
+        "delta_additions": 176,
+        "delta_deletions": 0,
+        "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/a7f71a7e7efdabd479b358a3cee80bc6359c4321/artifacts/api-server/test/backup-v3-strict-policy.test.ts"
+      }
+    ],
+    "post_fix_commit_order": [
+      {
+        "sequence": 1,
+        "sha": "b2b1cbacca0b7ff81c0977c2a6554a262d9f65c7",
+        "kind": "test-first",
+        "description": "reproduce lawful system BYE and forged-provenance negatives",
+        "url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/b2b1cbacca0b7ff81c0977c2a6554a262d9f65c7"
+      },
+      {
+        "sequence": 2,
+        "sha": "7c73c7316bc30a150e7aad9cd510d30b4399ac19",
+        "kind": "source-fix",
+        "description": "separate lawful system BYE provenance from manual completion",
+        "url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/7c73c7316bc30a150e7aad9cd510d30b4399ac19"
+      },
+      {
+        "sequence": 3,
+        "sha": "3391867f32a41ca377dd153ad49b3bbb52e5e9c5",
+        "kind": "test-typing",
+        "description": "keep played-as-system forgery fixture typed",
+        "url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/3391867f32a41ca377dd153ad49b3bbb52e5e9c5"
+      },
+      {
+        "sequence": 4,
+        "sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+        "kind": "source-guard",
+        "description": "narrow unknown BYE match ID before typed Set/Map lookup",
+        "url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/a7f71a7e7efdabd479b358a3cee80bc6359c4321"
+      }
+    ],
+    "defect_id": "P23-01",
+    "defect_status": "SOURCE_DEFECT_FIXED",
+    "fixed_behavior": "Legitimate completed system_bye match with system_bye_assigned is validated on its own typed, non-undoable provenance path without requiring match_result_submitted. Manual result completion still requires one proven active manual action.",
+    "independent_A60_exact_sha_qa": {
+      "report_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_PR56_P23_01_POST_FIX_INDEPENDENT_QA.md",
+      "report_git_blob_sha1": "d8c900df075903413ca3d0ce4fec3b4aa2d18e84",
+      "reviewed_head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "verdict": "PASS WITH CONDITIONS",
+      "source_scope": "P23-01_CLOSED_SOURCE / P23_STRICT_CORE_SOURCE_ACCEPTED_SCOPED",
+      "executed_isolated_node_tests": {
+        "total": 22,
+        "pass": 22,
+        "fail": 0,
+        "skip": 0,
+        "author_A90": {
+          "total": 14,
+          "pass": 14,
+          "command": "node --test dist/test/backup-v3-strict-policy.test.js",
+          "exit_code": 0,
+          "new_regression_cases": 6,
+          "new_regression_case_scopes": [
+            "accept lawful completed system BYE with latest history and nonundoable system_bye_assigned",
+            "accept mixed completed played plus system BYE; reject BYE disguised as manual completion",
+            "reject absent or wrong latest BYE result history",
+            "reject forged BYE participant/winner/scores/reason, even if match and history are mutated together",
+            "reject absent/duplicate/foreign/stale/wrong-stage/undoable/forged BYE action",
+            "reject played/walkover/no_contest masquerading as system BYE"
+          ]
+        },
+        "additional_independent_A60": {
+          "total": 8,
+          "pass": 8,
+          "command": "node --test independent-negative.js",
+          "exit_code": 0,
+          "cases": [
+            "minimal lawful BYE positive",
+            "invalid action match IDs: 0, -1, null, undefined and string",
+            "duplicate system BYE action",
+            "wrong-stage action",
+            "forbidden undo capability/payload",
+            "missing history or tampered winner",
+            "strict marker removed -> UNATTESTED",
+            "forged active manual completion on BYE"
+          ]
+        },
+        "runtime": "disposable Linux; Node v22.16.0; TypeScript compiler library v5.8.3",
+        "execution_provenance": "A60 executed locally against JavaScript emitted by sandbox-only TypeScript transpileModule from source/test bytes matching both reviewed Git blobs. A10 did not rerun tests.",
+        "transpile_diagnostics": 0,
+        "semantic_typecheck": false,
+        "no_db_access": true,
+        "no_github_actions_triggered": true
+      },
+      "ci": {
+        "workflow_run_url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38698700862",
+        "workflow_run_id": 38698700862,
+        "correction_qa": "FAILURE",
+        "cause_reported_from_actual_A60_logs": "Inherited Pack19 source-contract test: 7 PASS, 1 FAIL, readOnly:true vs accessMode:'read only'; later gates skipped, Backup validator test suite not run in CI",
+        "standalone_pr35_dependency": true,
+        "ci_green": false
+      },
+      "not_verified": [
+        "full monorepo TypeScript typecheck with reliable success exit",
+        "frozen pnpm workspace build and integration",
+        "Backup V3 importer/exporter wired-path execution",
+        "HTTP preclone 400 INVALID_BACKUP_V3 and late transaction rollback",
+        "real legacy V2/V3 provenance classification and downgrade safety",
+        "PG16 database restore and portable match state revision/history consistency",
+        "integrated GitHub CI of Backup validator"
+      ],
+      "attempted_tsc": "timed out without conclusive exit; never classified PASS",
+      "conclusions_not_proven": [
+        "full Backup B2 implementation",
+        "FINAL_HANDOFF_GO",
+        "release GO"
+      ]
+    },
+    "gates": {
+      "P23_01": "SOURCE_DEFECT_FIXED",
+      "source_classification": "SOURCE_ACCEPTED_SCOPED",
+      "BACKUP_V3_NOT_WIRED": true,
+      "SWARM006_HOLD": true,
+      "RELEASE_NO_GO": true,
+      "WEB005_HANDOFF_NOT_READY": true,
+      "outstanding_owners_and_dependencies": [
+        "A30/A00 trustworthy modern-vs-legacy provenance and downgrade defense",
+        "PR41/PR48 Backup parity/MVCC integration",
+        "A20/A70 portable match revision/action/rollback testing with approved isolated PG16",
+        "A110 T055 basketConfigRevision compatibility",
+        "trusted full checkout and authoritatively recorded typecheck/test/CI gates",
+        "separate owner/HQ FINAL_HANDOFF_GO"
+      ]
+    }
+  },
+  "execution_by_A10": {
+    "app_code_edits": 0,
+    "app_tests_executed": 0,
+    "merges": 0,
+    "deploys": 0,
+    "sql_or_migrations": 0,
+    "swarm006_dispatch": 0,
+    "app_source_branch_writes": 0
+  },
+  "downstream_A00_handoff": {
+    "action": "Register exact PR56 post-fix SHA P23-01 as narrow SOURCE_DEFECT_FIXED and A60 PASS WITH CONDITIONS only; preserve initial packet; maintain all hard STOP gates.",
+    "a60_report": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_PR56_P23_01_POST_FIX_INDEPENDENT_QA.md",
+    "doc_md_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_P23_01_POST_FIX_REGISTRY_ADDENDUM.md",
+    "doc_json_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_P23_01_POST_FIX_REGISTRY_ADDENDUM.json"
+  }
+}
