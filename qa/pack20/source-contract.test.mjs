@@ -64,3 +64,12 @@ test('Pack20 snapshot contract rejects missing or downgraded transaction protect
     assert.doesNotMatch(invalid,contract);
   }
 });
+
+test('Pack20 rejects read-only transaction options spoofed inside a comment',()=>{
+  const source=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
+  const unsafe=source.replace(/\baccessMode\s*:\s*["']read only["']/,'accessMode:"read write"');
+  assert.notEqual(unsafe,source,'must mutate the actual transaction');
+  const commentSpoof=unsafe+'\n// }, {isolationLevel:"repeatable read",accessMode:"read only"})';
+  const contract=/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/;
+  assert.doesNotMatch(commentSpoof,contract,'comment-only valid options must not count as read-only');
+});
