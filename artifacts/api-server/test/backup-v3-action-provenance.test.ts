@@ -5,6 +5,11 @@ import {
   validateBackupV3ActionLocalProvenance,
 } from "../src/application/backups/backup-v3-action-provenance";
 
+type Action = {
+  actionType: string; stageBackupId: number | null; matchBackupId: number | null;
+  canUndo: boolean; isUndone: boolean; createdAt: string;
+  undoPayload: Record<string, unknown> | null;
+};
 type Data = ReturnType<typeof fixture>;
 const at = "2026-10-15T10:00:00.000Z";
 function fixture() {
@@ -48,8 +53,8 @@ function fixture() {
       actionType: "match_result_submitted", stageBackupId: 3,
       matchBackupId: 21, canUndo: true, isUndone: false,
       createdAt: at,
-      undoPayload: { type: "revert_match", matchId: 21 } as Record<string, unknown> | null,
-    }],
+      undoPayload: { type: "revert_match", matchId: 21 },
+    }] as Action[],
     strictPolicy: {
       profile: "web005.backup-v3.strict.v1", version: 1,
       matchStateRevisions: [
@@ -262,7 +267,7 @@ test("AP18 match state CAS token is validated but NEVER returned as clone author
   invalid(c, "SOURCE_AUTHORITY");
 });
 test("AP19 result history parity, negative scores, invalid series winner and BYE manual impersonation", () => {
-  const b = fixture(); b.resultHistory[0].winnerBackupId = 12; invalid(b, "HISTORY_PARITY");
+  const b = fixture(); Object.assign(b.resultHistory[0], { winnerBackupId: 12, score1: 1, score2: 2 }); invalid(b, "HISTORY_PARITY");
   const c = fixture(); c.matches[0].score1 = -1; invalid(c, "RESULT_SHAPE");
   const d = fixture(); d.matches[0].winnerBackupId = 12; d.resultHistory[0].winnerBackupId = 12; invalid(d, "RESULT_SHAPE");
   const e = fixture(); Object.assign(e.matches[0], { resultType: "bye", player2BackupId: null, score1: null, score2: null, resultReason: "system_bye" });
