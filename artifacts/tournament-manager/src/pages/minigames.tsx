@@ -6,7 +6,7 @@ import {
   ProjectCard,
 } from "@/components/portfolio-ui";
 
-const EMPTY_SLOTS = Array.from({ length: 3 }, (_, index) => index + 1);
+const EMPTY_SLOTS = Array.from({ length: 2 }, (_, index) => index + 1);
 
 export default function MinigamesPage() {
   return (
@@ -42,6 +42,16 @@ export default function MinigamesPage() {
           href="/minigames/core-clash-v149-5"
           icon={Gamepad2}
           accent="emerald"
+        />
+        <ProjectCard
+          code="UNITY WEBGL · V149"
+          title="Core Clash — Unity Migration Demo"
+          description="Osobna migracja do Unity/C#. Windows host i klient WebGL: prototyp PvP w sieci LAN/Wi-Fi."
+          href="/minigames/core-clash-unity"
+          icon={Gamepad2}
+          accent="blue"
+          status="BUILD OCZEKIWANY"
+          actionLabel="Sprawdź wersję →"
         />
         {EMPTY_SLOTS.map((slot) => (
           <EmptyProjectCard key={slot} label="Kolejna minigra" />
