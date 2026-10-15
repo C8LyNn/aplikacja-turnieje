@@ -177,6 +177,7 @@ try {
   $v=Run 'pnpm-version' 'pnpm' @('--version') $src
   $script:Versions.pnpm=(& pnpm --version).Trim()
   [void](Run 'git-version' 'git' @('--version') $src)
+  $script:Versions.git=(& git --version).Trim()
   $nodeVersion=(& node --version).Trim()
   $pnpmVersion=(& pnpm --version).Trim()
   if($nodeVersion -notmatch '^v22\.'){throw "VERSION_STOP: requires Node 22; found $nodeVersion"}
@@ -199,6 +200,8 @@ try {
   $lock=Get-Content -LiteralPath (Join-Path $script:Checkout 'pnpm-lock.yaml') -TotalCount 8
   if(($lock -join [Environment]::NewLine) -notmatch "lockfileVersion:\s*['""]?9"){throw 'LOCKFILE_STOP: pnpm10 workspace lockfileVersion 9 expected'}
   [void](Run 'install-frozen-lockfile' 'pnpm' @('install','--frozen-lockfile') $script:Checkout)
+  if((Get-FileHash -LiteralPath (Join-Path $script:Checkout 'pnpm-lock.yaml') -Algorithm SHA256).Hash -cne $script:LockSha256){throw 'LOCKFILE_DRIFT_STOP: frozen lockfile changed during install'}
+  [void](Run 'workspace-typescript-version' 'pnpm' @('--filter','@workspace/api-server','exec','tsc','--version') $script:Checkout)
   $script:Outcome='RUNNING'
   foreach($suite in $Suites){
     switch($suite){
@@ -235,7 +238,47 @@ try {
     }
   }
   $skipCount=@($script:Events | Where-Object {$_.classification -eq 'SKIP_NOT_IN_THIS_SHA'}).Count
-  $testCount=@($script:Events | Where-Object {$_.step -match '^(Pack\d+-(?:unit|contract)|BackupStrict|BackupProfile|Swiss|Frontend|ApiTypecheck)$' -and $_.exit_code -eq 0}).Count
+  $testCount=@($script:Events | Where-Object {$_.step -match '^(Pack\d+-(?:unit|contract)|BackupStrict|BackupProfile|Swiss|Frontend-.+|ApiTypecheck) -and $_.exit_code -eq 0}).Count
+  if($testCount -eq 0){throw 'NO_TEST_EXECUTED: did not run any requested safe tests on selected SHA'}
+  $script:Outcome=if($skipCount -gt 0){'PARTIALLY_EXECUTED_MISSING_SUITES'}else{'NONDESTRUCTIVE_QA_EXECUTED_PASS'}
+} catch {
+  $script:ErrorMessage=Redact ($_ | Out-String)
+  if($script:Outcome -ne 'PARTIALLY_EXECUTED_MISSING_SUITES'){$script:Outcome='BLOCKED_OR_FAILED'}
+  Write-Warning $script:ErrorMessage
+} finally {
+  if($script:Evidence) {
+    $report=[ordered]@{
+      schema='web005.a50.r23c.native-executor.v1'
+      profile=$Profile
+      suites=$Suites
+      required_sha=$ExpectedSha.ToLowerInvariant()
+      observed_sha=$script:Head
+      source_path=$RepositorySource
+      isolated_checkout=$script:Checkout
+      evidence_directory=$script:Evidence
+      started_utc=$script:StartTime
+      finished_utc=(Get-Date).ToUniversalTime().ToString('o')
+      node22_pnpm10_git_required=$true
+      frozen_lock_sha256=$script:LockSha256
+      verdict=$script:Outcome
+      application_qa_complete=$false
+      database_tests_executed=0
+      pack17_full_executed=$false
+      steps=@($script:Events.ToArray())
+      error=$script:ErrorMessage
+    }
+    $file=Join-Path $script:Evidence 'receipt.json'
+    [IO.File]::WriteAllText($file,($report|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
+    Write-Host "WEB005 RECEIPT: $file"
+    Write-Host "WEB005 RESULT: $script:Outcome"
+  } else {
+    Write-Warning 'Preflight stopped before evidence directory was created. No test executed.'
+  }
+}
+if($script:Outcome -eq 'NONDESTRUCTIVE_QA_EXECUTED_PASS'){exit 0}
+if($script:Outcome -eq 'PARTIALLY_EXECUTED_MISSING_SUITES'){exit 3}
+exit 2
+ -and $_.exit_code -eq 0}).Count
   if($testCount -eq 0){throw 'NO_TEST_EXECUTED: did not run any requested safe tests on selected SHA'}
   $script:Outcome=if($skipCount -gt 0){'PARTIALLY_EXECUTED_MISSING_SUITES'}else{'NONDESTRUCTIVE_QA_EXECUTED_PASS'}
 } catch {
