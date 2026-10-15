@@ -217,7 +217,7 @@ function bound(value: unknown): void {
           throw new GateFailure("CRITICAL_FIELD_INVALID");
         }
         const descriptor = Object.getOwnPropertyDescriptor(v, key);
-        if (!descriptor || !own(descriptor as Obj, "value")) {
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, "value")) {
           throw new GateFailure("CRITICAL_FIELD_INVALID");
         }
         visit(descriptor.value, depth + 1);
