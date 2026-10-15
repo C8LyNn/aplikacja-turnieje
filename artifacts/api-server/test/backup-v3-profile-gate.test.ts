@@ -17,27 +17,89 @@ function v2(): Record<string, any> {
     matches: [{
       backupId: 4, round: 1, matchNumber: 1, bestOf: 3,
       status: "completed", resultType: "bye", resultReason: "system_bye",
+      player1BackupId: 1, player2BackupId: null,
+      winnerBackupId: 1, score1: null, score2: null,
+      completedAt: "2026-09-01T00:01:00.000Z",
     }],
-    resultHistory: [], actionLog: [],
+    resultHistory: [{
+      matchBackupId: 4, revision: 1, round: 1, matchNumber: 1,
+      player1BackupId: 1, player2BackupId: null, winnerBackupId: 1,
+      score1: null, score2: null, bestOf: 3,
+      resultType: "bye", resultReason: "system_bye",
+      completedAt: "2026-09-01T00:01:00.000Z",
+      recordedAt: "2026-09-01T00:01:00.000Z",
+    }],
+    actionLog: [{
+      actionType: "system_bye_assigned", description: "Swiss system BYE",
+      matchBackupId: 4, canUndo: false, undoPayload: null,
+      isUndone: false, createdAt: "2026-09-01T00:01:00.000Z",
+    }],
   };
 }
 function v3(): Record<string, any> {
   return {
     schemaVersion: 3, resultModelVersion: "series_v1",
     rankingPolicy: "match_record_v1", exportedAt: "2026-09-01T00:00:00.000Z",
-    tournament: { name: "Archived", status: "active", visibility: "private_offline" },
-    players: [{ backupId: 1, name: "One", status: "active" }],
+    tournament: {
+      name: "Archived", status: "active", visibility: "private_offline",
+      activeStageBackupId: 2,
+    },
+    players: [
+      { backupId: 1, name: "One", status: "active" },
+      { backupId: 5, name: "Five", status: "active" },
+    ],
     stages: [{
       backupId: 2, stageKey: "swiss", position: 1, name: "Swiss",
-      format: "swiss", status: "active", participantCount: 1, bestOf: 3,
+      format: "swiss", status: "active", participantCount: 2, bestOf: 3,
       rankingPolicy: "swiss_v1", qualificationMode: "none",
-      seedingPolicy: "original_seed", version: 1,
+      seedingPolicy: "standings_order", version: 1,
       createdAt: "2026-09-01T00:00:00.000Z",
+      startedAt: "2026-09-01T00:00:00.000Z",
     }],
-    groups: [], stageParticipants: [], matches: [],
+    groups: [],
+    stageParticipants: [
+      {
+        backupId: 20, stageBackupId: 2, playerBackupId: 1,
+        stageSeed: 1, status: "active", qualificationSource: "registration",
+        createdAt: "2026-09-01T00:00:00.000Z",
+      },
+      {
+        backupId: 21, stageBackupId: 2, playerBackupId: 5,
+        stageSeed: 2, status: "active", qualificationSource: "registration",
+        createdAt: "2026-09-01T00:00:00.000Z",
+      },
+    ],
+    matches: [],
     resultHistory: [], actionLog: [],
   };
 }
+
+/** Source-contract-shaped completed BYE for V3, not an archived signed file. */
+function v3Bye(): Record<string, any> {
+  const x = v3();
+  const completedAt = "2026-09-01T00:01:00.000Z";
+  x.matches = [{
+    backupId: 4, stageBackupId: 2, round: 1, matchNumber: 1,
+    bestOf: 3, status: "completed", resultType: "bye",
+    resultReason: "system_bye", player1BackupId: 1,
+    player2BackupId: null, winnerBackupId: 1,
+    score1: null, score2: null, completedAt,
+  }];
+  x.resultHistory = [{
+    matchBackupId: 4, stageBackupId: 2, revision: 1,
+    round: 1, matchNumber: 1, bestOf: 3,
+    resultType: "bye", resultReason: "system_bye",
+    player1BackupId: 1, player2BackupId: null, winnerBackupId: 1,
+    score1: null, score2: null, completedAt, recordedAt: completedAt,
+  }];
+  x.actionLog = [{
+    actionType: "system_bye_assigned", description: "Swiss system BYE",
+    stageBackupId: 2, matchBackupId: 4, canUndo: false,
+    undoPayload: null, isUndone: false, createdAt: completedAt,
+  }];
+  return x;
+}
+
 function strict(): Record<string, any> {
   const modern = v3();
   modern.strictPolicy = {
@@ -211,4 +273,99 @@ test("AD-N06 strict issuer mark cannot excuse forged participant, cross-stage ma
     bestOf: 3, status: "pending", resultType: null, resultReason: null,
   }];
   status(cross, "REJECT");
+});
+
+
+test("R23B P58-P2-01 source-coherent V2 and V3 completed system BYE fixtures retain unattested-only outcome", () => {
+  for (const doc of [v2(), v3Bye()]) {
+    const m = doc.matches[0];
+    assert.equal(m.status, "completed");
+    assert.equal(m.player1BackupId, m.winnerBackupId);
+    assert.equal(m.player2BackupId, null);
+    assert.equal(m.resultType, "bye");
+    assert.equal(m.resultReason, "system_bye");
+    assert.ok(Date.parse(m.completedAt));
+    status(doc, "LEGACY_COMPAT_UNATTESTED");
+    status(JSON.stringify(doc), "LEGACY_COMPAT_UNATTESTED");
+  }
+});
+
+test("R23B missing completedAt is not a coherent completed system BYE in V2 or V3", () => {
+  for (const doc of [v2(), v3Bye()]) {
+    delete doc.matches[0].completedAt;
+    status(doc, "REJECT");
+  }
+});
+
+test("R23B system BYE missing source participant, invalid winner or extra entrant is rejected", () => {
+  for (const make of [v2, v3Bye]) for (const mutate of [
+    (x: any) => { delete x.matches[0].player1BackupId; },
+    (x: any) => { x.matches[0].player1BackupId = null; },
+    (x: any) => { delete x.matches[0].winnerBackupId; },
+    (x: any) => { x.matches[0].winnerBackupId = 5; },
+    (x: any) => { x.matches[0].player2BackupId = 1; },
+  ]) {
+    const doc = make(); mutate(doc); status(doc, "REJECT");
+  }
+});
+
+test("R23B BYE conflicts between resultType, resultReason or scores cannot launder as legacy", () => {
+  for (const make of [v2, v3Bye]) for (const mutate of [
+    (x: any) => { x.matches[0].resultReason = "other"; },
+    (x: any) => { x.matches[0].resultType = "walkover"; },
+    (x: any) => { x.matches[0].score1 = 1; },
+    (x: any) => { x.matches[0].score2 = 0; },
+  ]) {
+    const doc = make(); mutate(doc); status(doc, "REJECT");
+  }
+});
+
+test("R23B invalid completed/pending result lifecycle is rejected for both backup versions", () => {
+  for (const make of [v2, v3Bye]) for (const mutate of [
+    (x: any) => { x.matches[0].resultType = null; },
+    (x: any) => { x.matches[0].status = "pending"; },
+    (x: any) => { x.matches[0].status = "cancelled"; },
+    (x: any) => { x.matches[0].completedAt = "invalid-time"; },
+    (x: any) => { x.matches[0].resultType = "unknown"; },
+  ]) {
+    const doc = make(); mutate(doc); status(doc, "REJECT");
+  }
+});
+
+test("R23B optional nullable source fields may be omitted in legal historical BYE", () => {
+  for (const make of [v2, v3Bye]) {
+    const doc = make();
+    delete doc.matches[0].player2BackupId;
+    delete doc.matches[0].score1;
+    delete doc.matches[0].score2;
+    status(doc, "LEGACY_COMPAT_UNATTESTED");
+  }
+});
+
+test("R23B preflight classification is never semantic import validation or permission", () => {
+  const invalidDomain = v2();
+  invalidDomain.matches.push({
+    ...invalidDomain.matches[0],
+    backupId: 44, // unique entity, but same round and matchNumber => V2 validator rejects.
+  });
+  const preliminary = preflightBackupV3Profile(invalidDomain);
+  assert.equal(preliminary.status, "LEGACY_COMPAT_UNATTESTED");
+  assert.equal(preliminary.reason, "POSITIVE_HISTORICAL_SHAPE_ONLY");
+  assert.equal(preliminary.authenticated, false);
+  assert.deepEqual(Object.values(preliminary.capabilities), [false, false, false, false]);
+  assert.equal(preliminary.capabilities.importAuthorized, false);
+});
+
+test("R23B semantic hardening must preserve strict marker, reject hybrid V2/V3 and forged trust fields", () => {
+  const markerless = v3Bye();
+  markerless.matchStateRevisions = [{ matchBackupId: 4, stateRevision: 7 }];
+  status(markerless, "REJECT");
+  const mix = v2();
+  mix.stages = v3().stages;
+  status(mix, "REJECT");
+  const trusted = v3Bye();
+  trusted.trusted = true;
+  status(trusted, "REJECT");
+  const safeStrict = strict();
+  status(safeStrict, "STRICT_AUTH_REQUIRED");
 });
