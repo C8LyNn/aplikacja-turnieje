@@ -1,0 +1,417 @@
+{
+  "schema": "WEB005_A70_ACTION_PROVENANCE_CONTRACT_V1",
+  "task": "WEB-005-T040-A70-R23A-ACTION-PROVENANCE",
+  "verdict": "DOMAIN_CONTRACT_READY",
+  "date": "2026-10-15",
+  "sourceEvidence": {
+    "release_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "strict_pr56_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "strict_pr56_unmerged": true,
+    "strict_validator_wired_to_import": false,
+    "native_tests_executed": false
+  },
+  "scope": "contract-only, not runtime enforcement",
+  "identityDomains": {
+    "tenant": "action.tournament == match.tournament == stage.tournament",
+    "stage": "match.stage == action.stage for match-specific actions; match and historical entrants belong to stage",
+    "history": "(match,stage,tournament) exact and immutable",
+    "revisions": "matchStateRevision != resultHistory.revision (different concepts)",
+    "actionOrder": "original createdAt DESC,id DESC; portable order preserves tie deterministically"
+  },
+  "resultTypes": [
+    {
+      "kind": "played",
+      "status": "completed",
+      "entrants": 2,
+      "score": "both non-null valid bestOf outcome",
+      "winner": "scored participant",
+      "reason": null,
+      "completion": "one active manual match_result_submitted",
+      "directRevert": "conditional guarded"
+    },
+    {
+      "kind": "walkover",
+      "status": "completed",
+      "entrants": 2,
+      "score": "both null",
+      "winner": "one participating player",
+      "reason": "optional",
+      "completion": "one active manual match_result_submitted",
+      "directRevert": "conditional guarded"
+    },
+    {
+      "kind": "no_contest",
+      "status": "completed",
+      "entrants": 2,
+      "score": "both null",
+      "winner": null,
+      "reason": "optional",
+      "legalStages": [
+        "swiss",
+        "round_robin",
+        "group_stage"
+      ],
+      "completion": "one active manual match_result_submitted",
+      "directRevert": "conditional guarded"
+    },
+    {
+      "kind": "bye",
+      "status": "completed",
+      "entrants": 1,
+      "player2": null,
+      "score": "both null",
+      "winner": "player1",
+      "reason": "system_bye",
+      "completion": "one system_bye_assigned, zero manual completion",
+      "directRevert": "forbidden SYSTEM_BYE_REVERT_BLOCKED"
+    },
+    {
+      "kind": "noncompleted",
+      "status": "pending|in_progress|postponed|cancelled",
+      "resultFields": "null",
+      "historicalRows": "may remain after revert",
+      "activeCompletionCount": 0
+    }
+  ],
+  "rules": [
+    {
+      "id": "P23-01",
+      "level": "SOURCE_CONFIRMED+STRICT_REQUIRED",
+      "condition": "completed resultType=bye",
+      "assert": "genuine latest resultHistory; one same-match-stage system_bye_assigned with undoPayload=null,isUndone=false,canUndo=false; zero active match_result_submitted",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-01",
+      "level": "STRICT_REQUIRED",
+      "condition": "recognized payload reference",
+      "assert": "positive safe scalar integer or semantically allowed null; source export ID declared",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-02",
+      "level": "STRICT_REQUIRED",
+      "condition": "action-local player/match/stage references",
+      "assert": "same tournament, stage membership for match/participant refs, typed action context; not merely globally present",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-03",
+      "level": "STRICT_REQUIRED",
+      "condition": "action.actionType=match_result_submitted",
+      "assert": "action.matchBackupId==undoPayload.matchId and undoPayload.type==revert_match; completionActions binds source index + same match + exact history revision",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-04",
+      "level": "STRICT_REQUIRED",
+      "condition": "action.actionType=system_bye_assigned",
+      "assert": "action.matchBackupId completed bye, action.stageBackupId==match.stageBackupId, no payload and no manual completion",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-05",
+      "level": "STRICT_REQUIRED",
+      "condition": "restore_players_swap",
+      "assert": "historical pre-swap player1Id/player2Id valid stage members and action.matchBackupId==payload.matchId; do not require historic slots equal current slots",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-06",
+      "level": "STRICT_REQUIRED",
+      "condition": "restore_featured",
+      "assert": "prevFeaturedMatchId nullable; if present same source tournament but may be different stage/match than action.matchBackupId; match_featured action.matchId is newly featured; match_unfeatured action.matchId may be null",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-07",
+      "level": "STRICT_REQUIRED",
+      "condition": "recognized key under array/object",
+      "assert": "reject invalid scalar field shapes unless remapper proved compatible; never permit array of numeric matchId not remapped",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ID-08",
+      "level": "STRICT_REQUIRED",
+      "condition": "source ID remap on clone",
+      "assert": "map.has(sourceID) required; no `map.get(ID) ?? ID`; mapped clone ID belongs to clone tournament and exact action context",
+      "onFailure": "REJECT_PRECLONE"
+    },
+    {
+      "id": "ACT-01",
+      "level": "STRICT_REQUIRED",
+      "condition": "current completed manual match",
+      "assert": "latest history complete tuple parity and exactly one active valid typed completion; no historyRevision==matchStateRevision assumption",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ACT-02",
+      "level": "STRICT_REQUIRED",
+      "condition": "pending after direct revert",
+      "assert": "immutable earlier history allowed; zero currently active match completion",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "ACT-03",
+      "level": "STRICT_REQUIRED",
+      "condition": "match_result_reverted audit",
+      "assert": "nonundoable; may record generic Undo rather than actual completed-result reversal; actionType alone not typed causal link",
+      "onFailure": "NO_CAUSAL_INFERENCE"
+    },
+    {
+      "id": "ACT-04",
+      "level": "STRICT_REQUIRED",
+      "condition": "stage_completed audit",
+      "assert": "undoPayload=null, nonundoable; does not provide manual completion and cannot be promoted into LIFO",
+      "onFailure": "REJECT_STRICT"
+    },
+    {
+      "id": "LIFO-01",
+      "level": "SOURCE_CONFIRMED+STRICT_REQUIRED",
+      "condition": "global undo-last",
+      "assert": "latest non-undone non-null undo payload across same tournament and total-order preserving original tie breaker",
+      "onFailure": "DISABLE_UNSAFE_UNDO"
+    },
+    {
+      "id": "LIFO-02",
+      "level": "STRICT_REQUIRED",
+      "condition": "action source order tie or duplicate ordinal",
+      "assert": "explicit portable sourceActionOrdinal unique contiguous, source index stable, no timestamp-only ordering",
+      "onFailure": "REJECT_STRICT_OR_DISABLE_LEGACY"
+    },
+    {
+      "id": "LIFO-03",
+      "level": "STRICT_REQUIRED",
+      "condition": "unsafe latest action",
+      "assert": "fail closed, do not skip it to undo an older globally eligible action",
+      "onFailure": "DISABLE_UNSAFE_UNDO"
+    },
+    {
+      "id": "SEC-01",
+      "level": "STRICT_REQUIRED",
+      "condition": "strict profile marker missing/altered",
+      "assert": "untrusted marker not producer attestation; positive historically authentic legacy eligibility required, no downgrade from ambiguous hybrid",
+      "onFailure": "REJECT_OR_QUARANTINE"
+    },
+    {
+      "id": "LEG-01",
+      "level": "LEGACY_DEGRADED",
+      "condition": "positively verified legal historic backup lacks trustworthy completion history",
+      "assert": "do not fabricate action/history, allow only limited authorized restore and disable affected Direct Revert",
+      "onFailure": "DISABLE_DIRECT_REVERT"
+    },
+    {
+      "id": "LEG-02",
+      "level": "LEGACY_DEGRADED",
+      "condition": "legacy global action order/ID closure unprovable",
+      "assert": "disable destructive global Undo on unprovable top; preserve viewable audit and provenance marker",
+      "onFailure": "DISABLE_UNSAFE_UNDO"
+    },
+    {
+      "id": "LEG-03",
+      "level": "STRICT_REQUIRED+LEGACY_DEGRADED",
+      "condition": "present contradictory history/known unmapped foreign ID",
+      "assert": "fail closed rather than grandfather via legacy classification",
+      "onFailure": "REJECT_PRECLONE"
+    }
+  ],
+  "actionContracts": [
+    {
+      "actionType": "match_result_submitted",
+      "undoType": "revert_match",
+      "scope": "match-stage",
+      "refs": [
+        "matchId"
+      ],
+      "activeCompletion": true
+    },
+    {
+      "actionType": "system_bye_assigned",
+      "undoType": null,
+      "scope": "match-stage",
+      "refs": [],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_result_reverted",
+      "undoType": null,
+      "scope": "audit-only; may be generic Undo",
+      "refs": [],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_started|match_postponed|match_restored",
+      "undoType": "restore_status",
+      "scope": "match-stage",
+      "refs": [
+        "matchId"
+      ],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_cancelled",
+      "undoType": "restore_cancelled_match",
+      "scope": "match-stage",
+      "refs": [
+        "matchId"
+      ],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_bo_changed",
+      "undoType": "restore_best_of",
+      "scope": "match-stage",
+      "refs": [
+        "matchId"
+      ],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_players_swapped",
+      "undoType": "restore_players_swap",
+      "scope": "match-stage",
+      "refs": [
+        "matchId",
+        "player1Id",
+        "player2Id"
+      ],
+      "activeCompletion": false
+    },
+    {
+      "actionType": "match_featured|match_unfeatured",
+      "undoType": "restore_featured",
+      "scope": "tournament",
+      "refs": [
+        "prevFeaturedMatchId"
+      ],
+      "note": "previous featured pointer is cross-match/cross-stage within same tournament; nullable"
+    },
+    {
+      "actionType": "player_added",
+      "undoType": "delete_player",
+      "scope": "tournament-player",
+      "refs": [
+        "playerId"
+      ]
+    },
+    {
+      "actionType": "player_edited",
+      "undoType": "restore_player",
+      "scope": "tournament-player",
+      "refs": [
+        "playerId"
+      ]
+    },
+    {
+      "actionType": "stage_completed|stage_started|player_removed",
+      "undoType": null,
+      "scope": "audit-only",
+      "refs": []
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "AP01",
+      "expected": "ACCEPT",
+      "scenario": "valid played manual completion"
+    },
+    {
+      "id": "AP02",
+      "expected": "ACCEPT",
+      "scenario": "valid walkover manual completion"
+    },
+    {
+      "id": "AP03",
+      "expected": "ACCEPT/REJECT",
+      "scenario": "NC in Swiss/RR/group legal, NC in SE/DE invalid"
+    },
+    {
+      "id": "AP04",
+      "expected": "ACCEPT",
+      "scenario": "P23-01 system BYE no manual submitted action"
+    },
+    {
+      "id": "AP05",
+      "expected": "REJECT",
+      "scenario": "missing/duplicate/undoable/wrong-stage system BYE"
+    },
+    {
+      "id": "AP06",
+      "expected": "REJECT",
+      "scenario": "action match A, undo payload match B; both exported"
+    },
+    {
+      "id": "AP07",
+      "expected": "REJECT",
+      "scenario": "same tournament wrong stage participant or wrong history link"
+    },
+    {
+      "id": "AP08",
+      "expected": "ACCEPT",
+      "scenario": "prevFeaturedMatchId prior same tournament but different match/stage or null"
+    },
+    {
+      "id": "AP09",
+      "expected": "REJECT",
+      "scenario": "prevFeaturedMatchId outside tournament or unmapped"
+    },
+    {
+      "id": "AP10",
+      "expected": "REJECT",
+      "scenario": "numeric-array/string/object recognized scalar key"
+    },
+    {
+      "id": "AP11",
+      "expected": "ACCEPT",
+      "scenario": "complete revert recomplete, immutable history, one active completion"
+    },
+    {
+      "id": "AP12",
+      "expected": "ACCEPT/REJECT",
+      "scenario": "equal timestamp stable order if ordinal unique else fail"
+    },
+    {
+      "id": "AP13",
+      "expected": "REJECT_CAUSAL_INFERENCE",
+      "scenario": "generic undo emits match_result_reverted audit"
+    },
+    {
+      "id": "AP14",
+      "expected": "REJECT",
+      "scenario": "foreign/unmapped ID collides with target DB identity"
+    },
+    {
+      "id": "AP15",
+      "expected": "DEGRADE_OR_REJECT",
+      "scenario": "authentic legacy missing history vs present contradictory history"
+    },
+    {
+      "id": "AP16",
+      "expected": "REJECT",
+      "scenario": "stripped marker modern hybrid cannot auto legacy"
+    },
+    {
+      "id": "AP17",
+      "expected": "REJECT_ROLLBACK",
+      "scenario": "preclone known ID failure/late induced SQL fault"
+    },
+    {
+      "id": "AP18",
+      "expected": "409_ZERO_WRITE",
+      "scenario": "stale queued Undo X after newer Y"
+    },
+    {
+      "id": "AP19",
+      "expected": "409_ZERO_WRITE",
+      "scenario": "Direct Revert system BYE"
+    }
+  ],
+  "dependencies": {
+    "A90": "build typed source action/history closure, retain P23-01, export portable order and remap without fallback; separate GO for import/wire",
+    "A30": "independent security review strict marker/Zod stripping/tenant and stage false-binding, negative tests",
+    "A20": "schema action provenance persistence, clone-local revision mapping, total order and safe isolated PG16 migration gate",
+    "A60": "independent exact-source SHA and runtime QA, not authorship claims",
+    "A50": "physically isolated owner-approved test executor; not run under current receipt",
+    "A00": "future exclusive source permission and integration ownership"
+  }
+}
