@@ -260,11 +260,19 @@ try {
       finished_utc=(Get-Date).ToUniversalTime().ToString('o')
       node22_pnpm10_git_required=$true
       frozen_lock_sha256=$script:LockSha256
+      tool_versions=$script:Versions
+      runner_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
       verdict=$script:Outcome
       application_qa_complete=$false
       database_tests_executed=0
       pack17_full_executed=$false
       steps=@($script:Events.ToArray())
+      aggregate_tap=[ordered]@{
+        tests=@($script:Events | Where-Object { $null -ne $_.tap.tests } | ForEach-Object { $_.tap.tests } | Measure-Object -Sum).Sum
+        pass=@($script:Events | Where-Object { $null -ne $_.tap.pass } | ForEach-Object { $_.tap.pass } | Measure-Object -Sum).Sum
+        fail=@($script:Events | Where-Object { $null -ne $_.tap.fail } | ForEach-Object { $_.tap.fail } | Measure-Object -Sum).Sum
+        skipped=@($script:Events | Where-Object { $null -ne $_.tap.skipped } | ForEach-Object { $_.tap.skipped } | Measure-Object -Sum).Sum
+      }
       error=$script:ErrorMessage
     }
     $file=Join-Path $script:Evidence 'receipt.json'
