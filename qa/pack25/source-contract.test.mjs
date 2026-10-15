@@ -23,13 +23,34 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
 });
 test("server returns graph and risk report with prior diagnostic and action plan",()=>{
   const required=["actionPlan","diagnostic","impactGraph","impactRiskReport"];
+  // Dependency-free bounded lexer: comments and literals cannot impersonate source code.
+  // Not a full TS AST: the assertion targets the named readiness transaction's
+  // final unconditional return and deliberately fails closed on unexpected shapes.
+  const executableCode=source=>source.replace(
+    /\/\*[\s\S]*?\*\/|\/\/[^\r\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\x60(?:\\.|[^\x60\\])*\x60/g,
+    token=>token.replace(/[^\r\n]/g," "),
+  );
   const responseFields = source => {
-    const matches=[...source.matchAll(/\breturn\s*\{\s*\.\.\.result\s*,([^{}]*)\}\s*;/g)];
-    assert.equal(matches.length,1,"expected one SE readiness response object");
+    const code=executableCode(source);
+    const transactions=[...code.matchAll(/\bconst\s+outcome\s*=\s*await\s+db\.transaction\s*\(\s*async\s+tx\s*=>\s*\{/g)];
+    assert.equal(transactions.length,1,"expected one named SE readiness transaction");
+    const start=transactions[0].index+transactions[0][0].length-1;
+    let depth=1, end=-1;
+    for(let i=start+1;i<code.length;i++){
+      if(code[i]==="{")depth++;
+      else if(code[i]==="}"&&--depth===0){end=i;break;}
+    }
+    assert.ok(end>start,"SE readiness transaction callback was not closed");
+    assert.match(code.slice(end+1),/^\s*,\s*\{[^{}]*\}\s*\)\s*;/,"expected transaction options after callback");
+    const body=code.slice(start+1,end);
+    const matches=[...body.matchAll(/\bconst\s+impactRiskReport\s*=\s*deriveSeCorrectionImpactRiskReport\s*\(\s*impactGraph\s*\)\s*;\s*return\s*\{\s*\.\.\.result\s*,([^{}]*)\}\s*;\s*$/g)];
+    assert.equal(matches.length,1,"expected final executable four-field readiness return in transaction callback");
     return matches[0][1].split(",").map(field=>field.trim()).filter(Boolean);
   };
   const assertComplete = source => {
     const fields=responseFields(source);
+    assert.equal(fields.length,required.length,"expected exactly four shorthand response fields");
+    assert.equal(new Set(fields).size,required.length,"duplicate shorthand response field");
     for(const field of required) assert.ok(fields.includes(field), "missing shorthand response field: "+field);
   };
   assertComplete(server);
@@ -50,6 +71,23 @@ test("server returns graph and risk report with prior diagnostic and action plan
     assert.notEqual(unsafe,server,'unable to construct '+kind+' response spoof');
     assert.throws(()=>assertComplete(unsafe),assert.AssertionError,kind+' comment must not be executable return');
   }
+  // Executability and ownership: unrelated returns and conditional branches cannot pass.
+  for (const [kind, fakeSource] of [
+    ["conditional", "if (allowed) "+fake+"\nreturn result;"],
+    ["wrong branch", "if (allowed) { "+fake+" } else { return result; }"],
+    ["string literal", "return result;\nconst decoy = '"+fake+"';"],
+    ["template literal", "return result;\nconst decoy = "+String.fromCharCode(96)+fake+String.fromCharCode(96)+";"],
+    ["duplicated graph", "return { ...result, actionPlan, diagnostic, impactGraph, impactGraph, impactRiskReport };"],
+    ["extra field", "return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport, extraField };"],
+  ]) {
+    const invalid=server.replace(realReturn,fakeSource);
+    assert.notEqual(invalid,server,"unable to construct "+kind+" response mutation");
+    assert.throws(()=>assertComplete(invalid),assert.AssertionError,kind+" must not pass Pack25 response contract");
+  }
+  const wrongFunction=server.replace(realReturn,"return result;")+"\nconst unrelated=()=>{ "+fake+" };";
+  assert.throws(()=>assertComplete(wrongFunction),assert.AssertionError,"return in unrelated function must not count");
+  const commentedPlusReal=server.replace(realReturn,"// "+fake+"\n"+fake);
+  assertComplete(commentedPlusReal);
   assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
   for (const replacement of [
     ", actionPlan, diagnostic, impactRiskReport }",
