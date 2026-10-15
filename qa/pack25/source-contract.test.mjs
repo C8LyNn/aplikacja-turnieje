@@ -37,6 +37,19 @@ test("server returns graph and risk report with prior diagnostic and action plan
     "return { ...result, diagnostic, impactRiskReport, actionPlan, impactGraph }");
   assert.notEqual(reorder,server);
   assertComplete(reorder);
+
+  // R23B fail-first: a raw regex must NOT accept a fake return inside comments.
+  const realReturn=/return\s*\{\s*\.\.\.result\s*,\s*actionPlan\s*,\s*diagnostic\s*,\s*impactGraph\s*,\s*impactRiskReport\s*\}\s*;/;
+  const fake='return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };';
+  for (const [kind, fakeSource] of [
+    ['line', 'return result;\n// '+fake],
+    ['block', 'return result;\n/* '+fake+' */'],
+    ['multiline', 'return result;\n/*\n'+fake+'\n*/'],
+  ]) {
+    const unsafe=server.replace(realReturn, fakeSource);
+    assert.notEqual(unsafe,server,'unable to construct '+kind+' response spoof');
+    assert.throws(()=>assertComplete(unsafe),assert.AssertionError,kind+' comment must not be executable return');
+  }
   assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
   for (const replacement of [
     ", actionPlan, diagnostic, impactRiskReport }",
