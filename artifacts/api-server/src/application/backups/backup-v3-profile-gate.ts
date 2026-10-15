@@ -248,6 +248,62 @@ function exactlyKeys(value: Obj, keys: Set<string>): boolean {
 function noModernKeys(value: Obj): boolean {
   return Object.keys(value).every(key => !MODERN_ONLY.has(key));
 }
+/**
+ * Small shared invariants, confirmed in release validateBackupV2/V3.
+ * This is NOT a replacement for those semantic validators: they additionally
+ * enforce stage plans, unique stage/round positions, history revisions,
+ * action provenance and other domain rules. This guard merely refuses
+ * obviously contradictory lifecycle/result fingerprints during preflight.
+ */
+function plausibleResult(row: Obj, players: Set<number>): boolean {
+  const p1 = row.player1BackupId;
+  const p2 = row.player2BackupId;
+  const winner = row.winnerBackupId;
+  const score1 = row.score1;
+  const score2 = row.score2;
+  const resultType = row.resultType;
+  if (!time(row.completedAt) ||
+      !positive(row.bestOf) || row.bestOf % 2 === 0 ||
+      !own(row, "resultReason")) return false;
+  if (resultType === "bye") {
+    // Historical writer emitted a valid system BYE, never a phantom
+    // completed result without its entrant, winner or completed timestamp.
+    return positive(p1) && players.has(p1) &&
+      p2 == null && winner === p1 &&
+      score1 == null && score2 == null &&
+      row.resultReason === "system_bye";
+  }
+  if (!positive(p1) || !players.has(p1) ||
+      !positive(p2) || !players.has(p2) || p1 === p2) return false;
+  if (resultType === "walkover") {
+    return (winner === p1 || winner === p2) &&
+      score1 == null && score2 == null;
+  }
+  if (resultType === "no_contest") {
+    return winner == null && score1 == null && score2 == null;
+  }
+  if (resultType !== "played" || row.resultReason != null ||
+      typeof score1 !== "number" || !Number.isSafeInteger(score1) || score1 < 0 ||
+      typeof score2 !== "number" || !Number.isSafeInteger(score2) || score2 < 0) {
+    return false;
+  }
+  const need = Math.floor((row.bestOf as number) / 2) + 1;
+  return (score1 === need && score2 < need && winner === p1) ||
+    (score2 === need && score1 < need && winner === p2);
+}
+
+function plausibleMatchLifecycle(row: Obj, players: Set<number>): boolean {
+  const statuses = ["pending", "in_progress", "postponed", "completed", "cancelled"];
+  if (!statuses.includes(row.status as string)) return false;
+  if (row.completedAt != null && !time(row.completedAt)) return false;
+  if (row.status === "completed") return plausibleResult(row, players);
+  // A reverted/pending match may preserve historical *history rows*, but
+  // the current match snapshot cannot carry a stale completed outcome.
+  return row.resultType == null && row.resultReason == null &&
+    row.winnerBackupId == null && row.score1 == null &&
+    row.score2 == null && row.completedAt == null;
+}
+
 function legacyRecords(root: Obj, version: 2 | 3): boolean {
   if (!objects(root.players) || !objects(root.matches) ||
       !objects(root.resultHistory) || !objects(root.actionLog)) return false;
@@ -265,7 +321,8 @@ function legacyRecords(root: Obj, version: 2 | 3): boolean {
         !own(match, "resultReason") || !noModernKeys(match) ||
         (version === 2 && own(match, "stageBackupId")) ||
         (version === 3 && !positive(match.stageBackupId)) ||
-        seenMatches.has(match.backupId)) return false;
+        seenMatches.has(match.backupId) ||
+        !plausibleMatchLifecycle(match, seenPlayers)) return false;
     seenMatches.add(match.backupId);
     for (const field of ["player1BackupId", "player2BackupId", "winnerBackupId"]) {
       if (match[field] != null &&
@@ -300,10 +357,13 @@ function legacyRecords(root: Obj, version: 2 | 3): boolean {
     if (!positive(entry.matchBackupId) ||
         !seenMatches.has(entry.matchBackupId) ||
         !positive(entry.revision) || !time(entry.completedAt) ||
-        !noModernKeys(entry) ||
+        !time(entry.recordedAt) || !noModernKeys(entry) ||
+        !plausibleResult(entry, seenPlayers) ||
         (version === 3 &&
           (!positive(entry.stageBackupId) ||
-           !stageIds.has(entry.stageBackupId)))) return false;
+           !stageIds.has(entry.stageBackupId) ||
+           entry.stageBackupId !==
+             (root.matches as Obj[]).find(m => m.backupId === entry.matchBackupId)?.stageBackupId))) return false;
   }
   for (const entry of root.actionLog) {
     if (!nonempty(entry.actionType) || typeof entry.description !== "string" ||
