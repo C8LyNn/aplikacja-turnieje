@@ -1,0 +1,554 @@
+{
+  "schema": "WEB005_A10_R23C_CONFLICT_DAG_V1",
+  "baseline": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "composite": "fa3261b2c9510e110ac9eba21726812d3401a525",
+  "conflicts": {
+    "historical": 15,
+    "resolved": 0,
+    "remaining": [
+      {
+        "packet_a": "P06",
+        "packet_b": "P09",
+        "pr_a": 39,
+        "pr_b": 42,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P11",
+        "pr_a": 39,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P13",
+        "pr_a": 39,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P18",
+        "pr_a": 39,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P08",
+        "packet_b": "P15",
+        "pr_a": 41,
+        "pr_b": 48,
+        "shared_paths": [
+          "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P11",
+        "pr_a": 42,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P13",
+        "pr_a": 42,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P18",
+        "pr_a": 42,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts",
+          "artifacts/api-server/test/revert-match.integration.test.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P17",
+        "pr_a": 43,
+        "pr_b": 50,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P21",
+        "pr_a": 43,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P13",
+        "pr_a": 44,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P18",
+        "pr_a": 44,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P13",
+        "packet_b": "P18",
+        "pr_a": 46,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P14",
+        "packet_b": "P21",
+        "pr_a": 47,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/components/stage-progress-view.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P17",
+        "packet_b": "P21",
+        "pr_a": 50,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      }
+    ],
+    "new_exact_path_overlap": 0,
+    "integrated_manually_resolved_hunks": 0,
+    "semantic_edges": [
+      {
+        "from": "P01/PR35",
+        "to": "P02/PR36",
+        "kind": "CI_SOURCE_ORDER",
+        "hard": true,
+        "note": "nonoverlapping Pack19 patch then Pack20/21/25/26; P02 P2 response spoof still blocks full contract"
+      },
+      {
+        "from": "P02/PR36",
+        "to": "A40_NEXT_PACK25_FIX",
+        "kind": "NEW_SCOPED_SOURCE",
+        "hard": true,
+        "note": "unfixed response-comment spoof; test-first new SHA and A60 exact review"
+      },
+      {
+        "from": "P01+P02+FUTURE_FIX",
+        "to": "A50_DISPOSABLE_PACK19_26_QA",
+        "kind": "CI_EXECUTOR",
+        "hard": true,
+        "note": "never treat 33 A40 + 14 A60 synthetic as native full-source suite"
+      },
+      {
+        "from": "P05/PR38",
+        "to": "A20_CANONICAL_MIGRATION_LEDGER",
+        "kind": "MIGRATION_IDENTITY",
+        "hard": true,
+        "note": "14 source hashes verified; release/editor 0030/0031 collision; A00 decision D01-D04"
+      },
+      {
+        "from": "A20_LEDGER_DECISION",
+        "to": "T055_NUMERIC_MIGRATION_RESERVATION",
+        "kind": "MIGRATION",
+        "hard": true,
+        "note": "requested-not-allocated; no guessed 0032/0041"
+      },
+      {
+        "from": "T055_RESERVATION+WRITER_LOCK_GRAPH",
+        "to": "P22/PR55_FUTURE_T055_IMPL",
+        "kind": "API_DB",
+        "hard": true,
+        "note": "persistence, ETag, atomic roster/stage, dirty draft"
+      },
+      {
+        "from": "P08/PR41+P15/PR48",
+        "to": "P23/PR56",
+        "kind": "BACKUP_DOMAIN",
+        "hard": true,
+        "note": "source parity/MVCC prerequisite; no direct file change PR56"
+      },
+      {
+        "from": "P23/PR56",
+        "to": "P25/PR58",
+        "kind": "BACKUP_COMPOSITION",
+        "hard": true,
+        "note": "pure strict validator and raw profile gate different checks; NOT_WIRED"
+      },
+      {
+        "from": "A30_LEGACY_TRUST+A70_ACTION_CONTRACT+P23+P25",
+        "to": "FUTURE_BACKUP_IMPORT_EXPORT_RAW_HTTP_WIRING",
+        "kind": "BACKUP_SECURITY",
+        "hard": true,
+        "note": "raw pre-Zod capture, validated producer, action-local closure, restricted legacy, failure rollback"
+      },
+      {
+        "from": "P24/PR57",
+        "to": "SWISS_STAGE_LOCAL_ROUTE_INTEGRATION",
+        "kind": "SPORT_SOURCE",
+        "hard": true,
+        "note": "caller stageId filter plus remaining TS-B/actionableRound/DE source"
+      },
+      {
+        "from": "FILE_CONFLICT_15_PAIRS",
+        "to": "FUTURE_INTEGRATED_COMPOSITE_SHA",
+        "kind": "MERGE_CONFLICT",
+        "hard": true,
+        "note": "shared files and semantic API consistency; protected integration only with separate GO"
+      },
+      {
+        "from": "WEB004_38_CASE_DISPOSITIONS+R23B_SOURCE_CLOSURE+NATIVE_CI_PG16_QA",
+        "to": "FINAL_HANDOFF_GO",
+        "kind": "HANDOFF",
+        "hard": true,
+        "note": "owner/HQ signed final release/transfer gate; no SWARM006 now"
+      },
+      {
+        "from": "P02 PR36 R23B SOURCE_FIXED",
+        "to": "A50 EXACT-SHA PACK25 NATIVE",
+        "kind": "QA_GATE",
+        "hard": true,
+        "note": "A60 PASS WITH CONDITIONS not native; requires PR35 Pack19 overlay separately authorized"
+      },
+      {
+        "from": "P25 PR58 R23B SOURCE_FIXED",
+        "to": "A50 EXACT-SHA BACKUP TEST 26 + TYPECHECK",
+        "kind": "QA_GATE",
+        "hard": true,
+        "note": "A90 V8-erasure 26/26, A60 synthetic13/13 not native"
+      },
+      {
+        "from": "A20 D01 D02 D03 D04 APPROVALS",
+        "to": "T055 MIGRATION ALLOCATOR AND AUTHORITATIVE LEDGER",
+        "kind": "MIGRATION_OWNER_GATE",
+        "hard": true,
+        "note": "no numeric key; source-graph ≠ physical applied state"
+      },
+      {
+        "from": "A30 RAW_ISSUER POLICY+A70 ACTION_LOCAL",
+        "to": "P23+P25 FUTURE IMPORTER",
+        "kind": "SECURITY",
+        "hard": true,
+        "note": "no trusted old producer; no strict downgrade and Zod evidence"
+      },
+      {
+        "from": "A50-NATIVE+EXACT_SHA_COMPOSITE+PG16+WEB004_38",
+        "to": "EXEC-B FINAL INTEGRATION REVIEW",
+        "kind": "LATER_GATE",
+        "hard": true,
+        "note": "plan only, no SWARM006 authorization"
+      }
+    ],
+    "additional": [
+      {
+        "from": "P24 PR57",
+        "to": "P26 PR61",
+        "kind": "GIT_STACK_PARENT",
+        "required": true
+      },
+      {
+        "from": "C01 PR60",
+        "to": "P29 PR66",
+        "kind": "GIT_STACK_PARENT",
+        "required": true
+      },
+      {
+        "from": "P28 PR64",
+        "to": "P29 PR66",
+        "kind": "CALLBACK_INTEROPERABILITY",
+        "required": true
+      },
+      {
+        "from": "P23 PR56+P25 PR58",
+        "to": "P29 PR66",
+        "kind": "PRECLONE_VALIDATION",
+        "required": true
+      },
+      {
+        "from": "P30 PR67",
+        "to": "FUTURE_AUTHENTICATED_BACKUP_INGRESS",
+        "kind": "TEST_FIRST_SECURITY",
+        "required": true
+      },
+      {
+        "from": "D01-D04+T055_SERVER_CAS",
+        "to": "P27 PR63 ACTIVATE",
+        "kind": "DB_API_UI",
+        "required": true
+      },
+      {
+        "from": "P27 P2_401_403_FIX",
+        "to": "P27 PR63 ACTIVATE",
+        "kind": "SECURITY_GATE",
+        "required": true
+      },
+      {
+        "from": "B1-QA-01",
+        "to": "B02+FUTURE_C02_CI",
+        "kind": "CI_BLOCKER",
+        "required": true
+      }
+    ]
+  },
+  "semantic_batch_dependency_plan": [
+    {
+      "id": "B02",
+      "name": "CI & API integration repair",
+      "owner": "A40/A50/A60",
+      "required": [
+        "C01 PR60 exact failed integration TAP root cause isolate",
+        "A50 exact full source checkout Native runner and per-suite TAP",
+        "Pack17 full fail-closed parser review"
+      ],
+      "deps": [
+        "C01"
+      ],
+      "blockers": [
+        "B1-QA-01"
+      ],
+      "safety": "NO paid CI rerun without A00"
+    },
+    {
+      "id": "B03",
+      "name": "Tournament API routes + Undo",
+      "owner": "A70/A100/A30/A60",
+      "required": [
+        "P06 PR39",
+        "P09 PR42",
+        "P11 PR44",
+        "P13 PR46",
+        "P18 PR51",
+        "P28 PR64"
+      ],
+      "deps": [
+        "domain acceptance",
+        "routes/tournaments.ts joint conflict handling",
+        "exact history and LIFO semantics"
+      ],
+      "blockers": [
+        "7 pairwise routes path overlaps + shared Undo test"
+      ],
+      "safety": "A00 explicit disposable integration GO"
+    },
+    {
+      "id": "B04",
+      "name": "Backup V3 qualification, transport, action provenance",
+      "owner": "A90/A70/A30/A20/A60",
+      "required": [
+        "P08 PR41",
+        "P15 PR48",
+        "C01 P23 PR56/P25 PR58",
+        "P28 PR64",
+        "P29 PR66",
+        "P30 PR67"
+      ],
+      "deps": [
+        "real issuer/anti-downgrade",
+        "raw-before-Zod",
+        "full V2/V3 validators",
+        "clone-local action ID closure",
+        "zero-write HTTP 400/rollback"
+      ],
+      "blockers": [
+        "same backup-v3.ts and integration test conflict",
+        "not-wired modules",
+        "unexecuted fail-first security"
+      ],
+      "safety": "SECURITY_HARD_STOP no privileged import before controls"
+    },
+    {
+      "id": "B05",
+      "name": "Basket CAS + DB schema/migrations",
+      "owner": "A20/A110/A00/A60",
+      "required": [
+        "P05 PR38",
+        "P22 PR55",
+        "P27 PR63"
+      ],
+      "deps": [
+        "A00 D01-D04 signed",
+        "physical PG16 ledger verification",
+        "T055 numeric id reserved only after graph",
+        "server ETag/If-Match D1-D5",
+        "writer lock order and deadlock tests"
+      ],
+      "blockers": [
+        "A110 P2 auth-revoked draft",
+        "schema migration absent"
+      ],
+      "safety": "no SQL or PG reset without separate authorization"
+    },
+    {
+      "id": "B06",
+      "name": "Frontend tournament detail, stage progress, standings",
+      "owner": "A110/A120/A80/A60",
+      "required": [
+        "P10 PR43",
+        "P17 PR50",
+        "P21 PR54",
+        "P14 PR47",
+        "P24 PR57",
+        "P26 PR61",
+        "P27 PR63 (only after FIX)"
+      ],
+      "deps": [
+        "tournament-detail.tsx 3-way reconciliation",
+        "stage-progress-view.tsx reconciliation",
+        "Swiss stage caller/Undo API stabilization",
+        "auth revocation client fix",
+        "native/browser tests"
+      ],
+      "blockers": [
+        "frontend overlap pairs",
+        "disabled client privacy P2"
+      ],
+      "safety": "no client feature activation without server CAS and security GO"
+    },
+    {
+      "id": "B07",
+      "name": "Security, auxiliary and release packaging",
+      "owner": "A00/A30/A100/A50/A60",
+      "required": [
+        "P03 PR34",
+        "P04 PR37",
+        "P16 PR49",
+        "P19 PR52",
+        "P20 PR53"
+      ],
+      "deps": [
+        "independent HTTP checks",
+        "session/private cache",
+        "security regression",
+        "remaining original P01-P25 tasks",
+        "WEB004 38-case closure"
+      ],
+      "blockers": [
+        "no full CI/browser integrated SHA"
+      ],
+      "safety": "no release/transfer without HQ"
+    }
+  ],
+  "conflict_resolution_rule": "Only set RESOLVED for an actual jointly integrated exact-composite SHA and independent review of conflict hunks. C01 does not contain any pair jointly, 0 of 15 resolved.",
+  "source_to_integration_links": [
+    {
+      "packet": "P26",
+      "pr": 61,
+      "head": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "base": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6"
+    },
+    {
+      "packet": "P27",
+      "pr": 63,
+      "head": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "packet": "P28",
+      "pr": 64,
+      "head": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    },
+    {
+      "packet": "P29",
+      "pr": 66,
+      "head": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "base": "fa3261b2c9510e110ac9eba21726812d3401a525"
+    },
+    {
+      "packet": "P30",
+      "pr": 67,
+      "head": "880824f18b8913602955578dfd76eeac7976e32a",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+    }
+  ],
+  "blocked_source": "P27/PR63 must fix auth revoked GET draft state; inactive",
+  "no_merge_performed": true
+}
