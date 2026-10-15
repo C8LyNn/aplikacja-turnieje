@@ -347,7 +347,8 @@ export function preflightBackupV3Profile(raw: unknown): BackupProfilePreflight {
 
   if (own(root, "strictPolicy")) {
     if (schemaVersion !== 3 || !exactlyKeys(root, new Set([...V3_ROOT, "strictPolicy"])) ||
-        !noModernKeys(root.tournament)) {
+        !noModernKeys(root.tournament) ||
+        !exactlyKeys(root.tournament, V3_TOURNAMENT)) {
       return outcome("REJECT", "VERSION_OR_SCHEMA_CONFLICT", schemaVersion);
     }
     if (!obj(root.strictPolicy)) {
@@ -366,10 +367,9 @@ export function preflightBackupV3Profile(raw: unknown): BackupProfilePreflight {
         !Array.isArray(marker.completionActions)) {
       return outcome("REJECT", "UNSUPPORTED_PROFILE", schemaVersion);
     }
-    if (!objects(root.stages) || !objects(root.groups) ||
-        !objects(root.stageParticipants) || !objects(root.players) ||
-        !objects(root.matches) || !objects(root.resultHistory) ||
-        !objects(root.actionLog)) {
+    // A self-declared strict marker must not hide invalid V3 structure,
+    // contradictory references or an injected V2 tournament fingerprint.
+    if (!legacyRecords(root, 3)) {
       return outcome("REJECT", "UNKNOWN_OR_HYBRID_STRUCTURE", schemaVersion);
     }
     // Marker and self-reported producer NEVER verify issuer or a signature.
