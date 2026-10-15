@@ -457,7 +457,7 @@ export function validateBackupV3ActionLocalProvenance(input: unknown): void {
       const p2 = maybeId(payload.player2Id, where + ".undoPayload.player2Id");
       if (p1 != null && p1 === p2) fail("STAGE_MEMBERSHIP", where, "Historical swap players cannot be identical.");
       for (const p of [p1, p2]) {
-        if (p != null && !members.has(match.stageBackupId + ":" + p)) {
+        if (p != null && !members.has(String(match.stageBackupId) + ":" + p)) {
           fail("STAGE_MEMBERSHIP", where, "Historical pre-swap participant belongs to another stage.");
         }
       }
@@ -502,11 +502,11 @@ export function validateBackupV3ActionLocalProvenance(input: unknown): void {
     const action = actions[ix];
     const mid = link.matchBackupId;
     const rev = link.historyRevision;
-    const match = positive(mid) ? matches.get(mid) : undefined;
-    if (!match || action.matchBackupId !== mid ||
-        !positive(rev) || !historyIndex.has(mid + ":" + rev)) {
+    if (!positive(mid) || !positive(rev) || !matches.has(mid) ||
+        action.matchBackupId !== mid || !historyIndex.has(mid + ":" + rev)) {
       fail("COMPLETION_PROVENANCE", where, "Completion action/history match identity or revision is forged.");
     }
+    const match = matches.get(mid)!;
     if (typeof link.active !== "boolean" ||
         link.active !== (action.isUndone === false && action.canUndo === true)) {
       fail("COMPLETION_PROVENANCE", where, "Active completion contradicts original Undo flags.");
