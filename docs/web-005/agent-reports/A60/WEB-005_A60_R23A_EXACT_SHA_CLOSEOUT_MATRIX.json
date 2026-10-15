@@ -1,0 +1,92 @@
+{
+  "schema": "web005.a60.r23a.exact_sha_closeout/1",
+  "agent": "A60",
+  "task": "WEB-005-T130-A60-R23A-EXACT-SHA-CLOSEOUT",
+  "date": "2026-10-15",
+  "baseline": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "prs": [
+    {
+      "pr": 58,
+      "head": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "verdict": "PASS WITH CONDITIONS",
+      "scope": "RAW_PROFILE_PURE_CLASSIFIER_NOT_WIRED",
+      "files": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "blob_sha1": "c180da5b9d8aaedb44d83fcc8831aeb6fa70b988"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "blob_sha1": "bf328acae3f3c4659f95f0fa1df4a836ceb15d0a"
+        }
+      ],
+      "tests": {
+        "author_authored": 16,
+        "a60_native_executed": 0,
+        "a60_synthetic_executed": 0,
+        "current_ci": "FAIL_PACK19_UPSTREAM",
+        "current_ci_run_id": 38718588832,
+        "a50_exact_head_native_receipt": false
+      },
+      "p0": 0,
+      "p1": 0,
+      "p2": [
+        {
+          "id": "P58-P2-01",
+          "finding": "historical structural classifier accepts semantically impossible completed BYE fixture as legacy-compatible unauthenticated, requiring full V2/V3 validator before wiring"
+        }
+      ],
+      "authenticated": false,
+      "capabilities_authorized": false,
+      "not_wired": true
+    },
+    {
+      "pr": 36,
+      "head": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "verdict": "PASS WITH CONDITIONS",
+      "scope": "PACK20_21_25_26_READONLY_OPTIONS_COMMENT_SANITIZATION",
+      "files": [
+        {
+          "path": "qa/pack20/source-contract.test.mjs",
+          "blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26"
+        },
+        {
+          "path": "qa/pack21/source-contract.test.mjs",
+          "blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6"
+        },
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "blob_sha1": "f9d3eff6b18e74ebe00d6ec8c9a1b0628f081ee1"
+        },
+        {
+          "path": "qa/pack26/source-contract.test.mjs",
+          "blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385"
+        }
+      ],
+      "tests": {
+        "author_synthetic_reported_pass": 33,
+        "a60_synthetic_executed": 14,
+        "a60_synthetic_pass": 14,
+        "a60_synthetic_fail": 0,
+        "a60_synthetic_exit": 0,
+        "a60_native_exact_source": 0,
+        "current_head_ci_run_count": 0,
+        "combined_pr35_pr36_native": "NOT_EXECUTED",
+        "synthetic_vulnerability_reproduced": true
+      },
+      "p0": 0,
+      "p1": 0,
+      "p2": [
+        {
+          "id": "P36-P2-01",
+          "finding": "Pack25 raw response matcher falsely accepts required impactGraph/impactRiskReport fields present only in a fake return comment",
+          "preexisting": true
+        }
+      ],
+      "pr35_compatible_source_only": true
+    }
+  ],
+  "handoff": "HANDOFF_NOT_READY",
+  "release": "NO_GO",
+  "swarm006": "HOLD"
+}
