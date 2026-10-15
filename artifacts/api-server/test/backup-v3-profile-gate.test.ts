@@ -188,3 +188,27 @@ test("AD-N16 malformed marker and unknown opaque historical field behavior is bo
   }];
   status(legacy, "LEGACY_COMPAT_UNATTESTED");
 });
+
+test("AD-N06 strict marker does not rescue V2-style tournament or missing required V3 stages", () => {
+  const hybrid = strict();
+  hybrid.tournament.defaultBestOf = 3;
+  hybrid.tournament.format = "swiss";
+  status(hybrid, "REJECT");
+  const truncated = strict();
+  truncated.stages = [];
+  status(truncated, "REJECT");
+  const missing = strict();
+  delete missing.groups;
+  status(missing, "REJECT");
+});
+test("AD-N06 strict issuer mark cannot excuse forged participant, cross-stage match or incomplete record", () => {
+  const forged = strict();
+  forged.players[0].backupId = -1;
+  status(forged, "REJECT");
+  const cross = strict();
+  cross.matches = [{
+    backupId: 4, stageBackupId: 999, round: 1, matchNumber: 1,
+    bestOf: 3, status: "pending", resultType: null, resultReason: null,
+  }];
+  status(cross, "REJECT");
+});
