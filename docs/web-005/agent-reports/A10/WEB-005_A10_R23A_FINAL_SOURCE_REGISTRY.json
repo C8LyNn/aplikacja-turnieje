@@ -1,0 +1,1012 @@
+{
+  "schema": "WEB005_A10_R23A_FINAL_SOURCE_REGISTRY_APPEND_ONLY_V1",
+  "task": "WEB-005-T018-A10-R23A-FINAL-REGISTRY",
+  "date": "2026-10-15 Europe/Warsaw",
+  "agent": "A10",
+  "mode": "APPEND_ONLY_DOCS_ONLY",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "documentation_branch": "chore/web-005/t000-wave1-control",
+  "release_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "summary": {
+    "legacy_packets_preserved": 24,
+    "new_packet": "P25",
+    "new_pr": 58,
+    "total_packets": 25,
+    "current_open_draft_unmerged": 25,
+    "original_digest_entries": 96,
+    "prior_R22_added_digest_entries": 5,
+    "new_P25_digest_entries": 2,
+    "new_P02_revision_digest_entries": 4,
+    "historical_total_unique_current_paths": 93,
+    "prior_direct_overlap_pairs": 15,
+    "new_direct_overlap_pairs": 0
+  },
+  "original_immutability": {
+    "original_21_manifest_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/1a099c3f982420660ecb9bf495551607eb3275ec/docs/web-005/agent-reports/A10/WEB-005_A10_R20_MACHINE_TABLE.json",
+    "original_21_sha_entries": 96,
+    "original_21_heads_preserved": true,
+    "r22_P22_P24_manifest_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_LATE_DELTA_REGISTRY.json",
+    "r22_P22_P24_preserved": true,
+    "P23_01_revision_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R22_P23_01_POST_FIX_REGISTRY_ADDENDUM.json",
+    "original_P02_head": "85ad0b86136fc3491c9ef18663d9b01396179349",
+    "original_P02_file_digests": [
+      {
+        "path": "qa/pack20/source-contract.test.mjs",
+        "git_blob_sha1": "39c06cb006760a85d33d79765004e2ab6b3b20c4",
+        "sha256": "f627b244d3ff6c5fc0d45e15802c927d880800bc2e924ff1169c46a484c143d6"
+      },
+      {
+        "path": "qa/pack21/source-contract.test.mjs",
+        "git_blob_sha1": "5d3f09fe52dc5636a82cb2860bd6a91e848f5962",
+        "sha256": "3c6935845fd4c60f44815c39b4e5b7fec14f2ddbd746c53cf1a9938aa97272ce"
+      },
+      {
+        "path": "qa/pack25/source-contract.test.mjs",
+        "git_blob_sha1": "8d8e8b3a1c89ba86bb65441dd90c1c07cc555503",
+        "sha256": "b1eae70dc5d98472c4b4eb6bf36b27841f3c306717cb7e0cda55ff3f64e50175"
+      },
+      {
+        "path": "qa/pack26/source-contract.test.mjs",
+        "git_blob_sha1": "8ea89ee0720038eccd344536e286ab03236b6775",
+        "sha256": "e90da20259d202ff36e573c12b2498c62a184a39727a1b14468efcdea17c0001"
+      }
+    ],
+    "original_P23_head": "77707092202ca79277de7bc57cc4e37e4c033171",
+    "P23_01_updated_head": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "historical_24": [
+      {
+        "packet": "P01",
+        "pr": 35,
+        "original_head_sha": "7cb283aa82273a1e22daf9051a82311eef53760c"
+      },
+      {
+        "packet": "P02",
+        "pr": 36,
+        "original_head_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+      },
+      {
+        "packet": "P03",
+        "pr": 34,
+        "original_head_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+      },
+      {
+        "packet": "P04",
+        "pr": 37,
+        "original_head_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+      },
+      {
+        "packet": "P05",
+        "pr": 38,
+        "original_head_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+      },
+      {
+        "packet": "P06",
+        "pr": 39,
+        "original_head_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+      },
+      {
+        "packet": "P07",
+        "pr": 40,
+        "original_head_sha": "9a8287271299a59fc9291b8d253299a8d109a35d"
+      },
+      {
+        "packet": "P08",
+        "pr": 41,
+        "original_head_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+      },
+      {
+        "packet": "P09",
+        "pr": 42,
+        "original_head_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+      },
+      {
+        "packet": "P10",
+        "pr": 43,
+        "original_head_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+      },
+      {
+        "packet": "P11",
+        "pr": 44,
+        "original_head_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+      },
+      {
+        "packet": "P12",
+        "pr": 45,
+        "original_head_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+      },
+      {
+        "packet": "P13",
+        "pr": 46,
+        "original_head_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+      },
+      {
+        "packet": "P14",
+        "pr": 47,
+        "original_head_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+      },
+      {
+        "packet": "P15",
+        "pr": 48,
+        "original_head_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+      },
+      {
+        "packet": "P16",
+        "pr": 49,
+        "original_head_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+      },
+      {
+        "packet": "P17",
+        "pr": 50,
+        "original_head_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+      },
+      {
+        "packet": "P18",
+        "pr": 51,
+        "original_head_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+      },
+      {
+        "packet": "P19",
+        "pr": 52,
+        "original_head_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+      },
+      {
+        "packet": "P20",
+        "pr": 53,
+        "original_head_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34"
+      },
+      {
+        "packet": "P21",
+        "pr": 54,
+        "original_head_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f"
+      },
+      {
+        "packet": "P22",
+        "pr": 55,
+        "original_head_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204"
+      },
+      {
+        "packet": "P23",
+        "pr": 56,
+        "original_head_sha": "77707092202ca79277de7bc57cc4e37e4c033171"
+      },
+      {
+        "packet": "P24",
+        "pr": 57,
+        "original_head_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6"
+      }
+    ],
+    "current_pr_heads_as_read": [
+      {
+        "packet": "P01",
+        "pr": 35,
+        "initial_head": "7cb283aa82273a1e22daf9051a82311eef53760c",
+        "current_head": "7cb283aa82273a1e22daf9051a82311eef53760c",
+        "sha_drift": false
+      },
+      {
+        "packet": "P02",
+        "pr": 36,
+        "initial_head": "85ad0b86136fc3491c9ef18663d9b01396179349",
+        "current_head": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+        "sha_drift": true
+      },
+      {
+        "packet": "P03",
+        "pr": 34,
+        "initial_head": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+        "current_head": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+        "sha_drift": false
+      },
+      {
+        "packet": "P04",
+        "pr": 37,
+        "initial_head": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+        "current_head": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+        "sha_drift": false
+      },
+      {
+        "packet": "P05",
+        "pr": 38,
+        "initial_head": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+        "current_head": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+        "sha_drift": false
+      },
+      {
+        "packet": "P06",
+        "pr": 39,
+        "initial_head": "16053ee132756ca05b6f2cd1f0cabae823905387",
+        "current_head": "16053ee132756ca05b6f2cd1f0cabae823905387",
+        "sha_drift": false
+      },
+      {
+        "packet": "P07",
+        "pr": 40,
+        "initial_head": "9a8287271299a59fc9291b8d253299a8d109a35d",
+        "current_head": "9a8287271299a59fc9291b8d253299a8d109a35d",
+        "sha_drift": false
+      },
+      {
+        "packet": "P08",
+        "pr": 41,
+        "initial_head": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+        "current_head": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+        "sha_drift": false
+      },
+      {
+        "packet": "P09",
+        "pr": 42,
+        "initial_head": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+        "current_head": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+        "sha_drift": false
+      },
+      {
+        "packet": "P10",
+        "pr": 43,
+        "initial_head": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+        "current_head": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+        "sha_drift": false
+      },
+      {
+        "packet": "P11",
+        "pr": 44,
+        "initial_head": "2f0187b7242681c394c09058b5ef647667206bd6",
+        "current_head": "2f0187b7242681c394c09058b5ef647667206bd6",
+        "sha_drift": false
+      },
+      {
+        "packet": "P12",
+        "pr": 45,
+        "initial_head": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+        "current_head": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+        "sha_drift": false
+      },
+      {
+        "packet": "P13",
+        "pr": 46,
+        "initial_head": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+        "current_head": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+        "sha_drift": false
+      },
+      {
+        "packet": "P14",
+        "pr": 47,
+        "initial_head": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+        "current_head": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+        "sha_drift": false
+      },
+      {
+        "packet": "P15",
+        "pr": 48,
+        "initial_head": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+        "current_head": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+        "sha_drift": false
+      },
+      {
+        "packet": "P16",
+        "pr": 49,
+        "initial_head": "99298b81501c3e7764d653604923522a19b9f05c",
+        "current_head": "99298b81501c3e7764d653604923522a19b9f05c",
+        "sha_drift": false
+      },
+      {
+        "packet": "P17",
+        "pr": 50,
+        "initial_head": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+        "current_head": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+        "sha_drift": false
+      },
+      {
+        "packet": "P18",
+        "pr": 51,
+        "initial_head": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+        "current_head": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+        "sha_drift": false
+      },
+      {
+        "packet": "P19",
+        "pr": 52,
+        "initial_head": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+        "current_head": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+        "sha_drift": false
+      },
+      {
+        "packet": "P20",
+        "pr": 53,
+        "initial_head": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+        "current_head": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+        "sha_drift": false
+      },
+      {
+        "packet": "P21",
+        "pr": 54,
+        "initial_head": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+        "current_head": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+        "sha_drift": false
+      },
+      {
+        "packet": "P22",
+        "pr": 55,
+        "initial_head": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+        "current_head": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+        "sha_drift": false
+      },
+      {
+        "packet": "P23",
+        "pr": 56,
+        "initial_head": "77707092202ca79277de7bc57cc4e37e4c033171",
+        "current_head": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+        "sha_drift": true
+      },
+      {
+        "packet": "P24",
+        "pr": 57,
+        "initial_head": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+        "current_head": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+        "sha_drift": false
+      }
+    ],
+    "notes": "No original P01-P24 source records or SHA entries were rewritten; this is a separate versioned, append-only delta."
+  },
+  "revisions": [
+    {
+      "packet": "P02",
+      "pr": 36,
+      "type": "EXISTING_PACKET_R23A_REVISION",
+      "initial_head_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "head_sha": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "OPEN_DRAFT_UNMERGED",
+      "commit_delta": 5,
+      "compare_url": "https://github.com/C8LyNn/aplikacja-turnieje/compare/85ad0b86136fc3491c9ef18663d9b01396179349...4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "paths": [
+        {
+          "path": "qa/pack20/source-contract.test.mjs",
+          "git_blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26",
+          "sha256": "9e9b2ce252e3364457d7b99884fb633e13bb4f430cc040e99756d03913ba1f65",
+          "size_bytes": 5131,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/4be68fdd48ee3529029dc4dd2952780ba37853e7/qa/pack20/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack21/source-contract.test.mjs",
+          "git_blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6",
+          "sha256": "cc850a71cb3f3e2025ba70fae0a10de6bf34cb980870b1c7bc2db1a04fd870d1",
+          "size_bytes": 2593,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/4be68fdd48ee3529029dc4dd2952780ba37853e7/qa/pack21/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "git_blob_sha1": "f9d3eff6b18e74ebe00d6ec8c9a1b0628f081ee1",
+          "sha256": "94f86da57f89591ca91936bc2e7ea03019297879f2673b1a57fd85a4ecc51d3b",
+          "size_bytes": 5067,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/4be68fdd48ee3529029dc4dd2952780ba37853e7/qa/pack25/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack26/source-contract.test.mjs",
+          "git_blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385",
+          "sha256": "7f502ac443299cc4924a22bcd8c3c9b26fd3c3015f39611f40eb7209a0dbedff",
+          "size_bytes": 3940,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/4be68fdd48ee3529029dc4dd2952780ba37853e7/qa/pack26/source-contract.test.mjs"
+        }
+      ],
+      "source_qa": {
+        "verdict": "PASS WITH CONDITIONS",
+        "scope": "TRANSACTION_OPTIONS_CONTRACT_SOURCE_ACCEPTED_SCOPED",
+        "reviewed_exact_head": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+        "report": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23A_PR36_CI_PACK20_26_INDEPENDENT_QA.md",
+        "p0": 0,
+        "p1": 0,
+        "p2_open": [
+          "P36-P2-01 Pack25 response-field comment-spoof acceptance (pre-existing)"
+        ]
+      },
+      "test_evidence": {
+        "authored_real_repo_suite": "NOT_EXECUTED",
+        "A40_synthetic": {
+          "tested": 33,
+          "passed": 33,
+          "failed": 0,
+          "exit": 0,
+          "provenance": "standalone local synthetic fixtures, not repo PR36 native"
+        },
+        "A60_synthetic": {
+          "tested": 14,
+          "passed": 14,
+          "failed": 0,
+          "exit": 0,
+          "provenance": "independent hand-constructed Node probes; one PASS proves spoof vulnerability"
+        },
+        "native_exact_pr": {
+          "status": "NOT_EXECUTED",
+          "exit": null,
+          "tap": null
+        },
+        "combined_pr35_pr36": {
+          "status": "NOT_EXECUTED",
+          "exit": null,
+          "tap": null
+        },
+        "ci_current_head": {
+          "status": "NO_PR_HEAD_RUN_RETURNED",
+          "run_count": 0,
+          "pass_claim": false
+        },
+        "pg16": {
+          "status": "NOT_EXECUTED",
+          "exit": null
+        }
+      }
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "type": "NEW_SOURCE_PACKET",
+      "initial_head_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "head_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "OPEN_DRAFT_UNMERGED",
+      "commit_count": 5,
+      "compare_url": "https://github.com/C8LyNn/aplikacja-turnieje/compare/1fdc401d87c6bffe6bf7312dfc9db681b689dcf7...14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "paths": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "git_blob_sha1": "c180da5b9d8aaedb44d83fcc8831aeb6fa70b988",
+          "sha256": "5702c58ab763741f126259dd1fb5891c01ca3c94b98aa68c034ac6106bef2b8f",
+          "size_bytes": 15979,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/14204bc9ec24f5902fddc3deb48d7592747d450a/artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "git_blob_sha1": "bf328acae3f3c4659f95f0fa1df4a836ceb15d0a",
+          "sha256": "a92b91049e45bf019d17c864e7f67f7b3356ebb1b370987a20ef19cd91dd28d0",
+          "size_bytes": 8957,
+          "source_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/14204bc9ec24f5902fddc3deb48d7592747d450a/artifacts/api-server/test/backup-v3-profile-gate.test.ts"
+        }
+      ],
+      "source_qa": {
+        "verdict": "PASS WITH CONDITIONS",
+        "scope": "RAW_PROFILE_SOURCE_ACCEPTED_SCOPED_NOT_WIRED",
+        "reviewed_exact_head": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+        "report": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23A_PR58_RAW_PROFILE_INDEPENDENT_QA.md",
+        "p0": 0,
+        "p1": 0,
+        "p2_open": [
+          "P58-P2-01 historical structurally compatible but semantically invalid completed BYE may classify as LEGACY_COMPAT_UNATTESTED",
+          "P58-P2-02 external authenticated-origin/downgrade ambiguity remains non-authoritative"
+        ]
+      },
+      "capability_granted": false,
+      "raw_preflight_standalone": true,
+      "test_evidence": {
+        "author_test_bodies": 16,
+        "author_native_run": "NOT_EXECUTED",
+        "A60_native": "NOT_EXECUTED",
+        "A60_synthetic": "NOT_EXECUTED",
+        "A50_native": "NOT_EXECUTED_FOR_PR58",
+        "native_exact_pr": {
+          "status": "NOT_EXECUTED",
+          "exit": null,
+          "tap": null
+        },
+        "ci_current_head": {
+          "status": "FAILURE",
+          "run_id": 38718588832,
+          "url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38718588832",
+          "failed_gate": "Pack19 7 PASS / 1 FAIL inherited old readOnly:true matcher",
+          "feature_tests": "NOT_EXECUTED"
+        },
+        "pg16": {
+          "status": "NOT_EXECUTED",
+          "exit": null
+        }
+      }
+    }
+  ],
+  "existing_P23_revision": {
+    "packet": "P23",
+    "pr": 56,
+    "initial_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+    "latest_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+    "source_qa": "PASS WITH CONDITIONS / P23-01 SOURCE_DEFECT_FIXED scoped",
+    "A60_isolated_unit": {
+      "cases": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    "A50_native": "NOT_EXECUTED",
+    "ci": "INHERITED_PACK19_FAILURE",
+    "pg16": "NOT_EXECUTED",
+    "wired": false,
+    "report": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_PR56_P23_01_POST_FIX_INDEPENDENT_QA.md"
+  },
+  "source_report_evidence": [
+    {
+      "agent": "A20",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A20/WEB-005_A20_R23A_MIGRATION_LEDGER_OWNER_DECISION_HANDOFF.md",
+      "state": "LEDGER_RECONCILIATION_READY_FOR_OWNER_DECISION",
+      "details": "14 original migration identities SHA1+SHA256 verified; release/editor 0030/0031 clash; PG applied ledger unknown, numeric T055 migration UNASSIGNED; proposal only"
+    },
+    {
+      "agent": "A40",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A40/WEB-005_A40_R23A_CI_PACK19_26_RECOVERY.md",
+      "state": "CI_CONTRACT_READY_FOR_INTEGRATION_QA_ONLY",
+      "details": "PR36 source hardening + 33/33 local synthetic, exact-PR36 native NOT_EXECUTED; remaining Pack25 response spoof discovered by A60"
+    },
+    {
+      "agent": "A50",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R23A_DBFREE_EXECUTION.md",
+      "state": "NATIVE_ENV_BLOCKED",
+      "details": "0 A50 new R23A native tests; report focused PR56/PR57; do not attribute zero to a PR58-run attempt"
+    },
+    {
+      "agent": "A60",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23A_EXACT_SHA_CLOSEOUT_MATRIX.json",
+      "state": "INDEPENDENT_EXACT_SHA_PASS_WITH_CONDITIONS_BOTH",
+      "details": "PR36 independent 14/14 synthetic; PR58 source only, 16 authored NOT_EXECUTED; P2 issue in each"
+    },
+    {
+      "agent": "A70",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a70-r23a-action-provenance/docs/web-005/WEB-005_A70_R23A_ACTION_PROVENANCE_CONTRACT.md",
+      "state": "DOMAIN_CONTRACT_READY_NOT_IMPLEMENTED",
+      "details": "action-local ID closure, system BYE, LIFO total order, strict remapping and legacy degradation contract; no runtime"
+    },
+    {
+      "agent": "A90",
+      "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a90-r23a-profile-preflight/docs/web-005/agent-reports/A90/WEB-005_A90_R23A_PROFILE_PREFLIGHT_HANDOFF.md",
+      "state": "PROFILE_PREFLIGHT_SOURCE_DELIVERED_NOT_WIRED",
+      "details": "PR58 two new pure files; raw preflight classifier; 16 authored tests, native NOT_EXECUTED"
+    }
+  ],
+  "qa_separation": {
+    "source_QA": "A60 exact SHA scoped, conditions on both P02 and P25",
+    "synthetic_QA": "A40 33/33; A60 14/14 PR36; separate non-duplicative actor/test receipts; PR58 0 executed",
+    "native_QA": "A50 R23A 0 new native on PR56/57 and no PR36/58 full native receipts",
+    "ci": "PR58 failed inherited Pack19, PR36 has no current HEAD workflow returned; neither feature verified by CI",
+    "pg16": "Physical PostgreSQL applied state unknown; SQL/DDL/PG16 suite NOT_EXECUTED",
+    "full_typecheck": "NOT_EXECUTED for PR36/58",
+    "release": "RELEASE_NO_GO"
+  },
+  "direct_file_conflicts": {
+    "historical_pairs": [
+      {
+        "packet_a": "P06",
+        "packet_b": "P09",
+        "pr_a": 39,
+        "pr_b": 42,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P11",
+        "pr_a": 39,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P13",
+        "pr_a": 39,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P18",
+        "pr_a": 39,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P08",
+        "packet_b": "P15",
+        "pr_a": 41,
+        "pr_b": 48,
+        "shared_paths": [
+          "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P11",
+        "pr_a": 42,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P13",
+        "pr_a": 42,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P18",
+        "pr_a": 42,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts",
+          "artifacts/api-server/test/revert-match.integration.test.ts"
+        ]
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P17",
+        "pr_a": 43,
+        "pr_b": 50,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P21",
+        "pr_a": 43,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P13",
+        "pr_a": 44,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P18",
+        "pr_a": 44,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P13",
+        "packet_b": "P18",
+        "pr_a": 46,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P14",
+        "packet_b": "P21",
+        "pr_a": 47,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/components/stage-progress-view.tsx"
+        ]
+      },
+      {
+        "packet_a": "P17",
+        "packet_b": "P21",
+        "pr_a": 50,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      }
+    ],
+    "count": 15,
+    "new_conflict_pairs": [],
+    "P25_new_path_overlap_count": 0,
+    "P02_changed_path_overlap_new": 0
+  },
+  "semantic_dependency_DAG": [
+    {
+      "from": "P01/PR35",
+      "to": "P02/PR36",
+      "kind": "CI_SOURCE_ORDER",
+      "hard": true,
+      "note": "nonoverlapping Pack19 patch then Pack20/21/25/26; P02 P2 response spoof still blocks full contract"
+    },
+    {
+      "from": "P02/PR36",
+      "to": "A40_NEXT_PACK25_FIX",
+      "kind": "NEW_SCOPED_SOURCE",
+      "hard": true,
+      "note": "unfixed response-comment spoof; test-first new SHA and A60 exact review"
+    },
+    {
+      "from": "P01+P02+FUTURE_FIX",
+      "to": "A50_DISPOSABLE_PACK19_26_QA",
+      "kind": "CI_EXECUTOR",
+      "hard": true,
+      "note": "never treat 33 A40 + 14 A60 synthetic as native full-source suite"
+    },
+    {
+      "from": "P05/PR38",
+      "to": "A20_CANONICAL_MIGRATION_LEDGER",
+      "kind": "MIGRATION_IDENTITY",
+      "hard": true,
+      "note": "14 source hashes verified; release/editor 0030/0031 collision; A00 decision D01-D04"
+    },
+    {
+      "from": "A20_LEDGER_DECISION",
+      "to": "T055_NUMERIC_MIGRATION_RESERVATION",
+      "kind": "MIGRATION",
+      "hard": true,
+      "note": "requested-not-allocated; no guessed 0032/0041"
+    },
+    {
+      "from": "T055_RESERVATION+WRITER_LOCK_GRAPH",
+      "to": "P22/PR55_FUTURE_T055_IMPL",
+      "kind": "API_DB",
+      "hard": true,
+      "note": "persistence, ETag, atomic roster/stage, dirty draft"
+    },
+    {
+      "from": "P08/PR41+P15/PR48",
+      "to": "P23/PR56",
+      "kind": "BACKUP_DOMAIN",
+      "hard": true,
+      "note": "source parity/MVCC prerequisite; no direct file change PR56"
+    },
+    {
+      "from": "P23/PR56",
+      "to": "P25/PR58",
+      "kind": "BACKUP_COMPOSITION",
+      "hard": true,
+      "note": "pure strict validator and raw profile gate different checks; NOT_WIRED"
+    },
+    {
+      "from": "A30_LEGACY_TRUST+A70_ACTION_CONTRACT+P23+P25",
+      "to": "FUTURE_BACKUP_IMPORT_EXPORT_RAW_HTTP_WIRING",
+      "kind": "BACKUP_SECURITY",
+      "hard": true,
+      "note": "raw pre-Zod capture, validated producer, action-local closure, restricted legacy, failure rollback"
+    },
+    {
+      "from": "P24/PR57",
+      "to": "SWISS_STAGE_LOCAL_ROUTE_INTEGRATION",
+      "kind": "SPORT_SOURCE",
+      "hard": true,
+      "note": "caller stageId filter plus remaining TS-B/actionableRound/DE source"
+    },
+    {
+      "from": "FILE_CONFLICT_15_PAIRS",
+      "to": "FUTURE_INTEGRATED_COMPOSITE_SHA",
+      "kind": "MERGE_CONFLICT",
+      "hard": true,
+      "note": "shared files and semantic API consistency; protected integration only with separate GO"
+    },
+    {
+      "from": "WEB004_38_CASE_DISPOSITIONS+R23B_SOURCE_CLOSURE+NATIVE_CI_PG16_QA",
+      "to": "FINAL_HANDOFF_GO",
+      "kind": "HANDOFF",
+      "hard": true,
+      "note": "owner/HQ signed final release/transfer gate; no SWARM006 now"
+    }
+  ],
+  "blocker_matrix": [
+    {
+      "id": "B-R23B-01",
+      "priority": "P1",
+      "domain": "CI",
+      "owner": "A40",
+      "approver": "A00/A60",
+      "status": "OPEN",
+      "issue": "P02/PR36 Pack25 response-comment spoof false acceptance (A60 P36-P2-01). Transaction options only accepted scoped.",
+      "required_next": "Fail-first P2 negative response-return fixture; sanitized executable-return/AST guard; new exact source SHA + independent A60 QA",
+      "gate": "CI_SRC_FIX_BEFORE_COMPOSITE_TEST"
+    },
+    {
+      "id": "B-R23B-02",
+      "priority": "P1",
+      "domain": "TEST_EXECUTION",
+      "owner": "A50",
+      "approver": "A00",
+      "status": "NATIVE_ENV_BLOCKED",
+      "issue": "No trusted exact-HEAD full pnpm/tsx checkout or certified disposable PG16; A50 native R23A zero.",
+      "required_next": "Provide clean checked-out pinned HEADs, Node22/pnpm10/frozen dependencies, capture target TAP and typecheck; separate PG16 written reset GO",
+      "gate": "NO_NATIVE_PASS_NO_RELEASE"
+    },
+    {
+      "id": "B-R23B-03",
+      "priority": "P1",
+      "domain": "BACKUP_SECURITY",
+      "owner": "A30/A90",
+      "approver": "A00/HQ",
+      "status": "OPEN",
+      "issue": "P25 PR58 P58-P2-01 impossible completed historical BYE can receive legacy-shape classification; no issuer authenticity or raw/import capability enforcement.",
+      "required_next": "Fix full-semantic V2/V3 coherence positive/negative fixtures, obtain real legacy fixtures, approve restricted legacy recovery and raw-ingress trust model before wiring",
+      "gate": "BACKUP_V3_NOT_WIRED"
+    },
+    {
+      "id": "B-R23B-04",
+      "priority": "P1",
+      "domain": "BACKUP_IMPORT_EXPORT",
+      "owner": "A90/A70",
+      "approver": "A30/A00",
+      "status": "NOT_WIRED",
+      "issue": "P23 PR56 strict validator + P25 PR58 preflight isolated; actual exporter/importer/Zod/IDs/history/undo/rollback never integrated.",
+      "required_next": "A70 action-local ID closure and total order; no map.get(id)??id; strict provenance; future distinct import/export/HTTP source GO + QA",
+      "gate": "NOT_WIRED"
+    },
+    {
+      "id": "B-R23B-05",
+      "priority": "P0",
+      "domain": "MIGRATION_LEDGER",
+      "owner": "A20",
+      "approver": "A00",
+      "status": "GRAPH_ADOPTION_PENDING",
+      "issue": "Release/editor SQL 0030/0031 collision, 14 identified originals; physical applied history unknown; T055 logical migration request not numerically allocated.",
+      "required_next": "Owner D01-D04 canonical graph/order/evidence/allocator decision, then fully scoped D05-D10 code/PG16 gates; no SQL GO",
+      "gate": "MIGRATION_ID_UNASSIGNED"
+    },
+    {
+      "id": "B-R23B-06",
+      "priority": "P1",
+      "domain": "BASKET_CAS",
+      "owner": "A20/A110",
+      "approver": "A00",
+      "status": "SOURCE_IMPLEMENTATION_MISSING",
+      "issue": "P22/PR55 is 10 fail-first tests only; persistence, ETag/If-Match, atomic stage/roster drift, 428/412, D6 UI absent.",
+      "required_next": "After migration ledger/lock graph authorization, separate DB migration and API/UI code lanes, exact-source QA and physically isolated PG16 acceptance",
+      "gate": "T055_NOT_IMPLEMENTED"
+    },
+    {
+      "id": "B-R23B-07",
+      "priority": "P1",
+      "domain": "SPORT",
+      "owner": "A70/A80/A120",
+      "approver": "A00",
+      "status": "PARTIAL_SOURCE_ONLY",
+      "issue": "P24 Swiss S3/S4 source accepted conditional, no native; S1 TS-B, S2 actionableRound, S5/S6 DE placements remain separate implementation.",
+      "required_next": "Scoped test-first source with stage caller audit; A60 exact QA; functional/native oracle including >16 fairness",
+      "gate": "SPORT_SOURCE_INCOMPLETE"
+    },
+    {
+      "id": "B-R23B-08",
+      "priority": "P1",
+      "domain": "PR_FILE_CONFLICTS",
+      "owner": "A00",
+      "approver": "A60/A10",
+      "status": "15_DIRECT_CONFLICT_PAIRS",
+      "issue": "Existing exact-file conflicts in tournaments.ts, backup-v3.ts, stage-progress-view.tsx, tournament-detail.tsx, revert test.",
+      "required_next": "Owner-selected merge order and semantic reconciliation in future authorized disposable integration; do not treat no-new-file-collision as composite compatibility",
+      "gate": "NO_COMPOSITE_SHA"
+    },
+    {
+      "id": "B-R23B-09",
+      "priority": "P1",
+      "domain": "WEB004_LINEAGE",
+      "owner": "A00/HQ",
+      "approver": "owner/HQ",
+      "status": "INCOMPLETE",
+      "issue": "38 aggregate historical slots, only 29 secondary IDs and 9 original IDs unavailable; no original CSV or signed per-case dispositions.",
+      "required_next": "Produce original canonical WEB004 38-case artifact or approved documented per-case exception with accountable owner/risk; never create missing IDs/PASS",
+      "gate": "HISTORIC_CASE_GATE"
+    },
+    {
+      "id": "B-R23B-10",
+      "priority": "P1",
+      "domain": "OTHER_OWNER_SECURITY",
+      "owner": "A00/A30/A100",
+      "approver": "owner/HQ",
+      "status": "OWNER_DECISION_OPEN",
+      "issue": "Public MP2B CAS/Host RA/RB/RC, Steam absent-secret behavior, session TTL/digest/rotation, PR53 old raw orphan cache disposal remain separately unresolved.",
+      "required_next": "Obtain explicit individual policy decisions and scoped fixes/review, not blanket acceptance",
+      "gate": "OWNER_SIGNOFF_PENDING"
+    },
+    {
+      "id": "B-R23B-11",
+      "priority": "P0",
+      "domain": "CI_RELEASE",
+      "owner": "A40/A50/A60",
+      "approver": "A00/HQ",
+      "status": "RELEASE_STOP",
+      "issue": "PR58 current Actions FAIL inherited Pack19 7 PASS 1 FAIL; PR36 latest HEAD no workflow run; Pack17 --full and integrated API/PG16/browser not executed.",
+      "required_next": "Use future approved disposable overlay P01+P02 plus other source lanes; real TAP/checks/release gate after exact source QA; no paid reruns now",
+      "gate": "RELEASE_NO_GO"
+    },
+    {
+      "id": "B-R23B-12",
+      "priority": "P1",
+      "domain": "LEGACY_UNDO",
+      "owner": "A70/A90",
+      "approver": "A30/A00",
+      "status": "CONTRACT_ONLY",
+      "issue": "A70 confirms action-local closure, BYE provenance, total order, clone maps; no live enforcement/valid persisted action-history join.",
+      "required_next": "Implement only under separately authorized strict Backup wiring lane with schema/Undo/PG16 test evidence",
+      "gate": "DOMAIN_CONTRACT_NOT_CODE"
+    }
+  ],
+  "proposed_integration_order_for_future_authorized_R23B": [
+    {
+      "order": 1,
+      "owner": "A00",
+      "action": "Freeze R23A exact SHA registry, accept source-only QA scopes, decide R23B ownership and scope; do not authorize integration yet."
+    },
+    {
+      "order": 2,
+      "owner": "A00/A20",
+      "action": "Ratify/adjust canonical 14-source migration graph D01-D04 and evidence/allocator policy, leave numeric migration ID unassigned until history verified."
+    },
+    {
+      "order": 3,
+      "owner": "A40→A60",
+      "action": "Narrow Pack25 response-comment spoof fail-first fix on PR36 lane/new exact SHA, repeat independent source QA; preserve PR35 standalone."
+    },
+    {
+      "order": 4,
+      "owner": "A90/A30→A60",
+      "action": "Address P25 structural-impossible completed-BYE legacy positive/negative cases and trust/read-only preflight policy; preserve no-auth capabilities."
+    },
+    {
+      "order": 5,
+      "owner": "A70/A90/A30",
+      "action": "Specify typed action-local Undo/legacy degrade and raw-before-Zod importer wiring under separate GO, preserving PR41/48 and PR56/58 boundaries."
+    },
+    {
+      "order": 6,
+      "owner": "A00/A20/A110",
+      "action": "Authorize uniquely numbered T055 DB migration only after allocator, writer locks, physically isolated PG16; follow with separate actual CAS API/UI source."
+    },
+    {
+      "order": 7,
+      "owner": "A70/A80/A120",
+      "action": "Finish distinct S1/S2/S5/S6 sporting source lanes and scoped Swiss caller integration where authorized."
+    },
+    {
+      "order": 8,
+      "owner": "A00/A50/A40/A60",
+      "action": "Reconcile 15 conflicting PR pairs in authorized temporary workspace, execute pinned source-contract + native suites/CI, then authorized disposable PG16 and browser QA."
+    },
+    {
+      "order": 9,
+      "owner": "A00/HQ",
+      "action": "Resolve MP2B/Steam/session/legacy cache and genuine 38-case provenance & signed dispositions; only subsequently assess FINAL_HANDOFF_GO."
+    }
+  ],
+  "historical_WEB004": {
+    "cases": 38,
+    "original_csv_verified": false,
+    "secondary_derived_identifiers": 29,
+    "genuine_original_identifiers_missing": 9,
+    "signed_per_case_owner_dispositions": 0,
+    "previous_aggregate_only": {
+      "pass": 0,
+      "external_ci_fail": 3,
+      "blocked": 33,
+      "not_run": 2
+    },
+    "unknowns_not_invented": true,
+    "unresolved_not_marked_pass": true
+  },
+  "final": {
+    "verdict": "R23A_REGISTRY_COMPLETE / HANDOFF_NOT_READY",
+    "R23B_handoff": "READY_FOR_A00_SCOPE_DECISION_NOT_INTEGRATION_GO",
+    "BACKUP_V3_NOT_WIRED": true,
+    "SWARM006_HOLD": true,
+    "RELEASE_NO_GO": true,
+    "FINAL_HANDOFF_GO": false,
+    "prohibited_actions_performed": {
+      "app_code_changes": 0,
+      "SQL_DDL": 0,
+      "merge": 0,
+      "rebase": 0,
+      "deploy": 0,
+      "paid_CI_rerun": 0,
+      "SWARM006": 0
+    }
+  }
+}
