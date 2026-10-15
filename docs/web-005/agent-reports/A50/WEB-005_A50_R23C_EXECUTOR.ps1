@@ -141,7 +141,6 @@ function TestNode([string]$id,[string]$path,[string]$kind='UNIT') {
 function TestFrontend([string]$id,[string]$path,[switch]$tsconfig) {
   if(-not(NeedFile $path $id)){return}
   AssertUnitOnly $path
-  $rel=$path.Substring('artifacts/api-server/'.Length) # unused when frontend; explicit below
   $fromApi='../tournament-manager/'+$path.Substring('artifacts/tournament-manager/'.Length)
   $args=@('--filter','@workspace/api-server','exec','node','--import','tsx','--test','--test-reporter=tap',$fromApi)
   if($tsconfig){$args=@('--filter','@workspace/api-server','exec','tsx','--tsconfig','../tournament-manager/tsconfig.json','--test','--test-reporter=tap',$fromApi)}
@@ -174,9 +173,9 @@ try {
   $script:Checkout=Join-Path $wr ('WEB005_'+$Profile+'_'+$ExpectedSha.Substring(0,12)+'_'+$id)
   $script:Versions.powershell=$PSVersionTable.PSVersion.ToString()
   $v=Run 'node-version' 'node' @('--version') $src
-  $script:Versions.node=(Get-Content -LiteralPath $v.log -Raw).Trim()
+  $script:Versions.node=(& node --version).Trim()
   $v=Run 'pnpm-version' 'pnpm' @('--version') $src
-  $script:Versions.pnpm=(Get-Content -LiteralPath $v.log -Raw).Trim()
+  $script:Versions.pnpm=(& pnpm --version).Trim()
   [void](Run 'git-version' 'git' @('--version') $src)
   $nodeVersion=(& node --version).Trim()
   $pnpmVersion=(& pnpm --version).Trim()
