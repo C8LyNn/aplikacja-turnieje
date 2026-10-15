@@ -1,0 +1,138 @@
+{
+  "schema": "web005.a60.r23b.fix_closeout/1",
+  "task": "WEB-005-T130-A60-R23B-FIX-CLOSEOUT",
+  "date": "2026-10-15",
+  "agent": "A60",
+  "source_scope": "INDEPENDENT_EXACT_SHA_SOURCE_QA",
+  "baseline": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "prs": [
+    {
+      "pr": 36,
+      "head": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "base_previous": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "compare_commits": [
+        "daef47233a630152e131e9c6b86d48f5530b6e0c",
+        "24fe6c399e3a4fa82c3d96703620097fa941a59a"
+      ],
+      "changed_since_previous": [
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "git_blob": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608"
+        }
+      ],
+      "original_pr36_files": [
+        "qa/pack20/source-contract.test.mjs",
+        "qa/pack21/source-contract.test.mjs",
+        "qa/pack25/source-contract.test.mjs",
+        "qa/pack26/source-contract.test.mjs"
+      ],
+      "prior_issue": "P36-P2-01",
+      "prior_issue_closeout": "SOURCE_FIXED",
+      "p0": [],
+      "p1": [],
+      "p2_new": [],
+      "verdict": "PASS WITH CONDITIONS",
+      "a60_synthetic_executed": {
+        "cases": 16,
+        "pass": 16,
+        "fail": 0,
+        "skip": 0,
+        "exit": 0
+      },
+      "author_reported_synthetic": {
+        "red": {
+          "tests": 3,
+          "fail": 3,
+          "exit": 1
+        },
+        "green": {
+          "tests": 20,
+          "pass": 20,
+          "fail": 0,
+          "exit": 0
+        }
+      },
+      "native_pack25": "NOT_EXECUTED",
+      "native_combined_pr35_pr36": "NOT_EXECUTED",
+      "ci_current_head": "NO_RUN_RETURNED",
+      "residual": [
+        "bounded lexical matcher not TS AST",
+        "full native source contracts and database-isolation not executed",
+        "PR35 separately unmerged"
+      ],
+      "source_report": "WEB-005_A60_R23B_PR36_PACK25_CORRECTION_INDEPENDENT_QA.md"
+    },
+    {
+      "pr": 58,
+      "head": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "base_previous": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "compare_commits": [
+        "160c33e8966547eb34affb2085efb0c64c354d16",
+        "3470762ac8635b63a15a18f7a18300c66876cbfb",
+        "e8100f7b0c1071c2a98880d4eb7947514fc58185"
+      ],
+      "changed_since_previous": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "git_blob": "518526d8d9ff2cef368261788e12c9f8290754f5"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "git_blob": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19"
+        }
+      ],
+      "prior_issue": "P58-P2-01",
+      "prior_issue_closeout": "SOURCE_FIXED",
+      "p0": [],
+      "p1": [],
+      "p2_new": [],
+      "verdict": "PASS WITH CONDITIONS",
+      "author_tests_authored": 26,
+      "author_new_r23b_tests_authored": 10,
+      "a60_synthetic_executed": {
+        "cases": 13,
+        "pass": 13,
+        "fail": 0,
+        "skip": 0,
+        "exit": 0
+      },
+      "native_author_suite": "NOT_EXECUTED",
+      "typecheck": "NOT_EXECUTED",
+      "ci_current_head": {
+        "run_id": 38728665362,
+        "result": "FAIL_INHERITED_PACK19",
+        "pack19_pass": 7,
+        "pack19_fail": 1,
+        "feature_tests": "NOT_EXECUTED"
+      },
+      "not_wired": true,
+      "authenticated": false,
+      "capabilities_authorized": false,
+      "residual": [
+        "structural shape never positive attestation",
+        "full historical semantic validators needed before import",
+        "genuine archived V2/V3 corpus not executed",
+        "strict issuer proof Zod raw body and rollback not implemented"
+      ],
+      "source_report": "WEB-005_A60_R23B_PR58_LEGACY_BYE_CORRECTION_INDEPENDENT_QA.md"
+    }
+  ],
+  "independent_test_run": {
+    "provenance": "A60 SYNTHETIC only, standalone Node 22.16.0",
+    "command": "node --test --test-reporter=tap /mnt/data/web005_a60_r23b/independent_synthetic_boundary.test.mjs",
+    "exit": 0,
+    "tests": 29,
+    "pass": 29,
+    "fail": 0,
+    "skip": 0,
+    "pack25_subset": 16,
+    "backup_subset": 13,
+    "tap_sha256": "3cfe15b28f8448900d101fb69d17f8f90e8ffd2c911f6b95f701668f883793ca",
+    "script_sha256": "722b541d1ce15e077ff031dbc8b63afe0a7d4a0fb750a14884144c18d0b02b1c",
+    "exact_git_blob_native_execution": false
+  },
+  "current_a50_native_exact_head_receipts": 0,
+  "release": "RELEASE_NO_GO",
+  "swarm006": "HOLD",
+  "handoff": "HANDOFF_NOT_READY"
+}
