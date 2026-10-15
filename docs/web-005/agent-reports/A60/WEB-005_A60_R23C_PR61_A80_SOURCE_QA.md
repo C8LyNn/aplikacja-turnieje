@@ -1,0 +1,8 @@
+# A60 R23C — PR61 A80 Swiss Caller Independent QA
+
+**Verdict: PASS WITH CONDITIONS — TEST SOURCE ONLY, PG16 NOT_EXECUTED.**
+GitHub [PR61](https://github.com/C8LyNn/aplikacja-turnieje/pull/61) OPEN DRAFT/unmerged at exact HEAD **8c26778c94cd6c96987f3986b651066024f10d4a**, stacked on PR57 SHA **a57fe31c1bc123c5217b3f58bcdd34750c64c5c6** (NOT release direct).
+Only 1 added file: artifacts/api-server/test/swiss-caller-stage-scope.integration.test.ts, Git blob **7a15d5aa14d394eede4b54aed87ec109064ea479**, 338 lines. **2 authored Node cases**, NOT executed, no native TAP/exit and no PG16 approval. Actual release caller source filters generate-round prior matches by current stage, initial stage sends empty history; the test is a future two-stage A/B adversarial BYE and 32/65 fixture. No production handler changed.
+
+**Risk:** The first test uses getSafeTestDatabaseConfig, resetTestSchema and dropTestSchema, which may perform DROP SCHEMA CASCADE in test namespace. Author explicitly NOT_EXECUTED. It cannot run until A00+A20 approve a physically isolated disposable PG16 schema and the real HTTP/native test command. GitHub Actions run 38736645076 FAILS inherited Pack19 before targeted Swiss test; do not label that test failed or passed.
+P0=0 P1=0 P2=0 newly source-proven; residual dependency is real stage-scope HTTP/PG16 execution. **Recheck HEAD before running. RELEASE_NO_GO / SWARM006_HOLD.**
