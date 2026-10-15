@@ -11,7 +11,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateKeyPairSync, sign } from "node:crypto";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -25,6 +25,7 @@ import {
  *   evaluateRawIngress({rawJson, issuers, captureWrite}) =>
  *      { decision, httpStatus?, code?, authenticated, capabilities?, parsedBackup?, ... }
  *   validateStrictSourceGraph({backup}) => {ok, code?, issues?}
+ *   canonicalPayloadBytes(backup) => Uint8Array
  *   canonicalSigningBytes({envelope,backup}) => Uint8Array
  *   inspectZodRoundTrip({rawJson}) =>
  *      {rawProfile,parsedProfile,profilePreserved,backupVersion}
@@ -196,10 +197,15 @@ test("BI-12-SIGNED-POSITIVE: ephemeral Ed25519 proof, verified issuer and payloa
   const a=await requireAdapter();
   assert.equal(typeof a.canonicalSigningBytes,"function",
     "EXPECTED RED: canonical signed bytes and domain separation not implemented");
+  assert.equal(typeof a.canonicalPayloadBytes,"function",
+    "EXPECTED RED: canonical full-payload digest contract is missing");
   const {publicKey,privateKey}=generateKeyPairSync("ed25519"); // RAM-only
   const envelope=untrustedStrictEnvelope();
   envelope.issuerId="test-ephemeral"; envelope.keyId="ephemeral-v1";
   envelope.signature="";
+  const payloadBytes=await a.canonicalPayloadBytes(envelope.backup);
+  assert.ok(payloadBytes instanceof Uint8Array);
+  envelope.payloadDigest=createHash("sha256").update(Buffer.from(payloadBytes)).digest("hex");
   const bytes=await a.canonicalSigningBytes({envelope,backup:envelope.backup});
   assert.ok(bytes instanceof Uint8Array);
   envelope.signature=sign(null,Buffer.from(bytes),privateKey).toString("base64url");
