@@ -131,10 +131,11 @@ test("CAS-DRAFT-03 explicit use-remote discards local changes ONLY with user con
   session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "purple" }; });
   server.mutateRemotely(A.tournamentId, graph("green"));
   assert.equal(await session.save(), "stale");
+  await session.refreshRemote();
+  // Even after a fresh comparison, automatic or unconfirmed resolution is denied.
   await assert.rejects(async () => session.reconcile({
     action: "use-remote", confirmedByOrganizer: false as never,
   }), /explicitly compare/);
-  await session.refreshRemote();
   session.reconcile({ action: "use-remote", confirmedByOrganizer: true });
   assert.equal(color(session.view()), "green");
 });
