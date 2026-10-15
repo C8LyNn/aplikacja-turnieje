@@ -73,7 +73,7 @@ Future separately authorized adapter path supplied via `WEB005_BACKUP_INGRESS_SE
 - `evaluateRawIngress({rawJson,issuers,captureWrite})` ⇒ `{decision:"REJECT"|"STRICT_VERIFIED"|"LEGACY_RESTRICTED",httpStatus?,code?,authenticated,capabilities?,serverEnforcedRestrictions?}`. `captureWrite` records forbidden prevalidation writes, not actual PG simulation; direct pure tests must show no calls.
 - `inspectZodRoundTrip({rawJson})` ⇒ `{rawProfile,parsedProfile,profilePreserved,backupVersion}` with no unexpected marker stripping.
 - `validateStrictSourceGraph({backup})` ⇒ `{ok,code?,issues?}`, validates recognized **action-local** and stage-local refs, not only exported ID membership. This pure seam runs only *after* authenticated profile dispatch in integrated code.
-- `canonicalSigningBytes({envelope,backup})` ⇒ `Uint8Array` of selected versioned canonical/domain-separated signed bytes; test creates an **in-memory ephemeral Ed25519 key pair**, never writes a private key. Only public test key is supplied under `issuers`.
+- `canonicalPayloadBytes(backup)` ⇒ `Uint8Array` of canonical payload bytes used for SHA-256 digest; `canonicalSigningBytes({envelope,backup})` ⇒ `Uint8Array` of versioned domain-separated signed bytes. The positive test creates an **in-memory ephemeral Ed25519 key pair**, never writes a private key; only the public test key is supplied under `issuers`.
 
 **Important:** these are an *acceptance adapter specification*, not existing exports of PR56/58. The exact function/API names are test-side seam names that A00/A90 may adapt when formally implementing; tests must be updated through independent review if an equivalent interface is chosen. A test stub that returns hardcoded answers **cannot** be presented as actual ingress acceptance.
 
