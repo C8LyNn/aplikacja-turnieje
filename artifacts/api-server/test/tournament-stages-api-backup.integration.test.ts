@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -138,7 +139,7 @@ async function completeGroupMatches(stageId: number): Promise<void> {
     .from(database.matchesTable)
     .where(eq(database.matchesTable.stageId, stageId));
   for (const match of matches) {
-    await completeMatch({
+    await completeMatch({ expectedRevision: await matchRevision(database, match.id),
       matchId: match.id,
       resultType: "played",
       score1: 1,

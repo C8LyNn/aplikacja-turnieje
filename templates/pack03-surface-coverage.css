@@ -1,0 +1,220 @@
+/* Pack 03.1 — Full Surface Coverage
+   Second visual pass: operational/public surfaces get explicit semantic hooks.
+   All selectors stay scoped to Experimental roots. */
+
+/* Audience / public broadcast hierarchy */
+.experimental-tournament-public .experimental-audience-section-shell > div:first-child {
+  position: relative;
+  padding-left: .85rem;
+}
+.experimental-tournament-public .experimental-audience-section-shell > div:first-child::before {
+  content: "";
+  position: absolute;
+  inset: .15rem auto .15rem 0;
+  width: 3px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, hsl(var(--exp-tone-primary)), hsl(var(--exp-tone-info)));
+}
+.experimental-tournament-public .experimental-audience-empty-state {
+  border-color: hsl(var(--exp-tone-info) / .22) !important;
+  background: linear-gradient(135deg, hsl(var(--exp-tone-info) / .04), transparent 70%), var(--exp-surface-1) !important;
+}
+.experimental-tournament-public .experimental-audience-hero,
+.experimental-tournament-public .experimental-audience-match-row,
+.experimental-tournament-public .experimental-public-match-card,
+.experimental-tournament-shell .experimental-host-primary,
+.experimental-tournament-shell .experimental-host-match {
+  --exp-match-tone: 214 18% 63%;
+}
+.experimental-tournament-public [data-exp-match-state="in_progress"],
+.experimental-tournament-shell [data-exp-match-state="in_progress"] { --exp-match-tone: var(--exp-tone-live); }
+.experimental-tournament-public [data-exp-match-state="completed"],
+.experimental-tournament-shell [data-exp-match-state="completed"] { --exp-match-tone: var(--exp-tone-success); }
+.experimental-tournament-public [data-exp-match-state="pending"],
+.experimental-tournament-shell [data-exp-match-state="pending"] { --exp-match-tone: var(--exp-tone-warning); }
+.experimental-tournament-public [data-exp-match-state="postponed"],
+.experimental-tournament-shell [data-exp-match-state="postponed"] { --exp-match-tone: var(--exp-tone-warning); }
+.experimental-tournament-public [data-exp-match-state="cancelled"],
+.experimental-tournament-shell [data-exp-match-state="cancelled"] { --exp-match-tone: var(--exp-tone-danger); }
+
+.experimental-tournament-public .experimental-audience-hero[data-exp-match-state] {
+  border-color: hsl(var(--exp-match-tone) / .50) !important;
+  background:
+    radial-gradient(circle at 50% -20%, hsl(var(--exp-match-tone) / .11), transparent 38rem),
+    linear-gradient(140deg, hsl(var(--exp-match-tone) / .055), transparent 62%),
+    var(--exp-surface-3) !important;
+  box-shadow: 0 18px 54px hsl(var(--exp-match-tone) / .08), 0 18px 48px hsl(222 60% 2% / .22) !important;
+}
+.experimental-tournament-public .experimental-audience-match-row[data-exp-match-state],
+.experimental-tournament-public .experimental-public-match-card[data-exp-match-state],
+.experimental-tournament-shell .experimental-host-match[data-exp-match-state] {
+  border-color: hsl(var(--exp-match-tone) / .28) !important;
+  background:
+    linear-gradient(100deg, hsl(var(--exp-match-tone) / .06), transparent 58%),
+    var(--exp-surface-2) !important;
+}
+.experimental-tournament-public .experimental-public-match-card[data-exp-match-state="in_progress"],
+.experimental-tournament-shell .experimental-host-match[data-exp-match-state="in_progress"] {
+  box-shadow: inset 3px 0 0 hsl(var(--exp-tone-live) / .72);
+}
+
+.experimental-tournament-public .experimental-audience-panel {
+  --exp-panel-tone: var(--exp-tone-primary);
+  border-color: hsl(var(--exp-panel-tone) / .24) !important;
+  background:
+    linear-gradient(145deg, hsl(var(--exp-panel-tone) / .065), transparent 68%),
+    var(--exp-surface-2) !important;
+}
+.experimental-tournament-public .experimental-audience-panel[data-exp-panel-title="Kolejne mecze"] { --exp-panel-tone: var(--exp-tone-warning); }
+.experimental-tournament-public .experimental-audience-panel[data-exp-panel-title="Ostatnie wyniki"] { --exp-panel-tone: var(--exp-tone-success); }
+.experimental-tournament-public .experimental-audience-panel[data-exp-panel-title="Klasyfikacja"] { --exp-panel-tone: var(--exp-tone-info); }
+.experimental-tournament-public .experimental-audience-panel > h3 { color: hsl(var(--exp-panel-tone) / .82) !important; }
+.experimental-tournament-public .experimental-public-standing-card {
+  border-color: hsl(var(--exp-tone-info) / .23) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .055), transparent 68%), var(--exp-surface-2) !important;
+}
+.experimental-tournament-public .experimental-public-player-card {
+  border-color: hsl(var(--exp-tone-primary) / .21) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-primary) / .045), transparent 68%), var(--exp-surface-2) !important;
+}
+.experimental-tournament-public .experimental-public-player-card:nth-child(even) {
+  border-color: hsl(var(--exp-tone-info) / .22) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .045), transparent 68%), var(--exp-surface-2) !important;
+}
+.experimental-tournament-public .experimental-public-bracket-surface {
+  border-color: hsl(var(--exp-tone-info) / .24) !important;
+  background:
+    radial-gradient(circle at 50% 0%, hsl(var(--exp-tone-info) / .06), transparent 26rem),
+    var(--exp-surface-1) !important;
+}
+
+/* Dedicated bracket/projector visual language without touching geometry. */
+.experimental-bracket-view { --exp-bracket-tone: var(--exp-tone-primary); }
+.experimental-bracket-view[data-exp-format="double_elimination"] { --exp-bracket-tone: var(--exp-tone-danger); }
+.experimental-bracket-view[data-exp-format="swiss"] { --exp-bracket-tone: var(--exp-tone-info); }
+.experimental-bracket-view[data-exp-format="round_robin"] { --exp-bracket-tone: var(--exp-tone-warning); }
+.experimental-bracket-view[data-exp-format="group_stage"] { --exp-bracket-tone: var(--exp-tone-success); }
+.experimental-bracket-view .experimental-bracket-header {
+  border-color: hsl(var(--exp-bracket-tone) / .30) !important;
+  background:
+    radial-gradient(circle at 50% -40%, hsl(var(--exp-bracket-tone) / .16), transparent 25rem),
+    linear-gradient(110deg, hsl(var(--exp-bracket-tone) / .08), transparent 45%),
+    var(--exp-surface-3) !important;
+}
+.experimental-bracket-view .experimental-bracket-header h1 {
+  filter: drop-shadow(0 8px 20px hsl(var(--exp-bracket-tone) / .12));
+}
+.experimental-bracket-view .experimental-bracket-canvas {
+  background-color: var(--exp-surface-1);
+  background-image: radial-gradient(circle, hsl(var(--exp-bracket-tone) / .115) 1px, transparent 1px) !important;
+  background-size: 32px 32px !important;
+}
+.experimental-bracket-view > div:first-child :where(a, button) {
+  border-color: hsl(var(--exp-bracket-tone) / .26) !important;
+}
+
+/* Stage lifecycle — direct state markers avoid relying only on :has(). */
+.experimental-stages-surface .organizer-stage-card[data-exp-stage-status="active"] {
+  border-color: hsl(var(--exp-tone-live) / .48) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-live) / .10), transparent 68%), var(--exp-surface-3) !important;
+}
+.experimental-stages-surface .organizer-stage-card[data-exp-stage-status="completed"] {
+  border-color: hsl(var(--exp-tone-success) / .31) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-success) / .065), transparent 70%), var(--exp-surface-2) !important;
+}
+.experimental-stages-surface .organizer-stage-card[data-exp-stage-status="planned"] {
+  border-color: hsl(var(--exp-tone-info) / .25) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .04), transparent 72%), var(--exp-surface-2) !important;
+}
+.experimental-stages-surface .organizer-stage-card[aria-pressed="true"] {
+  box-shadow: inset 0 -3px 0 hsl(var(--exp-tone-primary) / .72), 0 10px 28px hsl(222 55% 3% / .12);
+}
+.experimental-stages-surface .organizer-stage-detail[data-exp-stage-status="active"] {
+  border-color: hsl(var(--exp-tone-live) / .34) !important;
+  background: linear-gradient(120deg, hsl(var(--exp-tone-live) / .075), transparent 58%), var(--exp-surface-3) !important;
+}
+.experimental-stages-surface .organizer-stage-detail[data-exp-stage-status="completed"] {
+  border-color: hsl(var(--exp-tone-success) / .28) !important;
+}
+.experimental-stages-surface .organizer-stage-detail[data-exp-stage-status="planned"] {
+  border-color: hsl(var(--exp-tone-info) / .26) !important;
+}
+.experimental-stages-surface .organizer-readiness[data-exp-ready="true"] {
+  border-color: hsl(var(--exp-tone-success) / .34) !important;
+  background: linear-gradient(120deg, hsl(var(--exp-tone-success) / .07), transparent 64%), var(--exp-surface-2) !important;
+}
+.experimental-stages-surface .organizer-readiness[data-exp-ready="false"] {
+  border-color: hsl(var(--exp-tone-warning) / .32) !important;
+  background: linear-gradient(120deg, hsl(var(--exp-tone-warning) / .07), transparent 64%), var(--exp-surface-2) !important;
+}
+
+/* Basket flow: inputs and outputs are visually different, lock is obvious. */
+.experimental-baskets-surface [data-exp-locked="true"] .organizer-flow-map {
+  border-color: hsl(var(--exp-tone-warning) / .28) !important;
+}
+.experimental-baskets-surface .organizer-flow-stage[data-exp-stage-status="active"] {
+  border-color: hsl(var(--exp-tone-live) / .34) !important;
+}
+.experimental-baskets-surface .organizer-flow-stage[data-exp-stage-status="completed"] {
+  border-color: hsl(var(--exp-tone-success) / .25) !important;
+}
+.experimental-baskets-surface .organizer-basket[data-exp-basket-type="input"] {
+  border-color: hsl(var(--exp-tone-info) / .32) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .075), transparent 72%), var(--exp-surface-3) !important;
+}
+.experimental-baskets-surface .organizer-basket[data-exp-basket-type="output"] {
+  border-color: hsl(var(--exp-tone-primary) / .32) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-primary) / .075), transparent 72%), var(--exp-surface-3) !important;
+}
+.experimental-baskets-surface [data-exp-locked="true"] .organizer-basket {
+  filter: saturate(.72);
+}
+.experimental-baskets-surface .organizer-route-summary [role="listitem"] {
+  border-color: hsl(var(--exp-tone-success) / .22) !important;
+  background: linear-gradient(110deg, hsl(var(--exp-tone-success) / .045), transparent 62%), var(--exp-surface-2) !important;
+}
+.experimental-baskets-surface [data-testid="baskets-locked-banner"] {
+  border-color: hsl(var(--exp-tone-warning) / .36) !important;
+  background: hsl(var(--exp-tone-warning) / .075) !important;
+  color: hsl(var(--exp-tone-warning) / .95) !important;
+}
+
+/* Host match states now share one semantic contract with Audience. */
+.experimental-tournament-shell .experimental-host-primary[data-exp-match-state] {
+  border-color: hsl(var(--exp-match-tone) / .46) !important;
+  background:
+    radial-gradient(circle at 50% -15%, hsl(var(--exp-match-tone) / .09), transparent 32rem),
+    var(--exp-surface-3) !important;
+}
+.experimental-tournament-shell .experimental-host-primary[data-exp-match-state="in_progress"] {
+  box-shadow: 0 0 0 1px hsl(var(--exp-tone-live) / .08), 0 20px 54px hsl(var(--exp-tone-live) / .07) !important;
+}
+
+/* Dense list polish: retain capacity while adding hierarchy. */
+.experimental-players-surface .experimental-player-row {
+  box-shadow: inset 3px 0 0 transparent;
+}
+.experimental-players-surface .experimental-player-row:hover,
+.experimental-players-surface .experimental-player-row:focus-within {
+  box-shadow: inset 3px 0 0 hsl(var(--exp-tone-info) / .62);
+}
+.experimental-players-surface .experimental-player-row:nth-child(3n + 1) { --exp-row-tone: var(--exp-tone-primary); }
+.experimental-players-surface .experimental-player-row:nth-child(3n + 2) { --exp-row-tone: var(--exp-tone-info); }
+.experimental-players-surface .experimental-player-row:nth-child(3n + 3) { --exp-row-tone: var(--exp-tone-success); }
+
+@media (max-width: 639px) {
+  .experimental-tournament-public .experimental-audience-section-shell > div:first-child { padding-left: .65rem; }
+  .experimental-bracket-view .experimental-bracket-header { padding-inline: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experimental-tournament-shell *,
+  .experimental-tournament-entry *,
+  .experimental-tournament-create *,
+  .experimental-tournament-public *,
+  .experimental-tournament-stage-view * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

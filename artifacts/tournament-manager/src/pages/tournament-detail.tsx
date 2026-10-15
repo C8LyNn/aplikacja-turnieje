@@ -1,18 +1,17 @@
-import { useRoute, useSearch, Link } from "wouter";
+import { ReadQueryState } from "@/components/read-query-state";
+import { useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGetTournament, useGetTournamentStats, useListPlayers, useGetTournamentBracket,
   useListMatches, useAddPlayer, useDeletePlayer, useStartTournament, useImportPlayers,
   useUpdatePlayer,
-  useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useListTournamentStages,
-  useGetTournamentStageReadiness,
+  useGetTournamentStandings, useGetResultsHistory, useListTournamentStages,
   useImportTournament,
   exportTournament,
   getGetTournamentQueryKey, getGetTournamentStatsQueryKey, getListPlayersQueryKey,
   getGetTournamentBracketQueryKey, getListMatchesQueryKey, getGetTournamentStandingsQueryKey,
   getGetResultsHistoryQueryKey, getGetTournamentAssistantQueryKey, getListTournamentStagesQueryKey,
-  getGetTournamentStageReadinessQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2 } from "lucide-react";
+import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -30,6 +29,7 @@ import { RoundRobinView } from "@/components/round-robin-view";
 import { TournamentChecklist } from "@/components/tournament-checklist";
 import { StageProgressView } from "@/components/stage-progress-view";
 import { SecurityPanel } from "@/components/security-panel";
+import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import {
   ForcedHeroBadge,
   TournamentGameConfigPanel,
@@ -48,29 +48,42 @@ import { StageBasketsPanel } from "@/components/stage-baskets-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { availableStageStartReadiness, deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
+import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
+import { stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
+import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
+import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
+import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
+import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
+import { ExperimentalTournamentOverview } from "@/features/experimental-tournaments/experimental-tournament-overview";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
   round_robin: "Każdy z każdym",
+  group_stage: "Faza grupowa",
+  double_elimination: "Podwójna eliminacja",
 };
 
 export default function TournamentDetail() {
-  const [, params] = useRoute("/tournaments/:id");
+  const { id, isExperimental } = useTournamentRoute("detail");
   const search = useSearch();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession, removeOrgToken, removeSupSession, getViewerTok, storeViewerToken, removeViewerToken } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showSupModal, setShowSupModal] = useState(false);
   const [showViewerModal, setShowViewerModal] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [playerStatusFilter, setPlayerStatusFilter] = useState<ExperimentalPlayerStatusFilter>("all");
+  const [playerSort, setPlayerSort] = useState<ExperimentalPlayerSort>("seed");
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
 
   // Keep module-level API client headers in sync with sessionStorage tokens.
@@ -112,9 +125,10 @@ export default function TournamentDetail() {
     data: tournament,
     error: tournamentError,
     isLoading: isLoadingTournament,
+    isFetching: isFetchingTournament,
     refetch: refetchTournament,
   } = useGetTournament(id, {
-    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), retry: false },
+    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), retry: false, refetchInterval: 5000 },
   });
   // readOk: false when tournament is private_online/offline and no valid auth is present
   const visibility = (tournament as any)?.visibility ?? "public_online";
@@ -123,14 +137,32 @@ export default function TournamentDetail() {
     isAuthenticated ||
     (visibility === "private_online" && !!viewerToken);
 
-  const { data: stats } = useGetTournamentStats(id, {
+  const statsQuery = useGetTournamentStats(id, {
     query: { enabled: !!id && readOk, queryKey: getGetTournamentStatsQueryKey(id) },
   });
-  const { data: players } = useListPlayers(id, {
+  const { data: stats } = statsQuery;
+  const playersQuery = useListPlayers(id, {
     query: { enabled: !!id && readOk, queryKey: getListPlayersQueryKey(id) },
   });
+  const { data: players } = playersQuery;
+  const displayedPlayers = useMemo(() => {
+    const list = [...(players ?? [])];
+    if (!isExperimental) return list;
+    const needle = playerSearch.trim().toLocaleLowerCase("pl-PL");
+    const filtered = list.filter((player) => {
+      const matchesStatus = playerStatusFilter === "all" || player.status === playerStatusFilter;
+      const haystack = [player.name, player.teamName, player.rank, player.country].filter(Boolean).join(" ").toLocaleLowerCase("pl-PL");
+      return matchesStatus && (!needle || haystack.includes(needle));
+    });
+    filtered.sort((a, b) => {
+      if (playerSort === "name") return a.name.localeCompare(b.name, "pl");
+      if (playerSort === "status") return String(a.status ?? "").localeCompare(String(b.status ?? ""), "pl") || a.name.localeCompare(b.name, "pl");
+      return (a.seed ?? Number.MAX_SAFE_INTEGER) - (b.seed ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name, "pl");
+    });
+    return filtered;
+  }, [isExperimental, playerSearch, playerSort, playerStatusFilter, players]);
   const { data: matches } = useListMatches(id, {
-    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getListMatchesQueryKey(id) },
+    query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
   const { data: bracket } = useGetTournamentBracket(id, {
     query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetTournamentBracketQueryKey(id) },
@@ -141,25 +173,9 @@ export default function TournamentDetail() {
   const { data: history } = useGetResultsHistory(id, {
     query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetResultsHistoryQueryKey(id) },
   });
-  const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id && readOk, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 15000 },
-  });
   const { data: stages } = useListTournamentStages(id, {
-    query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id) },
+    query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
-  const plannedStage = stages?.find((stage) => stage.status === "planned");
-  const { data: plannedStageReadiness, isFetching: isFetchingPlannedStageReadiness } = useGetTournamentStageReadiness(
-    id,
-    plannedStage?.id ?? 0,
-    {
-      query: {
-        enabled: !!id && readOk && !!plannedStage,
-        retry: false,
-        queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
-      },
-    },
-  );
-
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -190,7 +206,14 @@ export default function TournamentDetail() {
   const [editingBansPlayerId, setEditingBansPlayerId] = useState<number | null>(null);
   const [pendingBans, setPendingBans] = useState<string[]>([]);
 
-  const startTournament = useStartTournament();
+  const initialStartLock = useRef(false);
+  const [startError, setStartError] = useState<string>();
+  const startTournament = useStartTournament({ mutation: {
+    onMutate: () => setStartError(undefined),
+    onSuccess: () => invalidateTournamentDependentQueries(queryClient, id),
+    onError: async (error) => { setStartError(stageLifecycleError(error)); await invalidateTournamentDependentQueries(queryClient, id); },
+    onSettled: () => { initialStartLock.current = false; },
+  } });
   const addPlayer = useAddPlayer();
   const deletePlayer = useDeletePlayer();
   const importPlayers = useImportPlayers();
@@ -257,22 +280,11 @@ export default function TournamentDetail() {
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeDetailTab = organizerDetailTab(search, capabilities);
   const activeArea = organizerAreaForDetailTab(activeDetailTab);
-  const nextStep = useMemo(
-    () => tournament && managementRole && stages !== undefined
-      ? deriveOrganizerNextStep({
-          tournament,
-          stages,
-          matches: tournament.status === "draft" ? [] : matches,
-          surface: "details",
-          capabilities,
-          plannedStageReadiness: availableStageStartReadiness(
-            plannedStageReadiness,
-            isFetchingPlannedStageReadiness,
-          ),
-        })
-      : null,
-    [capabilities, isFetchingPlannedStageReadiness, managementRole, matches, plannedStageReadiness, stages, tournament],
-  );
+  const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
+    capabilities, surface: "details", enabled: !!managementRole && readOk });
+  const nextStep = operation.nextStep;
+  const plannedStageReadiness = operation.readiness.data;
+  const isFetchingPlannedStageReadiness = operation.readiness.isFetching;
 
   useLegacyMatchesRedirect(id, search, capabilities);
 
@@ -304,12 +316,12 @@ export default function TournamentDetail() {
   };
 
   const handleStart = () => {
+    if (initialStartLock.current || !plannedStageReadiness?.ready || isFetchingPlannedStageReadiness) return;
+    initialStartLock.current = true;
     startTournament.mutate({ id }, {
       onSuccess: () => {
         toast({ title: "Turniej wystartował!" });
-        invalidateAll();
       },
-      onError: (e: any) => handleMutationError(e),
     });
   };
 
@@ -389,7 +401,7 @@ export default function TournamentDetail() {
           description: `Turniej „${result.tournament.name}" — ${result.playersImported} graczy, ${result.matchesImported} meczów.`,
         });
         // Navigate to the new tournament
-        window.location.href = `/tournaments/${result.tournament.id}`;
+        window.location.href = tournamentHref(result.tournament.id, isExperimental);
       },
       onError: (e: any) => {
         setImportPending(false);
@@ -537,7 +549,6 @@ export default function TournamentDetail() {
   const accessDeniedCode = (tournamentError as any)?.data?.code as string | undefined;
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED" && role === "fan";
-    const organizerMayLogin = role === "organizer" || role === "developer";
     const supportMayLogin = role === "support";
     const tournamentLabel = `Turniej #${id}`;
     return (
@@ -552,7 +563,7 @@ export default function TournamentDetail() {
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
-            {organizerMayLogin && <Button onClick={() => setShowOrgModal(true)}>Zaloguj jako organizator</Button>}
+            <Button onClick={() => setShowOrgModal(true)}>Wejdź jako organizator</Button>
             {supportMayLogin && <Button onClick={() => setShowSupModal(true)}>Zaloguj jako wsparcie</Button>}
           </div>
         </div>
@@ -600,35 +611,43 @@ export default function TournamentDetail() {
       </Layout>
     );
   }
-  if (!tournament) return <Layout><div>Nie znaleziono</div></Layout>;
-
-  const statusLabel: Record<string, string> = { draft: "SZKIC", active: "AKTYWNY", completed: "ZAKOŃCZONY" };
+  if (!tournament && tournamentError) {
+    const status = (tournamentError as { status?: number }).status;
+    return <Layout><div role="alert" className="mx-auto max-w-lg space-y-3 rounded-lg border bg-card p-6">
+      <h1 className="text-xl font-semibold">{status === 404 ? "Nie znaleziono turnieju" : "Nie udało się pobrać turnieju"}</h1>
+      <p className="text-sm text-muted-foreground">{status === 404
+        ? "Sprawdź adres turnieju i spróbuj ponownie."
+        : "Nie można potwierdzić aktualnego stanu turnieju. Sprawdź połączenie i spróbuj ponownie."}</p>
+      <Button variant="outline" disabled={isFetchingTournament} onClick={() => void refetchTournament()}>
+        <RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie
+      </Button>
+    </div></Layout>;
+  }
+  if (!tournament) return <Layout><div role="status">Ładowanie turnieju…</div></Layout>;
 
   return (
     <Layout colorPreset={presentationSettings.colorPreset || undefined}>
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="organizer-workspace flex flex-col gap-6">
+        <div className="organizer-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
                 className={tournament.status === "active" ? "bg-secondary text-secondary-foreground hover:bg-secondary" :
                   tournament.status === "completed" ? "bg-accent text-accent-foreground hover:bg-accent" : ""}>
-                {statusLabel[tournament.status] ?? tournament.status.toUpperCase()}
+                {TOURNAMENT_STATUS_LABELS[tournament.status] ?? "Nieznany"}
               </Badge>
             </div>
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
-              {FORMAT_LABELS[tournament.format] ?? tournament.format}
-              {tournament.format === "swiss" && tournament.swissRounds && ` · ${tournament.swissRounds} rund`}
-              {tournament.currentRound && ` · Runda ${tournament.currentRound}${tournament.totalRounds ? `/${tournament.totalRounds}` : ""}`}
-              {` · BO${tournament.defaultBestOf} · series_v1`}
+              {operation.stage?.name} · {FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format}
+              {` · ${operation.summary.roundLabel} · BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}
             </p>
             <div className="mt-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="organizer-header-actions flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => setShowChecklist((v) => !v)}
@@ -639,39 +658,41 @@ export default function TournamentDetail() {
             {tournament.status !== "draft" && (
               <>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/host`}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/audience`}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={`/tournaments/${id}/bracket`}><ExternalLink className="w-4 h-4 mr-2" /> Projektor</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> Projektor</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        <TournamentChecklist
-          open={showChecklist && !!id}
+        {isExperimental && (
+          <ExperimentalTournamentContextBar
+            tournamentId={id}
+            tournamentName={tournament.name}
+            currentLabel="Panel turnieju"
+          />
+        )}
+
+        {isExperimental ? (
+          <ExperimentalTournamentChecklist
+            open={showChecklist && !!id}
+            onClose={() => setShowChecklist(false)}
+            tournamentId={id ?? 0}
+            tournamentName={tournament?.name}
+          />
+        ) : (
+          <TournamentChecklist
+            open={showChecklist && !!id}
           onClose={() => setShowChecklist(false)}
           tournamentId={id ?? 0}
           tournamentName={tournament?.name}
-        />
-
-        {assistant && (
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 flex items-start gap-3">
-            <Info className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="font-semibold text-primary text-sm">{assistant.stepTitle}</p>
-              <p className="text-sm text-muted-foreground">{assistant.nextAction}</p>
-              {assistant.warnings && assistant.warnings.length > 0 && (
-                <ul className="mt-1 space-y-0.5">
-                  {assistant.warnings.map((w, i) => <li key={i} className="text-xs text-yellow-400">⚠ {w}</li>)}
-                </ul>
-              )}
-            </div>
-          </div>
+          />
         )}
 
         {managementRole && (
@@ -680,32 +701,40 @@ export default function TournamentDetail() {
         {nextStep && (
           <OrganizerNextStep
             step={nextStep}
-            onAction={nextStep.kind === "planned_stage" ? handleStart : undefined}
+            onAction={nextStep.kind === "planned_stage" && !capabilities.canManageLifecycle ? handleStart : undefined}
             pending={startTournament.isPending}
           />
         )}
+        {managementRole && (
+          <TournamentOperationsOverview
+            tournamentId={id}
+            enabled={readOk && preparedAuthId === id}
+          />
+        )}
+        {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}
+        {startTournament.isPending && <p role="status">Uruchamianie etapu i odświeżanie danych…</p>}
 
         {/* Fan read-only banner */}
-        {role === "fan" && (
+        {role === "fan" && !isAuthenticated && (
           <div className="bg-muted/40 border border-muted rounded-lg p-3 flex items-center gap-3">
             <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
             <p className="text-sm text-muted-foreground">Tryb kibica — tylko do odczytu. Edycja turnieju jest niedostępna.</p>
           </div>
         )}
 
-        {/* Auth gate for password-protected tournaments */}
-        {tournament.hasOrganizerPassword && !isAuthenticated && role !== "fan" && (
+        {/* Login is available even after the browser has lost its stored role. */}
+        {!isAuthenticated && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-yellow-400 shrink-0" />
               <div>
-                <p className="font-semibold text-yellow-400 text-sm">Turniej chroniony hasłem</p>
-                <p className="text-xs text-muted-foreground">Zaloguj się, aby dodawać graczy i zarządzać turniejem.</p>
+                <p className="font-semibold text-yellow-400 text-sm">Masz dostęp tylko do podglądu.</p>
+                <p className="text-xs text-muted-foreground">Użyj zachowanego hasła organizatora, aby wrócić do zarządzania turniejem.</p>
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" onClick={() => setShowOrgModal(true)}>
-                <Key className="w-3.5 h-3.5 mr-1.5" /> Organizator
+                <Key className="w-3.5 h-3.5 mr-1.5" /> Wejdź jako organizator
               </Button>
               {tournament.hasSupportPassword && (
                 <Button size="sm" variant="outline" onClick={() => setShowSupModal(true)}>
@@ -717,6 +746,7 @@ export default function TournamentDetail() {
         )}
 
         {/* Authenticated badge */}
+        {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
         {tournament.hasOrganizerPassword && isAuthenticated && (
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2">
             <Shield className="w-4 h-4 text-green-400 shrink-0" />
@@ -808,6 +838,23 @@ export default function TournamentDetail() {
         {readOk && <Tabs value={activeDetailTab} className="w-full">
 
           <TabsContent value="overview" className="pt-6">
+            {isExperimental ? (
+              <ExperimentalTournamentOverview
+                tournamentId={id}
+                status={tournament.status}
+                formatLabel={FORMAT_LABELS[tournament.format] ?? tournament.format}
+                maxPlayers={tournament.maxPlayers}
+                stageName={operation.stage?.name}
+                roundLabel={operation.summary.roundLabel}
+                bestOf={operation.stage?.bestOf ?? tournament.defaultBestOf}
+                stats={stats}
+                statsLoading={statsQuery.isLoading}
+                statsError={statsQuery.isError}
+                onRetryStats={() => void statsQuery.refetch()}
+                nextStep={nextStep}
+              />
+            ) : (
+              <>
             {stats && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
@@ -845,7 +892,7 @@ export default function TournamentDetail() {
                       <CardTitle className="text-sm font-medium">Runda</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{stats.currentRound ?? "—"} / {stats.totalRounds}</div>
+                      <div className="text-2xl font-bold">{operation.summary.roundLabel}</div>
                     </CardContent>
                   </Card>
                 )}
@@ -872,9 +919,11 @@ export default function TournamentDetail() {
                 </CardContent>
               </Card>
             )}
+              </>
+            )}
           </TabsContent>
 
-          <TabsContent value="stages" className="pt-6">
+          <TabsContent value="stages" className={isExperimental ? "pt-2 experimental-stages-surface" : "pt-2"}>
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -883,11 +932,10 @@ export default function TournamentDetail() {
               canManage={capabilities.canManageLifecycle}
               canWriteResults={capabilities.canWriteTournamentResults}
               gameConfig={tournament.gameConfig}
-              onChanged={invalidateAll}
             />
           </TabsContent>
 
-          <TabsContent value="baskets" className="pt-6">
+          <TabsContent value="baskets" className={isExperimental ? "pt-2 experimental-baskets-surface" : "pt-2"}>
             <StageBasketsPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -895,12 +943,13 @@ export default function TournamentDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="players" className="pt-6">
-            <div className="grid md:grid-cols-3 gap-6">
+          <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
+            {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
+            <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Zawodnicy ({players?.length ?? 0})</CardTitle>
+                    <CardTitle>Zawodnicy ({players?.length ?? "—"})</CardTitle>
                     {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
                         <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
@@ -1072,9 +1121,11 @@ export default function TournamentDetail() {
                     </div>
                   )}
                   <CardContent className="pt-4">
+                    <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
                     {players?.length ? (
-                      <div className="space-y-2">
-                        {players.map((p) => (
+                      <div className={isExperimental ? "experimental-player-list space-y-2" : "space-y-2"}>
+                        {isExperimental && displayedPlayers.length === 0 && <div className="organizer-empty-state border border-dashed p-6 text-center text-sm text-muted-foreground">Brak graczy pasujących do wyszukiwania lub filtra.</div>}
+                        {(isExperimental ? displayedPlayers : players).map((p) => (
                           capabilities.canManageParticipants && editingPlayerId === p.id ? (
                             // Inline edit form
                             <div key={p.id} className="border border-primary/40 rounded bg-background p-3 space-y-2">
@@ -1111,7 +1162,7 @@ export default function TournamentDetail() {
                             </div>
                           ) : (
                             // Normal player row
-                            <div key={p.id} className="flex flex-col border rounded bg-background">
+                            <div key={p.id} data-exp-player-status={isExperimental ? p.status ?? "unknown" : undefined} className={`flex flex-col border rounded bg-background ${isExperimental ? "experimental-player-row" : ""}`}>
                               {/* Main info + actions row */}
                               <div className="flex justify-between items-center p-3">
                                 <div>
@@ -1140,7 +1191,7 @@ export default function TournamentDetail() {
                                     </span>
                                   )}
                                   <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
-                                    {p.status === "active" ? "aktywny" : p.status === "eliminated" ? "wyelim." : "zwyciężca"}
+                                    {PLAYER_STATUS_LABELS[p.status ?? ""] ?? "Nieznany"}
                                   </Badge>
                                   {isDeadlock && capabilities.canWriteTournamentResults && (
                                     <Button
@@ -1225,12 +1276,13 @@ export default function TournamentDetail() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className={isExperimental ? "organizer-empty-state border border-dashed text-center py-8 text-muted-foreground" : "text-center py-8 text-muted-foreground"}>
                         {capabilities.canManageParticipants
                           ? "Brak graczy. Dodaj ręcznie lub importuj CSV."
                           : "Brak graczy w tym turnieju."}
                       </div>
                     )}
+                  </ReadQueryState>
                   </CardContent>
                 </Card>
               </div>
@@ -1318,8 +1370,7 @@ export default function TournamentDetail() {
                             m.status === "in_progress" ? "bg-yellow-500/20 text-yellow-400" :
                             m.status === "completed" ? "bg-green-500/20 text-green-400" : "bg-transparent border"
                           }>
-                            {m.status === "pending" ? "oczekuje" : m.status === "in_progress" ? "LIVE" :
-                             m.status === "completed" ? m.resultType === "walkover" ? "walkower" : m.resultType === "bye" ? "wolny los" : m.resultType === "no_contest" ? "no contest" : "zakończony" : m.status}
+                            {m.status === "completed" ? m.resultType === "walkover" ? "walkower" : m.resultType === "bye" ? "wolny los" : m.resultType === "no_contest" ? "no contest" : "zakończony" : MATCH_STATUS_LABELS[m.status] ?? "Nieznany"}
                           </Badge>
                         </div>
                       </div>
@@ -1349,7 +1400,7 @@ export default function TournamentDetail() {
                               <div className="font-semibold">{s.playerName}</div>
                               <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
                             </div>
-                            <Badge variant="outline">{s.status}</Badge>
+                            <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
                           </div>
                           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                             <div><strong className="block text-base text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
@@ -1521,7 +1572,7 @@ export default function TournamentDetail() {
                     <p>📁 <strong>Turniej:</strong> {tournament?.name}</p>
                     <p>👥 <strong>Gracze:</strong> {stats?.totalPlayers ?? "—"}</p>
                     <p>⚔️ <strong>Mecze:</strong> {stats?.totalMatches ?? "—"} (ukończone: {stats?.completedMatches ?? 0})</p>
-                    <p>📅 <strong>Status:</strong> {tournament?.status} · Runda {tournament?.currentRound ?? "—"}/{tournament?.totalRounds ?? "—"}</p>
+                    <p>📅 <strong>Status:</strong> {TOURNAMENT_STATUS_LABELS[tournament?.status ?? ""] ?? "Nieznany"} · Runda {tournament?.currentRound ?? "—"}/{tournament?.totalRounds ?? "—"}</p>
                   </div>
                   <Button onClick={handleExport} disabled={isExporting} className="w-full">
                     <Download className="w-4 h-4 mr-2" />
@@ -1576,7 +1627,7 @@ export default function TournamentDetail() {
                           <p>📋 <strong className="text-foreground">Format:</strong> {FORMAT_LABELS[importPreview.tournament.format] ?? importPreview.tournament.format}</p>
                           <p>👥 <strong className="text-foreground">Gracze:</strong> {importPreview.players?.length ?? 0}</p>
                           <p>⚔️ <strong className="text-foreground">Mecze:</strong> {importPreview.matches?.length ?? 0}</p>
-                          <p>📊 <strong className="text-foreground">Status:</strong> {importPreview.tournament.status} · Runda {importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
+                          <p>📊 <strong className="text-foreground">Status:</strong> {TOURNAMENT_STATUS_LABELS[importPreview.tournament.status] ?? "Nieznany"} · Runda {importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
                           <p>📅 <strong className="text-foreground">Data backupu:</strong> {new Date(importPreview.exportedAt).toLocaleString("pl")}</p>
                           <p>🔖 <strong className="text-foreground">Wersja formatu:</strong> {importPreview.schemaVersion}</p>
                         </div>

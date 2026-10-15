@@ -336,6 +336,7 @@ export function validateStageBasketConfiguration(
     }
   }
 
+  const assignedParticipants = new Set<number>();
   for (const stage of input.stages) {
     const stageBaskets = input.baskets.filter(
       (basket) => basket.stageId === stage.id,
@@ -413,7 +414,6 @@ export function validateStageBasketConfiguration(
       }
     }
 
-    const assignedParticipants = new Set<number>();
     for (const basket of stageBaskets.filter(
       (candidate) => candidate.type === "input",
     )) {
@@ -430,11 +430,11 @@ export function validateStageBasketConfiguration(
             },
           );
         }
-        if (assignedParticipants.has(participantId)) {
+        if (mode === "explicit" && assignedParticipants.has(participantId)) {
           addProblem(
             problems,
             "STAGE_BASKET_PARTICIPANT_DUPLICATE",
-            "Participant is assigned to more than one input basket in the same stage.",
+            "Participant is assigned to more than one input basket in the tournament.",
             {
               stageId: stage.id,
               basketId: basket.id,

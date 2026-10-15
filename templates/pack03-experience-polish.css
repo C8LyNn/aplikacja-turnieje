@@ -1,0 +1,181 @@
+/* Pack 03.2 — Entry, Player & Broadcast Polish
+   Final visual-hierarchy pass for role entry, fan/support, player management,
+   projector, dialogs and compact control surfaces. All selectors remain scoped. */
+
+/* Role selection: each role reads as a distinct mode before the user enters it. */
+.experimental-role-home .experimental-entry-card[data-exp-role="organizer"] {
+  border-color: hsl(var(--exp-tone-primary) / .30);
+  background: linear-gradient(145deg, hsl(var(--exp-tone-primary) / .08), transparent 66%), var(--exp-surface-2);
+}
+.experimental-role-home .experimental-entry-card[data-exp-role="support"] {
+  border-color: hsl(var(--exp-tone-success) / .28);
+  background: linear-gradient(145deg, hsl(var(--exp-tone-success) / .075), transparent 66%), var(--exp-surface-2);
+}
+.experimental-role-home .experimental-entry-card[data-exp-role="fan"] {
+  border-color: hsl(var(--exp-tone-warning) / .28);
+  background: linear-gradient(145deg, hsl(var(--exp-tone-warning) / .07), transparent 66%), var(--exp-surface-2);
+}
+.experimental-role-home .experimental-entry-card[data-exp-role]:hover,
+.experimental-role-home .experimental-entry-card[data-exp-role]:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 38px hsl(222 55% 3% / .14);
+}
+
+/* Support path: operational green, with a stronger login handoff surface. */
+.experimental-support-entry {
+  background:
+    radial-gradient(circle at 18% 0%, hsl(var(--exp-tone-success) / .08), transparent 28rem),
+    radial-gradient(circle at 90% 12%, hsl(var(--exp-tone-info) / .05), transparent 24rem),
+    hsl(var(--background));
+}
+.experimental-support-entry main > div:first-child {
+  border-left: 3px solid hsl(var(--exp-tone-success) / .72);
+  padding-left: .9rem;
+}
+.experimental-support-entry .experimental-support-tournament-card {
+  border-color: hsl(var(--exp-tone-success) / .25) !important;
+  background: linear-gradient(135deg, hsl(var(--exp-tone-success) / .06), transparent 66%), var(--exp-surface-2) !important;
+}
+.experimental-support-entry .experimental-support-tournament-card:hover,
+.experimental-support-entry .experimental-support-tournament-card:focus-visible {
+  border-color: hsl(var(--exp-tone-success) / .52) !important;
+}
+.experimental-support-entry .experimental-support-login-panel {
+  border-color: hsl(var(--exp-tone-success) / .30) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-success) / .055), transparent 58%), var(--exp-surface-3) !important;
+  box-shadow: 0 16px 42px hsl(222 55% 3% / .12);
+}
+
+/* Fan entry: active events look live, completed events look archival rather than disabled. */
+.experimental-fan-entry {
+  background:
+    radial-gradient(circle at 82% 0%, hsl(var(--exp-tone-warning) / .07), transparent 30rem),
+    radial-gradient(circle at 12% 16%, hsl(var(--exp-tone-primary) / .05), transparent 25rem),
+    hsl(var(--background));
+}
+.experimental-fan-entry .experimental-fan-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--exp-surface-2) !important;
+  box-shadow: 0 12px 32px hsl(222 50% 3% / .08);
+}
+.experimental-fan-entry .experimental-fan-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: hsl(var(--exp-tone-neutral) / .45);
+}
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="active"] {
+  border-color: hsl(var(--exp-tone-live) / .34) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-live) / .07), transparent 64%), var(--exp-surface-2) !important;
+}
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="active"]::before { background: hsl(var(--exp-tone-live) / .86); }
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="completed"] {
+  border-color: hsl(var(--exp-tone-success) / .24) !important;
+}
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="completed"]::before { background: hsl(var(--exp-tone-success) / .66); }
+
+/* Chooser: make the Experimental card visually distinct without restyling Stable globally. */
+.experimental-create-choice-grid [href="/experimental/tournaments/new"] {
+  border-color: hsl(var(--exp-tone-info) / .36) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .08), hsl(var(--exp-tone-primary) / .035) 54%, transparent) !important;
+}
+.experimental-create-choice-grid [href="/tournaments/new"] {
+  filter: saturate(.82);
+}
+
+/* Player management: status is immediately visible, but text badges remain the source of meaning. */
+.experimental-player-toolbar[data-exp-status-filter="winner"] { border-color: hsl(var(--exp-tone-success) / .32) !important; }
+.experimental-player-toolbar[data-exp-status-filter="eliminated"] { border-color: hsl(var(--exp-tone-danger) / .30) !important; }
+.experimental-player-toolbar[data-exp-status-filter="active"] { border-color: hsl(var(--exp-tone-info) / .32) !important; }
+.experimental-players-surface .experimental-player-row[data-exp-player-status="winner"] {
+  border-color: hsl(var(--exp-tone-success) / .35) !important;
+  background: linear-gradient(90deg, hsl(var(--exp-tone-success) / .075), transparent 34%), var(--exp-surface-2) !important;
+  box-shadow: inset 3px 0 0 hsl(var(--exp-tone-success) / .76);
+}
+.experimental-players-surface .experimental-player-row[data-exp-player-status="eliminated"] {
+  border-color: hsl(var(--exp-tone-danger) / .20) !important;
+  background: linear-gradient(90deg, hsl(var(--exp-tone-danger) / .045), transparent 30%), var(--exp-surface-1) !important;
+  opacity: .84;
+}
+.experimental-players-surface .experimental-player-row[data-exp-player-status="active"] {
+  border-color: hsl(var(--exp-tone-info) / .25) !important;
+  box-shadow: inset 3px 0 0 hsl(var(--exp-tone-info) / .52);
+}
+
+/* Dashboard filter gives the list an immediate semantic context. */
+.experimental-dashboard-toolbar[data-exp-status-filter="active"] { border-color: hsl(var(--exp-tone-live) / .30) !important; }
+.experimental-dashboard-toolbar[data-exp-status-filter="completed"] { border-color: hsl(var(--exp-tone-success) / .28) !important; }
+.experimental-dashboard-toolbar[data-exp-status-filter="draft"] { border-color: hsl(var(--exp-tone-info) / .24) !important; }
+
+/* Checklist: completed tasks feel finished without relying on a line-through alone. */
+.experimental-checklist-dialog {
+  border-color: hsl(var(--exp-tone-info) / .28) !important;
+  background: linear-gradient(160deg, hsl(var(--exp-tone-info) / .045), transparent 24rem), hsl(var(--background)) !important;
+}
+.experimental-checklist-dialog .experimental-checklist-item[data-exp-checked="true"] {
+  border-color: hsl(var(--exp-tone-success) / .27) !important;
+  background: hsl(var(--exp-tone-success) / .055) !important;
+}
+.experimental-checklist-dialog .experimental-checklist-item[data-exp-checked="false"]:hover {
+  border-color: hsl(var(--exp-tone-primary) / .30) !important;
+}
+
+/* Dedicated dashboard dialog identities. */
+.experimental-test-data-dialog {
+  border-color: hsl(var(--exp-tone-info) / .32) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-info) / .055), transparent 58%), hsl(var(--background)) !important;
+}
+.experimental-delete-dialog {
+  background: linear-gradient(145deg, hsl(var(--exp-tone-danger) / .055), transparent 58%), hsl(var(--background)) !important;
+}
+
+/* Context bar: breadcrumbs read as navigation, tournament, current context. */
+.experimental-context-bar {
+  background: linear-gradient(90deg, hsl(var(--exp-tone-info) / .05), transparent 38%), var(--exp-surface-1) !important;
+}
+.experimental-context-bar [aria-current="page"] {
+  border: 1px solid hsl(var(--exp-tone-primary) / .24);
+  background: hsl(var(--exp-tone-primary) / .07);
+}
+
+/* Projector keeps OBS transparency/preset inline styles intact; only inner hierarchy changes. */
+.experimental-projector-view .experimental-projector-header {
+  background: linear-gradient(180deg, hsl(var(--exp-tone-primary) / .075), hsl(222 24% 5% / .72));
+  border-color: hsl(var(--exp-tone-primary) / .22) !important;
+}
+.experimental-projector-view[data-exp-tournament-status="active"] .experimental-projector-header {
+  box-shadow: inset 0 -1px 0 hsl(var(--exp-tone-live) / .24), 0 12px 34px hsl(var(--exp-tone-live) / .045);
+}
+.experimental-projector-view[data-exp-tournament-status="completed"] .experimental-projector-header {
+  box-shadow: inset 0 -1px 0 hsl(var(--exp-tone-success) / .24);
+}
+.experimental-projector-view .experimental-projector-canvas {
+  position: relative;
+}
+.experimental-projector-view .experimental-projector-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 0%, hsl(var(--exp-tone-primary) / .04), transparent 36rem);
+}
+.experimental-projector-view[data-exp-format="double_elimination"] .experimental-projector-header { --exp-projector-format: var(--exp-tone-info); }
+.experimental-projector-view[data-exp-format="swiss"] .experimental-projector-header { --exp-projector-format: var(--exp-tone-warning); }
+.experimental-projector-view[data-exp-format="round_robin"] .experimental-projector-header { --exp-projector-format: var(--exp-tone-success); }
+.experimental-projector-view[data-exp-format] .experimental-projector-header { border-bottom-color: hsl(var(--exp-projector-format, var(--exp-tone-primary)) / .30) !important; }
+
+@media (max-width: 639px) {
+  .experimental-role-home .experimental-entry-card[data-exp-role] { min-height: 11.5rem; }
+  .experimental-support-entry main,
+  .experimental-fan-entry main { padding-inline: .85rem; }
+  .experimental-checklist-dialog .experimental-checklist-item { padding: .75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experimental-role-home .experimental-entry-card[data-exp-role]:hover,
+  .experimental-role-home .experimental-entry-card[data-exp-role]:focus-visible {
+    transform: none;
+  }
+}

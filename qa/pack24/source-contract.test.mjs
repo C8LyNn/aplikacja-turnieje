@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import path from "node:path";
+const read = p => readFileSync(path.join(process.cwd(),p),"utf8");
+const panel=read("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
+const code=read("artifacts/tournament-manager/src/lib/se-remediation-priority.ts");
+const ci=read(".github/workflows/tournament-correction-ci.yml");
+test("Pack24 UI imports priority engine",()=>assert.match(panel,/from "@\/lib\/se-remediation-priority"/));
+test("Pack24 UI computes priority from bounded history",()=>assert.match(panel,/deriveSeRemediationPriorityPlan\(latest, seAssessmentHistory\)/));
+test("Pack24 UI shows blockers grouped by step",()=>{ assert.match(panel,/seRemediationPriority\.steps\.map/);assert.match(panel,/step\.codes\.join/); });
+test("Pack24 UI displays real dependencies",()=>assert.match(panel,/step\.dependsOn\.join/));
+test("Pack24 UI shows recurring and persistent separately",()=>{assert.match(panel,/step\.recurringCodes/); assert.match(panel,/step\.persistentCodes/);});
+test("Pack24 engine stays non-mutating",()=>{assert.match(code,/executionEnabled: false/); assert.match(code,/writePerformed: false/); assert.doesNotMatch(code,/localStorage\.|sessionStorage\.|db\.|fetch\(|\.execute\(/);});
+test("Pack24 engine rejects contradictory history",()=>assert.match(code,/status: "inconsistent"/));
+test("Pack24 CI has new test gate",()=>{assert.match(ci,/se-remediation-priority\.test\.ts/);assert.match(ci,/qa\/pack24\/source-contract\.test\.mjs/);});
+test("Pack24 CI watches new QA paths on both triggers",()=>assert.equal((ci.match(/qa\/pack24\/\*\*/g)||[]).length,2));
+test("Pack24 retains previous history and compare",()=>{assert.match(panel,/summarizeSeAssessmentHistory/);assert.match(panel,/compareSeAssessments/);});

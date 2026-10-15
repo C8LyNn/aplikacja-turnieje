@@ -5,6 +5,8 @@ import type {
   TournamentStage,
 } from "@workspace/api-client-react";
 import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
+import { stageReadinessFeedback } from "./stage-lifecycle-feedback";
+import { organizerStageSummary } from "./organizer-stage-summary";
 
 export type OrganizerSurface = "details" | "conducting";
 export type OrganizerNextStepKind =
@@ -23,6 +25,7 @@ export interface OrganizerNextStepModel {
   kind: OrganizerNextStepKind;
   title: string;
   description: string;
+  readinessFeedback?: ReturnType<typeof stageReadinessFeedback>;
   actionLabel?: string;
   actionHref?: string;
   stageId?: number;
@@ -52,48 +55,6 @@ export function availableStageStartReadiness(
   return isFetching ? undefined : readiness;
 }
 
-function nextPowerOfTwo(value: number): number {
-  return 2 ** Math.ceil(Math.log2(Math.max(2, value)));
-}
-
-function isStageCompleteByBackendRules(
-  stage: TournamentStage,
-  matches: readonly Match[],
-): boolean {
-  if (matches.length === 0 || matches.some((match) => match.status !== "completed")) return false;
-  if (stage.format === "swiss") {
-    const plannedRounds = stage.plannedRounds;
-    const rounds = new Set(matches.map((match) => match.round));
-    return plannedRounds != null &&
-      rounds.size === plannedRounds &&
-      [...rounds].every((round) => round >= 1 && round <= plannedRounds);
-  }
-  if (stage.format === "round_robin") {
-    return matches.length === (stage.participantCount * (stage.participantCount - 1)) / 2;
-  }
-  if (stage.format === "group_stage") {
-    const groupCount = stage.groupCount;
-    const groupSize = stage.participantsPerGroup;
-    if (groupCount == null || groupSize == null || groupCount * groupSize !== stage.participantCount) return false;
-    const expectedPerGroup = (groupSize * (groupSize - 1)) / 2;
-    const matchesByGroup = new Map<number, number>();
-    for (const match of matches) {
-      if (match.stageGroupId == null) return false;
-      matchesByGroup.set(match.stageGroupId, (matchesByGroup.get(match.stageGroupId) ?? 0) + 1);
-    }
-    return matches.length === groupCount * expectedPerGroup &&
-      matchesByGroup.size === groupCount &&
-      [...matchesByGroup.values()].every((count) => count === expectedPerGroup);
-  }
-  if (stage.format === "single_elimination") {
-    if (matches.length !== nextPowerOfTwo(stage.participantCount) - 1) return false;
-    const finalRound = Math.max(...matches.map((match) => match.round));
-    const finalMatches = matches.filter((match) => match.round === finalRound);
-    return finalMatches.length === 1 && finalMatches[0].winnerId != null;
-  }
-  return false;
-}
-
 export function deriveOrganizerNextStep(input: {
   tournament: Pick<Tournament, "id" | "status" | "currentRound" | "totalRounds">;
   stages: readonly TournamentStage[];
@@ -101,10 +62,11 @@ export function deriveOrganizerNextStep(input: {
   surface: OrganizerSurface;
   capabilities: OrganizerCapabilities;
   plannedStageReadiness?: StageStartReadiness;
+  transitionStep?: OrganizerNextStepModel;
 }): OrganizerNextStepModel {
   const { tournament, matches, surface, capabilities } = input;
   const stages = [...input.stages].sort((a, b) => a.position - b.position);
-  if (tournament.status === "completed") {
+  if (tournament.status === "completed" && !stages.some(s => s.status !== "completed") && !input.transitionStep) {
     return {
       kind: "completed",
       title: "Turniej zakończony",
@@ -154,7 +116,7 @@ export function deriveOrganizerNextStep(input: {
         stageId: active.id,
       };
     }
-    const currentRound = active.currentRound ?? tournament.currentRound ?? 0;
+    const currentRound = organizerStageSummary(active, matches).round ?? active.currentRound ?? 0;
     const totalRounds = active.totalRounds ?? active.plannedRounds ?? tournament.totalRounds ?? 0;
     if (active.format === "swiss" && currentRound > 0 && currentRound < totalRounds) {
       return {
@@ -168,27 +130,20 @@ export function deriveOrganizerNextStep(input: {
         stageId: active.id,
       };
     }
-    if (!isStageCompleteByBackendRules(active, stageMatches)) {
-      return {
-        kind: "not_ready",
-        title: "Etap wymaga dokończenia",
-        description: "Wszystkie rekordy meczów są zakończone, ale pełne warunki formatu nie zostały jeszcze spełnione.",
-        stageId: active.id,
-      };
-    }
     const next = stages.find((stage) => stage.position === active.position + 1);
     return {
       kind: "complete_stage",
-      title: "Etap gotowy do zakończenia",
+      title: "Sprawdź zakończenie etapu",
       description: next
-        ? `Po zatwierdzeniu kwalifikanci przejdą do etapu „${next.name}”.`
-        : "Po zatwierdzeniu zostanie zakończony cały turniej.",
+        ? `Serwer sprawdzi wyniki i kwalifikację. Przed rozpoczęciem etapu „${next.name}” trzeba potwierdzić jego gotowość.`
+        : "Serwer sprawdzi wyniki i warunki zakończenia etapu.",
       actionLabel: capabilities.canManageLifecycle ? "Zakończ etap" : undefined,
-      actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
+      actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages&stage=${active.id}&action=complete` : undefined,
       stageId: active.id,
     };
   }
 
+  if (input.transitionStep) return input.transitionStep;
   const planned = stages.find((stage) => stage.status === "planned");
   if (planned) {
     const hasCompletedPredecessor = stages.some(
@@ -196,25 +151,28 @@ export function deriveOrganizerNextStep(input: {
     );
     const readiness = input.plannedStageReadiness;
     if (!readiness?.ready) {
+      const feedback = readiness ? stageReadinessFeedback(readiness, planned.name) : undefined;
       return {
         kind: "stage_preparation",
         title: "Etap wymaga przygotowania",
-        description: readiness?.message ?? "Trwa sprawdzanie składu i konfiguracji etapu.",
+        description: feedback?.summary ?? "Trwa sprawdzanie składu i konfiguracji etapu.",
+        readinessFeedback: feedback,
+        actionLabel: capabilities.canManageLifecycle ? "Sprawdź gotowość etapu" : undefined,
+        actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
         stageId: planned.id,
       };
     }
-    const estimate = estimateStageMatches(planned);
     const mayAct = hasCompletedPredecessor
       ? capabilities.canManageLifecycle
       : capabilities.canStartTournament;
     return {
       kind: hasCompletedPredecessor ? "next_stage" : "planned_stage",
       title: planned.name,
-      description: `${formatLabels[planned.format] ?? planned.format} · ${planned.participantCount} uczestników${estimate === undefined ? "" : ` · ${estimate} meczów`}.`,
+      description: `${formatLabels[planned.format] ?? planned.format} · Gotowy. Skład i konfiguracja potwierdzone przez serwer.`,
       actionLabel: mayAct
-        ? hasCompletedPredecessor ? "Rozpocznij kolejny etap" : "Rozpocznij etap"
+        ? "Rozpocznij etap"
         : undefined,
-      actionHref: mayAct ? `/tournaments/${tournament.id}?tab=stages` : undefined,
+      actionHref: mayAct ? `/tournaments/${tournament.id}?tab=stages&stage=${planned.id}&action=start` : undefined,
       stageId: planned.id,
     };
   }

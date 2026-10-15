@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-process.env.DATABASE_URL ??= "postgresql://unused:unused@127.0.0.1:1/unused";
 
 const ceremonyModule = import("../src/application/stages/seeding-ceremony");
 
@@ -73,6 +72,25 @@ function fixture(count = 24) {
 }
 
 describe("seeding ceremony", () => {
+  test("basket signatures survive materialization but still detect roster changes", async () => {
+    const { buildSeedingCeremonyState, isCeremonyCurrent, parseSeedingCeremonyState } = await functions();
+    const input = fixture(16);
+    const basketMemberships = input.memberships.map(({ playerId, stageSeed }) => ({ playerId, stageSeed }));
+    const ceremony = buildSeedingCeremonyState({ ...input, memberships: basketMemberships, basketInput: true });
+    assert.deepEqual(parseSeedingCeremonyState(JSON.parse(JSON.stringify(ceremony))), ceremony);
+    assert.equal(isCeremonyCurrent({ ceremony, ...input }), true);
+    assert.equal(isCeremonyCurrent({ ceremony, ...input, memberships: input.memberships.map((member) => ({ ...member, id: member.id + 1000 })) }), true);
+    const swappedSeeds = input.memberships.map((member, index) => ({ ...member, stageSeed: index < 2 ? 2 - index : member.stageSeed }));
+    assert.equal(isCeremonyCurrent({ ceremony, ...input, memberships: swappedSeeds }), false);
+    const replacement = input.memberships.map((member, index) => ({ ...member, playerId: index === 0 ? 999 : member.playerId }));
+    assert.equal(isCeremonyCurrent({ ceremony, ...input, memberships: replacement }), false);
+    const renamedPlayers = input.players.map((player, index) => ({ ...player, name: index === 0 ? "Renamed" : player.name }));
+    assert.equal(isCeremonyCurrent({ ceremony, ...input, players: renamedPlayers }), false);
+    const legacy = buildSeedingCeremonyState(input);
+    assert.equal(isCeremonyCurrent({ ceremony: legacy, ...input }), true);
+    assert.equal(isCeremonyCurrent({ ceremony: legacy, ...input, memberships: input.memberships.map((member) => ({ ...member, id: member.id + 1000 })) }), false);
+  });
+
   test("prepares 24 unique deterministic sequential draws without mutating participants", async () => {
     const { buildSeedingCeremonyState } = await functions();
     const input = fixture();

@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -22,6 +23,7 @@ interface DatabaseModule {
   stageParticipantsTable: typeof import("@workspace/db").stageParticipantsTable;
   playersTable: typeof import("@workspace/db").playersTable;
   matchesTable: typeof import("@workspace/db").matchesTable;
+  qualificationProposalsTable: typeof import("@workspace/db").qualificationProposalsTable;
 }
 
 interface PlanFixture {
@@ -105,7 +107,7 @@ async function completeAllSourceMatches(fixture: PlanFixture): Promise<number[]>
   const matchIds: number[] = [];
   for (const row of result.rows as Array<{ id: number; player1_id: number; player2_id: number }>) {
     matchIds.push(row.id);
-    await completeMatch({ matchId: row.id, resultType: "played", score1: 1, score2: 0 });
+    await completeMatch({ expectedRevision: await matchRevision(database, row.id), matchId: row.id, resultType: "played", score1: 1, score2: 0 });
   }
   return matchIds;
 }
@@ -189,7 +191,7 @@ async function completePlayableEliminationMatches(stageId: number): Promise<numb
     );
     if (playable.rows.length === 0) return completed;
     for (const row of playable.rows as Array<{ id: number }>) {
-      await completeMatch({ matchId: row.id, resultType: "played", score1: 1, score2: 0 });
+      await completeMatch({ expectedRevision: await matchRevision(database, row.id), matchId: row.id, resultType: "played", score1: 1, score2: 0 });
       completed += 1;
     }
   }
@@ -617,6 +619,34 @@ describe("Tournament stages lifecycle", () => {
     );
   });
 
+  test("blocks result correction after qualification is approved", async () => {
+    const { fixture, matchIds } = await prepareCompletedSource("round_robin");
+    const now = new Date();
+    await database.db.insert(database.qualificationProposalsTable).values({
+      tournamentId: fixture.tournamentId,
+      stageId: fixture.sourceStageId,
+      revision: 1,
+      status: "approved",
+      rankingFingerprint: "approved-before-correction",
+      createdAt: now,
+      approvedAt: now,
+      approvedByActorType: "organizer",
+      approvedByActorNick: "organizer",
+    });
+
+    await assert.rejects(
+      revertMatch({ matchId: matchIds[0] }),
+      (error: unknown) =>
+        error instanceof RevertMatchError &&
+        error.code === "STAGE_QUALIFICATION_ALREADY_COMMITTED",
+    );
+    const state = await database.pool.query(
+      "SELECT status, result_type FROM matches WHERE id = $1",
+      [matchIds[0]],
+    );
+    assert.deepEqual(state.rows[0], { status: "completed", result_type: "played" });
+  });
+
   test("completing the last stage completes the tournament", async () => {
     const { fixture } = await prepareCompletedSource("swiss");
     await startStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
@@ -624,7 +654,7 @@ describe("Tournament stages lifecycle", () => {
       "SELECT id FROM matches WHERE stage_id = $1 ORDER BY round DESC, match_number LIMIT 1",
       [fixture.targetStageId],
     );
-    await completeMatch({ matchId: finalMatch.rows[0].id, resultType: "played", score1: 2, score2: 0 });
+    await completeMatch({ expectedRevision: await matchRevision(database, finalMatch.rows[0].id), matchId: finalMatch.rows[0].id, resultType: "played", score1: 2, score2: 0 });
     const preview = await completeStage({ tournamentId: fixture.tournamentId, stageId: fixture.targetStageId });
     const state = await database.pool.query(
       "SELECT t.status, t.active_stage_id, t.winner_id, s.status AS stage_status, s.completed_at FROM tournaments t JOIN tournament_stages s ON s.id = $1 WHERE t.id = $2",

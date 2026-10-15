@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { JSDOM } from "jsdom";
 import type {
   Match,
   StageGroup,
@@ -31,6 +32,8 @@ import {
   singleEliminationAdvancingOptions,
   singleEliminationStageMetrics,
   synchronizeStageParticipantFlow,
+  PLAYER_STATUS_LABELS,
+  TOURNAMENT_STATUS_LABELS,
   validateStageDrafts,
   withOptionalStagePlan,
   type StageDraft,
@@ -46,6 +49,14 @@ import {
   clearTournamentAuthHeaders,
   synchronizeTournamentAuthHeaders,
 } from "./tournament-auth-hydration";
+
+test("uses operator-facing labels for tournament statuses", () => {
+  assert.equal(TOURNAMENT_STATUS_LABELS.draft, "Szkic");
+  assert.equal(TOURNAMENT_STATUS_LABELS.active, "Aktywny");
+  assert.equal(TOURNAMENT_STATUS_LABELS.completed, "Zakończony");
+  assert.equal(PLAYER_STATUS_LABELS.qualified, "Zakwalifikowany");
+  assert.equal(PLAYER_STATUS_LABELS.eliminated, "Wyeliminowany");
+});
 
 test("wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu", () => {
   assert.equal(organizerCredentialScreen(null, true), "loading");
@@ -408,14 +419,15 @@ test("renderuje listę etapów i statusy planned, active, completed", () => {
       ]}
       selectedStageId={2}
       onSelect={() => undefined}
-      participantCounts={new Map([[2, 16]])}
+        participantCounts={new Map([[2, 99], [3, 16]])}
     />,
   );
-  assert.match(html, /Ukończony/);
+  assert.match(html, /Zakończony/);
   assert.match(html, /Aktywny/);
   assert.match(html, /Planowany/);
   assert.match(html, /Faza grupowa/);
   assert.match(html, /16 graczy/);
+  assert.doesNotMatch(html, /99 graczy/);
 });
 
 test("opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy", () => {
@@ -445,7 +457,7 @@ test("zachowuje komunikat kwalifikacyjny dla późniejszego planowanego etapu", 
 
 test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   const first: Match = {
-    id: 1,
+    id: 1, revision: 1,
     tournamentId: 1,
     stageId: 10,
     round: 1,
@@ -463,7 +475,7 @@ test("filtruje mecze po wymaganym stageId bez lokalnego fallbacku", () => {
   assert.equal(grouped.stageGroupId, 30);
 });
 
-for (const count of [2, 5] as const) {
+for (const count of [1, 2, 5] as const) {
   test(`renderuje widok ${count} grup`, () => {
     const stageId = 10;
     const keys = Array.from({ length: count }, (_, index) =>
@@ -492,12 +504,34 @@ for (const count of [2, 5] as const) {
       ranking: participants,
       qualifiers: participants.filter((entry) => entry.status === "qualified"),
     };
+    participants[0].playerName = "BardzoDługaNazwaDrużynyBezSpacji".repeat(5);
     const html = renderToStaticMarkup(
       <StageGroupTables details={details} matches={[]} />,
     );
     assert.match(html, new RegExp(`${count} grup etapu`));
     for (const entry of groups)
       assert.match(html, new RegExp(`Grupa ${entry.groupKey}`));
+    const container = new JSDOM().window.document.createElement("div");
+    container.innerHTML = html;
+    assert.ok(container.firstElementChild?.classList.contains("grid-cols-[repeat(auto-fit,minmax(min(100%,36rem),1fr))]"), "group columns must fit the container, including the narrower Audience panel");
+    const tables = container.querySelectorAll("table");
+    assert.equal(tables.length, count);
+    tables.forEach((table, index) => {
+      assert.ok(table.classList.contains("table-fixed"), "long names cannot expand numeric/status columns");
+      assert.ok(table.parentElement?.classList.contains("overflow-x-auto"), "very narrow screens retain local scrolling");
+      assert.equal(table.querySelectorAll("col").length, 6);
+      assert.equal(table.querySelectorAll("thead th").length, 6, "no statistics/status columns disappear");
+      const rows = table.querySelectorAll("tbody tr");
+      assert.equal(rows.length, 4);
+      rows.forEach((row, rank) => {
+        assert.equal(row.children[0].textContent, String(rank + 1));
+        const name = row.children[1].firstElementChild!;
+        assert.equal(name.textContent, participants[index * 4 + rank].playerName);
+        assert.equal(name.getAttribute("title"), name.textContent);
+        assert.ok(name.classList.contains("truncate"));
+        assert.equal(row.children[5].textContent, rank < 2 ? "Awans" : "Wyeliminowany");
+      });
+    });
   });
 }
 
@@ -535,8 +569,8 @@ test("pokazuje CompleteStage i StartStage tylko organizatorowi z tokenem", () =>
       onStart={() => undefined}
     />,
   );
-  assert.match(complete, /Zakończ aktywny etap/);
-  assert.match(start, /Uruchom ten etap/);
+  assert.match(complete, /Zakończ etap/);
+  assert.match(start, /Rozpocznij etap/);
   assert.equal(readonly, "");
 });
 

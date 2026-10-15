@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 /**
  * /tournaments/:id/projector
  *
@@ -18,11 +19,13 @@
  *   aspect        = 169 → force 16:9 container (1920×1080 viewport)
  */
 
-import { useRoute, useSearch } from "wouter";
+import { useSearch } from "wouter";
 import {
   useGetTournament,
   useGetDoubleEliminationStage,
   useListTournamentStages,
+  useGetTournamentBracket,
+  getGetTournamentBracketQueryKey,
   getGetTournamentQueryKey,
   getGetDoubleEliminationStageQueryKey,
   getListTournamentStagesQueryKey,
@@ -34,6 +37,12 @@ import { useEffect, useMemo } from "react";
 import { Trophy } from "lucide-react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
+import { BracketView } from "@/components/bracket-view";
+import { RoundRobinView } from "@/components/round-robin-view";
+import { SwissRoundsView } from "@/components/swiss-rounds-view";
+import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
+import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
@@ -59,9 +68,8 @@ const PRESETS: Record<string, React.CSSProperties & { "--connector-color"?: stri
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function TournamentProjector() {
-  const [, params] = useRoute("/tournaments/:id/projector");
+  const { id, isExperimental } = useTournamentRoute("projector");
   const search = useSearch();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
 
   // Parse URL params
   const sp = useMemo(() => new URLSearchParams(search), [search]);
@@ -87,7 +95,7 @@ export default function TournamentProjector() {
     setActiveViewerToken(null);
   }, []);
 
-  const { data: tournament } = useGetTournament(id, {
+  const tournamentQuery = useGetTournament(id, {
     query: {
       enabled: !!id,
       queryKey: getGetTournamentQueryKey(id),
@@ -95,20 +103,31 @@ export default function TournamentProjector() {
       retry: false,
     },
   });
+  const { data: tournament } = tournamentQuery;
 
-  const { data: stages } = useListTournamentStages(id, {
+  const stagesQuery = useListTournamentStages(id, {
     query: {
       enabled: !!id && !!tournament,
       queryKey: getListTournamentStagesQueryKey(id),
       refetchInterval: 10000,
     },
   });
+  const { data: stages } = stagesQuery;
 
-  const deStage = stages?.find(
-    s => s.format === "double_elimination" && s.status !== "planned",
-  );
+  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  const deStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
+  const marvelStage = tournament?.gameConfig?.gameId === "marvel" && publicStage?.format === "group_stage" ? publicStage : undefined;
+  const bracketQuery = useGetTournamentBracket(id, {
+    query: {
+      enabled: !!id && !!publicStage && !deStage && !marvelStage,
+      queryKey: getGetTournamentBracketQueryKey(id),
+      refetchInterval: 10000,
+      refetchOnWindowFocus: false,
+    },
+  });
+  const bracket = publicStageBracket(bracketQuery.data, publicStage);
 
-  const { data: deState } = useGetDoubleEliminationStage(
+  const deQuery = useGetDoubleEliminationStage(
     id,
     deStage?.id ?? 0,
     {
@@ -122,6 +141,7 @@ export default function TournamentProjector() {
       },
     },
   );
+  const deState = deQuery.data;
 
   // Apply presentation settings (color preset / font preset / frame)
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -160,23 +180,19 @@ export default function TournamentProjector() {
     containerStyle.transformOrigin = "top left";
   }
 
-  if (!tournament || (!deStage && tournament.status !== "draft")) {
-    return (
-      <div className="min-h-dvh flex items-center justify-center" style={transparent ? {} : { background: presetStyle.background as string }}>
-        <div className="flex flex-col items-center gap-3 text-muted-foreground animate-pulse">
-          <Trophy className="w-12 h-12 opacity-20" />
-          <p className="text-sm font-mono">Ładowanie…</p>
-        </div>
-      </div>
-    );
+  if (!tournament) {
+    return <div className="min-h-dvh text-foreground flex items-center justify-center p-4" style={transparent ? {} : { background: presetStyle.background as string }}>
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+    </div>;
   }
 
   return (
-    <div style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
+    <div className={isExperimental ? "experimental-projector-view" : undefined} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-exp-preset={isExperimental ? preset : undefined} style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
       {/* Optional tournament header */}
       {!hideHeader && (
         <div
-          className="flex flex-col items-center justify-center gap-1 border-b border-white/10"
+          className="experimental-projector-header flex flex-col items-center justify-center gap-1 border-b border-white/10"
           style={{ padding: `${Math.round(padding * 0.6)}px ${padding}px` }}
         >
           <h1
@@ -185,12 +201,13 @@ export default function TournamentProjector() {
           >
             {tournament.name}
           </h1>
-          {tournament.currentRound && tournament.totalRounds && (
+          {publicStage && (
             <p
               className="font-mono uppercase tracking-widest text-muted-foreground"
               style={{ fontSize: compact ? "0.6rem" : "0.7rem" }}
             >
-              Double Elimination · Runda {tournament.currentRound}/{tournament.totalRounds}
+              {publicStageLabel(publicStage)}
+              {publicStage.currentRound && publicStage.totalRounds ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}` : ""}
             </p>
           )}
         </div>
@@ -198,28 +215,37 @@ export default function TournamentProjector() {
 
       {/* Bracket canvas */}
       <div
+        className="experimental-projector-canvas"
         style={{
           padding,
           ...(forceAspect ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),
         }}
       >
-        {deState ? (
-          <DEBracketCanvas
-            matches={deState.matches}
-            participants={participants}
-            finalsPosition={finalsPosition}
-            compact={compact}
-            connectorColor={connectorColor}
-            connectorWidth={connectorWidth}
-            showDropLines={showDropLines}
-          />
+        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+        {!publicStage ? (
+          <p className="py-20 text-center text-muted-foreground">Brak rozpoczętego etapu.</p>
+        ) : marvelStage ? (
+          <MarvelEliminationStage tournamentId={id} stageId={marvelStage.id} />
+        ) : deStage ? (
+          <ReadQueryState query={deQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+            {deState && <DEBracketCanvas
+              matches={deState.matches}
+              participants={participants}
+              finalsPosition={finalsPosition}
+              compact={compact}
+              connectorColor={connectorColor}
+              connectorWidth={connectorWidth}
+              showDropLines={showDropLines}
+            />}
+          </ReadQueryState>
         ) : (
-          <div className="flex items-center justify-center py-20 text-muted-foreground/40 font-mono text-sm">
-            {tournament.status === "draft"
-              ? "Turniej jeszcze nie wystartował."
-              : "Brak etapu Double Elimination."}
-          </div>
+          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+            {bracket && (publicStage.format === "round_robin" ? <RoundRobinView bracket={bracket} hideStandings />
+              : publicStage.format === "swiss" ? <SwissRoundsView bracket={bracket} currentRound={publicStage.currentRound} totalRounds={publicStage.totalRounds} />
+              : <BracketView bracket={bracket} format={publicStage.format} />)}
+          </ReadQueryState>
         )}
+        </ReadQueryState>
       </div>
     </div>
   );

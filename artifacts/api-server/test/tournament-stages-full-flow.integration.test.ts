@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -81,11 +82,11 @@ async function playPendingMatches(
     await request(app)
       .post(`/api/matches/${match.id}/complete`)
       .set(headers)
-      .send({
+      .send({ expectedRevision: await matchRevision(database, match.id), ...({
         resultType: "played",
         score1: match.seed1 < match.seed2 ? gamesToWin : 0,
         score2: match.seed2 < match.seed1 ? gamesToWin : 0,
-      })
+      }) })
       .expect(200);
   }
   return matches.length;

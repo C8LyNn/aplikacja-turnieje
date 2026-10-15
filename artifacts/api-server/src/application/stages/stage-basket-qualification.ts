@@ -41,6 +41,7 @@ export type QualificationProposalErrorCode =
   | "STAGE_BASKET_QUALIFICATION_ALREADY_APPROVED"
   | "STAGE_BASKET_QUALIFICATION_PROPOSAL_NOT_FOUND"
   | "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE"
+  | "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE"
   | "STAGE_BASKET_TIE_BREAK_REQUIRED"
   | "RANKING_INCONSISTENT";
 
@@ -133,6 +134,7 @@ interface OutputBasketFingerprintSpec {
  * against this should check independently.
  */
 async function loadStageInputsForFingerprint(
+  reader: Pick<typeof db, "select">,
   tournamentId: number,
   stageId: number,
 ): Promise<{
@@ -142,7 +144,7 @@ async function loadStageInputsForFingerprint(
   matches: Array<typeof matchesTable.$inferSelect>;
 }> {
   const [stageRows, basketRows, memberships, matches] = await Promise.all([
-    db
+    reader
       .select()
       .from(tournamentStagesTable)
       .where(
@@ -151,7 +153,7 @@ async function loadStageInputsForFingerprint(
           eq(tournamentStagesTable.id, stageId),
         ),
       ),
-    db
+    reader
       .select()
       .from(stageBasketsTable)
       .where(
@@ -161,7 +163,7 @@ async function loadStageInputsForFingerprint(
           eq(stageBasketsTable.basketType, "output"),
         ),
       ),
-    db
+    reader
       .select()
       .from(stageParticipantsTable)
       .where(
@@ -171,7 +173,7 @@ async function loadStageInputsForFingerprint(
         ),
       )
       .orderBy(asc(stageParticipantsTable.stageSeed)),
-    db
+    reader
       .select()
       .from(matchesTable)
       .where(
@@ -285,7 +287,7 @@ export async function generateQualificationProposal(
       .select()
       .from(playersTable)
       .where(eq(playersTable.tournamentId, tournamentId)),
-    loadStageInputsForFingerprint(tournamentId, stageId),
+    loadStageInputsForFingerprint(db, tournamentId, stageId),
   ]);
 
   // ── 5. Compute fingerprint (includes basket config so that stale-check
@@ -532,51 +534,34 @@ export async function approveQualificationProposal(
   stageId: number,
   actor: TournamentMutationActor,
 ): Promise<QualificationProposalResult> {
-  // Compute current fingerprint before the transaction so we can do a quick
-  // pre-flight check without holding locks unnecessarily long.
-  // This now includes basket config (qualifierCount, display order) so that
-  // any post-generate change to baskets is detected as stale.
-  const { stage: stageForFp, outputBaskets: outputBasketsForFp, memberships, matches } =
-    await loadStageInputsForFingerprint(tournamentId, stageId);
-
-  // Stage must exist (or the transaction will catch this via TOURNAMENT_NOT_FOUND,
-  // but we guard here to avoid passing undefined to fingerprint).
-  if (!stageForFp) {
-    throw new QualificationProposalError("STAGE_NOT_FOUND");
-  }
-
-  const currentFingerprint = computeRankingFingerprint({
-    stageId,
-    stageFormat: stageForFp.format,
-    rankingPolicy: stageForFp.rankingPolicy,
-    outputBaskets: outputBasketsForFp,
-    memberships: memberships.map((m) => ({
-      playerId: m.playerId,
-      stageSeed: m.stageSeed,
-      status: m.status,
-    })),
-    matches: matches.map((m) => ({
-      id: m.id,
-      status: m.status,
-      resultType: m.resultType,
-      winnerId: m.winnerId,
-      score1: m.score1,
-      score2: m.score2,
-      player1Id: m.player1Id,
-      player2Id: m.player2Id,
-    })),
-  });
-
   return db.transaction(async (tx) => {
     const [tournament] = await tx
       .select()
       .from(tournamentsTable)
-      .where(eq(tournamentsTable.id, tournamentId));
+      .where(eq(tournamentsTable.id, tournamentId))
+      .for("update");
     if (!tournament) {
       throw new QualificationProposalError("TOURNAMENT_NOT_FOUND");
     }
 
     await revalidateTournamentMutationActor(tx, tournament, actor);
+
+    // Match completion and stage lifecycle mutations lock the tournament and
+    // stage rows. Take the same locks before reading the fingerprint so an
+    // approval can never validate a snapshot that changes while it commits.
+    const [stageForFp] = await tx
+      .select()
+      .from(tournamentStagesTable)
+      .where(
+        and(
+          eq(tournamentStagesTable.tournamentId, tournamentId),
+          eq(tournamentStagesTable.id, stageId),
+        ),
+      )
+      .for("update");
+    if (!stageForFp) {
+      throw new QualificationProposalError("STAGE_NOT_FOUND");
+    }
 
     // Lock the proposal row.
     const [proposal] = await tx
@@ -627,6 +612,40 @@ export async function approveQualificationProposal(
         })),
       };
     }
+
+    // Basket-authoritative tournaments complete the stage first, then approve
+    // the immutable qualification proposal. Keep legacy proposal fixtures
+    // compatible while preventing a real basket flow from qualifying a live
+    // or incomplete stage.
+    if (tournament.basketFlowAuthorityVersion === 1 && stageForFp.status !== "completed") {
+      throw new QualificationProposalError(
+        "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE",
+      );
+    }
+
+    const { outputBaskets: outputBasketsForFp, memberships, matches } =
+      await loadStageInputsForFingerprint(tx, tournamentId, stageId);
+    const currentFingerprint = computeRankingFingerprint({
+      stageId,
+      stageFormat: stageForFp.format,
+      rankingPolicy: stageForFp.rankingPolicy,
+      outputBaskets: outputBasketsForFp,
+      memberships: memberships.map((m) => ({
+        playerId: m.playerId,
+        stageSeed: m.stageSeed,
+        status: m.status,
+      })),
+      matches: matches.map((m) => ({
+        id: m.id,
+        status: m.status,
+        resultType: m.resultType,
+        winnerId: m.winnerId,
+        score1: m.score1,
+        score2: m.score2,
+        player1Id: m.player1Id,
+        player2Id: m.player2Id,
+      })),
+    });
 
     // Stale check: fingerprint must match the state at generation time.
     if (proposal.rankingFingerprint !== currentFingerprint) {

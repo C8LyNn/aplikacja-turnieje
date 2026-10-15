@@ -1,0 +1,129 @@
+name: Tournament correction safety CI
+
+# Automated checks only. Never deploys or applies database changes to production.
+on:
+  push:
+    paths:
+      - 'qa/pack26/**'
+      - 'qa/pack25/**'
+      - 'qa/pack24/**'
+      - 'qa/pack23/**'
+      - 'qa/pack22/**'
+      - 'qa/pack21/**'
+      - 'qa/pack20/**'
+      - 'qa/pack19/**'
+      - 'artifacts/api-server/**'
+      - 'artifacts/tournament-manager/**'
+      - 'lib/db/**'
+      - 'lib/api-spec/**'
+      - 'lib/api-client-react/**'
+      - 'lib/api-zod/**'
+      - 'qa/pack17/**'
+      - 'qa/pack18/**'
+      - '.github/workflows/tournament-correction-ci.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  pull_request:
+    paths:
+      - 'qa/pack26/**'
+      - 'qa/pack25/**'
+      - 'qa/pack24/**'
+      - 'qa/pack23/**'
+      - 'qa/pack22/**'
+      - 'qa/pack21/**'
+      - 'qa/pack20/**'
+      - 'qa/pack19/**'
+      - 'artifacts/api-server/**'
+      - 'artifacts/tournament-manager/**'
+      - 'lib/db/**'
+      - 'lib/api-spec/**'
+      - 'lib/api-client-react/**'
+      - 'lib/api-zod/**'
+      - 'qa/pack17/**'
+      - 'qa/pack18/**'
+      - '.github/workflows/tournament-correction-ci.yml'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tournament-corrections-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  correction-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tournament_test
+          POSTGRES_USER: tournament_test
+          POSTGRES_PASSWORD: local_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tournament_test -d tournament_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: postgresql://tournament_test:local_ci_only@127.0.0.1:5432/tournament_test
+      TEST_DATABASE_SCHEMA: tm_test_pack18
+      TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+      SESSION_SECRET: pack18-ci-test-secret-not-for-production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: SE safety unit tests
+        run: pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-safety.test.ts
+      - name: Pack 19 snapshot consistency tests
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-readiness.test.ts
+          node --test qa/pack19/source-contract.test.mjs
+      - name: Pack 20 SE impact plan and contracts
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-action-plan.test.ts
+          node --test qa/pack20/source-contract.test.mjs
+      - name: Pack 21 SE blocker diagnostics and contracts
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-diagnostic.test.ts
+          node --test qa/pack21/source-contract.test.mjs
+      - name: Pack 22 SE assessment comparisons and contracts
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-diagnostic-comparison.test.ts
+          node --test qa/pack22/source-contract.test.mjs
+      - name: Pack 26 SE risk report from forward impact graph
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-impact-risk-report.test.ts
+          node --test qa/pack26/source-contract.test.mjs
+      - name: Pack 25 SE forward impact graph
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-impact-graph.test.ts
+          node --test qa/pack25/source-contract.test.mjs
+      - name: Pack 24 SE priority and dependency triage
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-remediation-priority.test.ts
+          node --test qa/pack24/source-contract.test.mjs
+      - name: Pack 23 SE history and recurrence
+        run: |
+          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-assessment-history.test.ts
+          node --test qa/pack23/source-contract.test.mjs
+      - name: Static and database release gates
+        run: node qa/pack17/run-gates.mjs --full

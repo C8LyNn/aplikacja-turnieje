@@ -4,12 +4,16 @@ import {
   db,
   matchesTable,
   playersTable,
+  qualificationProposalsTable,
   resultHistoryTable,
+  tournamentCorrectionOperationsTable,
   stageParticipantsTable,
+  stageBasketRouteExecutionsTable,
   tournamentStagesTable,
   tournamentsTable,
 } from "@workspace/db";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
+import { stageMatchVersionVector } from "../operations/tournament-preview-coherence";
 import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
@@ -30,6 +34,7 @@ export type RevertMatchErrorCode =
   | "DOWNSTREAM_BLOCKED"
   | "STAGE_ALREADY_ADVANCED"
   | "SYSTEM_BYE_REVERT_BLOCKED"
+  | "STAGE_QUALIFICATION_ALREADY_COMMITTED"
   | "CONCURRENT_MODIFICATION"
   | "TOURNAMENT_MISMATCH"
   | "PARTICIPANT_TOURNAMENT_MISMATCH"
@@ -49,6 +54,8 @@ const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   DOWNSTREAM_BLOCKED: "Kolejny mecz lub runda blokuje cofnięcie wyniku.",
   STAGE_ALREADY_ADVANCED: "Nie można cofnąć wyniku po uruchomieniu następnego etapu.",
   SYSTEM_BYE_REVERT_BLOCKED: "Systemowego bye nie można cofnąć ręcznie.",
+  STAGE_QUALIFICATION_ALREADY_COMMITTED:
+    "Nie można cofnąć wyniku po zatwierdzeniu kwalifikacji lub wykonaniu routingu etapu.",
   CONCURRENT_MODIFICATION: "Stan meczu zmienił się podczas cofania wyniku.",
   TOURNAMENT_MISMATCH: "Mecz nie należy do wskazanego turnieju.",
   PARTICIPANT_TOURNAMENT_MISMATCH: "Uczestnicy nie należą do turnieju meczu.",
@@ -69,6 +76,12 @@ export interface RevertMatchInput {
   matchId: number;
   expectedTournamentId?: number;
   expectedCompletionActionId?: number;
+  /** Pack 13: optional optimistic guards used only by controlled correction. */
+  expectedMatchRevision?: number;
+  expectedStageVersionVector?: string;
+  requireActiveRoundRobin?: boolean;
+  /** Pack 14 approval journal updated atomically in this transaction. */
+  correctionOperationId?: string;
   actor?: TournamentMutationActor;
 }
 
@@ -180,8 +193,9 @@ function completionLogMatches(action: typeof actionLogTable.$inferSelect, matchI
 export async function revertMatch(
   input: RevertMatchInput,
   testHooks: RevertMatchTestHooks = {},
+  transaction?: Parameters<Parameters<typeof db.transaction>[0]>[0],
 ): Promise<RevertMatchResult> {
-  return db.transaction(async (tx) => {
+  const perform = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => {
     const [matchReference] = await tx
       .select({
         tournamentId: matchesTable.tournamentId,
@@ -216,6 +230,9 @@ export async function revertMatch(
       )
       .for("update");
     if (!stage) throw new RevertMatchError("MATCH_NOT_FOUND");
+    if (input.requireActiveRoundRobin && (stage.format !== "round_robin" || stage.status !== "active" || tournament.status !== "active")) {
+      throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
     const tournamentStages = await tx
       .select()
       .from(tournamentStagesTable)
@@ -230,6 +247,35 @@ export async function revertMatch(
       (candidate) => candidate.position > stage.position && candidate.status !== "planned",
     );
     if (startedLaterStage) throw new RevertMatchError("STAGE_ALREADY_ADVANCED");
+
+    // Once qualification is approved or any route from this stage is
+    // materialised, downstream participant selection is immutable. Reverting
+    // a result at this point would reopen the stage while leaving the approved
+    // fingerprint/output and routed arrivals stale.
+    const [approvedQualification] = await tx
+      .select({ id: qualificationProposalsTable.id })
+      .from(qualificationProposalsTable)
+      .where(
+        and(
+          eq(qualificationProposalsTable.tournamentId, tournament.id),
+          eq(qualificationProposalsTable.stageId, stage.id),
+          eq(qualificationProposalsTable.status, "approved"),
+        ),
+      )
+      .for("update");
+    const [materializedRoute] = await tx
+      .select({ id: stageBasketRouteExecutionsTable.id })
+      .from(stageBasketRouteExecutionsTable)
+      .where(
+        and(
+          eq(stageBasketRouteExecutionsTable.tournamentId, tournament.id),
+          eq(stageBasketRouteExecutionsTable.sourceStageId, stage.id),
+        ),
+      )
+      .for("update");
+    if (approvedQualification || materializedRoute) {
+      throw new RevertMatchError("STAGE_QUALIFICATION_ALREADY_COMMITTED");
+    }
     const doubleEliminationRuntime = stage.format === "double_elimination"
       ? await lockDoubleEliminationRuntime(tx, tournament.id, stage)
       : null;
@@ -241,6 +287,16 @@ export async function revertMatch(
       .for("update");
     if (!match) throw new RevertMatchError("MATCH_NOT_FOUND");
     if (match.status !== "completed") throw new RevertMatchError("MATCH_NOT_COMPLETED");
+    if (input.expectedMatchRevision !== undefined && match.revision !== input.expectedMatchRevision) {
+      throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
+    if (input.expectedStageVersionVector !== undefined) {
+      const lockedStageMatches = await tx.select().from(matchesTable)
+        .where(eq(matchesTable.stageId, stage.id)).orderBy(matchesTable.id).for("update");
+      if (stageMatchVersionVector(lockedStageMatches, stage.id) !== input.expectedStageVersionVector) {
+        throw new RevertMatchError("CONCURRENT_MODIFICATION");
+      }
+    }
     const result = requireConsistentResult(match);
 
     const participantIds = [match.player1Id, match.player2Id].filter(
@@ -259,7 +315,7 @@ export async function revertMatch(
       throw new RevertMatchError("PARTICIPANT_TOURNAMENT_MISMATCH");
     }
     const stageParticipants = await tx
-      .select({ playerId: stageParticipantsTable.playerId })
+      .select({ playerId: stageParticipantsTable.playerId, status: stageParticipantsTable.status })
       .from(stageParticipantsTable)
       .where(
         and(
@@ -275,7 +331,9 @@ export async function revertMatch(
     if (
       stage.format === "single_elimination" &&
       result.loserId != null &&
-      participants.find((player) => player.id === result.loserId)?.status !== "eliminated"
+      (isSingleStageTournament
+        ? participants.find((player) => player.id === result.loserId)?.status
+        : stageParticipants.find((member) => member.playerId === result.loserId)?.status) !== "eliminated"
     ) {
       throw new RevertMatchError("RESULT_INCONSISTENT");
     }
@@ -636,10 +694,28 @@ export async function revertMatch(
       })
       .returning();
 
+    if (input.correctionOperationId !== undefined) {
+      const [savedReceipt] = await tx.update(tournamentCorrectionOperationsTable)
+        .set({ status: "reverted_requires_resubmission", completedAt: new Date(),
+          revertActionId: revertAction.id, revertedMatchRevision: revertedMatch.revision })
+        .where(and(
+          eq(tournamentCorrectionOperationsTable.id, input.correctionOperationId),
+          eq(tournamentCorrectionOperationsTable.tournamentId, tournament.id),
+          eq(tournamentCorrectionOperationsTable.matchId, match.id),
+          eq(tournamentCorrectionOperationsTable.status, "approved"),
+          gt(tournamentCorrectionOperationsTable.expiresAt, new Date()),
+          eq(tournamentCorrectionOperationsTable.expectedRevision, match.revision),
+          eq(tournamentCorrectionOperationsTable.expectedCompletionActionId, completionAction.id),
+          eq(tournamentCorrectionOperationsTable.expectedStageVersionVector, input.expectedStageVersionVector!),
+        )).returning({ id: tournamentCorrectionOperationsTable.id });
+      if (!savedReceipt) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    }
+
     return {
       match: revertedMatch,
       completionAction: undoneCompletionAction,
       revertAction,
     };
-  });
+  };
+  return transaction ? perform(transaction) : db.transaction(perform);
 }

@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -107,7 +108,7 @@ async function complete(
   payload: Record<string, unknown> = { resultType: "played", score1: 2, score2: 1 },
   matchId = fixture.matchId,
 ): Promise<Response> {
-  return request(app).post(`/api/matches/${matchId}/complete`).set(fixture.organizerHeaders).send(payload);
+  return request(app).post(`/api/matches/${matchId}/complete`).set(fixture.organizerHeaders).send({ expectedRevision: await matchRevision(database, matchId), ...(payload) });
 }
 
 async function revert(fixture: Fixture, headers: Headers = fixture.organizerHeaders): Promise<Response> {

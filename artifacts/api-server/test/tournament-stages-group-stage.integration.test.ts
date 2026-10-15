@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -142,7 +143,7 @@ async function completeAllGroupMatches(fixture: GroupPlanFixture): Promise<void>
     seed1: number;
     seed2: number;
   }>) {
-    await completeMatch({
+    await completeMatch({ expectedRevision: await matchRevision(database, match.id),
       matchId: match.id,
       resultType: "played",
       score1: match.seed1 < match.seed2 ? 1 : 0,

@@ -1,0 +1,370 @@
+/* Pack 03 — Visual Hierarchy & Identity
+   Semantic color and surface system scoped exclusively to Experimental. */
+.experimental-tournament-shell,
+.experimental-tournament-entry,
+.experimental-tournament-create,
+.experimental-tournament-public,
+.experimental-tournament-stage-view {
+  --exp-tone-primary: 191 92% 58%;
+  --exp-tone-info: 265 86% 70%;
+  --exp-tone-success: 151 72% 49%;
+  --exp-tone-warning: 40 96% 56%;
+  --exp-tone-danger: 0 82% 63%;
+  --exp-tone-live: 167 86% 48%;
+  --exp-surface-1: hsl(222 32% 7% / .72);
+  --exp-surface-2: hsl(222 30% 10% / .82);
+  --exp-surface-3: hsl(220 28% 13% / .90);
+  --exp-surface-4: hsl(218 25% 17% / .94);
+  --exp-line-strong: hsl(215 24% 32% / .74);
+  --exp-glow-primary: hsl(var(--exp-tone-primary) / .14);
+  --exp-glow-info: hsl(var(--exp-tone-info) / .12);
+  --exp-glow-success: hsl(var(--exp-tone-success) / .12);
+  --exp-glow-warning: hsl(var(--exp-tone-warning) / .13);
+  --exp-glow-danger: hsl(var(--exp-tone-danger) / .12);
+}
+
+.experimental-tournament-shell,
+.experimental-tournament-entry,
+.experimental-tournament-create,
+.experimental-tournament-public,
+.experimental-tournament-stage-view {
+  background:
+    radial-gradient(circle at 10% -12%, hsl(var(--exp-tone-primary) / .10), transparent 28rem),
+    radial-gradient(circle at 88% 4%, hsl(var(--exp-tone-info) / .075), transparent 30rem),
+    linear-gradient(180deg, hsl(223 35% 6%), hsl(222 31% 8%) 45%, hsl(222 34% 6%));
+}
+
+.experimental-tournament-shell .organizer-header,
+.experimental-tournament-entry .experimental-entry-hero {
+  border-color: hsl(var(--exp-tone-primary) / .24);
+  background:
+    linear-gradient(118deg, hsl(var(--exp-tone-primary) / .12), transparent 44%),
+    linear-gradient(300deg, hsl(var(--exp-tone-info) / .07), transparent 42%),
+    var(--exp-surface-3);
+}
+
+.experimental-tournament-shell .organizer-navigation {
+  border-color: var(--exp-line-strong);
+  background: var(--exp-surface-1);
+}
+
+.experimental-tournament-shell .organizer-navigation [aria-current="page"] {
+  box-shadow: inset 0 -2px 0 hsl(var(--exp-tone-primary) / .75);
+  background: linear-gradient(180deg, hsl(var(--exp-tone-primary) / .14), hsl(var(--exp-tone-primary) / .045));
+}
+
+.experimental-tournament-shell main :where(.rounded-lg.border, .rounded-xl.border, .rounded-2xl.border),
+.experimental-tournament-public main :where(.rounded-lg.border, .rounded-xl.border, .rounded-2xl.border) {
+  border-color: var(--exp-line-strong);
+}
+
+.experimental-tournament-shell main :where(.bg-card),
+.experimental-tournament-public main :where(.bg-card) {
+  background-color: var(--exp-surface-2);
+}
+
+.experimental-tournament-shell main section.rounded-2xl,
+.experimental-tournament-public main section.rounded-2xl {
+  background-color: var(--exp-surface-2);
+}
+
+.experimental-metric-card,
+.experimental-quick-link,
+.experimental-tournament-shell [data-exp-tone],
+.experimental-tournament-public [data-exp-tone] {
+  --exp-current-tone: var(--exp-tone-primary);
+}
+.experimental-tournament-shell [data-exp-tone="neutral"],
+.experimental-tournament-public [data-exp-tone="neutral"] { --exp-current-tone: 214 18% 63%; }
+.experimental-tournament-shell [data-exp-tone="primary"],
+.experimental-tournament-public [data-exp-tone="primary"] { --exp-current-tone: var(--exp-tone-primary); }
+.experimental-tournament-shell [data-exp-tone="info"],
+.experimental-tournament-public [data-exp-tone="info"] { --exp-current-tone: var(--exp-tone-info); }
+.experimental-tournament-shell [data-exp-tone="success"],
+.experimental-tournament-public [data-exp-tone="success"] { --exp-current-tone: var(--exp-tone-success); }
+.experimental-tournament-shell [data-exp-tone="warning"],
+.experimental-tournament-public [data-exp-tone="warning"] { --exp-current-tone: var(--exp-tone-warning); }
+.experimental-tournament-shell [data-exp-tone="danger"],
+.experimental-tournament-public [data-exp-tone="danger"] { --exp-current-tone: var(--exp-tone-danger); }
+.experimental-tournament-shell [data-exp-tone="live"],
+.experimental-tournament-public [data-exp-tone="live"] { --exp-current-tone: var(--exp-tone-live); }
+
+.experimental-metric-card[data-exp-tone] {
+  position: relative;
+  overflow: hidden;
+  border-color: hsl(var(--exp-current-tone) / .28) !important;
+  background:
+    linear-gradient(145deg, hsl(var(--exp-current-tone) / .105), transparent 58%),
+    var(--exp-surface-3) !important;
+}
+.experimental-metric-card[data-exp-tone]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .8rem;
+  bottom: .8rem;
+  width: 3px;
+  border-radius: 0 99px 99px 0;
+  background: hsl(var(--exp-current-tone) / .78);
+}
+.experimental-metric-card[data-exp-tone] svg { color: hsl(var(--exp-current-tone) / .92) !important; }
+.experimental-metric-card[data-exp-tone] > div:nth-child(2) { color: hsl(var(--exp-current-tone) / .96); }
+
+.experimental-tournament-shell span[data-exp-tone],
+.experimental-tournament-public span[data-exp-tone] {
+  border-color: hsl(var(--exp-current-tone) / .42) !important;
+  background: hsl(var(--exp-current-tone) / .10) !important;
+  color: hsl(var(--exp-current-tone) / .96) !important;
+}
+
+.experimental-tournament-shell section[data-exp-tone],
+.experimental-tournament-public section[data-exp-tone] {
+  border-color: hsl(var(--exp-current-tone) / .34) !important;
+  background:
+    linear-gradient(120deg, hsl(var(--exp-current-tone) / .075), transparent 58%),
+    var(--exp-surface-2) !important;
+}
+
+.experimental-quick-link[data-exp-tone] {
+  border-color: hsl(var(--exp-current-tone) / .25) !important;
+  background:
+    linear-gradient(135deg, hsl(var(--exp-current-tone) / .075), transparent 65%),
+    var(--exp-surface-2) !important;
+}
+.experimental-quick-link[data-exp-tone] > div:first-child {
+  border-color: hsl(var(--exp-current-tone) / .30);
+  color: hsl(var(--exp-current-tone) / .88);
+  background: hsl(var(--exp-current-tone) / .07);
+}
+.experimental-quick-link[data-exp-tone]:hover {
+  border-color: hsl(var(--exp-current-tone) / .48) !important;
+  background: hsl(var(--exp-current-tone) / .09) !important;
+}
+
+.experimental-overview-hero {
+  border-color: hsl(var(--exp-tone-primary) / .28) !important;
+  background:
+    radial-gradient(circle at 92% 0%, hsl(var(--exp-tone-info) / .11), transparent 21rem),
+    linear-gradient(125deg, hsl(var(--exp-tone-primary) / .12), transparent 52%),
+    var(--exp-surface-3) !important;
+}
+.experimental-overview-hero::before {
+  width: 7rem;
+  background: linear-gradient(90deg, hsl(var(--exp-tone-primary)), hsl(var(--exp-tone-info)));
+}
+.experimental-overview-hero .experimental-metric-card:nth-child(1) { --exp-current-tone: var(--exp-tone-info); }
+.experimental-overview-hero .experimental-metric-card:nth-child(2) { --exp-current-tone: var(--exp-tone-primary); }
+.experimental-overview-hero .experimental-metric-card:nth-child(3) { --exp-current-tone: var(--exp-tone-success); }
+.experimental-overview-hero .experimental-metric-card:nth-child(4) { --exp-current-tone: var(--exp-tone-info); }
+
+.experimental-lifecycle-step { position: relative; background: var(--exp-surface-3); }
+.experimental-lifecycle-step--done {
+  border-color: hsl(var(--exp-tone-success) / .34) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-success) / .09), transparent 70%), var(--exp-surface-3) !important;
+}
+.experimental-lifecycle-step--done svg { color: hsl(var(--exp-tone-success)) !important; }
+.experimental-lifecycle-step--pending {
+  border-color: hsl(var(--exp-tone-warning) / .24) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-warning) / .055), transparent 72%), var(--exp-surface-2) !important;
+}
+.experimental-next-step-panel {
+  border-color: hsl(var(--exp-tone-warning) / .34) !important;
+  background: linear-gradient(120deg, hsl(var(--exp-tone-warning) / .095), transparent 62%), var(--exp-surface-3) !important;
+}
+.experimental-next-step-panel dt { color: hsl(var(--exp-tone-warning)) !important; }
+
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 1),
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 4) { --exp-current-tone: var(--exp-tone-primary); }
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 2),
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 5) { --exp-current-tone: var(--exp-tone-info); }
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 3),
+.experimental-overview-hero ~ * .experimental-quick-link:nth-child(6n + 6) { --exp-current-tone: var(--exp-tone-success); }
+
+.experimental-dashboard-toolbar {
+  border-color: hsl(var(--exp-tone-info) / .22) !important;
+  background: linear-gradient(110deg, hsl(var(--exp-tone-info) / .065), transparent 44%), var(--exp-surface-2) !important;
+}
+.experimental-dashboard-card { --exp-card-tone: var(--exp-tone-info); }
+.experimental-dashboard-card--draft { --exp-card-tone: var(--exp-tone-info); }
+.experimental-dashboard-card--active { --exp-card-tone: var(--exp-tone-live); }
+.experimental-dashboard-card--completed { --exp-card-tone: var(--exp-tone-success); }
+.experimental-dashboard-card {
+  border-color: hsl(var(--exp-card-tone) / .26) !important;
+  background:
+    linear-gradient(145deg, hsl(var(--exp-card-tone) / .09), transparent 52%),
+    var(--exp-surface-2) !important;
+}
+.experimental-dashboard-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, hsl(var(--exp-card-tone) / .82), transparent 76%);
+}
+.experimental-dashboard-card:hover,
+.experimental-dashboard-card:focus-within {
+  border-color: hsl(var(--exp-card-tone) / .48) !important;
+  box-shadow: 0 0 0 1px hsl(var(--exp-card-tone) / .09), 0 18px 40px hsl(222 55% 3% / .18);
+}
+.experimental-dashboard-card > :first-child,
+.experimental-dashboard-card > :last-child { background: hsl(220 27% 15% / .58) !important; }
+
+.experimental-create-layout { align-items: start; }
+.experimental-create-form-stack > * {
+  border-radius: 1rem;
+  border: 1px solid var(--exp-line-strong);
+  background: var(--exp-surface-2);
+}
+.experimental-create-form-stack > *:nth-child(1) {
+  border-color: hsl(var(--exp-tone-primary) / .25);
+  background: linear-gradient(120deg, hsl(var(--exp-tone-primary) / .055), transparent 56%), var(--exp-surface-2);
+}
+.experimental-create-form-stack > *:nth-child(2) {
+  border-color: hsl(var(--exp-tone-info) / .27);
+  background: linear-gradient(120deg, hsl(var(--exp-tone-info) / .06), transparent 58%), var(--exp-surface-2);
+}
+.experimental-create-form-stack > *:nth-child(3) {
+  border-color: hsl(var(--exp-tone-success) / .22);
+  background: linear-gradient(120deg, hsl(var(--exp-tone-success) / .045), transparent 58%), var(--exp-surface-2);
+}
+.experimental-create-form-stack > *:nth-child(4),
+.experimental-create-form-stack > *:nth-child(5) {
+  border-color: hsl(var(--exp-tone-warning) / .22);
+  background: linear-gradient(120deg, hsl(var(--exp-tone-warning) / .045), transparent 58%), var(--exp-surface-2);
+}
+.experimental-create-form-stack button[aria-pressed="true"] {
+  border-color: hsl(var(--exp-tone-info) / .62) !important;
+  background: hsl(var(--exp-tone-info) / .105) !important;
+  box-shadow: inset 0 0 0 1px hsl(var(--exp-tone-info) / .10);
+}
+.experimental-create-form-stack label:has(input[type="radio"]:checked) {
+  border-color: hsl(var(--exp-tone-success) / .48) !important;
+  background: hsl(var(--exp-tone-success) / .075) !important;
+}
+.experimental-create-summary-column > *:nth-child(1) {
+  border-color: hsl(var(--exp-tone-info) / .26) !important;
+  background: linear-gradient(140deg, hsl(var(--exp-tone-info) / .07), transparent 58%), var(--exp-surface-3) !important;
+}
+.experimental-create-summary-column > *:nth-child(2) {
+  border-color: hsl(var(--exp-tone-success) / .25) !important;
+  background: linear-gradient(140deg, hsl(var(--exp-tone-success) / .055), transparent 58%), var(--exp-surface-2) !important;
+}
+.experimental-create-summary-column > *:nth-child(3) {
+  border-color: hsl(var(--exp-tone-primary) / .22) !important;
+}
+.experimental-readiness-item[data-ready="true"] {
+  border-color: hsl(var(--exp-tone-success) / .28) !important;
+  background: hsl(var(--exp-tone-success) / .055) !important;
+}
+.experimental-readiness-item[data-ready="false"] {
+  border-color: hsl(var(--exp-tone-warning) / .26) !important;
+  background: hsl(var(--exp-tone-warning) / .045) !important;
+}
+.experimental-create-action-bar {
+  margin-inline: -.35rem;
+  padding: .8rem .35rem 0;
+  border-color: hsl(var(--exp-tone-primary) / .22) !important;
+}
+
+.experimental-host-command-center {
+  border-color: hsl(var(--exp-tone-live) / .24) !important;
+  background:
+    radial-gradient(circle at 92% 0%, hsl(var(--exp-tone-live) / .08), transparent 18rem),
+    linear-gradient(120deg, hsl(var(--exp-tone-primary) / .07), transparent 55%),
+    var(--exp-surface-3) !important;
+}
+.experimental-host-command-center::before {
+  width: 6rem;
+  background: linear-gradient(90deg, hsl(var(--exp-tone-live)), hsl(var(--exp-tone-primary)));
+}
+.experimental-host-command-center .experimental-metric-card[data-exp-tone="live"] {
+  box-shadow: inset 0 0 28px hsl(var(--exp-tone-live) / .035), 0 12px 28px hsl(222 55% 3% / .12);
+}
+
+.experimental-players-surface .experimental-player-row {
+  background: var(--exp-surface-2);
+  border-color: var(--exp-line-strong);
+}
+.experimental-players-surface .experimental-player-row:nth-child(even) { background: hsl(220 28% 13% / .78); }
+.experimental-players-surface .experimental-player-row:hover,
+.experimental-players-surface .experimental-player-row:focus-within {
+  border-color: hsl(var(--exp-tone-info) / .34);
+  background: hsl(var(--exp-tone-info) / .055);
+}
+
+.experimental-stages-surface .organizer-stage-card:has([data-stage-status="active"]) {
+  border-color: hsl(var(--exp-tone-live) / .45) !important;
+  background: linear-gradient(145deg, hsl(var(--exp-tone-live) / .09), transparent 70%), var(--exp-surface-3) !important;
+}
+.experimental-stages-surface .organizer-stage-card:has([data-stage-status="completed"]) {
+  border-color: hsl(var(--exp-tone-success) / .28) !important;
+  background: hsl(var(--exp-tone-success) / .045) !important;
+}
+.experimental-stages-surface .organizer-stage-card:has([data-stage-status="draft"]),
+.experimental-stages-surface .organizer-stage-card:has([data-stage-status="pending"]) {
+  border-color: hsl(var(--exp-tone-info) / .24) !important;
+}
+
+.experimental-baskets-surface .organizer-flow-map {
+  border-color: hsl(var(--exp-tone-info) / .22) !important;
+  background:
+    linear-gradient(90deg, hsl(var(--exp-tone-info) / .035) 1px, transparent 1px),
+    linear-gradient(180deg, hsl(var(--exp-tone-primary) / .035) 1px, transparent 1px),
+    var(--exp-surface-1) !important;
+  background-size: 24px 24px !important;
+}
+.experimental-baskets-surface .organizer-flow-stage:nth-child(odd) { border-color: hsl(var(--exp-tone-info) / .26); }
+.experimental-baskets-surface .organizer-flow-stage:nth-child(even) { border-color: hsl(var(--exp-tone-primary) / .25); }
+.experimental-baskets-surface .organizer-basket { background: var(--exp-surface-3); }
+
+.experimental-tournament-public > header {
+  background:
+    linear-gradient(100deg, hsl(var(--exp-tone-primary) / .11), transparent 48%),
+    var(--exp-surface-2) !important;
+  border-color: hsl(var(--exp-tone-primary) / .22) !important;
+}
+.experimental-tournament-public main article:nth-of-type(3n + 1) { border-color: hsl(var(--exp-tone-primary) / .23); }
+.experimental-tournament-public main article:nth-of-type(3n + 2) { border-color: hsl(var(--exp-tone-info) / .23); }
+.experimental-tournament-public main article:nth-of-type(3n + 3) { border-color: hsl(var(--exp-tone-success) / .20); }
+
+.experimental-tournament-stage-view {
+  background:
+    radial-gradient(circle at 50% -12%, hsl(var(--exp-tone-info) / .09), transparent 32rem),
+    linear-gradient(180deg, hsl(223 34% 6%), hsl(222 31% 8%));
+}
+
+.experimental-tournament-shell .read-query-state--error,
+.experimental-tournament-public .read-query-state--error,
+.experimental-tournament-stage-view .read-query-state--error {
+  border-color: hsl(var(--exp-tone-danger) / .34) !important;
+  background: hsl(var(--exp-tone-danger) / .055) !important;
+}
+.experimental-tournament-shell .read-query-state--loading,
+.experimental-tournament-public .read-query-state--loading,
+.experimental-tournament-stage-view .read-query-state--loading {
+  border-color: hsl(var(--exp-tone-info) / .24) !important;
+  background: hsl(var(--exp-tone-info) / .035) !important;
+}
+
+@media (max-width: 639px) {
+  .experimental-create-form-stack > * { border-radius: .8rem; }
+  .experimental-metric-card[data-exp-tone]::before { top: .65rem; bottom: .65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experimental-tournament-shell *,
+  .experimental-tournament-entry *,
+  .experimental-tournament-create *,
+  .experimental-tournament-public *,
+  .experimental-tournament-stage-view * {
+    scroll-behavior: auto !important;
+  }
+  .experimental-metric-card,
+  .experimental-dashboard-card,
+  .experimental-quick-link,
+  .experimental-player-row,
+  .experimental-tournament-shell .organizer-stage-card {
+    transition-duration: 0.01ms !important;
+    transform: none !important;
+  }
+}

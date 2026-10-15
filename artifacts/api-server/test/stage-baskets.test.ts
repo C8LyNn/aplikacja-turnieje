@@ -256,9 +256,31 @@ describe("stage basket domain validation", () => {
       { id: "route-a", sourceBasketId: "s1-out", targetBasketId: "s2-in" },
       { id: "route-b", sourceBasketId: "s1-out", targetBasketId: "s2-in-2" },
     ];
-    const found = codes(input);
+    const found = explicitCodes(input);
     assert.ok(found.includes("STAGE_BASKET_ROUTE_OUTPUT_REUSED"));
     assert.ok(found.includes("STAGE_BASKET_PARTICIPANT_DUPLICATE"));
+  });
+
+  test("rejects a participant assigned to input baskets in different stages", () => {
+    const input = validConfiguration();
+    input.baskets = input.baskets.map((basket) =>
+      basket.id === "s2-in"
+        ? { ...basket, participantIds: [1] }
+        : basket,
+    );
+    assert.ok(
+      explicitCodes(input).includes("STAGE_BASKET_PARTICIPANT_DUPLICATE"),
+      "a player cannot be assigned directly to multiple stages",
+    );
+  });
+
+  test("legacy flow permits the same participant in successive stage inputs", () => {
+    const input = validConfiguration();
+    assert.equal(
+      validateStageBasketConfiguration(input).valid,
+      true,
+      "legacy stage progression materializes qualified players in the next stage",
+    );
   });
 
   test("rejects missing baskets, duplicate ordinals and invalid participant references", () => {
@@ -405,11 +427,16 @@ describe("stage basket domain validation", () => {
 
   test("explicit mode accepts configuration where all output baskets have positive qualifierCount", () => {
     const input = validConfiguration();
-    // Explicit capacity comes from assigned and routed participants, not from
-    // the legacy stage participantCount fields.
+    // Explicit capacity comes from direct assignments and route quotas, not
+    // from the legacy stage participantCount fields. The second-stage input
+    // is intentionally empty: its four participants arrive through the
+    // s1-to-s2 route. Keeping 3 and 4 there as direct assignments as well
+    // would be an invalid duplicate assignment across stages.
     input.baskets = input.baskets.map((b) =>
       b.id === "s1-in"
         ? { ...b, participantIds: [1, 2, 3, 4] }
+        : b.id === "s2-in"
+          ? { ...b, participantIds: [] }
         : b.id === "s2-out"
           ? { ...b, qualifierCount: 2 }
           : b,

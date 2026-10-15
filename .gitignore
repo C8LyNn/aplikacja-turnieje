@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local package/install backups
+**/.core-clash-*-backup-*/
+**/.tournament-exp-*-backup-*/

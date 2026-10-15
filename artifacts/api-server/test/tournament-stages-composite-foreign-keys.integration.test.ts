@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -691,7 +692,7 @@ describe("0009 composite foreign key reconciliation", () => {
     await request(app)
       .post(`/api/matches/${match.rows[0].id}/complete`)
       .set(organizerHeaders)
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, match.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
 
     const historyAndLog = await database.pool.query(`

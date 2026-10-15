@@ -1,9 +1,10 @@
 import { useListTournaments } from "@workspace/api-client-react";
-import { Link } from "wouter";
-import { Trophy, Eye, Calendar, Users } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Trophy, Eye, Calendar, FlaskConical, Users } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
+import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "AKTYWNY",
@@ -18,19 +19,29 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 export default function FanView() {
+  const [location] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
   const { data: tournaments, isLoading } = useListTournaments();
   const visible = tournaments?.filter((t) => t.status === "active" || t.status === "completed") ?? [];
 
   return (
-    <div className="min-h-screen bg-background text-foreground dark flex flex-col">
+    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry experimental-fan-entry" : ""}`}>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <AppLogoLink fallbackHref="/fan" className="text-xl" />
+          <div className="flex items-center gap-3">
+            <AppLogoLink fallbackHref={isExperimental ? "/experimental/tournaments/fan" : "/fan"} className="text-xl" />
+            {isExperimental && (
+              <span className="experimental-mode-badge">
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
+                Experimental
+              </span>
+            )}
+          </div>
           <RoleSelectionLink />
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main id={isExperimental ? "experimental-main" : undefined} className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Eye className="w-5 h-5 text-orange-400" />
@@ -54,8 +65,8 @@ export default function FanView() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {visible.map((t) => (
-              <Link key={t.id} href={`/tournaments/${t.id}/audience`}>
-                <div className="rounded-xl border border-border bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer group p-5 flex flex-col gap-3">
+              <Link key={t.id} href={tournamentHref(t.id, isExperimental, "/audience")}>
+                <div data-exp-tournament-status={isExperimental ? t.status : undefined} className={`rounded-xl border border-border bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer group p-5 flex flex-col gap-3 ${isExperimental ? "experimental-fan-card" : ""}`}>
                   <div className="flex justify-between items-start gap-2">
                     <h3 className="font-bold text-base line-clamp-2 group-hover:text-orange-400 transition-colors">{t.name}</h3>
                     <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${

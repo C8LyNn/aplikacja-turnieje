@@ -1,98 +1,301 @@
-import { useLocation } from "wouter";
-import { useAuth } from "@/context/auth-context";
-import type { Role } from "@/lib/auth";
-import { Trophy, Code2, UserCog, Users, Eye } from "lucide-react";
+import {
+  BookOpen,
+  BriefcaseBusiness,
+  Dices,
+  Gamepad2,
+  Radio,
+  Shapes,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+import { ProjectCard } from "@/components/portfolio-ui";
+import { Link } from "wouter";
+import { useEffect, useState } from "react";
 
-const ROLES: {
-  id: Role;
-  label: string;
-  desc: string;
-  icon: React.ReactNode;
-  cardHover: string;
-  iconHover: string;
-}[] = [
+const MODULES = [
   {
-    id: "developer",
-    label: "Developer",
-    desc: "Zarządzanie aplikacją i konfiguracja systemu.",
-    icon: <Code2 className="w-11 h-11" />,
-    cardHover: "hover:border-purple-500/60 hover:bg-purple-500/10",
-    iconHover: "group-hover:text-purple-400",
+    code: "TURN",
+    title: "Turnieje",
+    description: "Organizacja i obsługa turniejów.",
+    href: "/tournaments",
+    icon: Trophy,
+    accent: "primary" as const,
   },
   {
-    id: "organizer",
-    label: "Organizator turnieju",
-    desc: "Pełne zarządzanie turniejem, graczami i drabinką. Wymaga hasła organizatora.",
-    icon: <UserCog className="w-11 h-11" />,
-    cardHover: "hover:border-primary/60 hover:bg-primary/10",
-    iconHover: "group-hover:text-primary",
+    code: "GAME",
+    title: "Minigry",
+    description: "Grywalne prototypy i eksperymenty.",
+    href: "/minigames",
+    icon: Gamepad2,
+    accent: "emerald" as const,
   },
   {
-    id: "support",
-    label: "Wsparcie organizatora",
-    desc: "Wprowadzanie wyników i obsługa meczów. Wymaga hasła wsparcia i nicka.",
-    icon: <Users className="w-11 h-11" />,
-    cardHover: "hover:border-green-500/60 hover:bg-green-500/10",
-    iconHover: "group-hover:text-green-400",
+    code: "DRAW",
+    title: "Losowania",
+    description: "Narzędzia i prototypy losowań.",
+    href: "/randomizers",
+    icon: Dices,
+    accent: "blue" as const,
   },
   {
-    id: "fan",
-    label: "Kibic turnieju",
-    desc: "Widok publiczny — drabinka i wyniki na żywo. Bez edycji.",
-    icon: <Eye className="w-11 h-11" />,
-    cardHover: "hover:border-orange-500/60 hover:bg-orange-500/10",
-    iconHover: "group-hover:text-orange-400",
+    code: "OBS",
+    title: "OBS / Stream",
+    description: "Overlaye i narzędzia transmisyjne.",
+    href: "/stream",
+    icon: Radio,
+    accent: "fuchsia" as const,
   },
-];
+  {
+    code: "LUDO",
+    title: "Ludologia",
+    description: "Klasyfikacja gier i wypowiedzi.",
+    href: "/ludology",
+    icon: Shapes,
+    accent: "amber" as const,
+  },
+  {
+    code: "RES",
+    title: "Projekty badawcze",
+    description: "Bazy i narzędzia badawcze.",
+    href: "/research",
+    icon: BookOpen,
+    accent: "cyan" as const,
+  },
+  {
+    code: "META",
+    title: "Meta Lab",
+    description: "Analiza mety i kompozycji drużyn.",
+    href: "/meta-lab",
+    icon: Sparkles,
+    accent: "rose" as const,
+  },
+] as const;
 
-export default function Landing() {
-  const { role, setRole } = useAuth();
-  const [, navigate] = useLocation();
 
-  function handleSelect(r: Role) {
-    setRole(r);
-    if (r === "developer") navigate("/developer");
-    else if (r === "organizer") navigate("/dashboard");
-    else if (r === "support") navigate("/support");
-    else navigate("/fan");
-  }
+const MATRIX_GLYPHS =
+  "0123456789ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ";
+
+function randomMatrixText(length: number) {
+  return Array.from({ length }, () =>
+    MATRIX_GLYPHS[Math.floor(Math.random() * MATRIX_GLYPHS.length)]
+  ).join("");
+}
+
+function SfMatrixCard() {
+  const [iconGlyph, setIconGlyph] = useState(() => randomMatrixText(1));
+  const [description, setDescription] = useState(() => randomMatrixText(18));
+  const [action, setAction] = useState(() => randomMatrixText(8));
+  const [glitching, setGlitching] = useState(false);
+  const [glitchFrame, setGlitchFrame] = useState(0);
+  const [glitchSeed, setGlitchSeed] = useState(() => Math.floor(Math.random() * 997));
+
+  useEffect(() => {
+    let frameTimer: number | undefined;
+    let settleTimer: number | undefined;
+
+    const runGlitch = () => {
+      if (frameTimer !== undefined) window.clearInterval(frameTimer);
+      if (settleTimer !== undefined) window.clearTimeout(settleTimer);
+
+      setGlitching(true);
+      setGlitchSeed(Math.floor(Math.random() * 997));
+      setGlitchFrame(0);
+
+      let frame = 0;
+      frameTimer = window.setInterval(() => {
+        frame += 1;
+        setGlitchFrame(frame);
+        setIconGlyph(randomMatrixText(1));
+        setDescription(randomMatrixText(18));
+        setAction(randomMatrixText(8));
+
+        if (frame >= 18) {
+          if (frameTimer !== undefined) {
+            window.clearInterval(frameTimer);
+            frameTimer = undefined;
+          }
+
+          settleTimer = window.setTimeout(() => {
+            setIconGlyph(randomMatrixText(1));
+            setDescription(randomMatrixText(18));
+            setAction(randomMatrixText(8));
+            setGlitchFrame(0);
+            setGlitching(false);
+          }, 220);
+        }
+      }, 65);
+    };
+
+    const cycle = window.setInterval(runGlitch, 10_000);
+
+    return () => {
+      window.clearInterval(cycle);
+      if (frameTimer !== undefined) window.clearInterval(frameTimer);
+      if (settleTimer !== undefined) window.clearTimeout(settleTimer);
+    };
+  }, []);
+
+  const ghostOffset = glitching ? 1 + ((glitchSeed + glitchFrame) % 2) : 0;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground dark px-4 py-12">
-      <div className="flex items-center gap-3 mb-3">
-        <Trophy className="w-10 h-10 text-primary" />
-        <span className="text-4xl font-bold tracking-tight text-primary">
-          TM_SYS
-        </span>
-      </div>
-      <p className="text-muted-foreground text-base mb-10 text-center max-w-sm">
-        System zarządzania turniejami. Wybierz swoją rolę, aby kontynuować.
-      </p>
+    <Link
+      href="/sf"
+      aria-label="SF"
+      className="group relative min-h-[205px] overflow-hidden rounded-2xl border border-border/90 bg-card/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5 hover:border-cyan-300/55 hover:shadow-[0_16px_38px_rgba(0,0,0,.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-500/22 via-cyan-500/5 to-transparent" />
+      <div className="absolute left-5 top-0 h-1.5 w-16 rounded-b-lg bg-cyan-400/65 transition-all group-hover:w-20" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-        {ROLES.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            onClick={() => handleSelect(r.id)}
-            className={`group relative cursor-pointer text-left border border-border rounded-xl p-6 bg-card transition-all duration-200 ${r.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
-          >
-            <div
-              className={`pointer-events-none mb-5 text-muted-foreground transition-colors ${r.iconHover}`}
+      {glitching && (
+        <>
+          <div
+            className="pointer-events-none absolute inset-x-0 h-px bg-cyan-200/70 mix-blend-screen"
+            style={{ top: (18 + ((glitchSeed + glitchFrame * 17) % 68)) + "%" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 h-[2px] bg-fuchsia-400/35 mix-blend-screen"
+            style={{ top: (25 + ((glitchSeed + glitchFrame * 23) % 58)) + "%" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(34,211,238,.035),transparent)]"
+            style={{
+              transform: "translateX(" + (((glitchSeed + glitchFrame * 29) % 11) - 5) + "px)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute left-0 right-0 h-[7px] bg-cyan-200/[0.045] mix-blend-screen"
+            style={{
+              top: (12 + ((glitchSeed + glitchFrame * 31) % 76)) + "%",
+              transform: "translateX(" + (((glitchSeed + glitchFrame * 19) % 9) - 4) + "px)",
+            }}
+          />
+        </>
+      )}
+
+      <div className="relative flex h-full flex-col items-center text-center">
+        <div className="mb-5 flex items-start justify-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 text-cyan-300">
+            <span
+              aria-hidden="true"
+              className="font-mono text-lg font-black leading-none tracking-none text-cyan-200 transition duration-150"
+              style={{
+                transform: glitching
+                  ? "translateX(" + (((glitchSeed + glitchFrame * 3) % 3) - 1) + "px) skewX(" + ((((glitchSeed + glitchFrame * 5) % 5) - 2) * 1.2) + "deg)"
+                  : undefined,
+                textShadow: glitching
+                  ? "-1px 0 rgba(34,211,238,.65), 1px 0 rgba(232,121,249,.45)"
+                  : "0 0 8px rgba(103,232,249,.18)",
+              }}
             >
-              {r.icon}
-            </div>
-            <h3 className="text-[20px] font-semibold mb-1 leading-snug">{r.label}</h3>
-            <p className="text-[14px] text-muted-foreground leading-relaxed">
-              {r.desc}
-            </p>
-            {role === r.id && (
-              <span className="pointer-events-none absolute top-3 right-3 text-xs font-semibold text-primary bg-primary/15 px-2 py-0.5 rounded-full">
-                aktywna
+              {iconGlyph}
+            </span>
+          </div>
+        </div>
+
+        <div className="relative">
+          {glitching && (
+            <>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 text-lg font-bold leading-tight text-cyan-300/55"
+                style={{ transform: "translateX(" + (-ghostOffset) + "px)" }}
+              >
+                SF
               </span>
-            )}
-          </button>
-        ))}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 text-lg font-bold leading-tight text-fuchsia-300/45"
+                style={{ transform: "translateX(" + ghostOffset + "px)" }}
+              >
+                SF
+              </span>
+            </>
+          )}
+          <h2 className="relative mt-1 text-lg font-bold leading-tight text-foreground">SF</h2>
+        </div>
+
+        <div className="relative mt-2 max-w-full overflow-hidden">
+          {glitching && (
+            <>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 whitespace-nowrap font-mono text-sm leading-5 tracking-[0.11em] text-cyan-300/50"
+                style={{
+                  transform: "translateX(" + (-ghostOffset) + "px)",
+                  clipPath: "inset(" + ((glitchSeed + glitchFrame * 9) % 55) + "% 0 " + ((glitchSeed + glitchFrame * 5) % 35) + "% 0)",
+                }}
+              >
+                {description}
+              </span>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 whitespace-nowrap font-mono text-sm leading-5 tracking-[0.11em] text-fuchsia-300/40"
+                style={{
+                  transform: "translateX(" + ghostOffset + "px)",
+                  clipPath: "inset(" + ((glitchSeed + glitchFrame * 5) % 35) + "% 0 " + ((glitchSeed + glitchFrame * 11) % 45) + "% 0)",
+                }}
+              >
+                {description}
+              </span>
+            </>
+          )}
+          <p className="relative whitespace-nowrap font-mono text-sm leading-5 tracking-[0.11em] text-muted-foreground">
+            {description}
+          </p>
+        </div>
+
+        <div className="relative mt-auto max-w-full overflow-hidden pt-5">
+          {glitching && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-0 left-0 right-0 whitespace-nowrap font-mono text-xs font-bold tracking-[0.14em] text-fuchsia-300/45"
+              style={{ transform: "translateX(" + ghostOffset + "px)" }}
+            >
+              {action}
+            </span>
+          )}
+          <div className="relative whitespace-nowrap font-mono text-xs font-bold tracking-[0.14em] text-cyan-300 opacity-80 transition group-hover:opacity-100">
+            {action}
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export default function Landing() {
+  return (
+    <div className="flex min-h-screen items-center bg-background px-4 py-6 text-foreground dark sm:py-8">
+      <div className="mx-auto w-full max-w-6xl">
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* PORTFOLIO_TILE_V9_5_001 */}
+          <a
+            href={`${(import.meta.env?.BASE_URL ?? "/")}portfolio/`}
+            aria-label="Portfolio"
+            className="group relative min-h-[205px] overflow-hidden rounded-2xl border border-border/90 bg-card/95 p-5 shadow-[0_10px_30px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5 hover:border-violet-400/60 hover:shadow-[0_16px_38px_rgba(0,0,0,.22)]"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/28 via-violet-500/6 to-transparent" />
+            <div className="absolute left-5 top-0 h-1.5 w-16 rounded-b-lg bg-violet-500/70 transition-all group-hover:w-20" />
+            <div className="relative flex h-full flex-col items-center text-center">
+              <div className="mb-5 flex items-start justify-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 text-violet-300">
+                  <BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />
+                </div>
+              </div>
+              <h2 className="mt-1 text-lg font-bold leading-tight">Portfolio</h2>
+              <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">Game Design i Systems Design.</p>
+              <div className="mt-auto pt-5 text-xs font-bold text-violet-300 opacity-75 transition group-hover:opacity-100">Otwórz →</div>
+            </div>
+          </a>
+
+          {MODULES.map((module) => (
+            <ProjectCard key={module.href} {...module} centerContent />
+          ))}
+
+
+                    {/* SF_TILE_MATRIX_V1 */}
+          <SfMatrixCard />
+        </div>
       </div>
     </div>
   );

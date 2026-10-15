@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="../assets/portfolio-favicon-v2.svg?v=9.4" type="image/svg+xml" />
+  <link rel="shortcut icon" href="../assets/portfolio-favicon-v2.svg?v=9.4" type="image/svg+xml" />
+  <link rel="stylesheet" href="../src/styles.css" />
+  <title>Bazul Aronis — Case Study — Jakub Powierski — Jakub Powierski Portfolio</title>
+  <meta name="description" content="Case study Bazul Aronis: 2D fleet combat, inertia, ship roles, AI, collisions and combat readability." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#case-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="../index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../../">Strona główna</a><a href="index.html">Case studies</a><a href="../decisions.html">Decyzje</a><a href="../about.html">O mnie</a><a href="../evidence.html">Materiały</a><a class="nav-cv" href="../resume.html">CV</a></nav></header>
+  <main id="case-content">
+    <section class="case-hero shell case-bazul"><p class="eyebrow">CASE STUDY · 2026 · STUDENT PROJECT</p><h1>Bazul Aronis</h1><p class="case-lead">Projekt walk flot 2D rozwijany wokół ruchu z bezwładnością, klas statków, AI, kolizji, uzbrojenia i czytelności dużych starć.</p><div class="fact-grid"><div><span>Obszar</span><b>Game Design / Simulation</b></div><div><span>Rdzeń</span><b>fleet combat · inertia</b></div><div><span>Systemy</span><b>AI · weapons · collisions</b></div><div><span>Etap</span><b>design review / iteration</b></div></div></section>
+
+    <section class="case-section shell"><div class="case-two-col"><div><p class="eyebrow">DESIGN REVIEW</p><h2>System sandbox nie wystarczy, jeśli gracz nie rozumie bitwy.</h2></div><div class="case-copy"><p>Zachowany design review opisuje projekt jako działający rdzeń techniczny do bitwy wielu statków: klasy jednostek, arkadowy lot z bezwładnością, klasyczne AI, unikanie kolizji, broń pociskową i laserową, obrażenia od zderzeń oraz asteroidy i fragmentację.</p><p>Największe ryzyko nie dotyczyło liczby systemów, tylko czytelności. Gracz powinien rozumieć kim jest w bitwie, co jest celem, gdzie jest największe zagrożenie i dlaczego wynik starcia był taki, a nie inny.</p></div></div>
+      <div class="pdr-grid"><article><span>PROBLEM</span><h3>Chaos wygląda jak losowość.</h3><p>Duża liczba statków, pocisków i kolizji może ukryć decyzje gracza.</p></article><article><span>DECISION</span><h3>Czytelność ponad dokładanie systemów.</h3><p>Priorytetem staje się rola gracza, komunikacja zagrożeń i konsekwencje decyzji.</p></article><article><span>NEXT STEP</span><h3>Z system sandbox do gry.</h3><p>Każdy kolejny system powinien poprawiać pętlę decyzji, a nie tylko zwiększać złożoność symulacji.</p></article></div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">READABILITY QUESTIONS</p>
+      <h2 class="case-h2">Design review sprowadza problem do czterech pytań, na które gracz powinien znać odpowiedź.</h2>
+      <div class="readability-grid"><article><span>01</span><b>Kim jestem w bitwie?</b><p>Jaka jest rola mojej jednostki / floty i jakie decyzje należą do mnie?</p></article><article><span>02</span><b>Co mam zrobić teraz?</b><p>Jaki jest bieżący cel w skali kilku sekund, a nie tylko ogólny warunek zwycięstwa?</p></article><article><span>03</span><b>Co jest największym zagrożeniem?</b><p>Który statek, pocisk, kolizja albo element środowiska powinien przyciągnąć uwagę?</p></article><article><span>04</span><b>Dlaczego wygrałem / przegrałem?</b><p>Feedback powinien łączyć rezultat z wcześniejszą decyzją zamiast wyglądać jak losowy chaos.</p></article></div>
+    </section>
+
+    <section class="case-section shell"><p class="eyebrow">SYSTEM MAP</p><h2 class="case-h2">Najważniejsze obszary design review.</h2><div class="doc-map"><article><span>01</span><b>Movement</b><p>Inercja i zachowanie statków w ruchu.</p></article><article><span>02</span><b>Ship classes</b><p>Różne role jednostek w starciu.</p></article><article><span>03</span><b>AI</b><p>Pilotowanie, decyzje i unikanie kolizji.</p></article><article><span>04</span><b>Weapons</b><p>Broń pociskowa i laserowa.</p></article><article><span>05</span><b>Environment</b><p>Asteroidy, zderzenia i fragmentacja.</p></article><article><span>06</span><b>Readability</b><p>Najważniejsze ryzyko całego systemu walki.</p></article></div></section>
+
+    <section class="case-section shell case-resources"><p class="eyebrow">SOURCE MATERIAL</p><h2 class="case-h2">Design review i repozytoria.</h2><div class="resource-grid"><a href="../docs/evidence/bazul-aronis-design-review.txt" target="_blank" rel="noreferrer"><span>DESIGN REVIEW · LOCAL</span><b>Bazul Aronis — Iteracja 4</b></a><a href="https://gitlab.com/C8LyNn/bazul-aronis" target="_blank" rel="noreferrer"><span>REPO</span><b>Bazul Aronis</b></a><a href="https://gitlab.com/C8LyNn/bazul-aronis-ba2-zaliczenie" target="_blank" rel="noreferrer"><span>REPO</span><b>Bazul Aronis — BA2 zaliczenie</b></a></div></section>
+    <section class="case-section shell case-pagination" aria-label="Nawigacja między case studies"><a class="case-prev" href="chrono-runes.html"><span>← POPRZEDNI</span><b>Chrono Runes</b></a><a class="case-next" href="core-clash.html"><span>NASTĘPNY →</span><b>Core Clash</b></a></section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="index.html">← Wszystkie case studies</a></footer>
+</body>
+</html>

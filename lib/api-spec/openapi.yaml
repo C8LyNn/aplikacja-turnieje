@@ -75,6 +75,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreateTournamentUnprocessableError"
 
+  /tournaments/plan-preview:
+    post:
+      operationId: previewTournamentPlan
+      tags: [tournaments]
+      summary: Preview a validated tournament template without creating anything
+      description: Public read-only plan generation. Returned plan must be revalidated at creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TournamentTemplateRequest"
+      responses:
+        "200":
+          description: Validated tournament plan preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentTemplatePreview"
+        "422":
+          description: Unsupported template or participant count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentTemplateFailure"
+
+  /tournaments/{id}/operations/result-correction-preview:
+    post:
+      operationId: previewTournamentResultCorrection
+      tags: [tournaments]
+      summary: Advisory, read-only score correction impact preview
+      description: >-
+        Does not modify any matches or authorize a correction. Requires organizer/support.
+        The actual revert and re-complete operations must recheck the database transactionally.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [matchId, expectedRevision, proposedScore1, proposedScore2]
+              additionalProperties: false
+              properties:
+                matchId: { type: integer, minimum: 1 }
+                expectedRevision: { type: integer, minimum: 0 }
+                proposedScore1: { type: integer, minimum: 0 }
+                proposedScore2: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Advisory only; never an authorization or guarantee
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResultCorrectionImpactPreview" }
+        "400": { description: Invalid request }
+        "403": { description: Organizer or support authorization required }
+        "404": { description: Match/tournament not found }
+
+  /tournaments/{id}/operations/qualification-routing-preview:
+    get:
+      operationId: getTournamentQualificationRoutingPreview
+      tags: [tournaments]
+      summary: Read-only organizer/support status of qualification proposals and basket routing
+      description: Advisory snapshot only; it does not approve proposals, execute routes or authorize mutations.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Advisory qualification and routing status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualificationRoutingPreview"
+        "400":
+          description: Invalid tournament id
+        "403":
+          description: Organizer or support authentication required
+        "404":
+          description: Tournament not found
+
   /tournaments/{id}:
     get:
       operationId: getTournament
@@ -1427,6 +1514,292 @@ paths:
               schema:
                 $ref: "#/components/schemas/BackupImportError"
 
+  # Pack 14: legacy one-step correction removed; use correction-intents.
+
+  /tournaments/{id}/operations/correction-intents:
+    post:
+      operationId: prepareControlledCorrectionIntent
+      tags: [tournaments]
+      summary: Persist organizer approval for guarded Round Robin revert (does not mutate match)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [operationId, matchId, expectedRevision, expectedCompletionActionId, expectedStageVersionVector, proposedScore1, proposedScore2, approvedByOrganizer, understandsRequiresResubmission]
+              properties:
+                operationId: { type: string, format: uuid }
+                matchId: { type: integer, minimum: 1 }
+                expectedRevision: { type: integer, minimum: 1 }
+                expectedCompletionActionId: { type: integer, minimum: 1 }
+                expectedStageVersionVector: { type: string, minLength: 2, maxLength: 80000 }
+                proposedScore1: { type: integer, minimum: 0 }
+                proposedScore2: { type: integer, minimum: 0 }
+                approvedByOrganizer: { type: boolean, const: true }
+                understandsRequiresResubmission: { type: boolean, const: true }
+      responses:
+        "201":
+          description: New durable approval (match unchanged)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorrectionIntentReceipt" }
+        "200":
+          description: Idempotent receipt for identical operation id and request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorrectionIntentReceipt" }
+        "409": { description: Stale preview or operation id collision }
+        "403": { description: Organizer session required }
+
+  /tournaments/{id}/operations/correction-intents/{operationId}:
+    get:
+      operationId: getControlledCorrectionIntent
+      tags: [tournaments]
+      summary: Recover the durable approval/execution receipt after connection loss
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: operationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Status of immutable correction operation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorrectionIntentReceipt" }
+        "403": { description: Organizer session required }
+        "404": { description: Unknown operation }
+
+  /tournaments/{id}/operations/correction-intents/{operationId}/execute:
+    post:
+      operationId: executeControlledCorrectionIntent
+      tags: [tournaments]
+      summary: Execute the approved, single-match revert with transactional receipt
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: operationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Revert committed, or idempotent receipt of a previous completion
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorrectionIntentReceipt" }
+        "403": { description: Organizer session required }
+        "409": { description: Expired approval or changed tournament state }
+        "422": { description: Existing revertMatch safety rules prevented the action }
+
+  /tournaments/{id}/operations/correction-intents/{operationId}/execute-atomic:
+    post:
+      operationId: executeAtomicCorrectionIntent
+      tags: [tournaments]
+      summary: Atomically revert and replace an approved Round Robin result in one transaction
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: operationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Corrected match or repeatable receipt after connection loss
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorrectionIntentReceipt" }
+        "403": { description: Organizer session required }
+        "404": { description: Unknown correction approval }
+        "409": { description: "Expired or stale approval, concurrent conflict or invalid score" }
+
+  /tournaments/{id}/matches/{matchId}/se-correction-readiness:
+    post:
+      operationId: assessSingleEliminationCorrectionReadiness
+      tags: [tournaments]
+      summary: Snapshot-consistent, read-only SE correction readiness; never permits execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [score1, score2, expectedMatchRevision, expectedStageVersionVector, expectedCompletionActionId]
+              properties:
+                score1: { type: integer, minimum: 0, maximum: 999999 }
+                score2: { type: integer, minimum: 0, maximum: 999999 }
+                expectedMatchRevision: { type: integer, minimum: 1 }
+                expectedStageVersionVector: { type: string, minLength: 2, maxLength: 80000 }
+                expectedCompletionActionId: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Non-authorizing, read-only readiness analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, status, advisoryOnly, executionEnabled, writePerformed, matchId, issues]
+                properties:
+                  version: { type: integer, enum: [1] }
+                  status: { type: string, enum: [candidate, blocked] }
+                  advisoryOnly: { type: boolean, const: true }
+                  executionEnabled: { type: boolean, const: false }
+                  writePerformed: { type: boolean, const: false }
+                  matchId: { type: integer }
+                  expectedMatchRevision: { type: integer }
+                  stageVersionVector: { type: string }
+                  originalWinnerId: { type: [integer, "null"] }
+                  hypotheticalWinnerId: { type: [integer, "null"] }
+                  dependentMatch: { type: [object, "null"] }
+                  requiredChecks: { type: array, items: { type: string } }
+                  issues: { type: array, items: { type: string } }
+                  reason: { type: string }
+                  impactRiskReport:
+                    type: object
+                    description: Conservative advisory risk report derived from bounded SE graph; not an execution approval.
+                    required: [version, kind, advisoryOnly, executionEnabled, writePerformed, matchId, status, highestSeverity, items, note]
+                    properties:
+                      version: { type: integer, enum: [1] }
+                      kind: { type: string, enum: [se_correction_impact_risk_report] }
+                      advisoryOnly: { type: boolean, const: true }
+                      executionEnabled: { type: boolean, const: false }
+                      writePerformed: { type: boolean, const: false }
+                      matchId: { type: integer }
+                      status: { type: string, enum: [incomplete, requires_review, observational] }
+                      highestSeverity: { type: string, enum: [critical, high, medium, low] }
+                      items: { type: array, items: { type: object } }
+                      note: { type: string }
+                  impactGraph:
+                    type: object
+                    description: Bounded, advisory-only forward SE impact graph from the same read-only snapshot. Future winners and cross-stage routing are NOT predicted.
+                    required: [version, kind, advisoryOnly, executionEnabled, writePerformed, status, matchId, stageId, changeType, downstreamMatches, laterStages, directSuccessorCount, potentialLaterMatchCount, startedDownstreamCount, warnings, note]
+                    properties:
+                      version: { type: integer, enum: [1] }
+                      kind: { type: string, enum: [se_correction_impact_graph] }
+                      advisoryOnly: { type: boolean, const: true }
+                      executionEnabled: { type: boolean, const: false }
+                      writePerformed: { type: boolean, const: false }
+                      status: { type: string, enum: [outlined, review_required, incomplete] }
+                      matchId: { type: integer }
+                      stageId: { type: [integer, "null"] }
+                      changeType: { type: string, enum: [winner_change, score_only, unknown] }
+                      sourceRound: { type: [integer, "null"] }
+                      downstreamMatches: { type: array, items: { type: object } }
+                      laterStages: { type: array, items: { type: object } }
+                      directSuccessorCount: { type: integer, minimum: 0 }
+                      potentialLaterMatchCount: { type: integer, minimum: 0 }
+                      startedDownstreamCount: { type: integer, minimum: 0 }
+                      warnings: { type: array, items: { type: string } }
+                      note: { type: string }
+                  diagnostic:
+                    type: object
+                    description: Human readable SE blockers and deterministic, snapshot-only correlation identifier; NOT execution permission.
+                    required: [version, kind, advisoryOnly, executionEnabled, writePerformed, status, assessmentId, validity, matchId, expectedMatchRevision, issueCount, priorityCategory, blockers, recommendedNextActions, note]
+                    properties:
+                      version: { type: integer, enum: [1] }
+                      kind: { type: string, enum: [se_correction_diagnostic] }
+                      advisoryOnly: { type: boolean, const: true }
+                      executionEnabled: { type: boolean, const: false }
+                      writePerformed: { type: boolean, const: false }
+                      status: { type: string, enum: [candidate, blocked] }
+                      assessmentId: { type: string, pattern: '^[a-f0-9]{64}$' }
+                      validity: { type: string, enum: [snapshot_only] }
+                      matchId: { type: integer }
+                      expectedMatchRevision: { type: integer }
+                      issueCount: { type: integer, minimum: 0 }
+                      priorityCategory: { type: [string, "null"] }
+                      blockers: { type: array, items: { type: object } }
+                      recommendedNextActions: { type: array, items: { type: string } }
+                      note: { type: string }
+                  actionPlan:
+                    type: object
+                    description: Advisory hypothetical SE recovery plan. NEVER authorization to execute.
+                    required: [version, kind, advisoryOnly, executionEnabled, writePerformed, state, changeType, matchId, evidence, score, winner, successor, steps, blockerCodes, note]
+                    properties:
+                      version: { type: integer, enum: [1] }
+                      kind: { type: string, enum: [se_correction_advisory_plan] }
+                      advisoryOnly: { type: boolean, const: true }
+                      executionEnabled: { type: boolean, const: false }
+                      writePerformed: { type: boolean, const: false }
+                      state: { type: string, enum: [candidate, blocked] }
+                      changeType: { type: string, enum: [winner_change, score_only, unknown] }
+                      matchId: { type: integer }
+                      evidence: { type: object }
+                      score: { type: object }
+                      winner: { type: object }
+                      successor: { type: [object, "null"] }
+                      steps: { type: array, items: { type: object } }
+                      blockerCodes: { type: array, items: { type: string } }
+                      note: { type: string }
+        "400": { description: Invalid expected values or scores }
+        "403": { description: Organizer required }
+        "404": { description: Tournament or match not found }
+
+  /tournaments/{id}/matches/{matchId}/se-correction-preflight:
+    get:
+      operationId: getSingleEliminationCorrectionSafety
+      tags: [tournaments]
+      summary: Read-only Single Elimination correction structural safety (not permission to execute)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: score1
+          in: query
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - name: score2
+          in: query
+          required: true
+          schema: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Advisory structural safety assessment. Never authorizes a mutation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, status, advisoryOnly, executionEnabled, matchId, issues]
+                properties:
+                  version: { type: integer, enum: [1] }
+                  status: { type: string, enum: [structurally_safe, blocked] }
+                  advisoryOnly: { type: boolean, enum: [true] }
+                  executionEnabled: { type: boolean, enum: [false] }
+                  matchId: { type: integer }
+                  priorWinnerId: { type: [integer, "null"] }
+                  proposedWinnerId: { type: [integer, "null"] }
+                  winnerChanges: { type: boolean }
+                  readVersion: { type: string }
+                  issues:
+                    type: array
+                    items: { type: string }
+                  dependentMatch:
+                    type: [object, "null"]
+                  message: { type: string }
+        "400": { description: Invalid match identifier or proposed scores }
+        "403": { description: Organizer permission required }
+        "404": { description: Match or tournament not found }
+        "409": { description: State changed during read or stage does not exist }
+
   /tournaments/{id}/assistant:
     get:
       operationId: getTournamentAssistant
@@ -2448,9 +2821,55 @@ components:
             - $ref: "#/components/schemas/TournamentPresentationSettings"
             - type: "null"
 
+    TournamentTemplateRequest:
+      type: object
+      additionalProperties: false
+      required: [templateId, participantCount, bestOf]
+      properties:
+        templateId:
+          type: string
+          enum: [quick_elimination, double_chance, everyone_plays, swiss, groups_to_playoffs, swiss_to_playoffs]
+        participantCount: { type: integer, minimum: 2, maximum: 128 }
+        bestOf: { type: integer, enum: [1, 3, 5, 7] }
+
+    TournamentTemplateFailure:
+      type: object
+      required: [code, error]
+      properties:
+        code: { type: string }
+        error: { type: string }
+
+    TournamentTemplatePreview:
+      type: object
+      required: [version, templateId, label, stagePlan, stages, estimatedTotalMatches, estimatedMatchesMaximum, warnings, advisory, requiresConfirmation]
+      properties:
+        version: { type: integer, enum: [1] }
+        templateId: { type: string, enum: [quick_elimination, double_chance, everyone_plays, swiss, groups_to_playoffs, swiss_to_playoffs] }
+        label: { type: string }
+        stagePlan: { $ref: "#/components/schemas/TournamentStagePlanInput" }
+        stages:
+          type: array
+          items:
+            type: object
+            required: [position, name, format, participantCount, advancingCount, estimatedMatches]
+            properties:
+              position: { type: integer }
+              name: { type: string }
+              format: { type: string }
+              participantCount: { type: integer }
+              advancingCount: { type: [integer, "null"] }
+              estimatedMatches: { type: integer }
+        estimatedTotalMatches: { type: integer, minimum: 0 }
+        estimatedMatchesMaximum: { type: integer, minimum: 0 }
+        warnings:
+          type: array
+          items: { type: string }
+        advisory: { type: boolean, const: true }
+        requiresConfirmation: { type: boolean, const: true }
+
     TournamentInput:
       type: object
-      required: [name, format]
+      required: [name, format, organizerPassword]
       properties:
         name:
           type: string
@@ -2468,12 +2887,9 @@ components:
           type: integer
           minimum: 1
         organizerPassword:
-          description: Optional password. Empty means no password; a non-empty value must contain at least 8 characters.
-          oneOf:
-            - type: string
-              maxLength: 0
-            - type: string
-              minLength: 8
+          type: string
+          minLength: 8
+          description: Required organizer password. Keep it to sign in again after losing a session or on another device. Only its hash is stored; the password cannot be displayed again.
         supportPassword:
           type: string
           minLength: 8
@@ -3176,10 +3592,13 @@ components:
 
     Match:
       type: object
-      required: [id, tournamentId, stageId, round, matchNumber, bestOf, status]
+      required: [id, revision, tournamentId, stageId, round, matchNumber, bestOf, status]
       properties:
         id:
           type: integer
+        revision:
+          type: integer
+          minimum: 1
         tournamentId:
           type: integer
         stageId:
@@ -3259,8 +3678,11 @@ components:
       oneOf:
         - type: object
           additionalProperties: false
-          required: [resultType, score1, score2]
+          required: [resultType, score1, score2, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: played
@@ -3270,8 +3692,11 @@ components:
               type: integer
         - type: object
           additionalProperties: false
-          required: [resultType, winnerId]
+          required: [resultType, winnerId, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: walkover
@@ -3281,8 +3706,11 @@ components:
               type: ["string", "null"]
         - type: object
           additionalProperties: false
-          required: [resultType]
+          required: [resultType, expectedRevision]
           properties:
+            expectedRevision:
+              type: integer
+              minimum: 1
             resultType:
               type: string
               const: no_contest
@@ -3393,6 +3821,24 @@ components:
         message:
           type: string
 
+    CorrectionIntentReceipt:
+      type: object
+      required: [version, operationId, matchId, status, mutationPerformed, approvedAt, expiresAt, completedAt, revertActionId, matchRevision, message]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, format: uuid }
+        matchId: { type: integer }
+        status: { type: string, enum: [approved, expired, reverted_requires_resubmission, corrected] }
+        mutationPerformed: { type: boolean }
+        approvedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+        revertActionId: { type: integer, nullable: true }
+        matchRevision: { type: integer, nullable: true }
+        completionActionId: { type: integer, nullable: true }
+        correctedMatchRevision: { type: integer, nullable: true }
+        message: { type: string }
+
     AssistantSnapshot:
       type: object
       required: [stepTitle, nextAction]
@@ -3405,6 +3851,483 @@ components:
           type: array
           items:
             type: string
+        operations:
+          $ref: "#/components/schemas/TournamentOperationsSnapshot"
+
+    ResultCorrectionStandingsComparison:
+      description: Hypothetical projection; neither an authorization nor official rankings.
+      oneOf:
+        - type: object
+          required: [status, reasonCode, message]
+          properties:
+            status: { type: string, const: unavailable }
+            reasonCode: { type: string }
+            message: { type: string }
+        - type: object
+          required: [status, stageId, stageName, stageFormat, scope, scopeLabel, provisional, note, diff]
+          properties:
+            status: { type: string, const: available }
+            stageId: { type: integer }
+            stageName: { type: string }
+            stageFormat: { type: string, enum: [swiss, round_robin, group_stage] }
+            scope: { type: string, enum: [stage, group] }
+            scopeLabel: { type: string }
+            provisional: { type: boolean, const: true }
+            note: { type: string }
+            diff:
+              type: object
+              required: [rows, changedRows, movedRows, qualifierImpact]
+              properties:
+                changedRows: { type: integer, minimum: 0 }
+                movedRows: { type: integer, minimum: 0 }
+                rows:
+                  type: array
+                  items:
+                    type: object
+                    required: [playerId, playerName, beforeRank, afterRank, rankDelta, beforeMatchWins, afterMatchWins, beforeGameDiff, afterGameDiff, beforeBuchholz, afterBuchholz, changed]
+                    properties:
+                      playerId: { type: integer }
+                      playerName: { type: string }
+                      beforeRank: { type: integer }
+                      afterRank: { type: integer }
+                      rankDelta: { type: integer }
+                      beforeMatchWins: { type: integer }
+                      afterMatchWins: { type: integer }
+                      beforeGameDiff: { type: integer }
+                      afterGameDiff: { type: integer }
+                      beforeBuchholz: { type: [integer, "null"] }
+                      afterBuchholz: { type: [integer, "null"] }
+                      changed: { type: boolean }
+                qualifierImpact:
+                  type: object
+                  required: [status, cutoff, beforePlayerIds, afterPlayerIds, gainingPlayerIds, losingPlayerIds]
+                  properties:
+                    status: { type: string, enum: [projected, not_applicable] }
+                    cutoff: { type: [integer, "null"] }
+                    beforePlayerIds: { type: array, items: { type: integer } }
+                    afterPlayerIds: { type: array, items: { type: integer } }
+                    gainingPlayerIds: { type: array, items: { type: integer } }
+                    losingPlayerIds: { type: array, items: { type: integer } }
+
+    EliminationBracketImpact:
+      description: Structural-only hypothetical SE dependency chain; never operation authorization.
+      oneOf:
+        - type: object
+          required: [status, reasonCode, message]
+          properties:
+            status: { type: string, const: unavailable }
+            reasonCode: { type: string }
+            message: { type: string }
+        - type: object
+          required: [status, stageId, stageName, format, provisional, forecastScope, winnerChanges, sourceMatch, directSlot, possibleDownstream, issues, chainComplete, finalRoundWinnerMayChange, note]
+          properties:
+            status: { type: string, const: available }
+            stageId: { type: integer }
+            stageName: { type: string }
+            format: { type: string, const: single_elimination }
+            provisional: { type: boolean, const: true }
+            forecastScope: { type: string, const: structure_only }
+            winnerChanges: { type: boolean }
+            sourceMatch:
+              type: object
+              required: [matchId, round, matchNumber]
+              properties:
+                matchId: { type: integer }
+                round: { type: integer }
+                matchNumber: { type: integer }
+            directSlot:
+              type: [object, "null"]
+              required: [matchId, round, slot, currentPlayerId, hypotheticalPlayerId, matchingCurrentWinner, pristine]
+              properties:
+                matchId: { type: integer }
+                round: { type: integer }
+                slot: { type: string, enum: [player1, player2] }
+                currentPlayerId: { type: [integer, "null"] }
+                hypotheticalPlayerId: { type: integer }
+                matchingCurrentWinner: { type: boolean }
+                pristine: { type: boolean }
+            possibleDownstream:
+              type: array
+              items:
+                type: object
+                required: [matchId, round, matchNumber, status, relation, blocking]
+                properties:
+                  matchId: { type: integer }
+                  round: { type: integer }
+                  matchNumber: { type: integer }
+                  status: { type: string }
+                  relation: { type: string, enum: [direct_slot, possible_later_match] }
+                  blocking: { type: boolean }
+            issues:
+              type: array
+              items:
+                type: object
+                required: [code, message]
+                properties:
+                  code: { type: string }
+                  message: { type: string }
+            chainComplete: { type: boolean }
+            finalRoundWinnerMayChange: { type: boolean }
+            note: { type: string }
+
+    PreviewReadGuard:
+      description: Best-effort second read of all stage matches; NOT serializable transaction or execution permission.
+      type: object
+      required: [status, stageId, stageVersionVector]
+      properties:
+        status: { type: string, enum: [stable_on_recheck, changed_during_read] }
+        stageId: { type: integer }
+        stageVersionVector: { type: string }
+
+    DoubleEliminationRoutingImpact:
+      description: Hypothetical read-only DE routing-v2 evaluation; no mutation permission.
+      oneOf:
+        - type: object
+          required: [status, reasonCode, message]
+          properties:
+            status: { type: string, const: unavailable }
+            reasonCode: { type: string }
+            message: { type: string }
+        - type: object
+          required: [status, provisional, scope, stageId, sourceMatchKey, winnerChanges, currentWinnerId, proposedWinnerId, planRevision, executionRevision, upstreamRoutes, affectedMatches, invalidatedDecisions, currentChampionId, hypotheticalChampionId, warningCodes, note]
+          properties:
+            status: { type: string, const: available }
+            provisional: { type: boolean, const: true }
+            scope: { type: string, const: double_elimination_routing_v2 }
+            stageId: { type: integer }
+            sourceMatchKey: { type: string }
+            winnerChanges: { type: boolean }
+            currentWinnerId: { type: integer }
+            proposedWinnerId: { type: integer }
+            planRevision: { type: integer }
+            executionRevision: { type: integer }
+            upstreamRoutes:
+              type: array
+              items:
+                type: object
+                required: [routeKey, outcome, targetMatchKey, targetSlot]
+                properties:
+                  routeKey: { type: string }
+                  outcome: { type: string, enum: [winner, loser] }
+                  targetMatchKey: { type: string }
+                  targetSlot: { type: integer, enum: [1, 2] }
+            affectedMatches:
+              type: array
+              items:
+                type: object
+                required: [matchKey, label, currentStatus, hypotheticalStatus, currentSlots, hypotheticalSlots, existingCanonicalMatchId, canonicalMatchAlreadyCompleted]
+                properties:
+                  matchKey: { type: string }
+                  label: { type: string }
+                  currentStatus: { type: string }
+                  hypotheticalStatus: { type: string }
+                  currentSlots: { type: array, minItems: 2, maxItems: 2, items: { type: [string, "null"] } }
+                  hypotheticalSlots: { type: array, minItems: 2, maxItems: 2, items: { type: [string, "null"] } }
+                  existingCanonicalMatchId: { type: [integer, "null"] }
+                  canonicalMatchAlreadyCompleted: { type: boolean }
+            invalidatedDecisions:
+              type: array
+              items:
+                type: object
+                required: [matchKey, canonicalMatchId, canonicalMatchAlreadyCompleted]
+                properties:
+                  matchKey: { type: string }
+                  canonicalMatchId: { type: [integer, "null"] }
+                  canonicalMatchAlreadyCompleted: { type: boolean }
+            currentChampionId: { type: [integer, "null"] }
+            hypotheticalChampionId: { type: [integer, "null"] }
+            warningCodes: { type: array, items: { type: string } }
+            note: { type: string }
+
+    CorrectionRecoveryPlan:
+      description: Read-only non-executable, organizer-review-only plan for correction recovery. Not a permission or workflow trigger.
+      type: object
+      required: [version, kind, advisory, mutationPerformed, executable, permissionToExecute, status, risk, matchId, expectedRevision, proposedScore, evidence, affected, blockerCodes, approvalQuestions, steps, note]
+      properties:
+        version: { type: integer, const: 1 }
+        kind: { type: string, const: correction_recovery_playbook }
+        advisory: { type: boolean, const: true }
+        mutationPerformed: { type: boolean, const: false }
+        executable: { type: boolean, const: false }
+        permissionToExecute: { type: boolean, const: false }
+        status: { type: string, enum: [stale, blocked, no_change, manual_review] }
+        risk: { type: string, enum: [none, moderate, high, critical] }
+        matchId: { type: integer }
+        expectedRevision: { type: integer }
+        proposedScore:
+          type: object
+          required: [score1, score2]
+          properties:
+            score1: { type: integer }
+            score2: { type: integer }
+        evidence:
+          type: object
+          required: [stageId, stageVersionVector, doubleEliminationPlanRevision, doubleEliminationExecutionRevision]
+          properties:
+            stageId: { type: integer }
+            stageVersionVector: { type: [string, "null"] }
+            doubleEliminationPlanRevision: { type: [integer, "null"] }
+            doubleEliminationExecutionRevision: { type: [integer, "null"] }
+        affected:
+          type: object
+          required: [knownDownstreamMatchIds, possibleAffectedLogicalMatches, potentiallyInvalidatedCompletedResults]
+          properties:
+            knownDownstreamMatchIds: { type: array, items: { type: integer } }
+            possibleAffectedLogicalMatches: { type: integer }
+            potentiallyInvalidatedCompletedResults: { type: integer }
+        blockerCodes: { type: array, items: { type: string } }
+        approvalQuestions: { type: array, items: { type: string } }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [id, phase, title, instruction, requiresOrganizerApproval, mutation, automaticExecutionAllowed, dependsOn]
+            properties:
+              id: { type: string }
+              phase: { type: string, enum: [inspect, authorize, manual, verify] }
+              title: { type: string }
+              instruction: { type: string }
+              requiresOrganizerApproval: { type: boolean }
+              mutation: { type: boolean }
+              automaticExecutionAllowed: { type: boolean, const: false }
+              dependsOn: { type: array, items: { type: string } }
+        note: { type: string }
+
+    BoundedRevertEligibility:
+      type: object
+      required: [supported, reasonCode, expectedCompletionActionId]
+      properties:
+        supported: { type: boolean }
+        reasonCode: { type: string }
+        expectedCompletionActionId: { type: [integer, "null"] }
+
+    ResultCorrectionImpactPreview:
+      type: object
+      description: Read-only impact analysis; state requires_review never means permission to execute.
+      required: [version, advisory, mutationPerformed, previewIsAuthorization, requiresTransactionalRecheck, state, matchId, expectedRevision, stageName, existingResult, proposedResult, issues, effects, downstreamMatchIds, recommendedAction]
+      properties:
+        version: { type: integer, enum: [1] }
+        advisory: { type: boolean, const: true }
+        mutationPerformed: { type: boolean, const: false }
+        previewIsAuthorization: { type: boolean, const: false }
+        requiresTransactionalRecheck: { type: boolean, const: true }
+        state: { type: string, enum: [blocked, requires_review] }
+        matchId: { type: integer }
+        expectedRevision: { type: integer }
+        stageName: { type: [string, "null"] }
+        existingResult:
+          type: object
+          required: [score1, score2, winnerId]
+          properties:
+            score1: { type: [integer, "null"] }
+            score2: { type: [integer, "null"] }
+            winnerId: { type: [integer, "null"] }
+        proposedResult:
+          type: object
+          required: [score1, score2, winnerId, winnerChanges]
+          properties:
+            score1: { type: integer }
+            score2: { type: integer }
+            winnerId: { type: [integer, "null"] }
+            winnerChanges: { type: [boolean, "null"] }
+        issues:
+          type: array
+          items:
+            type: object
+            required: [code, severity, message]
+            properties:
+              code: { type: string }
+              severity: { type: string, enum: [block, review] }
+              message: { type: string }
+        effects:
+          type: array
+          items:
+            type: object
+            required: [code, certainty, message]
+            properties:
+              code: { type: string }
+              certainty: { type: string, enum: [confirmed, conditional] }
+              message: { type: string }
+        downstreamMatchIds:
+          type: array
+          items: { type: integer }
+        recommendedAction: { type: string }
+        standingsComparison:
+          $ref: "#/components/schemas/ResultCorrectionStandingsComparison"
+        bracketImpact:
+          $ref: "#/components/schemas/EliminationBracketImpact"
+        doubleEliminationImpact:
+          $ref: "#/components/schemas/DoubleEliminationRoutingImpact"
+        previewGuard:
+          $ref: "#/components/schemas/PreviewReadGuard"
+        recoveryPlan:
+          $ref: "#/components/schemas/CorrectionRecoveryPlan"
+        boundedRevertCandidate:
+          $ref: "#/components/schemas/BoundedRevertEligibility"
+
+    QualificationRoutingPreview:
+      type: object
+      description: Read-only organizer/support preview. Revision is not a freshness check; execution must revalidate.
+      required: [version, advisory, executionMustRevalidate, noMutationsPerformed, tournamentId, flowAuthority, state, title, description, qualificationStages, issues, summary, proposalFingerprintRevalidated]
+      properties:
+        version: { type: integer, enum: [1] }
+        advisory: { type: boolean, const: true }
+        executionMustRevalidate: { type: boolean, const: true }
+        noMutationsPerformed: { type: boolean, const: true }
+        proposalFingerprintRevalidated: { type: boolean, const: false }
+        tournamentId: { type: integer }
+        flowAuthority: { type: string, enum: [legacy, basket_v1] }
+        state: { type: string, enum: [not_applicable, needs_attention, waiting_for_matches, prepare_qualification, review_qualification, route_qualifiers, review_next_stage, complete] }
+        title: { type: string }
+        description: { type: string }
+        summary:
+          type: object
+          required: [sourceStages, proposalsPending, proposalsApproved, routesTotal, routesMaterialized]
+          properties:
+            sourceStages: { type: integer, minimum: 0 }
+            proposalsPending: { type: integer, minimum: 0 }
+            proposalsApproved: { type: integer, minimum: 0 }
+            routesTotal: { type: integer, minimum: 0 }
+            routesMaterialized: { type: integer, minimum: 0 }
+        issues:
+          type: array
+          items:
+            type: object
+            required: [code, message, severity, stageId, routeId]
+            properties:
+              code: { type: string }
+              message: { type: string }
+              severity: { type: string, enum: [block, attention] }
+              stageId: { type: [integer, "null"] }
+              routeId: { type: [string, "null"] }
+        qualificationStages:
+          type: array
+          items:
+            type: object
+            required: [stageId, stageName, stageStatus, proposalStatus, proposalRevision, qualifierQuota, proposalEntries, routeCount, routeDone, nextAction, routes]
+            properties:
+              stageId: { type: integer }
+              stageName: { type: string }
+              stageStatus: { type: string, enum: [planned, active, completed] }
+              proposalStatus: { type: string, enum: [missing, pending, approved, unknown] }
+              proposalRevision: { type: [integer, "null"] }
+              qualifierQuota: { type: integer }
+              proposalEntries: { type: integer }
+              routeCount: { type: integer }
+              routeDone: { type: integer }
+              nextAction: { type: string, enum: [wait, prepare_proposal, review_proposal, review_routes, review_next_stage] }
+              routes:
+                type: array
+                items:
+                  type: object
+                  required: [routeId, sourceBasketId, targetBasketId, sourceStageId, targetStageId, targetStageName, qualifierQuota, allocatedInProposal, proposalRevision, materialized, routedPlayerCount, state, reason]
+                  properties:
+                    routeId: { type: string }
+                    sourceBasketId: { type: string }
+                    targetBasketId: { type: string }
+                    sourceStageId: { type: integer }
+                    targetStageId: { type: [integer, "null"] }
+                    targetStageName: { type: [string, "null"] }
+                    qualifierQuota: { type: [integer, "null"] }
+                    allocatedInProposal: { type: integer }
+                    proposalRevision: { type: [integer, "null"] }
+                    materialized: { type: boolean }
+                    routedPlayerCount: { type: integer }
+                    state: { type: string, enum: [materialized, ready_for_review, waiting, blocked] }
+                    reason: { type: string }
+
+    TournamentProgressionPreflight:
+      type: object
+      description: Read-only progression guidance; not an execution authorization.
+      required: [version, advisory, tournamentId, kind, availability, stageId, stageName, title, description, checks, effects, blockers, requiresConfirmation, executionMustRevalidate]
+      properties:
+        version: { type: integer, enum: [1] }
+        advisory: { type: boolean, const: true }
+        tournamentId: { type: integer }
+        kind: { type: string, enum: [start_stage, complete_stage, swiss_next_round, review, none] }
+        availability: { type: string, enum: [ready_for_review, blocked, not_applicable] }
+        stageId: { type: [integer, "null"] }
+        stageName: { type: [string, "null"] }
+        title: { type: string }
+        description: { type: string }
+        blockers: { type: integer, minimum: 0 }
+        requiresConfirmation: { type: boolean }
+        executionMustRevalidate: { type: boolean, const: true }
+        checks:
+          type: array
+          items:
+            type: object
+            required: [code, status, message]
+            properties:
+              code: { type: string }
+              status: { type: string, enum: [pass, block, review] }
+              message: { type: string }
+        effects:
+          type: array
+          items:
+            type: object
+            required: [code, confidence, message]
+            properties:
+              code: { type: string }
+              confidence: { type: string, enum: [derived, conditional] }
+              message: { type: string }
+
+    TournamentOperationsSnapshot:
+      type: object
+      description: Advisory, read-only guidance. Mutation endpoints remain authoritative.
+      required: [version, tournamentId, phase, currentStageId, progress, recommendedAction, blockers, advisory]
+      properties:
+        version:
+          type: integer
+          enum: [1]
+        tournamentId:
+          type: integer
+        phase:
+          type: string
+          enum: [draft, active, completed]
+        currentStageId:
+          type: [integer, "null"]
+        advisory:
+          type: boolean
+          const: true
+        transitionPreview:
+          $ref: "#/components/schemas/TournamentProgressionPreflight"
+        progress:
+          type: object
+          required: [completed, total, inProgress, pending, postponed, cancelled, percent]
+          properties:
+            completed: { type: integer, minimum: 0 }
+            total: { type: integer, minimum: 0 }
+            inProgress: { type: integer, minimum: 0 }
+            pending: { type: integer, minimum: 0 }
+            postponed: { type: integer, minimum: 0 }
+            cancelled: { type: integer, minimum: 0 }
+            percent: { type: [integer, "null"], minimum: 0, maximum: 100 }
+        recommendedAction:
+          type: object
+          required: [code, title, description, href, stageId, requiresConfirmation, availability]
+          properties:
+            code: { type: string }
+            title: { type: string }
+            description: { type: string }
+            href: { type: string }
+            stageId: { type: [integer, "null"] }
+            requiresConfirmation: { type: boolean }
+            availability:
+              type: string
+              enum: [ready, review, blocked]
+        blockers:
+          type: array
+          items:
+            type: object
+            required: [code, message, stageId, severity]
+            properties:
+              code: { type: string }
+              message: { type: string }
+              stageId: { type: [integer, "null"] }
+              severity:
+                type: string
+                enum: [blocking, warning]
 
     Bracket:
       type: object
