@@ -50,8 +50,8 @@ export default function MinigamesPage() {
           href="/minigames/core-clash-unity"
           icon={Gamepad2}
           accent="blue"
-          status="BUILD OCZEKIWANY"
-          actionLabel="Sprawdź wersję →"
+          status="WORK IN PROGRESS"
+          actionLabel="Otwórz wersję →"
         />
         {EMPTY_SLOTS.map((slot) => (
           <EmptyProjectCard key={slot} label="Kolejna minigra" />
