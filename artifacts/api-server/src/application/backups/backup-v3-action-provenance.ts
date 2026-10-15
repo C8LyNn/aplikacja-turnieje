@@ -129,6 +129,20 @@ function recognizedRefs(
   const visit = (value: unknown, key: string | null, where: string, depth: number): void => {
     if (depth > 32) fail("SHAPE", where, "Undo payload nesting too deep.");
     if (key && (PLAYER_REFERENCE_KEYS.has(key) || MATCH_REFERENCE_KEYS.has(key))) {
+      const actionType = action.actionType;
+      const allowed =
+        key === "prevFeaturedMatchId"
+          ? actionType === "match_featured" || actionType === "match_unfeatured"
+          : key === "matchId"
+            ? MATCH_TARGET_UNDO.has(String(actionType))
+            : key === "playerId"
+              ? actionType === "player_added" || actionType === "player_edited"
+              : key === "player1Id" || key === "player2Id"
+                ? actionType === "match_players_swapped"
+                : false;
+      if (!allowed) {
+        fail("ACTION_TYPE", where, "Recognized Undo reference is not part of this action's documented payload.");
+      }
       if (value == null && key !== "prevFeaturedMatchId" &&
           key !== "player1Id" && key !== "player2Id" && key !== "winnerId") {
         fail("REFERENCE_UNMAPPED", where, "Nonnullable recognized Undo reference.");
