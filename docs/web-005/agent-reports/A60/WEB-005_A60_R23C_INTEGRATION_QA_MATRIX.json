@@ -1,0 +1,168 @@
+{
+  "schema": "WEB005.A60.R23C.EXACT_SHA_QA/1",
+  "task": "WEB-005-T130-A60-R23C-INTEGRATION-QA",
+  "date": "2026-10-15",
+  "agent": "A60",
+  "composite": {
+    "pr": 60,
+    "sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "parent": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "tree": "c19fff1d6b8538dee731ea0daad75bfe568714c3",
+    "manifest_blob": "43dfdab3c0e347e3b04bb0aa600810c279c66f2d",
+    "source_package_prs": [
+      35,
+      36,
+      40,
+      56,
+      57,
+      58
+    ],
+    "manifest_path_count": 14,
+    "composite_changed_paths": 14,
+    "origin_sha_direct_matches": 14,
+    "hidden_hunks_or_extra_paths": 0,
+    "source_transfer": "PASS_WITH_CONDITIONS",
+    "integration_verdict": "BLOCKED",
+    "ci": {
+      "run": 38736073793,
+      "job": 116425579970,
+      "result": "FAILURE",
+      "se_safety": {
+        "tests": 23,
+        "pass": 23,
+        "fail": 0
+      },
+      "pack19_26_domain": {
+        "tests": 220,
+        "pass": 220,
+        "fail": 0
+      },
+      "pack19_26_contract": {
+        "tests": 72,
+        "pass": 72,
+        "fail": 0
+      },
+      "pack17_source": {
+        "tests": 12,
+        "pass": 12,
+        "fail": 0
+      },
+      "pack17_fail_closed": {
+        "tests": 24,
+        "pass": 24,
+        "fail": 0
+      },
+      "postgres16_atomic_correction": {
+        "tests": 8,
+        "pass": 8,
+        "fail": 0,
+        "environment": "GITHUB_EPHEMERAL_CI_ONLY"
+      },
+      "workspace_typecheck": "PASS_IN_COMPOSITE_CI",
+      "api_integration": "EXIT_1",
+      "api_integration_root_cause": "NOT_ISOLATED",
+      "subsequent_frontend_build": "NOT_EXECUTED",
+      "standalone_swiss_backup_units": "NOT_VERIFIED"
+    }
+  },
+  "new_prs": [
+    {
+      "pr": 61,
+      "agent": "A80",
+      "sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "base": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "files": 1,
+      "author_test_bodies": 2,
+      "qa": "PASS WITH CONDITIONS",
+      "native": "NOT_EXECUTED",
+      "postgres16": "NOT_EXECUTED",
+      "ci": "FAIL_UPSTREAM_PACK19",
+      "p2": []
+    },
+    {
+      "pr": 63,
+      "agent": "A110",
+      "sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "files": 6,
+      "author_test_bodies": 28,
+      "qa": "BLOCKED_FOR_ENABLEMENT",
+      "feature_enabled": false,
+      "native": "NOT_EXECUTED",
+      "browser": "NOT_EXECUTED",
+      "ci": "FAIL_UPSTREAM_PACK19",
+      "p2": [
+        {
+          "id": "R23C-A110-01",
+          "finding": "refreshRemote GET HTTP 401/403 throws but does not clear privileged draft/ETag while PUT 403 path does",
+          "provenance": "INDEPENDENT_STATIC_SOURCE_TRACE"
+        }
+      ]
+    },
+    {
+      "pr": 64,
+      "agent": "A70",
+      "sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "files": 3,
+      "author_test_bodies": 18,
+      "qa": "PASS WITH CONDITIONS",
+      "native": "NOT_EXECUTED",
+      "ci": "NO_HEAD_RUN_RETURNED",
+      "p2": []
+    },
+    {
+      "pr": 66,
+      "agent": "A90",
+      "sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "base": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "files": 2,
+      "author_test_bodies": 15,
+      "qa": "PASS WITH CONDITIONS",
+      "not_wired": true,
+      "native_targeted": "NOT_VERIFIED",
+      "ci": {
+        "run": 38742658793,
+        "result": "FAILURE",
+        "pack19_26": "SUCCESS",
+        "pack17_pg16_atomic": "PASS",
+        "workspace_typecheck": "PASS",
+        "api_integration": "EXIT_1"
+      },
+      "p2": []
+    },
+    {
+      "pr": 67,
+      "agent": "A30",
+      "sha": "880824f18b8913602955578dfd76eeac7976e32a",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "files": 4,
+      "author_pure_test_bodies": 13,
+      "author_pg16_test_bodies": 6,
+      "qa": "PASS WITH CONDITIONS FOR FAIL_FIRST_CONTRACT_ONLY",
+      "actual_ingress": "NOT_IMPLEMENTED",
+      "native": "NOT_EXECUTED",
+      "pg16": "NOT_EXECUTED_DEFAULT_SKIP",
+      "ci": "NO_HEAD_RUN_RETURNED",
+      "p2": []
+    }
+  ],
+  "a50": {
+    "runner": "READY_AWAITING_AUTHORIZED_HOST",
+    "actual_local_application_runs": 0
+  },
+  "manual_test_runs_by_a60": 0,
+  "unresolved": [
+    "B1-QA-01 API integration exit 1 at composite SHA: reproduce and isolate root cause",
+    "A110 refreshRemote revoked-auth 401/403 privacy-state retention",
+    "Actual A70 and A90 callback interoperability and native exact-head tests",
+    "A80 physically isolated PG16 two-stage HTTP test",
+    "A30 authenticated raw ingress and late rollback tests",
+    "Server Basket CAS D1-D5 migration/writer not present",
+    "Full release and WEB004 original 38-case historical disposition"
+  ],
+  "overall": "BLOCKED",
+  "source_copy": "R23C_SOURCE_INTEGRATION_PASS_WITH_CONDITIONS",
+  "release": "RELEASE_NO_GO",
+  "swarm006": "HOLD"
+}
