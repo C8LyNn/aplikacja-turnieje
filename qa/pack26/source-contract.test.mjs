@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 const read = p => readFileSync(path.join(process.cwd(),p),"utf8");
+const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, '');
 const server=read("artifacts/api-server/src/routes/tournament-se-correction-readiness.ts");
 const ui=read("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
 const spec=read("lib/api-spec/openapi.yaml");
@@ -13,7 +14,7 @@ test("Pack26 derives risk report only from existing Pack25 consistent snapshot",
  assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
  assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
  assert.doesNotMatch(server,/\b(?:tx|db)\s*\.\s*(?:insert|update|delete|execute)\s*\(/);
- assert.match(server,/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
+ assert.match(withoutComments(server),/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
 });
 test("no new API route, reuses organizer-only readiness",()=>{
  assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
