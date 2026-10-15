@@ -181,8 +181,8 @@ test("R23C no version-specific parser or semantic validator is fail-closed", () 
   const p = ports(); delete p.validateV3;
   assert.equal(validateRawBackupBeforeClone(raw(strict()), p).code, "MISSING_DEPENDENCY");
 });
-test("R23C strict-policy bad winner/history is denied before action-local hook", () => {
-  const x = strict(); x.resultHistory[0].winnerBackupId = 12;
+test("R23C valid-shaped but contradictory strict latest-history timestamp is denied before action-local", () => {
+  const x = strict(); x.resultHistory[0].completedAt = "2026-10-15T12:00:01.000Z";
   const p = ports(); let invoked = 0;
   p.validateActionLocalV3 = () => { invoked++; };
   assert.equal(validateRawBackupBeforeClone(raw(x), p).code, "STRICT_POLICY_FAILED");
