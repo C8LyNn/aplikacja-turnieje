@@ -1,0 +1,1506 @@
+{
+  "schema": "WEB005_A10_R23C_COMPOSITE_REGISTRY_APPEND_ONLY_V1",
+  "task": "WEB-005-T018-A10-R23C-COMPOSITE-REGISTRY",
+  "as_of": "2026-10-15 Europe/Warsaw",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "docs_branch": "chore/web-005/t000-wave1-control",
+  "history_policy": "APPEND_ONLY; no P01-P25 renumber or original SHA rewrite",
+  "old_manifest_blob_sha1": "a3437e0b00d922e5999fc2081e9688cb524dd0c8",
+  "old_25_source_prs": [
+    {
+      "packet": "P01",
+      "pr": 35,
+      "initial_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "R23B_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "R23C_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P02",
+      "pr": 36,
+      "initial_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "R23B_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "R23C_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P03",
+      "pr": 34,
+      "initial_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "R23B_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "R23C_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P04",
+      "pr": 37,
+      "initial_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "R23B_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "R23C_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "initial_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "R23B_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "R23C_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P06",
+      "pr": 39,
+      "initial_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "R23B_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "R23C_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P07",
+      "pr": 40,
+      "initial_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "R23B_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "R23C_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P08",
+      "pr": 41,
+      "initial_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "R23B_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "R23C_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P09",
+      "pr": 42,
+      "initial_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "R23B_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "R23C_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P10",
+      "pr": 43,
+      "initial_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "R23B_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "R23C_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P11",
+      "pr": 44,
+      "initial_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "R23B_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "R23C_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P12",
+      "pr": 45,
+      "initial_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "R23B_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "R23C_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P13",
+      "pr": 46,
+      "initial_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "R23B_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "R23C_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P14",
+      "pr": 47,
+      "initial_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "R23B_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "R23C_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P15",
+      "pr": 48,
+      "initial_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "R23B_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "R23C_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P16",
+      "pr": 49,
+      "initial_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "R23B_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "R23C_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P17",
+      "pr": 50,
+      "initial_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "R23B_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "R23C_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P18",
+      "pr": 51,
+      "initial_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "R23B_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "R23C_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P19",
+      "pr": 52,
+      "initial_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "R23B_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "R23C_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P20",
+      "pr": 53,
+      "initial_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "R23B_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "R23C_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P21",
+      "pr": 54,
+      "initial_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "R23B_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "R23C_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P22",
+      "pr": 55,
+      "initial_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "R23B_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "R23C_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "initial_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "R23B_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "R23C_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "initial_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "R23B_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "R23C_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "initial_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "R23B_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "R23C_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    }
+  ],
+  "composite": {
+    "id": "C01",
+    "pr": 60,
+    "sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "branch": "integration/web-005/r23c-composite-b1-20261015",
+    "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "sole_parent_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "base_tree_sha": "5cc19d23cb42cdd09b11f82ad201c56303c9d87c",
+    "tree_sha": "c19fff1d6b8538dee731ea0daad75bfe568714c3",
+    "stage": "ISOLATED_DRAFT_UNMERGED",
+    "creation": "single commit tree with exact copied source Git blobs; no cherry-pick, merge, rebase, or manual conflict edits",
+    "included": [
+      {
+        "packet": "P01",
+        "pr": 35,
+        "sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+        "file_count": 1
+      },
+      {
+        "packet": "P02",
+        "pr": 36,
+        "sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+        "file_count": 4
+      },
+      {
+        "packet": "P07",
+        "pr": 40,
+        "sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+        "file_count": 3
+      },
+      {
+        "packet": "P23",
+        "pr": 56,
+        "sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+        "file_count": 2
+      },
+      {
+        "packet": "P24",
+        "pr": 57,
+        "sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+        "file_count": 2
+      },
+      {
+        "packet": "P25",
+        "pr": 58,
+        "sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+        "file_count": 2
+      }
+    ],
+    "omitted_existing": [
+      {
+        "packet": "P03",
+        "pr": 34,
+        "sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+      },
+      {
+        "packet": "P04",
+        "pr": 37,
+        "sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+      },
+      {
+        "packet": "P05",
+        "pr": 38,
+        "sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+      },
+      {
+        "packet": "P06",
+        "pr": 39,
+        "sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+      },
+      {
+        "packet": "P08",
+        "pr": 41,
+        "sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+      },
+      {
+        "packet": "P09",
+        "pr": 42,
+        "sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+      },
+      {
+        "packet": "P10",
+        "pr": 43,
+        "sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+      },
+      {
+        "packet": "P11",
+        "pr": 44,
+        "sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+      },
+      {
+        "packet": "P12",
+        "pr": 45,
+        "sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+      },
+      {
+        "packet": "P13",
+        "pr": 46,
+        "sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+      },
+      {
+        "packet": "P14",
+        "pr": 47,
+        "sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+      },
+      {
+        "packet": "P15",
+        "pr": 48,
+        "sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+      },
+      {
+        "packet": "P16",
+        "pr": 49,
+        "sha": "99298b81501c3e7764d653604923522a19b9f05c"
+      },
+      {
+        "packet": "P17",
+        "pr": 50,
+        "sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+      },
+      {
+        "packet": "P18",
+        "pr": 51,
+        "sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+      },
+      {
+        "packet": "P19",
+        "pr": 52,
+        "sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+      },
+      {
+        "packet": "P20",
+        "pr": 53,
+        "sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34"
+      },
+      {
+        "packet": "P21",
+        "pr": 54,
+        "sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f"
+      },
+      {
+        "packet": "P22",
+        "pr": 55,
+        "sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204"
+      }
+    ],
+    "manual_resolution_files": [],
+    "new_source_paths": 14,
+    "verified_blob_matches": 14,
+    "source_qa": "A60 SOURCE_INTEGRITY_PASS_WITH_CONDITIONS",
+    "integration_qa": "BLOCKED_API_INTEGRATION_EXIT_1",
+    "ci_run_id": 38736073793,
+    "ci_receipts": {
+      "SE_safety": [
+        23,
+        23
+      ],
+      "Pack19_26_domain": [
+        220,
+        220
+      ],
+      "Pack19_26_source": [
+        72,
+        72
+      ],
+      "Pack17_source": [
+        12,
+        12
+      ],
+      "Pack17_fail_closed": [
+        24,
+        24
+      ],
+      "PG16_atomic_ephemeral": [
+        8,
+        8
+      ],
+      "workspace_typecheck": "PASS",
+      "api_integration": "EXIT_1_ROOT_CAUSE_UNKNOWN",
+      "frontend_and_build": "NOT_EXECUTED",
+      "backup_swiss_named_unit": "NOT_VERIFIED",
+      "whole_workflow": "FAILURE"
+    },
+    "A50_local_native_runs": 0,
+    "source_qa_independence": "A60 report verified 14/14 original & composite blobs",
+    "release": "NO_GO"
+  },
+  "composite_file_digest_manifest": [
+    {
+      "pr": 35,
+      "path": "qa/pack19/source-contract.test.mjs",
+      "git_blob_sha1": "5726986dca6a6fd7309bb883eb1106d2d19fb14e",
+      "sha256": "4654b7f7e8facaa9ef2028e98d188b89c51d927042415dd9512f509e7ffa42f8",
+      "size_bytes": 2375
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack20/source-contract.test.mjs",
+      "git_blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26",
+      "sha256": "9e9b2ce252e3364457d7b99884fb633e13bb4f430cc040e99756d03913ba1f65",
+      "size_bytes": 5131
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack21/source-contract.test.mjs",
+      "git_blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6",
+      "sha256": "cc850a71cb3f3e2025ba70fae0a10de6bf34cb980870b1c7bc2db1a04fd870d1",
+      "size_bytes": 2593
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack25/source-contract.test.mjs",
+      "git_blob_sha1": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608",
+      "sha256": "58323720dbd8af2878e46baf237982c6b443d2122ea096f495f05825d2170274",
+      "size_bytes": 8595
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack26/source-contract.test.mjs",
+      "git_blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385",
+      "sha256": "7f502ac443299cc4924a22bcd8c3c9b26fd3c3015f39611f40eb7209a0dbedff",
+      "size_bytes": 3940
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.mjs",
+      "git_blob_sha1": "eae350a60a684d7b14af3e481baf7bd6c4a2b2fc",
+      "sha256": "bccf617eb0d16fba0389da944723924c00e0f9e11a81fd8b1c4b0ef80cd6fa52",
+      "size_bytes": 3738
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.test.mjs",
+      "git_blob_sha1": "f59a65509009fbdf74a38239693238704b1af583",
+      "sha256": "ffa8b6056bf0ebd3ab0426b9960330c5b3e1dda496ca56b7d2e2b0abcd622e14",
+      "size_bytes": 3963
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/run-gates.mjs",
+      "git_blob_sha1": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043",
+      "sha256": "182376fd3ed91151a96940aa311c5307cf25863b914c648be8f4a591b5fe02a5",
+      "size_bytes": 4748
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+      "git_blob_sha1": "595c68b87a5361623bef6293519ed668e9d4e493",
+      "sha256": "98530f871f27a9851fe89571f56fd6c9313816f1b8f0c4baea8986ca9350c2d6",
+      "size_bytes": 13944
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+      "git_blob_sha1": "d1242b84c9b2db269ab6864459d8d11656d4fe8c",
+      "sha256": "11aa4c9754829771ab40ad39bbbdd4e100591f958bad7407ba42f137b9eac59f",
+      "size_bytes": 14470
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/src/domain/tournament/swiss.ts",
+      "git_blob_sha1": "5e7fa424371c10a0360e471bb050afa7096d361b",
+      "sha256": "984c9cff786260b3b3501f69326e8c113c4c47be200b5f8358a85aa05b7d1775",
+      "size_bytes": 7944
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/test/swiss.test.ts",
+      "git_blob_sha1": "150d34619abb83d12bb351a7aedb6e377d5d1332",
+      "sha256": "cc5ab1af1b8a6cbfd715c4374b8a900aead89edb3a5e04350fae815d9ca3effc",
+      "size_bytes": 8901
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+      "git_blob_sha1": "518526d8d9ff2cef368261788e12c9f8290754f5",
+      "sha256": "ea18355c76d38b7e8c521fdf59dfe51d636c48e3f34bc513987525ff5c3c419d",
+      "size_bytes": 18827
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+      "git_blob_sha1": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19",
+      "sha256": "1273c0a144a4a4d08ba2679c5857f87bc7824c7769f7ee80294d9327802c3261",
+      "size_bytes": 16848
+    }
+  ],
+  "new_source_packet_assignment": [
+    {
+      "packet": "P26",
+      "pr": 61,
+      "agent": "A80",
+      "task": "Swiss two-stage caller",
+      "sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "base": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "qa": "PASS_WITH_CONDITIONS_TEST_SOURCE_ONLY",
+      "tests_authored": 2,
+      "ci": "FAIL_UPSTREAM_PACK19",
+      "native": "NOT_EXECUTED",
+      "dependency": "P24/PR57 included in C01; test uses DROP SCHEMA CASCADE, requires certified disposable PG16",
+      "status": "TEST_ONLY_STACKED",
+      "files": [
+        {
+          "pr": 61,
+          "path": "artifacts/api-server/test/swiss-caller-stage-scope.integration.test.ts",
+          "git_blob_sha1": "7a15d5aa14d394eede4b54aed87ec109064ea479",
+          "sha256": "fc7de663b2160d311376e10764c9f43ec0ce4ca48606faca3d7bde6c0deb92d0",
+          "size_bytes": 12462
+        }
+      ]
+    },
+    {
+      "packet": "P27",
+      "pr": 63,
+      "agent": "A110",
+      "task": "Basket CAS frontend draft client",
+      "sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "qa": "BLOCKED_FOR_ENABLEMENT",
+      "tests_authored": 28,
+      "ci": "FAIL_UPSTREAM_PACK19",
+      "native": "NOT_EXECUTED",
+      "dependency": "server Basket CAS D1-D5 absent; latent P2 GET 401/403 draft retention; feature disabled",
+      "status": "BLOCKED_P2_PRIVACY",
+      "files": [
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/components/basket-cas-conflict-review.test.tsx",
+          "git_blob_sha1": "4920d1bb4ac5d67a76241391c07cb373d3343eab",
+          "sha256": "6d709da4a37fd7012610df61165f01ea18cc8b0d435beb1b2ef129d44341200e",
+          "size_bytes": 3952
+        },
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/components/basket-cas-conflict-review.tsx",
+          "git_blob_sha1": "f8010619ba9da4d358d40d2def621b56189f6193",
+          "sha256": "4fdc68facd5225b54b9f7aa46ad1cc0a36db20604502457fccd2be5a33aba37e",
+          "size_bytes": 4142
+        },
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-client.test.ts",
+          "git_blob_sha1": "1d1473901d68db148a100079c96f3ca2c5e80adb",
+          "sha256": "59ec9c97dce8d3c266e85beca9acf994f15c66d35ec56fa3b7d72af122dc44f8",
+          "size_bytes": 7994
+        },
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-client.ts",
+          "git_blob_sha1": "4fca09e22ef58fc38a2ca34a8386a6fadad06ae8",
+          "sha256": "d612dbffe6c9ae14af44df67a2416a9733ae547aca5acfeaa54581f17af79ac6",
+          "size_bytes": 8759
+        },
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.test.ts",
+          "git_blob_sha1": "c81b3d76dc6d68d284c4aadd6ac6d14ac7f07612",
+          "sha256": "e02d497033e9e7b61f6081d6ad63f092839df1df0a597b30f16ce55713595706",
+          "size_bytes": 12417
+        },
+        {
+          "pr": 63,
+          "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.ts",
+          "git_blob_sha1": "1bfb8deeb06fc8f501176e8757810f7f8936202e",
+          "sha256": "edf1bb2f63bf0061a878aadc407076662dedf1126d879e0ed5918216388dcf13",
+          "size_bytes": 9748
+        }
+      ]
+    },
+    {
+      "packet": "P28",
+      "pr": 64,
+      "agent": "A70",
+      "task": "Strict action-local provenance validator",
+      "sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "qa": "PASS_WITH_CONDITIONS_PURE_SOURCE_ONLY",
+      "tests_authored": 18,
+      "ci": "NO_CURRENT_HEAD_RUN_RETURNED",
+      "native": "NOT_EXECUTED",
+      "dependency": "P29 adapter uses callback abstraction, not wired; must test real provenance and clone-local remap",
+      "status": "PURE_UNWIRED",
+      "files": [
+        {
+          "pr": 64,
+          "path": "artifacts/api-server/src/application/backups/backup-v3-action-provenance.ts",
+          "git_blob_sha1": "9c3650180aed4f8aa5f2cd09b6d5d6ffc3de6b7c",
+          "sha256": "065addd4593ee646a249033565947fa7cef37caf9c3b609bb02126ed298de0c7",
+          "size_bytes": 27228
+        },
+        {
+          "pr": 64,
+          "path": "artifacts/api-server/test/backup-v3-action-provenance.test.ts",
+          "git_blob_sha1": "f65d0be0fec76a7daca2331e5bbd6d6fdbf79a6c",
+          "sha256": "a2e22881c37f2144e25a92faa26be590d24e949937a783b803f8feb73ed655eb",
+          "size_bytes": 13098
+        },
+        {
+          "pr": 64,
+          "path": "docs/web-005/agent-reports/A70/WEB-005_A70_R23C_HANDOFF.md",
+          "git_blob_sha1": "308c6a57363a99358803f6b81b9696423ce0e934",
+          "sha256": "1be8644416887292e5078376b711b5976d54b2b51a538dfbe83b8d78e4b188e0",
+          "size_bytes": 13288
+        }
+      ]
+    },
+    {
+      "packet": "P29",
+      "pr": 66,
+      "agent": "A90",
+      "task": "Raw-to-validated preclone adapter",
+      "sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "base": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "qa": "PASS_WITH_CONDITIONS_PURE_SOURCE_ONLY",
+      "tests_authored": 15,
+      "ci": "RUN_38742658793_FAIL_API_INTEGRATION_EXIT_1",
+      "native": "NOT_VERIFIED",
+      "dependency": "stacked on C01; P23/P25 validators and actual P28 action-local callback + issuer proof required",
+      "status": "PURE_UNWIRED_STACKED",
+      "files": [
+        {
+          "pr": 66,
+          "path": "artifacts/api-server/src/application/backups/backup-preclone-adapter.ts",
+          "git_blob_sha1": "c02ca0aa877017456142f081eff9e9f877522ca2",
+          "sha256": "5d307cf4ef86b17ce7c0ad766d73bc8ca3ec86e04c3d785b7ef04ccba3c550c2",
+          "size_bytes": 6471
+        },
+        {
+          "pr": 66,
+          "path": "artifacts/api-server/test/backup-preclone-adapter.test.ts",
+          "git_blob_sha1": "dc3d44ef8bd25b5b94dbd99f5447836c000a4c6d",
+          "sha256": "b307dccf3fb2bf2036ef8e5240d01c7f168838fcca2e0c75157c9c92cfb88992",
+          "size_bytes": 11658
+        }
+      ]
+    },
+    {
+      "packet": "P30",
+      "pr": 67,
+      "agent": "A30",
+      "task": "Backup ingress security fail-first contract",
+      "sha": "880824f18b8913602955578dfd76eeac7976e32a",
+      "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "qa": "PASS_WITH_CONDITIONS_TEST_CONTRACT_ONLY",
+      "tests_authored": 19,
+      "ci": "NO_CURRENT_HEAD_RUN_RETURNED",
+      "native": "NOT_EXECUTED",
+      "dependency": "13 pure tests intended RED until ingress exists; 6 PG16 tests default skip; no issuer/HTTP wiring",
+      "status": "FAIL_FIRST_TESTS_ONLY",
+      "files": [
+        {
+          "pr": 67,
+          "path": "artifacts/api-server/test/backup-v3-ingress-security.contract.test.mjs",
+          "git_blob_sha1": "957141164ab45a9a9bca0b92cb33ae99b964fefb",
+          "sha256": "7ef216d0fb5b7f8c826406f0640baa6a5df73f190f9c6abc3481d348e5a983b3",
+          "size_bytes": 10278
+        },
+        {
+          "pr": 67,
+          "path": "artifacts/api-server/test/backup-v3-ingress-security.pg16.contract.test.mjs",
+          "git_blob_sha1": "110fcc827eac46d77f4bfd52d77e572ccd31c81f",
+          "sha256": "f29310971d0ad3695f2fc5eb8f136836688f4c0292fe9b1ef3afd69a46eacee3",
+          "size_bytes": 6924
+        },
+        {
+          "pr": 67,
+          "path": "artifacts/api-server/test/fixtures/backup-v3-ingress-security.v1.mjs",
+          "git_blob_sha1": "69ee72d246f3b4d49219e62f43ce4d5e911a96f4",
+          "sha256": "13c83d4c84b14a4d5c69e8e52b4ca1bcd26631bbc37f1c904fc03ab91319924e",
+          "size_bytes": 5857
+        },
+        {
+          "pr": 67,
+          "path": "docs/web-005/agent-reports/A30/WEB-005_A30_R23C_BACKUP_INGRESS_SECURITY_CONTRACT.md",
+          "git_blob_sha1": "85541cad621231a3077b384b9c54f479cc2bf260",
+          "sha256": "1e2a80b747e0f3aba54cbdf0df43668092911b209f63e6e2cfa0143513914cb3",
+          "size_bytes": 16737
+        }
+      ]
+    }
+  ],
+  "excluded_non_WEB005_prs": [
+    59,
+    62,
+    65,
+    68
+  ],
+  "new_packets_inside_C01": 0,
+  "legacy_included_count": 6,
+  "legacy_outside_count": 19,
+  "new_source_count": 5,
+  "total_source_packets": 30,
+  "composite_count": 1,
+  "composite_qa_vs_release_qa": {
+    "source_blob_integrity": "14/14 PASS A60",
+    "source_acceptance": "PASS WITH CONDITIONS",
+    "full_integration": "BLOCKED",
+    "A50_local_native": 0,
+    "GitHub_CI": "FAILURE_API_INTEGRATION_EXIT_1",
+    "composite_feature_named_tests": "NOT_VERIFIED",
+    "full_release": "NO_GO"
+  },
+  "conflict_dag": {
+    "historical": 15,
+    "resolved": 0,
+    "remaining": [
+      {
+        "packet_a": "P06",
+        "packet_b": "P09",
+        "pr_a": 39,
+        "pr_b": 42,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P11",
+        "pr_a": 39,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P13",
+        "pr_a": 39,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P18",
+        "pr_a": 39,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P08",
+        "packet_b": "P15",
+        "pr_a": 41,
+        "pr_b": 48,
+        "shared_paths": [
+          "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P11",
+        "pr_a": 42,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P13",
+        "pr_a": 42,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P18",
+        "pr_a": 42,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts",
+          "artifacts/api-server/test/revert-match.integration.test.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P17",
+        "pr_a": 43,
+        "pr_b": 50,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P21",
+        "pr_a": 43,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P13",
+        "pr_a": 44,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P18",
+        "pr_a": 44,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P13",
+        "packet_b": "P18",
+        "pr_a": 46,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P14",
+        "packet_b": "P21",
+        "pr_a": 47,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/components/stage-progress-view.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      },
+      {
+        "packet_a": "P17",
+        "packet_b": "P21",
+        "pr_a": 50,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ],
+        "status": "UNRESOLVED_UNTOUCHED",
+        "present_jointly_in_C01": false,
+        "manual_resolution_commits": [],
+        "independent_integrated_resolution_qa": false
+      }
+    ],
+    "new_exact_path_overlap": 0,
+    "integrated_manually_resolved_hunks": 0,
+    "semantic_edges": [
+      {
+        "from": "P01/PR35",
+        "to": "P02/PR36",
+        "kind": "CI_SOURCE_ORDER",
+        "hard": true,
+        "note": "nonoverlapping Pack19 patch then Pack20/21/25/26; P02 P2 response spoof still blocks full contract"
+      },
+      {
+        "from": "P02/PR36",
+        "to": "A40_NEXT_PACK25_FIX",
+        "kind": "NEW_SCOPED_SOURCE",
+        "hard": true,
+        "note": "unfixed response-comment spoof; test-first new SHA and A60 exact review"
+      },
+      {
+        "from": "P01+P02+FUTURE_FIX",
+        "to": "A50_DISPOSABLE_PACK19_26_QA",
+        "kind": "CI_EXECUTOR",
+        "hard": true,
+        "note": "never treat 33 A40 + 14 A60 synthetic as native full-source suite"
+      },
+      {
+        "from": "P05/PR38",
+        "to": "A20_CANONICAL_MIGRATION_LEDGER",
+        "kind": "MIGRATION_IDENTITY",
+        "hard": true,
+        "note": "14 source hashes verified; release/editor 0030/0031 collision; A00 decision D01-D04"
+      },
+      {
+        "from": "A20_LEDGER_DECISION",
+        "to": "T055_NUMERIC_MIGRATION_RESERVATION",
+        "kind": "MIGRATION",
+        "hard": true,
+        "note": "requested-not-allocated; no guessed 0032/0041"
+      },
+      {
+        "from": "T055_RESERVATION+WRITER_LOCK_GRAPH",
+        "to": "P22/PR55_FUTURE_T055_IMPL",
+        "kind": "API_DB",
+        "hard": true,
+        "note": "persistence, ETag, atomic roster/stage, dirty draft"
+      },
+      {
+        "from": "P08/PR41+P15/PR48",
+        "to": "P23/PR56",
+        "kind": "BACKUP_DOMAIN",
+        "hard": true,
+        "note": "source parity/MVCC prerequisite; no direct file change PR56"
+      },
+      {
+        "from": "P23/PR56",
+        "to": "P25/PR58",
+        "kind": "BACKUP_COMPOSITION",
+        "hard": true,
+        "note": "pure strict validator and raw profile gate different checks; NOT_WIRED"
+      },
+      {
+        "from": "A30_LEGACY_TRUST+A70_ACTION_CONTRACT+P23+P25",
+        "to": "FUTURE_BACKUP_IMPORT_EXPORT_RAW_HTTP_WIRING",
+        "kind": "BACKUP_SECURITY",
+        "hard": true,
+        "note": "raw pre-Zod capture, validated producer, action-local closure, restricted legacy, failure rollback"
+      },
+      {
+        "from": "P24/PR57",
+        "to": "SWISS_STAGE_LOCAL_ROUTE_INTEGRATION",
+        "kind": "SPORT_SOURCE",
+        "hard": true,
+        "note": "caller stageId filter plus remaining TS-B/actionableRound/DE source"
+      },
+      {
+        "from": "FILE_CONFLICT_15_PAIRS",
+        "to": "FUTURE_INTEGRATED_COMPOSITE_SHA",
+        "kind": "MERGE_CONFLICT",
+        "hard": true,
+        "note": "shared files and semantic API consistency; protected integration only with separate GO"
+      },
+      {
+        "from": "WEB004_38_CASE_DISPOSITIONS+R23B_SOURCE_CLOSURE+NATIVE_CI_PG16_QA",
+        "to": "FINAL_HANDOFF_GO",
+        "kind": "HANDOFF",
+        "hard": true,
+        "note": "owner/HQ signed final release/transfer gate; no SWARM006 now"
+      },
+      {
+        "from": "P02 PR36 R23B SOURCE_FIXED",
+        "to": "A50 EXACT-SHA PACK25 NATIVE",
+        "kind": "QA_GATE",
+        "hard": true,
+        "note": "A60 PASS WITH CONDITIONS not native; requires PR35 Pack19 overlay separately authorized"
+      },
+      {
+        "from": "P25 PR58 R23B SOURCE_FIXED",
+        "to": "A50 EXACT-SHA BACKUP TEST 26 + TYPECHECK",
+        "kind": "QA_GATE",
+        "hard": true,
+        "note": "A90 V8-erasure 26/26, A60 synthetic13/13 not native"
+      },
+      {
+        "from": "A20 D01 D02 D03 D04 APPROVALS",
+        "to": "T055 MIGRATION ALLOCATOR AND AUTHORITATIVE LEDGER",
+        "kind": "MIGRATION_OWNER_GATE",
+        "hard": true,
+        "note": "no numeric key; source-graph ≠ physical applied state"
+      },
+      {
+        "from": "A30 RAW_ISSUER POLICY+A70 ACTION_LOCAL",
+        "to": "P23+P25 FUTURE IMPORTER",
+        "kind": "SECURITY",
+        "hard": true,
+        "note": "no trusted old producer; no strict downgrade and Zod evidence"
+      },
+      {
+        "from": "A50-NATIVE+EXACT_SHA_COMPOSITE+PG16+WEB004_38",
+        "to": "EXEC-B FINAL INTEGRATION REVIEW",
+        "kind": "LATER_GATE",
+        "hard": true,
+        "note": "plan only, no SWARM006 authorization"
+      }
+    ],
+    "additional": [
+      {
+        "from": "P24 PR57",
+        "to": "P26 PR61",
+        "kind": "GIT_STACK_PARENT",
+        "required": true
+      },
+      {
+        "from": "C01 PR60",
+        "to": "P29 PR66",
+        "kind": "GIT_STACK_PARENT",
+        "required": true
+      },
+      {
+        "from": "P28 PR64",
+        "to": "P29 PR66",
+        "kind": "CALLBACK_INTEROPERABILITY",
+        "required": true
+      },
+      {
+        "from": "P23 PR56+P25 PR58",
+        "to": "P29 PR66",
+        "kind": "PRECLONE_VALIDATION",
+        "required": true
+      },
+      {
+        "from": "P30 PR67",
+        "to": "FUTURE_AUTHENTICATED_BACKUP_INGRESS",
+        "kind": "TEST_FIRST_SECURITY",
+        "required": true
+      },
+      {
+        "from": "D01-D04+T055_SERVER_CAS",
+        "to": "P27 PR63 ACTIVATE",
+        "kind": "DB_API_UI",
+        "required": true
+      },
+      {
+        "from": "P27 P2_401_403_FIX",
+        "to": "P27 PR63 ACTIVATE",
+        "kind": "SECURITY_GATE",
+        "required": true
+      },
+      {
+        "from": "B1-QA-01",
+        "to": "B02+FUTURE_C02_CI",
+        "kind": "CI_BLOCKER",
+        "required": true
+      }
+    ]
+  },
+  "integration_batches": [
+    {
+      "id": "B02",
+      "name": "CI & API integration repair",
+      "owner": "A40/A50/A60",
+      "required": [
+        "C01 PR60 exact failed integration TAP root cause isolate",
+        "A50 exact full source checkout Native runner and per-suite TAP",
+        "Pack17 full fail-closed parser review"
+      ],
+      "deps": [
+        "C01"
+      ],
+      "blockers": [
+        "B1-QA-01"
+      ],
+      "safety": "NO paid CI rerun without A00"
+    },
+    {
+      "id": "B03",
+      "name": "Tournament API routes + Undo",
+      "owner": "A70/A100/A30/A60",
+      "required": [
+        "P06 PR39",
+        "P09 PR42",
+        "P11 PR44",
+        "P13 PR46",
+        "P18 PR51",
+        "P28 PR64"
+      ],
+      "deps": [
+        "domain acceptance",
+        "routes/tournaments.ts joint conflict handling",
+        "exact history and LIFO semantics"
+      ],
+      "blockers": [
+        "7 pairwise routes path overlaps + shared Undo test"
+      ],
+      "safety": "A00 explicit disposable integration GO"
+    },
+    {
+      "id": "B04",
+      "name": "Backup V3 qualification, transport, action provenance",
+      "owner": "A90/A70/A30/A20/A60",
+      "required": [
+        "P08 PR41",
+        "P15 PR48",
+        "C01 P23 PR56/P25 PR58",
+        "P28 PR64",
+        "P29 PR66",
+        "P30 PR67"
+      ],
+      "deps": [
+        "real issuer/anti-downgrade",
+        "raw-before-Zod",
+        "full V2/V3 validators",
+        "clone-local action ID closure",
+        "zero-write HTTP 400/rollback"
+      ],
+      "blockers": [
+        "same backup-v3.ts and integration test conflict",
+        "not-wired modules",
+        "unexecuted fail-first security"
+      ],
+      "safety": "SECURITY_HARD_STOP no privileged import before controls"
+    },
+    {
+      "id": "B05",
+      "name": "Basket CAS + DB schema/migrations",
+      "owner": "A20/A110/A00/A60",
+      "required": [
+        "P05 PR38",
+        "P22 PR55",
+        "P27 PR63"
+      ],
+      "deps": [
+        "A00 D01-D04 signed",
+        "physical PG16 ledger verification",
+        "T055 numeric id reserved only after graph",
+        "server ETag/If-Match D1-D5",
+        "writer lock order and deadlock tests"
+      ],
+      "blockers": [
+        "A110 P2 auth-revoked draft",
+        "schema migration absent"
+      ],
+      "safety": "no SQL or PG reset without separate authorization"
+    },
+    {
+      "id": "B06",
+      "name": "Frontend tournament detail, stage progress, standings",
+      "owner": "A110/A120/A80/A60",
+      "required": [
+        "P10 PR43",
+        "P17 PR50",
+        "P21 PR54",
+        "P14 PR47",
+        "P24 PR57",
+        "P26 PR61",
+        "P27 PR63 (only after FIX)"
+      ],
+      "deps": [
+        "tournament-detail.tsx 3-way reconciliation",
+        "stage-progress-view.tsx reconciliation",
+        "Swiss stage caller/Undo API stabilization",
+        "auth revocation client fix",
+        "native/browser tests"
+      ],
+      "blockers": [
+        "frontend overlap pairs",
+        "disabled client privacy P2"
+      ],
+      "safety": "no client feature activation without server CAS and security GO"
+    },
+    {
+      "id": "B07",
+      "name": "Security, auxiliary and release packaging",
+      "owner": "A00/A30/A100/A50/A60",
+      "required": [
+        "P03 PR34",
+        "P04 PR37",
+        "P16 PR49",
+        "P19 PR52",
+        "P20 PR53"
+      ],
+      "deps": [
+        "independent HTTP checks",
+        "session/private cache",
+        "security regression",
+        "remaining original P01-P25 tasks",
+        "WEB004 38-case closure"
+      ],
+      "blockers": [
+        "no full CI/browser integrated SHA"
+      ],
+      "safety": "no release/transfer without HQ"
+    }
+  ],
+  "final_handoff_conditions": [
+    {
+      "id": "G01",
+      "class": "MANDATORY_WEB005_SOURCE",
+      "owner": "A00/A50",
+      "gate": "Resolve B1-QA-01 API integration exit 1 at exact SHA; no green inference"
+    },
+    {
+      "id": "G02",
+      "class": "MANDATORY_WEB005_SOURCE",
+      "owner": "A110/A60",
+      "gate": "Fix P27 GET 401/403 revoked-auth privileged draft retention, test fail-first, new exact-SHA QA before enablement"
+    },
+    {
+      "id": "G03",
+      "class": "MANDATORY_WEB005_SOURCE",
+      "owner": "A90/A70/A30",
+      "gate": "Implement and independently QA real Backup ingress/importer/issuer/anti-downgrade, strict/legacy full validation, action-local Undo, raw-before-Zod, preclone no-write and rollback; pure modules alone not enough"
+    },
+    {
+      "id": "G04",
+      "class": "MANDATORY_WEB005_SOURCE",
+      "owner": "A20/A110/A00",
+      "gate": "Finalize Basket CAS server persistence, lock/revision/epoch D1-D5, stage/roster writer coverage, frontend D6 guarded enablement; migration source planning"
+    },
+    {
+      "id": "G05",
+      "class": "MANDATORY_WEB005_SOURCE",
+      "owner": "A00/owners",
+      "gate": "Reconcile all 19 omitted P01-P25 packets and P26-P30 source work, 15 overlap pairs in an authorized integration sequence with QA of resolutions"
+    },
+    {
+      "id": "G06",
+      "class": "HQ_OWNER",
+      "owner": "A00/HQ",
+      "gate": "Sign migration D01-D04 with physical ledger read scope and exclusive allocator; no number guessed"
+    },
+    {
+      "id": "G07",
+      "class": "HQ_OWNER",
+      "owner": "A00/HQ",
+      "gate": "Original WEB004 38-case matrix 9 missing canonical identifiers handled only via verified source or owner-signed dispositions, not invented PASS"
+    },
+    {
+      "id": "G08",
+      "class": "EXEC_B_TRANSFERABLE_DEBT_AFTER_SOURCE_GATE",
+      "owner": "EXEC-B/A50/A60",
+      "gate": "Full integrated CI rerun, approved disposable PG16 end-to-end, frontend browser matrix, cross-package performance/rollback after exact source composite pinned, only if risk/ownership accepted by HQ"
+    },
+    {
+      "id": "G09",
+      "class": "SECURITY_NONTRANSFERABLE",
+      "owner": "A30/A90/A70/A00",
+      "gate": "No unresolved privilege/auth-bypass, modern→legacy downgrade, unsafe Undo ID, tenant scope, unauthenticated importer, 401/403 stale privileged drafts before transfer"
+    },
+    {
+      "id": "G10",
+      "class": "FINAL_APPROVAL",
+      "owner": "A00/HQ",
+      "gate": "Owner-approved backlog and limits, immutable full source registry/composite and rollback provenance, A60 source QA + documented EXEC-B scope; explicit signed FINAL_HANDOFF_GO only by owner"
+    }
+  ],
+  "debt_classification": {
+    "mandatory_web005_source": [
+      {
+        "id": "G01",
+        "class": "MANDATORY_WEB005_SOURCE",
+        "owner": "A00/A50",
+        "gate": "Resolve B1-QA-01 API integration exit 1 at exact SHA; no green inference"
+      },
+      {
+        "id": "G02",
+        "class": "MANDATORY_WEB005_SOURCE",
+        "owner": "A110/A60",
+        "gate": "Fix P27 GET 401/403 revoked-auth privileged draft retention, test fail-first, new exact-SHA QA before enablement"
+      },
+      {
+        "id": "G03",
+        "class": "MANDATORY_WEB005_SOURCE",
+        "owner": "A90/A70/A30",
+        "gate": "Implement and independently QA real Backup ingress/importer/issuer/anti-downgrade, strict/legacy full validation, action-local Undo, raw-before-Zod, preclone no-write and rollback; pure modules alone not enough"
+      },
+      {
+        "id": "G04",
+        "class": "MANDATORY_WEB005_SOURCE",
+        "owner": "A20/A110/A00",
+        "gate": "Finalize Basket CAS server persistence, lock/revision/epoch D1-D5, stage/roster writer coverage, frontend D6 guarded enablement; migration source planning"
+      },
+      {
+        "id": "G05",
+        "class": "MANDATORY_WEB005_SOURCE",
+        "owner": "A00/owners",
+        "gate": "Reconcile all 19 omitted P01-P25 packets and P26-P30 source work, 15 overlap pairs in an authorized integration sequence with QA of resolutions"
+      }
+    ],
+    "transferable_to_EXEC_B_only_after_source_and_owner_gate": [
+      "approved disposable PG16 full coverage/rollback",
+      "cross-package exact-SHA native suites and full CI",
+      "browser/manual visual regression",
+      "performance/reliability instrumentation with signed residual risk"
+    ],
+    "owner_HQ_blockers": [
+      {
+        "id": "G06",
+        "class": "HQ_OWNER",
+        "owner": "A00/HQ",
+        "gate": "Sign migration D01-D04 with physical ledger read scope and exclusive allocator; no number guessed"
+      },
+      {
+        "id": "G07",
+        "class": "HQ_OWNER",
+        "owner": "A00/HQ",
+        "gate": "Original WEB004 38-case matrix 9 missing canonical identifiers handled only via verified source or owner-signed dispositions, not invented PASS"
+      },
+      {
+        "id": "G10",
+        "class": "FINAL_APPROVAL",
+        "owner": "A00/HQ",
+        "gate": "Owner-approved backlog and limits, immutable full source registry/composite and rollback provenance, A60 source QA + documented EXEC-B scope; explicit signed FINAL_HANDOFF_GO only by owner"
+      }
+    ],
+    "nontransferable_security": [
+      {
+        "id": "G09",
+        "class": "SECURITY_NONTRANSFERABLE",
+        "owner": "A30/A90/A70/A00",
+        "gate": "No unresolved privilege/auth-bypass, modern→legacy downgrade, unsafe Undo ID, tenant scope, unauthenticated importer, 401/403 stale privileged drafts before transfer"
+      }
+    ]
+  },
+  "WEB004_historical_38": {
+    "slots": 38,
+    "secondary_derived_ids": 29,
+    "authentic_original_missing_ids": 9,
+    "original_csv_verified": false,
+    "owner_signed_per_case_dispositions": 0,
+    "aggregates_historical_only": {
+      "PASS": 0,
+      "EXTERNAL_CI_FAIL": 3,
+      "BLOCKED": 33,
+      "NOT_RUN": 2
+    },
+    "unknown_ids_not_invented": true,
+    "unresolved_not_PASS": true,
+    "individual_case_provenance": "UNVERIFIED",
+    "unverified_missing_original_ids": 9,
+    "case_by_case_registry": [],
+    "no_fabrication": true
+  },
+  "quality": {
+    "A60 composite": "source integrity accepted with conditions; integration blocked",
+    "A50": "runner ready awaiting authorized host; 0 local native executions",
+    "A20": "MIGRATION_OWNER_BLOCKED; D01-D04 pending; two SELECT-only files authored not run",
+    "PR61": "test authored 2, PG16 not executed",
+    "PR63": "BLOCKED_FOR_ENABLEMENT",
+    "PR64": "18 authored no native",
+    "PR66": "15 authored; automatic CI failure exit 1",
+    "PR67": "13 pure+6 PG16 authored; intended RED/skip unexecuted"
+  },
+  "refs": {
+    "source": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R23B_FINAL_SOURCE_REGISTRY.md",
+    "A40": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A40/WEB-005_A40_R23C_COMPOSITE_B1_HANDOFF.md",
+    "A40json": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A40/WEB-005_A40_R23C_COMPOSITE_B1_MANIFEST.json",
+    "A60": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23C_INTEGRATION_QA_MATRIX.json",
+    "A60handoff": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23C_A00_HQ_HANDOFF.md",
+    "A50": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A50/WEB-005_A50_R23C_NATIVE_EXECUTOR_REPORT.md",
+    "A20": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A20/WEB-005_A20_R23C_MIGRATION_ARCHITECTURE_EXECUTION_GATE.md"
+  },
+  "overall": "R23C_REGISTRY_READY / FINAL_INTEGRATION_PENDING",
+  "NO_FINAL_HANDOFF_GO": true,
+  "SWARM006": "HOLD",
+  "RELEASE": "NO_GO",
+  "actions_prohibited_performed": [
+    "no merge",
+    "no rebase",
+    "no SQL",
+    "no deployment",
+    "no SWARM006 activation"
+  ]
+}
