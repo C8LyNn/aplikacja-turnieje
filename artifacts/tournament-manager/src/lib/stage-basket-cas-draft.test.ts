@@ -6,7 +6,7 @@ import {
   type BasketCasGraph,
   type BasketCasScope,
 } from "./stage-basket-cas-client";
-import { createBasketCasDraftSession } from "./stage-basket-cas-draft";
+import { createBasketCasDraftSession, type BasketCasDraftView } from "./stage-basket-cas-draft";
 
 const A: BasketCasScope = { tournamentId: 51, authContextId: "organizer-a-epoch-1" };
 const B: BasketCasScope = { tournamentId: 52, authContextId: "organizer-b-epoch-2" };
@@ -80,7 +80,7 @@ function fake() {
   };
 }
 
-function color(view: ReturnType<ReturnType<typeof createBasketCasDraftSession>["view"]> | never): string | null {
+function color(view: BasketCasDraftView): string | null {
   return view.localDraft?.baskets[0]?.colorId ?? null;
 }
 
