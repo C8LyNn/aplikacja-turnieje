@@ -17,8 +17,7 @@ param(
   [Parameter(Mandatory=$true)][string]$EvidenceRoot,
   [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$ExpectedSha,
   [ValidateSet('CompositeA40','PR36','PR56','PR57','PR58','Custom')][string]$Profile='CompositeA40',
-  [ValidateSet('Pack19to26','Pack17Pure','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit')]
-  [string[]]$Suites=@('Pack19to26','Pack17Pure','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit'),
+  [string]$Suites='Pack19to26,Pack17Pure,BackupStrict,BackupProfile,Swiss,ApiTypecheck,FrontendUnit',
   [switch]$AllowInstall,
   [switch]$AuthorizeRun
 )
@@ -157,6 +156,9 @@ $packs=@(
   @{id='26'; test='artifacts/api-server/test/se-correction-impact-risk-report.test.ts'}
 )
 try {
+  $allowedSuites=@('Pack19to26','Pack17Pure','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit')
+  $selectedSuites=@($Suites -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+  if($selectedSuites.Count -eq 0 -or @($selectedSuites | Where-Object { $_ -notin $allowedSuites }).Count -gt 0){throw 'SUITE_SELECTION_STOP: invalid CSV suite names'}
   if(-not $AuthorizeRun){throw 'AUTHORIZATION_STOP: operator must explicitly supply -AuthorizeRun'}
   if($Profile -eq 'CompositeA40' -and $ExpectedSha.ToLowerInvariant() -cne 'fa3261b2c9510e110ac9eba21726812d3401a525'){throw 'COMPOSITE_PIN_STOP: first A40 composite is PR60@fa3261b2c9510e110ac9eba21726812d3401a525'}
   if(-not $AllowInstall){throw 'INSTALL_STOP: fresh checkout needs explicit -AllowInstall'}
@@ -204,7 +206,7 @@ try {
   if((Get-FileHash -LiteralPath (Join-Path $script:Checkout 'pnpm-lock.yaml') -Algorithm SHA256).Hash -cne $script:LockSha256){throw 'LOCKFILE_DRIFT_STOP: frozen lockfile changed during install'}
   [void](Run 'workspace-typescript-version' 'pnpm' @('--filter','@workspace/api-server','exec','tsc','--version') $script:Checkout)
   $script:Outcome='RUNNING'
-  foreach($suite in $Suites){
+  foreach($suite in $selectedSuites){
     switch($suite){
       'Pack19to26' {
         foreach($p in $packs) {
@@ -258,7 +260,7 @@ try {
     $report=[ordered]@{
       schema='web005.a50.r23c.native-executor.v1'
       profile=$Profile
-      suites=$Suites
+      suites=$selectedSuites
       required_sha=$ExpectedSha.ToLowerInvariant()
       observed_sha=$script:Head
       source_path=$RepositorySource
