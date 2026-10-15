@@ -369,3 +369,50 @@ test("R23B semantic hardening must preserve strict marker, reject hybrid V2/V3 a
   const safeStrict = strict();
   status(safeStrict, "STRICT_AUTH_REQUIRED");
 });
+
+test("R23B legal played, walkover and no-contest V2/V3 results remain classifiable but untrusted", () => {
+  for (const make of [v2, v3Bye]) {
+    for (const type of ["played", "walkover", "no_contest"]) {
+      const doc = make();
+      if (!doc.players.some((p: any) => p.backupId === 5)) {
+        doc.players.push({ backupId: 5, name: "Five", status: "active" });
+      }
+      for (const row of [doc.matches[0], doc.resultHistory[0]]) {
+        row.player2BackupId = 5;
+        row.resultType = type;
+        row.resultReason = type === "played" ? null : "adjudicated";
+        row.score1 = type === "played" ? 2 : null;
+        row.score2 = type === "played" ? 1 : null;
+        row.winnerBackupId = type === "no_contest" ? null : 1;
+      }
+      doc.actionLog[0].actionType = "match_result_submitted";
+      doc.actionLog[0].canUndo = true;
+      doc.actionLog[0].undoPayload = { type: "revert_match", matchId: 4 };
+      status(doc, "LEGACY_COMPAT_UNATTESTED");
+    }
+  }
+});
+
+test("R23B historical pending match may retain earlier result history after manual Revert", () => {
+  const doc = v2();
+  doc.players.push({ backupId: 5, name: "Five", status: "active" });
+  for (const row of [doc.matches[0], doc.resultHistory[0]]) {
+    row.player2BackupId = 5;
+    row.resultType = "played";
+    row.resultReason = null;
+    row.winnerBackupId = 1;
+    row.score1 = 2;
+    row.score2 = 0;
+  }
+  doc.matches[0].status = "pending";
+  doc.matches[0].completedAt = null;
+  doc.matches[0].winnerBackupId = null;
+  doc.matches[0].score1 = null;
+  doc.matches[0].score2 = null;
+  doc.matches[0].resultType = null;
+  doc.actionLog[0].actionType = "match_result_submitted";
+  doc.actionLog[0].canUndo = false;
+  doc.actionLog[0].isUndone = true;
+  doc.actionLog[0].undoPayload = { type: "revert_match", matchId: 4 };
+  status(doc, "LEGACY_COMPAT_UNATTESTED");
+});
