@@ -77,7 +77,23 @@ Each PR was checked OPEN/DRAFT/UNMERGED and **exactly equal to the owner-pinned 
 **Real automatic GitHub Actions result (not manually triggered):**
 
 - [**PR #60 run 38736073793**](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38736073793), job **`116425579970`**, completed **FAILURE** on exact composite `fa3261b2c9510e110ac9eba21726812d3401a525`. Run was **automatically triggered by PR/branch publication**, **not** manually rerun/dispatched by A40. Decoded native job logs were fetched.
-- GitHub Actions steps completed **SUCCESS**: SE safety; **Pack19, Pack20, Pack21, Pack22, Pack26, Pack25, Pack24, Pack23**. Exact source-contract job outputs were real in the composite GitHub runner: Pack19 source **8/8 PASS**, Pack20 source **7/7 PASS**, and every reached remaining individual Pack source suite had zero reported failures. Those are **not synthetic**. Wrapper job status is **FAILURE** because the later `Static and database release gates` step ended **FAILURE**.
+- GitHub Actions steps completed **SUCCESS**: SE safety; **Pack19, Pack20, Pack21, Pack22, Pack26, Pack25, Pack24, Pack23**. Exact source-contract job outputs were real in the composite GitHub runner: Pack19 source **8/8 PASS**, Pack20 source **9/9 PASS**; all eight source suites **72/72 PASS**, all eight domain suites **220/220 PASS**, and SE safety **23/23 PASS**, with 0 reported failures in these reached TAP summaries. Those are **not synthetic**. Wrapper job status is **FAILURE** because the later `Static and database release gates` step ended **FAILURE**.
+**Exact native per-Pack TAP evidence from the completed PR #60 job log** (not author fixtures):
+
+| Correction suite | Domain TAP | Source-contract TAP |
+|---|---|---|
+| Pack19 | 26/26 PASS | 8/8 PASS |
+| Pack20 | 15/15 PASS | 9/9 PASS |
+| Pack21 | 24/24 PASS | 7/7 PASS |
+| Pack22 | 31/31 PASS | 6/6 PASS |
+| Pack23 | 28/28 PASS | 8/8 PASS |
+| Pack24 | 29/29 PASS | 10/10 PASS |
+| Pack25 | 32/32 PASS | 12/12 PASS |
+| Pack26 | 35/35 PASS | 12/12 PASS |
+| **TOTAL** | **220/220 PASS** | **72/72 PASS** |
+
+SE safety separate: **23/23 PASS**. All listed TAP chunks show `# fail 0`. This table is from the one automatically executed CI job on the **composite SHA**, not from individual PRs or synthetic probes.
+
 - Inside the actual **`node qa/pack17/run-gates.mjs --full`** invocation, decoded log explicitly records:
   1. `PASS source contracts` — **12/12 TAP PASS**.
   2. `PASS gate fail-closed contracts` — **24/24 TAP PASS**.
