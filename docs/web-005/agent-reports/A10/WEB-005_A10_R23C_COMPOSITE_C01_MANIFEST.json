@@ -1,0 +1,540 @@
+{
+  "schema": "WEB005_A10_R23C_COMPOSITE_C01_MANIFEST_V1",
+  "composite": {
+    "id": "C01",
+    "pr": 60,
+    "sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "branch": "integration/web-005/r23c-composite-b1-20261015",
+    "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "sole_parent_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "base_tree_sha": "5cc19d23cb42cdd09b11f82ad201c56303c9d87c",
+    "tree_sha": "c19fff1d6b8538dee731ea0daad75bfe568714c3",
+    "stage": "ISOLATED_DRAFT_UNMERGED",
+    "creation": "single commit tree with exact copied source Git blobs; no cherry-pick, merge, rebase, or manual conflict edits",
+    "included": [
+      {
+        "packet": "P01",
+        "pr": 35,
+        "sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+        "file_count": 1
+      },
+      {
+        "packet": "P02",
+        "pr": 36,
+        "sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+        "file_count": 4
+      },
+      {
+        "packet": "P07",
+        "pr": 40,
+        "sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+        "file_count": 3
+      },
+      {
+        "packet": "P23",
+        "pr": 56,
+        "sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+        "file_count": 2
+      },
+      {
+        "packet": "P24",
+        "pr": 57,
+        "sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+        "file_count": 2
+      },
+      {
+        "packet": "P25",
+        "pr": 58,
+        "sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+        "file_count": 2
+      }
+    ],
+    "omitted_existing": [
+      {
+        "packet": "P03",
+        "pr": 34,
+        "sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+      },
+      {
+        "packet": "P04",
+        "pr": 37,
+        "sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+      },
+      {
+        "packet": "P05",
+        "pr": 38,
+        "sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+      },
+      {
+        "packet": "P06",
+        "pr": 39,
+        "sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+      },
+      {
+        "packet": "P08",
+        "pr": 41,
+        "sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+      },
+      {
+        "packet": "P09",
+        "pr": 42,
+        "sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+      },
+      {
+        "packet": "P10",
+        "pr": 43,
+        "sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+      },
+      {
+        "packet": "P11",
+        "pr": 44,
+        "sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+      },
+      {
+        "packet": "P12",
+        "pr": 45,
+        "sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+      },
+      {
+        "packet": "P13",
+        "pr": 46,
+        "sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+      },
+      {
+        "packet": "P14",
+        "pr": 47,
+        "sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+      },
+      {
+        "packet": "P15",
+        "pr": 48,
+        "sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+      },
+      {
+        "packet": "P16",
+        "pr": 49,
+        "sha": "99298b81501c3e7764d653604923522a19b9f05c"
+      },
+      {
+        "packet": "P17",
+        "pr": 50,
+        "sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+      },
+      {
+        "packet": "P18",
+        "pr": 51,
+        "sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+      },
+      {
+        "packet": "P19",
+        "pr": 52,
+        "sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+      },
+      {
+        "packet": "P20",
+        "pr": 53,
+        "sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34"
+      },
+      {
+        "packet": "P21",
+        "pr": 54,
+        "sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f"
+      },
+      {
+        "packet": "P22",
+        "pr": 55,
+        "sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204"
+      }
+    ],
+    "manual_resolution_files": [],
+    "new_source_paths": 14,
+    "verified_blob_matches": 14,
+    "source_qa": "A60 SOURCE_INTEGRITY_PASS_WITH_CONDITIONS",
+    "integration_qa": "BLOCKED_API_INTEGRATION_EXIT_1",
+    "ci_run_id": 38736073793,
+    "ci_receipts": {
+      "SE_safety": [
+        23,
+        23
+      ],
+      "Pack19_26_domain": [
+        220,
+        220
+      ],
+      "Pack19_26_source": [
+        72,
+        72
+      ],
+      "Pack17_source": [
+        12,
+        12
+      ],
+      "Pack17_fail_closed": [
+        24,
+        24
+      ],
+      "PG16_atomic_ephemeral": [
+        8,
+        8
+      ],
+      "workspace_typecheck": "PASS",
+      "api_integration": "EXIT_1_ROOT_CAUSE_UNKNOWN",
+      "frontend_and_build": "NOT_EXECUTED",
+      "backup_swiss_named_unit": "NOT_VERIFIED",
+      "whole_workflow": "FAILURE"
+    },
+    "A50_local_native_runs": 0,
+    "source_qa_independence": "A60 report verified 14/14 original & composite blobs",
+    "release": "NO_GO"
+  },
+  "integration_only_id": "C01_NOT_SOURCE_PXX",
+  "files": [
+    {
+      "pr": 35,
+      "path": "qa/pack19/source-contract.test.mjs",
+      "git_blob_sha1": "5726986dca6a6fd7309bb883eb1106d2d19fb14e",
+      "sha256": "4654b7f7e8facaa9ef2028e98d188b89c51d927042415dd9512f509e7ffa42f8",
+      "size_bytes": 2375
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack20/source-contract.test.mjs",
+      "git_blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26",
+      "sha256": "9e9b2ce252e3364457d7b99884fb633e13bb4f430cc040e99756d03913ba1f65",
+      "size_bytes": 5131
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack21/source-contract.test.mjs",
+      "git_blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6",
+      "sha256": "cc850a71cb3f3e2025ba70fae0a10de6bf34cb980870b1c7bc2db1a04fd870d1",
+      "size_bytes": 2593
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack25/source-contract.test.mjs",
+      "git_blob_sha1": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608",
+      "sha256": "58323720dbd8af2878e46baf237982c6b443d2122ea096f495f05825d2170274",
+      "size_bytes": 8595
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack26/source-contract.test.mjs",
+      "git_blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385",
+      "sha256": "7f502ac443299cc4924a22bcd8c3c9b26fd3c3015f39611f40eb7209a0dbedff",
+      "size_bytes": 3940
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.mjs",
+      "git_blob_sha1": "eae350a60a684d7b14af3e481baf7bd6c4a2b2fc",
+      "sha256": "bccf617eb0d16fba0389da944723924c00e0f9e11a81fd8b1c4b0ef80cd6fa52",
+      "size_bytes": 3738
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.test.mjs",
+      "git_blob_sha1": "f59a65509009fbdf74a38239693238704b1af583",
+      "sha256": "ffa8b6056bf0ebd3ab0426b9960330c5b3e1dda496ca56b7d2e2b0abcd622e14",
+      "size_bytes": 3963
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/run-gates.mjs",
+      "git_blob_sha1": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043",
+      "sha256": "182376fd3ed91151a96940aa311c5307cf25863b914c648be8f4a591b5fe02a5",
+      "size_bytes": 4748
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+      "git_blob_sha1": "595c68b87a5361623bef6293519ed668e9d4e493",
+      "sha256": "98530f871f27a9851fe89571f56fd6c9313816f1b8f0c4baea8986ca9350c2d6",
+      "size_bytes": 13944
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+      "git_blob_sha1": "d1242b84c9b2db269ab6864459d8d11656d4fe8c",
+      "sha256": "11aa4c9754829771ab40ad39bbbdd4e100591f958bad7407ba42f137b9eac59f",
+      "size_bytes": 14470
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/src/domain/tournament/swiss.ts",
+      "git_blob_sha1": "5e7fa424371c10a0360e471bb050afa7096d361b",
+      "sha256": "984c9cff786260b3b3501f69326e8c113c4c47be200b5f8358a85aa05b7d1775",
+      "size_bytes": 7944
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/test/swiss.test.ts",
+      "git_blob_sha1": "150d34619abb83d12bb351a7aedb6e377d5d1332",
+      "sha256": "cc5ab1af1b8a6cbfd715c4374b8a900aead89edb3a5e04350fae815d9ca3effc",
+      "size_bytes": 8901
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+      "git_blob_sha1": "518526d8d9ff2cef368261788e12c9f8290754f5",
+      "sha256": "ea18355c76d38b7e8c521fdf59dfe51d636c48e3f34bc513987525ff5c3c419d",
+      "size_bytes": 18827
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+      "git_blob_sha1": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19",
+      "sha256": "1273c0a144a4a4d08ba2679c5857f87bc7824c7769f7ee80294d9327802c3261",
+      "size_bytes": 16848
+    }
+  ],
+  "files_count": 14,
+  "exact_github_file_blob_matches": 14,
+  "digests_calculated": "UTF8 SHA256 from exact composite SHA file bytes; standard abc self-test passed",
+  "independent_A60": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23C_INTEGRATION_QA_MATRIX.json",
+  "open_base_source_prs": [
+    {
+      "packet": "P01",
+      "pr": 35,
+      "initial_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "R23B_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "R23C_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P02",
+      "pr": 36,
+      "initial_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "R23B_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "R23C_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P07",
+      "pr": 40,
+      "initial_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "R23B_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "R23C_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "initial_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "R23B_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "R23C_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "initial_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "R23B_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "R23C_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "initial_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "R23B_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "R23C_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "status_matches": true
+    }
+  ],
+  "omitted_legacy": [
+    {
+      "packet": "P03",
+      "pr": 34,
+      "sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+    },
+    {
+      "packet": "P04",
+      "pr": 37,
+      "sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+    },
+    {
+      "packet": "P06",
+      "pr": 39,
+      "sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+    },
+    {
+      "packet": "P08",
+      "pr": 41,
+      "sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+    },
+    {
+      "packet": "P09",
+      "pr": 42,
+      "sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+    },
+    {
+      "packet": "P10",
+      "pr": 43,
+      "sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+    },
+    {
+      "packet": "P11",
+      "pr": 44,
+      "sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+    },
+    {
+      "packet": "P12",
+      "pr": 45,
+      "sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+    },
+    {
+      "packet": "P13",
+      "pr": 46,
+      "sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+    },
+    {
+      "packet": "P14",
+      "pr": 47,
+      "sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+    },
+    {
+      "packet": "P15",
+      "pr": 48,
+      "sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+    },
+    {
+      "packet": "P16",
+      "pr": 49,
+      "sha": "99298b81501c3e7764d653604923522a19b9f05c"
+    },
+    {
+      "packet": "P17",
+      "pr": 50,
+      "sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+    },
+    {
+      "packet": "P18",
+      "pr": 51,
+      "sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+    },
+    {
+      "packet": "P19",
+      "pr": 52,
+      "sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+    },
+    {
+      "packet": "P20",
+      "pr": 53,
+      "sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34"
+    },
+    {
+      "packet": "P21",
+      "pr": 54,
+      "sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f"
+    },
+    {
+      "packet": "P22",
+      "pr": 55,
+      "sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204"
+    }
+  ],
+  "omitted_new_source_prs": [
+    {
+      "packet": "P26",
+      "pr": 61,
+      "sha": "8c26778c94cd6c96987f3986b651066024f10d4a"
+    },
+    {
+      "packet": "P27",
+      "pr": 63,
+      "sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3"
+    },
+    {
+      "packet": "P28",
+      "pr": 64,
+      "sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1"
+    },
+    {
+      "packet": "P29",
+      "pr": 66,
+      "sha": "7490c974b7c84404559fd590bd09817a71c2134f"
+    },
+    {
+      "packet": "P30",
+      "pr": 67,
+      "sha": "880824f18b8913602955578dfd76eeac7976e32a"
+    }
+  ],
+  "non_source_commit_layers": {
+    "integration_commit_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "source_commit_heads": [
+      "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "e8100f7b0c1071c2a98880d4eb7947514fc58185"
+    ],
+    "manual_conflict_resolution_commits": [],
+    "merge_or_rebase": false
+  },
+  "test_evidence": {
+    "SE_safety": [
+      23,
+      23
+    ],
+    "Pack19_26_domain": [
+      220,
+      220
+    ],
+    "Pack19_26_source": [
+      72,
+      72
+    ],
+    "Pack17_source": [
+      12,
+      12
+    ],
+    "Pack17_fail_closed": [
+      24,
+      24
+    ],
+    "PG16_atomic_ephemeral": [
+      8,
+      8
+    ],
+    "workspace_typecheck": "PASS",
+    "api_integration": "EXIT_1_ROOT_CAUSE_UNKNOWN",
+    "frontend_and_build": "NOT_EXECUTED",
+    "backup_swiss_named_unit": "NOT_VERIFIED",
+    "whole_workflow": "FAILURE"
+  },
+  "full_ci": "FAILURE_API_INTEGRATION_EXIT_1",
+  "release": "NO_GO",
+  "SWARM006": "HOLD"
+}
