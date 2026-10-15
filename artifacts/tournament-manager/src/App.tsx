@@ -22,6 +22,7 @@ import TournamentInterfaceChoice from "@/pages/tournament-interface-choice";
 import MinigamesPage from "@/pages/minigames";
 import EvolutionPrototypePage from "@/pages/evolution-prototype";
 import CoreClashPrototypePage from "@/pages/core-clash-prototype";
+import CoreClashShowcasePage from "@/pages/core-clash-v1495-showcase";
 import RandomizersPage from "@/pages/randomizers";
 import RandomizerProperPage from "@/pages/randomizer-proper";
 import WheelPrototypePage from "@/pages/randomizer-prototype-wheel";
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/minigames/evolution" component={EvolutionPrototypePage} />
 
       <Route path="/minigames/core-clash" component={CoreClashPrototypePage} />
+      <Route path="/minigames/core-clash-v149-5" component={CoreClashShowcasePage} />
 
       <Route path="/randomizers" component={RandomizersPage} />
 

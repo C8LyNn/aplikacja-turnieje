@@ -6,7 +6,7 @@ import {
   ProjectCard,
 } from "@/components/portfolio-ui";
 
-const EMPTY_SLOTS = Array.from({ length: 4 }, (_, index) => index + 1);
+const EMPTY_SLOTS = Array.from({ length: 3 }, (_, index) => index + 1);
 
 export default function MinigamesPage() {
   return (
@@ -32,6 +32,14 @@ export default function MinigamesPage() {
           title="Core Clash"
           description="Taktyczna gra fizyczna z taliami, specjalnymi kulkami i wieloma archetypami."
           href="/minigames/core-clash"
+          icon={Gamepad2}
+          accent="emerald"
+        />
+        <ProjectCard
+          code="SHOWCASE V149.5"
+          title="Core Clash V149.5 — Showcase"
+          description="Oddzielna, tymczasowa wersja pokazowa. Oryginalna minigra pozostaje dostępna."
+          href="/minigames/core-clash-v149-5"
           icon={Gamepad2}
           accent="emerald"
         />
