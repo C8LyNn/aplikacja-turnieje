@@ -1,0 +1,140 @@
+{
+  "schema": "web005.a60.r22.late_pr_qa_delta/1",
+  "task": "WEB-005-T130-A60-R22-LATE-DELTA",
+  "control_git_blob": "3cecb88f98703a454de98d17e3f1b1bd6fd455ea",
+  "reviewed_on": "2026-10-15",
+  "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "prior_21_packet_sha": "UNCHANGED_RETAIN_R21_21_ROW_MANIFEST",
+  "legacy_21_packets_modified": false,
+  "new_candidates": [
+    {
+      "packet": "P22",
+      "pr": 55,
+      "head": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "branch": "WEB-005-T055-CAS-R22-TEST_CONTRACT",
+      "files": [
+        {
+          "path": "artifacts/api-server/test/stage-basket-cas.integration.test.ts",
+          "blob": "f95f032f4146f33ccbba813a3d08b34dfb9bb929"
+        }
+      ],
+      "verdict": "SOURCE_ACCEPTED_TEST_CONTRACT_CONDITIONAL",
+      "native": "NOT_EXECUTED",
+      "ci_run": 38646040840,
+      "ci_job": 116133014455,
+      "risks": [
+        "No production ETag/If-Match/CAS/revision column or UI",
+        "CAS-01..10 authored only; no persist revision direct assertion; D6 UI absent",
+        "Tests include destructive schema reset; real isolated PG16 + written reset GO mandatory"
+      ],
+      "ci": {
+        "run_url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38646040840",
+        "job_id": 116133014455,
+        "final_conclusion": "failure",
+        "failed_step": "Pack 19 snapshot consistency tests (7 PASS 1 FAIL)",
+        "root_cause": "readOnly:true matcher vs accessMode:'read only'",
+        "feature_specific_tests": "NOT_EXECUTED"
+      },
+      "new_source_qa": true,
+      "full_qa": false
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "head": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "branch": "fix/web-005/t060-b2-strict-policy-core-r22",
+      "files": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+          "blob": "c663c3d8347f22caf9375ae48a6f7670a6629d34"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+          "blob": "fdd1f5a7efc95f87ef4fcf38eb0393563bf56adc"
+        }
+      ],
+      "verdict": "SOURCE_BLOCKED_STRICT_COMPLETED_BYE_ACTION_INVARIANT",
+      "native": "NOT_EXECUTED",
+      "ci_run": 38646256645,
+      "ci_job": 116133734773,
+      "risks": [
+        "Source rejects valid system_bye_assigned completed BYE without match_result_submitted action",
+        "Pure module not wired to import/export; marker UNATTESTED not reliable legacy provenance",
+        "Actual route Zod stripping, remapUndoPayload fallback and HTTP rollback unaddressed"
+      ],
+      "ci": {
+        "run_url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38646256645",
+        "job_id": 116133734773,
+        "final_conclusion": "failure",
+        "failed_step": "Pack 19 snapshot consistency tests (7 PASS 1 FAIL)",
+        "root_cause": "readOnly:true matcher vs accessMode:'read only'",
+        "feature_specific_tests": "NOT_EXECUTED"
+      },
+      "new_source_qa": true,
+      "full_qa": false
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "head": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "branch": "fix/web-005/t051-swiss-pairing-policy-r22",
+      "files": [
+        {
+          "path": "artifacts/api-server/src/domain/tournament/swiss.ts",
+          "blob": "5e7fa424371c10a0360e471bb050afa7096d361b"
+        },
+        {
+          "path": "artifacts/api-server/test/swiss.test.ts",
+          "blob": "150d34619abb83d12bb351a7aedb6e377d5d1332"
+        }
+      ],
+      "verdict": "SOURCE_ACCEPTED_SCOPED_CONDITIONAL",
+      "native": "NOT_EXECUTED",
+      "ci_run": 38646317948,
+      "ci_job": 116133937701,
+      "risks": [
+        "Exact DP only up to 16 entrants; >16 bounded heuristic may leave avoidable repeats",
+        "Stage-local previousMatches enforced by inspected callers, not the pure function type",
+        "Real tests, typecheck and adversarial 18/32/64 input oracle pending"
+      ],
+      "ci": {
+        "run_url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38646317948",
+        "job_id": 116133937701,
+        "final_conclusion": "failure",
+        "failed_step": "Pack 19 snapshot consistency tests (7 PASS 1 FAIL)",
+        "root_cause": "readOnly:true matcher vs accessMode:'read only'",
+        "feature_specific_tests": "NOT_EXECUTED"
+      },
+      "new_source_qa": true,
+      "full_qa": false
+    }
+  ],
+  "source_blockers": [
+    {
+      "id": "P23-01",
+      "pr": 56,
+      "at_commit": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "file": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+      "line_range": [
+        197,
+        248
+      ],
+      "severity": "P1_STRICT_PROFILE_FALSE_REJECTION",
+      "finding": "Completed BYE uses system_bye_assigned not match_result_submitted; strict activeCount==1 requires manual completion action for every completed match",
+      "required_owner": "A90",
+      "action": "test first legal strict BYE and typed system-resolution action exception, independent A60 re-review exact new SHA",
+      "observed_runtime": "NOT_EXECUTED"
+    }
+  ],
+  "native_a50_r22_tests": 0,
+  "feature_runtime": "NOT_EXECUTED",
+  "historical_web004": {
+    "cases": 38,
+    "secondary_ids": 29,
+    "unknown_original_ids": 9,
+    "signed_dispositions_complete": false
+  },
+  "handoff": "HANDOFF_NOT_READY",
+  "release": "NO_GO",
+  "swarm006": "HOLD"
+}
