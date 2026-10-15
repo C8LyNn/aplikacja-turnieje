@@ -12,6 +12,8 @@ import {
   type BasketCasClient,
   type BasketCasGraph,
   type BasketCasScope,
+  type BasketCasBasket,
+  type BasketCasRoute,
 } from "./stage-basket-cas-client";
 
 export type BasketCasDraftPhase =
@@ -40,10 +42,7 @@ export interface BasketCasDraftView {
 export interface BasketCasDraftSession {
   view(): BasketCasDraftView;
   initialize(): Promise<void>;
-  edit(mutator: (draft: {
-    baskets: BasketCasGraph["baskets"] extends readonly (infer B)[] ? B[] : never;
-    routes: BasketCasGraph["routes"] extends readonly (infer R)[] ? R[] : never;
-  }) => void): void;
+  edit(mutator: (draft: { baskets: BasketCasBasket[]; routes: BasketCasRoute[] }) => void): void;
   /** Same-tournament stage navigation and roster changes must not drop edits. */
   markStageOrRosterChanged(): void;
   /** Explicit fetch: keeps local draft intact, exposes remote for comparison. */
@@ -60,8 +59,8 @@ export interface BasketCasDraftSession {
 }
 
 type MutableGraph = {
-  baskets: Array<BasketCasGraph["baskets"][number]>;
-  routes: Array<BasketCasGraph["routes"][number]>;
+  baskets: BasketCasBasket[];
+  routes: BasketCasRoute[];
 };
 
 function clone(graph: BasketCasGraph): MutableGraph {
@@ -184,8 +183,8 @@ export function createBasketCasDraftSession(
 
   async function refreshRemote() {
     active();
-    if (!draft || !base) {
-      throw new BasketCasError("PROTOCOL_ERROR", "Load a local draft first.");
+    if (!draft || !base || saving) {
+      throw new BasketCasError("PROTOCOL_ERROR", "Finish a pending write before refreshing remote.");
     }
     const requestEpoch = epoch;
     const requestEditEpoch = editEpoch;
@@ -203,7 +202,7 @@ export function createBasketCasDraftSession(
   ) {
     active();
     if (input.confirmedByOrganizer !== true || phase !== "reviewing" ||
-      !remote || !draft) {
+      !remote || !draft || saving) {
       throw new BasketCasError("PROTOCOL_ERROR", "Refresh and explicitly compare remote before reconciling.");
     }
     const next = input.action === "use-remote"
