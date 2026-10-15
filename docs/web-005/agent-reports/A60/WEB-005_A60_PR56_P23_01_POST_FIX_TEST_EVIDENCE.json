@@ -1,0 +1,78 @@
+{
+  "schema": "web005.a60.pr56.p23-01.post_fix_qa/1",
+  "task": "A60_PR56_P23_01_POST_FIX",
+  "date": "2026-10-15",
+  "verified_head": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+  "prior_head": "77707092202ca79277de7bc57cc4e37e4c033171",
+  "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "pr": 56,
+  "source_blobs": {
+    "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts": "595c68b87a5361623bef6293519ed668e9d4e493",
+    "artifacts/api-server/test/backup-v3-strict-policy.test.ts": "d1242b84c9b2db269ab6864459d8d11656d4fe8c"
+  },
+  "compare": {
+    "ahead_by": 4,
+    "behind_by": 0,
+    "changed_files": 2,
+    "commits": [
+      "b2b1cbacca0b7ff81c0977c2a6554a262d9f65c7",
+      "7c73c7316bc30a150e7aad9cd510d30b4399ac19",
+      "3391867f32a41ca377dd153ad49b3bbb52e5e9c5",
+      "a7f71a7e7efdabd479b358a3cee80bc6359c4321"
+    ]
+  },
+  "byte_identical_local_copies": true,
+  "execution": {
+    "environment": "isolated Linux Node22.16.0; TypeScript5.8.3 transpileModule to CommonJS",
+    "semantic_typecheck": "NOT_VERIFIED",
+    "transpile_errors": 0,
+    "author_suite": {
+      "cmd": "node --test dist/test/backup-v3-strict-policy.test.js",
+      "exit": 0,
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "skip": 0,
+      "new_p23_tests": 6,
+      "new_p23_pass": 6
+    },
+    "independent_suite": {
+      "cmd": "node --test independent-negative.js",
+      "exit": 0,
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "skip": 0
+    },
+    "total": {
+      "tests": 22,
+      "pass": 22,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "ci": {
+    "url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38698700862",
+    "result": "failure",
+    "blocker": "inherited Pack19 readOnly:true vs accessMode:'read only'",
+    "pack19": {
+      "pass": 7,
+      "fail": 1
+    },
+    "target_unit_tests": "NOT_EXECUTED_IN_CI"
+  },
+  "findings": {
+    "p23_01": "RESOLVED_ISOLATED_SOURCE",
+    "new_blocking_defects": 0,
+    "residual": [
+      "NOT_WIRED",
+      "legacy_provenance_and_zod_unknown_field",
+      "nested_ID_remap",
+      "full_typecheck_unverified",
+      "composite_integration_unverified"
+    ]
+  },
+  "verdict": "PASS WITH CONDITIONS",
+  "release": "NO_GO",
+  "swarm006": "HOLD"
+}
