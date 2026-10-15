@@ -17,8 +17,8 @@ param(
   [Parameter(Mandatory=$true)][string]$EvidenceRoot,
   [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-fA-F]{40}$')][string]$ExpectedSha,
   [ValidateSet('CompositeA40','PR36','PR56','PR57','PR58','Custom')][string]$Profile='CompositeA40',
-  [ValidateSet('Pack19to26','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit')]
-  [string[]]$Suites=@('Pack19to26','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit'),
+  [ValidateSet('Pack19to26','Pack17Pure','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit')]
+  [string[]]$Suites=@('Pack19to26','Pack17Pure','BackupStrict','BackupProfile','Swiss','ApiTypecheck','FrontendUnit'),
   [switch]$AllowInstall,
   [switch]$AuthorizeRun
 )
@@ -158,6 +158,7 @@ $packs=@(
 )
 try {
   if(-not $AuthorizeRun){throw 'AUTHORIZATION_STOP: operator must explicitly supply -AuthorizeRun'}
+  if($Profile -eq 'CompositeA40' -and $ExpectedSha.ToLowerInvariant() -cne 'fa3261b2c9510e110ac9eba21726812d3401a525'){throw 'COMPOSITE_PIN_STOP: first A40 composite is PR60@fa3261b2c9510e110ac9eba21726812d3401a525'}
   if(-not $AllowInstall){throw 'INSTALL_STOP: fresh checkout needs explicit -AllowInstall'}
   if($RepositorySource -match '^(https?://|ssh://|git@)'){throw 'SOURCE_STOP: RepositorySource must be a LOCAL trusted Git repository'}
   $src=(Resolve-Path -LiteralPath $RepositorySource -ErrorAction Stop).ProviderPath
@@ -222,6 +223,13 @@ try {
           }
         }
       }
+      'Pack17Pure' {
+        $rel='qa/pack17/gate-contract.test.mjs'
+        if(NeedFile $rel 'Pack17Pure') {
+          AssertUnitOnly $rel
+          [void](Run 'Pack17Pure' 'node' @('--test','--test-reporter=tap',$rel) $script:Checkout 'CONTRACT')
+        }
+      }
       'BackupStrict' {TestNode 'BackupStrict' 'artifacts/api-server/test/backup-v3-strict-policy.test.ts'}
       'BackupProfile' {TestNode 'BackupProfile' 'artifacts/api-server/test/backup-v3-profile-gate.test.ts'}
       'Swiss' {TestNode 'Swiss' 'artifacts/api-server/test/swiss.test.ts'}
@@ -238,7 +246,7 @@ try {
     }
   }
   $skipCount=@($script:Events | Where-Object {$_.classification -eq 'SKIP_NOT_IN_THIS_SHA'}).Count
-  $testCount=@($script:Events | Where-Object {$_.step -match '^(Pack\d+-(?:unit|contract)|BackupStrict|BackupProfile|Swiss|Frontend-.+|ApiTypecheck)$' -and $_.exit_code -eq 0}).Count
+  $testCount=@($script:Events | Where-Object {$_.step -match '^(Pack\d+-(?:unit|contract)|Pack17Pure|BackupStrict|BackupProfile|Swiss|Frontend-.+|ApiTypecheck)$' -and $_.exit_code -eq 0}).Count
   if($testCount -eq 0){throw 'NO_TEST_EXECUTED: did not run any requested safe tests on selected SHA'}
   $script:Outcome=if($skipCount -gt 0){'PARTIALLY_EXECUTED_MISSING_SUITES'}else{'NONDESTRUCTIVE_QA_EXECUTED_PASS'}
 } catch {
