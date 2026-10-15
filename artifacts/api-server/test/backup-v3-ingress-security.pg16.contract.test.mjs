@@ -86,7 +86,9 @@ test("BI-09-PRECLONE-WRITES: invalid strict foreign nested ID never creates a cl
 },async()=>{
   const backup=strictBackup();
   backup.actionLog[0].undoPayload.winnerId=999_999;
-  const proof=await scenario("BI-09-PRECLONE-WRITES",untrustedStrictEnvelope(backup));
+  const proof=await scenario("BI-09-PRECLONE-WRITES",backup,
+    {requiresTrustedEphemeralIssuer:true});
+  assert.equal(proof.signatureVerified,true,"Must reach actual post-signature nested-ID guard");
   invalid(proof);noLeak(proof);
 });
 
@@ -97,6 +99,7 @@ test("BI-13-LATE-ROLLBACK: induced DB failure after child inserts is atomic",{
     failpoint:"AFTER_CHILD_ROWS_BEFORE_COMMIT",
     requiresTrustedEphemeralIssuer:true,
   });
+  assert.equal(proof.signatureVerified,true,"Must reach DB after authentic test-only signature");
   assert.ok(proof.failpointTriggered,"Must prove the deliberate failure actually fired");
   assert.ok(proof.inTransactionWrites>0,"Test must reach post-insert rollback path");
   assert.ok(proof.httpStatus>=400 && proof.httpStatus<600,
@@ -136,8 +139,11 @@ test("BI-15-PRIVATE-VIEWER: private_online requires newly bound viewer secret",{
 test("BI-16-CLONE-ISOLATION: valid restored graph uses only local mapped IDs",{
   skip:gate,
 },async()=>{
-  const proof=await scenario("BI-16-CLONE-ISOLATION",legacyV3());
+  const backup=strictBackup();
+  delete backup.strictPolicy; // historical-looking V3 with non-empty completed history/action
+  const proof=await scenario("BI-16-CLONE-ISOLATION",backup);
   assert.equal(proof.httpStatus,201);
+  assert.ok(proof.cloneMatchCount>=2,"Nontrivial populated clone, not vacuous empty graph");
   assert.equal(proof.foreignMatchReferences,0);
   assert.equal(proof.foreignPlayerReferences,0);
   assert.equal(proof.foreignStageReferences,0);
@@ -150,6 +156,7 @@ test("BI-08-ACTION-LOCAL HTTP: mismatched but exported match IDs must 400 with z
   skip:gate,
 },async()=>{
   const proof=await scenario("BI-08-ACTION-LOCAL",
-    untrustedStrictEnvelope(mismatchedActionTarget()));
+    mismatchedActionTarget(),{requiresTrustedEphemeralIssuer:true});
+  assert.equal(proof.signatureVerified,true,"Must test wrong-action ID after trusted profile");
   invalid(proof);
 });
