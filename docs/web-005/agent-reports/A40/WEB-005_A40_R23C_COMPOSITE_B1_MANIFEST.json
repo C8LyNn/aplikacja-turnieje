@@ -1,0 +1,197 @@
+{
+  "schema_version": "web-005.composite-manifest.v1",
+  "task_id": "WEB-005-T015-A40-R23C-COMPOSITE-B1",
+  "created_date": "2026-10-15",
+  "repository": "C8LyNn/aplikacja-turnieje",
+  "base_branch": "release/tournament-ops-20261013-01",
+  "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "base_tree_sha": "5cc19d23cb42cdd09b11f82ad201c56303c9d87c",
+  "branch": "integration/web-005/r23c-composite-b1-20261015",
+  "draft_pr": 60,
+  "composite_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+  "composite_tree_sha": "c19fff1d6b8538dee731ea0daad75bfe568714c3",
+  "creation_method": "one-parent Git commit from base tree using exact existing source Git blob SHA tree entries; no conflict edits",
+  "included_packages": [
+    {
+      "pr": 35,
+      "head_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "name": "pack19",
+      "files": [
+        [
+          "qa/pack19/source-contract.test.mjs",
+          "5726986dca6a6fd7309bb883eb1106d2d19fb14e"
+        ]
+      ]
+    },
+    {
+      "pr": 36,
+      "head_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "name": "pack20-21-25-26",
+      "files": [
+        [
+          "qa/pack20/source-contract.test.mjs",
+          "42359d5116038f515a4b8504bad2fcc0f0df5b26"
+        ],
+        [
+          "qa/pack21/source-contract.test.mjs",
+          "38d8a96870b31c604b86d010d53b5f40dbd359d6"
+        ],
+        [
+          "qa/pack25/source-contract.test.mjs",
+          "f38fe8b7af53a43ae560fe26fed1682ddcb7f608"
+        ],
+        [
+          "qa/pack26/source-contract.test.mjs",
+          "dd06d0cfba9db9c772e5559e0fbe1915e8e51385"
+        ]
+      ]
+    },
+    {
+      "pr": 40,
+      "head_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "name": "pack17",
+      "files": [
+        [
+          "qa/pack17/gate-contract.mjs",
+          "eae350a60a684d7b14af3e481baf7bd6c4a2b2fc"
+        ],
+        [
+          "qa/pack17/gate-contract.test.mjs",
+          "f59a65509009fbdf74a38239693238704b1af583"
+        ],
+        [
+          "qa/pack17/run-gates.mjs",
+          "8779ab2c1588cc62a2f3c5f63c57be9b55e86043"
+        ]
+      ]
+    },
+    {
+      "pr": 56,
+      "head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "name": "backup-strict-pure",
+      "files": [
+        [
+          "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+          "595c68b87a5361623bef6293519ed668e9d4e493"
+        ],
+        [
+          "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+          "d1242b84c9b2db269ab6864459d8d11656d4fe8c"
+        ]
+      ]
+    },
+    {
+      "pr": 57,
+      "head_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "name": "swiss-s3-s4",
+      "files": [
+        [
+          "artifacts/api-server/src/domain/tournament/swiss.ts",
+          "5e7fa424371c10a0360e471bb050afa7096d361b"
+        ],
+        [
+          "artifacts/api-server/test/swiss.test.ts",
+          "150d34619abb83d12bb351a7aedb6e377d5d1332"
+        ]
+      ]
+    },
+    {
+      "pr": 58,
+      "head_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "name": "backup-raw-profile-pure",
+      "files": [
+        [
+          "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "518526d8d9ff2cef368261788e12c9f8290754f5"
+        ],
+        [
+          "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19"
+        ]
+      ]
+    }
+  ],
+  "transferred_files": [
+    {
+      "pr": 35,
+      "path": "qa/pack19/source-contract.test.mjs",
+      "blob_sha": "5726986dca6a6fd7309bb883eb1106d2d19fb14e"
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack20/source-contract.test.mjs",
+      "blob_sha": "42359d5116038f515a4b8504bad2fcc0f0df5b26"
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack21/source-contract.test.mjs",
+      "blob_sha": "38d8a96870b31c604b86d010d53b5f40dbd359d6"
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack25/source-contract.test.mjs",
+      "blob_sha": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608"
+    },
+    {
+      "pr": 36,
+      "path": "qa/pack26/source-contract.test.mjs",
+      "blob_sha": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385"
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.mjs",
+      "blob_sha": "eae350a60a684d7b14af3e481baf7bd6c4a2b2fc"
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/gate-contract.test.mjs",
+      "blob_sha": "f59a65509009fbdf74a38239693238704b1af583"
+    },
+    {
+      "pr": 40,
+      "path": "qa/pack17/run-gates.mjs",
+      "blob_sha": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043"
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-strict-policy.ts",
+      "blob_sha": "595c68b87a5361623bef6293519ed668e9d4e493"
+    },
+    {
+      "pr": 56,
+      "path": "artifacts/api-server/test/backup-v3-strict-policy.test.ts",
+      "blob_sha": "d1242b84c9b2db269ab6864459d8d11656d4fe8c"
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/src/domain/tournament/swiss.ts",
+      "blob_sha": "5e7fa424371c10a0360e471bb050afa7096d361b"
+    },
+    {
+      "pr": 57,
+      "path": "artifacts/api-server/test/swiss.test.ts",
+      "blob_sha": "150d34619abb83d12bb351a7aedb6e377d5d1332"
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+      "blob_sha": "518526d8d9ff2cef368261788e12c9f8290754f5"
+    },
+    {
+      "pr": 58,
+      "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+      "blob_sha": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19"
+    }
+  ],
+  "excluded_packages": [],
+  "conflicting_paths": [],
+  "manual_conflict_resolution": [],
+  "dependency_manifest_changed": false,
+  "api_schema_changed": false,
+  "database_migration_changed": false,
+  "original_pr_history_changed": false,
+  "merge_performed": false,
+  "release_authorized": false,
+  "qa_status": "QA_PENDING",
+  "native_node_evidence": "See R23C A40 handoff and GitHub Actions run 38736073793; never infer completed PASS from pending stages."
+}
