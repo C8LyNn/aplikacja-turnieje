@@ -1,0 +1,1309 @@
+{
+  "schema": "web005.a10.r23b.append_only_registry_closeout/1",
+  "task": "WEB-005-T018-A10-R23B-REGISTRY-CLOSEOUT",
+  "agent": "A10",
+  "date": "2026-10-15 Europe/Warsaw",
+  "docs_branch": "chore/web-005/t000-wave1-control",
+  "release_base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "verdict": "R23B_REGISTRY_COMPLETE / INTEGRATION_GATE_PENDING",
+  "no_composite_sha": "NO_COMPOSITE_SHA",
+  "final_handoff_go": false,
+  "swarm006": "HOLD",
+  "release": "NO_GO",
+  "source_reports": {
+    "prior_md": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R23A_FINAL_SOURCE_REGISTRY.md",
+    "prior_json": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R23A_FINAL_SOURCE_REGISTRY.json",
+    "A40": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A40/WEB-005_A40_R23B_PACK25_RESPONSE_SPOOF_HANDOFF.md",
+    "A90": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a90-r23b-legacy-semantics/docs/web-005/agent-reports/A90/WEB-005_A90_R23B_LEGACY_SEMANTICS_HANDOFF.md",
+    "A20": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A20/WEB-005_A20_R23B_A00_DECISION_PACKET.md",
+    "A60matrix": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23B_FIX_CLOSEOUT_MATRIX.json",
+    "A60p36": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23B_PR36_PACK25_CORRECTION_INDEPENDENT_QA.md",
+    "A60p58": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23B_PR58_LEGACY_BYE_CORRECTION_INDEPENDENT_QA.md",
+    "A60handoff": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23B_FIX_CLOSEOUT_HANDOFF.md"
+  },
+  "manifest_baseline": {
+    "R23A_git_blob_sha1": "c06b0ac5ef2b2c8b635cfdfcde71663893a28811",
+    "R23A_revision_immutable": true,
+    "original_P01_P24_SHA_unmodified": true,
+    "source_packet_count": 25,
+    "original_legacy_heads": [
+      {
+        "packet": "P01",
+        "pr": 35,
+        "initial_sha": "7cb283aa82273a1e22daf9051a82311eef53760c"
+      },
+      {
+        "packet": "P02",
+        "pr": 36,
+        "initial_sha": "85ad0b86136fc3491c9ef18663d9b01396179349"
+      },
+      {
+        "packet": "P03",
+        "pr": 34,
+        "initial_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+      },
+      {
+        "packet": "P04",
+        "pr": 37,
+        "initial_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7"
+      },
+      {
+        "packet": "P05",
+        "pr": 38,
+        "initial_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b"
+      },
+      {
+        "packet": "P06",
+        "pr": 39,
+        "initial_sha": "16053ee132756ca05b6f2cd1f0cabae823905387"
+      },
+      {
+        "packet": "P07",
+        "pr": 40,
+        "initial_sha": "9a8287271299a59fc9291b8d253299a8d109a35d"
+      },
+      {
+        "packet": "P08",
+        "pr": 41,
+        "initial_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1"
+      },
+      {
+        "packet": "P09",
+        "pr": 42,
+        "initial_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd"
+      },
+      {
+        "packet": "P10",
+        "pr": 43,
+        "initial_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a"
+      },
+      {
+        "packet": "P11",
+        "pr": 44,
+        "initial_sha": "2f0187b7242681c394c09058b5ef647667206bd6"
+      },
+      {
+        "packet": "P12",
+        "pr": 45,
+        "initial_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4"
+      },
+      {
+        "packet": "P13",
+        "pr": 46,
+        "initial_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860"
+      },
+      {
+        "packet": "P14",
+        "pr": 47,
+        "initial_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b"
+      },
+      {
+        "packet": "P15",
+        "pr": 48,
+        "initial_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3"
+      },
+      {
+        "packet": "P16",
+        "pr": 49,
+        "initial_sha": "99298b81501c3e7764d653604923522a19b9f05c"
+      },
+      {
+        "packet": "P17",
+        "pr": 50,
+        "initial_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9"
+      },
+      {
+        "packet": "P18",
+        "pr": 51,
+        "initial_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a"
+      },
+      {
+        "packet": "P19",
+        "pr": 52,
+        "initial_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7"
+      },
+      {
+        "packet": "P20",
+        "pr": 53,
+        "initial_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34"
+      },
+      {
+        "packet": "P21",
+        "pr": 54,
+        "initial_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f"
+      },
+      {
+        "packet": "P22",
+        "pr": 55,
+        "initial_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204"
+      },
+      {
+        "packet": "P23",
+        "pr": 56,
+        "initial_sha": "77707092202ca79277de7bc57cc4e37e4c033171"
+      },
+      {
+        "packet": "P24",
+        "pr": 57,
+        "initial_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6"
+      },
+      {
+        "packet": "P25",
+        "pr": 58,
+        "initial_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a"
+      }
+    ]
+  },
+  "live_25_packets": [
+    {
+      "packet": "P01",
+      "pr": 35,
+      "initial_historic_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "live_head_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/35",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P02",
+      "pr": 36,
+      "initial_historic_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "live_head_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/36",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P03",
+      "pr": 34,
+      "initial_historic_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "live_head_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/34",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P04",
+      "pr": 37,
+      "initial_historic_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "live_head_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/37",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "initial_historic_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "live_head_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/38",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P06",
+      "pr": 39,
+      "initial_historic_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "live_head_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/39",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P07",
+      "pr": 40,
+      "initial_historic_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "live_head_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/40",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P08",
+      "pr": 41,
+      "initial_historic_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "live_head_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/41",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P09",
+      "pr": 42,
+      "initial_historic_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "live_head_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/42",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P10",
+      "pr": 43,
+      "initial_historic_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "live_head_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/43",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P11",
+      "pr": 44,
+      "initial_historic_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "live_head_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/44",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P12",
+      "pr": 45,
+      "initial_historic_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "live_head_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/45",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P13",
+      "pr": 46,
+      "initial_historic_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "live_head_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/46",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P14",
+      "pr": 47,
+      "initial_historic_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "live_head_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/47",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P15",
+      "pr": 48,
+      "initial_historic_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "live_head_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/48",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P16",
+      "pr": 49,
+      "initial_historic_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "live_head_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/49",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P17",
+      "pr": 50,
+      "initial_historic_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "live_head_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/50",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P18",
+      "pr": 51,
+      "initial_historic_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "live_head_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/51",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P19",
+      "pr": 52,
+      "initial_historic_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "live_head_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/52",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P20",
+      "pr": 53,
+      "initial_historic_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "live_head_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/53",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P21",
+      "pr": 54,
+      "initial_historic_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "live_head_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/54",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P22",
+      "pr": 55,
+      "initial_historic_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "live_head_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/55",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "initial_historic_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "live_head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/56",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "initial_historic_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "live_head_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/57",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "initial_historic_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "live_head_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/58",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    }
+  ],
+  "current_changed_since_R23A": [
+    {
+      "packet": "P02",
+      "pr": 36,
+      "initial_historic_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "live_head_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/36",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "initial_historic_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "live_head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/56",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "initial_historic_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "live_head_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/58",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    }
+  ],
+  "version_history": {
+    "P02": {
+      "packet": "P02",
+      "pr": 36,
+      "initial_R21": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "R23A": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "R23B": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "commit_delta_since_R23A": 2,
+      "changed_existing_paths_since_R23A": [
+        "qa/pack25/source-contract.test.mjs"
+      ],
+      "issue": "P36-P2-01",
+      "issue_status": "SOURCE_FIXED_A60_PASS_WITH_CONDITIONS"
+    },
+    "P25": {
+      "packet": "P25",
+      "pr": 58,
+      "R23A": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "R23B": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "commit_delta_since_R23A": 3,
+      "changed_existing_paths_since_R23A": [
+        "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+        "artifacts/api-server/test/backup-v3-profile-gate.test.ts"
+      ],
+      "issue": "P58-P2-01",
+      "issue_status": "SOURCE_FIXED_A60_PASS_WITH_CONDITIONS"
+    },
+    "P05": {
+      "packet": "P05",
+      "pr": 38,
+      "R23A": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "R23B": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "change": "NONE",
+      "migration_D01_D04": "PENDING_OWNER_APPROVAL"
+    },
+    "P23": {
+      "packet": "P23",
+      "pr": 56,
+      "initial": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "P23_01": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "R23B": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "change_in_R23B": "NONE",
+      "wired": false
+    }
+  },
+  "git_blob_sha1_sha256_exact_head_files": [
+    {
+      "packet": "P02",
+      "pr": 36,
+      "head": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "files": [
+        {
+          "path": "qa/pack20/source-contract.test.mjs",
+          "git_blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26",
+          "sha256": "9e9b2ce252e3364457d7b99884fb633e13bb4f430cc040e99756d03913ba1f65",
+          "size_bytes": 5131,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack20/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack21/source-contract.test.mjs",
+          "git_blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6",
+          "sha256": "cc850a71cb3f3e2025ba70fae0a10de6bf34cb980870b1c7bc2db1a04fd870d1",
+          "size_bytes": 2593,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack21/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "git_blob_sha1": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608",
+          "sha256": "58323720dbd8af2878e46baf237982c6b443d2122ea096f495f05825d2170274",
+          "size_bytes": 8595,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack25/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack26/source-contract.test.mjs",
+          "git_blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385",
+          "sha256": "7f502ac443299cc4924a22bcd8c3c9b26fd3c3015f39611f40eb7209a0dbedff",
+          "size_bytes": 3940,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack26/source-contract.test.mjs"
+        }
+      ]
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "head": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "files": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "git_blob_sha1": "518526d8d9ff2cef368261788e12c9f8290754f5",
+          "sha256": "ea18355c76d38b7e8c521fdf59dfe51d636c48e3f34bc513987525ff5c3c419d",
+          "size_bytes": 18827,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/e8100f7b0c1071c2a98880d4eb7947514fc58185/artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "git_blob_sha1": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19",
+          "sha256": "1273c0a144a4d08ba2679c5857f87bc7824c7769f7ee80294d9327802c3261",
+          "size_bytes": 16848,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/e8100f7b0c1071c2a98880d4eb7947514fc58185/artifacts/api-server/test/backup-v3-profile-gate.test.ts"
+        }
+      ]
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "head": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "files": [
+        {
+          "path": "lib/db/migration-ledger-validator/README.md",
+          "git_blob_sha1": "d68102bf577b6e78216032efb0cd996097cf34d8",
+          "sha256": "3c35c6c55dc6cd7bb0a8a43ca8105d1b07732c5224f63b774d5b7203b02e79c6",
+          "size_bytes": 3221,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/README.md"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/manifest.proposal.json",
+          "git_blob_sha1": "28f493263a2cbfb919db1f99b220058175b46ba0",
+          "sha256": "261efafcb8bebbc9c98631a99c9410e4e6e2751480bd7d6ba7e9c773661dc51b",
+          "size_bytes": 14712,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/manifest.proposal.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/source-snapshots.editor.json",
+          "git_blob_sha1": "d73453363928c31bd452c1fa30ac726613708e17",
+          "sha256": "6f5cd72fb6a072133d622b3d77fa1ff98e532f515cb7309d9ef5d07d82cfb026",
+          "size_bytes": 11978,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/source-snapshots.editor.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-fixtures.json",
+          "git_blob_sha1": "55ba08be665b12158205473fabe16901d7926667",
+          "sha256": "2c2be4ae115fbcd18c62ed45bcb7c1e67f26e198a9af6c641eda1b90cf0dd55c",
+          "size_bytes": 2846,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/synthetic-fixtures.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-history.json",
+          "git_blob_sha1": "f7898bdec530e91ec5215f464e1461512c4233be",
+          "sha256": "0b59d6fc3eb0db564c92c87b8be0438914e61ccf11494944651d7fa025448ef1",
+          "size_bytes": 171,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/synthetic-history.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.mjs",
+          "git_blob_sha1": "430e8be535489b0bb000ffbf5d8c6f8ee1fb5a8e",
+          "sha256": "0f16bcc92fdc219441546ebc8712cd56ce78f011c7ec441077893cc4d26c2e6d",
+          "size_bytes": 13863,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/validate.mjs"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.test.mjs",
+          "git_blob_sha1": "96c3d6b5d3f7ff9c10c154de0dc7c04374f61917",
+          "sha256": "c07cdb50f22c29ecb499536f1cd0ab32574dca05a6674130e6edddf3d92139ab",
+          "size_bytes": 9141,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/validate.test.mjs"
+        }
+      ]
+    }
+  ],
+  "test_evidence": {
+    "P02_PR36": {
+      "source_qa": {
+        "reviewer": "A60",
+        "sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+        "verdict": "PASS WITH CONDITIONS",
+        "scope": "PACK25_RESPONSE_COMMENT_SPOOF_SOURCE_ONLY",
+        "source_fixed": "P36-P2-01",
+        "no_new_p0_p1_p2": true
+      },
+      "synthetic": {
+        "A40_red": {
+          "tests": 3,
+          "pass": 0,
+          "fail": 3,
+          "expected_red": true,
+          "exit": 1
+        },
+        "A40_green": {
+          "tests": 20,
+          "pass": 20,
+          "exit": 0
+        },
+        "A40_previous": {
+          "tests": 19,
+          "pass": 19,
+          "exit": 0
+        },
+        "A60_independent": {
+          "tests": 16,
+          "pass": 16,
+          "exit": 0
+        },
+        "all_provenance": "AUTHOR SYNTHETIC vs INDEPENDENT SYNTHETIC are separate tests, not native exact SHA"
+      },
+      "native_exact_head": {
+        "status": "NOT_EXECUTED",
+        "exit": null,
+        "tap": null
+      },
+      "combined_pr35_pr36": {
+        "status": "NOT_EXECUTED",
+        "exit": null,
+        "tap": null
+      },
+      "CI": {
+        "status": "NO_CURRENT_HEAD_PR_RUN_RETURNED",
+        "not_green": true
+      },
+      "PG16": "NOT_EXECUTED"
+    },
+    "P25_PR58": {
+      "source_qa": {
+        "reviewer": "A60",
+        "sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+        "verdict": "PASS WITH CONDITIONS",
+        "scope": "LEGACY_BYE_COMPLETION_PURE_PREFLIGHT_SOURCE_ONLY",
+        "source_fixed": "P58-P2-01",
+        "no_new_p0_p1_p2": true
+      },
+      "author_tests": {
+        "authored": 26,
+        "new_since_R23A": 10,
+        "native_tap": null,
+        "isolated_V8_erasure": {
+          "tests": 26,
+          "passed": 26,
+          "provenance": "A90 V8 in-memory JS TypeScript-erasure shim, NOT node:test, NOT native"
+        }
+      },
+      "synthetic": {
+        "A60_independent": {
+          "tests": 13,
+          "passed": 13,
+          "exit": 0
+        }
+      },
+      "native_exact_head": {
+        "status": "NOT_EXECUTED",
+        "exit": null,
+        "tap": null
+      },
+      "full_typecheck": "NOT_EXECUTED",
+      "CI": {
+        "status": "FAILURE_INHERITED_PACK19",
+        "run_id": 38728665362,
+        "url": "https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38728665362",
+        "pack19_pass": 7,
+        "pack19_fail": 1,
+        "feature_suite": "NOT_EXECUTED"
+      },
+      "PG16": "NOT_EXECUTED",
+      "wired": false,
+      "authenticated": false
+    },
+    "P05_PR38": {
+      "source_qa": "SOURCE_GRAPH_PROPOSAL_NOT_SQL_SIGNOFF",
+      "source_graph_hashes": "14/14 SHA1 + 14/14 SHA256 verified by A20 R23A",
+      "historical_author_reported_node_validator": "37/37 PASS, not rerun A10 R23B",
+      "native_current_R23B": "NOT_EXECUTED",
+      "CI_current_head": "OLDER_RUN_FAILURE_DOES_NOT_CERTIFY",
+      "PG16_physical_history": "UNKNOWN",
+      "DDL": "NOT_EXECUTED"
+    },
+    "A60_R23B_shared": {
+      "synthetic_full_tap": {
+        "tests": 29,
+        "pass": 29,
+        "fail": 0,
+        "skip": 0,
+        "exit": 0,
+        "pack25_subset": 16,
+        "backup_subset": 13,
+        "tap_sha256": "3cfe15b28f8448900d101fb69d17f8f90e8ffd2c911f6b95f701668f883793ca"
+      },
+      "must_not_double_count_shared_tap": true
+    },
+    "A50_R23B": {
+      "exact_PR36_PR58_native_receipts": 0,
+      "status": "NO_RECEIPT_VERIFIED",
+      "R23A_scope": "0 native attempts PR56 and PR57"
+    },
+    "composite": {
+      "status": "NOT_EXECUTED",
+      "sha": null,
+      "CI": "NOT_EXECUTED",
+      "pg16": "NOT_EXECUTED",
+      "browser": "NOT_EXECUTED",
+      "FULL_QA": "NOT_EXECUTED"
+    }
+  },
+  "migration_owner_choices": [
+    {
+      "decision": "D01",
+      "proposed": "APPROVE_SOURCE_GRAPH_ONLY",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "14 immutable source identities SQL0027–0040, no adopted applied DB history"
+    },
+    {
+      "decision": "D02",
+      "proposed": "RELEASE_FIRST_EDITOR_SECOND",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "release 0030/0031 precede editor canonical proposed 0032/0033; policy order not hard SQL dep"
+    },
+    {
+      "decision": "D03",
+      "proposed": "SOURCE_AND_RUNTIME_RECEIPT_REQUIRED / UNKNOWN_FAIL_CLOSED",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "source+runner exact executed-input/ledger/catalog/physical PG16 evidence policy; read-only GO separate"
+    },
+    {
+      "decision": "D04",
+      "proposed": "A00_CONTROLLED_SERIALIZED_ALLOCATOR",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "logical WEB-005-T055-BASKET-CAS-PERSISTENCE-V1 only; numeric ID=null; reservation REQUESTED_NOT_ALLOCATED"
+    }
+  ],
+  "migration_security": {
+    "P05_head": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+    "proposal_manifest_sha": "28f493263a2cbfb919db1f99b220058175b46ba0",
+    "release_editor_original_0030_0031_collision": true,
+    "source_graph": "14 SOURCE HASHES VERIFIED; NOT ADOPTED",
+    "physical_pg16_ledger": "UNKNOWN",
+    "sql_executed": false,
+    "numeric_t055_id": null,
+    "source_qa_cannot_promote_to_sql": true
+  },
+  "direct_file_conflicts": {
+    "count": 15,
+    "historical_pairs": [
+      {
+        "packet_a": "P06",
+        "packet_b": "P09",
+        "pr_a": 39,
+        "pr_b": 42,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P11",
+        "pr_a": 39,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P13",
+        "pr_a": 39,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P06",
+        "packet_b": "P18",
+        "pr_a": 39,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P08",
+        "packet_b": "P15",
+        "pr_a": 41,
+        "pr_b": 48,
+        "shared_paths": [
+          "artifacts/api-server/src/application/backups/backup-v3.ts",
+          "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P11",
+        "pr_a": 42,
+        "pr_b": 44,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P13",
+        "pr_a": 42,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P09",
+        "packet_b": "P18",
+        "pr_a": 42,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts",
+          "artifacts/api-server/test/revert-match.integration.test.ts"
+        ]
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P17",
+        "pr_a": 43,
+        "pr_b": 50,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      },
+      {
+        "packet_a": "P10",
+        "packet_b": "P21",
+        "pr_a": 43,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P13",
+        "pr_a": 44,
+        "pr_b": 46,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P11",
+        "packet_b": "P18",
+        "pr_a": 44,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P13",
+        "packet_b": "P18",
+        "pr_a": 46,
+        "pr_b": 51,
+        "shared_paths": [
+          "artifacts/api-server/src/routes/tournaments.ts"
+        ]
+      },
+      {
+        "packet_a": "P14",
+        "packet_b": "P21",
+        "pr_a": 47,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/components/stage-progress-view.tsx"
+        ]
+      },
+      {
+        "packet_a": "P17",
+        "packet_b": "P21",
+        "pr_a": 50,
+        "pr_b": 54,
+        "shared_paths": [
+          "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+        ]
+      }
+    ],
+    "R23B_new_pair_count": 0,
+    "P02_only_prior_owned_path": true,
+    "P25_only_prior_owned_paths": true
+  },
+  "dependency_DAG": [
+    {
+      "from": "P01/PR35",
+      "to": "P02/PR36",
+      "kind": "CI_SOURCE_ORDER",
+      "hard": true,
+      "note": "nonoverlapping Pack19 patch then Pack20/21/25/26; P02 P2 response spoof still blocks full contract"
+    },
+    {
+      "from": "P02/PR36",
+      "to": "A40_NEXT_PACK25_FIX",
+      "kind": "NEW_SCOPED_SOURCE",
+      "hard": true,
+      "note": "unfixed response-comment spoof; test-first new SHA and A60 exact review"
+    },
+    {
+      "from": "P01+P02+FUTURE_FIX",
+      "to": "A50_DISPOSABLE_PACK19_26_QA",
+      "kind": "CI_EXECUTOR",
+      "hard": true,
+      "note": "never treat 33 A40 + 14 A60 synthetic as native full-source suite"
+    },
+    {
+      "from": "P05/PR38",
+      "to": "A20_CANONICAL_MIGRATION_LEDGER",
+      "kind": "MIGRATION_IDENTITY",
+      "hard": true,
+      "note": "14 source hashes verified; release/editor 0030/0031 collision; A00 decision D01-D04"
+    },
+    {
+      "from": "A20_LEDGER_DECISION",
+      "to": "T055_NUMERIC_MIGRATION_RESERVATION",
+      "kind": "MIGRATION",
+      "hard": true,
+      "note": "requested-not-allocated; no guessed 0032/0041"
+    },
+    {
+      "from": "T055_RESERVATION+WRITER_LOCK_GRAPH",
+      "to": "P22/PR55_FUTURE_T055_IMPL",
+      "kind": "API_DB",
+      "hard": true,
+      "note": "persistence, ETag, atomic roster/stage, dirty draft"
+    },
+    {
+      "from": "P08/PR41+P15/PR48",
+      "to": "P23/PR56",
+      "kind": "BACKUP_DOMAIN",
+      "hard": true,
+      "note": "source parity/MVCC prerequisite; no direct file change PR56"
+    },
+    {
+      "from": "P23/PR56",
+      "to": "P25/PR58",
+      "kind": "BACKUP_COMPOSITION",
+      "hard": true,
+      "note": "pure strict validator and raw profile gate different checks; NOT_WIRED"
+    },
+    {
+      "from": "A30_LEGACY_TRUST+A70_ACTION_CONTRACT+P23+P25",
+      "to": "FUTURE_BACKUP_IMPORT_EXPORT_RAW_HTTP_WIRING",
+      "kind": "BACKUP_SECURITY",
+      "hard": true,
+      "note": "raw pre-Zod capture, validated producer, action-local closure, restricted legacy, failure rollback"
+    },
+    {
+      "from": "P24/PR57",
+      "to": "SWISS_STAGE_LOCAL_ROUTE_INTEGRATION",
+      "kind": "SPORT_SOURCE",
+      "hard": true,
+      "note": "caller stageId filter plus remaining TS-B/actionableRound/DE source"
+    },
+    {
+      "from": "FILE_CONFLICT_15_PAIRS",
+      "to": "FUTURE_INTEGRATED_COMPOSITE_SHA",
+      "kind": "MERGE_CONFLICT",
+      "hard": true,
+      "note": "shared files and semantic API consistency; protected integration only with separate GO"
+    },
+    {
+      "from": "WEB004_38_CASE_DISPOSITIONS+R23B_SOURCE_CLOSURE+NATIVE_CI_PG16_QA",
+      "to": "FINAL_HANDOFF_GO",
+      "kind": "HANDOFF",
+      "hard": true,
+      "note": "owner/HQ signed final release/transfer gate; no SWARM006 now"
+    },
+    {
+      "from": "P02 PR36 R23B SOURCE_FIXED",
+      "to": "A50 EXACT-SHA PACK25 NATIVE",
+      "kind": "QA_GATE",
+      "hard": true,
+      "note": "A60 PASS WITH CONDITIONS not native; requires PR35 Pack19 overlay separately authorized"
+    },
+    {
+      "from": "P25 PR58 R23B SOURCE_FIXED",
+      "to": "A50 EXACT-SHA BACKUP TEST 26 + TYPECHECK",
+      "kind": "QA_GATE",
+      "hard": true,
+      "note": "A90 V8-erasure 26/26, A60 synthetic13/13 not native"
+    },
+    {
+      "from": "A20 D01 D02 D03 D04 APPROVALS",
+      "to": "T055 MIGRATION ALLOCATOR AND AUTHORITATIVE LEDGER",
+      "kind": "MIGRATION_OWNER_GATE",
+      "hard": true,
+      "note": "no numeric key; source-graph ≠ physical applied state"
+    },
+    {
+      "from": "A30 RAW_ISSUER POLICY+A70 ACTION_LOCAL",
+      "to": "P23+P25 FUTURE IMPORTER",
+      "kind": "SECURITY",
+      "hard": true,
+      "note": "no trusted old producer; no strict downgrade and Zod evidence"
+    },
+    {
+      "from": "A50-NATIVE+EXACT_SHA_COMPOSITE+PG16+WEB004_38",
+      "to": "EXEC-B FINAL INTEGRATION REVIEW",
+      "kind": "LATER_GATE",
+      "hard": true,
+      "note": "plan only, no SWARM006 authorization"
+    }
+  ],
+  "R23C_blocker_matrix": [
+    {
+      "id": "R23C-01",
+      "status": "SOURCE_FIXED_NATIVE_PENDING",
+      "owner": "A40/A50/A60",
+      "severity": "HIGH",
+      "area": "CI Pack25",
+      "description": "P36-P2-01 repaired and A60 source-accepted with conditions, but bounded lexer is not full AST; PR35+PR36 native exact-source suite NOT_EXECUTED.",
+      "required": "A00-authorized clean checkout, exact-head Pack19-26 source contracts and domain tests; A60 on integrated SHA",
+      "gate": "NO_NATIVE_CI_PASS"
+    },
+    {
+      "id": "R23C-02",
+      "status": "SOURCE_FIXED_INTEGRATION_PENDING",
+      "owner": "A90/A30/A70",
+      "severity": "HIGH",
+      "area": "Backup preflight",
+      "description": "P58-P2-01 source-fixed; 26 authored Node tests NOT_EXECUTED natively, authentic archived V2/V3 positive corpus absent, classifier never authenticates historical producer.",
+      "required": "Full V2/V3 semantic validators and verified archived fixtures; standalone native TAP/typecheck before importer GO",
+      "gate": "BACKUP_NOT_WIRED"
+    },
+    {
+      "id": "R23C-03",
+      "status": "PENDING_OWNER_APPROVAL",
+      "owner": "A00/A20",
+      "severity": "CRITICAL",
+      "area": "Migration D01-D04",
+      "description": "A20 D01 source graph, D02 release-first policy, D03 runtime receipts, D04 serialized allocator all proposed, no signed A00 choice.",
+      "required": "A00 explicit signed decision for each D01-D04; physical applied-history read-only preflight separately authorized; T055 numeric ID remains null",
+      "gate": "NO_MIGRATION_GO"
+    },
+    {
+      "id": "R23C-04",
+      "status": "NOT_EXECUTED",
+      "owner": "A50/A00",
+      "severity": "CRITICAL",
+      "area": "Native infrastructure",
+      "description": "No trustworthy full pinned Node22/pnpm10 frozen checkout or independently certified physically disposable PG16 reset boundary, zero current per-PR native receipts.",
+      "required": "Independent environment and non-destructive source-unit QA; later individually approved PG16 suite with recorded exit/TAP/DB identity",
+      "gate": "NO_NATIVE_PASS"
+    },
+    {
+      "id": "R23C-05",
+      "status": "CI_FAILURE",
+      "owner": "A40/A50/A00",
+      "severity": "HIGH",
+      "area": "CI Pack19 upstream",
+      "description": "PR58 current run 38728665362 fails inherited Pack19 7/8; PR36 current head no workflow run; Pack17 --full not executed.",
+      "required": "Authorized composite overlay Pack19+Pack20–26, verified TAP, then trusted CI; no paid reruns now",
+      "gate": "CI_NOT_GREEN"
+    },
+    {
+      "id": "R23C-06",
+      "status": "NO_COMPOSITE_SHA",
+      "owner": "A00/EXEC-B",
+      "severity": "CRITICAL",
+      "area": "Integration DAG",
+      "description": "25 PR draft/unmerged. 15 earlier exact path overlap pairs, no integrated SHA, no reviewed composite build, routes and Backup V3 shared API conflicts.",
+      "required": "Owner-sign integration scope/order and file collision resolutions in disposable workspace; pin composite commit & independent merged-source QA before promotion",
+      "gate": "NO_COMPOSITE_SHA"
+    },
+    {
+      "id": "R23C-07",
+      "status": "NOT_IMPLEMENTED",
+      "owner": "A20/A110",
+      "severity": "HIGH",
+      "area": "T055 Basket CAS",
+      "description": "P22 test-only, no numbered migration, no persistent CAS BIGINT, HTTP 428/412/ETag, host dirty-draft reconciliation, approved PG16 proof.",
+      "required": "After ledger decision separate migration+lock graph/ORM QA and API/UI implementation under exact GO",
+      "gate": "BASKET_CAS_NOT_READY"
+    },
+    {
+      "id": "R23C-08",
+      "status": "NOT_WIRED",
+      "owner": "A90/A70/A30/A00",
+      "severity": "CRITICAL",
+      "area": "Backup V3",
+      "description": "P23 strict policy and P25 raw profile preflight are pure isolated modules, no HTTP raw-before-Zod enforcement, issuer proof, real Undo restriction, importer rollback/clone maps.",
+      "required": "Owner security choice, strict/legacy provenance, action-local ID closure, typed raw ingress, auth/zero-write/rollback and isolated PG16 integration tests",
+      "gate": "BACKUP_V3_NOT_WIRED"
+    },
+    {
+      "id": "R23C-09",
+      "status": "CONTRACT_ONLY",
+      "owner": "A70/A80/A120",
+      "severity": "HIGH",
+      "area": "Sport & Undo",
+      "description": "Swiss S3/S4 P24 isolated; caller stage filter, >16 pairing oracle, S1/TS-B S2 actionable round and other sporting/de/undo conflict QA not integrated.",
+      "required": "Separate source integration choices, native sport+API tests and independent A60 functional review",
+      "gate": "SPORT_INTEGRATION_PENDING"
+    },
+    {
+      "id": "R23C-10",
+      "status": "UNRESOLVED",
+      "owner": "A00/HQ",
+      "severity": "HIGH",
+      "area": "WEB-004 38 cases",
+      "description": "38 aggregate slots; 29 secondary identifiers, nine true original identifiers unavailable; original 38-row CSV absent and no signed per-case dispositions.",
+      "required": "Authentic original artifact or risk/owner-signed per-case resolution; never invent identifiers or mark unresolved PASS/WONT_FIX",
+      "gate": "WEB004_GOVERNANCE"
+    },
+    {
+      "id": "R23C-11",
+      "status": "POLICY_OPEN",
+      "owner": "A00/A30/A100",
+      "severity": "HIGH",
+      "area": "Other owner/security",
+      "description": "MP2B, Steam, session security, private cache and revocation controls still require separate qualified owner decisions and integration/HTTP tests.",
+      "required": "Explicit backlog-based owner dispositions, security reviews, tests and file conflict resolution",
+      "gate": "OWNER_APPROVAL_PENDING"
+    },
+    {
+      "id": "R23C-12",
+      "status": "RELEASE_NO_GO",
+      "owner": "A00/HQ/EXEC-B",
+      "severity": "CRITICAL",
+      "area": "Release/transfer",
+      "description": "No native comprehensive CI, no PG16 execution, no consolidated source SHA, no FULL_QA/FINAL_HANDOFF_GO, owner R10 final-only handoff directive remains active.",
+      "required": "Complete WEB-005 scope and owner review first; independent composite acceptance in later separately authorized EXEC-B/Swarm-006 phase",
+      "gate": "SWARM006_HOLD"
+    }
+  ],
+  "future_EXEC_B_integration_composite_plan_proposal_only": [
+    {
+      "seq": 1,
+      "owner": "A00/HQ",
+      "work": "Confirm WEB-005 final-only policy, owner decisions D01-D04 and R23C backlog dispositions; preserve isolated source PRs."
+    },
+    {
+      "seq": 2,
+      "owner": "A40/A50/A60",
+      "work": "Test PR35 Pack19 + P02/PR36 Pack20-26 in separately authorized clean disposable source overlay, no PR merges; capture exact sha/exit/TAP."
+    },
+    {
+      "seq": 3,
+      "owner": "A90/A30/A70/A50",
+      "work": "Run P25 26-case native suite/typecheck; authenticate historical V2/V3 fixture evidence; decide trust/issuer, legacy restricted Undo and action-local provenance."
+    },
+    {
+      "seq": 4,
+      "owner": "A20/A00",
+      "work": "Approve canonical migration graph/order and read-only physical receipts policy; assign exclusive allocator; review SQL writer/lock DAG before any numeric T055 reservation or PG16 reset."
+    },
+    {
+      "seq": 5,
+      "owner": "A00/A70/A80/A100/A110/A120",
+      "work": "Close remaining approved sport, security, lifecycle and Host/UI feature source contracts with owner-signed dispositions; no speculative code."
+    },
+    {
+      "seq": 6,
+      "owner": "EXEC-B (future only, after separate GO)",
+      "work": "Choose dependency-aware composite integration order, resolve 15 direct overlaps (backend tournaments, backup-v3, test, UI) and API contracts; compute and publish a NEW_COMPOSITE_SHA."
+    },
+    {
+      "seq": 7,
+      "owner": "A50/A60/EXEC-B (future)",
+      "work": "Native Node/pnpm typecheck, Pack19–26/17, DB-free unit, API and sport, approved disposable PG16 migration/rollback, browser/manual flows; independent integrated SHA QA."
+    },
+    {
+      "seq": 8,
+      "owner": "A00/HQ (future)",
+      "work": "Verify full 38-case WEB004 dispositions, composite release receipts/rollback and approve or refuse FINAL_HANDOFF_GO; only then decide any SWARM-006 transfer/deploy."
+    }
+  ],
+  "test_debt": {
+    "priority_1": [
+      "PR35 + PR36 pinned Pack19–26 native Node suite",
+      "PR58 26 authored node:test suite and full TypeScript typecheck",
+      "physical clean exact SHA checkout/frozen pnpm",
+      "authoritatively captured native TAP + exit, not synthetic"
+    ],
+    "priority_2": [
+      "certified physically disposable PG16, read-only historical evidence and separate signed reset GO",
+      "Pack17 --full and full API/PG16 migration & rollback",
+      "strict Backup importer/exporter raw-before-Zod, auth, legacy negative/archival positive and Undo action-local closure",
+      "conditional CAS race ETags 428/412, roster/graph writer lock tests",
+      "Swiss >16 fairness/caller stage-scope and Undo LIFO native tests",
+      "frontend Host/brackets/browser regression, session/security/Steam workflow",
+      "full composite integration checksum, CI, QA and rollback evidence"
+    ],
+    "not_executed": [
+      "native PR36",
+      "native PR58",
+      "PG16 R23B",
+      "full typecheck",
+      "PR35/PR36 overlay",
+      "composite",
+      "Pack17 --full",
+      "Backup importer/exporter",
+      "HTTP/Undo/rollback",
+      "browser",
+      "SWARM006"
+    ]
+  },
+  "WEB004_historical_38": {
+    "slots": 38,
+    "secondary_derived_ids": 29,
+    "authentic_original_missing_ids": 9,
+    "original_csv_verified": false,
+    "owner_signed_per_case_dispositions": 0,
+    "aggregates_historical_only": {
+      "PASS": 0,
+      "EXTERNAL_CI_FAIL": 3,
+      "BLOCKED": 33,
+      "NOT_RUN": 2
+    },
+    "unknown_ids_not_invented": true,
+    "unresolved_not_PASS": true
+  },
+  "prohibited_actions": {
+    "app_edits": 0,
+    "merge": 0,
+    "rebase": 0,
+    "SQL": 0,
+    "DDL": 0,
+    "deploy": 0,
+    "paid_CI_rerun": 0,
+    "SWARM006": 0
+  },
+  "future_handoff": "A00 may decide limited R23C/EXEC-B preparation scope; NOT FINAL_HANDOFF_GO; SWARM-006 not initiated."
+}
