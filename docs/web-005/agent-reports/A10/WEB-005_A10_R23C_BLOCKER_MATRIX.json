@@ -1,0 +1,501 @@
+{
+  "schema": "web005.a10.r23c.blocker_matrix/1",
+  "task": "WEB-005-T018-A10-R23B-REGISTRY-CLOSEOUT",
+  "created": "2026-10-15 Europe/Warsaw",
+  "disposition": "SOURCE_DEFECT_FIXED does not retire technical/integration/testing blockers",
+  "previous_R23A_blocker_count": 12,
+  "current_R23C_blocker_count": 12,
+  "blockers": [
+    {
+      "id": "R23C-01",
+      "status": "SOURCE_FIXED_NATIVE_PENDING",
+      "owner": "A40/A50/A60",
+      "severity": "HIGH",
+      "area": "CI Pack25",
+      "description": "P36-P2-01 repaired and A60 source-accepted with conditions, but bounded lexer is not full AST; PR35+PR36 native exact-source suite NOT_EXECUTED.",
+      "required": "A00-authorized clean checkout, exact-head Pack19-26 source contracts and domain tests; A60 on integrated SHA",
+      "gate": "NO_NATIVE_CI_PASS"
+    },
+    {
+      "id": "R23C-02",
+      "status": "SOURCE_FIXED_INTEGRATION_PENDING",
+      "owner": "A90/A30/A70",
+      "severity": "HIGH",
+      "area": "Backup preflight",
+      "description": "P58-P2-01 source-fixed; 26 authored Node tests NOT_EXECUTED natively, authentic archived V2/V3 positive corpus absent, classifier never authenticates historical producer.",
+      "required": "Full V2/V3 semantic validators and verified archived fixtures; standalone native TAP/typecheck before importer GO",
+      "gate": "BACKUP_NOT_WIRED"
+    },
+    {
+      "id": "R23C-03",
+      "status": "PENDING_OWNER_APPROVAL",
+      "owner": "A00/A20",
+      "severity": "CRITICAL",
+      "area": "Migration D01-D04",
+      "description": "A20 D01 source graph, D02 release-first policy, D03 runtime receipts, D04 serialized allocator all proposed, no signed A00 choice.",
+      "required": "A00 explicit signed decision for each D01-D04; physical applied-history read-only preflight separately authorized; T055 numeric ID remains null",
+      "gate": "NO_MIGRATION_GO"
+    },
+    {
+      "id": "R23C-04",
+      "status": "NOT_EXECUTED",
+      "owner": "A50/A00",
+      "severity": "CRITICAL",
+      "area": "Native infrastructure",
+      "description": "No trustworthy full pinned Node22/pnpm10 frozen checkout or independently certified physically disposable PG16 reset boundary, zero current per-PR native receipts.",
+      "required": "Independent environment and non-destructive source-unit QA; later individually approved PG16 suite with recorded exit/TAP/DB identity",
+      "gate": "NO_NATIVE_PASS"
+    },
+    {
+      "id": "R23C-05",
+      "status": "CI_FAILURE",
+      "owner": "A40/A50/A00",
+      "severity": "HIGH",
+      "area": "CI Pack19 upstream",
+      "description": "PR58 current run 38728665362 fails inherited Pack19 7/8; PR36 current head no workflow run; Pack17 --full not executed.",
+      "required": "Authorized composite overlay Pack19+Pack20–26, verified TAP, then trusted CI; no paid reruns now",
+      "gate": "CI_NOT_GREEN"
+    },
+    {
+      "id": "R23C-06",
+      "status": "NO_COMPOSITE_SHA",
+      "owner": "A00/EXEC-B",
+      "severity": "CRITICAL",
+      "area": "Integration DAG",
+      "description": "25 PR draft/unmerged. 15 earlier exact path overlap pairs, no integrated SHA, no reviewed composite build, routes and Backup V3 shared API conflicts.",
+      "required": "Owner-sign integration scope/order and file collision resolutions in disposable workspace; pin composite commit & independent merged-source QA before promotion",
+      "gate": "NO_COMPOSITE_SHA"
+    },
+    {
+      "id": "R23C-07",
+      "status": "NOT_IMPLEMENTED",
+      "owner": "A20/A110",
+      "severity": "HIGH",
+      "area": "T055 Basket CAS",
+      "description": "P22 test-only, no numbered migration, no persistent CAS BIGINT, HTTP 428/412/ETag, host dirty-draft reconciliation, approved PG16 proof.",
+      "required": "After ledger decision separate migration+lock graph/ORM QA and API/UI implementation under exact GO",
+      "gate": "BASKET_CAS_NOT_READY"
+    },
+    {
+      "id": "R23C-08",
+      "status": "NOT_WIRED",
+      "owner": "A90/A70/A30/A00",
+      "severity": "CRITICAL",
+      "area": "Backup V3",
+      "description": "P23 strict policy and P25 raw profile preflight are pure isolated modules, no HTTP raw-before-Zod enforcement, issuer proof, real Undo restriction, importer rollback/clone maps.",
+      "required": "Owner security choice, strict/legacy provenance, action-local ID closure, typed raw ingress, auth/zero-write/rollback and isolated PG16 integration tests",
+      "gate": "BACKUP_V3_NOT_WIRED"
+    },
+    {
+      "id": "R23C-09",
+      "status": "CONTRACT_ONLY",
+      "owner": "A70/A80/A120",
+      "severity": "HIGH",
+      "area": "Sport & Undo",
+      "description": "Swiss S3/S4 P24 isolated; caller stage filter, >16 pairing oracle, S1/TS-B S2 actionable round and other sporting/de/undo conflict QA not integrated.",
+      "required": "Separate source integration choices, native sport+API tests and independent A60 functional review",
+      "gate": "SPORT_INTEGRATION_PENDING"
+    },
+    {
+      "id": "R23C-10",
+      "status": "UNRESOLVED",
+      "owner": "A00/HQ",
+      "severity": "HIGH",
+      "area": "WEB-004 38 cases",
+      "description": "38 aggregate slots; 29 secondary identifiers, nine true original identifiers unavailable; original 38-row CSV absent and no signed per-case dispositions.",
+      "required": "Authentic original artifact or risk/owner-signed per-case resolution; never invent identifiers or mark unresolved PASS/WONT_FIX",
+      "gate": "WEB004_GOVERNANCE"
+    },
+    {
+      "id": "R23C-11",
+      "status": "POLICY_OPEN",
+      "owner": "A00/A30/A100",
+      "severity": "HIGH",
+      "area": "Other owner/security",
+      "description": "MP2B, Steam, session security, private cache and revocation controls still require separate qualified owner decisions and integration/HTTP tests.",
+      "required": "Explicit backlog-based owner dispositions, security reviews, tests and file conflict resolution",
+      "gate": "OWNER_APPROVAL_PENDING"
+    },
+    {
+      "id": "R23C-12",
+      "status": "RELEASE_NO_GO",
+      "owner": "A00/HQ/EXEC-B",
+      "severity": "CRITICAL",
+      "area": "Release/transfer",
+      "description": "No native comprehensive CI, no PG16 execution, no consolidated source SHA, no FULL_QA/FINAL_HANDOFF_GO, owner R10 final-only handoff directive remains active.",
+      "required": "Complete WEB-005 scope and owner review first; independent composite acceptance in later separately authorized EXEC-B/Swarm-006 phase",
+      "gate": "SWARM006_HOLD"
+    }
+  ],
+  "closed_narrow_source_findings": [
+    {
+      "id": "P36-P2-01",
+      "packet": "P02",
+      "pr": 36,
+      "exact_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "source_status": "CLOSED_SOURCE",
+      "a60": "PASS WITH CONDITIONS",
+      "native": "NOT_EXECUTED",
+      "next_gate": "R23C-01"
+    },
+    {
+      "id": "P58-P2-01",
+      "packet": "P25",
+      "pr": 58,
+      "exact_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "source_status": "CLOSED_SOURCE",
+      "a60": "PASS WITH CONDITIONS",
+      "native": "NOT_EXECUTED",
+      "next_gate": "R23C-02"
+    }
+  ],
+  "migration_D01_D04": [
+    {
+      "decision": "D01",
+      "proposed": "APPROVE_SOURCE_GRAPH_ONLY",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "14 immutable source identities SQL0027–0040, no adopted applied DB history"
+    },
+    {
+      "decision": "D02",
+      "proposed": "RELEASE_FIRST_EDITOR_SECOND",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "release 0030/0031 precede editor canonical proposed 0032/0033; policy order not hard SQL dep"
+    },
+    {
+      "decision": "D03",
+      "proposed": "SOURCE_AND_RUNTIME_RECEIPT_REQUIRED / UNKNOWN_FAIL_CLOSED",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "source+runner exact executed-input/ledger/catalog/physical PG16 evidence policy; read-only GO separate"
+    },
+    {
+      "decision": "D04",
+      "proposed": "A00_CONTROLLED_SERIALIZED_ALLOCATOR",
+      "status": "PENDING_OWNER_APPROVAL",
+      "scope": "logical WEB-005-T055-BASKET-CAS-PERSISTENCE-V1 only; numeric ID=null; reservation REQUESTED_NOT_ALLOCATED"
+    }
+  ],
+  "historical_15_conflicts": [
+    {
+      "packet_a": "P06",
+      "packet_b": "P09",
+      "pr_a": 39,
+      "pr_b": 42,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P06",
+      "packet_b": "P11",
+      "pr_a": 39,
+      "pr_b": 44,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P06",
+      "packet_b": "P13",
+      "pr_a": 39,
+      "pr_b": 46,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P06",
+      "packet_b": "P18",
+      "pr_a": 39,
+      "pr_b": 51,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P08",
+      "packet_b": "P15",
+      "pr_a": 41,
+      "pr_b": 48,
+      "shared_paths": [
+        "artifacts/api-server/src/application/backups/backup-v3.ts",
+        "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts"
+      ]
+    },
+    {
+      "packet_a": "P09",
+      "packet_b": "P11",
+      "pr_a": 42,
+      "pr_b": 44,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P09",
+      "packet_b": "P13",
+      "pr_a": 42,
+      "pr_b": 46,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P09",
+      "packet_b": "P18",
+      "pr_a": 42,
+      "pr_b": 51,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts",
+        "artifacts/api-server/test/revert-match.integration.test.ts"
+      ]
+    },
+    {
+      "packet_a": "P10",
+      "packet_b": "P17",
+      "pr_a": 43,
+      "pr_b": 50,
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    },
+    {
+      "packet_a": "P10",
+      "packet_b": "P21",
+      "pr_a": 43,
+      "pr_b": 54,
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    },
+    {
+      "packet_a": "P11",
+      "packet_b": "P13",
+      "pr_a": 44,
+      "pr_b": 46,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P11",
+      "packet_b": "P18",
+      "pr_a": 44,
+      "pr_b": 51,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P13",
+      "packet_b": "P18",
+      "pr_a": 46,
+      "pr_b": 51,
+      "shared_paths": [
+        "artifacts/api-server/src/routes/tournaments.ts"
+      ]
+    },
+    {
+      "packet_a": "P14",
+      "packet_b": "P21",
+      "pr_a": 47,
+      "pr_b": 54,
+      "shared_paths": [
+        "artifacts/tournament-manager/src/components/stage-progress-view.tsx"
+      ]
+    },
+    {
+      "packet_a": "P17",
+      "packet_b": "P21",
+      "pr_a": 50,
+      "pr_b": 54,
+      "shared_paths": [
+        "artifacts/tournament-manager/src/pages/tournament-detail.tsx"
+      ]
+    }
+  ],
+  "WEB004_lineage": {
+    "slots": 38,
+    "secondary_derived_ids": 29,
+    "authentic_original_missing_ids": 9,
+    "original_csv_verified": false,
+    "owner_signed_per_case_dispositions": 0,
+    "aggregates_historical_only": {
+      "PASS": 0,
+      "EXTERNAL_CI_FAIL": 3,
+      "BLOCKED": 33,
+      "NOT_RUN": 2
+    },
+    "unknown_ids_not_invented": true,
+    "unresolved_not_PASS": true
+  },
+  "dependency_DAG": [
+    {
+      "from": "P01/PR35",
+      "to": "P02/PR36",
+      "kind": "CI_SOURCE_ORDER",
+      "hard": true,
+      "note": "nonoverlapping Pack19 patch then Pack20/21/25/26; P02 P2 response spoof still blocks full contract"
+    },
+    {
+      "from": "P02/PR36",
+      "to": "A40_NEXT_PACK25_FIX",
+      "kind": "NEW_SCOPED_SOURCE",
+      "hard": true,
+      "note": "unfixed response-comment spoof; test-first new SHA and A60 exact review"
+    },
+    {
+      "from": "P01+P02+FUTURE_FIX",
+      "to": "A50_DISPOSABLE_PACK19_26_QA",
+      "kind": "CI_EXECUTOR",
+      "hard": true,
+      "note": "never treat 33 A40 + 14 A60 synthetic as native full-source suite"
+    },
+    {
+      "from": "P05/PR38",
+      "to": "A20_CANONICAL_MIGRATION_LEDGER",
+      "kind": "MIGRATION_IDENTITY",
+      "hard": true,
+      "note": "14 source hashes verified; release/editor 0030/0031 collision; A00 decision D01-D04"
+    },
+    {
+      "from": "A20_LEDGER_DECISION",
+      "to": "T055_NUMERIC_MIGRATION_RESERVATION",
+      "kind": "MIGRATION",
+      "hard": true,
+      "note": "requested-not-allocated; no guessed 0032/0041"
+    },
+    {
+      "from": "T055_RESERVATION+WRITER_LOCK_GRAPH",
+      "to": "P22/PR55_FUTURE_T055_IMPL",
+      "kind": "API_DB",
+      "hard": true,
+      "note": "persistence, ETag, atomic roster/stage, dirty draft"
+    },
+    {
+      "from": "P08/PR41+P15/PR48",
+      "to": "P23/PR56",
+      "kind": "BACKUP_DOMAIN",
+      "hard": true,
+      "note": "source parity/MVCC prerequisite; no direct file change PR56"
+    },
+    {
+      "from": "P23/PR56",
+      "to": "P25/PR58",
+      "kind": "BACKUP_COMPOSITION",
+      "hard": true,
+      "note": "pure strict validator and raw profile gate different checks; NOT_WIRED"
+    },
+    {
+      "from": "A30_LEGACY_TRUST+A70_ACTION_CONTRACT+P23+P25",
+      "to": "FUTURE_BACKUP_IMPORT_EXPORT_RAW_HTTP_WIRING",
+      "kind": "BACKUP_SECURITY",
+      "hard": true,
+      "note": "raw pre-Zod capture, validated producer, action-local closure, restricted legacy, failure rollback"
+    },
+    {
+      "from": "P24/PR57",
+      "to": "SWISS_STAGE_LOCAL_ROUTE_INTEGRATION",
+      "kind": "SPORT_SOURCE",
+      "hard": true,
+      "note": "caller stageId filter plus remaining TS-B/actionableRound/DE source"
+    },
+    {
+      "from": "FILE_CONFLICT_15_PAIRS",
+      "to": "FUTURE_INTEGRATED_COMPOSITE_SHA",
+      "kind": "MERGE_CONFLICT",
+      "hard": true,
+      "note": "shared files and semantic API consistency; protected integration only with separate GO"
+    },
+    {
+      "from": "WEB004_38_CASE_DISPOSITIONS+R23B_SOURCE_CLOSURE+NATIVE_CI_PG16_QA",
+      "to": "FINAL_HANDOFF_GO",
+      "kind": "HANDOFF",
+      "hard": true,
+      "note": "owner/HQ signed final release/transfer gate; no SWARM006 now"
+    },
+    {
+      "from": "P02 PR36 R23B SOURCE_FIXED",
+      "to": "A50 EXACT-SHA PACK25 NATIVE",
+      "kind": "QA_GATE",
+      "hard": true,
+      "note": "A60 PASS WITH CONDITIONS not native; requires PR35 Pack19 overlay separately authorized"
+    },
+    {
+      "from": "P25 PR58 R23B SOURCE_FIXED",
+      "to": "A50 EXACT-SHA BACKUP TEST 26 + TYPECHECK",
+      "kind": "QA_GATE",
+      "hard": true,
+      "note": "A90 V8-erasure 26/26, A60 synthetic13/13 not native"
+    },
+    {
+      "from": "A20 D01 D02 D03 D04 APPROVALS",
+      "to": "T055 MIGRATION ALLOCATOR AND AUTHORITATIVE LEDGER",
+      "kind": "MIGRATION_OWNER_GATE",
+      "hard": true,
+      "note": "no numeric key; source-graph ≠ physical applied state"
+    },
+    {
+      "from": "A30 RAW_ISSUER POLICY+A70 ACTION_LOCAL",
+      "to": "P23+P25 FUTURE IMPORTER",
+      "kind": "SECURITY",
+      "hard": true,
+      "note": "no trusted old producer; no strict downgrade and Zod evidence"
+    },
+    {
+      "from": "A50-NATIVE+EXACT_SHA_COMPOSITE+PG16+WEB004_38",
+      "to": "EXEC-B FINAL INTEGRATION REVIEW",
+      "kind": "LATER_GATE",
+      "hard": true,
+      "note": "plan only, no SWARM006 authorization"
+    }
+  ],
+  "proposed_composite_plan": [
+    {
+      "seq": 1,
+      "owner": "A00/HQ",
+      "work": "Confirm WEB-005 final-only policy, owner decisions D01-D04 and R23C backlog dispositions; preserve isolated source PRs."
+    },
+    {
+      "seq": 2,
+      "owner": "A40/A50/A60",
+      "work": "Test PR35 Pack19 + P02/PR36 Pack20-26 in separately authorized clean disposable source overlay, no PR merges; capture exact sha/exit/TAP."
+    },
+    {
+      "seq": 3,
+      "owner": "A90/A30/A70/A50",
+      "work": "Run P25 26-case native suite/typecheck; authenticate historical V2/V3 fixture evidence; decide trust/issuer, legacy restricted Undo and action-local provenance."
+    },
+    {
+      "seq": 4,
+      "owner": "A20/A00",
+      "work": "Approve canonical migration graph/order and read-only physical receipts policy; assign exclusive allocator; review SQL writer/lock DAG before any numeric T055 reservation or PG16 reset."
+    },
+    {
+      "seq": 5,
+      "owner": "A00/A70/A80/A100/A110/A120",
+      "work": "Close remaining approved sport, security, lifecycle and Host/UI feature source contracts with owner-signed dispositions; no speculative code."
+    },
+    {
+      "seq": 6,
+      "owner": "EXEC-B (future only, after separate GO)",
+      "work": "Choose dependency-aware composite integration order, resolve 15 direct overlaps (backend tournaments, backup-v3, test, UI) and API contracts; compute and publish a NEW_COMPOSITE_SHA."
+    },
+    {
+      "seq": 7,
+      "owner": "A50/A60/EXEC-B (future)",
+      "work": "Native Node/pnpm typecheck, Pack19–26/17, DB-free unit, API and sport, approved disposable PG16 migration/rollback, browser/manual flows; independent integrated SHA QA."
+    },
+    {
+      "seq": 8,
+      "owner": "A00/HQ (future)",
+      "work": "Verify full 38-case WEB004 dispositions, composite release receipts/rollback and approve or refuse FINAL_HANDOFF_GO; only then decide any SWARM-006 transfer/deploy."
+    }
+  ],
+  "latest_A60_report": "https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/web-005/a60-r18-independent-qa-20261014/docs/web-005/agent-reports/A60/WEB-005_A60_R23B_FIX_CLOSEOUT_HANDOFF.md",
+  "current_integration_sha": null,
+  "status": "NO_COMPOSITE_SHA",
+  "final_handoff_go": false,
+  "swarm006": "HOLD",
+  "release": "NO_GO"
+}
