@@ -1,0 +1,492 @@
+{
+  "schema": "web005.a10.r23b.exact_sha_manifest/1",
+  "task": "WEB-005-T018-A10-R23B-REGISTRY-CLOSEOUT",
+  "created": "2026-10-15 Europe/Warsaw",
+  "interpretation": "25 PR current HEADs, original P01-P25 packet baseline SHAs, and 13 UTF-8 file digest entries for R23B-reviewed P02 P25 and unchanged P05. Exact Git blobs from connector; SHA256 recalculated from retrieved text with abc self-test. Does NOT attest all 25 packet file bytes afresh.",
+  "base_release_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+  "base_release_ref": "release/tournament-ops-20261013-01",
+  "previous_registry_blob_sha1": "c06b0ac5ef2b2c8b635cfdfcde71663893a28811",
+  "previous_registry_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R23A_FINAL_SOURCE_REGISTRY.json",
+  "historical_heads_immutable": true,
+  "live_pr_count": 25,
+  "live_snapshot": [
+    {
+      "packet": "P01",
+      "pr": 35,
+      "initial_historic_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "live_head_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/35",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P02",
+      "pr": 36,
+      "initial_historic_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "live_head_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/36",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P03",
+      "pr": 34,
+      "initial_historic_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "live_head_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/34",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P04",
+      "pr": 37,
+      "initial_historic_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "live_head_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/37",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "initial_historic_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "live_head_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/38",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P06",
+      "pr": 39,
+      "initial_historic_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "live_head_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/39",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P07",
+      "pr": 40,
+      "initial_historic_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "live_head_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/40",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P08",
+      "pr": 41,
+      "initial_historic_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "live_head_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/41",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P09",
+      "pr": 42,
+      "initial_historic_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "live_head_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/42",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P10",
+      "pr": 43,
+      "initial_historic_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "live_head_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/43",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P11",
+      "pr": 44,
+      "initial_historic_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "live_head_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/44",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P12",
+      "pr": 45,
+      "initial_historic_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "live_head_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/45",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P13",
+      "pr": 46,
+      "initial_historic_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "live_head_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/46",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P14",
+      "pr": 47,
+      "initial_historic_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "live_head_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/47",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P15",
+      "pr": 48,
+      "initial_historic_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "live_head_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/48",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P16",
+      "pr": 49,
+      "initial_historic_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "live_head_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/49",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P17",
+      "pr": 50,
+      "initial_historic_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "live_head_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/50",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P18",
+      "pr": 51,
+      "initial_historic_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "live_head_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/51",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P19",
+      "pr": 52,
+      "initial_historic_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "live_head_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/52",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P20",
+      "pr": 53,
+      "initial_historic_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "live_head_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/53",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P21",
+      "pr": 54,
+      "initial_historic_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "live_head_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/54",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P22",
+      "pr": 55,
+      "initial_historic_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "live_head_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/55",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "initial_historic_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "live_head_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/56",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "initial_historic_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "live_head_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/57",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": false
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "initial_historic_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "live_head_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "pr_url": "https://github.com/C8LyNn/aplikacja-turnieje/pull/58",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "head_drift_since_initial": true
+    }
+  ],
+  "revisions": {
+    "P02": {
+      "packet": "P02",
+      "pr": 36,
+      "initial_R21": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "R23A": "4be68fdd48ee3529029dc4dd2952780ba37853e7",
+      "R23B": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "commit_delta_since_R23A": 2,
+      "changed_existing_paths_since_R23A": [
+        "qa/pack25/source-contract.test.mjs"
+      ],
+      "issue": "P36-P2-01",
+      "issue_status": "SOURCE_FIXED_A60_PASS_WITH_CONDITIONS"
+    },
+    "P25": {
+      "packet": "P25",
+      "pr": 58,
+      "R23A": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "R23B": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "commit_delta_since_R23A": 3,
+      "changed_existing_paths_since_R23A": [
+        "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+        "artifacts/api-server/test/backup-v3-profile-gate.test.ts"
+      ],
+      "issue": "P58-P2-01",
+      "issue_status": "SOURCE_FIXED_A60_PASS_WITH_CONDITIONS"
+    },
+    "P05": {
+      "packet": "P05",
+      "pr": 38,
+      "R23A": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "R23B": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "change": "NONE",
+      "migration_D01_D04": "PENDING_OWNER_APPROVAL"
+    },
+    "P23": {
+      "packet": "P23",
+      "pr": 56,
+      "initial": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "P23_01": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "R23B": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "change_in_R23B": "NONE",
+      "wired": false
+    }
+  },
+  "source_file_digest_count": 13,
+  "current_file_digests": [
+    {
+      "packet": "P02",
+      "pr": 36,
+      "head": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "files": [
+        {
+          "path": "qa/pack20/source-contract.test.mjs",
+          "git_blob_sha1": "42359d5116038f515a4b8504bad2fcc0f0df5b26",
+          "sha256": "9e9b2ce252e3364457d7b99884fb633e13bb4f430cc040e99756d03913ba1f65",
+          "size_bytes": 5131,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack20/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack21/source-contract.test.mjs",
+          "git_blob_sha1": "38d8a96870b31c604b86d010d53b5f40dbd359d6",
+          "sha256": "cc850a71cb3f3e2025ba70fae0a10de6bf34cb980870b1c7bc2db1a04fd870d1",
+          "size_bytes": 2593,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack21/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack25/source-contract.test.mjs",
+          "git_blob_sha1": "f38fe8b7af53a43ae560fe26fed1682ddcb7f608",
+          "sha256": "58323720dbd8af2878e46baf237982c6b443d2122ea096f495f05825d2170274",
+          "size_bytes": 8595,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack25/source-contract.test.mjs"
+        },
+        {
+          "path": "qa/pack26/source-contract.test.mjs",
+          "git_blob_sha1": "dd06d0cfba9db9c772e5559e0fbe1915e8e51385",
+          "sha256": "7f502ac443299cc4924a22bcd8c3c9b26fd3c3015f39611f40eb7209a0dbedff",
+          "size_bytes": 3940,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/24fe6c399e3a4fa82c3d96703620097fa941a59a/qa/pack26/source-contract.test.mjs"
+        }
+      ]
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "head": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "files": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts",
+          "git_blob_sha1": "518526d8d9ff2cef368261788e12c9f8290754f5",
+          "sha256": "ea18355c76d38b7e8c521fdf59dfe51d636c48e3f34bc513987525ff5c3c419d",
+          "size_bytes": 18827,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/e8100f7b0c1071c2a98880d4eb7947514fc58185/artifacts/api-server/src/application/backups/backup-v3-profile-gate.ts"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-profile-gate.test.ts",
+          "git_blob_sha1": "04f6dc8834f11d63f1b3710ae75c4ad7f6419f19",
+          "sha256": "1273c0a144a4d08ba2679c5857f87bc7824c7769f7ee80294d9327802c3261",
+          "size_bytes": 16848,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/e8100f7b0c1071c2a98880d4eb7947514fc58185/artifacts/api-server/test/backup-v3-profile-gate.test.ts"
+        }
+      ]
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "head": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "files": [
+        {
+          "path": "lib/db/migration-ledger-validator/README.md",
+          "git_blob_sha1": "d68102bf577b6e78216032efb0cd996097cf34d8",
+          "sha256": "3c35c6c55dc6cd7bb0a8a43ca8105d1b07732c5224f63b774d5b7203b02e79c6",
+          "size_bytes": 3221,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/README.md"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/manifest.proposal.json",
+          "git_blob_sha1": "28f493263a2cbfb919db1f99b220058175b46ba0",
+          "sha256": "261efafcb8bebbc9c98631a99c9410e4e6e2751480bd7d6ba7e9c773661dc51b",
+          "size_bytes": 14712,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/manifest.proposal.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/source-snapshots.editor.json",
+          "git_blob_sha1": "d73453363928c31bd452c1fa30ac726613708e17",
+          "sha256": "6f5cd72fb6a072133d622b3d77fa1ff98e532f515cb7309d9ef5d07d82cfb026",
+          "size_bytes": 11978,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/source-snapshots.editor.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-fixtures.json",
+          "git_blob_sha1": "55ba08be665b12158205473fabe16901d7926667",
+          "sha256": "2c2be4ae115fbcd18c62ed45bcb7c1e67f26e198a9af6c641eda1b90cf0dd55c",
+          "size_bytes": 2846,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/synthetic-fixtures.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/synthetic-history.json",
+          "git_blob_sha1": "f7898bdec530e91ec5215f464e1461512c4233be",
+          "sha256": "0b59d6fc3eb0db564c92c87b8be0438914e61ccf11494944651d7fa025448ef1",
+          "size_bytes": 171,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/synthetic-history.json"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.mjs",
+          "git_blob_sha1": "430e8be535489b0bb000ffbf5d8c6f8ee1fb5a8e",
+          "sha256": "0f16bcc92fdc219441546ebc8712cd56ce78f011c7ec441077893cc4d26c2e6d",
+          "size_bytes": 13863,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/validate.mjs"
+        },
+        {
+          "path": "lib/db/migration-ledger-validator/validate.test.mjs",
+          "git_blob_sha1": "96c3d6b5d3f7ff9c10c154de0dc7c04374f61917",
+          "sha256": "c07cdb50f22c29ecb499536f1cd0ab32574dca05a6674130e6edddf3d92139ab",
+          "size_bytes": 9141,
+          "link": "https://github.com/C8LyNn/aplikacja-turnieje/blob/2d36864f4d2f1c838073f387fd3c8efb3378c43b/lib/db/migration-ledger-validator/validate.test.mjs"
+        }
+      ]
+    }
+  ],
+  "remaining_historical_file_manifest": "R23A and R22/R20 immutable registries; not silently rehashed or rewritten in R23B.",
+  "digest_semantics": {
+    "git_blob_sha1": "GitHub exact commit file blob SHA1",
+    "sha256": "SHA256 of UTF8 exact-HEAD fetch_file content",
+    "hash_algorithm_self_test": "SHA256('abc') standard vector PASS",
+    "native_test_receipt": false
+  },
+  "integration_sha": null,
+  "composite_state": "NO_COMPOSITE_SHA",
+  "statuses": {
+    "R23B_registry": "COMPLETE",
+    "source_acceptance": "A60 PASS WITH CONDITIONS only on two exact heads",
+    "QA_PASS": "NOT FULL / NOT INTEGRATED",
+    "native_pass": "NOT_VERIFIED",
+    "PG16": "NOT_EXECUTED",
+    "release": "NO_GO",
+    "SWARM006": "HOLD"
+  }
+}
