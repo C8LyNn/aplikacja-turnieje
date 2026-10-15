@@ -53,7 +53,7 @@ TSX_TSCONFIG_PATH=./test/tsconfig.json node --import tsx --import ./test/setup-d
 ```
 This is purely mocked frontend transport and RTL, no PG16 reset or paid CI rerun is needed for this suite. Any independent report must identify exact SHA, real exit, TAP/skip and failing testcase.
 
-**GitHub Actions:** workflow for PR63 exact HEAD [run 38737278121](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38737278121) was `in_progress` at final PR readback. Do not call this PASS or classify a failure without the actual job steps and logs. If old Pack19 blocks the workflow, A60/A40 must distinguish upstream failure from these targeted frontend tests; PR35 owns Pack19.
+**GitHub Actions:** workflow for PR63 exact HEAD [run 38737278121](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38737278121) completed `FAILURE`. [Job 116429670932](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38737278121/job/116429670932) failed at **Pack 19 snapshot consistency tests**, where an obsolete assertion requires `readOnly:true` but the actual released source has `accessMode:"read only"`; this was confirmed from the real job log. Later gates were SKIPPED. This workflow did **not execute any newly authored Basket CAS client/draft/RTL test**. CI_UPSTREAM_PACK19_FAILURE, FEATURE_TEST_NOT_EXECUTED, no manual rerun; PR35 already owns the isolated Pack19 matcher correction.
 
 ## 4. Dependencies / future code-owned cutover, not authorized here
 
