@@ -196,6 +196,38 @@ export function validateStrictBackupV3Policy(
     errors.push("Every action needs exactly one contiguous total-order slot.");
   }
 
+  // P23-01: real Swiss system BYEs are completed by system_bye_assigned,
+  // not by an undoable match_result_submitted. Restrict this exception to
+  // the exact system BYE shape emitted by the stage/round writers.
+  const legalSystemByeIds = new Set<number>();
+  for (const [id, match] of matchById) {
+    if (match.status !== "completed" || match.resultType !== "bye") continue;
+    if (match.resultReason !== "system_bye" ||
+        !positiveInt(match.player1BackupId) ||
+        !playerIds.has(match.player1BackupId) ||
+        match.player2BackupId != null ||
+        match.winnerBackupId !== match.player1BackupId ||
+        match.score1 != null || match.score2 != null) {
+      errors.push("Completed system BYE has invalid source player, winner, scores or reason.");
+    } else {
+      legalSystemByeIds.add(id);
+    }
+  }
+  const systemByeActionCount = new Map<number, number>();
+  for (const action of logs) {
+    if (action.actionType !== "system_bye_assigned") continue;
+    const id = action.matchBackupId;
+    const match = positiveInt(id) ? matchById.get(id) : undefined;
+    if (!match || !legalSystemByeIds.has(id) ||
+        action.stageBackupId !== match.stageBackupId ||
+        action.canUndo !== false || action.undoPayload !== null ||
+        action.isUndone !== false) {
+      errors.push("System BYE action must reference its completed BYE and cannot be undoable.");
+      continue;
+    }
+    systemByeActionCount.set(id, (systemByeActionCount.get(id) ?? 0) + 1);
+  }
+
   const completionIndices = new Set<number>();
   const activeCount = new Map<number, number>();
   for (const completion of completions) {
@@ -208,6 +240,7 @@ export function validateStrictBackupV3Policy(
     completionIndices.add(index);
     const action = logs[index];
     if (!positiveInt(id) || !matchById.has(id) ||
+        matchById.get(id)?.resultType === "bye" ||
         action.actionType !== "match_result_submitted" ||
         action.matchBackupId !== id) {
       errors.push("Completion action type or match identity does not match its source action.");
@@ -238,8 +271,15 @@ export function validateStrictBackupV3Policy(
     }
   }
   for (const [id, match] of matchById) {
-    if (match.status === "completed" && activeCount.get(id) !== 1) {
-      errors.push("Completed strict match must have one provable active completion action.");
+    if (match.status !== "completed") continue;
+    if (match.resultType === "bye") {
+      if (!legalSystemByeIds.has(id) ||
+          systemByeActionCount.get(id) !== 1 ||
+          (activeCount.get(id) ?? 0) !== 0) {
+        errors.push("Completed system BYE needs exactly one valid system action and no manual completion.");
+      }
+    } else if (activeCount.get(id) !== 1) {
+      errors.push("Completed strict match must have one provable active manual completion action.");
     }
   }
 
