@@ -264,3 +264,50 @@ test("leaving a finished public server keeps the remaining player in a reusable 
   assert.equal(remaining.body.room.playerCount, 1);
   assert.equal(remaining.body.side, "player");
 });
+
+
+test("a browser cannot join its own public room as the second player", async () => {
+  const app = makeApp();
+  const create = await request(app)
+    .post("/api/core-clash/rooms")
+    .send({ playerName: "Host", roomName: "Self join", public: true, browserId: "browser-same-0001" })
+    .expect(201);
+
+  const join = await request(app)
+    .post(`/api/core-clash/rooms/${create.body.room.id}/join`)
+    .send({ playerName: "Same browser", browserId: "browser-same-0001" })
+    .expect(409);
+
+  assert.equal(join.body.code, "SAME_BROWSER_SESSION");
+});
+
+test("stale opponent is removed after reconnect grace while the active player keeps the public room", async () => {
+  const originalNow = Date.now;
+  let fakeNow = originalNow();
+  Date.now = () => fakeNow;
+  try {
+    const app = makeApp();
+    const { roomId, tokenA } = await readyRoom(app);
+
+    fakeNow += 30_000;
+    const keepAlive = await request(app)
+      .get(`/api/core-clash/rooms/${roomId}/state`)
+      .query({ token: tokenA, since: -1 })
+      .expect(200);
+    assert.equal(keepAlive.body.room.playerCount, 2);
+
+    fakeNow += 20_000;
+    const recovered = await request(app)
+      .get(`/api/core-clash/rooms/${roomId}/state`)
+      .query({ token: tokenA, since: -1 })
+      .expect(200);
+
+    assert.equal(recovered.body.room.status, "waiting");
+    assert.equal(recovered.body.room.playerCount, 1);
+    assert.equal(recovered.body.side, "player");
+    assert.equal(recovered.body.room.players.player.connected, true);
+    assert.equal(recovered.body.room.players.cpu, null);
+  } finally {
+    Date.now = originalNow;
+  }
+});
