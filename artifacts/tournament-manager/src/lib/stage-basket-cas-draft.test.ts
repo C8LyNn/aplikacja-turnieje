@@ -37,6 +37,7 @@ function fake() {
   ]);
   const calls: Array<{ method: string; tid: number; token: string | null }> = [];
   let forceStatus: number | null = null;
+  let forceGetStatus: number | null = null;
   let holdPut: (() => void) | null = null;
   let holdReadA: (() => void) | null = null;
   const tag = (id: number, n: number) => `"basket-${id}-r${n}"`;
@@ -50,6 +51,7 @@ function fake() {
       if (id === A.tournamentId && holdReadA) {
         await new Promise<void>((resolve) => { holdReadA = resolve; });
       }
+      if (forceGetStatus !== null) return response(forceGetStatus, { code: "AUTH_DENIED" });
       return response(200, record.graph, tag(id, record.version));
     }
     if (holdPut) await new Promise<void>((resolve) => { holdPut = resolve; });
@@ -68,6 +70,7 @@ function fake() {
   return {
     client, records, calls,
     setStatus(code: number | null) { forceStatus = code; },
+    setGetStatus(code: number | null) { forceGetStatus = code; },
     mutateRemotely(id: number, newGraph: BasketCasGraph) {
       const record = records.get(id)!;
       record.version++;
@@ -269,4 +272,114 @@ test("CAS-DRAFT-13 destroy discards privacy state, pending operations cannot rev
   session.destroy();
   assert.throws(() => session.view(), /destroyed/);
   await assert.rejects(session.initialize(), /destroyed/);
+});
+
+
+test("R23D-74-01 GET 403 retains private local draft but redacts view and blocks write", async () => {
+  const server = fake();
+  const session = createBasketCasDraftSession(server.client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "secret-unsaved" }; });
+  server.mutateRemotely(A.tournamentId, graph("server-green"));
+  assert.equal(await session.save(), "stale");
+  const before = server.calls.filter((call) => call.method === "PUT").length;
+  server.setGetStatus(403);
+  await assert.rejects(session.refreshRemote(), (error: unknown) =>
+    error instanceof Error && error.message === "Basket GET failed.");
+  const blocked = session.view();
+  assert.equal(blocked.phase, "authorization-blocked");
+  assert.equal(blocked.authorizationFailure, 403);
+  assert.equal(blocked.localDraft, null, "blocked view must redact retained private draft");
+  assert.equal(blocked.remoteCanonical, null, "blocked view must not display stale server data");
+  assert.deepEqual(blocked.changes, []);
+  await assert.rejects(session.save(), /Reconcile conflict/);
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, before);
+  server.setGetStatus(null);
+  await session.refreshRemote(); // organizer intentionally retries GET after restoring access
+  const resumed = session.view();
+  assert.equal(resumed.phase, "reviewing");
+  assert.equal(resumed.authorizationFailure, null);
+  assert.equal(resumed.localDraft?.baskets[0]?.colorId, "secret-unsaved");
+  assert.equal(resumed.remoteCanonical?.baskets[0]?.colorId, "server-green");
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, before);
+  session.reconcile({ action: "keep-local", confirmedByOrganizer: true });
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, before);
+  assert.equal(await session.save(), "saved");
+});
+
+test("R23D-74-02 GET 401 while reviewing hides both current and older remote", async () => {
+  const server = fake();
+  const session = createBasketCasDraftSession(server.client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "retained-401" }; });
+  server.mutateRemotely(A.tournamentId, graph("old-remote"));
+  assert.equal(await session.save(), "stale");
+  await session.refreshRemote();
+  assert.equal(session.view().remoteCanonical?.baskets[0]?.colorId, "old-remote");
+  server.setGetStatus(401);
+  await assert.rejects(session.refreshRemote(), /Basket GET failed/);
+  assert.equal(session.view().phase, "authorization-blocked");
+  assert.equal(session.view().authorizationFailure, 401);
+  assert.equal(session.view().localDraft, null);
+  assert.equal(session.view().remoteCanonical, null);
+  server.setGetStatus(403);
+  await assert.rejects(session.refreshRemote(), /Basket GET failed/);
+  assert.equal(session.view().authorizationFailure, 403);
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, 1);
+});
+
+test("R23D-74-03 tenant or auth epoch switch destroys hidden draft after GET denial", async () => {
+  const server = fake();
+  const session = createBasketCasDraftSession(server.client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "A-private" }; });
+  server.setGetStatus(403);
+  await assert.rejects(session.refreshRemote(), /Basket GET failed/);
+  session.switchScope(B);
+  assert.equal(session.view().phase, "uninitialized");
+  assert.equal(session.view().authorizationFailure, null);
+  assert.equal(session.view().localDraft, null);
+  server.setGetStatus(null);
+  await session.initialize();
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "orange");
+  assert.notEqual(session.view().localDraft?.baskets[0]?.colorId, "A-private");
+  session.switchScope({ ...B, authContextId: "different-principal" });
+  assert.equal(session.view().phase, "uninitialized");
+  assert.equal(session.view().localDraft, null);
+});
+
+test("R23D-74-04 401 from old inflight GET cannot taint a newly switched principal", async () => {
+  const server = fake();
+  const session = createBasketCasDraftSession(server.client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "A-secret" }; });
+  server.pauseReadA();
+  const oldRefresh = session.refreshRemote();
+  session.switchScope(B);
+  await session.initialize();
+  server.setGetStatus(401);
+  server.resumeReadA();
+  await assert.rejects(oldRefresh, /Basket GET failed/);
+  assert.equal(session.view().scope.tournamentId, B.tournamentId);
+  assert.equal(session.view().phase, "editing");
+  assert.equal(session.view().authorizationFailure, null);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "orange");
+});
+
+test("R23D-74-05 blocked GET retains stage/roster edits in memory until same-scope revalidation", async () => {
+  const server = fake();
+  const session = createBasketCasDraftSession(server.client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], participantIds: [11, 12, 13] }; });
+  session.markStageOrRosterChanged();
+  server.setGetStatus(403);
+  await assert.rejects(session.refreshRemote(), /Basket GET failed/);
+  assert.equal(session.view().localDraft, null);
+  server.setGetStatus(null);
+  await session.refreshRemote();
+  assert.deepEqual(session.view().localDraft?.baskets[0].participantIds, [11, 12, 13]);
+  assert.equal(session.view().dependencyMayHaveChanged, true);
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, 0);
+  session.reconcile({ action: "keep-local", confirmedByOrganizer: true });
+  assert.equal(server.calls.filter((call) => call.method === "PUT").length, 0);
 });
