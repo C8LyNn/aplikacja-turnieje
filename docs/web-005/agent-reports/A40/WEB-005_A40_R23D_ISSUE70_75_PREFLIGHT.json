@@ -1,0 +1,109 @@
+{
+  "schema": "WEB005_A40_R23D_PREFLIGHT_V1",
+  "date": "2026-10-16",
+  "dispatch_sha": "226b6a89c3fd8348eac814221de1c9715ee6ae25",
+  "scope": "A40 issues 70 and 75 only; no game edits",
+  "repository": "C8LyNn/aplikacja-turnieje",
+  "issue75": {
+    "id": 75,
+    "status": "BLOCKED_WAIT_C01_FIRST_FAILURE_AND_A10_CURRENT_DAG",
+    "c01": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "c01_run": 38736073793,
+    "c01_api_integration_exit": 1,
+    "first_failing_test": "NOT_IDENTIFIED",
+    "a60_triage_sha": "534baf62abaf251b07bd3c359366979bb7aafd92",
+    "new_c02_sha": null,
+    "new_draft_pr": null,
+    "reviewed_candidate_prs": [
+      {
+        "pr": 61,
+        "head": "8c26778c94cd6c96987f3986b651066024f10d4a",
+        "base": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+        "paths": 1,
+        "decision": "TEST_SOURCE_QA_WITH_CONDITIONS; DESTRUCTIVE_TEST_NOT_AUTHORIZED"
+      },
+      {
+        "pr": 63,
+        "head": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+        "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+        "paths": 6,
+        "decision": "SHA_MOVED_FROM_A60_R23C_REVIEW; NEW_INDEPENDENT_QA_PENDING; DEFAULT_DISABLED"
+      },
+      {
+        "pr": 64,
+        "head": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+        "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+        "paths": 3,
+        "decision": "PURE_SOURCE_QA_WITH_CONDITIONS; NOT_WIRED"
+      },
+      {
+        "pr": 66,
+        "head": "7490c974b7c84404559fd590bd09817a71c2134f",
+        "base": "fa3261b2c9510e110ac9eba21726812d3401a525",
+        "paths": 2,
+        "decision": "PURE_SOURCE_QA_WITH_CONDITIONS; REQUIRES_A70_CALLBACK_AND_REAL_VALIDATORS; NOT_WIRED"
+      },
+      {
+        "pr": 67,
+        "head": "880824f18b8913602955578dfd76eeac7976e32a",
+        "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+        "paths": 4,
+        "decision": "FAIL_FIRST_SECURITY_CONTRACT_SOURCE_ONLY; EXPECTED_RED; INGRESS_NOT_IMPLEMENTED"
+      }
+    ],
+    "current_distinct_changed_paths": 16,
+    "path_collision_c01": "ZERO_OBSERVED_FROM PR DIFF PATHS, NOT A10 INTEGRATION AUTHORIZATION",
+    "historic_conflict_pairs": 15,
+    "source_qa_blockers": [
+      "C01 API integration exit1 not isolated",
+      "A10 R23D final inclusion DAG not signed",
+      "PR63 SHA advanced; needs fresh independent QA",
+      "PR67 intended RED future-ingress tests",
+      "PR61 isolated PG test requires explicit A20+owner scope"
+    ]
+  },
+  "issue70": {
+    "id": 70,
+    "status": "SOURCE_REVIEW_ONLY_LIVE_NOT_VERIFIED",
+    "github_release": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "replit_local_published_checkpoint": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "replit_agent_read_head": "5e68f0f4b7d73cb5ff6aad0065dbe54c5f691776",
+    "replit_agent_read_branch": "feat/double-elimination-full-integration",
+    "checkpoint_git_object_available": false,
+    "replit_publish_status": "failed",
+    "http_live_tests": "NOT_EXECUTED; public URL not retrievable",
+    "css_pr": {
+      "pr": 69,
+      "head": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+      "base": "1db3734b8988940acc6be8b992420a58fc39624a",
+      "paths": 1,
+      "decision": "A60_SOURCE_PASS_WITH_CONDITIONS; LIVE_NOT_VERIFIED"
+    },
+    "css_old_blob": "8e347f9a1aa70e3e4cb8f5adc94faca6ad9bbaa8",
+    "css_new_blob": "c1699af3d05b63edd85f6a2a3d7e006036c56f07",
+    "release_artifact_toml_blob": "377637a6e88f5db4142dedb5035e854b99f422c1",
+    "release_public_portfolio_index_blob": "197bd447df2449947fda3203ab76e7a63e58a48f",
+    "release_public_animated_index_blob": "5af45933e47ac0bb84de9fb95cc761cc82b804e7",
+    "animated_staging_script_blob": "9ebf7d2f95a8ff000c95e48ab9b3c75b0c240070",
+    "route_config_verified_local": false,
+    "game_paths_modified": [],
+    "asset_http_404_status": "NOT_EXECUTED",
+    "new_static_routing_pr": null
+  },
+  "execution": {
+    "new_app_source_commits": 0,
+    "new_c02_commits": 0,
+    "native_tests_run_by_a40": 0,
+    "node_exit_codes": "N/A",
+    "http_exit_codes": "N/A",
+    "ci_reference": {
+      "c01_run": 38736073793,
+      "api_integration_exit": 1
+    },
+    "merges": 0,
+    "deployments": 0,
+    "db_operations": 0,
+    "rollback": "NOT_APPLICABLE_NO_APP_CHANGES"
+  },
+  "decision": "R23D_A40_PREFLIGHT_PUBLISHED / ISSUE75_BLOCKED / ISSUE70_LIVE_BLOCKED / RELEASE_NO_GO / SWARM006_HOLD"
+}
