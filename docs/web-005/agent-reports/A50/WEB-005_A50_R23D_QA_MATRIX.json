@@ -1,0 +1,130 @@
+{
+  "schema": "web005.a50.r23d.qa-matrix.v1",
+  "agent": "A50",
+  "date": "2026-10-16",
+  "dispatch": {
+    "sha": "226b6a89c3fd8348eac814221de1c9715ee6ae25",
+    "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R23D_EXECUTION_DISPATCH_20261016.md"
+  },
+  "status": "REPORTS_PUBLISHED_ROOT_CAUSE_NOT_CONFIRMED",
+  "source": {
+    "github_release": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "replit_checkpoint_local_only": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "reported_replit_drift_paths": 140,
+    "app_games_modified": false,
+    "live_deploy": false
+  },
+  "issues": [
+    {
+      "issue": 73,
+      "priority": "P0",
+      "pr": 60,
+      "head_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "ci": {
+        "run": 38736073793,
+        "job": 116425579970,
+        "conclusion": "failure",
+        "log_lines": 6437,
+        "log_characters": 423864,
+        "marker_api_unit": 2923,
+        "marker_unit_files": 2928,
+        "unit_files_reported": 59,
+        "marker_first_specific_failure": null,
+        "marker_api_integration_exit_1": 5177,
+        "wrapper_exit_line": 5179,
+        "process_exit": 1,
+        "unit_tap_complete": false,
+        "integration_tap_complete": false,
+        "run_artifacts": 0,
+        "pack19_26": "success",
+        "pack17_source": "success",
+        "pack17_pg16_atomic": {
+          "pass": 8,
+          "tests": 8,
+          "mode": "automatic_ephemeral_ci_not_A50"
+        },
+        "workspace_typecheck": "success",
+        "later_frontend_build": "NOT_EXECUTED"
+      },
+      "source_blobs": {
+        "qa/pack17/run-gates.mjs": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043",
+        "artifacts/api-server/test/run-tests.ts": "da4188446aba4696f97eb7831fee0cc5824d212f",
+        "artifacts/api-server/package.json": "bf931f87a7b0d5532b949f44c7e091878fe6db52"
+      },
+      "A50_run": "NOT_EXECUTED",
+      "A50_native_exit": null,
+      "A50_TAP": null,
+      "verdict": "C01_API_ROOT_CAUSE_UNCONFIRMED",
+      "needed": "exact sha clean pnpm10 host + A00/A20 written physical disposable PG16 and reset GO, first failing TAP/stack + sanitized logs",
+      "independent_A60_report": "534baf62abaf251b07bd3c359366979bb7aafd92",
+      "report_blob": "5dfa66c516da3370dbf728660ab27876f2de0b73",
+      "comment_id": 6211813772
+    },
+    {
+      "issue": 71,
+      "priority": "P1",
+      "release_sha": "1db3734b8988940acc6be8b992420a58fc39624a",
+      "source_blobs": {
+        "artifacts/api-server/src/routes/health.ts": "7d60d98848f8f8775e710bf44d198fd20d18811f",
+        "artifacts/api-server/test/health.test.ts": "06209a5e0fb4b34601d35bb317941d69c4a2b657",
+        "lib/db/src/index.ts": "50cbf483d87a8a741f4965acde5edf6225fedd3e"
+      },
+      "health_timeout_ms": 1000,
+      "target_incident": "2026-10-15T20:41:00Z",
+      "target_original_logs": "NOT_ACCESSIBLE_FROM_CONNECTED_REPLIT_AGENT",
+      "secondary_agent_readonly": {
+        "original_immutable_log_bytes": false,
+        "earlier_events": [
+          {
+            "ts": "2026-10-15T14:47:58.071Z",
+            "error_type": "query_failed",
+            "http_status": 503,
+            "response_duration_ms": 7
+          },
+          {
+            "ts": "2026-10-15T14:48:16.910Z",
+            "error_type": "query_failed",
+            "http_status": 503,
+            "response_duration_ms": 5
+          },
+          {
+            "ts": "2026-10-15T14:48:50.925Z",
+            "error_type": "query_failed",
+            "http_status": 503,
+            "response_duration_ms": 14
+          },
+          {
+            "ts": "2026-10-15T14:48:52.175Z",
+            "error_type": "query_failed",
+            "http_status": 503,
+            "response_duration_ms": 7
+          }
+        ]
+      },
+      "A50_native_health_tests": "NOT_EXECUTED",
+      "A50_exit": null,
+      "A50_TAP": null,
+      "verdict": "HEALTHZ_503_CAUSE_UNCONFIRMED",
+      "needed": "raw sanitized original 20:30-21:15 UTC deployment log; deployed source fingerprint, startup and pool acquisition/SELECT1 times",
+      "report_blob": "159535ccfc3c57ef3ea7f402aa7450cb8d2261fe",
+      "comment_id": 6211818838
+    }
+  ],
+  "environment": {
+    "host": "ChatGPT Linux container, not approved Windows host",
+    "node": "v22.16.0",
+    "git": "git version 2.47.3",
+    "pnpm": "NOT_INSTALLED",
+    "full_monorepo": "NOT_AVAILABLE",
+    "PG16_owner_A20_reset_GO": false,
+    "manual_ci_started": false,
+    "paid_ci_started": false,
+    "production_database_touched": false
+  },
+  "no_game_changes": true,
+  "no_deploy": true,
+  "no_merge": true,
+  "no_sql_or_reset": true,
+  "release": "NO_GO",
+  "swarm006": "HOLD"
+}
