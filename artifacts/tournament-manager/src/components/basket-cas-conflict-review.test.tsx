@@ -96,3 +96,28 @@ test("CAS-UI-05 no conflict means no new production-facing CAS UI", () => {
   />);
   assert.equal(container.innerHTML, "");
 });
+
+
+test("R23D-74-06 auth-blocked view shows safe retry without rendering local or remote basket data", async () => {
+  let retried = 0;
+  const blocked: BasketCasDraftView = {
+    ...view("reviewing"),
+    phase: "authorization-blocked",
+    authorizationFailure: 403,
+    localDraft: null,
+    remoteCanonical: null,
+    changes: [],
+  };
+  const { container } = render(<BasketCasConflictReview
+    view={blocked}
+    onRefreshRemote={() => { retried++; }}
+    onReconcile={() => assert.fail("must not reconcile while access is denied")}
+  />);
+  assert.ok(screen.getByRole("alert").textContent?.includes("Brak dostępu"));
+  assert.equal(container.textContent?.includes("purple"), false);
+  assert.equal(container.textContent?.includes("green"), false);
+  assert.equal(container.textContent?.includes("basket-7"), false);
+  assert.equal(screen.queryByRole("button", { name: /Zachowaj mój szkic/ }), null);
+  await userEvent.click(screen.getByRole("button", { name: /Ponów autoryzowane pobranie/ }));
+  assert.equal(retried, 1);
+});
