@@ -20,7 +20,8 @@ export type BasketCasDraftPhase =
   | "uninitialized"
   | "editing"
   | "conflict"
-  | "reviewing";
+  | "reviewing"
+  | "authorization-blocked";
 
 export type BasketCasDiffEntry = {
   readonly type: "basket" | "route";
@@ -36,6 +37,8 @@ export interface BasketCasDraftView {
   readonly remoteCanonical: BasketCasGraph | null;
   readonly changes: readonly BasketCasDiffEntry[];
   readonly dependencyMayHaveChanged: boolean;
+  /** Only HTTP denial status, never a server body or private graph. */
+  readonly authorizationFailure: 401 | 403 | null;
   readonly saving: boolean;
 }
 
@@ -113,8 +116,10 @@ export function createBasketCasDraftSession(
   let draft: MutableGraph | null = null;
   let phase: BasketCasDraftPhase = "uninitialized";
   let contextChanged = false;
+  let authorizationFailure: 401 | 403 | null = null;
   let saving = false;
   let epoch = 0;
+  let remoteRequestId = 0;
   let editEpoch = 0;
   let destroyed = false;
 
@@ -124,6 +129,7 @@ export function createBasketCasDraftSession(
 
   function clear(next: BasketCasScope) {
     epoch += 1;
+    remoteRequestId += 1;
     editEpoch += 1;
     scope = { ...next };
     base = null;
@@ -131,19 +137,25 @@ export function createBasketCasDraftSession(
     draft = null;
     phase = "uninitialized";
     contextChanged = false;
+    authorizationFailure = null;
     // An old in-flight PUT may still settle, but its result cannot affect
     // this scope. save() is not re-entered until the old request has settled.
   }
 
   function view(): BasketCasDraftView {
     active();
+    // GET 401/403 may only temporarily deny the same organizer's refresh.
+    // Retain the unsaved graph internally, but do not expose or render private
+    // data until an explicit same-scope authorized GET succeeds.
+    const redact = phase === "authorization-blocked";
     return {
       scope: { ...scope },
       phase,
-      localDraft: draft ? clone(draft) : null,
-      remoteCanonical: remote ? clone(remote.graph) : null,
-      changes: draft && remote ? diff(draft, remote.graph) : [],
+      localDraft: !redact && draft ? clone(draft) : null,
+      remoteCanonical: !redact && remote ? clone(remote.graph) : null,
+      changes: !redact && draft && remote ? diff(draft, remote.graph) : [],
       dependencyMayHaveChanged: contextChanged,
+      authorizationFailure,
       saving,
     };
   }
@@ -160,11 +172,14 @@ export function createBasketCasDraftSession(
     base = loaded;
     draft = clone(loaded.graph);
     phase = "editing";
+    authorizationFailure = null;
   }
 
   function edit(mutator: (working: MutableGraph) => void) {
     active();
-    if (!draft) throw new BasketCasError("PROTOCOL_ERROR", "Load canonical graph before editing.");
+    if (!draft || phase === "authorization-blocked") {
+      throw new BasketCasError("PROTOCOL_ERROR", "Authorization must be revalidated before editing.");
+    }
     const next = clone(draft);
     mutator(next);
     draft = clone(next);
@@ -176,7 +191,7 @@ export function createBasketCasDraftSession(
     active();
     if (!draft) return;
     contextChanged = true;
-    phase = "conflict";
+    if (phase !== "authorization-blocked") phase = "conflict";
     remote = null;
     editEpoch += 1;
   }
@@ -187,13 +202,31 @@ export function createBasketCasDraftSession(
       throw new BasketCasError("PROTOCOL_ERROR", "Finish a pending write before refreshing remote.");
     }
     const requestEpoch = epoch;
+    const requestId = ++remoteRequestId;
     const requestEditEpoch = editEpoch;
-    const latest = await client.load({ ...scope });
-    if (destroyed || requestEpoch !== epoch) return;
-    remote = latest;
-    phase = "reviewing";
-    // A simultaneous local edit must remain local, not be rebased.
-    if (requestEditEpoch !== editEpoch) contextChanged = true;
+    try {
+      const latest = await client.load({ ...scope });
+      if (destroyed || requestEpoch !== epoch || requestId !== remoteRequestId) return;
+      remote = latest;
+      authorizationFailure = null;
+      phase = "reviewing";
+      // A simultaneous local edit must remain local, not be rebased.
+      if (requestEditEpoch !== editEpoch) contextChanged = true;
+    } catch (error) {
+      if (!destroyed && requestEpoch === epoch && requestId === remoteRequestId) {
+        // Fail closed after a denied read: no stale remote, no exposed draft,
+        // no fresh token promotion, and no background retry.
+        remote = null;
+        if (error instanceof BasketCasError &&
+            (error.httpStatus === 401 || error.httpStatus === 403)) {
+          authorizationFailure = error.httpStatus;
+          phase = "authorization-blocked";
+        } else if (phase !== "authorization-blocked") {
+          phase = "conflict";
+        }
+      }
+      throw error;
+    }
   }
 
   function reconcile(input:
@@ -215,6 +248,7 @@ export function createBasketCasDraftSession(
     draft = next;
     phase = "editing";
     contextChanged = false;
+    authorizationFailure = null;
     editEpoch += 1;
     // NO implicit HTTP PUT. User must press Save separately.
   }
@@ -249,6 +283,7 @@ export function createBasketCasDraftSession(
       base = result.canonical;
       draft = clone(result.canonical.graph);
       remote = null;
+      authorizationFailure = null;
       phase = "editing";
       return "saved";
     } catch (error) {
