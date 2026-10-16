@@ -1,0 +1,657 @@
+{
+  "schema": "WEB005_A10_R23D_SOURCE_REGISTRY_V1",
+  "date": "2026-10-16",
+  "agent": "A10",
+  "task": "ISSUES_75_77",
+  "docs_branch": "chore/web-005/t000-wave1-control",
+  "dispatch": {
+    "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/WEB-005_R23D_EXECUTION_DISPATCH_20261016.md",
+    "git_blob_sha1": "226b6a89c3fd8348eac814221de1c9715ee6ae25"
+  },
+  "previous": {
+    "url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A10/WEB-005_A10_R23C_COMPOSITE_REGISTRY.json",
+    "git_blob_sha1": "1152a307dad45572a7fa22bbbc9cdd8cfbaa9ec5",
+    "historical_P01_P30_unchanged": true,
+    "source_count": 30
+  },
+  "live_prior_30": [
+    {
+      "packet": "P01",
+      "pr": 35,
+      "original_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "prior_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "current_sha": "7cb283aa82273a1e22daf9051a82311eef53760c",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P02",
+      "pr": 36,
+      "original_sha": "85ad0b86136fc3491c9ef18663d9b01396179349",
+      "prior_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "current_sha": "24fe6c399e3a4fa82c3d96703620097fa941a59a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P03",
+      "pr": 34,
+      "original_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "prior_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "current_sha": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P04",
+      "pr": 37,
+      "original_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "prior_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "current_sha": "fcfd8a6f5b997c90f2b62f0a3529fa64287a03d7",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P05",
+      "pr": 38,
+      "original_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "prior_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "current_sha": "2d36864f4d2f1c838073f387fd3c8efb3378c43b",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P06",
+      "pr": 39,
+      "original_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "prior_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "current_sha": "16053ee132756ca05b6f2cd1f0cabae823905387",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P07",
+      "pr": 40,
+      "original_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "prior_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "current_sha": "9a8287271299a59fc9291b8d253299a8d109a35d",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P08",
+      "pr": 41,
+      "original_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "prior_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "current_sha": "f03cf3d09988a04ba9c2856e205d21f994ff67f1",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P09",
+      "pr": 42,
+      "original_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "prior_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "current_sha": "021bed269f9ea8ac8ce53caeea44263c098aa2dd",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P10",
+      "pr": 43,
+      "original_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "prior_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "current_sha": "96a6068f69027574ac76e18d4d5a2c444b5a914a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P11",
+      "pr": 44,
+      "original_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "prior_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "current_sha": "2f0187b7242681c394c09058b5ef647667206bd6",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P12",
+      "pr": 45,
+      "original_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "prior_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "current_sha": "a7a87bc019731191dbfa44bee6939e3fa25e27f4",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P13",
+      "pr": 46,
+      "original_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "prior_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "current_sha": "7f60849e389a7ed35fdd39dd5493c4c4c267d860",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P14",
+      "pr": 47,
+      "original_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "prior_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "current_sha": "f09a13623faca8d7ab29b09a2c5b43907c2acd0b",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P15",
+      "pr": 48,
+      "original_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "prior_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "current_sha": "2a8a4c72cb4a3a37402a346fd0acc83b03b39be3",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P16",
+      "pr": 49,
+      "original_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "prior_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "current_sha": "99298b81501c3e7764d653604923522a19b9f05c",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P17",
+      "pr": 50,
+      "original_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "prior_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "current_sha": "5457a74187edc263730c3a4b25a663bdf5531ee9",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P18",
+      "pr": 51,
+      "original_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "prior_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "current_sha": "2fd8b5107a6f39e28c58be10d0d3ef0ee8216c1a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P19",
+      "pr": 52,
+      "original_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "prior_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "current_sha": "cce73ec47445102b216b3f8eceb4ec9de67eb1a7",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P20",
+      "pr": 53,
+      "original_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "prior_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "current_sha": "d1aebfcab4c9ac9db6203dd5bf7da4c758df9d34",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P21",
+      "pr": 54,
+      "original_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "prior_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "current_sha": "bfa9d075b431185aa8bbf87bf021d64dde8ae22f",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P22",
+      "pr": 55,
+      "original_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "prior_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "current_sha": "c3a4ea00ba933cbab36b3582859cb3eff20f0204",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P23",
+      "pr": 56,
+      "original_sha": "77707092202ca79277de7bc57cc4e37e4c033171",
+      "prior_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "current_sha": "a7f71a7e7efdabd479b358a3cee80bc6359c4321",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P24",
+      "pr": 57,
+      "original_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "prior_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "current_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P25",
+      "pr": 58,
+      "original_sha": "14204bc9ec24f5902fddc3deb48d7592747d450a",
+      "prior_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "current_sha": "e8100f7b0c1071c2a98880d4eb7947514fc58185",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P26",
+      "pr": 61,
+      "original_sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "prior_sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "current_sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "base_sha": "a57fe31c1bc123c5217b3f58bcdd34750c64c5c6",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P27",
+      "pr": 63,
+      "original_sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "prior_sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "current_sha": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": true
+    },
+    {
+      "packet": "P28",
+      "pr": 64,
+      "original_sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "prior_sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "current_sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P29",
+      "pr": 66,
+      "original_sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "prior_sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "current_sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "base_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    },
+    {
+      "packet": "P30",
+      "pr": 67,
+      "original_sha": "880824f18b8913602955578dfd76eeac7976e32a",
+      "prior_sha": "880824f18b8913602955578dfd76eeac7976e32a",
+      "current_sha": "880824f18b8913602955578dfd76eeac7976e32a",
+      "base_sha": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "state": "open",
+      "draft": true,
+      "merged": false,
+      "changed_since_R23C": false
+    }
+  ],
+  "p27_revision": {
+    "packet": "P27",
+    "pr": 63,
+    "original_R23C_sha": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+    "intermediate_sha": "5469dde23931cad8b87316831328fbb8ded13dbb",
+    "R23D_head": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+    "files": [
+      {
+        "path": "artifacts/tournament-manager/src/components/basket-cas-conflict-review.test.tsx",
+        "git_blob_sha1": "d45de50175038e50d43a78f44c09f84e5bbc856a",
+        "sha256": "2f1bbf2accd33387f6c91fca2cafdb2aec5118215428b71e150038a6f38bc8e6",
+        "size_bytes": 4987,
+        "test_bodies": 6
+      },
+      {
+        "path": "artifacts/tournament-manager/src/components/basket-cas-conflict-review.tsx",
+        "git_blob_sha1": "8a6b96ec1c0918571291f66056cc9b574f421214",
+        "sha256": "389ebab19f8ce8d26a53524826f85439e828f42d3f8d464f5685d4cb66332def",
+        "size_bytes": 4972,
+        "test_bodies": 0
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-client.test.ts",
+        "git_blob_sha1": "1d1473901d68db148a100079c96f3ca2c5e80adb",
+        "sha256": "59ec9c97dce8d3c266e85beca9acf994f15c66d35ec56fa3b7d72af122dc44f8",
+        "size_bytes": 7994,
+        "test_bodies": 10
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-client.ts",
+        "git_blob_sha1": "4fca09e22ef58fc38a2ca34a8386a6fadad06ae8",
+        "sha256": "d612dbffe6c9ae14af44df67a2416a9733ae547aca5acfeaa54581f17af79ac6",
+        "size_bytes": 8759,
+        "test_bodies": 0
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.test.ts",
+        "git_blob_sha1": "5802405c4e34956a997dc1b54eb701b1e0b73512",
+        "sha256": "e01f9cbf2b205335917c3425f12e112a509bbf23f88ae15588eb3879d93f469e",
+        "size_bytes": 19562,
+        "test_bodies": 19
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.ts",
+        "git_blob_sha1": "1176e4ded08b297133163a3c2481939df2015e33",
+        "sha256": "19a098a58da96407ec434685a312aa899773f2ec713dac7fac31a5f9bc3763f6",
+        "size_bytes": 11318,
+        "test_bodies": 0
+      }
+    ],
+    "changed_4_paths_vs_original": [
+      "artifacts/tournament-manager/src/components/basket-cas-conflict-review.test.tsx",
+      "artifacts/tournament-manager/src/components/basket-cas-conflict-review.tsx",
+      "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.test.ts",
+      "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.ts"
+    ],
+    "authored_unit_test_bodies": 35,
+    "QA": "PENDING_INDEPENDENT_A60",
+    "activation": "BLOCKED",
+    "native": "NOT_EXECUTED",
+    "new_workflow_id": 38876069415
+  },
+  "p31_new": {
+    "packet": "P31",
+    "pr": 69,
+    "head_sha": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+    "base_sha": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "scope": "Only remove dead @font-face valvepulp-bold.ttf in index.css",
+    "files": [
+      {
+        "path": "artifacts/tournament-manager/src/index.css",
+        "git_blob_sha1": "c1699af3d05b63edd85f6a2a3d7e006036c56f07",
+        "sha256": "04f2a64f5225cb94f2e0089becad02a6b84f786235844682635cb24547b3b26b",
+        "bytes": 38971
+      }
+    ],
+    "source_scope": "ONE_CSS_PATH_NO_GAME_FILES",
+    "source_qa_A60": "PENDING",
+    "native": "NOT_EXECUTED",
+    "browser": "NOT_EXECUTED",
+    "CI": "FAILURE_INHERITED_PACK19",
+    "CI_run": 38823508396,
+    "live": "UNCHANGED_NOT_DEPLOYED"
+  },
+  "counts": {
+    "historical_30": 30,
+    "new_packet": 1,
+    "total_31": 31,
+    "unique_changed_paths": 110,
+    "historical_colliding_PR_pairs": 15,
+    "collisions_resolved": 0,
+    "new_direct_path_collisions": 0
+  },
+  "C01": {
+    "pr": 60,
+    "head": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "source_packets": [
+      "P01",
+      "P02",
+      "P07",
+      "P23",
+      "P24",
+      "P25"
+    ],
+    "composite_paths": 14,
+    "CI_run": 38736073793,
+    "CI_result": "FAILURE",
+    "API_integration": "EXIT_1_ROOT_CAUSE_UNCONFIRMED",
+    "A60_R23C_source_qa": "PASS_WITH_CONDITIONS",
+    "A50_native_local": 0
+  },
+  "C02": {
+    "sha": null,
+    "pr": null,
+    "status": "NOT_CREATED",
+    "hard_gate": "Issue 73 first failure root cause and source QA before composing",
+    "eligibility_proposal_not_authorization": [
+      {
+        "pr": 61,
+        "packet": "P26",
+        "source_sha": "8c26778c94cd6c96987f3986b651066024f10d4a",
+        "proposal": "HOLD",
+        "reason": "Stacked PR57, test invokes schema reset; no certified PG16"
+      },
+      {
+        "pr": 63,
+        "packet": "P27",
+        "source_sha": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+        "proposal": "EXCLUDE_PENDING_A60_SECURITY_AND_BACKEND",
+        "reason": "Authorization-blocked source changed, A60 unreviewed; server CAS not wired"
+      },
+      {
+        "pr": 64,
+        "packet": "P28",
+        "source_sha": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+        "proposal": "PROVISIONAL_ONLY_AFTER_73_AND_A60_NEW_COMPOSITE_QA",
+        "reason": "Pure isolated action-local validator; no importer privileges"
+      },
+      {
+        "pr": 66,
+        "packet": "P29",
+        "source_sha": "7490c974b7c84404559fd590bd09817a71c2134f",
+        "proposal": "PROVISIONAL_ONLY_AFTER_73_CALLBACK_COMPAT",
+        "reason": "Stacked C01, stub callbacks, not wired"
+      },
+      {
+        "pr": 67,
+        "packet": "P30",
+        "source_sha": "880824f18b8913602955578dfd76eeac7976e32a",
+        "proposal": "SEPARATE_EXPECTED_RED_SECURITY_TEST_LANE",
+        "reason": "Fail-first ingress tests, six PG16 default skip"
+      },
+      {
+        "pr": 69,
+        "packet": "P31",
+        "source_sha": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+        "proposal": "EXCLUDE_FROM_C02_BASE_DIVERGENCE",
+        "reason": "New release base includes games; only CSS hunk review after Replit preservation"
+      }
+    ]
+  },
+  "QA_matrix": [
+    {
+      "ref": "ISSUE_73_C01",
+      "owner": "A50+A60",
+      "source_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "status": "ROOT_CAUSE_NOT_PUBLISHED",
+      "actual": "C01 CI API integration exit 1; other scoped green suites do not make whole workflow green",
+      "native": "FAIL_IN_GITHUB_CI",
+      "CI_run": 38736073793,
+      "blocking": true
+    },
+    {
+      "ref": "ISSUE_74_P27",
+      "owner": "A110+A60",
+      "source_sha": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+      "status": "NEW_SOURCE_REVISION_A60_PENDING",
+      "actual": "Authorization-blocked state retains internal draft but redacts external view; previous A60 R23C requested deletion, new owner #74 requests retention; independent review unresolved",
+      "native": "NOT_EXECUTED",
+      "CI_run": 38876069415,
+      "blocking": true
+    },
+    {
+      "ref": "ISSUE_70_P31",
+      "owner": "A120+A40+A60",
+      "source_sha": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+      "status": "STATIC_SCOPE_PASS_A60_QA_PENDING",
+      "actual": "One removed font-face; one CSS file. CI failed inherited Pack19 before targeted font/browser",
+      "native": "NOT_EXECUTED",
+      "CI_run": 38823508396,
+      "blocking": true
+    },
+    {
+      "ref": "ISSUE_75_C02",
+      "owner": "A40+A10",
+      "source_sha": null,
+      "status": "NOT_CREATED_DEPENDENCY_73",
+      "actual": "No C02 PR or exact commit. Replit drift preservation and scope authorization pending",
+      "native": "NOT_EXECUTED",
+      "CI_run": null,
+      "blocking": true
+    },
+    {
+      "ref": "ISSUE_77",
+      "owner": "A60+A10",
+      "source_sha": null,
+      "status": "A10_SOURCE_REGISTRY_ONLY_A60_R23D_QA_NOT_PUBLISHED",
+      "actual": "No new independent exact SHA review available for PR69, revised P27 or C02",
+      "native": "NOT_EXECUTED",
+      "CI_run": null,
+      "blocking": true
+    },
+    {
+      "ref": "ISSUE_72_REPLIT",
+      "owner": "A20+A30",
+      "source_sha": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+      "status": "DECLARED_LOCAL_ONLY_NOT_GITHUB_VERIFIED",
+      "actual": "140 path aggregate; per-file hashes not obtained; 90 local-only, 50 different blobs, not 140 bugs",
+      "native": "NOT_EXECUTED",
+      "CI_run": null,
+      "blocking": true
+    }
+  ],
+  "source_lineage": {
+    "release_sha": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "Replit_checkpoint_local_only": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "drift": {
+      "differing_paths": 140,
+      "local_only": 90,
+      "different_blobs": 50,
+      "source": "dispatch and Issue72 aggregate only, not individually fetched",
+      "per_path_verified": false,
+      "not_140_confirmed_defects": true
+    },
+    "GitHub_release_vs_C01_base": "release is 1 commit ahead of old base, includes 23 paths with game assets; C01 and new release diverged 1 commit each",
+    "preservation": "Never auto-sync whole newer release or local Replit 140-path drift; exact path/hunk origin and preserve manifest from A20/A30 required before future deploy"
+  },
+  "WEB004": {
+    "historical_cases": 38,
+    "secondary_derived_ids": 29,
+    "missing_original_case_ids": 9,
+    "owner_signed_dispositions": 0,
+    "source_csv_not_available": true,
+    "no_invented_pass": true
+  },
+  "SWARM004M_intake": {
+    "received_evidenced_findings": 0,
+    "required_fields": [
+      "source_swarm",
+      "case_id",
+      "affected_exact_build_sha",
+      "path_or_route",
+      "repro_steps",
+      "expected_actual",
+      "logs",
+      "severity",
+      "owner",
+      "duplicate_fingerprint",
+      "duplicate_of",
+      "game_source_flag",
+      "independent_QA_sha"
+    ],
+    "dedup": "hash of build+route+symptom+causal evidence after normalization; crosslink duplicates",
+    "new_results_do_not_block_confirmed_fixes": true
+  },
+  "permissions": {
+    "games_touched": 0,
+    "application_code_touched": 0,
+    "replit_live_touched": 0,
+    "merges": 0,
+    "rebase": 0,
+    "SQL": 0,
+    "deploy": 0,
+    "paid_CI_rerun": 0,
+    "SWARM006_started": 0
+  },
+  "verdict": "R23D_A10_SOURCE_REGISTRY_PUBLISHED / C02_NOT_CREATED_DEPENDENCY_73 / A60_R23D_QA_PENDING / RELEASE_NO_GO / SWARM006_HOLD"
+}
