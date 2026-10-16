@@ -1,0 +1,205 @@
+{
+  "schema": "WEB005.A60.R23D.EXACT_SHA_QA/1",
+  "agent": "A60",
+  "date": "2026-10-16",
+  "dispatch": {
+    "path": "docs/web-005/WEB-005_R23D_EXECUTION_DISPATCH_20261016.md",
+    "ref": "chore/web-005/t000-wave1-control",
+    "blob": "226b6a89c3fd8348eac814221de1c9715ee6ae25"
+  },
+  "issues_assigned": [
+    73,
+    77
+  ],
+  "baseline": {
+    "github_release": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "replit_published_checkpoint_local_only": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "drift_declared_paths": 140,
+    "drift_independently_reproduced": false,
+    "games_frozen": true,
+    "previous_composite_base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7"
+  },
+  "evaluations": [
+    {
+      "issue": 73,
+      "pr": 60,
+      "head_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "workflow": {
+        "run": 38736073793,
+        "job": 116425579970,
+        "overall": "FAILURE",
+        "api_integration_exit_code": 1,
+        "api_integration_signal": null,
+        "first_failing_test": "NOT_RESOLVED_FROM_AVAILABLE_LOG",
+        "full_api_integration_tap": "NOT_AVAILABLE",
+        "pack19_26_domain": {
+          "tests": 220,
+          "pass": 220,
+          "fail": 0
+        },
+        "pack19_26_source": {
+          "tests": 72,
+          "pass": 72,
+          "fail": 0
+        },
+        "se_safety": {
+          "tests": 23,
+          "pass": 23,
+          "fail": 0
+        },
+        "pack17_source": {
+          "tests": 12,
+          "pass": 12,
+          "fail": 0
+        },
+        "pack17_fail_closed": {
+          "tests": 24,
+          "pass": 24,
+          "fail": 0
+        },
+        "pack17_ephemeral_pg16_atomic": {
+          "tests": 8,
+          "pass": 8,
+          "fail": 0
+        },
+        "workspace_typecheck": "PASS",
+        "frontend_api_build_gates": "NOT_EXECUTED"
+      },
+      "reviewed_runner": {
+        "path": "qa/pack17/run-gates.mjs",
+        "blob": "8779ab2c1588cc62a2f3c5f63c57be9b55e86043"
+      },
+      "reviewed_test_discovery_runner": {
+        "path": "artifacts/api-server/test/run-tests.ts",
+        "blob": "da4188446aba4696f97eb7831fee0cc5824d212f"
+      },
+      "a60_native_tests": "NOT_EXECUTED",
+      "evidence_artifacts_in_workflow": 0,
+      "verdict": "BLOCKED",
+      "root_cause": "NOT_CONFIRMED",
+      "report": "WEB-005_A60_R23D_ISSUE73_C01_FIRST_FAILURE_TRIAGE.md"
+    },
+    {
+      "issue": 77,
+      "pr": 69,
+      "head_sha": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+      "base_sha": "1db3734b8988940acc6be8b992420a58fc39624a",
+      "pr_state": "OPEN_DRAFT",
+      "file_scope": [
+        {
+          "path": "artifacts/tournament-manager/src/index.css",
+          "release_blob": "8e347f9a1aa70e3e4cb8f5adc94faca6ad9bbaa8",
+          "pr_blob": "c1699af3d05b63edd85f6a2a3d7e006036c56f07",
+          "diff_additions": 0,
+          "diff_deletions": 8
+        }
+      ],
+      "source_confirmation": {
+        "entire_css_exact_one_declaration_removal": true,
+        "remaining_app_font_fallbacks": 2,
+        "game_files_changed": 0
+      },
+      "ci": {
+        "run": 38823508396,
+        "job": 116725435109,
+        "overall": "FAILURE",
+        "reason": "UNRELATED_INHERITED_PACK19_READONLY_MATCHER",
+        "se_safety": {
+          "pass": 23,
+          "fail": 0
+        },
+        "pack19_domain": {
+          "pass": 26,
+          "fail": 0
+        },
+        "pack19_contract": {
+          "pass": 7,
+          "fail": 1
+        },
+        "following_gates": "SKIPPED"
+      },
+      "a60_static_checks": "EXECUTED",
+      "native_node": "NOT_EXECUTED",
+      "browser": "NOT_EXECUTED",
+      "live_replit": "NOT_EXECUTED",
+      "verdict": "PASS_WITH_CONDITIONS_SOURCE_ONLY",
+      "report": "WEB-005_A60_R23D_PR69_FONT_INDEPENDENT_QA.md"
+    }
+  ],
+  "pending_scope": [
+    {
+      "issue": 70,
+      "scope": "asset 404 / portfolio / Animated Effects routes",
+      "new_pr_head": "NONE_DISCOVERED",
+      "source_qa": "PENDING",
+      "browser": "NOT_EXECUTED"
+    },
+    {
+      "issue": 71,
+      "scope": "transient healthz 503",
+      "new_pr_head": "NONE_DISCOVERED",
+      "source_qa": "PENDING"
+    },
+    {
+      "issue": 74,
+      "scope": "Basket CAS GET 401/403",
+      "existing_pr": 63,
+      "existing_head": "3ddcfea2ba47f4314fced3022d00922f8cedb0e3",
+      "new_correction_sha": "NONE_DISCOVERED",
+      "current_owner_policy": "PRESERVE_UNSAVED_DRAFT_BUT_PREVENT_UNAUTHORIZED_RENDERING",
+      "source_qa": "PENDING_NEW_SHA",
+      "note": "Supersedes older recommendation to discard draft on GET rejection; no CAS activation"
+    },
+    {
+      "issue": 75,
+      "scope": "C02 disposable composite",
+      "new_pr_head": "NONE_DISCOVERED",
+      "source_qa": "PENDING_ROOT_CAUSE_TRIAGE"
+    },
+    {
+      "issue": 72,
+      "scope": "Live Steam auth/catalog and migrations 0032–0040",
+      "new_pr_head": "NONE_DISCOVERED",
+      "source_qa": "A30_A20_OWNED_NOT_EXECUTED_BY_A60"
+    },
+    {
+      "issue": 76,
+      "scope": "Owner D01-D04 Backup trust CAS decisions",
+      "signed_owner_go": "NOT_VERIFIED",
+      "source_qa": "HOLD"
+    }
+  ],
+  "swarm004m_intake": {
+    "received_findings": 0,
+    "required_fields": [
+      "defect_id",
+      "source_swarm",
+      "affected_build_or_sha",
+      "reproduction_steps",
+      "expected_behavior",
+      "actual_behavior",
+      "severity",
+      "affected_paths",
+      "owner",
+      "duplicate_of",
+      "evidence_links",
+      "QA_verdict"
+    ],
+    "policy": "APPEND_ONLY_WITH_DUPLICATE_DETECTION_NO_AUTOMATIC_CHANGE"
+  },
+  "web004_historical_cases": {
+    "required": 38,
+    "accepted_closed_with_original_per_case_receipts": "NOT_VERIFIED"
+  },
+  "tests_in_this_task": {
+    "exact_css_static_comparison": "EXECUTED",
+    "native_node": "NOT_EXECUTED",
+    "isolated_pg16": "NOT_EXECUTED",
+    "http_asset": "NOT_EXECUTED",
+    "browser_ui": "NOT_EXECUTED",
+    "deployment": "PROHIBITED"
+  },
+  "release": "RELEASE_NO_GO",
+  "swarm006": "HOLD",
+  "final": "R23D_QA_PARTIAL_SOURCE_PASS_AND_C01_BLOCKED"
+}
