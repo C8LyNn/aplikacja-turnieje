@@ -1,0 +1,100 @@
+{
+  "synthetic_only": true,
+  "fixtures": [
+    {
+      "name": "clean_install",
+      "applied_logical_ids": [],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "release_upgrade",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "controlled_correction_operations",
+        "atomic_correction_receipts"
+      ],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "editor_upgrade",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "steam_catalog_abstract_world",
+        "steam_catalog_pagination_indexes",
+        "steam_catalog_classification_revision",
+        "steam_catalog_trigram_search",
+        "steam_catalog_exact_status_counters",
+        "steam_catalog_import_jobs",
+        "steam_catalog_import_job_sources",
+        "steam_catalog_import_retry_backoff",
+        "steam_catalog_global_source_throttle"
+      ],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "mixed_history",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "controlled_correction_operations",
+        "atomic_correction_receipts",
+        "steam_catalog_abstract_world",
+        "steam_catalog_pagination_indexes",
+        "steam_catalog_classification_revision",
+        "steam_catalog_trigram_search",
+        "steam_catalog_exact_status_counters",
+        "steam_catalog_import_jobs",
+        "steam_catalog_import_job_sources",
+        "steam_catalog_import_retry_backoff",
+        "steam_catalog_global_source_throttle"
+      ],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "partial_R30",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "controlled_correction_operations"
+      ],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "partial_E30",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "steam_catalog_abstract_world"
+      ],
+      "expected": "REVIEW_ONLY"
+    },
+    {
+      "name": "invalid_orphan_R31",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "atomic_correction_receipts"
+      ],
+      "expected": "STOP"
+    },
+    {
+      "name": "invalid_gap_E33",
+      "applied_logical_ids": [
+        "preserve_started_stage_memberships",
+        "match_revision",
+        "steam_game_catalog_v1",
+        "steam_catalog_abstract_world",
+        "steam_catalog_trigram_search"
+      ],
+      "expected": "STOP"
+    }
+  ]
+}
