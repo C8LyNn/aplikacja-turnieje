@@ -383,3 +383,35 @@ test("R23D-74-05 blocked GET retains stage/roster edits in memory until same-sco
   session.reconcile({ action: "keep-local", confirmedByOrganizer: true });
   assert.equal(server.calls.filter((call) => call.method === "PUT").length, 0);
 });
+
+
+test("R23D-74-07 late denied GET cannot override a newer same-scope authorized refresh", async () => {
+  const server = fake();
+  let calls = 0;
+  let rejectOld: ((error: Error) => void) | undefined;
+  const upstream = server.client;
+  const client = {
+    save: upstream.save,
+    async load(scope: BasketCasScope) {
+      calls++;
+      if (calls === 2) {
+        return new Promise<Awaited<ReturnType<typeof upstream.load>>>((_resolve, reject) => {
+          rejectOld = reject;
+        });
+      }
+      return upstream.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "private" }; });
+  const lateDenied = session.refreshRemote();
+  await session.refreshRemote(); // explicit later request succeeds for same principal
+  assert.equal(session.view().phase, "reviewing");
+  assert.ok(rejectOld);
+  rejectOld!(new Error("stale GET 403"));
+  await assert.rejects(lateDenied, /stale GET 403/);
+  assert.equal(session.view().phase, "reviewing");
+  assert.equal(session.view().authorizationFailure, null);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "private");
+});
