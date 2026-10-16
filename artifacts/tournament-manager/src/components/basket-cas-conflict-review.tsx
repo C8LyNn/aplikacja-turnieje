@@ -15,6 +15,24 @@ export function BasketCasConflictReview({
   onRefreshRemote: () => void | Promise<void>;
   onReconcile: (choice: "keep-local" | "use-remote") => void;
 }) {
+  if (view.phase === "authorization-blocked") {
+    return (
+      <section role="alert" aria-label="Brak dostępu do konfiguracji koszyków"
+        className="rounded-md border p-4 space-y-3">
+        <h3 className="font-semibold">Brak dostępu do konfiguracji koszyków</h3>
+        <p>
+          Serwer odmówił dostępu ({view.authorizationFailure ?? "401/403"}).
+          Lokalny szkic jest wstrzymany w pamięci tej sesji, ale jego zawartość
+          nie jest wyświetlana. Po przywróceniu dostępu odśwież wersję serwerową
+          i ręcznie porównaj zmiany. Zapis nie zostanie ponowiony automatycznie.
+        </p>
+        <button type="button" disabled={view.saving}
+          onClick={() => { void onRefreshRemote(); }}>
+          Ponów autoryzowane pobranie
+        </button>
+      </section>
+    );
+  }
   if (view.phase !== "conflict" && view.phase !== "reviewing") return null;
 
   return (
