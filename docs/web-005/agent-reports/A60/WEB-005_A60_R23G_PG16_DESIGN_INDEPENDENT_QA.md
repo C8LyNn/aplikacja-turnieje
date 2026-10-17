@@ -1,0 +1,68 @@
+# WEB-005 — A60 / R23G — Independent PostgreSQL16 Docker Isolation Design QA
+
+**Task:** WEB-005-T130-A60-R23G-PG16-DESIGN-QA · **Date:** 2026-10-17 Europe/Warsaw · **Review mode:** READ-ONLY, NO Docker/SQL/API tests. **VERDICT: PG16_DESIGN_QA_BLOCKED (operational G0 NO-GO).** A00 may continue DOCUMENTARY/READ-ONLY design reconciliation only; this report is not any G0–G5 signature. RELEASE_NO_GO / SWARM006_HOLD / C01_API_INTEGRATION_HOLD / C02_HOLD.
+
+## Source and reviewed A20 artifacts
+
+- [C01 PR60](https://github.com/C8LyNn/aplikacja-turnieje/pull/60) exact HEAD **fa3261b2c9510e110ac9eba21726812d3401a525**, OPEN DRAFT UNMERGED; base **1fdc401d87c6bffe6bf7312dfc9db681b689dcf7**. GitHub source independently fetched at exactly this commit.
+- [A20 Drive folder](https://drive.google.com/drive/folders/1aZxxG11bF4QtmQyZQpiqSdUAHtWUJi36) read directly; contains seven expanded no-host-port design files in text/plain, Markdown and Google Doc variants plus two raw no-host-port Compose files. Its [text/plain Compose](https://drive.google.com/file/d/1zLZsZ-APpSzgPwmSNsCJdU-4icwFC_jc/view) is 4,811 bytes, SHA256 **9ef80b64184bbdf57ba5be8e826efac35754b468f79f4cfa6cdc3f3f6e5c2535**; [application/x-yaml copy](https://drive.google.com/file/d/1pyAJDYsuWvNCKhnolcsqFjT9ar1dV3mY/view) is 4,933 bytes with BOM/CRLF, SHA256 **eb8f74c122669d549142ff49ee25e116d5111444c7a6a8d917e3a4be3cfc6f7e**. BOTH parsed successfully as static YAML using independent local PyYAML, but this does not prove docker-compose validity or runtime. Both use pg16 network_mode:none and api-tests network_mode:service:pg16, host ports [].
+- [A20 ZIP](https://drive.google.com/file/d/1gN1vJZlWtm-X3U_lZrESrfbA8h2W1gHX/view): independently downloaded 19,690 bytes, SHA256 **28e92c5094a89d7d1b5d0d9e09c20a9c100469501ecd9b6b235adb6c9122d335** matching A20 [GitHub report](https://github.com/C8LyNn/aplikacja-turnieje/blob/b3cdb186435dc8313a01acfc55d9eed8db75b9c5/docs/web-005/agent-reports/A20/R23G/PG16_R23G_FINAL_HANDOFF_QA.md). Its 8 content documents independently hashed **8/8 matches** internal PG16_R23G_SHA256_MANIFEST.json; additionally QA report and manifest exist. ZIP Compose SHA256 **14b100861b028413cbb13342b960cc38a35d4eae0c4dc258c4a0ff2b66fd96aa** uses option B **HOST-PUBLISHED 127.0.0.1:${WEB005_TEST_HOST_PORT}:5432** and PyYAML reports **syntax failure** near healthcheck `pg_isready -U "$$POSTGRES_USER"` misquoted inside a double-quoted YAML flow sequence. The ZIP is hash-integral but its Compose is NOT a valid YAML artifact.
+- [GitHub A20 R23G Compose](https://github.com/C8LyNn/aplikacja-turnieje/blob/chore/web-005/t000-wave1-control/docs/web-005/agent-reports/A20/R23G/PG16_DOCKER_COMPOSE.example.yaml), blob **b18eb6846bc82ef0383eae656edae75b745fae8f**, also OPTION B host port; not identical to Drive ZIP Compose or no-port Drive Compose. GitHub A20 R23G final handoff explicitly warns alternatives A and B must not be merged; no written A00 selection was independently found. GitHub and ZIP authorship explain that GitHub summary bytes are shorter/different from ZIP full-doc hashes.
+- A20 folder text/plain/Markdown/Google Doc copies are distinct files; ZIP hash manifest applies ONLY ZIP document bytes, NOT these later/parallel Drive copies or GitHub blobs. Remote ZIP authenticated download/recomputed SHA verified. **WINDOWS G: LOCAL MIRROR SYNCHRONIZATION = UNKNOWN**; local mirror byte SHA was not provided. Cloud Drive folder existence is NOT Windows sync evidence.
+
+## Independent source-verified S1/S2 and migration scope
+
+| Scope | Exact C01 Git blob | Independent static finding |
+|---|---|---|
+| Pack17 pure preflight | qa/pack17/gate-contract.mjs / eae350a60a684d7b14af3e481baf7bd6c4a2b2fc | NODE_ENV=test, TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA, test-named non-prod PostgreSQL URL, tm_test_*; string guard NOT physical proof |
+| S1 | artifacts/api-server/test/test-database.ts / 31a24e5d65ddbdf4f07b4e2ce7fa086674e2ecf6 | Requires NODE_TEST_CONTEXT, explicitly DROPs and CREATEs target schema CASCADE, applies 0001–0028 on scoped schema, then teardown DROP SCHEMA; requires own empty DB and S1 signature |
+| S2 | artifacts/api-server/test/replit-schema-catalog-reconciliation.integration.test.ts / 6c6bd054e0f6affd5d07e63ee396f5a14b423fc4 | Enforces localhost and non-5432, generates 3 tm_catalog_test_<16hex>_{dev,prod,fresh}, CREATE DATABASE and DROP DATABASE WITH (FORCE); S2 must separately authorize CREATEDB on entirely disposable empty PG cluster |
+| Atomic correction special fixture | artifacts/api-server/test/tournament-atomic-correction-postgresql.integration.test.ts / 92fe7245604458aff815a6a21b2e2e19f757a54a | Separate test-only 0030/0031 after scoped bootstrap, not permission to migrate production |
+| Discovery | artifacts/api-server/test/run-tests.ts / da4188446aba4696f97eb7831fee0cc5824d212f, test-discovery.ts / dd427fdafa92c089e2edad704079d81945c4b1c1 | Full integration group recursively selects all *.integration.test.ts and runs --test-concurrency=1; cannot claim full test replay while omitting S2 |
+| Explicit excluded lib/db fixture | lib/db/test/schema-catalog-comparison.integration.test.mjs / 5b56164e535c361ff0e50532c9c368e7b77b206f | Optional separate SCHEMA_COMPARE_TEST_* fixture DROPs public schema; keep OUT OF SCOPE and forbid inherited SCHEMA_COMPARE_TEST_* |
+| DB client | lib/db/src/index.ts / 50cbf483d87a8a741f4965acde5edf6225fedd3e | Uses inherited DATABASE_URL; must remove parent DATABASE_URL and other PG* vars, set only certified test-derived credentials inside runner |
+
+**A20 source mapping confirmed:** above Git blob SHAs all equal actual files fetched on C01 SHA. More precise S2 migration nuance: catalog fixture owns its own 0001–0010 HISTORY_MIGRATIONS and applies 0011 reconciliation in designed scenario; it is NOT a generic full 0001–0028 fixture. All generated DBs are disposable, including suffix `_prod` which is only a fixture name. Source never limits CREATEDB by prefix at PostgreSQL privilege level.
+
+## Critical findings (no live exploit or Docker failure asserted)
+
+**P1 R23G-A60-01 — topology / authority fork.** A20 Drive no-host-port Compose option A is different from A20 ZIP and GitHub source option B with Windows loopback publishing. Operator cannot choose based on filename 'Compose example'. Consequences: different trusted runner origin, network isolation, port inspection, firewall risk, trust of image and reset target. FIX: A00 selects exactly one option; A20 publishes one versioned canonical signed Compose with immutable SHA256/URI, retires/labels other as DEPRECATED_NONEXECUTABLE and updates G0–G5, R2, A50, manifest and rollback refs. Only then consider G0.
+
+**P1 R23G-A60-02 — malformed ZIP Compose.** Static parser rejects archive's option B healthcheck quoting. FIX: repair YAML *in a new hash-pinned artifact*, run independent offline YAML parser, then separate authorized `docker compose config` at G0; never silently substitute the other Compose. GitHub option B has different healthcheck and does not repair the archive byte identity.
+
+**P1 R23G-A60-03 — G5 identity label mismatch.** Drive no-port Compose uses `web005.run_id` and `web005.source_sha`, but its resource manifest requires `web005.runid` and `web005.c01_sha`; GitHub/ZIP option B uses `web005.run-nonce` / `web005.source-sha`. Because G5 deletion is guarded by exact labels and per-run SHA, these naming conflicts must be reconciled into one literal immutable inventory schema before G1. Do not wildcard-clean resources.
+
+**P2 R23G-A60-04 — undeclared execution inputs / preflight feasibility.** No approved immutable PG16 linux/amd64 digest, no genuine pinned runner image digest, no signed image-to-exact-C01 attestation, no materialized real operator ACL/secret file proof, no G0 Compose semantic/runtime inspection and no physical PID/PGDATA/port namespace certificate. Some are expected pre-G0 UNKNOWN, but operational G0 cannot authorize image pull/build until signed inputs and sole canonical Compose exist. `pg_isready` is only liveness, not least-privilege authentication test; G2 must verify ACL/role and real physical endpoint.
+
+**No independently confirmed executing P0 incident**: all above are static planning deficiencies; 0 Docker images, containers, schema or DB tests were run by A60. Findings are release/infrastructure-control blockers, not a claim production was attacked.
+
+## PASS / FAIL / UNKNOWN design matrix
+
+| Review item | Result | Provenance / gating interpretation |
+|---|---|---|
+| 1 Exact SHA C01, pinned A20 cited blobs | PASS | PR60 HEAD unchanged; 7/7 test/helper/DB source blob IDs independently fetched |
+| 2 Compose configuration integrity | **FAIL** | Option A/B fork; archived B YAML parse failure; no approved single executable specimen |
+| 3 Isolation from Windows native PostgreSQL | PASS_DESIGN / UNKNOWN_RUNTIME | No-host-port topology segregates in proposal; A00 operator snapshot sees existing native 5432, but namespace and service preservation during PG tests not observed |
+| 4 Privileges and secrets | PASS_DESIGN / UNKNOWN_RUNTIME | Bootstrap admin separate; NOSUPERUSER runner and S2 CREATEDB separately proposed; actual GRANT/ACL/secrets absence not evidenced |
+| 5 S1 and S2 destructive scope | PASS_SOURCE / UNKNOWN_EXEC | Source S1 schema reset and S2 3 DBs verified, their approvals/execution missing |
+| 6 Migration / fixture vs C01 | PASS_SOURCE | 0001–0028 S1, S2 0001–0010 + 0011 reconciliation, 0030/0031 dedicated atomic fixture, public reset excluded |
+| 7 G0–G5 procedure and phase ownership | PASS_DESIGN / FAIL_CANONICAL | Explicit signed triple gates and holds; inconsistent canonical topology+labels preclude approval |
+| 8 Wrong-target prevention | PASS_DESIGN / UNKNOWN_PHYSICAL | Source string checks and proposed physical certificate; no actual physical DB identity proof |
+| 9 Rollback exact-owned resources | PASS_DESIGN / FAIL_LABELS | No pruning/foreign resource deletion permitted; G5 labels conflict with Compose and cannot guarantee automated matching |
+| 10 Reports, SHA256 and Drive sync | PASS_ZIP / UNKNOWN_WINDOWS_SYNC | ZIP SHA and 8/8 internal files independently rehashed; no-host-port copies/GitHub differ; Windows G: local mirror not observed |
+
+## Review of other agents
+
+- **A20:** strong S1/S2 source research and safe G0–G5 phases, but cannot obtain independent acceptance without correcting three P1 documentary/Compose identity defects. This review does NOT treat A20's own SHA assertions as proof; ZIP was independently downloaded, its hashes recomputed and its YAML parsed. The separate `R23G-R2` signed correction and canonical selection were not discoverable as a distinct completed artifact at this review time.
+- **A30:** read-only [A30 R3 diary](https://docs.google.com/document/d/1jkNRp9x7xM-02lglfkEuongzOJTJq3HWr_pK9kDRRUU/edit) reviews Backup/Steam/CAS and reports known P0 concerns on other backend/live scopes; it explicitly says source review, tests false. This is **NOT an independent Docker/PG16 G0 security sign-off**. A00 must ask A30 for separate secrets/namespace/egress/host ACL review if a security co-approval is expected.
+- **A50:** previous A60-verified Windows [DB-free 426/426 receipt](https://drive.google.com/drive/folders/13100ypsA_wGYMX0Ooa8NMpognzdYSN9D) remains accepted *only* for DB-free. A50 PG16 G0 runner build, Docker config, G1–G5 receipts, host actual tests NOT_EXECUTED. Original [C01 CI run 38736073793](https://github.com/C8LyNn/aplikacja-turnieje/actions/runs/38736073793) fails API integration exit 1; named first failing case unknown.
+
+## Required A00 action before G0 execution GO
+
+1. Issue dated design decision D-G-01 choosing A (no host-published port/sidecar runner) OR B (local Windows test runner + signed explicit loopback-host port exception), never both, including threat model and proof of S2 localhost nondefault guard.
+2. Request A20 R23G-R2 canonical correction: repair ZIP YAML (if B survives), adopt literal uniform task/run_id/source_sha label keys across Compose and cleanup manifest; publish one byte-identical canonical Compose/manifest URI + SHA256, mark conflicting copies historical. Offline independently parse YAML; no Docker launch.
+3. Inventory image digests, frozen lock, Node22/pnpm10 container build source and output, test list (S2 includes CREATEDB, 0001–0028 and separate 0030/0031), owner-private secret handling and Docker context/arch/storage proof. Do not carry plaintext secret or raw DSN to Google Drive.
+4. A00/HQ+A20+Windows operator must each sign **G0 specifically** with exact C01+canonical Compose hash, scope pull/build, expiry and refusal conditions. **No future G1–G5 phase auto-authorized**. Any G0 read-only review is permissible as documentary planning without such executable GO; Docker pull/build is prohibited until separately approved.
+5. At G1/G2 later, verify fresh cluster system ID, PGDATA realpath/volume IDs, no Windows port 5432 touch, real PG endpoint+ROLE/NOBYPASSRLS and no native PostgreSQL access, with independent S1/S2 grants only after their own phase signatures; G4 targets single original API integration with full TAP and true exit; G5 only exact labelled G1-owned IDs with SHA256 cloud readback and Windows G mirror separately verified.
+
+**FINAL A60:** `PG16_DESIGN_QA_BLOCKED / G0_OPERATIONAL_NO_GO / G0_READ_ONLY_DOC_REVIEW_ALLOWED / ALL_G1_G5_HOLD / C01_API_INTEGRATION_HOLD / C02_HOLD / RELEASE_NO_GO / SWARM006_HOLD`. NO Docker, SQL, API integration, PostgreSQL service action, migration, container cleanup, game modification, Replit/live or merge performed.
