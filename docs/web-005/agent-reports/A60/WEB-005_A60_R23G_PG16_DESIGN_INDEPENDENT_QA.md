@@ -40,7 +40,7 @@
 
 | Review item | Result | Provenance / gating interpretation |
 |---|---|---|
-| 1 Exact SHA C01, pinned A20 cited blobs | PASS | PR60 HEAD unchanged; 7/7 test/helper/DB source blob IDs independently fetched |
+| 1 Exact SHA C01, pinned A20 cited blobs | PASS | PR60 HEAD unchanged; 8/8 test/helper/DB source blob IDs independently fetched |
 | 2 Compose configuration integrity | **FAIL** | Option A/B fork; archived B YAML parse failure; no approved single executable specimen |
 | 3 Isolation from Windows native PostgreSQL | PASS_DESIGN / UNKNOWN_RUNTIME | No-host-port topology segregates in proposal; A00 operator snapshot sees existing native 5432, but namespace and service preservation during PG tests not observed |
 | 4 Privileges and secrets | PASS_DESIGN / UNKNOWN_RUNTIME | Bootstrap admin separate; NOSUPERUSER runner and S2 CREATEDB separately proposed; actual GRANT/ACL/secrets absence not evidenced |
