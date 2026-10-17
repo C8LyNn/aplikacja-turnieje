@@ -1,0 +1,111 @@
+# WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION
+# DATE: 2026-10-17 Europe/Warsaw
+# EXAMPLE ONLY / NOT EXECUTED / NO A00+A20+OPERATOR GO.
+# DO NOT RUN docker compose up/pull/build/run/start/down.
+# Prerequisites: immutable image digests, fresh unique project+volume, operator
+# private secret files, separate G0/G1/G2/G3-S1/G3-S2/G4/G5 approvals.
+# Not a runnable default for production, staging or existing Windows PG16.
+#
+# DESIGN CHOICE: pg16 has network_mode:none and NO published host ports.
+# Runner shares pg16 network namespace, both see only internal 127.0.0.1:55432.
+# Never use Windows 127.0.0.1:5432 (existing postgresql-x64-16 service).
+#
+# REQUIRED ENV (values assigned by operator only *after* phase GO):
+#   WEB005_PG16_IMAGE="postgres:16@sha256:<IMMUTABLE_LINUX_AMD64_DIGEST>"
+#   WEB005_RUNNER_IMAGE="<PRIVATE_PREBUILT_NODE22_PNPM10_C01_IMAGE>@sha256:<DIGEST>"
+#   WEB005_PGDATA_VOLUME="web005_c01_pg16_<run_nonce>_pgdata"
+#   WEB005_RUN_ID="<run_nonce>"
+#   WEB005_ADMIN_SECRET_FILE="<PRIVATE_LOCAL_NON_SYNCED_FILE>"
+#   WEB005_TEST_SECRET_FILE="<DIFFERENT_PRIVATE_LOCAL_NON_SYNCED_FILE>"
+# Compose project: set -p web005_c01_pg16_<run_nonce> at separately authorized G1.
+# Both image digests and exact C01 git SHA verified by operator before ANY pull.
+name: ${WEB005_PROJECT_NAME:?NEW_SIGNED_COMPOSE_PROJECT_REQUIRED}
+
+services:
+  pg16:
+    image: ${WEB005_PG16_IMAGE:?OWNER_REVIEWED_IMMUTABLE_PG16_DIGEST_REQUIRED}
+    network_mode: "none"
+    restart: "no"
+    ports: []
+    labels:
+      web005.task: "WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION"
+      web005.source_sha: "fa3261b2c9510e110ac9eba21726812d3401a525"
+      web005.run_id: ${WEB005_RUN_ID:?RUN_ID_REQUIRED}
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/pg_admin_password"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    # POSTGRES bootstrap superuser remains isolated from Node runner.
+    secrets:
+      - pg_admin_password
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    # Port changed INSIDE no-network namespace so S2 checks non-5432.
+    command: ["postgres", "-c", "listen_addresses=127.0.0.1", "-c", "port=55432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 55432 -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    stop_grace_period: 20s
+
+  api-tests:
+    profiles: ["qa_approval_only"]
+    image: ${WEB005_RUNNER_IMAGE:?OWNER_REVIEWED_IMMUTABLE_NODE22_C01_IMAGE_REQUIRED}
+    network_mode: "service:pg16"
+    depends_on:
+      pg16:
+        condition: service_healthy
+    restart: "no"
+    ports: []
+    working_dir: "/workspace"
+    labels:
+      web005.task: "WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION"
+      web005.source_sha: "fa3261b2c9510e110ac9eba21726812d3401a525"
+      web005.run_id: ${WEB005_RUN_ID:?RUN_ID_REQUIRED}
+    environment:
+      NODE_ENV: "test"
+      # No DATABASE_URL or TEST_DATABASE_RESET by default.
+      # Future signed G4 test wrapper reads pg_test_password file and constructs
+      # TEST_DATABASE_URL inside container only after signed physical certificate.
+    secrets:
+      - pg_test_password
+    # INERT by default. The operator must use a separately authorized exact
+    # test wrapper/command under G4; no tests can start from this example.
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["printf '%s\n' 'INERT R23G TEMPLATE - NO TEST AUTHORIZATION'"]
+    read_only: true
+    tmpfs:
+      - "/tmp:rw,nosuid,nodev,size=128m"
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop: ["ALL"]
+
+volumes:
+  pgdata:
+    name: ${WEB005_PGDATA_VOLUME:?SIGNED_NEW_NONEXISTING_VOLUME_REQUIRED}
+    labels:
+      web005.task: "WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION"
+      web005.source_sha: "fa3261b2c9510e110ac9eba21726812d3401a525"
+      web005.run_id: ${WEB005_RUN_ID:?RUN_ID_REQUIRED}
+
+secrets:
+  pg_admin_password:
+    file: ${WEB005_ADMIN_SECRET_FILE:?PRIVATE_NON_SYNCED_ADMIN_SECRET_REQUIRED}
+  pg_test_password:
+    file: ${WEB005_TEST_SECRET_FILE:?PRIVATE_NON_SYNCED_TEST_SECRET_REQUIRED}
+
+# INTENTIONAL ABSENCES:
+# - no ports: to Windows; no network bridge; no Docker socket
+# - no bind-mount of Windows PostgreSQL or production data
+# - no running SQL/migrations/role creation/test command
+# - no test role CREATEDB before separate G3-S2
+#
+# IMPORTANT: Docker official postgres image bootstrap on a new volume creates
+# a SUPERUSER postgres; future operator-run role/db provisioning is a SEPARATE
+# G1 approval, not implemented in this compose example.
+# Runtime dry inspection, secret/WSL filesystem ACL, Compose parser and
+# namespace behavior are NOT VERIFIED — A50/A60 must validate after signed GO.
