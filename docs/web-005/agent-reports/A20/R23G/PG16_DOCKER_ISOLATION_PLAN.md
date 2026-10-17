@@ -1,0 +1,7 @@
+# WEB-005 A20 R23G — PG16_DOCKER_ISOLATION_PLAN.md
+
+Task WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION | 2026-10-17 | DOCS ONLY | C01 fa3261b2c9510e110ac9eba21726812d3401a525 | approval A00+A20+operator for each mutating gate | PG16_EXECUTION_HOLD.
+
+Design: independently isolated Docker Desktop linux/amd64 PostgreSQL 16 container pinned by future operator-verified image digest; newly created dedicated named PGDATA volume, no Windows host PostgreSQL bind mounts, new internal bridge network, no host network mode or shared production routes. Host Windows postgres service remains Running at loopback 5432, untouched. Windows A50 test requires localhost nondefault port; justified proposed exception map only 127.0.0.1:55439 to container 5432, after signed free-port/port-forward/firewall verification. No-port alternative would require containerizing A50 runner in same namespace and meeting nondefault-port source test guard, not approved. New unique test DB web005_c01_test_NONCE and schema tm_test_NONCE; no prod data or credentials. Source C01 test-database.ts SHA1 31a24e5d65ddbdf4f07b4e2ce7fa086674e2ecf6 has DROP/CREATE schema 0001–0028. Catalog API integration fixture SHA1 6c6bd054e0f6affd5d07e63ee396f5a14b423fc4 CREATE/DROP 3 DBs; requires distinct S2 consent. A00 issue #76 comment 6232716514 accepted infrastructure preflight only, not Docker run/pull. FAIL on wrong host port, unpinned digest, unknown PGDATA, network access to production or missing signatures.
+
+**Verdict:** DESIGN_READY_FOR_A00_REVIEW / PG16_EXECUTION_HOLD / CLOUD_SYNC_UNVERIFIED.
