@@ -1,0 +1,184 @@
+{
+  "schema": "WEB005.A60.R23G.PG16_DESIGN_QA/1",
+  "date": "2026-10-17",
+  "agent": "A60",
+  "task": "WEB-005-T130-A60-R23G-PG16-DESIGN-QA",
+  "result": "PG16_DESIGN_QA_BLOCKED",
+  "c01": {
+    "pr": 60,
+    "verified_head": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "state": "OPEN_DRAFT_UNMERGED",
+    "source_blobs_independently_checked": 8,
+    "source_blob_matches_to_A20": 8,
+    "dbfree_native_already_accepted": {
+      "tests": 426,
+      "pass": 426,
+      "fail": 0,
+      "skip": 0
+    },
+    "pg16_this_review": "NOT_EXECUTED"
+  },
+  "a20": {
+    "folder": "https://drive.google.com/drive/folders/1aZxxG11bF4QtmQyZQpiqSdUAHtWUJi36",
+    "zip": {
+      "file_id": "1gN1vJZlWtm-X3U_lZrESrfbA8h2W1gHX",
+      "size_bytes": 19690,
+      "sha256": "28e92c5094a89d7d1b5d0d9e09c20a9c100469501ecd9b6b235adb6c9122d335",
+      "actual_recomputed": true,
+      "manifest_entries": 8,
+      "matched": 8,
+      "zip_yaml_sha256": "14b100861b028413cbb13342b960cc38a35d4eae0c4dc258c4a0ff2b66fd96aa",
+      "zip_yaml_parse": "FAIL",
+      "topology": "B_HOST_PORT_LOOPBACK"
+    },
+    "drive_compose_txt": {
+      "file_id": "1zLZsZ-APpSzgPwmSNsCJdU-4icwFC_jc",
+      "size_bytes": 4811,
+      "sha256": "9ef80b64184bbdf57ba5be8e826efac35754b468f79f4cfa6cdc3f3f6e5c2535",
+      "parse": "PASS_STATIC_YAML",
+      "topology": "A_NO_HOST_PORTS"
+    },
+    "drive_compose_yaml": {
+      "file_id": "1pyAJDYsuWvNCKhnolcsqFjT9ar1dV3mY",
+      "size_bytes": 4933,
+      "sha256": "eb8f74c122669d549142ff49ee25e116d5111444c7a6a8d917e3a4be3cfc6f7e",
+      "parse": "PASS_STATIC_YAML",
+      "topology": "A_NO_HOST_PORTS"
+    },
+    "github_compose": {
+      "path": "docs/web-005/agent-reports/A20/R23G/PG16_DOCKER_COMPOSE.example.yaml",
+      "blob": "b18eb6846bc82ef0383eae656edae75b745fae8f",
+      "topology": "B_HOST_PORT_LOOPBACK",
+      "different_from_drive_and_zip": true
+    },
+    "github_a20_handoff": "https://github.com/C8LyNn/aplikacja-turnieje/blob/b3cdb186435dc8313a01acfc55d9eed8db75b9c5/docs/web-005/agent-reports/A20/R23G/PG16_R23G_FINAL_HANDOFF_QA.md",
+    "local_windows_g_drive_byte_sync": "UNKNOWN",
+    "source_selection_signed": "UNKNOWN",
+    "r23g_r2_independent_completed_correction": "NOT_FOUND"
+  },
+  "matrix": [
+    {
+      "id": 1,
+      "name": "Exact source SHA and test/helper file origin",
+      "status": "PASS",
+      "scope": "8/8 Git blob IDs direct cross-check"
+    },
+    {
+      "id": 2,
+      "name": "Docker Compose unambiguous configuration",
+      "status": "FAIL",
+      "scope": "Two alternative topologies, ZIP YAML parser failure"
+    },
+    {
+      "id": 3,
+      "name": "Isolation from native Windows PG16",
+      "status": "UNKNOWN",
+      "scope": "A proposed architecture; Windows preflight snapshot only, no G1 network/PGDATA run"
+    },
+    {
+      "id": 4,
+      "name": "Secrets and least privilege",
+      "status": "UNKNOWN",
+      "scope": "Designed separation, actual secrets ACL, role NO* grants absent"
+    },
+    {
+      "id": 5,
+      "name": "S1/S2 scope and consent",
+      "status": "PASS",
+      "scope": "Source semantic scope read back; actual consent remains absent"
+    },
+    {
+      "id": 6,
+      "name": "Migrations and fixtures mapping",
+      "status": "PASS",
+      "scope": "S1 0001-0028, S2 history 0001-0010 plus 0011, separate atomic 0030-0031; opt-in public-schema reset excluded"
+    },
+    {
+      "id": 7,
+      "name": "G0-G5 documented state machine",
+      "status": "PASS",
+      "scope": "Separate A00+A20+operator phase approvals specified; canonical config mismatch blocks execution"
+    },
+    {
+      "id": 8,
+      "name": "Wrong-environment run prevention",
+      "status": "UNKNOWN",
+      "scope": "String guards static present, no physical identity certificate"
+    },
+    {
+      "id": 9,
+      "name": "Rollback complete and unambiguous exact IDs",
+      "status": "FAIL",
+      "scope": "Explicit label key mismatches between manifest/Compose variants"
+    },
+    {
+      "id": 10,
+      "name": "Cloud artefact integrity and Windows sync",
+      "status": "UNKNOWN",
+      "scope": "ZIP SHA256 and internal files PASS but source aliases differ; local G drive bytes not verified"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R23G-A60-01",
+      "severity": "P1",
+      "classification": "SOURCE_CONFIRMED",
+      "summary": "Topology fork between Drive no-host-port and GitHub/ZIP host loopback port, no single canonical signed Compose"
+    },
+    {
+      "id": "R23G-A60-02",
+      "severity": "P1",
+      "classification": "STATIC_PARSE_REPRODUCED",
+      "summary": "A20 ZIP Compose YAML malformed at healthcheck quoting"
+    },
+    {
+      "id": "R23G-A60-03",
+      "severity": "P1",
+      "classification": "SOURCE_CONFIRMED",
+      "summary": "Compose labels web005.run_id,web005.source_sha differ from resource manifest web005.runid,web005.c01_sha and alternate B"
+    },
+    {
+      "id": "R23G-A60-04",
+      "severity": "P2",
+      "classification": "EVIDENCE_GAP",
+      "summary": "No pinned operator image digests/runner image, no actual cluster or secret role attestation, runtime Compose not checked"
+    }
+  ],
+  "agent_qa": {
+    "A20": "SOURCE_CONTRACT_STRENGTH_PASS_BUT_DESIGN_CANONICAL_BLOCKED",
+    "A30": "RELATED_A30_R3_SOURCE_DIARY_ONLY_NOT_PG16_ISOLATION_SIGNATURE",
+    "A50": "DBFREE_QA_ACCEPTED_PRIOR_ONLY_PG16_NOT_EXECUTED",
+    "A60": "READ_ONLY_STATIC_YAML_PARSE_AND_GITHUB_BLOB_ZIP_DIGEST_INDEPENDENT"
+  },
+  "before_operational_g0": [
+    "Signed A00 choice Option A or B and retire other executable candidate",
+    "Single canonical hash-pinned Compose and inventory with consistent run/source labels",
+    "Repair ZIP YAML or explicitly deprecate and quarantine historical copy",
+    "Pinned immutable PG16 and C01 runner image digests, offline source+lock provenance",
+    "Independent read-only host/native Windows PG context and storage recheck",
+    "Three separately recorded A00/HQ+A20+operator G0 signatures with exact resource scope"
+  ],
+  "gates": {
+    "g0_documentary_review": "ALLOWED_READ_ONLY",
+    "g0_docker_pull_build": "NO_GO",
+    "g1": "HOLD",
+    "g2": "HOLD",
+    "g3_s1": "HOLD",
+    "g3_s2": "HOLD",
+    "g4": "HOLD",
+    "g5": "HOLD",
+    "c01_api_integration": "HOLD",
+    "c02": "HOLD",
+    "release": "NO_GO",
+    "swarm006": "HOLD"
+  },
+  "execution": {
+    "docker_commands": 0,
+    "sql": 0,
+    "integrations": 0,
+    "migrations": 0,
+    "deploys": 0,
+    "source_modifications": 0
+  },
+  "audit_report": "WEB-005_A60_R23G_PG16_DESIGN_INDEPENDENT_QA.md"
+}
