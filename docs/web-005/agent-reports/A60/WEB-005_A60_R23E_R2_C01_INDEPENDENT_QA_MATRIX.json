@@ -1,0 +1,103 @@
+{
+  "schema": "web005.a60.r23e-r2.dbfree-independence/1",
+  "date": "2026-10-17",
+  "agent": "A60",
+  "verdict": "DBFREE_QA_ACCEPTED",
+  "identity": {
+    "repo": "C8LyNn/aplikacja-turnieje",
+    "pr": 60,
+    "head": "fa3261b2c9510e110ac9eba21726812d3401a525",
+    "state": "OPEN_DRAFT_UNMERGED",
+    "head_matches_native_receipt": true,
+    "detached_head_log_verified": true
+  },
+  "provenance": {
+    "drive_folder": "https://drive.google.com/drive/folders/13100ypsA_wGYMX0Ooa8NMpognzdYSN9D",
+    "receipt_id": "1OZQLu5Kk2AsIzJqFmOfhfWNosR9nfijn",
+    "manifest_id": "1xvlSsAzbgdWGor7gU61H6LQrWwYqsHpm",
+    "status_id": "136vg2pDlXpJ5BwiSMthorBJBpdYnwj-M",
+    "manifest_entries": 115,
+    "raw_log_sha256_recomputed": 36,
+    "raw_log_sha256_matched": 36,
+    "native_receipt_sha256_verified": true,
+    "status_sha256_verified": true,
+    "r23e_r2_zip_sha256": "8357dbabd02637f767682b2a0320c9901eebfc530686f9daaacb778cc065dd71",
+    "zip_internal_sha256_matched": 13,
+    "zip_internal_entries": 13,
+    "original_executor_git_blob_sha1": "95bc02a33db07cef1f9b837a5493813356d490ac",
+    "original_executor_blob_fetched": true,
+    "generated_windows_runner_sha256_claimed": "c37b1b4644f879e423df98f48a043c05a78d32bbf10f330dd08534b1a5ce4bea",
+    "generated_windows_runner_bytes_independently_hashed": false,
+    "frozen_pnpm_lock_sha256_receipt": "8c30be5af6c9a868bf5b24ff3b2ced9ca0b976e66c3366a8e78d9df8229c39ef",
+    "full_manifest_entries_individually_rehashed": false,
+    "frontend_test_source_blobs_crosschecked_on_head": 5
+  },
+  "native_windows_a50": {
+    "executed_command_logs": 36,
+    "confirmed_exit_zero": 36,
+    "tap_logs": 25,
+    "tap_test_counts": {
+      "Pack19to26": 292,
+      "Pack17Pure": 24,
+      "BackupStrict": 14,
+      "BackupProfile": 26,
+      "Swiss": 13,
+      "Frontend_backup_file": 4,
+      "Frontend_stage_utils": 13,
+      "Frontend_query_invalidation": 8,
+      "Frontend_stages_ui": 27,
+      "Frontend_seeding_ui": 5
+    },
+    "tap_total": 426,
+    "tap_pass": 426,
+    "tap_fail": 0,
+    "tap_skip": 0,
+    "tap_todo": 0,
+    "tap_cancelled": 0,
+    "BuildTypes_exit": 0,
+    "ApiTypecheck_exit": 0,
+    "tool_versions": {
+      "powershell": "7.6.7",
+      "node": "v22.23.3",
+      "pnpm": "10.34.7",
+      "git": "2.51.0.windows.1"
+    },
+    "frozen_install_exit": 0
+  },
+  "independent_a60_actions": {
+    "downloaded_logs_raw": 36,
+    "rehashed_sha256": 36,
+    "parsed_log_exit": 36,
+    "parsed_complete_tap_summaries": 25,
+    "reran_tests_on_a60_host": false,
+    "inspected_manifest_receipt_status": true,
+    "inspected_r2_package": true,
+    "checked_source_pinned_frontend_blobs": 5,
+    "inspected_scratch_change_and_rollback_reports": true
+  },
+  "excluded": {
+    "pg16_executed": false,
+    "api_integration_executed": false,
+    "pack17_full_executed": false,
+    "source_live_replit_changed": "NO_EVIDENCE_IN_TEST_LOGS_NOT_INDEPENDENT_HOST_ATTESTED",
+    "app_qa_complete": false,
+    "browser_ui_executed": false,
+    "production_deploy": false
+  },
+  "owner_next_gate": {
+    "status": "A00_A20_OPERATOR_WRITTEN_GO_REQUIRED",
+    "postgres16_host": "PHYSICALLY_ISOLATED_DISPOSABLE_VERIFIED",
+    "env_required": [
+      "NODE_ENV=test",
+      "TEST_DATABASE_RESET=DROP_TM_TEST_SCHEMA",
+      "TEST_DATABASE_URL (test-named database, non-production host)",
+      "TEST_DATABASE_SCHEMA=tm_test_*"
+    ],
+    "reset_scope": "ONLY_PREAPPROVED_TM_TEST_SCHEMA",
+    "real_api_integration_first_failure": "UNRESOLVED",
+    "sensitive_logs": "REDACT"
+  },
+  "release": "RELEASE_NO_GO",
+  "swarm006": "HOLD",
+  "c02": "HOLD"
+}
