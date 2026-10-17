@@ -1,0 +1,7 @@
+# WEB-005 A20 R23G — PG16_EXECUTION_PHASES_G0_G5.md
+
+Task WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION | 2026-10-17 | DOCS ONLY | C01 fa3261b2c9510e110ac9eba21726812d3401a525 | approval A00+A20+operator for each mutating gate | PG16_EXECUTION_HOLD.
+
+G0 SOURCE/DOC: verify exact SHA, Docker preflight, complete documents, no mutation. G1 PHYSICAL PROVISION, ONLY AFTER NEW TRIPLE GO: digest-pinned postgres:16 pull, new container/network/named volume/PGDATA, nondefault loopback port; record immutable object IDs and cluster ID, no Windows data. G2 READ-ONLY CERT, NEW TRIPLE GO: observer confirms PG16 version, endpoint PID/port→container→PGDATA, empty data, role ACL, compare to operator independently measured host. G3 MUTATING PERMISSION, SEPARATE TRIPLE GO for S1 tm_test_* reset and S2 3 CREATE/DROP databases; snapshot empty disposable baseline. G4 RUN, SEPARATE TRIPLE GO: A50 exact C01 checkout full pnpm --filter @workspace/api-server run test:integration, real exit, full TAP, first genuine not ok/exception; no skip/retries altering assertions. G5 CLEANUP, SEPARATE TRIPLE GO: capture redacted evidence/hash, delete only exact owned container/network/volume and approved test objects, verify Windows native PG16 5432 unchanged. PASS needs original independent signed certificate; any mismatch/expired approval=>STOP. Do not open C02.
+
+**Verdict:** DESIGN_READY_FOR_A00_REVIEW / PG16_EXECUTION_HOLD / CLOUD_SYNC_UNVERIFIED.
