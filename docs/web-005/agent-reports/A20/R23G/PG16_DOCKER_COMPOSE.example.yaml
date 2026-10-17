@@ -1,0 +1,28 @@
+# R23G NON-EXECUTABLE EXAMPLE; G1 triple signature required
+name: web005-r23g-pg16-lab
+services:
+  pg16:
+    image: postgres:16@sha256:REPLACE_WITH_OPERATOR_VERIFIED_DIGEST
+    platform: linux/amd64
+    restart: 'no'
+    environment:
+      POSTGRES_DB: ${WEB005_TEST_DB:?REQUIRED}
+      POSTGRES_USER: ${WEB005_TEST_USER:?REQUIRED}
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    secrets: [pg_password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [lab]
+    ports: ['127.0.0.1:${WEB005_TEST_HOST_PORT:?REQUIRED_NONDEFAULT}:5432']
+    security_opt: ['no-new-privileges:true']
+    labels:
+      web005.task: WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION
+      web005.run-nonce: ${WEB005_RUN_NONCE:?REQUIRED}
+networks:
+  lab:
+    internal: true
+volumes:
+  pgdata:
+secrets:
+  pg_password:
+    file: ${WEB005_PG_PASSWORD_FILE:?REQUIRED_PRIVATE_FILE}
