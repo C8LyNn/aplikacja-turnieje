@@ -1,0 +1,36 @@
+# WEB-005-T020-A20-R23G-R2
+# DATE: 2026-10-17 Europe/Warsaw.
+# DESIGN ONLY / UNBUILT / NO docker build or pull authorized.
+# G0 requires A00/HQ + A20 + Windows operator approvals BEFORE image build.
+# PRECONDITION: A50 independently verifies clean disposable exact git HEAD
+# fa3261b2c9510e110ac9eba21726812d3401a525 and a constrained build
+# context excluding .env, secrets, git credentials, production data, any PGDATA.
+# Node base digest = PENDING / runner output digest = PENDING.
+ARG NODE_BASE_PINNED
+FROM ${NODE_BASE_PINNED} AS pinned_node22
+ARG EXACT_C01_SHA=fa3261b2c9510e110ac9eba21726812d3401a525
+LABEL org.opencontainers.image.revision="${EXACT_C01_SHA}" \
+      web005.task="WEB-005-T020-A20-R23G-R2" \
+      web005.source_sha="fa3261b2c9510e110ac9eba21726812d3401a525"
+# LABEL IS NOT SOURCE VERIFICATION: compare git commit and root tree outside image.
+WORKDIR /workspace
+# G0 verify that selected base actually carries Node 22.23.3, corepack,
+# linux/amd64; no fallback to floating tags or machine-local global pnpm.
+RUN node --version | grep -Fx v22.23.3
+RUN corepack enable \
+ && corepack prepare pnpm@10.34.7 --activate \
+ && pnpm --version | grep -Fx 10.34.7
+# Exact checkout bytes only; build context MUST be owner-audited & stripped
+# of .env, secrets, node_modules, .git tokens, caches and real user data.
+COPY . /workspace/
+# Dedicated frozen-lock build at G0 only (requires separately authorized
+# package-registry access and validation of pnpm package integrity metadata).
+RUN pnpm install --frozen-lockfile \
+ && pnpm exec tsc -b lib/db lib/api-zod lib/stage-basket-flow
+# Runtime process cannot modify source tree. Any tests that write workspace
+# paths MUST be assessed by A50 and redirected only to a signed scratch tmpfs,
+# otherwise STOP_G4_RUNNER_FILESYSTEM_WRITES.
+USER node
+CMD ["node", "--version"]
+# No G4 API Integration startup; the Compose runner stays inert by default.
+# No source build/test performed when this text was published.
