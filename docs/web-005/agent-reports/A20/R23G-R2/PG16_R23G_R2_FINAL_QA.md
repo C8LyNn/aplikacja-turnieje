@@ -1,0 +1,27 @@
+# WEB-005 / A20 — R23G-R2 Final Source QA / Docker PG16 Owner Gate
+
+**Task:** `WEB-005-T020-A20-R23G-R2` · **Date:** 2026-10-17 Europe/Warsaw.  
+**Verdict:** `PG16_R23G_R2_READY_FOR_INDEPENDENT_QA` — **source/documentation QA only**.  
+**Execution:** `PG16_EXECUTION_NOT_AUTHORIZED / G0_G5_HOLD / C01_INTEGRATION_HOLD / C02_HOLD / RELEASE_NO_GO / SWARM006_HOLD`.
+
+## Actual operations and source result
+
+- Exact GitHub C01 PR60 SHA `fa3261b2c9510e110ac9eba21726812d3401a525`, OPEN DRAFT, UNMERGED. C01 source fetched: S1 helper Git blob SHA1 `31a24e5d65ddbdf4f07b4e2ce7fa086674e2ecf6`, S2 three-database integration Git blob `6c6bd054e0f6affd5d07e63ee396f5a14b423fc4`, runner `da4188446aba4696f97eb7831fee0cc5824d212f`, Pack17 guard `eae350a60a684d7b14af3e481baf7bd6c4a2b2fc`. No original C01 changed.
+- Docker Official Image `library/postgres:16.15-trixie`, amd64 reported prefix `75adc2a65806` from [Docker Hub](https://hub.docker.com/_/postgres/tags?name=16&page=1); full architecture manifest candidate `sha256:75adc2a65806c96bc0e59030230bfe3f1c1b0d6d8f8181a8913e2b8b53bdc166`, OCI index candidate `sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d` from [secondary index](https://dhub.cyberranges.com/layers/library/postgres/16/images/sha256-75adc2a65806c96bc0e59030230bfe3f1c1b0d6d8f8181a8913e2b8b53bdc166). **Primary signed OCI manifest full digest not independently fetched; must verify before G0**.
+- Node runner build source produced as inert Dockerfile, not image. `NODE_BASE_IMAGE_DIGEST=PENDING`, `RUNNER_IMAGE_DIGEST=PENDING`. Node22.23.3/pnpm10.34.7 pinned as intended baseline, `pnpm-lock.yaml` prior A50 SHA256 `8c30be5af6c9a868bf5b24ff3b2ced9ca0b976e66c3366a8e78d9df8229c39ef`; no new build/lock verification in this task.
+- **YAML static parse (non-Docker):** exported Google Docs representation of R2 Compose read into local Python PyYAML `yaml.safe_load` — **PASS**. Fields: `pg16.network_mode=none`, `api-tests.network_mode=service:pg16`, both `ports=[]`, both `pull_policy=never`, both `platform=linux/amd64`, secrets `pg_admin_password` and `pg_test_password`, one named pgdata volume, no top-level networks. **No `docker compose config`, Docker daemon, image pull or runtime**. Google Docs text/plain **exported variant differs bytewise** from exact original Markdown/YAML and has different SHA256; parser PASS is **not raw source byte-identical parse proof**. Original GitHub YAML key-level static scan likewise passed.
+- **S1/S2** source-level confirmed: S1 helper drops/recreates owned `tm_test_<nonce>` and applies 0001–0028, S2 creates 3 `tm_catalog_test_<16hex>_{dev,prod,fresh}` then drops DB WITH FORCE; S2 child process sets `SCHEMA_COMPARE_DEVELOPMENT_DATABASE_URL`/`SCHEMA_COMPARE_PRODUCTION_DATABASE_URL` internally for its own disposable DBs. Only inherited/foreign SCHEMA_COMPARE env denied. PostgreSQL CREATEDB non-prefix-restricted. No SQL performed.
+- **Google Drive readback**: ten R23G-R2 canonical texts copied into native Google Docs under [R23G-R2_20261017](https://drive.google.com/drive/folders/1-kR3pueqklMzu4vKqQa4EdzTbUTNsTIq); for each document `Google Docs body text = exact GitHub UTF-8 text + one automatic terminating newline`, confirmed by direct readback. Therefore **normalized source-text SHA256 logically matches** GitHub source after stripping exactly the editor terminator. Do not misrepresent this as byte-identical `.md`/YAML cloud file: exported Docs adds formatting newlines and BOM. **RAW_CLOUD_MD_BYTE_EQUIVALENCE=NOT_VERIFIED**, **WINDOWS_G_MIRROR_SYNC=UNVERIFIED**.
+- Operator destination: `G:\Mój dysk\ChatGPT\WEB-005\Raporty\PG16_DOCKER_ISOLATION\`. In this turn A20 did not access Windows G: at all. Drive cloud-native files exist and were read back, but Windows mirror not verified.
+
+## Remaining independent A60 work / required owner decisions
+
+1. A60 independently reproduce Docker Hub **authenticated OCI index and linux/amd64 manifest SHA** and confirm tag/digest/OS architecture, plus separate immutable Node base and generated runner digest after new G0 GO.
+2. Review standalone source YAML with actual Compose parser only after separate authorization (parser may be read-only, but **no Docker commands are authorized by current task**), verify official postgres 16.15 entrypoint authentication and volume location, Node runner read-only scratch/writes.
+3. A00/HQ+A20+operator sign exact separate G0 image pull/build, G1 new container/volume, G2 read-only DB, G3 S1 schema reset, G3 S2 three DB create/force-drop, G4 one actual integration, G5 exact-ID cleanup. **No implicit grant**.
+4. Operator independently certify Docker host/PGDATA/port and Windows `postgresql-x64-16` untouched, and future credentials, secret mount and read-only network runtime. Verify local Windows G: sync independently.
+5. C01 integration first not-ok remains **UNKNOWN**; A50's prior 426/426 DB-free PASS and A60 `DBFREE_QA_ACCEPTED` do **not** prove PG Integration PASS.
+
+**Limitations:** no registry login, no OCI descriptor GET, no Docker command, no PG SQL, no migration, no native API execution, no paid CI/merge/games/live. All reported PASS are source/metadata, YAML static parser or Google Docs normalized-text readback **only**.
+
+**Final:** `PG16_R23G_R2_READY_FOR_INDEPENDENT_QA / G0_SOURCE_IMAGE_OWNER_GATE_PENDING / NODE_RUNNER_DIGEST_PENDING / LOCAL_G_DRIVE_SYNC_UNVERIFIED / PG16_EXECUTION_NOT_AUTHORIZED`.
