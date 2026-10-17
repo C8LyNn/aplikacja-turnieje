@@ -1,0 +1,160 @@
+{
+  "schema": "web005.a50.r23h-r4.test_inventory.design.v1",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "source_commit_sha1": "fa3261b2c9510e110ac9eba21726812d3401a525",
+  "tree_api": "https://api.github.com/repos/C8LyNn/aplikacja-turnieje/git/trees/fa3261b2c9510e110ac9eba21726812d3401a525?recursive=1",
+  "tree_truncated": false,
+  "tree_total_entries": 1745,
+  "selection": "path begins artifacts/api-server/test/ and ends .integration.test.ts; recursively discovered tree",
+  "count": 36,
+  "verified": "GITHUB_GIT_TREE_READ_ONLY",
+  "runtime_executed": false,
+  "test_entrypoints": [
+    {
+      "path": "artifacts/api-server/test/access.integration.test.ts",
+      "git_blob_sha1": "014d9581d1bd105854121fab9107e117c0f966cf"
+    },
+    {
+      "path": "artifacts/api-server/test/basket-participant-flow.integration.test.ts",
+      "git_blob_sha1": "4fbe0dd149245311f6a653eef3be1bb8f87d95a5"
+    },
+    {
+      "path": "artifacts/api-server/test/complete-match.integration.test.ts",
+      "git_blob_sha1": "5b3b8942e792d231639d3cbae88e942de166abd2"
+    },
+    {
+      "path": "artifacts/api-server/test/credential-rate-limit.integration.test.ts",
+      "git_blob_sha1": "14addcc79b35ff31f6d1bc13cf6d896fc5749042"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-ban-pool.integration.test.ts",
+      "git_blob_sha1": "916d267c252a216bec1c408104f91f40a040af32"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-game-config.integration.test.ts",
+      "git_blob_sha1": "68dbded2474170d9d9266028c12d33c81004435f"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-sides.integration.test.ts",
+      "git_blob_sha1": "ce066f10a888ce16cfac99058228afd52b1f985e"
+    },
+    {
+      "path": "artifacts/api-server/test/double-elimination-api.integration.test.ts",
+      "git_blob_sha1": "314e1c8259d86b02e2e7f0659d0fe18cfb36b70b"
+    },
+    {
+      "path": "artifacts/api-server/test/double-elimination-persistence.integration.test.ts",
+      "git_blob_sha1": "420dc92d2cf1ebadbbe2112753411fdd63ab3561"
+    },
+    {
+      "path": "artifacts/api-server/test/drizzle-schema-diff.integration.test.ts",
+      "git_blob_sha1": "e008dbd9fe287632252d3fcfda246f60e4cc35d3"
+    },
+    {
+      "path": "artifacts/api-server/test/legacy-de-routing-plan.integration.test.ts",
+      "git_blob_sha1": "eeb7bcb702af96e5ca1e245d26d8807c85c8f258"
+    },
+    {
+      "path": "artifacts/api-server/test/marvel-elimination-stage.integration.test.ts",
+      "git_blob_sha1": "16b140cb0908415e746c24255937a4a2f0224ff8"
+    },
+    {
+      "path": "artifacts/api-server/test/match-revision.integration.test.ts",
+      "git_blob_sha1": "b787c06d5575ad958a309002f6af733a877b5b7f"
+    },
+    {
+      "path": "artifacts/api-server/test/migration.integration.test.ts",
+      "git_blob_sha1": "5f84cbb783219bbaf55c788f0e9d508cf78e3d13"
+    },
+    {
+      "path": "artifacts/api-server/test/operational-reliability.integration.test.ts",
+      "git_blob_sha1": "103ce3352c8a3d97296c06b65931a33b0876f029"
+    },
+    {
+      "path": "artifacts/api-server/test/replit-schema-catalog-reconciliation.integration.test.ts",
+      "git_blob_sha1": "6c6bd054e0f6affd5d07e63ee396f5a14b423fc4"
+    },
+    {
+      "path": "artifacts/api-server/test/revert-match.integration.test.ts",
+      "git_blob_sha1": "3528c28bc3b253186e2b1c09426624b779c9a87f"
+    },
+    {
+      "path": "artifacts/api-server/test/security-integrity.integration.test.ts",
+      "git_blob_sha1": "5c0ccdf9e9598ceea7b14b8f1194104b566807db"
+    },
+    {
+      "path": "artifacts/api-server/test/series-v1.integration.test.ts",
+      "git_blob_sha1": "de72356ef9448caa324869a8ae958ddbfafbacd8"
+    },
+    {
+      "path": "artifacts/api-server/test/single-stage-seeding.integration.test.ts",
+      "git_blob_sha1": "a2a8ddf2e7b202f3e83f4f1b2b56e28ea9d4795f"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-basket-qualification.integration.test.ts",
+      "git_blob_sha1": "bc988483ee50e5a8b7256b240220ee121387ac80"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts",
+      "git_blob_sha1": "f5fc8eb3ec6f534ce74e70dbb90e48f47476e02d"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-baskets.integration.test.ts",
+      "git_blob_sha1": "27c101a195d7a33de270b4eed53eb8ff95cac17e"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-atomic-correction-postgresql.integration.test.ts",
+      "git_blob_sha1": "92fe7245604458aff815a6a21b2e2e19f757a54a"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-operations.integration.test.ts",
+      "git_blob_sha1": "a6d5ba45eec7e199eebd5395918f9bc23334f7b5"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-persistence.integration.test.ts",
+      "git_blob_sha1": "895bc584df055557184f5306211285413a74d32e"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-api-backup.integration.test.ts",
+      "git_blob_sha1": "a477b426ed4e39d0685e1e6bce70085b22a35059"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-composite-foreign-keys.integration.test.ts",
+      "git_blob_sha1": "569e288b806d16ac0635a9f89f06a4bfc25844d5"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-full-flow.integration.test.ts",
+      "git_blob_sha1": "33bc863c5dd0eddc2eb759aa35927c550121481c"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-group-stage.integration.test.ts",
+      "git_blob_sha1": "f370fcdfcd0b9a0dea2505e1409e2fe9faa0acf2"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-initial-start.integration.test.ts",
+      "git_blob_sha1": "536520bbe5794049932a70efb8724c340fb0be9d"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-lifecycle.integration.test.ts",
+      "git_blob_sha1": "de05f00d21975cbe926dd6c0265e1afce04486cb"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-procedural-recovery.integration.test.ts",
+      "git_blob_sha1": "959d9b4f168e272e9708aa9afe0f21b6814a1da6"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-production-migration.integration.test.ts",
+      "git_blob_sha1": "409b22640bb1281deef45c133cf24c4488ac7765"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-reconcile-migration.integration.test.ts",
+      "git_blob_sha1": "7ad29187e31c22a3efac7bd8da55dd1c3234cbde"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-schema.integration.test.ts",
+      "git_blob_sha1": "ebad25d5f217e7cf6e17bfcf0e349afff3a431a7"
+    }
+  ],
+  "full_runtime_discovery_match": "PENDING_G0",
+  "note": "blob SHA-1 is Git object identity; not file SHA256. At G0 compute and compare every file SHA256 and discovered list. No tests executed."
+}
