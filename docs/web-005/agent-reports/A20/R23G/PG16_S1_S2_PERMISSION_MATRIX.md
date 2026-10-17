@@ -1,0 +1,7 @@
+# WEB-005 A20 R23G — PG16_S1_S2_PERMISSION_MATRIX.md
+
+Task WEB-005-T020-A20-R23G-DOCKER-PG16-ISOLATION | 2026-10-17 | DOCS ONLY | C01 fa3261b2c9510e110ac9eba21726812d3401a525 | approval A00+A20+operator for each mutating gate | PG16_EXECUTION_HOLD.
+
+G2 catalog observer: CONNECT/read metadata only; no PG writes. S1: test-database.ts SHA1 31a24e5d65ddbdf4f07b4e2ce7fa086674e2ecf6 requires ability to DROP SCHEMA IF EXISTS tm_test_* CASCADE, CREATE SCHEMA, migrations 0001–0028 and teardown; grant only inside sole disposable test DB. S2: replit-schema-catalog-reconciliation.integration.test.ts SHA1 6c6bd054e0f6affd5d07e63ee396f5a14b423fc4 dynamically CREATE DATABASE tm_catalog_test_<16hex>_{dev,prod,fresh}, mutate its own public schema and DROP DATABASE WITH (FORCE). Requires PostgreSQL CREATEDB privilege which is CLUSTER-WIDE, NOT GRANTABLE by database-name pattern; only tolerable on exclusively empty disposable Docker cluster with no other data/users. Source test discovers all integration files. S1 consent DOES NOT grant S2; full test:integration needs both and separate exact command GO. Exclude lib/db/test/schema-catalog-comparison.integration.test.mjs SHA1 5b56164e535c361ff0e50532c9c368e7b77b206f which can DROP public in other DBs. Reject inherited DATABASE_URL, PGSERVICE and SCHEMA_COMPARE_*; no printed secrets.
+
+**Verdict:** DESIGN_READY_FOR_A00_REVIEW / PG16_EXECUTION_HOLD / CLOUD_SYNC_UNVERIFIED.
