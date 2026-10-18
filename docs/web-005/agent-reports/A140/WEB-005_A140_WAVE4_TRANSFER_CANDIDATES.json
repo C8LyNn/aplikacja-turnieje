@@ -268,5 +268,89 @@
     "No isolated source merge or deployment authorization"
   ],
   "handoff": "A10 register decisions; A40 choose source-only, independently validated packets; A60 verify exact WAVE4 head and negative tests; A120 own font/routes/static bundles; A30 own Steam auth; A20/A22 own SQL decisions.",
-  "overall": "PARTIAL_PRESERVATION_MANIFEST_READY_FOR_REVIEW / REAL_LIVE_UNVERIFIED / NO_SYNC / NO_DEPLOY"
+  "overall": "PARTIAL_PRESERVATION_MANIFEST_READY_FOR_REVIEW / REAL_LIVE_UNVERIFIED / NO_SYNC / NO_DEPLOY",
+  "stop_matrix_w5r": {
+    "task_id": "WEB-005-T140-W5R-REPLIT-PROTECTION",
+    "dispatch": "https://docs.google.com/document/d/1yKUPtfE0dC9a0nRAdi35OnYPDIZUN46u3bCkN2KeDTw/edit",
+    "date": "2026-10-18",
+    "mode": "REPLIT_READ_ONLY; GITHUB_A140_DOCS_ONLY; NO_SYNC_NO_DEPLOY_NO_SQL",
+    "release_sha": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "replit_workspace_head_agent_reported": "5e68f0f4b7d73cb5ff6aad0065dbe54c5f691776",
+    "replit_workspace_tree_agent_reported": "90ec61122e4e04b67a68e6a4b8e825f62c393afa",
+    "replit_workspace_clean_agent_reported": true,
+    "published_deployment_status_from_provider": "failed",
+    "published_bundle_source_sha": "UNKNOWN_NOT_ATTESTED",
+    "historic_140_diff_recomputed": false,
+    "stop_categories": [
+      {
+        "category": "STEAM_AUTH_AND_CATALOG",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A30+A40",
+        "observed": "Release GitHub steam catalog router SHA 31ca80345f0bc7c0cf8328723bce974d487f460a provides unguarded write operations; tracked Replit workspace Steam catalog route/admin guard ABSENT (agent read-only). Not a proof about deployed runtime.",
+        "gate": "Do not port release router without reviewed PR34 guard and independent auth test/DB contract. No secret provisioning."
+      },
+      {
+        "category": "PG16_MIGRATIONS",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A20+A22+A30",
+        "observed": "Release controlled-correction 0030 conflicts with editor-side Steam 0030 naming. Actual Replit migration ledger and executed PG16 state UNKNOWN.",
+        "gate": "D01–D04 owner-approved conflict reconciliation; no copying, renumbering, SQL or PG16 execution."
+      },
+      {
+        "category": "OBS_OVERLAY_AND_STREAM",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A120+A40",
+        "observed": "Release App.tsx GitHub blob 298f94ac19dbbdc6df775543e720ec250a1de82a includes /stream and /stream/overlay/camera-chat; workspace App.tsx OID 91f9bc2155b13abf9d233e59e1cc573ebf590daa differs. Runtime OBS behavior unverified.",
+        "gate": "Route-by-route and full assets review; do not replace App.tsx, overlays, animated-effects or OBS scripts wholesale."
+      },
+      {
+        "category": "STATIC_HOST_REWRITES",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A120+A140",
+        "observed": "Replit tracked tournament artifact TOML c4d8f2bc41e771f796be22506370f979922edd78 reports only /* to /index.html; release TOML 377637a6e88f5db4142dedb5035e854b99f422c1 includes extra /dev/animated-effects rewrite without proven workspace target.",
+        "gate": "Real missing-asset 404, MIME and direct-navigation tests on approved staging. PR103 pure helper not wired to Replit; no speculative static rewrites."
+      },
+      {
+        "category": "UNITY_AND_GAME_ASSETS",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "GAME_OWNER+A120",
+        "observed": "GitHub release static Unity index artifacts/tournament-manager/public/prototypes/minigames/core-clash-unity/index.html blob 0f9a2d47faabbd499953bbc92818a51ef7b54d9a; Replit source/delivered Unity bundle not independently reconciled.",
+        "gate": "No changes or copying of game files, .wasm, loader, builds, data or assets; separate approved whole-bundle checksum/QA only."
+      },
+      {
+        "category": "PORTFOLIO",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A120+A40",
+        "observed": "GitHub release contains public/portfolio/index.html blob 197bd447df2449947fda3203ab76e7a63e58a48f; Replit tracked HEAD lacks that HTML according to read-only agent; published site contents UNKNOWN.",
+        "gate": "Verify full static bundle and route/relative asset closure in isolated candidate; never copy just index HTML or replace existing live content."
+      },
+      {
+        "category": "ANIMATED_EFFECTS_STATIC",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A120+A40",
+        "observed": "GitHub release contains public/stream/animated-effects/index.html blob 5af45933e47ac0bb84de9fb95cc761cc82b804e7; Replit tracked HEAD missing index; published source UNKNOWN.",
+        "gate": "Require complete CSS/JS/artifact closure and source provenance. Do not invent /dev target or mutate animated-effects files."
+      },
+      {
+        "category": "REPLIT_CONFIG_AND_LOCKFILE",
+        "decision": "STOP_NO_AUTO_COPY",
+        "owner": "A20+A40+A140",
+        "observed": "Workspace tracked .replit 1489e8ab835a947e398ab2babbd57f7a32a169d8 and pnpm-lock.yaml 1e9e256937fe8cf7c5e469ae522b11d7c6b458a0 differ from GitHub release OIDs. Deployment contents unverified.",
+        "gate": "Maintain Replit-only configuration and dependencies until a pinned isolated source reconciliation and owner signoff."
+      }
+    ],
+    "review_disposition": "NO_READY_LIVE_TRANSFERS; A40_ALLOW_ONLY_INDEPENDENTLY_QUALIFIED_DB_FREE_SOURCE_WORK",
+    "reconciliation_not_claimed": [
+      "published tree bytes",
+      "complete 140-path diff",
+      "runtime route behavior",
+      "actual database migration ledger",
+      "CI/E2E PASS"
+    ],
+    "no_merge": true,
+    "no_deploy": true,
+    "no_replit_sync": true,
+    "no_sql": true,
+    "no_game_changes": true
+  }
 }
