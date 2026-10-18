@@ -415,3 +415,70 @@ test("R23D-74-07 late denied GET cannot override a newer same-scope authorized r
   assert.equal(session.view().authorizationFailure, null);
   assert.equal(session.view().localDraft?.baskets[0]?.colorId, "private");
 });
+
+
+test("DEVELOPMENT-FIRST-01 duplicate initialize during a pending GET is rejected before a second request", async () => {
+  const server = fake();
+  let release: (() => void) | undefined;
+  let calls = 0;
+  const client = {
+    ...server.client,
+    async load(scope: BasketCasScope) {
+      calls++;
+      await new Promise<void>((resolve) => { release = resolve; });
+      return server.client.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(client, A);
+  const first = session.initialize();
+  assert.equal(calls, 1);
+  await assert.rejects(
+    session.initialize(),
+    /Already initialized or initializing/,
+  );
+  assert.equal(calls, 1, "no duplicate HTTP GET is allowed for same initialization epoch");
+  assert.ok(release);
+  release!();
+  await first;
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "unsaved" }; });
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "unsaved");
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 0);
+});
+
+test("DEVELOPMENT-FIRST-02 failed initial GET can be retried, with no stale draft or token", async () => {
+  const server = fake();
+  server.setGetStatus(403);
+  const session = createBasketCasDraftSession(server.client, A);
+  await assert.rejects(session.initialize(), /Basket GET failed/);
+  assert.equal(session.view().phase, "uninitialized");
+  assert.equal(session.view().localDraft, null);
+  server.setGetStatus(null);
+  await session.initialize();
+  assert.equal(session.view().phase, "editing");
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "blue");
+});
+
+test("DEVELOPMENT-FIRST-03 superseded old initialization cannot overwrite a new authorized scope", async () => {
+  const server = fake();
+  let releaseA: (() => void) | undefined;
+  const client = {
+    ...server.client,
+    async load(scope: BasketCasScope) {
+      if (scope.tournamentId === A.tournamentId) {
+        await new Promise<void>((resolve) => { releaseA = resolve; });
+      }
+      return server.client.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(client, A);
+  const oldInit = session.initialize();
+  session.switchScope(B);
+  await session.initialize(); // pending A must not block new B
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "private-B" }; });
+  assert.ok(releaseA);
+  releaseA!();
+  await oldInit;
+  assert.equal(session.view().scope.tournamentId, B.tournamentId);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "private-B");
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 0);
+});
