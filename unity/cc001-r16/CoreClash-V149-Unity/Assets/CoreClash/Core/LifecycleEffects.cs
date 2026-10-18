@@ -151,11 +151,21 @@ namespace CoreClash.Core
         void DirgeDeathEffect(BallRuntime source)
         {
             // V148 executable search is GLOBAL, even though legacy metadata says SHORT.
+            // Choose from the *V148-approved* DEATH-repeatable set, not only the
+            // already ported effects: skipping an unported nearest ally would
+            // unlawfully substitute a farther target.
+            string[] approved={
+                "bomb","singularity","genesis","cascade","soulanchor","deathpulse",
+                "frostgrave","martyr","plagueburst","swarmcore","revenant",
+                "deathshield","graveram","embercore","bonfire","wildfire",
+                "clusterbomb","volatile","toxicburst","soulburst","recycler",
+                "deathcleanser","conscriptor","cataclysm","eggsac"
+            };
             var target=Living().Where(x=>x.owner==source.owner&&x.id!=source.id&&
-                x.type!="dirge"&&x.type!="phoenix"&&x.type!="denmother"&&
-                DeathSupported(x.type))
+                approved.Contains(x.type))
                 .OrderBy(x=>Dist(source,x)).ThenBy(x=>x.id).FirstOrDefault();
-            if(target!=null)TriggerDeathEffect(target); // body only: no DEATH/grave/observers
+            if(target!=null&&DeathSupported(target.type))TriggerDeathEffect(target);
+            // Nearest DATA_ONLY body remains blocked; do not silently select another ally.
         }
         void LifecycleStop(BallRuntime b)
         {
