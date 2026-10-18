@@ -37,6 +37,16 @@ const slotStates = new Map<string, SlotRecord>();
 export function sourceOnlySlotStateSnapshot(): ReadonlyArray<Readonly<SlotRecord>> {
   return [...slotStates.values()].map(item => Object.freeze({...item}));
 }
+export function reserveRunDatabaseSlot(name: string): void {
+  const ctx=requireSafetyContext();
+  const slot=slotForDb(name);
+  if (slotStates.has(slot)) hold("S2_SLOT_ALREADY_RESERVED");
+  journal(ctx,slot,"NOT_ATTEMPTED",name);
+}
+export function holdRunDatabaseSlot(name: string): void {
+  const ctx=requireSafetyContext();
+  journal(ctx,slotForDb(name),"CLEANUP_HOLD",name);
+}
 function slotForDb(name: string): string {
   if (/^tm_catalog_test_[a-f0-9]{16}_(dev|prod|fresh)$/.test(name)) {
     return "catalog_" + name.split("_").at(-1);
@@ -149,6 +159,9 @@ export async function createRunDatabase(
   const context = requireSafetyContext();
   const safeName = quote(name, pattern);
   const slot = slotForDb(name);
+  if (slotStates.get(slot)?.state !== "NOT_ATTEMPTED") {
+    hold("S2_SLOT_NOT_DURABLY_RESERVED");
+  }
   await requireBaseAndRoleIdentity(pool, context);
   if (await dbIdentity(pool, name)) hold("DATABASE_NAME_COLLISION_BEFORE_CREATE");
   // Fsync local attempt receipt BEFORE sending destructive SQL, otherwise STOP.
