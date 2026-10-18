@@ -1,38 +1,34 @@
-# CC-001 — ONE UNIVERSAL PROMPT FOR ALL EXISTING AGENT THREADS
-## R17-W4 / CONTINUE EXISTING WORK — do not start a new wave
+**PROJECT:** CC-001 — CORE CLASH UNITY
+**WAVE:** R17-W4 RECOVERY
+**MODE:** CONTINUE EXISTING WORK — ONE IDENTICAL PROMPT FOR EVERY THREAD
 
-This document is the **same, unmodified instruction for every existing CC-001 agent thread**. It deliberately does NOT assign the recipient a universal agent number.
+**1. NAJPIERW TOŻSAMOŚĆ.** Jesteś agentem przypisanym wcześniej do TEGO KONKRETNEGO wątku. Ustal swój numer WYŁĄCZNIE z wcześniejszego bezpośredniego przydziału użytkownika w tym wątku (pomocniczo z jego tytułu, jeśli jest widoczny). Nie wybieraj numeru z MASTER DISPATCH, GitHuba, raportów, nazw innych agentów ani przykładów. Przeczytanie kontraktu A10 NIE zmienia Cię w A10. Jeśli nie można jednoznacznie ustalić numeru: odpowiedz `IDENTITY_CONFLICT — NIE WYKONUJĘ ZMIAN` i zakończ bez modyfikowania plików.
 
-**KROK 0 — USTAL WŁASNĄ ROLĘ, ZANIM OTWORZYSZ JAKIKOLWIEK LINK.**
-Odczytaj numer swojej dotychczasowej roli WYŁĄCZNIE z wcześniejszych bezpośrednich przydziałów użytkownika w TYM KONKRETNYM WĄTKU (pomocniczo z jego tytułu, jeśli jest dostępny). Nie zmieniaj numeru agenta po przeczytaniu jakiegokolwiek dokumentu, historii GitHub, raportu A10, cudzej gałęzi ani przykładów. Obecność nazwy A10 w kontrakcie gry nie oznacza, że jesteś A10. Nie używaj pierwszej napotkanej roli ani roli z sąsiednich rozmów. Jeśli wcześniejsze przydziały wątku są niewidoczne, sprzeczne lub niejednoznaczne, napisz `IDENTITY_CONFLICT — NIE WYKONUJĘ ZMIAN` i zakończ. Nie zgaduj.
+**2. MAPA — wyłącznie po ustaleniu własnego numeru:**
+- **A60 → Issue #126, READY:** niezależna bramka G0; NIE A10 i NIE późniejsze #139.
+- **A73 → #136, READY:** mapa konfliktów i integracji.
+- **A72 → #113, READY:** .NET 9 i CI.
+- **A40 → #92, READY:** lifecycle/RETURN.
+- **A50 → #138, READY:** Frostguard F02.
+- **A70 → #137, WAIT:** integracja po G0 PASS i raporcie A73.
+- **A71 → #140, WAIT:** integralność po powstaniu rzeczywistego kandydata.
+- **A74 → #141, WAIT:** higiena po powstaniu rzeczywistego kandydata.
+- **A20 → #95, WAIT:** fizyczne testy UI po G2.
+- **A31 → #94, WAIT:** fizyczny multiplayer po G2.
+- **A10, A41, A51 i pozostali → NO_TASK:** brak nowego samodzielnego zadania W4 w tym pakiecie.
+- **A60 #139 → WAIT:** to osobny PÓŹNIEJSZY etap QA kandydata, dopiero po G1/G2; obecne A60 wykonuje #126.
 
-**DOPIERO TERAZ** powiąż odczytany numer ze ściśle ustaloną mapą R17-W4:
+**PIERWSZA LINIA ODPOWIEDZI:** `IDENTITY_CHECK | CC-001 | AXX | ISSUE #NNN | READY/WAIT` (dla NO_TASK: `IDENTITY_CHECK | CC-001 | AXX | NO_TASK`). AXX musi odpowiadać wcześniejszemu przydziałowi TEGO wątku; #NNN musi wynikać z powyższej mapy. Przykład dla wątku 60: `IDENTITY_CHECK | CC-001 | A60 | ISSUE #126 | READY`. Jeśli wykryjesz sprzeczność roli, Issue lub gałęzi, zgłoś IDENTITY_CONFLICT i NIE zapisuj zmian.
 
-| Twój dotychczasowy numer | Jedyny bieżący przydział | Gałąź | Status |
-|---|---|---|---|
-| A60 | #126 — G0/source QA | `feat/cc001-r17-w3-a60-baseline-qa` | READY |
-| A73 | #136 — W4 conflict map | `feat/cc001-r17-w4-a73-merge-preview` | READY |
-| A72 | #113 — managed .NET9/CI | `feat/cc001-r17-w4-a72-managed-ci` | READY |
-| A40 | #92 — lifecycle/RETURN | `feat/cc001-r17-w4-a40-lifecycle-return` | READY |
-| A50 | #138 — Frostguard F02 | `feat/cc001-r17-w4-a50-f02-physics` | READY |
-| A70 | #137 — integration candidate | `integration/cc001-r17-w4-disposable-candidate-20261018` | WAIT G0 PASS + A73 map |
-| A71 | #140 — candidate integrity | `feat/cc001-r17-w4-a71-candidate-integrity` | WAIT actual candidate |
-| A74 | #141 — candidate hygiene | `feat/cc001-r17-w4-a74-candidate-hygiene` | WAIT actual candidate |
-| A20 | #95 — phone/tablet physical QA | dotychczasowa własna gałąź / branch QA po G2 | WAIT G2 build |
-| A31 | #94 — physical multiplayer QA | dotychczasowa własna gałąź / branch QA po G2 | WAIT G2 build + devices |
-| A10, A41, A51 i inni | Brak nowego samodzielnego zlecenia W4 w tej paczce | nie zmieniaj gałęzi | NO_TASK |
+**3. DOPIERO TERAZ OTWÓRZ ŹRÓDŁA:**
+MASTER DISPATCH:
+https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
 
-**Wyjątek ważny:** A60 jest teraz wyłącznie A60/G0 w Issue #126. Późniejsze A60 candidate QA #139 to ODRĘBNY etap i nie wolno go rozpoczynać przed kandydatem oraz bramkami G1/G2. A60 nigdy nie przejmuje roli A10.
+Pakiet przekazania HQ:
+https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
 
-**PIERWSZA LINIA TWOJEJ ODPOWIEDZI:**
-`IDENTITY_CHECK | CC-001 | A<twój numer z historii tego wątku> | ISSUE #<numer z mapy> | READY/WAIT/NO_TASK`.
-Jeśli zidentyfikowany numer, Issue lub gałąź są sprzeczne z jednoznacznym przydziałem wątku, ZATRZYMAJ SIĘ PRZED ZAPISEM i zgłoś `IDENTITY_CONFLICT`. Nie drukuj fikcyjnego potwierdzenia.
+Przeczytaj tylko SWÓJ zakres, wskazane Issue, komentarze, wcześniejsze raporty, aktualny HEAD i przypisaną gałąź. Inne role w dokumentach są kontekstem, NIE Twoimi zleceniami. Najnowsze SHA sprawdzaj na żywo.
 
-**ŹRÓDŁA — CZYTAJ DOPIERO PO KROKU 0:**
-1. W4 MASTER DISPATCH: https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
-2. HQ CODEX RE-ENTRY PACK: https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
-3. Twoje WŁASNE GitHub Issue (numer z mapy), jego najnowsze komentarze, obecny HEAD własnej gałęzi, wcześniejsze raporty i kontrakty. Inne role w dokumentach są wyłącznie kontekstem.
+**4. WYKONANIE:** READY — wykonaj rzeczywistą pracę tylko we własnej izolowanej gałęzi i dozwolonych plikach. WAIT — respektuj blokadę; bez pozorowania testów lub implementacji. NO_TASK — bez zmian. Nie twórz duplikatów Issue ani nowej W5. Nie kończ na ogólnym planie, jeśli możesz wykonać przydzielone zadanie.
 
-**WYKONANIE:** Jeżeli status READY — wykonaj realne przydzielone zadanie na własnej istniejącej, izolowanej gałęzi/worktree i tylko w plikach dozwolonych przez W4 dispatch. Nie twórz duplikatów Issue ani nowego W5. Jeżeli WAIT — sprawdź bramkę; jeśli zamknięta, raportuj konkretne WAIT bez pozorowania pracy. Jeżeli NO_TASK — bez modyfikacji. Jeśli aktualny GitHub pokazuje nowe, jawne polecenie HQ dla Twojej roli, zweryfikuj je przed wykonaniem; przy sprzeczności zatrzymaj się i przedstaw konflikt, nie przełączaj samowolnie roli.
-
-**HANDOFF:** Wynik opublikuj na własnej gałęzi i w swoim Issue: exact commit SHA, changed paths, realne komendy/testy/exit codes lub NOT_RUN, DESIGNED/IMPLEMENTED/TESTED/INTEGRATED/RELEASED, blokady i URL raportu. Nie deklaruj PASS na podstawie samego pliku testów lub raportu. **Nie wykonuj merge do main, release/deploy, force push, destrukcyjnych działań, zmian chronionego R16/V148, protokołu 149 ani plików innego agenta.**
+**5. HANDOFF:** Opublikuj w SWOIM Issue dokładne SHA, zmienione pliki, faktyczne testy i exit codes (lub NOT_RUN), stan DESIGNED / IMPLEMENTED / TESTED / INTEGRATED / RELEASED i blokady. Bez merge do main, deploy, force push, zmian chronionego R16/V148, protokołu 149, cudzych plików i bez fałszywych PASS.
