@@ -514,7 +514,10 @@ before(async () => {
 
 after(async () => {
   if (pools) {
-    await Promise.allSettled(Object.values(pools).map((pool) => pool.end()));
+    const closures = await Promise.allSettled(Object.values(pools).map((pool) => pool.end()));
+    if (closures.some((result) => result.status === "rejected")) {
+      throw new Error("WEB005_CLEANUP_HOLD:S2_POOL_CLOSE_UNCONFIRMED");
+    }
   }
   if (adminPool) {
     try {
