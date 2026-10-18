@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db, supportSessionsTable, tournamentsTable } from "@workspace/db";
-import { verifyOrganizerToken, verifyViewerToken } from "./auth";
+import { organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken } from "./auth";
 import { logger } from "./lib/logger";
 
 export type TournamentActor =
@@ -20,7 +20,7 @@ type ResolvedTournamentActor = TournamentActor;
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type TournamentMutationActor =
-  | Extract<TournamentActor, { type: "organizer" }>
+  | { type: "organizer"; tournamentId?: number; credentialVersion?: string }
   | Extract<TournamentActor, { type: "support" }>;
 
 export class TournamentMutationAuthorizationError extends Error {
@@ -35,10 +35,20 @@ export class TournamentMutationAuthorizationError extends Error {
 export function getTournamentMutationActor(
   access: TournamentAccess,
 ): TournamentMutationActor {
-  if (access.actor.type !== "organizer" && access.actor.type !== "support") {
-    throw new TournamentMutationAuthorizationError();
+  if (access.actor.type === "organizer") {
+    // Carry only the verified pre-lock credential version; never raw credentials.
+    // Comparing with the locked row prevents an already-revoked organizer write.
+    return {
+      type: "organizer",
+      tournamentId: access.tournament.id,
+      credentialVersion: organizerCredentialFingerprint(
+        access.tournament.id,
+        access.tournament.organizerPasswordHash,
+      ),
+    };
   }
-  return access.actor;
+  if (access.actor.type === "support") return access.actor;
+  throw new TournamentMutationAuthorizationError();
 }
 
 export async function revalidateTournamentMutationActor(
@@ -46,7 +56,17 @@ export async function revalidateTournamentMutationActor(
   tournament: typeof tournamentsTable.$inferSelect,
   actor?: TournamentMutationActor,
 ): Promise<void> {
-  if (!actor || actor.type === "organizer") return;
+  if (!actor) return; // Legacy trusted internal-only callers are unchanged in S1A.
+  if (actor.type === "organizer") {
+    const expected = organizerCredentialFingerprint(
+      tournament.id,
+      tournament.organizerPasswordHash,
+    );
+    if (actor.tournamentId !== tournament.id || !actor.credentialVersion || actor.credentialVersion !== expected) {
+      throw new TournamentMutationAuthorizationError();
+    }
+    return;
+  }
   const [session] = await tx
     .select({
       passwordVersion: supportSessionsTable.passwordVersion,

@@ -50,7 +50,8 @@ export function verifyPassword(password: string, stored: string): Promise<boolea
   });
 }
 
-function organizerCredentialFingerprint(
+/** Internal proof derived from the existing organizer token credential version. */
+export function organizerCredentialFingerprint(
   tournamentId: number,
   passwordHash: string | null,
 ): string {

@@ -8,6 +8,7 @@ import {
   getDeadlockBanMode,
   getDeadlockBansPerPlayer,
   getDeadlockEffectiveStageBans,
+  parseTournamentGameConfig,
   type SupportedTournamentGameConfig,
 } from "@workspace/game-catalog";
 import {
@@ -3122,6 +3123,24 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
 // Deadlock hero bans per player
 // ---------------------------------------------------------------------------
 
+// Use the same transaction snapshot as the tournament authorization lock.
+async function loadDeadlockMutationGameConfig(
+  tx: RouteTransaction,
+  tournamentId: number,
+): Promise<SupportedTournamentGameConfig | null> {
+  const [row] = await tx
+    .select()
+    .from(tournamentGameConfigsTable)
+    .where(eq(tournamentGameConfigsTable.tournamentId, tournamentId));
+  return row
+    ? parseTournamentGameConfig({
+        gameId: row.gameId,
+        configVersion: row.configVersion,
+        config: row.config,
+      })
+    : null;
+}
+
 function parsePositiveInt(val: unknown): number | null {
   const n = Number(val);
   return Number.isInteger(n) && n > 0 ? n : null;
@@ -3160,46 +3179,48 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
   }
   const bannedHeroIds = body.bannedHeroIds as string[];
 
-  const [player] = await db
-    .select({ tournamentId: playersTable.tournamentId })
-    .from(playersTable)
-    .where(eq(playersTable.id, pid));
+  // This lookup locates the tournament only; ownership is checked again under its lock.
+  const [player] = await db.select({ tournamentId: playersTable.tournamentId })
+    .from(playersTable).where(eq(playersTable.id, pid));
   if (!player) { res.status(404).json({ error: "Player not found" }); return; }
-
   const access = await requireTournamentWrite(req, res, player.tournamentId);
   if (!access) return;
 
-  // Enforce configured bansPerPlayer limit from game config
-  const gameConfig = await loadTournamentGameConfig(player.tournamentId);
-  if (gameConfig?.gameId === "deadlock") {
-    const configuredLimit = getDeadlockBansPerPlayer(gameConfig.config);
-    if (bannedHeroIds.length > configuredLimit) {
-      res.status(422).json({ error: `bannedHeroIds exceeds the configured limit of ${configuredLimit} bans per player` }); return;
-    }
-  } else if (gameConfig?.gameId === "marvel") {
-    res.status(422).json({ error: "Hero bans are not available for Marvel tournaments" });
-    return;
-  } else {
-    // Default limit of 5 when no game config
-    if (bannedHeroIds.length > 5) {
-      res.status(422).json({ error: "bannedHeroIds must be an array of up to 5 non-empty strings" }); return;
-    }
-  }
+  const outcome = await withTournamentMutationLock(
+    player.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx, tournament) => {
+      const [lockedPlayer] = await tx.select({ tournamentId: playersTable.tournamentId })
+        .from(playersTable).where(eq(playersTable.id, pid));
+      if (!lockedPlayer || lockedPlayer.tournamentId !== tournament.id) {
+        return { status: 404, body: { error: "Player not found" } };
+      }
+      const gameConfig = await loadDeadlockMutationGameConfig(tx, tournament.id);
+      if (gameConfig?.gameId === "deadlock") {
+        const configuredLimit = getDeadlockBansPerPlayer(gameConfig.config);
+        if (bannedHeroIds.length > configuredLimit) {
+          return { status: 422, body: { error: `bannedHeroIds exceeds the configured limit of ${configuredLimit} bans per player` } };
+        }
+      } else if (gameConfig?.gameId === "marvel") {
+        return { status: 422, body: { error: "Hero bans are not available for Marvel tournaments" } };
+      } else if (bannedHeroIds.length > 5) {
+        return { status: 422, body: { error: "bannedHeroIds must be an array of up to 5 non-empty strings" } };
+      }
 
-  const [upserted] = await db
-    .insert(playerDeadlockBansTable)
-    .values({ playerId: pid, tournamentId: player.tournamentId, bannedHeroIds })
-    .onConflictDoUpdate({
-      target: playerDeadlockBansTable.playerId,
-      set: { bannedHeroIds, updatedAt: new Date() },
-    })
-    .returning();
-
-  res.json({
-    playerId: upserted.playerId,
-    tournamentId: upserted.tournamentId,
-    bannedHeroIds: upserted.bannedHeroIds ?? [],
-  });
+      const [upserted] = await tx.insert(playerDeadlockBansTable)
+        .values({ playerId: pid, tournamentId: tournament.id, bannedHeroIds })
+        .onConflictDoUpdate({
+          target: playerDeadlockBansTable.playerId,
+          set: { bannedHeroIds, updatedAt: new Date() },
+        }).returning();
+      return { status: 200, body: {
+        playerId: upserted.playerId,
+        tournamentId: upserted.tournamentId,
+        bannedHeroIds: upserted.bannedHeroIds ?? [],
+      } };
+    },
+  );
+  res.status(outcome.status).json(outcome.body);
 });
 
 // ---------------------------------------------------------------------------
@@ -3251,118 +3272,105 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
     return;
   }
 
-  const [matchRef] = await db
-    .select({
-      tournamentId: matchesTable.tournamentId,
-      stageId: matchesTable.stageId,
-      bestOf: matchesTable.bestOf,
-      player1Id: matchesTable.player1Id,
-      player2Id: matchesTable.player2Id,
-    })
-    .from(matchesTable)
-    .where(eq(matchesTable.id, mid));
+  // Route lookup is not an authority decision: re-read the match after locking.
+  const [matchRef] = await db.select({ tournamentId: matchesTable.tournamentId })
+    .from(matchesTable).where(eq(matchesTable.id, mid));
   if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
-
   const access = await requireTournamentWrite(req, res, matchRef.tournamentId);
   if (!access) return;
 
   const p1 = (p1Raw as string | null | undefined) ?? null;
   const p2 = (p2Raw as string | null | undefined) ?? null;
   const side = (sideRaw as "archmother" | "hidden_king" | null | undefined) ?? undefined;
-
-  // Server-side validation: ban checks + player1Side Deadlock-only guard
-  const playerIds = [matchRef.player1Id, matchRef.player2Id].filter((id): id is number => id !== null && id !== undefined);
-  const needsGameConfig = playerIds.length === 2 || (side !== undefined && side !== null);
-  let resolvedGameConfig: Awaited<ReturnType<typeof loadTournamentGameConfig>> | undefined;
-  if (needsGameConfig) {
-    type BanRow = typeof playerDeadlockBansTable.$inferSelect;
-    const matchGameConfig = await loadTournamentGameConfig(matchRef.tournamentId);
-    resolvedGameConfig = matchGameConfig;
-    const banRows: BanRow[] = playerIds.length === 2
-      ? await db.select().from(playerDeadlockBansTable).where(inArray(playerDeadlockBansTable.playerId, playerIds))
-      : [];
-    // Validate player1Side is only used for Deadlock tournaments
-    if (side !== undefined && side !== null && matchGameConfig?.gameId !== "deadlock") {
-      res.status(422).json({ error: "player1Side is only valid for Deadlock tournaments." });
-      return;
-    }
-    if (playerIds.length === 2) {
-      const p1Bans = banRows.find((b) => b.playerId === matchRef.player1Id)?.bannedHeroIds ?? [];
-      const p2Bans = banRows.find((b) => b.playerId === matchRef.player2Id)?.bannedHeroIds ?? [];
-      const banMode = matchGameConfig?.gameId === "deadlock"
-        ? getDeadlockBanMode(matchGameConfig.config)
-        : "shared_pool";
-      const stageRows = matchGameConfig?.gameId === "deadlock"
-        ? await db.select({ id: tournamentStagesTable.id, stageKey: tournamentStagesTable.stageKey })
-          .from(tournamentStagesTable)
-          .where(eq(tournamentStagesTable.tournamentId, matchRef.tournamentId))
-          .orderBy(tournamentStagesTable.position)
-        : [];
-      const matchStageKey = stageRows.find((stage) => stage.id === matchRef.stageId)?.stageKey;
-      const effectiveStageBans = matchGameConfig?.gameId === "deadlock" && matchStageKey
-        ? getDeadlockEffectiveStageBans(
-            matchGameConfig.config,
-            stageRows.map((stage) => stage.stageKey),
-            matchStageKey,
-          )
-        : [];
-      const effectiveStageBanSet = new Set<string>(effectiveStageBans);
-
-      if (banMode === "shared_pool") {
-        const forbidden = new Set([...p1Bans, ...p2Bans, ...effectiveStageBans]);
-        if (p1 !== null && forbidden.has(p1)) {
-          res.status(422).json({ error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` });
-          return;
+  const outcome = await withTournamentMutationLock(
+    matchRef.tournamentId,
+    getTournamentMutationActor(access),
+    async (tx, tournament) => {
+      const [lockedMatch] = await tx.select({
+        tournamentId: matchesTable.tournamentId,
+        stageId: matchesTable.stageId,
+        bestOf: matchesTable.bestOf,
+        player1Id: matchesTable.player1Id,
+        player2Id: matchesTable.player2Id,
+      }).from(matchesTable).where(eq(matchesTable.id, mid));
+      if (!lockedMatch || lockedMatch.tournamentId !== tournament.id) {
+        return { status: 404, body: { error: "Match not found" } };
+      }
+      const playerIds = [lockedMatch.player1Id, lockedMatch.player2Id]
+        .filter((id): id is number => id !== null && id !== undefined);
+      const needsGameConfig = playerIds.length === 2 || (side !== undefined && side !== null);
+      if (needsGameConfig) {
+        const matchGameConfig = await loadDeadlockMutationGameConfig(tx, tournament.id);
+        const banRows = playerIds.length === 2
+          ? await tx.select().from(playerDeadlockBansTable)
+              .where(inArray(playerDeadlockBansTable.playerId, playerIds))
+          : [];
+        if (side !== undefined && side !== null && matchGameConfig?.gameId !== "deadlock") {
+          return { status: 422, body: { error: "player1Side is only valid for Deadlock tournaments." } };
         }
-        if (p2 !== null && forbidden.has(p2)) {
-          res.status(422).json({ error: `Postać "${p2}" jest zbanowana i nie może być wybrana w tym meczu.` });
-          return;
-        }
-      } else {
-        // opponent_only: each player is blocked only by their opponent's bans
-        if (p1 !== null && (p2Bans.includes(p1) || effectiveStageBanSet.has(p1))) {
-          res.status(422).json({ error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-          return;
-        }
-        if (p2 !== null && (p1Bans.includes(p2) || effectiveStageBanSet.has(p2))) {
-          res.status(422).json({ error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` });
-          return;
+        if (playerIds.length === 2) {
+          const p1Bans = banRows.find((ban) => ban.playerId === lockedMatch.player1Id)?.bannedHeroIds ?? [];
+          const p2Bans = banRows.find((ban) => ban.playerId === lockedMatch.player2Id)?.bannedHeroIds ?? [];
+          const banMode = matchGameConfig?.gameId === "deadlock"
+            ? getDeadlockBanMode(matchGameConfig.config)
+            : "shared_pool";
+          const stageRows = matchGameConfig?.gameId === "deadlock"
+            ? await tx.select({ id: tournamentStagesTable.id, stageKey: tournamentStagesTable.stageKey })
+                .from(tournamentStagesTable)
+                .where(eq(tournamentStagesTable.tournamentId, tournament.id))
+                .orderBy(tournamentStagesTable.position)
+            : [];
+          const matchStageKey = stageRows.find((stage) => stage.id === lockedMatch.stageId)?.stageKey;
+          const effectiveStageBans = matchGameConfig?.gameId === "deadlock" && matchStageKey
+            ? getDeadlockEffectiveStageBans(
+                matchGameConfig.config,
+                stageRows.map((stage) => stage.stageKey),
+                matchStageKey,
+              )
+            : [];
+          const effectiveStageBanSet = new Set<string>(effectiveStageBans);
+          if (banMode === "shared_pool") {
+            const forbidden = new Set([...p1Bans, ...p2Bans, ...effectiveStageBans]);
+            if (p1 !== null && forbidden.has(p1)) {
+              return { status: 422, body: { error: `Postać "${p1}" jest zbanowana i nie może być wybrana w tym meczu.` } };
+            }
+            if (p2 !== null && forbidden.has(p2)) {
+              return { status: 422, body: { error: `Postać "${p2}" jest zbanowana i nie może być wybrana w tym meczu.` } };
+            }
+          } else {
+            if (p1 !== null && (p2Bans.includes(p1) || effectiveStageBanSet.has(p1))) {
+              return { status: 422, body: { error: `Postać "${p1}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` } };
+            }
+            if (p2 !== null && (p1Bans.includes(p2) || effectiveStageBanSet.has(p2))) {
+              return { status: 422, body: { error: `Postać "${p2}" jest zbanowana przez przeciwnika i nie może być wybrana w tym meczu.` } };
+            }
+          }
         }
       }
-    }
-  }
-  void resolvedGameConfig; // consumed above
 
-  const sideForInsert = side !== undefined ? side : null;
-  const [upserted] = await db
-    .insert(matchGamePicksTable)
-    .values({
-      matchId: mid,
-      gameNumber: gn,
-      player1HeroId: p1,
-      player2HeroId: p2,
-      player1Side: sideForInsert,
-    })
-    .onConflictDoUpdate({
-      target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
-      set: {
-        player1HeroId: p1,
-        player2HeroId: p2,
-        ...(side !== undefined ? { player1Side: side } : {}),
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-
-  const storedSide = (upserted.player1Side as "archmother" | "hidden_king" | null) ?? null;
-  res.json({
-    matchId: upserted.matchId,
-    gameNumber: upserted.gameNumber,
-    player1HeroId: upserted.player1HeroId ?? null,
-    player2HeroId: upserted.player2HeroId ?? null,
-    player1Side: storedSide,
-    player2Side: storedSide === "archmother" ? "hidden_king" : storedSide === "hidden_king" ? "archmother" : null,
-  });
+      const [upserted] = await tx.insert(matchGamePicksTable)
+        .values({ matchId: mid, gameNumber: gn, player1HeroId: p1, player2HeroId: p2, player1Side: side !== undefined ? side : null })
+        .onConflictDoUpdate({
+          target: [matchGamePicksTable.matchId, matchGamePicksTable.gameNumber],
+          set: {
+            player1HeroId: p1,
+            player2HeroId: p2,
+            ...(side !== undefined ? { player1Side: side } : {}),
+            updatedAt: new Date(),
+          },
+        }).returning();
+      const storedSide = (upserted.player1Side as "archmother" | "hidden_king" | null) ?? null;
+      return { status: 200, body: {
+        matchId: upserted.matchId,
+        gameNumber: upserted.gameNumber,
+        player1HeroId: upserted.player1HeroId ?? null,
+        player2HeroId: upserted.player2HeroId ?? null,
+        player1Side: storedSide,
+        player2Side: storedSide === "archmother" ? "hidden_king" : storedSide === "hidden_king" ? "archmother" : null,
+      } };
+    },
+  );
+  res.status(outcome.status).json(outcome.body);
 });
 
 export default router;
