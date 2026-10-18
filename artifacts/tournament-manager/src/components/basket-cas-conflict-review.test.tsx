@@ -26,6 +26,7 @@ function view(phase: BasketCasDraftView["phase"]): BasketCasDraftView {
       : [],
     dependencyMayHaveChanged: true,
     saving: false,
+    refreshing: false,
   } as BasketCasDraftView;
 }
 
@@ -120,4 +121,40 @@ test("R23D-74-06 auth-blocked view shows safe retry without rendering local or r
   assert.equal(screen.queryByRole("button", { name: /Zachowaj mój szkic/ }), null);
   await userEvent.click(screen.getByRole("button", { name: /Ponów autoryzowane pobranie/ }));
   assert.equal(retried, 1);
+});
+
+
+test("WAVE2-04 pending canonical GET disables stale review decisions and duplicate refreshes", async () => {
+  const invoked: string[] = [];
+  render(<BasketCasConflictReview
+    view={{ ...view("reviewing"), refreshing: true }}
+    onRefreshRemote={() => invoked.push("refresh")}
+    onReconcile={(action) => invoked.push(action)}
+  />);
+  assert.ok(screen.getByRole("status").textContent?.includes("Pobieranie"));
+  for (const name of [/Zachowaj mój szkic/, /Odrzuć mój szkic/, /Odśwież porównanie/]) {
+    const button = screen.getByRole("button", { name }) as HTMLButtonElement;
+    assert.equal(button.disabled, true, String(name));
+    await userEvent.click(button);
+  }
+  assert.deepEqual(invoked, []);
+});
+
+test("WAVE2-05 GET 401/403 quarantine prevents repeated reauthorization fetch while pending", async () => {
+  let calls = 0;
+  render(<BasketCasConflictReview
+    view={{
+      ...view("authorization-blocked"),
+      authorizationFailure: 403,
+      localDraft: null,
+      remoteCanonical: null,
+      refreshing: true,
+    }}
+    onRefreshRemote={() => { calls++; }}
+    onReconcile={() => assert.fail("must not expose blocked reconciliation")}
+  />);
+  const button = screen.getByRole("button", { name: /Ponów autoryzowane pobranie/ }) as HTMLButtonElement;
+  assert.equal(button.disabled, true);
+  await userEvent.click(button);
+  assert.equal(calls, 0);
 });
