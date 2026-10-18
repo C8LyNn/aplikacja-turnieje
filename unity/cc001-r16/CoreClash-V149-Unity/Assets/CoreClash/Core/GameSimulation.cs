@@ -51,7 +51,6 @@ namespace CoreClash.Core
                         x.createdOwnerTurns<State.players[c.owner].ownerTurns&&
                         x.lastProcessedOwnerTurns>=State.players[c.owner].ownerTurns)
                     :null;
-                if(definition==null&&c.ballType=="normal"){reason="That ball has no stock in this deck.";return false;}
                 if(definition==null||(!hasStock&&hand==null)){reason="That ball has no stock in this deck.";return false;}
                 float angle=(float)Math.Atan2(c.dx,c.owner==0?-c.dy:c.dy);angle=Clamp(angle,-1.53589f,1.53589f);
                 float vx=(float)Math.Sin(angle)*c.power,vy=(float)Math.Cos(angle)*c.power*(c.owner==0?-1:1);
