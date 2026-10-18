@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
-import { createRunDatabase, dropRunDatabase, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
+import { createRunDatabase, dropRunDatabase, reserveRunDatabaseSlot, holdRunDatabaseSlot, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -495,7 +495,11 @@ before(async () => {
   };
   urls = {} as typeof urls;
   pools = {} as typeof pools;
-
+  // Fsync a durable NOT_ATTEMPTED receipt for ALL three source slots.
+  // Later failed CREATE never loses evidence about the remaining slots.
+  for (const label of ["dev", "prod", "fresh"] as const) {
+    reserveRunDatabaseSlot(databaseNames[label]);
+  }
   for (const label of ["dev", "prod", "fresh"] as const) {
     attemptedDatabaseLabels.add(label);
     createdDatabaseReceipts[label] = await createRunDatabase(
@@ -526,12 +530,26 @@ after(async () => {
       // If a CREATE response failed or became ambiguous, preserve ALL databases
       // for independently signed exact-object G5 instead of partially FORCE dropping.
       if ([...attemptedDatabaseLabels].some((label) => !createdDatabaseReceipts[label])) {
+        for (const label of ["dev", "prod", "fresh"] as const) {
+          holdRunDatabaseSlot(databaseNames[label]);
+        }
         throw new Error("WEB005_CLEANUP_HOLD:CATALOG_AMBIGUOUS_CREATE_NO_DROP");
       }
       for (const label of ["dev", "prod", "fresh"] as const) {
         const receipt = createdDatabaseReceipts[label];
         if (receipt) {
-          await dropRunDatabase(adminPool, receipt, DATABASE_NAME_PATTERN);
+          try {
+            await dropRunDatabase(adminPool, receipt, DATABASE_NAME_PATTERN);
+          } catch(error) {
+            // Stop destructive cleanup on first uncertain result. Preserve a
+            // separate documented disposition for every other catalog slot.
+            for (const later of ["dev", "prod", "fresh"] as const) {
+              if (later !== label && createdDatabaseReceipts[later]) {
+                holdRunDatabaseSlot(databaseNames[later]);
+              }
+            }
+            throw error;
+          }
         }
       }
     } finally {
