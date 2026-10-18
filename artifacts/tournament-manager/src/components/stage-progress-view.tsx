@@ -82,6 +82,17 @@ export function StageProgressView({
 
   const selected = stages.find((s) => s.id === selectedStageId);
 
+  // TanStack Query may retain previous successful data after an RR 401/403.
+  // The manually selected stage identity lives here, not in the page parent.
+  const detailError = detailQuery.error as
+    | { status?: number; response?: { status?: number } }
+    | null;
+  const detailStatus = detailError?.status ?? detailError?.response?.status;
+  const selectedRrDenied =
+    selected?.format === "round_robin" &&
+    (detailStatus === 401 || detailStatus === 403);
+  const visibleDetails = selectedRrDenied ? undefined : detailQuery.data;
+
   const selectedMatches = useMemo(
     () =>
       selectedStageId != null
@@ -92,8 +103,8 @@ export function StageProgressView({
 
   const stageBracket = useMemo(() => {
     const base = buildBracketFromMatches(selectedMatches);
-    if (selected?.status === "completed" && detailQuery.data) {
-      const winner = detailQuery.data.participants.find(
+    if (selected?.status === "completed" && visibleDetails) {
+      const winner = visibleDetails.participants.find(
         (p) => p.status === "winner",
       );
       if (winner) {
@@ -101,7 +112,7 @@ export function StageProgressView({
       }
     }
     return base;
-  }, [selectedMatches, selected?.status, detailQuery.data]) as unknown as Bracket;
+  }, [selectedMatches, selected?.status, visibleDetails]) as unknown as Bracket;
 
   const swissCurrentRound = useMemo(
     () => deriveCurrentRound(selectedMatches),
@@ -142,14 +153,27 @@ export function StageProgressView({
         </div>
       )}
 
-      {detailQuery.error && (
+      {selectedRrDenied && (
+        <div role="alert" className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+          <p>Dostęp do wybranego etapu Round Robin został odrzucony. Ukryto wcześniej pobraną klasyfikację.</p>
+          <button
+            type="button"
+            className="rounded-md border border-destructive/40 px-3 py-2 font-medium hover:bg-destructive/10"
+            onClick={() => void detailQuery.refetch()}
+          >
+            Spróbuj ponownie
+          </button>
+        </div>
+      )}
+
+      {detailQuery.error && !selectedRrDenied && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
           Nie udało się pobrać danych etapu.{" "}
           {getApiErrorMessage(detailQuery.error)}
         </div>
       )}
 
-      {selected && detailQuery.data &&
+      {selected && visibleDetails &&
         (() => {
           if (selected.status === "planned") {
             return (
@@ -160,7 +184,7 @@ export function StageProgressView({
                 </p>
                 <PlannedStageParticipants
                   stagePosition={selected.position}
-                  participants={detailQuery.data.participants}
+                  participants={visibleDetails.participants}
                 />
               </div>
             );
@@ -178,7 +202,7 @@ export function StageProgressView({
           if (selected.format === "group_stage") {
             return (
               <StageGroupTables
-                details={detailQuery.data}
+                details={visibleDetails}
                 matches={selectedMatches}
               />
             );
@@ -218,7 +242,7 @@ export function StageProgressView({
             return (
               <div className="space-y-6">
                 <ParticipantTable
-                  participants={detailQuery.data.participants}
+                  participants={visibleDetails.participants}
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
@@ -247,7 +271,7 @@ export function StageProgressView({
             return (
               <div className="space-y-6">
                 <ParticipantTable
-                  participants={detailQuery.data.participants}
+                  participants={visibleDetails.participants}
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
