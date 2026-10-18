@@ -1,0 +1,202 @@
+{
+  "project": "CC-001",
+  "agent": "A72",
+  "wave": "R17 A70 support",
+  "issue": 113,
+  "source_head": "de1fe4b88fce3bd08ef383165dc2cd622af2536b",
+  "source": "GitHub connector fetched 11 files by frozen commit; JS V8 parsed exact CJS source in memory and validated imported JSON data contracts. No downloaded checkout was available; original Node verifier not executed; source reference SHA-256 not rehashed.",
+  "checks": {
+    "pass": 32,
+    "fail": 0,
+    "status": "PASS_FOR_STATIC_SUBSET_ONLY",
+    "details": [
+      {
+        "id": "fetch_exact_blob:Assets/Resources/Data/catalog.json",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Assets/Resources/Data/featured-decks.json",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Packages/manifest.json",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Packages/packages-lock.json",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:ProjectSettings/ProjectVersion.txt",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tools/verify-data.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tools/r16-qa.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tools/network-codec-test.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tools/r16-report.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tools/web-release.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "fetch_exact_blob:Tests/web-release-test.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tools/verify-data.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tools/r16-qa.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tools/network-codec-test.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tools/r16-report.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tools/web-release.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "v8_parse:Tests/web-release-test.cjs",
+        "status": "PASS"
+      },
+      {
+        "id": "catalog_records_227",
+        "status": "PASS"
+      },
+      {
+        "id": "special_visible_224",
+        "status": "PASS"
+      },
+      {
+        "id": "archetypes_12",
+        "status": "PASS"
+      },
+      {
+        "id": "canonical_decks_36",
+        "status": "PASS"
+      },
+      {
+        "id": "provisional_decks_4",
+        "status": "PASS"
+      },
+      {
+        "id": "decks_9_unique_and_references",
+        "status": "PASS"
+      },
+      {
+        "id": "integer_stock_sentinel",
+        "status": "PASS"
+      },
+      {
+        "id": "contract_hp_radii",
+        "status": "PASS"
+      },
+      {
+        "id": "ability_trigger_contract",
+        "status": "PASS"
+      },
+      {
+        "id": "v148_claimed_source_digest",
+        "status": "PASS"
+      },
+      {
+        "id": "unity_version_6000.4.0f1",
+        "status": "PASS"
+      },
+      {
+        "id": "unity_direct_dependencies_lock_match",
+        "status": "PASS"
+      },
+      {
+        "id": "three_platform_runtime_provenance",
+        "status": "PASS"
+      },
+      {
+        "id": "qa_runner_existing_evidence_mutation_risk",
+        "status": "PASS"
+      },
+      {
+        "id": "network_codec_requires_dotnet",
+        "status": "PASS"
+      }
+    ]
+  },
+  "git_blob_sha1": {
+    "Assets/Resources/Data/catalog.json": "65874e0078949a21219af056b5e26d296ba65d76",
+    "Assets/Resources/Data/featured-decks.json": "005da4feb4e3aebe910be2e2d52f8f5a61073e44",
+    "Packages/manifest.json": "9740a43dab01fbb9252b077da418f73b3b8b4d14",
+    "Packages/packages-lock.json": "6007e27c351c9286cd10ccb4f5cd167a77c37296",
+    "ProjectSettings/ProjectVersion.txt": "8a87982496ed3239376379e331cd8bda920ee735",
+    "Tools/verify-data.cjs": "0e350720feece0bc435b7929ee15dcfd1630a8ba",
+    "Tools/r16-qa.cjs": "584812d90748110ca7e98b6edabe926f7fc16e06",
+    "Tools/network-codec-test.cjs": "1afb2ac326394c2a9ebc21ae878239e3bf03e3c3",
+    "Tools/r16-report.cjs": "acb98b28dc1d4bc1b750c198b71d3421bf7f644e",
+    "Tools/web-release.cjs": "68c40e91c6061d83e3d3787182b5e55194181177",
+    "Tests/web-release-test.cjs": "6a71bb2810daffac9d4de6ccd0291d4079d40699"
+  },
+  "local_environment": {
+    "node": "v22.16.0",
+    "dotnet": "NOT_INSTALLED",
+    "unity_editor": "NOT_INSTALLED",
+    "pwsh": "NOT_INSTALLED",
+    "git_remote_checkout": "FAILED_DNS",
+    "node_version_exit": 0,
+    "dotnet_version_exit": 127,
+    "pwsh_exit": 127,
+    "unity_lookup_exit": 1,
+    "git_ls_remote_exit": 128,
+    "environment_log_sha256": "ca8faafc584844bb0084f6dedff4dc1891e939616db67dd16a26a80bbc947c45"
+  },
+  "read_only_script_checks": {
+    "local_node_check_exit": 0,
+    "negative_fixture_exit": 1,
+    "negative_fixture_cases_pass": 6,
+    "negative_fixture_cases_fail": 23,
+    "script_local_sha256": "0579eb345e157aea2c3e083a333939c8ef896cc9346479717ec317410f4d7630",
+    "negative_fixture_log_sha256": "60e852164cc399da1cd5e899e493e986acaee23200a9ad71f186b977ae66cec5"
+  },
+  "actual_runtime_tests": {
+    "original_verify_data": "NOT_RUN_NO_DISPOSABLE_CHECKOUT",
+    "managed_269": "NOT_RUN_DOTNET9_UNAVAILABLE",
+    "codec_13": "NOT_RUN_DOTNET9_UNAVAILABLE",
+    "html_5": "NOT_RUN_WINDOWS_PLAYWRIGHT_EDGE_UNAVAILABLE",
+    "unity_compile": "NOT_RUN_UNITY_UNAVAILABLE",
+    "windows_build": "NOT_RUN_UNITY_UNAVAILABLE",
+    "webgl_build": "NOT_RUN_UNITY_UNAVAILABLE",
+    "android_build": "NOT_RUN_UNITY_UNAVAILABLE",
+    "native_smoke": "NOT_RUN_WINDOWS_UNITY_UNAVAILABLE",
+    "cross_device": "NOT_RUN_DEVICES_UNAVAILABLE"
+  },
+  "historical_r16_results": {
+    "managed": "269 PASS 0 FAIL",
+    "codec": "13 PASS 0 FAIL",
+    "html": "5 PASS 0 FAIL",
+    "windows_build": "Succeeded",
+    "webgl_build": "Succeeded",
+    "android_build": "Succeeded",
+    "reexecuted_by_A72": false
+  },
+  "source_integrity_certification": "NOT_CLAIMED_A71_SCOPE",
+  "branch_local_only": true,
+  "merged": false,
+  "deployed": false
+}
