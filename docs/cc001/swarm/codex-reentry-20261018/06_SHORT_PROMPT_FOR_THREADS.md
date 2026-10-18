@@ -1,16 +1,20 @@
-# Krótki prompt do wklejenia w istniejących wątkach / Codex
+# UWAGA: NIE ISTNIEJE JUŻ JEDEN BEZPIECZNY PROMPT „DLA WSZYSTKICH”
 
-PROJECT: CC-001 — CORE CLASH UNITY
-WAVE: R17-W4 RECOVERY
-STATUS: CONTINUE — READY TASKS ONLY
+Ta wcześniejsza metoda mogła powodować pomylenie agentów (np. A60 z A10). Żeby temu zapobiec, zidentyfikuj wątek POZA modelem i otwórz WYŁĄCZNIE właściwy `ROLE_LOCK_Axx.md`.
 
-Kontynuuj swoją dotychczasową rolę i historię. Nie rozpoczynaj projektu od nowa. Nie zakładaj nowego Issue ani nowej fali.
+**START:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
 
-Otwórz pakiet HQ:
-https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
+**Wątek A60 (G0) — NIE A10:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-G0.md
 
-Następnie przeczytaj W4 MASTER DISPATCH, 02_VERIFIED_STATE_AND_GATES.md, 03_AGENT_ROUTING.md, 04_HANDOFF_AND_TEST_EVIDENCE.md oraz plik agents/Axx odpowiadający Twojemu numerowi. Pobierz aktualne Issue i HEAD własnej gałęzi — stan zapisany w pakiecie może być starszy od GitHuba.
+**Wątek A73:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A73.md
 
-Jeśli Twoje zadanie ma status READY, wykonaj realną pracę wyłącznie w przydzielonych plikach na własnej izolowanej gałęzi. Jeśli WAIT, respektuj bramkę i nie deklaruj wykonania. Zapisz konkretny wynik, changed paths, exact SHA, testy rzeczywiście uruchomione (lub NOT_RUN) i HANDOFF na wskazanym istniejącym Issue.
+**Wątek A72:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A72.md
 
-Bez merge do main, publikacji, force-push, zmiany V148, chronionego R16, protokołu 149 ani nieautoryzowanych plików.
+**Wątek A40:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A40.md
+
+**Wątek A50:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A50.md
+
+W każdej sesji wklej tylko:
+> Przeczytaj cały dokument pod tym linkiem i wykonaj przypisane zadanie. Najpierw wypisz dokładnie linię `IDENTITY_OK` wymaganą przez dokument. Nie wybieraj ani nie zmieniaj samodzielnie numeru agenta. Jeżeli tożsamość jest sprzeczna z faktycznie przypisaną rolą wątku, zgłoś `IDENTITY_CONFLICT` i nie modyfikuj plików.
+
+Dla oczekujących ról i obu faz A60 użyj osobnych kart z README. Nie wklejaj już wcześniejszego uniwersalnego promptu ani ogólnego promptu A00 do wątków specjalistów.
