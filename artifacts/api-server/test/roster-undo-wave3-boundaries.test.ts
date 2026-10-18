@@ -159,7 +159,7 @@ test("W3-12 player IDs outside PG positive int range never reach the Undo servic
   );
 });
 
-test("W3-13 corrupted snapshot scalar values are rejected, including JSON null substitution", () => {
+test("W3-13 corrupted scalar values reject; JSON NaN normalization is distinguishable only before serialization", () => {
   for (const fieldAndValue of [
     ["name", null], ["name", " "], ["seed", "3"], ["seed", 0],
     ["seed", 1.5], ["rank", 23], ["country", ["PL"]],
@@ -167,8 +167,13 @@ test("W3-13 corrupted snapshot scalar values are rejected, including JSON null s
   ] as const) {
     reject(restore({ [fieldAndValue[0]]: fieldAndValue[1] }));
   }
+  // JSON.stringify converts NaN to null, which is a valid historic seed.
+  // The parser cannot infer that a valid parsed null previously was NaN.
   const serialized = JSON.parse(JSON.stringify(restore({ seed: Number.NaN })));
-  reject(serialized);
+  assert.deepEqual(parseRosterUndoPayload(serialized, "player_edited"), {
+    type: "restore_player", playerId, prevData: { seed: null },
+  });
+  assert.throws(() => JSON.parse('{"seed":NaN}'), SyntaxError);
 });
 
 test("W3-14 undocumented nested operational snapshots cannot be replayed as PlayerUpdate", () => {
