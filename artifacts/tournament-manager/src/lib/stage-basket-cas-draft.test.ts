@@ -482,3 +482,122 @@ test("DEVELOPMENT-FIRST-03 superseded old initialization cannot overwrite a new 
   assert.equal(session.view().localDraft?.baskets[0]?.colorId, "private-B");
   assert.equal(server.calls.filter((x) => x.method === "PUT").length, 0);
 });
+
+
+test("WAVE2-01 pending canonical refresh blocks PUT, retaining unsaved local edits until explicit reconciliation", async () => {
+  const server = fake();
+  const baseClient = server.client;
+  let releaseRefresh: (() => void) | undefined;
+  let readCount = 0;
+  const client = {
+    save: baseClient.save,
+    async load(scope: BasketCasScope) {
+      if (++readCount === 2) {
+        await new Promise<void>((resolve) => { releaseRefresh = resolve; });
+      }
+      return baseClient.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "unsaved-local" }; });
+  const pending = session.refreshRemote();
+  assert.equal(session.view().refreshing, true);
+  await assert.rejects(session.save(), /Finish remote refresh/);
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 0);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "unsaved-local");
+  assert.ok(releaseRefresh);
+  releaseRefresh!();
+  await pending;
+  assert.equal(session.view().refreshing, false);
+  assert.equal(session.view().phase, "reviewing");
+  await assert.rejects(session.save(), /Reconcile conflict/);
+  session.reconcile({ action: "keep-local", confirmedByOrganizer: true });
+  assert.equal(await session.save(), "saved");
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 1);
+});
+
+test("WAVE2-02 pending newer GET prevents reconciliation with obsolete remote snapshot and ETag", async () => {
+  const server = fake();
+  const original = server.client;
+  let thirdReadRelease: (() => void) | undefined;
+  let reads = 0;
+  const client = {
+    save: original.save,
+    async load(scope: BasketCasScope) {
+      if (++reads === 3) {
+        await new Promise<void>((resolve) => { thirdReadRelease = resolve; });
+      }
+      return original.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(client, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "my-local" }; });
+  session.markStageOrRosterChanged();
+  server.mutateRemotely(A.tournamentId, graph("v2"));
+  await session.refreshRemote(); // old review has v2
+  assert.equal(session.view().remoteCanonical?.baskets[0]?.colorId, "v2");
+  server.mutateRemotely(A.tournamentId, graph("v3"));
+  const pending = session.refreshRemote();
+  assert.equal(session.view().refreshing, true);
+  assert.throws(
+    () => session.reconcile({ action: "keep-local", confirmedByOrganizer: true }),
+    /Finish remote refresh/,
+  );
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 0);
+  assert.ok(thirdReadRelease);
+  thirdReadRelease!();
+  await pending;
+  assert.equal(session.view().remoteCanonical?.baskets[0]?.colorId, "v3");
+  assert.equal(session.view().refreshing, false);
+  session.reconcile({ action: "keep-local", confirmedByOrganizer: true });
+  assert.equal(await session.save(), "saved");
+  assert.equal(server.records.get(A.tournamentId)?.graph.baskets[0]?.colorId, "my-local");
+  assert.equal(server.calls.filter((x) => x.method === "PUT").length, 1);
+});
+
+test("WAVE2-03 old GET 403 from A cannot keep B busy or restore A after auth scope rotation", async () => {
+  const server = fake();
+  const upstream = server.client;
+  let releaseOld: (() => void) | undefined;
+  const client = {
+    save: upstream.save,
+    async load(scope: BasketCasScope) {
+      if (scope.tournamentId === A.tournamentId) {
+        await new Promise<void>((resolve) => { releaseOld = resolve; });
+      }
+      return upstream.load(scope);
+    },
+  };
+  // Initialize with original client, then use a wrapper that pauses only A's refresh.
+  let isFirstA = true;
+  const guarded = {
+    save: client.save,
+    async load(scope: BasketCasScope) {
+      if (scope.tournamentId === A.tournamentId && isFirstA) {
+        isFirstA = false;
+        return upstream.load(scope);
+      }
+      return client.load(scope);
+    },
+  };
+  const session = createBasketCasDraftSession(guarded, A);
+  await session.initialize();
+  session.edit((d) => { d.baskets[0] = { ...d.baskets[0], colorId: "A-private" }; });
+  const pendingA = session.refreshRemote();
+  assert.equal(session.view().refreshing, true);
+  session.switchScope(B);
+  await session.initialize();
+  assert.equal(session.view().refreshing, false);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "orange");
+  server.setGetStatus(403);
+  assert.ok(releaseOld);
+  releaseOld!();
+  await assert.rejects(pendingA, /Basket GET failed/);
+  assert.equal(session.view().authorizationFailure, null);
+  assert.equal(session.view().refreshing, false);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "orange");
+  assert.equal(await session.save(), "saved");
+  assert.equal(server.calls.filter((x) => x.method === "PUT").at(-1)?.tid, B.tournamentId);
+});
