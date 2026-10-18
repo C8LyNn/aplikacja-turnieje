@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
+import { requireVerifiedSourceContext } from "../../../qa/web005/r23h-r5/signed-source-context.mjs";
+import { persistSafetyEvent } from "../../../qa/web005/r23h-r5/source-evidence-journal.mjs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -73,6 +75,8 @@ let testPool: QueryPool;
 let databaseName: string;
 let createdDatabaseReceipt: CreatedDatabaseReceipt | undefined;
 let databaseCreateAttempted = false;
+let drizzlePushOutcomeUncertain = false;
+let drizzlePushOrdinal = 0;
 let testConnectionString: string;
 
 function quotedIdentifier(identifier: string): string {
@@ -178,27 +182,59 @@ async function targetedSchemaDiff(): Promise<string[]> {
 }
 
 async function applyReplitPushToDisposableDatabase(): Promise<string> {
-  const { stdout, stderr } = await execFileAsync(
-    process.execPath,
-    [
-      fileURLToPath(DRIZZLE_KIT_URL),
-      "push",
-      "--config",
-      "./drizzle.config.ts",
-      "--force",
-      "--verbose",
-    ],
-    {
-      cwd: fileURLToPath(DB_WORKSPACE_URL),
-      env: sealedFixtureChildEnv(
-        { DATABASE_URL: testConnectionString }, [createdDatabaseReceipt!],
-      ),
-      timeout: 60_000,
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024,
-    },
-  );
-  return `${stdout}\n${stderr}`;
+  const signed = requireVerifiedSourceContext();
+  const ord = ++drizzlePushOrdinal;
+  if (ord !== 1 && ord !== 2 || !createdDatabaseReceipt) {
+    throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_PUSH_SCOPE_OR_RECEIPT");
+  }
+  // Source-only pinning: all three hashes must match the SIGNED runplan.
+  const kit = await readFile(DRIZZLE_KIT_URL);
+  const config = await readFile(new URL("./drizzle.config.ts", DB_WORKSPACE_URL));
+  const lock = await readFile(new URL("../../../pnpm-lock.yaml", import.meta.url));
+  const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+  const kitSha = digest(kit), configSha = digest(config), lockSha = digest(lock);
+  if (kitSha !== signed.drizzle_kit_sha256 ||
+      configSha !== signed.drizzle_config_sha256 ||
+      lockSha !== signed.lock_sha256) {
+    throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_BINARY_CONFIG_LOCK_DRIFT");
+  }
+  const attest = (event: string, details: Record<string, string> = {}) =>
+    persistSafetyEvent({
+      event, slot: "drizzle_push_" + ord, name: createdDatabaseReceipt!.name,
+      run_id:signed.run_id,cluster_cert_sha256:signed.cluster_cert_sha256,
+      signed_context_sha256:signed.signed_payload_sha256, ordinal:String(ord),
+      kit_sha256:kitSha,config_sha256:configSha,lock_sha256:lockSha,...details,
+    });
+  attest("DRIZZLE_PUSH_ATTEMPTED");
+  try {
+    const {stdout,stderr} = await execFileAsync(
+      process.execPath,
+      [fileURLToPath(DRIZZLE_KIT_URL),"push","--config","./drizzle.config.ts","--force","--verbose"],
+      {
+        cwd:fileURLToPath(DB_WORKSPACE_URL),
+        env:sealedFixtureChildEnv(
+          {DATABASE_URL:testConnectionString},[createdDatabaseReceipt],
+        ),
+        timeout:60_000,windowsHide:true,maxBuffer:10*1024*1024,
+      },
+    );
+    const transcript = `${stdout}\n${stderr}`;
+    if (!/No changes detected/.test(transcript) ||
+        /\b(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:SCHEMA|TABLE|TYPE|SEQUENCE|INDEX|CONSTRAINT)\b/i.test(transcript)) {
+      throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_OUTPUT_MUTATION_OR_UNEXPECTED_RESULT");
+    }
+    // Only validates transcript. Real SQL effects remain PENDING server-side
+    // signed observer; never infer absence of DDL from stdout alone.
+    attest("DRIZZLE_OUTPUT_EXPECTED",{
+      stdout_sha256:digest(Buffer.from(stdout,"utf8")),
+      stderr_sha256:digest(Buffer.from(stderr,"utf8"))
+    });
+    return transcript;
+  } catch(error) {
+    drizzlePushOutcomeUncertain=true;
+    attest("DRIZZLE_PUSH_AMBIGUOUS_OR_FAILED");
+    throw error;
+  }
 }
 
 async function documentedProductionCleanupSql(): Promise<string> {
@@ -275,6 +311,9 @@ after(async () => {
   }
   if (adminPool) {
     try {
+      if (drizzlePushOutcomeUncertain) {
+        throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_PUSH_UNCERTAIN_NO_FORCE_DROP");
+      }
       if (databaseCreateAttempted && !createdDatabaseReceipt) {
         throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_AMBIGUOUS_CREATE_NO_DROP");
       }
@@ -380,6 +419,7 @@ describe("targeted schema authority diff for the Production state through migrat
     assert.deepEqual(await targetedSchemaDiff(), []);
     const secondPush = await applyReplitPushToDisposableDatabase();
     assert.match(secondPush, /No changes detected/);
+    assert.doesNotMatch(secondPush, /\b(?:CREATE|ALTER|DROP|TRUNCATE)\s+(?:SCHEMA|TABLE|TYPE|SEQUENCE|INDEX|CONSTRAINT)\b/i);
     assert.deepEqual((await requiredSchemaMetadata()).rows, metadata.rows);
     const migrationMarker = await testPool.query(
       `SELECT count(*)::int AS count
