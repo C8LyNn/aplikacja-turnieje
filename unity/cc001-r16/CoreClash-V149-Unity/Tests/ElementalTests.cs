@@ -143,6 +143,35 @@ public static partial class Program
             Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
             Near(1.70f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
         });
+        // Authoritative A50 replay oracle for A40-owned GameSimulation.cs.
+        // These fixtures are source-predicted; no managed run is claimed here.
+        Test("R17 F02-G09C Earth archetype replay decrements one genuine stack", () => {
+            var s=Sim();var earth=s.Spawn(0,"anchor",270,805);
+            Eq("earth",s.Catalog.Ball(earth.type).archetype);
+            earth.anchorStacks=2;False(earth.rooted);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=earth.id;
+            True(s.TryCommand(cmd,out _));Eq(1,earth.anchorStacks);
+            False(earth.frostguardAnchored);
+            Near(.78f,CoreClash.Physics.CollisionResolver.ForceScale(earth));
+            Near(1.35f*earth.mass,CoreClash.Physics.CollisionResolver.Mass(earth));
+        });
+        Test("R17 F02-G09D rejected Frostguard replay cannot change anchor state", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+            var invalid=Shot(s,1);invalid.kind=CommandKind.Replay;invalid.ballId=guard.id;
+            False(s.TryCommand(invalid,out _));
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+            Eq(0,s.State.replayedIds.Count);
+        });
+        Test("R17 F02-G09E non-Earth replay preserves genuine stacks without Frostguard flag", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",270,805);
+            False(ball.frostguardAnchored);ball.anchorStacks=2;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=ball.id;
+            True(s.TryCommand(cmd,out _));Eq(2,ball.anchorStacks);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(ball));
+            Near(1.70f*ball.mass,CoreClash.Physics.CollisionResolver.Mass(ball));
+        });
         Test("R17 F02-G10 unrelated Earth stacks of three retain existing physics", () => {
             var s=Sim();var ball=s.Spawn(0,"normal",270,450);
             ball.anchorStacks=3;
