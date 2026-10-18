@@ -131,3 +131,18 @@ R17 is complete only when:
 - 19 PARTIAL acceptance matrix is resolved or truthfully remains partial,
 - physical-device networking/UX evidence is clearly separated from emulation,
 - independent QA publishes an integration verdict.
+
+
+## GitHub work items / branches
+
+- A70 source import — Issue #90 — branch `feat/cc001-r17-a70-source-import`
+- A10 lifecycle/RETURN contract — Issue #91 — branch `feat/cc001-r17-a10-lifecycle-return-contract`
+- A40 lifecycle/RETURN implementation — Issue #92 — branch `feat/cc001-r17-a40-lifecycle-return-impl`
+- A50 PARTIAL acceptance — Issue #93 — branch `feat/cc001-r17-a50-partial-acceptance`
+- A31 networking/crossplay — Issue #94 — branch `feat/cc001-r17-a31-network-crossplay`
+- A20 mobile UX — Issue #95 — branch `feat/cc001-r17-a20-mobile-ux`
+- A60 independent QA — Issue #96 — branch `feat/cc001-r17-a60-independent-qa`
+- A00 integration — Issue #97 — branch `feat/cc001-r17-a00-integration`
+
+Coding work that requires the full project must not pretend the compiled website WebGL artifact is source.
+A70 is the source-tree gate.
