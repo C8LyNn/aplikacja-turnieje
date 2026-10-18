@@ -10,6 +10,7 @@ import {
   type TournamentMutationActor,
 } from "../../access-policy";
 import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
+import { parseRosterUndoPayload } from "./roster-undo-payload";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -246,15 +247,18 @@ export async function undoTournamentRosterAction(input: {
       throw new TournamentRosterError("UNDO_ACTION_CHANGED");
     }
 
-    let payload: Record<string, unknown>;
+    // Persisted/imported JSON must not supply arbitrary PlayerUpdate keys
+    // (identity, tournament, status, etc.) or impersonate another action kind.
+    // Validate after tournament/action LIFO locks but BEFORE ANY writes.
+    let payload: ReturnType<typeof parseRosterUndoPayload>;
     try {
-      payload = JSON.parse(action.undoPayload) as Record<string, unknown>;
+      payload = parseRosterUndoPayload(JSON.parse(action.undoPayload), action.actionType);
     } catch {
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
     }
 
     if (payload.type === "delete_player") {
-      const playerId = Number(payload.playerId);
+      const playerId = payload.playerId;
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -274,10 +278,7 @@ export async function undoTournamentRosterAction(input: {
         isUndone: false,
       });
     } else if (payload.type === "restore_player") {
-      const playerId = Number(payload.playerId);
-      const prevData = payload.prevData;
-      if (!prevData || typeof prevData !== "object" || Array.isArray(prevData))
-        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      const playerId = payload.playerId;
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -289,7 +290,7 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
-      const changes = prevData as PlayerUpdate;
+      const changes: PlayerUpdate = { ...payload.prevData };
       if (changes.name != null) {
         changes.name = String(changes.name).trim();
         await assertUniqueName(tx, input.tournamentId, changes.name, playerId);
