@@ -69,6 +69,9 @@ export function verifySignedSourceContextBytes(jsonBytes) {
       claims.base_database !== "web005_c01_test_" + claims.run_id ||
       claims.host !== "127.0.0.1" || claims.port !== 55432 ||
       claims.network_mode !== "service:pg16" ||
+      claims.pg_major !== 16 || claims.host_ports !== 0 ||
+      claims.rootfs_read_only !== true || claims.caps_dropped !== true ||
+      claims.unique_pgdata_attested !== true ||
       claims.exclusive_writer !== true || claims.native_windows_pg_untouched !== true ||
       !Number.isSafeInteger(claims.expires_unix) ||
       claims.expires_unix <= Math.floor(Date.now()/1000) ||
