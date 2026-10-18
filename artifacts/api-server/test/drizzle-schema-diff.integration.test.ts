@@ -72,6 +72,7 @@ let adminPool: QueryPool;
 let testPool: QueryPool;
 let databaseName: string;
 let createdDatabaseReceipt: CreatedDatabaseReceipt | undefined;
+let databaseCreateAttempted = false;
 let testConnectionString: string;
 
 function quotedIdentifier(identifier: string): string {
@@ -230,6 +231,7 @@ before(async () => {
     connectionString: baseUrl.toString(),
   });
   databaseName = `tm_drizzle_schema_test_${randomUUID().replaceAll("-", "")}`;
+  databaseCreateAttempted = true;
   createdDatabaseReceipt = await createRunDatabase(adminPool, databaseName, DATABASE_NAME_PATTERN);
 
   const testUrl = new URL(baseUrl);
@@ -274,7 +276,12 @@ after(async () => {
   }
   if (adminPool) {
     try {
-      await dropRunDatabase(adminPool, createdDatabaseReceipt, DATABASE_NAME_PATTERN);
+      if (databaseCreateAttempted && !createdDatabaseReceipt) {
+        throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_AMBIGUOUS_CREATE_NO_DROP");
+      }
+      if (createdDatabaseReceipt) {
+        await dropRunDatabase(adminPool, createdDatabaseReceipt, DATABASE_NAME_PATTERN);
+      }
     } finally {
       await adminPool.end();
     }
