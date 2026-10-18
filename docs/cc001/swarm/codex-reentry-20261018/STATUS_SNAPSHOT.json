@@ -23,7 +23,18 @@
     "agents/A72_MANAGED_CI.md",
     "agents/A40_LIFECYCLE_IMPLEMENTATION.md",
     "agents/A50_FROSTGUARD_F02.md",
-    "STATUS_SNAPSHOT.json"
+    "STATUS_SNAPSHOT.json",
+    "ROLE_LOCK_A60-G0.md",
+    "ROLE_LOCK_A73.md",
+    "ROLE_LOCK_A72.md",
+    "ROLE_LOCK_A40.md",
+    "ROLE_LOCK_A50.md",
+    "ROLE_LOCK_A70.md",
+    "ROLE_LOCK_A71.md",
+    "ROLE_LOCK_A74.md",
+    "ROLE_LOCK_A20.md",
+    "ROLE_LOCK_A31.md",
+    "ROLE_LOCK_A60-CANDIDATE.md"
   ],
   "ready": [
     {
@@ -119,5 +130,109 @@
     "no status inflation",
     "no unapproved file edits"
   ],
-  "truth": "Snapshot only; re-read GitHub refs and Issues before execution"
+  "truth": "Snapshot only; re-read GitHub refs and Issues before execution",
+  "identity_lock_version": 2,
+  "identity_source": "ROLE_LOCK_<ROLE_ID>.md; use one locked entrypoint per specialist session. Never use 01_CODEX_GLOBAL_PROMPT.md as specialist message",
+  "legacy_prompts_deprecated_for_specialist_entry": true,
+  "roles": [
+    {
+      "id": "A60-G0",
+      "agent": "A60",
+      "issue": 126,
+      "branch": "feat/cc001-r17-w3-a60-baseline-qa",
+      "gate": "READY NOW",
+      "entrypoint": "ROLE_LOCK_A60-G0.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A60-G0 | ISSUE #126 | READY NOW"
+    },
+    {
+      "id": "A73",
+      "agent": "A73",
+      "issue": 136,
+      "branch": "feat/cc001-r17-w4-a73-merge-preview",
+      "gate": "READY NOW",
+      "entrypoint": "ROLE_LOCK_A73.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A73 | ISSUE #136 | READY NOW"
+    },
+    {
+      "id": "A72",
+      "agent": "A72",
+      "issue": 113,
+      "branch": "feat/cc001-r17-w4-a72-managed-ci",
+      "gate": "READY NOW",
+      "entrypoint": "ROLE_LOCK_A72.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A72 | ISSUE #113 | READY NOW"
+    },
+    {
+      "id": "A40",
+      "agent": "A40",
+      "issue": 92,
+      "branch": "feat/cc001-r17-w4-a40-lifecycle-return",
+      "gate": "READY NOW",
+      "entrypoint": "ROLE_LOCK_A40.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A40 | ISSUE #92 | READY NOW"
+    },
+    {
+      "id": "A50",
+      "agent": "A50",
+      "issue": 138,
+      "branch": "feat/cc001-r17-w4-a50-f02-physics",
+      "gate": "READY NOW",
+      "entrypoint": "ROLE_LOCK_A50.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A50 | ISSUE #138 | READY NOW"
+    },
+    {
+      "id": "A70",
+      "agent": "A70",
+      "issue": 137,
+      "branch": "integration/cc001-r17-w4-disposable-candidate-20261018",
+      "gate": "WAIT G0 PASS + A73 W4 MAP",
+      "entrypoint": "ROLE_LOCK_A70.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A70 | ISSUE #137 | WAIT G0 PASS + A73 W4 MAP"
+    },
+    {
+      "id": "A71",
+      "agent": "A71",
+      "issue": 140,
+      "branch": "feat/cc001-r17-w4-a71-candidate-integrity",
+      "gate": "WAIT REAL CANDIDATE SHA",
+      "entrypoint": "ROLE_LOCK_A71.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A71 | ISSUE #140 | WAIT REAL CANDIDATE SHA"
+    },
+    {
+      "id": "A74",
+      "agent": "A74",
+      "issue": 141,
+      "branch": "feat/cc001-r17-w4-a74-candidate-hygiene",
+      "gate": "WAIT REAL CANDIDATE SHA",
+      "entrypoint": "ROLE_LOCK_A74.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A74 | ISSUE #141 | WAIT REAL CANDIDATE SHA"
+    },
+    {
+      "id": "A20",
+      "agent": "A20",
+      "issue": 95,
+      "branch": "feat/cc001-r17-w3-a20-compact-layout",
+      "gate": "WAIT G2 BUILD + DEVICES",
+      "entrypoint": "ROLE_LOCK_A20.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A20 | ISSUE #95 | WAIT G2 BUILD + DEVICES"
+    },
+    {
+      "id": "A31",
+      "agent": "A31",
+      "issue": 94,
+      "branch": "feat/cc001-r17-a31-network-crossplay",
+      "gate": "WAIT G2 BUILD + DEVICES/NETWORK",
+      "entrypoint": "ROLE_LOCK_A31.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A31 | ISSUE #94 | WAIT G2 BUILD + DEVICES/NETWORK"
+    },
+    {
+      "id": "A60-CANDIDATE",
+      "agent": "A60",
+      "issue": 139,
+      "branch": "feat/cc001-r17-w4-a60-candidate-qa",
+      "gate": "WAIT CANDIDATE SHA + G1/G2",
+      "entrypoint": "ROLE_LOCK_A60-CANDIDATE.md",
+      "expected_first_line": "IDENTITY_OK | CC-001 | A60-CANDIDATE | ISSUE #139 | WAIT CANDIDATE SHA + G1/G2"
+    }
+  ]
 }
