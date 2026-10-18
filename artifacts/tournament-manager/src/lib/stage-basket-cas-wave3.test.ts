@@ -276,3 +276,57 @@ test("W3-A110-08 old denied A GET cannot poison new B session or trigger a cross
   assert.equal(await session.save(), "saved");
   assert.deepEqual(f.writes.map((w) => w.tournamentId), [B.tournamentId]);
 });
+
+
+test("W4-A110-01 old in-flight A PUT cannot overwrite the draft of a renewed B session", async () => {
+  const f = fixture();
+  const session = await withEditedDraft(f.client, "old-a-unsaved");
+  f.pausePut();
+  const oldSave = session.save();
+  assert.deepEqual(f.writes.map((x) => x.tournamentId), [A.tournamentId]);
+  // Organizer switches principal and tournament while the A request is pending.
+  session.switchScope(B);
+  await session.initialize();
+  session.edit((draft) => {
+    draft.baskets[0] = { ...draft.baskets[0], colorId: "new-b-private" };
+  });
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "new-b-private");
+  f.releasePut();
+  assert.equal(await oldSave, "superseded",
+    "old server result must be ignored by the new local authorization epoch");
+  assert.equal(session.view().scope.authContextId, B.authContextId);
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "new-b-private");
+  assert.equal(await session.save(), "saved");
+  assert.deepEqual(f.writes.map((x) => x.tournamentId),
+    [A.tournamentId, B.tournamentId]);
+  assert.equal(f.writes[1].ifMatch, '"cas-502-rev-1"');
+  assert.equal(f.state.get(B.tournamentId)?.graph.baskets[0]?.colorId, "new-b-private");
+});
+
+test("W4-A110-02 roster mutation under GET 403 remains quarantined until an explicit authenticated comparison", async () => {
+  const f = fixture();
+  const session = await withEditedDraft(f.client, "local-not-saved");
+  f.getDenied(A.tournamentId, 403);
+  await assert.rejects(session.refreshRemote(), (error: unknown) =>
+    error instanceof BasketCasError && error.httpStatus === 403);
+  session.markStageOrRosterChanged();
+  const denied = session.view();
+  assert.equal(denied.phase, "authorization-blocked");
+  assert.equal(denied.dependencyMayHaveChanged, true);
+  assert.equal(denied.localDraft, null);
+  assert.equal(denied.remoteCanonical, null);
+  await assert.rejects(session.save(), /Reconcile conflict/);
+  assert.equal(f.writes.length, 0);
+  f.externalEdit(A.tournamentId, "roster-updated-remotely");
+  f.getDenied(A.tournamentId, null);
+  await session.refreshRemote();
+  const review = session.view();
+  assert.equal(review.phase, "reviewing");
+  assert.equal(review.localDraft?.baskets[0]?.colorId, "local-not-saved");
+  assert.equal(review.remoteCanonical?.baskets[0]?.colorId, "roster-updated-remotely");
+  assert.equal(review.dependencyMayHaveChanged, true);
+  assert.equal(f.writes.length, 0, "a reauthorized GET must never implicitly PUT");
+  session.reconcile({ action: "use-remote", confirmedByOrganizer: true });
+  assert.equal(session.view().localDraft?.baskets[0]?.colorId, "roster-updated-remotely");
+  assert.equal(f.writes.length, 0, "manual reconciliation alone must not PUT");
+});
