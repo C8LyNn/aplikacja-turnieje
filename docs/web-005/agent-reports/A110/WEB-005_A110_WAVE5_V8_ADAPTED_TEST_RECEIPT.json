@@ -1,0 +1,115 @@
+{
+  "project": "WEB-005",
+  "agent": "A110",
+  "wave": "DEVELOPMENT_FIRST_WAVE5",
+  "date": "2026-10-18",
+  "status": "ADAPTED_V8_UNIT_EXECUTED_NOT_NATIVE_NODE_QA",
+  "result": {
+    "registered": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "id": "W3-A110-01",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-02",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-03",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-04",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-05",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-06",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-07",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W3-A110-08",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W4-A110-01",
+        "status": "PASS_ADAPTED_V8"
+      },
+      {
+        "id": "W4-A110-02",
+        "status": "PASS_ADAPTED_V8"
+      }
+    ]
+  },
+  "source": {
+    "pr63": {
+      "number": 63,
+      "exactHead": "52f3e1db334fc5b178fb3f4ed21d4099a0d6558f"
+    },
+    "pr130": {
+      "number": 130,
+      "exactHead": "295783b8d7af907a5adfe3c6a3c1d199e29408e9"
+    },
+    "files": [
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-client.ts",
+        "blobSha": "4fca09e22ef58fc38a2ca34a8386a6fadad06ae8"
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-draft.ts",
+        "blobSha": "63f3842380f47bc77d99e8bb722807e54272472d"
+      },
+      {
+        "path": "artifacts/tournament-manager/src/lib/stage-basket-cas-wave3.test.ts",
+        "blobSha": "6155db785b91bf843127801445ce5cd90e519e57"
+      }
+    ]
+  },
+  "execution": {
+    "engine": "functions.exec V8 ephemeral isolate",
+    "procedure": "Fetch three exact GitHub blobs; mechanically erase TypeScript type-only constructs in memory without changing runtime branches; replace import resolution with referenced module functions; use in-memory Headers and Response and equivalent assert/test adapters; register and await the original 10 authored W3/W4 test bodies sequentially; record per-test results.",
+    "runtimeCodeOrigin": "exact GitHub blobs above, unchanged in repository",
+    "databaseOperations": 0,
+    "networkRequestsFromTests": 0,
+    "localFileChanges": 0,
+    "nativeNodeTestExecuted": false,
+    "typescriptTypecheckExecuted": false,
+    "browserRTLExecuted": false,
+    "githubCIReRun": false,
+    "independentQa": false,
+    "limitations": [
+      "Not native Node node:test/tsx, not TypeScript typechecking or React Testing Library",
+      "Handcrafted type-erasure and standard API adapters may differ from actual Node/DOM/tsx semantics",
+      "Synthetic mocked-transport tests do not verify backend CAS or PG16",
+      "No reproducible full-checkout TAP or OS process exit for original TS test files"
+    ],
+    "discardedHarnessAttempt": "An earlier probe gave 1 PASS/9 FAIL due solely to custom type-erasure constructor assigning this before super(); invalid harness result discarded; corrected harness repeated unchanged test bodies and yielded 10/10 adapted V8 PASS."
+  },
+  "localPreflight": {
+    "nodeVersion": "v22.16.0",
+    "globalTscVersion": "5.8.3",
+    "pnpmInstalled": false,
+    "tsxInstalled": false,
+    "fullRepoCheckoutAvailable": false,
+    "gitLsRemoteFailure": "Could not resolve host github.com",
+    "npmViewFailure": "EAI_AGAIN registry.npmjs.org"
+  },
+  "gates": {
+    "featureActive": false,
+    "serverCasImplementedInVerifiedRelease": false,
+    "nativeTests": "NOT_EXECUTED",
+    "independentA60": "PENDING",
+    "integration": "NO"
+  }
+}
