@@ -16,7 +16,7 @@ namespace CoreClash.Core
         bool Archetype(BallRuntime b,string id)=>sim.Catalog.Ball(b.type).archetype==id;
         bool PerTargetTurn(BallRuntime b,BallRuntime target){if(b.turnAffectedIds.Contains(target.id))return false;b.turnAffectedIds.Add(target.id);return true;}
         bool Enter(){if(depth>=8){sim.Emit("CHAIN_LIMIT",null,"Effect chain safely bounded");return false;}depth++;return true;}
-        public void OnSpawn(BallRuntime b){b.divineShield=b.type=="halo";ArchetypeSpawn(b);}
+        public void OnSpawn(BallRuntime b){b.divineShield=b.type=="halo";ArchetypeSpawn(b);if(b.type=="phoenix")PhoenixSpawn(b);}
         public void OnLaunch(BallRuntime b){b.paradoxSave=b.type=="paradox"?Save(b):b.paradoxSave;}
         public void OnContact(BallRuntime a,BallRuntime b,bool hit,bool source,float impact)
         {
@@ -35,7 +35,7 @@ namespace CoreClash.Core
         public void OnTurnStart(int owner)
         {
             foreach(var b in S.balls.Where(b=>b.banished&&S.turnNumber>=b.banishedUntilTurn).ToArray()){b.banished=false;b.vx=b.vy=0;PlaceNear(b,b.x,b.y,180);sim.Emit("RETURN",b,"Exile ended");EmitReturn(b,b);}
-            GlobalSpatialTurn();
+            GlobalSpatialTurn();LifecycleHandTurn(owner);
             foreach(var b in Living()){
                 if(b.owner!=owner||b.dead)continue;b.ownTurnCounter++;StatusTurn(b);if(b.dead)continue;ArchetypeTurn(b);LifecycleTurn(b);if(b.dead)continue;SpatialTurn(b);ConstructionTurn(b);ReinforcementTurn(b);EvolutionTurn(b);ElementalTurn(b);ExplosiveTurn(b);
                 if(b.type=="paradox")b.paradoxSave=Save(b);
@@ -44,9 +44,9 @@ namespace CoreClash.Core
         public void OnTurnEnd(int owner){PeriodicZones();foreach(var b in Living())if(b.owner==owner&&b.rooted&&S.players[owner].ownerTurns>=b.rootExpiresOwnerTurn){b.rooted=false;sim.Emit("ROOT_EXPIRED",b,"Root expired");}}
         public void OnDeath(BallRuntime b)
         {
-            if(!Enter())return;try{DeathObservers(b);ArchetypeDeath(b);foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="portal")z.dead=true;TriggerDeathEffect(b);}finally{depth--;}
+            if(!Enter())return;try{DeathObservers(b);ArchetypeDeath(b);foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="portal")z.dead=true;TriggerDeathEffect(b);if(b.type=="phoenix")PhoenixDeathEffect(b);}finally{depth--;}
         }
-        public void OnStep(float dt){ExplosiveStep();SpatialStep(dt);}
+        public void OnStep(float dt){LifecycleStep(dt);ExplosiveStep();SpatialStep(dt);}
         public bool BeforeDamage(BallRuntime b,bool kinetic){if(kinetic&&b.divineShield){b.divineShield=false;sim.Emit("DIVINE_SHIELD",b,"First impact blocked");return true;}return false;}
         void Impulse(BallRuntime target,float tx,float ty,float power){if(target.rooted||target.dead)return;float dx=tx-target.x,dy=ty-target.y,d=(float)Math.Sqrt(dx*dx+dy*dy);if(d<.001f)return;float p=power*CollisionResolver.ForceScale(target);target.vx+=dx/d*p;target.vy+=dy/d*p;BallPhysics.ClampSpeed(target);}
         SavedBallState Save(BallRuntime b)=>new SavedBallState{x=b.x,y=b.y,hp=b.hp,shield=b.shield,fireStacks=b.fireStacks,burnTurns=b.burnTurns,iceStacks=b.iceStacks,iceTurns=b.iceTurns,toxinTurns=b.toxinTurns,frozen=b.frozen,sticky=b.sticky,jammed=b.jammed,rooted=b.rooted,rootExpiresOwnerTurn=b.rootExpiresOwnerTurn,stamps=b.statusOrder.Select(x=>new StatusStamp{family=x.family,order=x.order,owner=x.owner}).ToArray()};
