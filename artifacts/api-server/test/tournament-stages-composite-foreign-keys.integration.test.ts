@@ -15,6 +15,7 @@ import {
   type TestDatabaseConfig,
   type TestPool,
 } from "./test-database";
+import { resetRunSchema } from "./pg16-test-ownership";
 
 interface DatabaseModule {
   pool: typeof import("@workspace/db").pool;
@@ -525,8 +526,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
 
   const quotedSchema = quoteIdentifier(config.schema);
-  await database.pool.query(`DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`);
-  await database.pool.query(`CREATE SCHEMA ${quotedSchema}`);
+  await resetRunSchema(database.pool, config.schema);
   schemaInitialized = true;
   await database.pool.query(`SET search_path TO ${quotedSchema}`);
   await database.pool.query(renderDrizzleSchema(
