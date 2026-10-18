@@ -6,7 +6,7 @@ A10 | Verified: 2026-10-18 | READ-ONLY application / APPEND-ONLY documentation
 
 ## 1. Canonical environment and integration
 
-- C01: [Draft PR #60](https://github.com/C8LyNn/aplikacja-turnieje/pull/60+), exact SHA `fa3261b2c9510e110ac9eba21726812d3401a525`, base `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`. Six source packets: P01, P02, P07, P23, P24, P25; 14 exact blobs, zero manual conflict resolutions.
+- C01: [Draft PR #60](https://github.com/C8LyNn/aplikacja-turnieje/pull/60), exact SHA `fa3261b2c9510e110ac9eba21726812d3401a525`, base `1fdc401d87c6bffe6bf7312dfc9db681b689dcf7`. Six source packets: P01, P02, P07, P23, P24, P25; 14 exact blobs, zero manual conflict resolutions.
 - C02: `NOT_CREATED`; no PR, commit SHA or executed C02 QA. A40 waits for A00 scope and the exact API integration failure from Issue #73.
 - GitHub later release: `1db3734b8988940acc6be8b992420a58fc39624a`, differs from C01 base and includes game files. Replit published local checkpoint: `cb55335ea8e789d5e0f7912955da7d679d7dbb5f` (not GitHub-verifiable). Dispatch drift is 140 differing paths, 90 Replit-only plus 50 differing blobs, not 140 proven bugs.
 - Preserve Replit live routes/Steam/catalog/PG migration lineage. Never overwrite either tree; require source hashes, owner PRESERVE/PORT/OMIT, rollback and exact authorized hunk scope first.
