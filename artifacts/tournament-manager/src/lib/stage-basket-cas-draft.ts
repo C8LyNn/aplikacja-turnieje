@@ -119,6 +119,8 @@ export function createBasketCasDraftSession(
   let authorizationFailure: 401 | 403 | null = null;
   let saving = false;
   let epoch = 0;
+  // Only one first GET may establish a base within the same session epoch.
+  let initializingEpoch: number | null = null;
   let remoteRequestId = 0;
   let editEpoch = 0;
   let destroyed = false;
@@ -129,6 +131,7 @@ export function createBasketCasDraftSession(
 
   function clear(next: BasketCasScope) {
     epoch += 1;
+    initializingEpoch = null;
     remoteRequestId += 1;
     editEpoch += 1;
     scope = { ...next };
@@ -162,17 +165,30 @@ export function createBasketCasDraftSession(
 
   async function initialize() {
     active();
-    if (base || phase !== "uninitialized") {
-      throw new BasketCasError("PROTOCOL_ERROR", "Already initialized; use explicit refresh.");
-    }
     const requestEpoch = epoch;
+    if (base || phase !== "uninitialized" || initializingEpoch === requestEpoch) {
+      throw new BasketCasError(
+        "PROTOCOL_ERROR",
+        "Already initialized or initializing; use explicit refresh.",
+      );
+    }
+    // Acquire the per-epoch initialization guard BEFORE starting async GET.
+    // Otherwise two GET completions could overwrite an unsaved local draft.
+    initializingEpoch = requestEpoch;
     const current = { ...scope };
-    const loaded = await client.load(current);
-    if (destroyed || requestEpoch !== epoch) return;
-    base = loaded;
-    draft = clone(loaded.graph);
-    phase = "editing";
-    authorizationFailure = null;
+    try {
+      const loaded = await client.load(current);
+      if (destroyed || requestEpoch !== epoch ||
+          initializingEpoch !== requestEpoch ||
+          phase !== "uninitialized" || base) return;
+      base = loaded;
+      draft = clone(loaded.graph);
+      phase = "editing";
+      authorizationFailure = null;
+    } finally {
+      // A stale A completion cannot unlock a newer B initialization.
+      if (initializingEpoch === requestEpoch) initializingEpoch = null;
+    }
   }
 
   function edit(mutator: (working: MutableGraph) => void) {
