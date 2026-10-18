@@ -1,0 +1,172 @@
+{
+  "schema": "WEB005_A40_C02_SOURCE_COMPOSITE_MANIFEST_V1",
+  "date": "2026-10-18",
+  "repository": "C8LyNn/aplikacja-turnieje",
+  "issue": 75,
+  "parent_c01_pr": 60,
+  "parent_c01_sha": "fa3261b2c9510e110ac9eba21726812d3401a525",
+  "parent_c01_tree": "c19fff1d6b8538dee731ea0daad75bfe568714c3",
+  "c02_pr": 101,
+  "c02_branch": "integration/web-005/c02-dbfree-pure-source-20261018",
+  "c02_sha": "a5bfd07b822c223fd995604dc2e228935ab81498",
+  "c02_tree": "6765cdf516b02cfd850bf8c7fc04bc93e6abda6a",
+  "method": "Create Git tree on exact C01 tree by referring to original source Git blobs; 1-parent commit, no cherry-pick, no rebase, no edits",
+  "source_packages": [
+    {
+      "pr": 64,
+      "source_head": "7837e412626e88761c70f1a2ceeb822d7ed101e1",
+      "source_base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+      "classification": "PURE_NOT_WIRED_SOURCE_QA_CONDITIONAL",
+      "paths": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-v3-action-provenance.ts",
+          "blob_sha": "9c3650180aed4f8aa5f2cd09b6d5d6ffc3de6b7c"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-v3-action-provenance.test.ts",
+          "blob_sha": "f65d0be0fec76a7daca2331e5bbd6d6fdbf79a6c"
+        },
+        {
+          "path": "docs/web-005/agent-reports/A70/WEB-005_A70_R23C_HANDOFF.md",
+          "blob_sha": "308c6a57363a99358803f6b81b9696423ce0e934"
+        }
+      ]
+    },
+    {
+      "pr": 66,
+      "source_head": "7490c974b7c84404559fd590bd09817a71c2134f",
+      "source_base": "fa3261b2c9510e110ac9eba21726812d3401a525",
+      "classification": "PURE_NOT_WIRED_SOURCE_QA_CONDITIONAL",
+      "paths": [
+        {
+          "path": "artifacts/api-server/src/application/backups/backup-preclone-adapter.ts",
+          "blob_sha": "c02ca0aa877017456142f081eff9e9f877522ca2"
+        },
+        {
+          "path": "artifacts/api-server/test/backup-preclone-adapter.test.ts",
+          "blob_sha": "dc3d44ef8bd25b5b94dbd99f5447836c000a4c6d"
+        }
+      ]
+    }
+  ],
+  "added_paths": [
+    {
+      "path": "artifacts/api-server/src/application/backups/backup-v3-action-provenance.ts",
+      "blob_sha": "9c3650180aed4f8aa5f2cd09b6d5d6ffc3de6b7c",
+      "pr": 64,
+      "source_head": "7837e412626e88761c70f1a2ceeb822d7ed101e1"
+    },
+    {
+      "path": "artifacts/api-server/test/backup-v3-action-provenance.test.ts",
+      "blob_sha": "f65d0be0fec76a7daca2331e5bbd6d6fdbf79a6c",
+      "pr": 64,
+      "source_head": "7837e412626e88761c70f1a2ceeb822d7ed101e1"
+    },
+    {
+      "path": "docs/web-005/agent-reports/A70/WEB-005_A70_R23C_HANDOFF.md",
+      "blob_sha": "308c6a57363a99358803f6b81b9696423ce0e934",
+      "pr": 64,
+      "source_head": "7837e412626e88761c70f1a2ceeb822d7ed101e1"
+    },
+    {
+      "path": "artifacts/api-server/src/application/backups/backup-preclone-adapter.ts",
+      "blob_sha": "c02ca0aa877017456142f081eff9e9f877522ca2",
+      "pr": 66,
+      "source_head": "7490c974b7c84404559fd590bd09817a71c2134f"
+    },
+    {
+      "path": "artifacts/api-server/test/backup-preclone-adapter.test.ts",
+      "blob_sha": "dc3d44ef8bd25b5b94dbd99f5447836c000a4c6d",
+      "pr": 66,
+      "source_head": "7490c974b7c84404559fd590bd09817a71c2134f"
+    }
+  ],
+  "excluded_sources": [
+    {
+      "pr": 61,
+      "head": "8c26778c94cd6c96987f3986b651066024f10d4a",
+      "reason": "Requires A00/A20 approved physically isolated PG16 reset; out of DB-free scope"
+    },
+    {
+      "pr": 63,
+      "head": "a4119b29a78b72d400947d8dd5bd100c59d6444e",
+      "reason": "CAS security/feature enablement and new exact-head independent QA; backend not wired"
+    },
+    {
+      "pr": 67,
+      "head": "880824f18b8913602955578dfd76eeac7976e32a",
+      "reason": "Intentionally RED security tests; future ingress not implemented"
+    },
+    {
+      "pr": 69,
+      "head": "1bc087384542b16bb82bc9ab58ec48780fc0e972",
+      "reason": "Newer GitHub release ancestry; Replit local deployed checkpoint drift and game assets; no release cherry-pick"
+    }
+  ],
+  "manual_conflict_resolutions": [],
+  "overlapping_C01_paths": [],
+  "new_changed_paths_count": 5,
+  "inherited_C01_changed_paths_count": 14,
+  "source_candidate_total_paths_from_historic_base": 19,
+  "preexisting_historical_conflicting_pairs_unresolved": 15,
+  "dependencies": [
+    {
+      "from": "C01",
+      "to": "C02",
+      "kind": "PARENT_GIT",
+      "detail": "Exact C01 parent SHA"
+    },
+    {
+      "from": "PR56_C01_StrictPolicy",
+      "to": "PR66_PrecloneAdapter",
+      "kind": "STATIC_IMPORT"
+    },
+    {
+      "from": "PR58_C01_ProfileGate",
+      "to": "PR66_PrecloneAdapter",
+      "kind": "STATIC_IMPORT"
+    },
+    {
+      "from": "PR64_ActionLocalValidator",
+      "to": "PR66_PrecloneAdapter_Callback",
+      "kind": "NOT_WIRED_INTEROPERABILITY_PENDING",
+      "note": "No direct import, only an external callback port. Cannot imply linked or authenticated."
+    },
+    {
+      "from": "ISSUE73_C01_API_INTEGRATION_FIRST_FAILURE",
+      "to": "C02_FULL_INTEGRATION_GO",
+      "kind": "HARD_BLOCK",
+      "note": "Inherited C01 API integration exit 1 unresolved."
+    },
+    {
+      "from": "A60_EXACT_SHA_QA",
+      "to": "C02_ACCEPTANCE",
+      "kind": "HARD_BLOCK"
+    },
+    {
+      "from": "REPLIT_LOCAL_PRESERVATION_MANIFEST",
+      "to": "ANY_DEPLOY",
+      "kind": "HARD_STOP"
+    }
+  ],
+  "qa": {
+    "source_blob_identity": "7/7 pass, 5 new C02 blobs + 2 inherited required module blobs verified by exact SHA GitHub readback",
+    "git_parent_check": "PASS",
+    "git_unique_diff": "5 added files, 1 parent, 0 behind, 1 ahead",
+    "local_native_app_tests": "NOT_EXECUTED; no complete local clone or pnpm",
+    "automatic_pr_ci_run": 39125456595,
+    "automatic_pr_ci_status_at_manifest": "IN_PROGRESS (do not infer final PASS)",
+    "c01_inherited_failure": "API integration exit 1, first failing assertion UNKNOWN",
+    "release": "NO_GO"
+  },
+  "replit": {
+    "preservation": "NO_TOUCH",
+    "github_historic_base": "1fdc401d87c6bffe6bf7312dfc9db681b689dcf7",
+    "github_newer_release": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "published_local_only_checkpoint": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "source_drift_reported_paths": 140,
+    "source_drift_individual_check": "NOT_EXECUTED",
+    "game_paths_changed": [],
+    "production_changes": false
+  }
+}
