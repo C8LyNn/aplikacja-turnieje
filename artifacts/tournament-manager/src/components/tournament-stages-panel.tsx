@@ -556,6 +556,18 @@ export function TournamentStagesPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [startConfirmOpen, setStartConfirmOpen] = useState(false);
   const [actionStageId, setActionStageId] = useState<number>();
+  // Snapshot the modal's actual owner and stage revision, not just its numeric ID.
+  const [actionSnapshot, setActionSnapshot] = useState<{
+    tournamentId: number;
+    tournamentStatus: TournamentStagesPanelProps["tournamentStatus"];
+    stageId: number;
+    version: number;
+    status: TournamentStage["status"];
+    action: "start" | "complete";
+  } | null>(null);
+  const [lifecycleChecking, setLifecycleChecking] = useState(false);
+  const currentLifecycleContext = useRef({ tournamentId, tournamentStatus });
+  currentLifecycleContext.current = { tournamentId, tournamentStatus };
   const [actionSuccess, setActionSuccess] = useState<string>();
   const mutationLock = useRef(false);
   const [actionError, setActionError] = useState<string>();
@@ -634,6 +646,16 @@ export function TournamentStagesPanel({
   );
   const selected = stages.find((stage) => stage.id === selectedStageId);
   const actionStage = stages.find((stage) => stage.id === actionStageId);
+  const lifecycleModalStale = !!actionSnapshot && (
+    actionSnapshot.tournamentId !== tournamentId ||
+    actionSnapshot.tournamentStatus !== tournamentStatus ||
+    !actionStage ||
+    actionSnapshot.stageId !== actionStage.id ||
+    actionSnapshot.version !== actionStage.version ||
+    actionSnapshot.status !== actionStage.status
+  );
+  const lifecycleStaleMessage =
+    "Stan etapu zmienił się od otwarcia potwierdzenia. Zamknij okno i otwórz je ponownie na aktualnych danych.";
   const actionReadiness = useGetTournamentStageReadiness(tournamentId, actionStageId ?? 0, {
     query: { queryKey: getGetTournamentStageReadinessQueryKey(tournamentId, actionStageId ?? 0), enabled: startConfirmOpen && actionStage?.status === "planned", retry: false, refetchInterval: 5000 },
   });
@@ -737,10 +759,14 @@ export function TournamentStagesPanel({
     if (!canManage || pending || mutationLock.current) return;
     if (target.status !== (action === "start" ? "planned" : "active")) return;
     setActionStageId(target.id);
+    setActionSnapshot({
+      tournamentId, tournamentStatus, stageId: target.id,
+      version: target.version, status: target.status, action,
+    });
     setActionError(undefined);
     setStartConfirmOpen(action === "start");
     setConfirmOpen(action === "complete");
-  }, [canManage, pending]);
+  }, [canManage, pending, tournamentId, tournamentStatus]);
   useEffect(() => {
     if ((requestedAction !== "start" && requestedAction !== "complete") || !requestedStageId || !stagesQuery.data) return;
     const target = stages.find(stage => stage.id === requestedStageId);
@@ -766,33 +792,102 @@ export function TournamentStagesPanel({
     : !actionReadiness.data.ready ? stageReadinessMessages(actionReadiness.data, { stages, stageId: actionStage?.id }).join(" ")
     : actionStage && !isSequentialCeremonyReady(actionStage, actionCeremony.data?.ceremony ?? null)
     ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
-  const mayStartAction = canManage && actionStage?.status === "planned" && actionReadiness.data?.ready === true;
+  const mayStartAction = canManage && !lifecycleModalStale && actionStage?.status === "planned" && actionReadiness.data?.ready === true;
 
   const refresh = async () => {
     await invalidateTournamentDependentQueries(queryClient, tournamentId);
     await onChanged?.();
   };
 
-  const complete = () => {
-    if (!canManage || !actionStage || actionStage.status !== "active" || pending || mutationLock.current ||
-      (actionStage.format === "double_elimination" ? actionDoubleElimination.isFetching || actionDoubleElimination.isError || !actionDoubleElimination.data?.completed
+  // Preflight a fresh authoritative stage list on confirmation. Local version
+  // checks alone cannot see an update that occurred after the last poll.
+  // The server still owns the final atomic transition validation.
+  const verifyLifecycleStage = async (action: "start" | "complete") => {
+    const snapshot = actionSnapshot;
+    if (!snapshot || snapshot.action !== action || lifecycleModalStale) return null;
+    try {
+      const latest = await stagesQuery.refetch();
+      const freshStage = latest.data?.find(stage => stage.id === snapshot.stageId);
+      const context = currentLifecycleContext.current;
+      if (latest.isError || !freshStage ||
+        context.tournamentId !== snapshot.tournamentId ||
+        context.tournamentStatus !== snapshot.tournamentStatus ||
+        freshStage.tournamentId !== snapshot.tournamentId ||
+        freshStage.version !== snapshot.version ||
+        freshStage.status !== snapshot.status) {
+        setActionError(lifecycleStaleMessage);
+        return null;
+      }
+      return freshStage;
+    } catch {
+      setActionError("Nie udało się ponownie sprawdzić stanu etapu. Spróbuj otworzyć potwierdzenie ponownie.");
+      return null;
+    }
+  };
+  const complete = async () => {
+    if (!canManage || !actionStage || !actionSnapshot || actionSnapshot.action !== "complete" ||
+      lifecycleModalStale || lifecycleChecking || actionStage.status !== "active" ||
+      pending || mutationLock.current ||
+      (actionStage.format === "double_elimination"
+        ? actionDoubleElimination.isFetching || actionDoubleElimination.isError || !actionDoubleElimination.data?.completed
         : previewQuery.isFetching || previewQuery.isError || !previewQuery.data)) return;
     mutationLock.current = true;
-    completeMutation.mutate(
-      { id: tournamentId, stageId: actionStage.id },
-      {
-        onSuccess: () => {
-          setActionSuccess(`Etap „${actionStage.name}” zakończony.${stages.some(stage => stage.position > actionStage.position) ? " Sprawdź kwalifikację i gotowość kolejnego etapu." : " Plan nie zawiera kolejnego etapu."}`);
+    setLifecycleChecking(true);
+    let submitted = false;
+    try {
+      const freshStage = await verifyLifecycleStage("complete");
+      if (!freshStage) return;
+      submitted = true;
+      completeMutation.mutate(
+        { id: actionSnapshot.tournamentId, stageId: freshStage.id },
+        {
+          onSuccess: () => {
+            setActionSuccess(`Etap „${freshStage.name}” zakończony.${stages.some(stage => stage.position > freshStage.position) ? " Sprawdź kwalifikację i gotowość kolejnego etapu." : " Plan nie zawiera kolejnego etapu."}`);
+          },
         },
-      },
-    );
+      );
+    } finally {
+      setLifecycleChecking(false);
+      if (!submitted) mutationLock.current = false;
+    }
   };
-  const start = () => {
-    if (!canManage || !actionStage || !mayStartAction || actionStartBlockedReason || pending || mutationLock.current) return;
+  const start = async () => {
+    if (!canManage || !actionStage || !actionSnapshot || actionSnapshot.action !== "start" ||
+      lifecycleModalStale || lifecycleChecking || !mayStartAction ||
+      actionStartBlockedReason || pending || mutationLock.current) return;
     mutationLock.current = true;
-    const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${actionStage.name}” rozpoczęty.`); };
-    if (tournamentStatus === "draft" && actionStage.position === 1) firstStartMutation.mutate({ id: tournamentId }, { onSuccess });
-    else startMutation.mutate({ id: tournamentId, stageId: actionStage.id }, { onSuccess });
+    setLifecycleChecking(true);
+    let submitted = false;
+    try {
+      const freshStage = await verifyLifecycleStage("start");
+      if (!freshStage) return;
+      const freshReadiness = await actionReadiness.refetch();
+      if (freshReadiness.isError || freshReadiness.data?.ready !== true) {
+        setActionError("Gotowość etapu zmieniła się. Zamknij potwierdzenie i ponownie sprawdź etap.");
+        return;
+      }
+      if (stageRequiresSequentialCeremony(freshStage)) {
+        const freshCeremony = await actionCeremony.refetch();
+        if (freshCeremony.isError || !isSequentialCeremonyReady(freshStage, freshCeremony.data?.ceremony ?? null)) {
+          setActionError("Ceremonia losowania wymaga ponownego sprawdzenia. Zamknij potwierdzenie i sprawdź etap.");
+          return;
+        }
+      }
+      if (currentLifecycleContext.current.tournamentId !== actionSnapshot.tournamentId ||
+          currentLifecycleContext.current.tournamentStatus !== actionSnapshot.tournamentStatus) {
+        setActionError(lifecycleStaleMessage);
+        return;
+      }
+      submitted = true;
+      const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${freshStage.name}” rozpoczęty.`); };
+      if (actionSnapshot.tournamentStatus === "draft" && freshStage.position === 1)
+        firstStartMutation.mutate({ id: actionSnapshot.tournamentId }, { onSuccess });
+      else
+        startMutation.mutate({ id: actionSnapshot.tournamentId, stageId: freshStage.id }, { onSuccess });
+    } finally {
+      setLifecycleChecking(false);
+      if (!submitted) mutationLock.current = false;
+    }
   };
 
   if (stagesQuery.isLoading)
@@ -1033,8 +1128,9 @@ export function TournamentStagesPanel({
       <Dialog
         open={canManage && confirmOpen}
         onOpenChange={(open) => {
-          if (pending) return;
+          if (pending || lifecycleChecking) return;
           setConfirmOpen(open);
+          if (!open) setActionSnapshot(null);
           setActionError(undefined);
         }}
       >
@@ -1045,7 +1141,8 @@ export function TournamentStagesPanel({
               Ranking zostanie obliczony i zamrożony. {explicitBasketAuthority ? "Kwalifikację do koszyków trzeba następnie zatwierdzić i przekazać uczestników." : "System zapisze kwalifikantów zgodnie z konfiguracją."} Następny etap rozpoczyna się osobno, po sprawdzeniu gotowości. Cofnięcie wyniku może być zablokowane po rozpoczęciu kolejnego etapu.
             </DialogDescription>
           </DialogHeader>
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
+          {!lifecycleModalStale && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           {previewQuery.isLoading && (
             <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1068,13 +1165,13 @@ export function TournamentStagesPanel({
           )}
 
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setConfirmOpen(false)}>
+            <Button variant="outline" disabled={pending || lifecycleChecking} onClick={() => { setConfirmOpen(false); setActionSnapshot(null); }}>
               Anuluj
             </Button>
             <Button
               onClick={complete}
               disabled={
-                pending ||
+                pending || lifecycleChecking || lifecycleModalStale || !actionSnapshot ||
                 actionStage?.status !== "active" ||
                 (actionStage?.format === "double_elimination"
                   ? actionDoubleElimination.isFetching || actionDoubleElimination.isError || actionDoubleElimination.data?.completed !== true
@@ -1087,11 +1184,12 @@ export function TournamentStagesPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Dialog open={startConfirmOpen} onOpenChange={open => { if (!pending) setStartConfirmOpen(open); }}>
+      <Dialog open={canManage && startConfirmOpen} onOpenChange={open => { if (!pending && !lifecycleChecking) { setStartConfirmOpen(open); if (!open) setActionSnapshot(null); } }}>
         <DialogContent className="organizer-dialog">
           <DialogHeader><DialogTitle>Rozpocząć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>System utrwali skład uczestników i przygotuje mecze tego etapu. Po rozpoczęciu zmiana składu i rozstawienia będzie ograniczona.</DialogDescription>
           </DialogHeader>
+          {lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
           {actionStartBlockedReason && <p className="text-sm">{actionStartBlockedReason}</p>}
           {(actionReadiness.isError || actionCeremony.isError) && (
             <Button variant="outline" disabled={pending || actionReadiness.isFetching || actionCeremony.isFetching} onClick={() => {
@@ -1099,10 +1197,10 @@ export function TournamentStagesPanel({
               if (actionStage && stageRequiresSequentialCeremony(actionStage)) void actionCeremony.refetch();
             }}>Ponów sprawdzenie gotowości</Button>
           )}
-          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          {!lifecycleModalStale && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           <DialogFooter>
-            <Button variant="outline" disabled={pending} onClick={() => setStartConfirmOpen(false)}>Anuluj</Button>
-            <Button disabled={pending || !mayStartAction || !!actionStartBlockedReason} onClick={start}>{pending ? "Uruchamianie…" : "Potwierdź rozpoczęcie etapu"}</Button>
+            <Button variant="outline" disabled={pending || lifecycleChecking} onClick={() => { setStartConfirmOpen(false); setActionSnapshot(null); }}>Anuluj</Button>
+            <Button disabled={pending || lifecycleChecking || lifecycleModalStale || !actionSnapshot || !mayStartAction || !!actionStartBlockedReason} onClick={start}>{pending ? "Uruchamianie…" : "Potwierdź rozpoczęcie etapu"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
