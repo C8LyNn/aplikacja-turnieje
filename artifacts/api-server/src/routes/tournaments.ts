@@ -2190,6 +2190,73 @@ async function logAction(params: {
   });
 }
 
+
+/**
+ * Historical action_log.undoPayload is persisted untrusted text. This parser is
+ * deliberately narrow: it checks the known action/payload families and their
+ * structural fields, without changing Undo's state transition policy.
+ * An invalid latest entry is rejected, never skipped to an older action.
+ */
+const UNDO_PAYLOAD_TYPE_BY_ACTION: Record<string, string> = {
+  player_added: "delete_player",
+  player_edited: "restore_player",
+  match_result_submitted: "revert_match",
+  match_started: "restore_status",
+  match_postponed: "restore_status",
+  match_restored: "restore_status",
+  match_bo_changed: "restore_best_of",
+  match_featured: "restore_featured",
+  match_unfeatured: "restore_featured",
+  match_cancelled: "restore_cancelled_match",
+  match_players_swapped: "restore_players_swap",
+};
+
+function parseHistoricalUndoPayload(
+  action: Pick<typeof actionLogTable.$inferSelect, "actionType" | "matchId" | "undoPayload">,
+): (Record<string, unknown> & { type: string }) | null {
+  const expectedType = UNDO_PAYLOAD_TYPE_BY_ACTION[action.actionType];
+  if (!expectedType || typeof action.undoPayload !== "string" || !action.undoPayload.trim()) return null;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(action.undoPayload);
+  } catch {
+    return null;
+  }
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const payload = raw as Record<string, unknown>;
+  if (payload.type !== expectedType) return null;
+  const positiveId = (value: unknown) => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+  const optionalId = (value: unknown) => value == null || positiveId(value);
+  const optionalScore = (value: unknown) =>
+    value == null || (typeof value === "number" && Number.isSafeInteger(value) && value >= 0);
+  const statuses = ["pending", "in_progress", "postponed", "cancelled"];
+  const requiresMatch = !["delete_player", "restore_player", "restore_featured"].includes(expectedType);
+  if (requiresMatch && (!positiveId(payload.matchId) || action.matchId !== payload.matchId)) return null;
+  if (expectedType === "delete_player" || expectedType === "restore_player") {
+    if (!positiveId(payload.playerId)) return null;
+    if (expectedType === "restore_player" &&
+      (payload.prevData === null || typeof payload.prevData !== "object" || Array.isArray(payload.prevData))) return null;
+  } else if (expectedType === "restore_status") {
+    if (!statuses.includes(payload.prevStatus as string) ||
+        (payload.nextStatus !== undefined && !statuses.includes(payload.nextStatus as string))) return null;
+  } else if (expectedType === "restore_best_of") {
+    if (typeof payload.prevBestOf !== "number" || !Number.isSafeInteger(payload.prevBestOf) ||
+        (payload.prevBestOf as number) < 1 || (payload.prevBestOf as number) % 2 !== 1) return null;
+  } else if (expectedType === "restore_featured") {
+    if (!optionalId(payload.prevFeaturedMatchId) || !optionalId(action.matchId)) return null;
+  } else if (expectedType === "restore_cancelled_match") {
+    if (!["pending", "in_progress", "postponed"].includes(payload.prevStatus as string) ||
+        !(payload.prevNote == null || typeof payload.prevNote === "string") ||
+        !(payload.nextNote == null || typeof payload.nextNote === "string")) return null;
+  } else if (expectedType === "restore_players_swap") {
+    if (!optionalId(payload.player1Id) || !optionalId(payload.player2Id) ||
+        !optionalScore(payload.score1) || !optionalScore(payload.score2)) return null;
+  }
+  if (payload.nextRevision !== undefined &&
+      (!positiveId(payload.nextRevision))) return null;
+  return payload as Record<string, unknown> & { type: string };
+}
+
 function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
   return {
     id: entry.id,
@@ -2288,7 +2355,11 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  const payload = JSON.parse(lastAction.undoPayload) as Record<string, unknown>;
+  const payload = parseHistoricalUndoPayload(lastAction);
+  if (!payload) {
+    sendRevertMatchError(new RevertMatchError("UNDO_ACTION_CHANGED"), res);
+    return;
+  }
 
   if (payload.type === "delete_player" || payload.type === "restore_player") {
     try {
@@ -2347,9 +2418,27 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
         ) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
-        const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
-        if (lockedPayload.type !== payload.type) {
+        const lockedPayload = parseHistoricalUndoPayload(lockedAction);
+        if (!lockedPayload ||
+            lockedAction.actionType !== lastAction.actionType ||
+            lockedAction.undoPayload !== lastAction.undoPayload ||
+            lockedAction.matchId !== lastAction.matchId ||
+            lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
+        }
+        // Validate tournament ownership before any state mutation. Previously an
+        // action with a foreign matchId could affect match_game_picks by ID.
+        const boundMatchIds = lockedPayload.type === "restore_featured"
+          ? [lockedAction.matchId, lockedPayload.prevFeaturedMatchId]
+          : [lockedPayload.matchId];
+        for (const targetId of boundMatchIds) {
+          if (targetId == null) continue;
+          const [belongs] = await tx.select({ id: matchesTable.id })
+            .from(matchesTable).where(and(
+              eq(matchesTable.id, targetId as number),
+              eq(matchesTable.tournamentId, params.data.id),
+            )).for("update");
+          if (!belongs) throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
 
         switch (lockedPayload.type) {
@@ -2418,7 +2507,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
             break;
           }
           default:
-            throw new Error(`UNDO_TYPE_UNSUPPORTED:${String(lockedPayload.type)}`);
+            throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }
 
         const [savedAction] = await tx

@@ -485,3 +485,129 @@ describe("RevertMatch tournament finalization", () => {
     for (const removed of ["wins", "draws", "losses", "points"]) assert.equal(names.includes(removed), false);
   });
 });
+
+
+describe("T040 R12 historical Undo payload fail-closed HTTP", () => {
+  async function insertPersistedUndo(
+    fixture: Fixture,
+    actionType: string,
+    raw: string,
+    matchId: number | null = fixture.matchId,
+  ): Promise<void> {
+    await database.pool.query(
+      "INSERT INTO action_log (tournament_id, action_type, description, match_id, undo_payload) VALUES ($1,$2,$3,$4,$5)",
+      [fixture.tournamentId, actionType, "T040 historical payload test", matchId, raw],
+    );
+  }
+
+  async function fullUndoSnapshot(fixture: Fixture): Promise<unknown> {
+    const queries: Array<[string, unknown[]]> = [
+      ["SELECT * FROM tournaments WHERE id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM matches WHERE tournament_id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM result_history WHERE tournament_id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM players WHERE tournament_id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM tournament_stages WHERE tournament_id=$1 ORDER BY id", [fixture.tournamentId]],
+      ["SELECT * FROM match_game_picks WHERE match_id IN (SELECT id FROM matches WHERE tournament_id=$1) ORDER BY match_id,game_number", [fixture.tournamentId]],
+    ];
+    const values = await Promise.all(queries.map(async ([sql, args]) =>
+      (await database.pool.query(sql, args)).rows));
+    return JSON.parse(JSON.stringify(values));
+  }
+
+  const corruptPayloads: Array<{ name: string; type: string; raw: string; matchId?: number | null }> = [
+    { name: "truncated JSON", type: "match_started", raw: "{\"type\":" },
+    { name: "JSON null", type: "match_started", raw: "null" },
+    { name: "JSON array", type: "match_started", raw: "[{\"type\":\"restore_status\"}]" },
+    { name: "JSON primitive", type: "match_started", raw: "\"restore_status\"" },
+    { name: "empty object", type: "match_started", raw: "{}" },
+    { name: "unknown payload type", type: "match_started", raw: "{\"type\":\"unknown\",\"matchId\":1}" },
+    { name: "action/payload mismatch", type: "match_cancelled", raw: "{\"type\":\"revert_match\",\"matchId\":1}" },
+    { name: "missing match id", type: "match_started", raw: "{\"type\":\"restore_status\",\"prevStatus\":\"pending\"}" },
+    { name: "string match id", type: "match_started", raw: "{\"type\":\"restore_status\",\"matchId\":\"1\",\"prevStatus\":\"pending\"}" },
+    { name: "invalid previous status shape", type: "match_started", raw: "{\"type\":\"restore_status\",\"matchId\":1,\"prevStatus\":[\"pending\"]}" },
+    { name: "unsupported stored action", type: "not_a_known_action", raw: "{\"type\":\"restore_status\",\"matchId\":1,\"prevStatus\":\"pending\"}" },
+  ];
+
+  for (const item of corruptPayloads) {
+    test("rejects " + item.name + " without state writes or HTTP 500", async () => {
+      const fixture = await createFixture({ format: "round_robin", bracket: false });
+      // These cases that contain a placeholder id are intentionally malformed before any match lookup.
+      await insertPersistedUndo(fixture, item.type, item.raw, item.matchId);
+      const before = await fullUndoSnapshot(fixture);
+      const response = await undo(fixture);
+      assertError(response, 409, "UNDO_ACTION_CHANGED");
+      assert.deepEqual(await fullUndoSnapshot(fixture), before);
+    });
+  }
+
+  test("malformed newest action cannot silently undo an older valid action", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const start = await request(app).patch("/api/matches/" + fixture.matchId)
+      .set(fixture.organizerHeaders).send({ status: "in_progress" });
+    assert.equal(start.status, 200, start.text);
+    await insertPersistedUndo(fixture, "match_started", "{\"type\":");
+    const before = await fullUndoSnapshot(fixture);
+    assertError(await undo(fixture), 409, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await fullUndoSnapshot(fixture), before);
+  });
+
+  test("foreign target match id fails before generic Undo writes", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const other = await createFixture({ format: "round_robin", bracket: false });
+    await insertPersistedUndo(fixture, "match_started", JSON.stringify({
+      type: "restore_status", matchId: other.matchId, prevStatus: "pending",
+    }), other.matchId);
+    const before = await fullUndoSnapshot(fixture);
+    const otherBefore = await fullUndoSnapshot(other);
+    assertError(await undo(fixture), 409, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await fullUndoSnapshot(fixture), before);
+    assert.deepEqual(await fullUndoSnapshot(other), otherBefore);
+  });
+
+  test("payload matchId and action_log matchId must be identical", async () => {
+    const fixture = await createFixture({ format: "single_elimination", bracket: true });
+    await insertPersistedUndo(fixture, "match_started", JSON.stringify({
+      type: "restore_status", matchId: fixture.secondMatchId, prevStatus: "pending",
+    }), fixture.matchId);
+    const before = await fullUndoSnapshot(fixture);
+    assertError(await undo(fixture), 409, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await fullUndoSnapshot(fixture), before);
+  });
+
+  test("foreign featured match references are rejected without writing either tournament", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const other = await createFixture({ format: "round_robin", bracket: false });
+    await insertPersistedUndo(fixture, "match_featured", JSON.stringify({
+      type: "restore_featured", prevFeaturedMatchId: other.matchId,
+    }), fixture.matchId);
+    const before = await fullUndoSnapshot(fixture);
+    const otherBefore = await fullUndoSnapshot(other);
+    assertError(await undo(fixture), 409, "UNDO_ACTION_CHANGED");
+    assert.deepEqual(await fullUndoSnapshot(fixture), before);
+    assert.deepEqual(await fullUndoSnapshot(other), otherBefore);
+  });
+
+  test("valid legacy match_started Undo still restores pending", async () => {
+    const fixture = await createFixture({ format: "round_robin", bracket: false });
+    const start = await request(app).patch("/api/matches/" + fixture.matchId)
+      .set(fixture.organizerHeaders).send({ status: "in_progress" });
+    assert.equal(start.status, 200, start.text);
+    assert.equal((await undo(fixture)).status, 200);
+    const [match] = (await database.pool.query("SELECT status FROM matches WHERE id=$1", [fixture.matchId])).rows;
+    assert.equal(match.status, "pending");
+    const actions = (await database.pool.query(
+      "SELECT action_type,is_undone FROM action_log WHERE tournament_id=$1 ORDER BY id",
+      [fixture.tournamentId],
+    )).rows;
+    assert.equal(actions.filter((action: any) => action.action_type === "match_started" && action.is_undone).length, 1);
+  });
+
+  test("valid completion Undo still preserves result_history", async () => {
+    const fixture = await createFixture();
+    assert.equal((await complete(fixture)).status, 200);
+    const beforeHistory = (await database.pool.query("SELECT * FROM result_history WHERE match_id=$1 ORDER BY id", [fixture.matchId])).rows;
+    assert.equal((await undo(fixture)).status, 200);
+    assert.deepEqual((await database.pool.query("SELECT * FROM result_history WHERE match_id=$1 ORDER BY id", [fixture.matchId])).rows, beforeHistory);
+  });
+});
