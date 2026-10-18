@@ -84,7 +84,13 @@ $expectedTests  = '177402bb4d9afaa08840839763764f8e502b0804'
 if ((git hash-object scripts/qa/web005-local-readiness.mjs).Trim() -ne $expectedScript) { throw 'STOP: script blob drift' }
 if ((git hash-object scripts/qa/web005-local-readiness.test.mjs).Trim() -ne $expectedTests) { throw 'STOP: test blob drift' }
 node --version
-pnpm --version  # if unavailable, record NOT_INSTALLED; Node unit tests may still run
+if ($LASTEXITCODE -ne 0) { throw 'STOP: Node unavailable' }
+$pnpmExe = Get-Command pnpm -ErrorAction SilentlyContinue
+if ($pnpmExe) {
+    pnpm --version
+} else {
+    Write-Output 'pnpm NOT_INSTALLED — native Node test can continue; pnpm suites HOLD'
+}
 Get-FileHash pnpm-lock.yaml -Algorithm SHA256
 
 # Report env variable NAMES only; never print secret VALUES.
