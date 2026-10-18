@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
 import React, { type ReactNode } from "react";
 import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   setActiveOrganizerToken,
   setActiveSupportToken,
@@ -13,11 +14,15 @@ import { useSyncTournamentAuth } from "./use-tournament-auth";
 
 const originalFetch = globalThis.fetch;
 Object.assign(globalThis, { React });
+let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
+  <QueryClientProvider client={client}>
+    <AuthProvider>{children}</AuthProvider>
+  </QueryClientProvider>
 );
 
 beforeEach(() => {
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   sessionStorage.clear();
   setActiveOrganizerToken(null);
   setActiveSupportToken(null);
@@ -25,6 +30,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  client.clear();
   globalThis.fetch = originalFetch;
   setActiveOrganizerToken(null);
   setActiveSupportToken(null);
