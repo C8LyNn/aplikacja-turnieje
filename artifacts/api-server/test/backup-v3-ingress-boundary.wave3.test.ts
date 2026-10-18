@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { preflightBackupV3Profile } from "../src/application/backups/backup-v3-profile-gate";
+import { validateBackupV3 } from "../src/application/backups/backup-v3";
 import { validateRawBackupBeforeClone } from "../src/application/backups/backup-preclone-adapter";
 import type { BackupPreclonePorts } from "../src/application/backups/backup-preclone-adapter";
 
@@ -284,4 +285,77 @@ test("WAVE3-A90-14: client-supplied trust boolean and marker never produce verif
   const strict = validateRawBackupBeforeClone(encode(strictV3()), ports);
   assert.equal(strict.code, "STRICT_ATTESTATION_REQUIRED");
   assertNoAuthority(strict);
+});
+
+
+/**
+ * WAVE4: synthesis models JSON projection of an already-fetched V3 export.
+ * It does NOT execute exportBackupV3 (which requires PostgreSQL), nor the
+ * importBackupV3 writer. The real DB-free validateBackupV3 is used below.
+ */
+function syntheticExportSnapshotV3(): Record<string, any> {
+  const doc = historicV3();
+  // A planned first stage permits a draft export without current matches.
+  doc.tournament.status = "draft";
+  doc.tournament.activeStageBackupId = null;
+  doc.stages[0].status = "planned";
+  doc.stages[0].startedAt = null;
+  // These ISO timestamps and optional nulls match the exporter's projection
+  // conventions, but this is NOT an archived exporter-produced fixture.
+  return JSON.parse(JSON.stringify(doc)) as Record<string, any>;
+}
+
+test("WAVE4-A90-01: synthetic V3 export snapshot passes real DB-free V3 semantic validator", () => {
+  const doc = syntheticExportSnapshotV3();
+  validateBackupV3(doc as any); // REAL source validator, unlike the WAVE3 spies
+  const events: string[] = [];
+  const p = spies(events);
+  p.validateV3 = (parsed) => {
+    events.push("realValidateBackupV3");
+    validateBackupV3(parsed as any);
+  };
+  const out = validateRawBackupBeforeClone(encode(doc), p);
+  assert.equal(out.code, "LEGACY_COMPAT_RESTRICTED");
+  assert.equal(out.semanticValidated, true);
+  assert.deepEqual(events, ["parseV3", "realValidateBackupV3"]);
+  assertNoAuthority(out);
+});
+
+test("WAVE4-A90-02: synthetic V3 export with contradictory active-stage pointer fails real domain validation", () => {
+  const doc = syntheticExportSnapshotV3();
+  // Structurally V3, but semantically impossible: active status + no active stage.
+  doc.tournament.status = "active";
+  assert.equal(preflightBackupV3Profile(encode(doc)).status, "LEGACY_COMPAT_UNATTESTED");
+  const events: string[] = [];
+  const p = spies(events);
+  p.validateV3 = (parsed) => {
+    events.push("realValidateBackupV3");
+    validateBackupV3(parsed as any);
+  };
+  const out = validateRawBackupBeforeClone(encode(doc), p);
+  assert.equal(out.code, "SEMANTIC_VALIDATION_FAILED");
+  assert.equal(out.semanticValidated, false);
+  assert.deepEqual(events, ["parseV3", "realValidateBackupV3"]);
+  assertNoAuthority(out);
+});
+
+test("WAVE4-A90-03: exporter-shaped stale featured-match reference fails real V3 semantics", () => {
+  const doc = syntheticExportSnapshotV3();
+  doc.tournament.featuredMatchBackupId = 999;
+  assert.equal(preflightBackupV3Profile(encode(doc)).status, "LEGACY_COMPAT_UNATTESTED");
+  const p = spies([]);
+  p.validateV3 = (parsed) => validateBackupV3(parsed as any);
+  const out = validateRawBackupBeforeClone(encode(doc), p);
+  assert.equal(out.code, "SEMANTIC_VALIDATION_FAILED");
+  assertNoAuthority(out);
+});
+
+test("WAVE4-A90-04: source-valid synthetic export cannot be promoted without a full semantic port", () => {
+  const doc = syntheticExportSnapshotV3();
+  const p = spies([]);
+  delete p.validateV3;
+  const out = validateRawBackupBeforeClone(encode(doc), p);
+  assert.equal(out.code, "MISSING_DEPENDENCY");
+  assert.equal(out.semanticValidated, false);
+  assertNoAuthority(out);
 });
