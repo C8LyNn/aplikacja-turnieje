@@ -5,7 +5,9 @@ export interface VerifiedSignedRunContext {
   role_name: string; role_oid: string; host: string; port: number;
   lock_sha256: string; drizzle_kit_sha256: string; drizzle_config_sha256: string;
   five_db_contexts: 5; integration_entrypoints: 36; drizzle_force_calls: 2;
-  network_mode: string; exclusive_writer: true; native_windows_pg_untouched: true;
+  network_mode: string; pg_major: 16; host_ports: 0; rootfs_read_only: true;
+  caps_dropped: true; unique_pgdata_attested: true;
+  exclusive_writer: true; native_windows_pg_untouched: true;
   phase: string; action: string; expires_unix: number;
   signed_payload_sha256: string; envelope_sha256: string;
 }
