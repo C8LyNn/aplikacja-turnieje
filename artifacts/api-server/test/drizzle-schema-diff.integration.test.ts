@@ -79,13 +79,6 @@ let drizzlePushOutcomeUncertain = false;
 let drizzlePushOrdinal = 0;
 let testConnectionString: string;
 
-function quotedIdentifier(identifier: string): string {
-  if (!DATABASE_NAME_PATTERN.test(identifier)) {
-    throw new Error("Refusing to use an unsafe schema-diff database name.");
-  }
-  return `"${identifier}"`;
-}
-
 async function migrationSql(name: (typeof MIGRATIONS)[number]): Promise<string> {
   const sql = await readFile(new URL(name, MIGRATIONS_URL), "utf8");
   return sql
