@@ -7,6 +7,7 @@ import {
   renderSeriesV1MigrationForTestSchema,
   type TestDatabaseConfig,
 } from "./test-database";
+import { resetRunSchema, createRunSchema, dropRunSchema } from "./pg16-test-ownership";
 // @ts-expect-error The production migration runner intentionally stays plain ESM for direct Node execution.
 import { applyTournamentStagesMigration } from "../../../lib/db/scripts/migrate-tournament-stages-v1.mjs";
 
@@ -106,8 +107,7 @@ before(async () => {
   process.env.DATABASE_URL = testConfig.connectionString;
   database = await import("@workspace/db") as DatabaseModule;
 
-  await database.pool.query(`DROP SCHEMA IF EXISTS "${testConfig.schema}" CASCADE`);
-  await database.pool.query(`CREATE SCHEMA "${testConfig.schema}"`);
+  await resetRunSchema(database.pool, testConfig.schema);
   await database.pool.query(`SET search_path TO "${testConfig.schema}"`);
   schemaCreated = true;
   const baseSql = renderSeriesV1MigrationForTestSchema(
@@ -342,8 +342,7 @@ describe("non-destructive Tournament Stages v1 migration", () => {
   test("standard migration runner rolls back the complete operation on failure", async () => {
     const rollbackSchema = `${testConfig.schema}_rollback`;
     const quotedSchema = `"${rollbackSchema}"`;
-    await database.pool.query(`DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`);
-    await database.pool.query(`CREATE SCHEMA ${quotedSchema}`);
+    await createRunSchema(database.pool, rollbackSchema);
     try {
       const baseSql = renderSeriesV1MigrationForTestSchema(
         await readFile(SERIES_V1_MIGRATION_URL, "utf8"),
@@ -377,15 +376,14 @@ describe("non-destructive Tournament Stages v1 migration", () => {
       assert.equal(marker.count, 0);
       assert.equal(stageEnums.count, 0);
     } finally {
-      await database.pool.query(`DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`);
+      await dropRunSchema(database.pool, rollbackSchema);
     }
   });
 
   test("standard migration runner rejects a marker that diverges from schema state", async () => {
     const driftSchema = `${testConfig.schema}_marker_drift`;
     const quotedSchema = `"${driftSchema}"`;
-    await database.pool.query(`DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`);
-    await database.pool.query(`CREATE SCHEMA ${quotedSchema}`);
+    await createRunSchema(database.pool, driftSchema);
     try {
       const baseSql = renderSeriesV1MigrationForTestSchema(
         await readFile(SERIES_V1_MIGRATION_URL, "utf8"),
@@ -407,7 +405,7 @@ describe("non-destructive Tournament Stages v1 migration", () => {
         /does not match the schema state/,
       );
     } finally {
-      await database.pool.query(`DROP SCHEMA IF EXISTS ${quotedSchema} CASCADE`);
+      await dropRunSchema(database.pool, driftSchema);
     }
   });
 });
