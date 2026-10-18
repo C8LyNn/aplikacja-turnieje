@@ -212,7 +212,9 @@ public static partial class Program
             int after=s.State.eventSerial;s.Kill(anchor);
             var revived=s.State.balls.Last();
             Eq(newest.lineageId,revived.lineageId);
-            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            // 18 records before Soul Anchor death, then its own record displaces
+            // the oldest, and successful revive consumes the newest: 17 remain.
+            Eq(17,s.State.graveyard.Count(g=>g.owner==0));
             int deathId=s.State.events.Where(e=>e.id>after&&e.kind=="DEATH"&&e.ballId==anchor.id).Select(e=>e.id).Single();
             int returnId=s.State.events.Where(e=>e.id>after&&e.kind=="RETURN"&&e.ballId==revived.id).Select(e=>e.id).Single();
             True(deathId<returnId);
