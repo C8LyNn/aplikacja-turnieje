@@ -80,6 +80,58 @@ public static partial class Program
             Eq(1,s.State.events.Count(e=>e.id>serial&&e.kind=="RETURN"&&e.ballId==child.id&&e.text=="REVIVE"));
             True(s.State.replayedIds.Contains(child.id));
         });
+        Test("W4 A40 capped Revenant creates no child or false RETURN",()=>{
+            var s=Sim();var rev=s.Spawn(0,"revenant",270,440);
+            for(int i=0;i<256;i++)s.Spawn(0,"normal",150,390);
+            int before=s.State.balls.Count;s.Kill(rev);
+            Eq(before,s.State.balls.Count);
+            False(s.State.events.Any(e=>e.kind=="RETURN"&&e.otherId==rev.id));
+        });
+        Test("W4 A40 Soul Anchor placement failure leaves allied grave intact",()=>{
+            var s=Sim();var earlier=s.Spawn(0,"normal",250,450);s.Kill(earlier);
+            var anchorBall=s.Spawn(0,"soulanchor",150,330);
+            for(int i=0;i<256;i++)s.Spawn(0,"normal",150,390);
+            s.Kill(anchorBall);
+            True(s.State.graveyard.Any(g=>g.ballId==earlier.id));
+            False(s.State.events.Any(e=>e.kind=="RETURN"&&e.otherId==anchorBall.id));
+        });
+        Test("W4 A40 Den Mother spends limit when legal observation hits living cap",()=>{
+            var s=Sim();var mother=s.Spawn(0,"denmother",100,450);
+            for(int i=0;i<255;i++)s.Spawn(0,"normal",140,430);
+            var dead=s.Spawn(0,"booster",270,450);s.Kill(dead);
+            Eq(s.State.turnNumber,mother.lastDenMotherTurn);
+            False(s.State.balls.Any(b=>b.type=="broodling"));
+            s.Kill(s.Spawn(0,"booster",350,450));
+            False(s.State.balls.Any(b=>b.type=="broodling"));
+        });
+        Test("W4 A40 Dirge never substitutes distant supported ally for nearer unported body",()=>{
+            var s=Sim();var dirge=s.Spawn(0,"dirge",150,450);
+            s.Spawn(0,"deathshield",210,450);s.Spawn(0,"bonfire",450,450);
+            s.Kill(dirge);
+            False(s.State.events.Any(e=>e.kind=="BONFIRE"));
+        });
+        Test("W4 A40 Phoenix entry aura hits allies and enemies once per entry",()=>{
+            var s=Sim();var phoenix=s.Spawn(0,"phoenix",270,450);
+            var ally=s.Spawn(0,"normal",300,450);var enemy=s.Spawn(1,"normal",350,450);
+            s.Abilities.OnStep(1f/120);
+            Eq(25,ally.hp);Eq(25,enemy.hp);Eq(1,ally.fireStacks);Eq(1,enemy.fireStacks);
+            s.Abilities.OnStep(1f/120);
+            Eq(25,ally.hp);Eq(25,enemy.hp);
+            True(phoenix.phoenixEntryTimer>0);
+        });
+        Test("W4 A40 lifecycle hand observer and RNG persist through JSON snapshot",()=>{
+            var s=Sim();s.Spawn(0,"packheart",150,450);
+            var phoenix=s.Spawn(0,"phoenix",270,440);s.Kill(phoenix);
+            var den=s.Spawn(0,"denmother",100,250);s.Kill(s.Spawn(0,"booster",310,450));
+            s.State.randomState=0xBEEF1234;
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            string snapshot=System.Text.Json.JsonSerializer.Serialize(s.State,options);
+            var restored=System.Text.Json.JsonSerializer.Deserialize<GameState>(snapshot,options);
+            Eq(s.State.randomState,restored.randomState);
+            Eq(1,restored.phoenixHand.Count);Eq(5,restored.phoenixHand[0].hp);
+            Eq(5,restored.phoenixHand[0].shield);
+            Eq(den.lastDenMotherTurn,restored.balls.Single(b=>b.id==den.id).lastDenMotherTurn);
+        });
         Test("W4 A40 Phoenix death records replay-return hand and regenerates on next owner turn",()=>{
             var s=Sim();var p=s.Spawn(0,"phoenix",250,440);int eventId=s.State.eventSerial;s.Kill(p);
             Eq(1,s.State.phoenixHand.Count);
