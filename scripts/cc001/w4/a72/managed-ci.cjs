@@ -79,8 +79,10 @@ if(args['self-test']==='true'){
       ensure(process.env.GITHUB_REPOSITORY==='C8LyNn/aplikacja-turnieje','Wrong CI repository');
     const node=stage('node-version','node',['--version'],repo);
     ensure(node.stage.status==='PASS'&&/^v22\./.test(node.raw.stdout.trim()),'Node 22 required');
-    const dotnet=stage('dotnet-version','dotnet',['--version'],repo);
-    ensure(dotnet.stage.status==='PASS'&&/^9\./.test(dotnet.raw.stdout.trim()),'.NET SDK 9 required');
+    const sdks=stage('dotnet-sdks','dotnet',['--list-sdks'],repo);
+    const sdk9=sdks.raw.stdout.split('\n').map(x=>/^\s*(9\.\d+\.\d+)\s+\[/.exec(x)?.[1]).filter(Boolean).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).at(-1);
+    ensure(sdks.stage.status==='PASS'&&sdk9,'.NET SDK 9 required (no SDK 9 found in --list-sdks)');
+    report.observed.dotnetSdk9=sdk9;
     const checkoutSha=git(['rev-parse','HEAD'],repo);
     report.observed.runnerCommit=checkoutSha;
     if(process.env.GITHUB_ACTIONS==='true')
@@ -113,6 +115,11 @@ if(args['self-test']==='true'){
     ensure(git(['rev-parse','HEAD'],worktree)===selection.sha,'Disposable checkout SHA mismatch');
     const project=path.join(worktree,policy.PROJECT);
     ensure(fs.existsSync(path.join(project,'Tests/CoreClash.Tests.csproj')),'Missing managed project');
+    // Pin SDK in the TEMPORARY worktree only. Another SDK (such as .NET 10)
+    // installed on the CI machine must never silently run these net9.0 suites.
+    fs.writeFileSync(path.join(project,'global.json'),JSON.stringify({sdk:{version:sdk9,rollForward:'disable'}},null,2)+'\n');
+    const selected=stage('dotnet-selected','dotnet',['--version'],project);
+    ensure(selected.stage.status==='PASS'&&selected.raw.stdout.trim()===sdk9,'Resolved dotnet SDK does not match pinned SDK 9');
     report.observed.isolatedProject=project;
     const data=stage('data','node',['Tools/verify-data.cjs'],project);
     if(data.stage.status!=='PASS')throw Error('Data verifier failed; managed execution aborted');
