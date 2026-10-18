@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
-import { createRunDatabase, dropRunDatabase, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
+import { createRunDatabase, dropRunDatabase, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -693,14 +693,13 @@ test("reconciles Development, Production and fresh catalogs without data loss", 
     process.execPath,
     [fileURLToPath(COMPARISON_SCRIPT_URL)],
     {
-      env: {
-        ...process.env,
+      env: sealedFixtureChildEnv({
         SCHEMA_COMPARE_DEVELOPMENT_DATABASE_URL: urls.dev,
         SCHEMA_COMPARE_PRODUCTION_DATABASE_URL: urls.prod,
         SCHEMA_COMPARE_EXPECTED_DEVELOPMENT_DATABASE_NAME: databaseNames.dev,
         SCHEMA_COMPARE_EXPECTED_PRODUCTION_DATABASE_NAME: databaseNames.prod,
         SCHEMA_COMPARE_EXPECTED_SCHEMA: "public",
-      },
+      }, [createdDatabaseReceipts.dev!, createdDatabaseReceipts.prod!, createdDatabaseReceipts.fresh!]),
       windowsHide: true,
       timeout: 30_000,
       maxBuffer: 5 * 1024 * 1024,
