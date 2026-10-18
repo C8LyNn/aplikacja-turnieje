@@ -14,7 +14,21 @@ export interface CreatedDatabaseReceipt extends SafetyContext {
 interface DatabaseIdentity { oid: string; owner: string; principal: string }
 interface SchemaIdentity { oid: string; owner: string; principal: string; marker: string | null }
 
-function hold(reason: string): never { throw new Error(`WEB005_CLEANUP_HOLD:${reason}`); }
+function emit(event: string, details: Record<string, string> = {}): void {
+  // Emitted on STDERR for an operator-side private append-only collector.
+  // This in-process log is NOT a trusted physical attestation or a substitute
+  // for the separately signed G4/G5 SQL event receipt.
+  console.error("WEB005_SAFETY_EVENT " + JSON.stringify({
+    schema: "web005.a50.r23h-r5.fixture-event.v1", event,
+    run_id: process.env.WEB005_RUN_ID ?? "UNSET",
+    cluster_cert_sha256: process.env.WEB005_PG16_CLUSTER_CERT_SHA256 ?? "UNSET",
+    ...details,
+  }));
+}
+function hold(reason: string): never {
+  emit("CLEANUP_HOLD", { reason });
+  throw new Error(`WEB005_CLEANUP_HOLD:${reason}`);
+}
 export function requireSafetyContext(env: NodeJS.ProcessEnv = process.env): SafetyContext {
   const runId = env.WEB005_RUN_ID ?? "";
   const clusterCertificateSha256 = env.WEB005_PG16_CLUSTER_CERT_SHA256 ?? "";
@@ -53,7 +67,7 @@ export async function createRunDatabase(
   const receipt: CreatedDatabaseReceipt = {
     ...context, name, oid: created.oid, owner: created.owner, createdByRun: true,
   };
-  console.error("[WEB005_SAFETY] S2_CREATE_CONFIRMED", name, created.oid);
+  emit("S2_CREATE_CONFIRMED", { name, oid: created.oid, owner: created.owner });
   return receipt;
 }
 export async function dropRunDatabase(
@@ -69,10 +83,10 @@ export async function dropRunDatabase(
     hold("PRE_DROP_OID_OWNER_MISMATCH");
   }
   // Guard+DROP is NOT atomic against untrusted third-party DB writers.
-  console.error("[WEB005_SAFETY] S2_DROP_ALLOWED", receipt.name, receipt.oid);
+  emit("S2_DROP_ALLOWED", { name: receipt.name, oid: receipt.oid, owner: receipt.owner });
   await pool.query(`DROP DATABASE ${safeName} WITH (FORCE)`);
   if (await dbIdentity(pool, receipt.name)) hold("DROP_NOT_CONFIRMED");
-  console.error("[WEB005_SAFETY] S2_DROP_CONFIRMED", receipt.name, receipt.oid);
+  emit("S2_DROP_CONFIRMED", { name: receipt.name, oid: receipt.oid, owner: receipt.owner });
 }
 const S1_PATTERN = /^tm_test_[a-f0-9]{32}(?:_(?:rollback|marker_drift))?$/;
 function schemaMarker(context: SafetyContext): string {
@@ -109,7 +123,7 @@ export async function createRunSchema(pool: SafetyPool, schema: string): Promise
   // Failed marker write => CLEANUP_HOLD, never blind rollback/drop.
   await pool.query(`COMMENT ON SCHEMA ${safe} IS '${schemaMarker(ctx)}'`);
   await requireOwnedSchema(pool, schema, ctx);
-  console.error("[WEB005_SAFETY] S1_CREATE_CONFIRMED", schema);
+  emit("S1_CREATE_CONFIRMED", { schema });
 }
 export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
@@ -126,8 +140,8 @@ export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<v
   const ctx = requireSafetyContext();
   const safe = safeS1Name(schema, ctx);
   const existing = await requireOwnedSchema(pool, schema, ctx);
-  console.error("[WEB005_SAFETY] S1_DROP_ALLOWED", schema, existing.oid);
+  emit("S1_DROP_ALLOWED", { schema, oid: existing.oid, owner: existing.owner });
   await pool.query(`DROP SCHEMA ${safe} CASCADE`);
   if (await schemaIdentity(pool, schema)) hold("S1_DROP_NOT_CONFIRMED");
-  console.error("[WEB005_SAFETY] S1_DROP_CONFIRMED", schema, existing.oid);
+  emit("S1_DROP_CONFIRMED", { schema, oid: existing.oid, owner: existing.owner });
 }
