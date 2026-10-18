@@ -40,5 +40,170 @@ public static partial class Program
             True(authority.Submit(1,replacement,out _));Eq(3,sim.State.actionSerial);False(authority.Submit(1,replacement,out _));
             Eq(3,sim.State.balls.Count);
         });
+        // R17-W3 / A41: security regression coverage for CURRENT R16 seat-refill policy.
+        // None of these tests implements identity-authenticated same-player resume.
+        Test("R17 LAN pending seat expires exactly at the ten-second deadline",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(21,0));
+            Eq<ulong?>(null,seat.Expire(9.999));Eq<ulong?>(21,seat.Pending);
+            False(seat.Commit(21,10));Eq<ulong?>(null,seat.Pending);
+            True(seat.TryReserve(22,10));True(seat.Commit(22,10.5));True(seat.Owns(22));
+        });
+        Test("R17 failed competing reservations cannot extend the original deadline",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(31,0));
+            False(seat.TryReserve(32,5));False(seat.TryReserve(31,9.9));
+            False(seat.Commit(31,10));Eq<ulong?>(null,seat.Pending);
+            True(seat.TryReserve(32,10));False(seat.Commit(31,10.1));
+            True(seat.Commit(32,10.1));True(seat.Owns(32));
+        });
+        Test("R17 invalid timestamps and zero transport ID cannot reserve or corrupt pending seat",()=>{
+            var seat=new LanSeat();False(seat.TryReserve(0,0));False(seat.Owns(0));
+            True(seat.TryReserve(41,0));
+            False(seat.TryReserve(42,double.NaN));
+            False(seat.TryReserve(42,double.PositiveInfinity));
+            False(seat.TryReserve(42,double.NegativeInfinity));
+            False(seat.Commit(41,double.NaN));False(seat.Commit(41,double.PositiveInfinity));
+            Eq<ulong?>(41,seat.Pending);False(seat.Release(0));
+            True(seat.Commit(41,1));True(seat.Owns(41));False(seat.Owns(0));
+        });
+        Test("R17 pending transport cannot own P2 and only exact candidate can commit once",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(51,0));
+            False(seat.Owns(51));False(seat.Commit(52,1));
+            Eq<ulong?>(51,seat.Pending);Eq<ulong?>(null,seat.Connected);
+            True(seat.Commit(51,1));False(seat.Commit(51,2));
+            Eq<ulong?>(null,seat.Pending);Eq<ulong?>(51,seat.Connected);
+        });
+        Test("R17 nonfinite expiry query never evicts a pending transport",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(61,0));
+            Eq<ulong?>(null,seat.Expire(double.NaN));
+            Eq<ulong?>(null,seat.Expire(double.PositiveInfinity));
+            Eq<ulong?>(null,seat.Expire(double.NegativeInfinity));
+            Eq<ulong?>(61,seat.Pending);Eq<ulong?>(61,seat.Expire(10));
+            False(seat.Commit(61,10));Eq<ulong?>(null,seat.Pending);
+        });
+        Test("R17 connected seat does not expire even after large time advance",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(71,1));True(seat.Commit(71,2));
+            Eq<ulong?>(null,seat.Expire(1000000));
+            False(seat.TryReserve(72,1000001));
+            True(seat.Owns(71));Eq<ulong?>(71,seat.Connected);
+        });
+        Test("R17 stale disconnect cannot cancel a different pending replacement",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(81,0));True(seat.Commit(81,1));
+            True(seat.Release(81));True(seat.TryReserve(82,2));
+            False(seat.Release(81));Eq<ulong?>(82,seat.Pending);
+            False(seat.Owns(81));False(seat.Owns(82));
+            True(seat.Commit(82,3));False(seat.Release(81));
+            True(seat.Owns(82));
+        });
+        Test("R17 pending cancellation cannot revoke already connected replacement",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(91,0));True(seat.Release(91));
+            True(seat.TryReserve(92,1));True(seat.Commit(92,2));
+            False(seat.Release(91));False(seat.Commit(91,3));
+            True(seat.Owns(92));Eq<ulong?>(null,seat.Pending);
+        });
+        Test("R17 reset invalidates both pending and connected session ownership",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(101,0));seat.Reset();
+            False(seat.Commit(101,1));False(seat.Release(101));
+            Eq<ulong?>(null,seat.Connected);Eq<ulong?>(null,seat.Pending);
+            True(seat.TryReserve(102,2));True(seat.Commit(102,3));
+            seat.Reset();False(seat.Owns(102));False(seat.Release(102));
+            True(seat.TryReserve(103,4));True(seat.Commit(103,5));
+            True(seat.Owns(103));
+        });
+        Test("R17 repeated join release cycles retain only one owner and no stale reservations",()=>{
+            var seat=new LanSeat();
+            for(int i=0;i<512;i++){
+                ulong client=(ulong)(200+i);
+                double now=i*20;
+                True(seat.TryReserve(client,now));
+                False(seat.TryReserve(client+1000,now+1));
+                True(seat.Commit(client,now+1));
+                False(seat.Owns(client+1000));
+                Eq<ulong?>(null,seat.Pending);
+                True(seat.Owns(client));True(seat.Release(client));
+                False(seat.Release(client));False(seat.Owns(client));
+                Eq<ulong?>(null,seat.Connected);
+            }
+            Eq<ulong?>(null,seat.Pending);Eq<ulong?>(null,seat.Connected);
+        });
+        Test("R17 unauthorized P1 spoof from P2 authority does not mutate live turn",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var host=Shot(sim);host.sequence=1;
+            True(authority.Submit(0,host,out _));Settle(sim);
+            Eq(1,sim.State.turn);Eq(1,sim.State.actionSerial);
+            var spoof=Shot(sim,0);spoof.sequence=999;
+            int oldBalls=sim.State.balls.Count;
+            False(authority.Submit(1,spoof,out _));
+            Eq(1,sim.State.actionSerial);Eq(oldBalls,sim.State.balls.Count);
+            var real=Shot(sim,1);real.sequence=1;
+            True(authority.Submit(1,real,out _));Eq(2,sim.State.actionSerial);
+        });
+        Test("R17 null out-of-range and zero-sequence intents cannot mutate host state",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            False(authority.Submit(0,null,out _));
+            var command=Shot(sim);command.sequence=0;
+            False(authority.Submit(0,command,out _));
+            command.sequence=-1;False(authority.Submit(0,command,out _));
+            command.sequence=1;
+            False(authority.Submit(-1,command,out _));
+            False(authority.Submit(2,command,out _));
+            Eq(0,sim.State.actionSerial);Eq(0,sim.State.balls.Count);
+            True(authority.Submit(0,command,out _));Eq(1,sim.State.actionSerial);
+        });
+        Test("R17 duplicate and decreasing owner sequences cannot double apply host command",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var command=Shot(sim);command.sequence=2;
+            True(authority.Submit(0,command,out _));
+            int serial=sim.State.actionSerial,ballCount=sim.State.balls.Count;
+            False(authority.Submit(0,command,out _));
+            command.sequence=1;False(authority.Submit(0,command,out _));
+            Eq(serial,sim.State.actionSerial);Eq(ballCount,sim.State.balls.Count);
+        });
+        Test("R17 invalid high sequence does not poison subsequent legal sequence",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var invalid=Shot(sim);invalid.sequence=100;invalid.power=float.NaN;
+            False(authority.Submit(0,invalid,out _));
+            Eq(0,sim.State.actionSerial);
+            var legal=Shot(sim);legal.sequence=1;
+            True(authority.Submit(0,legal,out _));Eq(1,sim.State.actionSerial);
+        });
+        Test("R17 rejected command while P2 moves does not consume next bonus sequence",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var p1=Shot(sim);p1.sequence=1;
+            True(authority.Submit(0,p1,out _));Settle(sim);
+            Eq(1,sim.State.turn);
+            var p2=Shot(sim,1);p2.sequence=1;
+            True(authority.Submit(1,p2,out _));
+            var tooEarly=Shot(sim,1);tooEarly.sequence=2;
+            False(authority.Submit(1,tooEarly,out _));
+            Settle(sim);True(sim.State.bonusPending);Eq(1,sim.State.turn);
+            var bonus=Shot(sim,1);bonus.sequence=2;
+            True(authority.Submit(1,bonus,out _));
+            Eq(3,sim.State.actionSerial);
+        });
+        Test("R17 released NGO seat cannot authorize old transport after new P2 commit",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);var seat=new LanSeat();
+            var p1=Shot(sim);p1.sequence=1;
+            True(authority.Submit(0,p1,out _));Settle(sim);
+            True(seat.TryReserve(301,0));True(seat.Commit(301,1));
+            var p2=Shot(sim,1);p2.sequence=1;
+            True(seat.Owns(301)&&authority.Submit(1,p2,out _));Settle(sim);
+            True(seat.Release(301));True(seat.TryReserve(302,2));
+            True(seat.Commit(302,3));authority.ForgetConnection(1);
+            var stale=Shot(sim,1);stale.sequence=2;
+            False(seat.Owns(301)&&authority.Submit(1,stale,out _));
+            False(seat.Release(301));Eq(2,sim.State.actionSerial);
+            var replacement=Shot(sim,1);replacement.sequence=1;
+            True(seat.Owns(302)&&authority.Submit(1,replacement,out _));
+            False(seat.Owns(301)&&authority.Submit(1,stale,out _));
+            False(seat.Owns(302)&&authority.Submit(1,replacement,out _));
+            Eq(3,sim.State.actionSerial);True(seat.Owns(302));
+        });
+        Test("R17 stale callbacks cannot clear P2 seat after a timed-out pending contender",()=>{
+            var seat=new LanSeat();True(seat.TryReserve(401,0));
+            Eq<ulong?>(401,seat.Expire(10));False(seat.Commit(401,10));
+            True(seat.TryReserve(402,11));False(seat.Release(401));
+            False(seat.Commit(401,12));True(seat.Commit(402,12));
+            False(seat.Release(401));True(seat.Owns(402));
+        });
     }
 }
