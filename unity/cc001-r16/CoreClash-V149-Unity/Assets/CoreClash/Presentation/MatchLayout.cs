@@ -12,10 +12,35 @@ namespace CoreClash.Presentation
     {
         public UiBox Board,Panel;
         public bool Portrait;
+        // Compact phone landscape rows are absolute UI rectangles. MatchView uses the
+        // same geometry that the managed presentation tests can inspect.
+        public bool CompactLandscape;
+        public UiBox CompactHud,CompactChoice,CompactCards,CompactActions,CompactFeedback;
         public static MatchLayout For(float width,float height)=>For(width,height,DeviceProfile.Desktop);
         public static MatchLayout For(float width,float height,DeviceProfile profile)
         {
             var layout=new MatchLayout{Portrait=profile==DeviceProfile.Phone?width<height:width<760||width<height*1.08f};
+            // The 60-unit global title and the multiplayer entry are rendered by
+            // CoreClashApp. This scoped fix starts below that header; hiding it
+            // requires separate CoreClashApp ownership in a later wave.
+            const float edge=12f,gap=12f,headerBottom=64f;
+            float compactBoardHeight=height-headerBottom-8f;
+            float compactBoardWidth=compactBoardHeight*.6f;
+            float compactPanelX=edge+compactBoardWidth+gap;
+            float compactPanelWidth=width-compactPanelX-edge;
+            if(profile==DeviceProfile.Phone&&width>height&&height>=270&&height<440&&compactBoardHeight>=190&&compactPanelWidth>=320){
+                layout.CompactLandscape=true;
+                layout.Board=new UiBox(edge,headerBottom,compactBoardWidth,compactBoardHeight);
+                layout.Panel=new UiBox(compactPanelX,headerBottom,compactPanelWidth,compactBoardHeight);
+                float x=layout.Panel.x+4f,y=layout.Panel.y+4f,w=layout.Panel.width-8f;
+                layout.CompactHud=new UiBox(x,y,w,44f);y+=46f;
+                layout.CompactChoice=new UiBox(x,y,w,44f);y+=46f;
+                float cards=layout.Panel.height>=230?74f:50f;
+                layout.CompactCards=new UiBox(x,y,w,cards);y+=cards+2f;
+                layout.CompactActions=new UiBox(x,y,w,44f);y+=48f;
+                layout.CompactFeedback=new UiBox(x,y,w,Math.Max(0,layout.Panel.Bottom-4f-y));
+                return layout;
+            }
             if(layout.Portrait){
                 float available=height-(profile==DeviceProfile.Tablet?420:350);
                 float h=Math.Min(height>=600?available:(height-146)*.52f,(width-24)/.6f),w=h*.6f;
