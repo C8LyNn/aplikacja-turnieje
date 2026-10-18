@@ -1,0 +1,123 @@
+{
+  "project": "CC-001",
+  "wave": "R17-W4",
+  "purpose": "Codex re-entry for unfinished authorized work; no new wave authorization",
+  "snapshot_date": "2026-10-18",
+  "repo": "C8LyNn/aplikacja-turnieje",
+  "packet_branch": "docs/cc001-r17-w4-codex-reentry-20261018",
+  "packet_root": "docs/cc001/swarm/codex-reentry-20261018",
+  "master_dispatch_commit": "661660d3a3dc8a4fa2c9afea489050247f64c38c",
+  "frozen_source_commit": "de1fe4b88fce3bd08ef383165dc2cd622af2536b",
+  "master_dispatch_url": "https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md",
+  "hq_issue_url": "https://github.com/C8LyNn/aplikacja-turnieje/issues/97",
+  "files": [
+    "00_README_START_HERE.md",
+    "01_CODEX_GLOBAL_PROMPT.md",
+    "02_VERIFIED_STATE_AND_GATES.md",
+    "03_AGENT_ROUTING.md",
+    "04_HANDOFF_AND_TEST_EVIDENCE.md",
+    "05_WAITING_AGENTS.md",
+    "06_SHORT_PROMPT_FOR_THREADS.md",
+    "agents/A60_SOURCE_ADMISSION.md",
+    "agents/A73_MERGE_PREFLIGHT.md",
+    "agents/A72_MANAGED_CI.md",
+    "agents/A40_LIFECYCLE_IMPLEMENTATION.md",
+    "agents/A50_FROSTGUARD_F02.md",
+    "STATUS_SNAPSHOT.json"
+  ],
+  "ready": [
+    {
+      "agent": "A60",
+      "issue": 126,
+      "branch": "feat/cc001-r17-w3-a60-baseline-qa",
+      "head_at_snapshot": "e9e235a69a04eb57727defd308918321836d7f02",
+      "prompt": "agents/A60_SOURCE_ADMISSION.md",
+      "gate": "READY",
+      "scope": "source-only QA G0"
+    },
+    {
+      "agent": "A73",
+      "issue": 136,
+      "branch": "feat/cc001-r17-w4-a73-merge-preview",
+      "head_at_snapshot": "661660d3a3dc8a4fa2c9afea489050247f64c38c",
+      "prompt": "agents/A73_MERGE_PREFLIGHT.md",
+      "gate": "READY",
+      "scope": "read-only W3 branch conflict map"
+    },
+    {
+      "agent": "A72",
+      "issue": 113,
+      "branch": "feat/cc001-r17-w4-a72-managed-ci",
+      "head_at_snapshot": "661660d3a3dc8a4fa2c9afea489050247f64c38c",
+      "prompt": "agents/A72_MANAGED_CI.md",
+      "gate": "READY",
+      "scope": "opt-in .NET9 managed CI"
+    },
+    {
+      "agent": "A40",
+      "issue": 92,
+      "branch": "feat/cc001-r17-w4-a40-lifecycle-return",
+      "head_at_snapshot": "661660d3a3dc8a4fa2c9afea489050247f64c38c",
+      "prompt": "agents/A40_LIFECYCLE_IMPLEMENTATION.md",
+      "gate": "READY",
+      "scope": "five-ability lifecycle RETURN"
+    },
+    {
+      "agent": "A50",
+      "issue": 138,
+      "branch": "feat/cc001-r17-w4-a50-f02-physics",
+      "head_at_snapshot": "661660d3a3dc8a4fa2c9afea489050247f64c38c",
+      "prompt": "agents/A50_FROSTGUARD_F02.md",
+      "gate": "READY",
+      "scope": "Frostguard F02 physics parity"
+    }
+  ],
+  "waiting": [
+    {
+      "agent": "A70",
+      "issue": 137,
+      "gate": "G0 PASS + A73 W4 verified delta map",
+      "branch": "integration/cc001-r17-w4-disposable-candidate-20261018",
+      "head_at_snapshot": "74a3438b03cdd8891315734c98fc1e8dafc6ba45"
+    },
+    {
+      "agent": "A71",
+      "issue": 140,
+      "gate": "actual accepted candidate SHA",
+      "branch": "feat/cc001-r17-w4-a71-candidate-integrity"
+    },
+    {
+      "agent": "A74",
+      "issue": 141,
+      "gate": "actual accepted candidate SHA",
+      "branch": "feat/cc001-r17-w4-a74-candidate-hygiene",
+      "head_at_snapshot": "9b174410e14b8766e3a25ca42d9d898ab4ef4501"
+    },
+    {
+      "agent": "A60",
+      "issue": 139,
+      "gate": "candidate + G1/G2 runtime evidence",
+      "branch": "feat/cc001-r17-w4-a60-candidate-qa"
+    },
+    {
+      "agent": "A20",
+      "issue": 95,
+      "gate": "G2 appropriate build and physical devices"
+    },
+    {
+      "agent": "A31",
+      "issue": 94,
+      "gate": "G2 appropriate build and separate network/devices"
+    }
+  ],
+  "prohibitions": [
+    "no merge to main",
+    "no production/live deployment",
+    "no force push",
+    "no frozen R16 or V148 mutation",
+    "no protocol149 change",
+    "no status inflation",
+    "no unapproved file edits"
+  ],
+  "truth": "Snapshot only; re-read GitHub refs and Issues before execution"
+}
