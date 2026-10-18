@@ -34,7 +34,8 @@
     "ROLE_LOCK_A74.md",
     "ROLE_LOCK_A20.md",
     "ROLE_LOCK_A31.md",
-    "ROLE_LOCK_A60-CANDIDATE.md"
+    "ROLE_LOCK_A60-CANDIDATE.md",
+    "UNIVERSAL_PROMPT_ALL_THREADS.md"
   ],
   "ready": [
     {
@@ -131,7 +132,7 @@
     "no unapproved file edits"
   ],
   "truth": "Snapshot only; re-read GitHub refs and Issues before execution",
-  "identity_lock_version": 2,
+  "identity_lock_version": 3,
   "identity_source": "ROLE_LOCK_<ROLE_ID>.md; use one locked entrypoint per specialist session. Never use 01_CODEX_GLOBAL_PROMPT.md as specialist message",
   "legacy_prompts_deprecated_for_specialist_entry": true,
   "roles": [
@@ -234,5 +235,8 @@
       "entrypoint": "ROLE_LOCK_A60-CANDIDATE.md",
       "expected_first_line": "IDENTITY_OK | CC-001 | A60-CANDIDATE | ISSUE #139 | WAIT CANDIDATE SHA + G1/G2"
     }
-  ]
+  ],
+  "primary_prompt": "UNIVERSAL_PROMPT_ALL_THREADS.md",
+  "workflow": "Use exactly the same universal prompt in every existing thread; identity is established from that thread's previous user role assignment; if not found do not perform writes.",
+  "individual_role_locks": "Legacy fallback for new sessions only"
 }
