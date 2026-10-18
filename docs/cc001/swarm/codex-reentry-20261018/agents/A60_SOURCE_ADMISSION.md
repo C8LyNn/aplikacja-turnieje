@@ -1,3 +1,9 @@
+> **WAŻNE — IDENTITY LOCK / WERSJA POPRAWIONA**
+> Ten starszy plik zawiera szczegółowy opis techniczny, ale NIE JEST punktami wejścia. Najpierw otwórz **[ROLE_LOCK_A60-G0.md](../ROLE_LOCK_A60-G0.md)**.
+> **TEN AGENT = A60 | ISSUE #126 | GATE READY NOW.** Nie jesteś A10. Nie zgaduj numeru agenta z pozostałych dokumentów.
+> Pierwszy wiersz odpowiedzi: `IDENTITY_OK | CC-001 | A60-G0 | ISSUE #126 | READY NOW`.
+> Gdy historia sesji jednoznacznie wskazuje innego agenta, wstrzymaj zapis i zgłoś `IDENTITY_CONFLICT`.
+
 # CODEX TASK — A60 / Independent SOURCE G0 admission
 PROJECT: CC-001 — Core Clash Unity; WAVE: R17-W4 recovery, continued W3 #126
 ISSUE: https://github.com/C8LyNn/aplikacja-turnieje/issues/126
