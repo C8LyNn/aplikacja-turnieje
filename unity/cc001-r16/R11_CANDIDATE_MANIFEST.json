@@ -1,0 +1,66 @@
+{
+  "project": "CC-001 CoreClash V149 Unity",
+  "stage": "R11 Living Reinforcements",
+  "status": "SOURCE_CANDIDATE_NOT_RUNTIME_VERIFIED",
+  "generatedUtc": "2026-10-17T09:58:10.413808+00:00",
+  "baselineFile": "CoreClash-V149-R10-Source-Candidate.zip",
+  "baselineSha256": "b339d1b21a2d36aafd403d0f96eb8e036cf02c46b0e5fbf3d05add9a101199fb",
+  "changedFiles": [
+    {
+      "path": "Assets/CoreClash/Core/AbilityResolver.cs",
+      "sha256": "851303eeece14a55eac6c06f31ac024191634f5136313bc16781039030737acf",
+      "bytes": 5264
+    },
+    {
+      "path": "Assets/CoreClash/Core/GameState.cs",
+      "sha256": "ed6d7295ced6be76e96275e3a604baa89eba00e11e286b5865949b16e39e6eeb",
+      "bytes": 4621
+    },
+    {
+      "path": "Assets/CoreClash/Core/LifecycleEffects.cs",
+      "sha256": "d58e227863891a2653c8f2affd44a5c2991c4b4830e81503a97d97d55ee3f207",
+      "bytes": 7752
+    },
+    {
+      "path": "Assets/CoreClash/Core/RealityEffects.cs",
+      "sha256": "e3447ed0020879cb852eb0bfc3902b453a7baf01a3b6bdb1faae52e40bf05950",
+      "bytes": 5266
+    },
+    {
+      "path": "Assets/CoreClash/Core/ReinforcementEffects.cs",
+      "sha256": "cd2bf7a1a4e926de9abefc2f22a40037b72213fd9aec5882b9ccab2fc9f37aa9",
+      "bytes": 5007
+    },
+    {
+      "path": "Assets/CoreClash/Core/ReinforcementEffects.cs.meta",
+      "sha256": "b4fd43c59c012d39b436197511f192cf6d16f4e32d62a5f85b7287ee8254d020",
+      "bytes": 60
+    },
+    {
+      "path": "Assets/CoreClash/Presentation/BallInspection.cs",
+      "sha256": "3137e1804d537b5f517fb8e21ecadaacb40ee1ffc344b10c169529560b3e64c0",
+      "bytes": 3840
+    },
+    {
+      "path": "Assets/CoreClash/Presentation/FeedbackTimeline.cs",
+      "sha256": "ea757c8a087d8e87f00077df668020d773c364b22687247a67682bffc4861113",
+      "bytes": 1787
+    },
+    {
+      "path": "Tests/Program.cs",
+      "sha256": "7ced057f95b79253381fa151e92764376abc580b6ae7ad2a12eeb46640f3af8b",
+      "bytes": 7112
+    },
+    {
+      "path": "Tests/ReinforcementTests.cs",
+      "sha256": "54d7e1d3d43e8ac2251de77ada6976c4eaf26e7a25b4f8245780711e2ae215f5",
+      "bytes": 8689
+    },
+    {
+      "path": "docs/R11_CANDIDATE_REPORT_PL.md",
+      "sha256": "3de2254ec817405e6715694630f06ab103e8a80246b9b0a25d9ea39930015e12",
+      "bytes": 4837
+    }
+  ],
+  "priorAbilitySupport": "R9 counts remain unchanged until R10/R11 QA"
+}

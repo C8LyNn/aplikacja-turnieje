@@ -1,0 +1,85 @@
+{
+  "startedAt": "2026-10-16T15:40:13.552Z",
+  "pass": true,
+  "scope": "One PC, real native host and sequential native NGO clients. Released P2 seat can be occupied by a new LAN client; this is not authenticated identity recovery or physical Wi-Fi QA.",
+  "checks": [
+    {
+      "name": "Initial P2 legal command accepted, spoof and duplicate rejected",
+      "pass": true
+    },
+    {
+      "name": "Host advertises one player again after P2 disconnect",
+      "pass": true
+    },
+    {
+      "name": "Replacement gets a fresh SDK client ID",
+      "pass": true
+    },
+    {
+      "name": "One authoritative host kept running without reset",
+      "pass": true
+    },
+    {
+      "name": "Replacement sequence one accepted as third match action",
+      "pass": true
+    },
+    {
+      "name": "Both connections reject owner spoof and duplicate intents",
+      "pass": true
+    },
+    {
+      "name": "Only two P2 intents accepted across the two connections",
+      "pass": true
+    }
+  ],
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "7d6b0415f3e860abc78be5c557580c9670a602e29d110cd70c427dead12836ae"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "385f1f0de41d8b27ad278f0cd7402192dc8da221ded1f58c042eee7669440d82"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "207f642f9050940be311df9ae3723166c775deb5b7135d7b56ccc910050bb4bb"
+    }
+  },
+  "port": 64544,
+  "hostPid": 40520,
+  "address": "192.168.1.3",
+  "peerIds": [
+    "1",
+    "2"
+  ],
+  "hostLines": [
+    "CC_NET_BRIDGE_SPAWNED server=True",
+    "CC_NET_HOST_READY port=64544",
+    "CC_NET_AUTOSTART role=host smoke=True started=True",
+    "CC_LAN_JOIN_URL http://192.168.1.3:8080/?joinHost=192.168.1.3&joinPort=64544",
+    "CC_NET_PEER_CONNECTED id=1 owner=1",
+    "CC_NET_INTENT_ACCEPT owner=0 seq=1",
+    "CC_NET_SMOKE_COMMAND role=host acceptedOrSent=True reason=",
+    "CC_LAN_PLAYER_CONNECTED owner=0",
+    "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+    "CC_NET_INTENT_ACCEPT owner=1 seq=1 action=2",
+    "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+    "CC_NET_SMOKE_PASS role=host remoteIntents=1 rejected=2 actionSerial=2",
+    "CC_NET_SEAT_RELEASED id=1",
+    "CC_NET_PEER_CONNECTED id=2 owner=1",
+    "CC_LAN_PLAYER_CONNECTED owner=0",
+    "CC_NET_INTENT_REJECT sender=2 reason=Invalid or duplicate intent.",
+    "CC_NET_INTENT_ACCEPT owner=1 seq=1 action=3",
+    "CC_NET_INTENT_REJECT sender=2 reason=Invalid or duplicate intent."
+  ],
+  "clientLines": [
+    "CC_NET_AUTOSTART role=client smoke=True started=True",
+    "CC_NET_BRIDGE_SPAWNED server=False",
+    "CC_NET_STATE_APPLIED revision=25 owner=1",
+    "CC_NET_SMOKE_SPOOF_SENT owner=0 from=remote",
+    "CC_LAN_PLAYER_CONNECTED owner=1",
+    "CC_NET_SMOKE_COMMAND role=client acceptedOrSent=True reason=Intent sent to host.",
+    "CC_NET_SMOKE_DUPLICATE_SENT seq=1",
+    "CC_NET_SMOKE_PASS role=client snapshots=14 revision=38 actionSerial=3 events=14 rejected=2"
+  ],
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-16T15:40:25.299Z"
+}

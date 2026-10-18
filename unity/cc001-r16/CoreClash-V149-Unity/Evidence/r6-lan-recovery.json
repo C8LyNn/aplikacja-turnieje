@@ -1,0 +1,152 @@
+{
+  "startedAt": "2026-10-16T15:40:25.700Z",
+  "pass": true,
+  "checks": [
+    {
+      "name": "Failed invitation restores actionable LAN Join",
+      "pass": true
+    },
+    {
+      "name": "Same NetworkManager retries through the ordinary LAN invitation field",
+      "pass": true
+    },
+    {
+      "name": "Unexpected host loss restores Join Game",
+      "pass": true
+    },
+    {
+      "name": "Local match and a real mouse launch work after recovery",
+      "pass": true
+    },
+    {
+      "name": "Visible Cancel Connecting returns to Join Game",
+      "pass": true
+    },
+    {
+      "name": "Same manager joins a real host after cancellation",
+      "pass": true
+    },
+    {
+      "name": "No browser page errors",
+      "pass": true
+    }
+  ],
+  "console": [
+    {
+      "id": "recovery",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_INVITATION_JOIN host=127.0.0.1 port=62003\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_NET_DISCONNECT_DETAIL [Disconnect Event][Client-0][TransportClientId-4294967296][MaxConnectionAttempts] Connection closed due to maximum connection attempts reached.\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_CONNECTION_FAILED Could not join the game. Check that the host is still running and try again.\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_NET_BRIDGE_SPAWNED server=False\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_NET_STATE_APPLIED revision=1 owner=1\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_PLAYER_CONNECTED owner=1\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_NET_DISCONNECT_DETAIL [Disconnect Event][Client-1][TransportClientId-4294967296][ClosedByRemote] Connection was closed by remote endpoint.\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_CONNECTION_FAILED Connection to the host was lost. You can join again or play locally.\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "recovery",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=normal\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_INVITATION_JOIN host=127.0.0.1 port=56453\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_JOIN_CANCELED setup=True\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_BRIDGE_SPAWNED server=False\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_STATE_APPLIED revision=1 owner=1\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_PLAYER_CONNECTED owner=1\n"
+    }
+  ],
+  "pageErrors": [],
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "7d6b0415f3e860abc78be5c557580c9670a602e29d110cd70c427dead12836ae"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "385f1f0de41d8b27ad278f0cd7402192dc8da221ded1f58c042eee7669440d82"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "207f642f9050940be311df9ae3723166c775deb5b7135d7b56ccc910050bb4bb"
+    },
+    "Builds/WebGL/Build/WebGL.data": {
+      "sha256": "cd83775235acc26f2d3d601fd563ace38c7f2c4e40e11234b3c7095a69ed9d94"
+    },
+    "Builds/WebGL/Build/WebGL.wasm": {
+      "sha256": "a097922dacaf685b0488a68d9dadad1acffed7bdd2eeeef1157606aa85bbc3a8"
+    },
+    "Builds/WebGL/index.html": {
+      "sha256": "2367df37873a75887d8cc1f9f216e883b0d575c3e623bf2b3fa1fd756958a750"
+    }
+  },
+  "scope": "Public WebGL UI and real native LAN host on one PC; failure, same-manager retry, lost host, cancel and local fallback. No physical-device claim.",
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-16T15:40:36.467Z"
+}

@@ -1,0 +1,79 @@
+{
+  "startedAt": "2026-10-16T08:43:55.761Z",
+  "pass": false,
+  "baseline": true,
+  "scope": "One PC: real WebGL public join UI, failed endpoint, retry, native host loss, local-play recovery and canceled pending join; no physical Wi-Fi/device claim.",
+  "checks": [],
+  "console": [
+    "[UnityCache] 'http://127.0.0.1:62104/Build/WebGL.data' successfully downloaded and stored in the browser cache",
+    "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n",
+    "    \"memorysetup-bucket-allocator-granularity=16\"\n",
+    "    \"memorysetup-bucket-allocator-bucket-count=8\"\n",
+    "    \"memorysetup-bucket-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-bucket-allocator-block-count=1\"\n",
+    "    \"memorysetup-main-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-thread-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-cache-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-typetree-allocator-block-size=2097152\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n",
+    "    \"memorysetup-profiler-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n",
+    "    \"memorysetup-temp-allocator-size-main=4194304\"\n",
+    "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n",
+    "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n",
+    "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n",
+    "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n",
+    "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n",
+    "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n",
+    "CodeReloadManager initialized\n",
+    "Loading player data from data.unity3d\n",
+    "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n",
+    "Creating WebGL 2.0 context.",
+    "Renderer: WebKit WebGL\n",
+    "Vendor:   WebKit\n",
+    "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n",
+    "GLES:     3\n",
+    " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_render_snorm EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge EXT_texture_norm16 KHR_parallel_shader_compile NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_blend_func_extended WEBGL_clip_cull_distance WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_provoking_vertex WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_render_snorm GL_EXT_\n",
+    "texture_compression_bptc GL_EXT_texture_compression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_norm16 GL_KHR_parallel_shader_compile GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_blend_func_extended GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_provoking_vertex GL_WEBGL_stencil_texturing\n",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n",
+    "Input Manager initialize...\n",
+    "UnloadTime: 0.700000 ms\n",
+    "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n",
+    "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n",
+    "CC_LAN_INVITATION_JOIN host=127.0.0.1 port=57423\n",
+    "WebSocket connection to 'ws://127.0.0.1:57423/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to connect to server.\n"
+  ],
+  "pageErrors": [],
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "76e7659c326cad336b7f5760148bc99c36c891f856cd0799c5b76965830cb1ad"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "6de033e54686c9ef276d07771992db599625c84664d54ef59023a278d267f022"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "d208ff8cfe14be73772cf3382c5c7661165675f93b5747a09a7d025d597ed3e4"
+    },
+    "Builds/WebGL/Build/WebGL.data": {
+      "sha256": "dc7d23352d6501871d587135b8ad712a8df5f4a1313e95bdb2df93d60121d5bc"
+    },
+    "Builds/WebGL/Build/WebGL.wasm": {
+      "sha256": "f6163cab745523f088152e260177eb78871fd490c12410c25d6772221ed24dae"
+    }
+  },
+  "error": "Error: Failed join did not return to an actionable Join Game screen.\n    at until (C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Tools\\lan-recovery-smoke.cjs:11:94)\n    at async C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Tools\\lan-recovery-smoke.cjs:27:3",
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-16T08:44:32.177Z"
+}

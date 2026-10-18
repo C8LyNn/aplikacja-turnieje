@@ -1,0 +1,246 @@
+{
+  "reviewedAt": "2026-10-15T12:05:33.2248999Z",
+  "status": "pass_with_small_mobile_polish",
+  "desktopNativeR2Acceptance": true,
+  "webglAutomatedPass": true,
+  "automatedCheckCount": 12,
+  "screenshotCount": 28,
+  "allScreensVisuallyInspected": true,
+  "buildFilesUnchanged": true,
+  "wasmSha256": "a35e0363f639633a8bdaa745a6248ea8cf2b7e419088785a04f9f8835b474d12",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "acceptedVisualChecks": [
+    "Multiplayer button and opaque Create/Join modal visible",
+    "Manual IP and port fields only after Advanced",
+    "Actual builder shows 9 to 0 to 9 and creates custom_0",
+    "Desktop HUD 20/20 readable; bars and accents thin",
+    "Vertical arena perimeter and grid complete",
+    "Default details omit migration and implementation metadata",
+    "F1 exposes developer metadata and removes it again",
+    "Selected Gatekeeper orb, aim vector and power cue visible",
+    "Resolved shot advances to P2 and P2 deck is selectable",
+    "390px showcase heading fits",
+    "Touch cancel clears aim without launch; new touch launches",
+    "Portrait and landscape lower controls and restart work"
+  ],
+  "remainingMobilePolish": [
+    {
+      "file": "r2-webgl-20-touch-aim.png",
+      "finding": "390x844 release instruction wraps/clips in its small arena label; vector, power and interaction remain functional"
+    },
+    {
+      "file": "r2-webgl-27-landscape-restarted.png",
+      "finding": "844x390 player labels and HP are tightly packed and partly overlap; navigation controls remain usable"
+    }
+  ],
+  "nativeCriticalScreensInspected": [
+    "r2-native-01-deck-selection.png",
+    "r2-native-02-aim.png",
+    "r2-native-03-gameplay.png",
+    "r2-native-04-ball-details.png"
+  ],
+  "limits": [
+    "Touch is simulated via Chromium CDP, not a physical phone",
+    "Browser test does not assert all-ability parity or balance",
+    "Multiplayer check here is presentation containment, not connectivity",
+    "Native full match uses automated pointer samples and accelerated live simulation"
+  ],
+  "screens": [
+    {
+      "id": "01-showcase-desktop",
+      "file": "r2-webgl-01-showcase-desktop.png",
+      "inspected": true,
+      "sha256": "ecea44453083213a1589df112e5e3edc8a4cf9fbb430e5a515d0f2f64657dd47",
+      "bytes": 141811
+    },
+    {
+      "id": "02-multiplayer-create",
+      "file": "r2-webgl-02-multiplayer-create.png",
+      "inspected": true,
+      "sha256": "15fed330181aa7b01354035d424a46f5fa156e622c587c651ccba39f8286c87f",
+      "bytes": 47074
+    },
+    {
+      "id": "03-multiplayer-join",
+      "file": "r2-webgl-03-multiplayer-join.png",
+      "inspected": true,
+      "sha256": "243ba17563c467874b4fbff611a11d591b34014f0c6aac2669d17fcae6048ed7",
+      "bytes": 45106
+    },
+    {
+      "id": "04-multiplayer-advanced",
+      "file": "r2-webgl-04-multiplayer-advanced.png",
+      "inspected": true,
+      "sha256": "e90c7846436dca5afcee1afd7e416889526a2cdd8ec0e49ebb057ee2724783f7",
+      "bytes": 52766
+    },
+    {
+      "id": "05-builder-initial",
+      "file": "r2-webgl-05-builder-initial.png",
+      "inspected": true,
+      "sha256": "c35660ad2d1ac2100fcabe586c955c6c04aeed5f54591d9b82b61edda368fe4c",
+      "bytes": 98194
+    },
+    {
+      "id": "06-builder-empty",
+      "file": "r2-webgl-06-builder-empty.png",
+      "inspected": true,
+      "sha256": "373b28f7b8a096084786f1fe402db05a4a3370302e816e00dbb5d6118f3caf4c",
+      "bytes": 46829
+    },
+    {
+      "id": "07-builder-empty-use-disabled",
+      "file": "r2-webgl-07-builder-empty-use-disabled.png",
+      "inspected": true,
+      "sha256": "651bae58f6e5ef47d0cf9914f28afb6364943771451461fca4f9503424300a1c",
+      "bytes": 46734
+    },
+    {
+      "id": "08-builder-nine",
+      "file": "r2-webgl-08-builder-nine.png",
+      "inspected": true,
+      "sha256": "e5c16a5d457944ad86b382d8670a9834bcc96d2fde22e7dc451aac2727152afc",
+      "bytes": 56892
+    },
+    {
+      "id": "09-custom-deck-setup",
+      "file": "r2-webgl-09-custom-deck-setup.png",
+      "inspected": true,
+      "sha256": "52c376c4c05d30d137524feae0febe4d13298e46d0a9d89cc51a168437b30e19",
+      "bytes": 141975
+    },
+    {
+      "id": "10-gameplay-desktop",
+      "file": "r2-webgl-10-gameplay-desktop.png",
+      "inspected": true,
+      "sha256": "cdbc15d64581f3b60c748be40aaa2be7f8d9aea91540fb30c6eb2259d7130df7",
+      "bytes": 115066
+    },
+    {
+      "id": "10b-desktop-panel-scrolled",
+      "file": "r2-webgl-10b-desktop-panel-scrolled.png",
+      "inspected": true,
+      "sha256": "78ff785e6af8798cd367a19758d21ca3428295cec68bed8d0050cde577b5b099",
+      "bytes": 112248
+    },
+    {
+      "id": "11-selected-special",
+      "file": "r2-webgl-11-selected-special.png",
+      "inspected": true,
+      "sha256": "2e139c18d153de0202241eb78948737f75883d3a408c23d4670ca31779d52414",
+      "bytes": 115463
+    },
+    {
+      "id": "12-player-details",
+      "file": "r2-webgl-12-player-details.png",
+      "inspected": true,
+      "sha256": "ab9b4a18b564530c2697dc2bbf61d7509e5f9a729d2525e0b5848a3c4119b90d",
+      "bytes": 73694
+    },
+    {
+      "id": "13-developer-details",
+      "file": "r2-webgl-13-developer-details.png",
+      "inspected": true,
+      "sha256": "1115c974fe2c91beac2c8bf7ec4c0be87cb7264d5058c7b5f62d2ad81a138dcf",
+      "bytes": 98084
+    },
+    {
+      "id": "14-player-details-restored",
+      "file": "r2-webgl-14-player-details-restored.png",
+      "inspected": true,
+      "sha256": "737b3a272cfe73eadb246aed747e47a659893ce8b50182aa2754f963331dd764",
+      "bytes": 73706
+    },
+    {
+      "id": "15-aim-desktop",
+      "file": "r2-webgl-15-aim-desktop.png",
+      "inspected": true,
+      "sha256": "9df92fa2584ecdfb8033af6846a1f9ecc44f1e68ee67f7a19a56f8f321015f27",
+      "bytes": 121855
+    },
+    {
+      "id": "16-resolving-lock",
+      "file": "r2-webgl-16-resolving-lock.png",
+      "inspected": true,
+      "sha256": "1995c32695fcc1b15f87f456d5681f5ad935df43f1c1c0f819fee1848ebfa406",
+      "bytes": 117207
+    },
+    {
+      "id": "17-next-turn",
+      "file": "r2-webgl-17-next-turn.png",
+      "inspected": true,
+      "sha256": "96b3a1d205e9b699701b2462804ba88ffe2803c321a262e46fe914771d1bd596",
+      "bytes": 121264
+    },
+    {
+      "id": "18-showcase-portrait",
+      "file": "r2-webgl-18-showcase-portrait.png",
+      "inspected": true,
+      "sha256": "355a1fa3d2310b9ffb43f9a52745b5348d8424c5776bb76b96473c39a695088c",
+      "bytes": 84236
+    },
+    {
+      "id": "19-gameplay-portrait",
+      "file": "r2-webgl-19-gameplay-portrait.png",
+      "inspected": true,
+      "sha256": "79ec73225c813bfbe75d938a938c4ed72ea8d190930a6f105d2cd386b5c28e57",
+      "bytes": 65140
+    },
+    {
+      "id": "20-touch-aim",
+      "file": "r2-webgl-20-touch-aim.png",
+      "inspected": true,
+      "sha256": "9ef91815c1277bd5d9f314db56b712a0f0a594f7717819e7f26db9159f0469e6",
+      "bytes": 69294
+    },
+    {
+      "id": "21-touch-canceled",
+      "file": "r2-webgl-21-touch-canceled.png",
+      "inspected": true,
+      "sha256": "94eb3566d7338f473b466bcbda3d07a0e342d30cfb6136b1ad058e0a784b5aa3",
+      "bytes": 67504
+    },
+    {
+      "id": "22-touch-launched",
+      "file": "r2-webgl-22-touch-launched.png",
+      "inspected": true,
+      "sha256": "5cde876d0ff4c3bb56184ae1bd4f4ac99f57d5e32ce87af8108c4f7664ad4ecf",
+      "bytes": 67069
+    },
+    {
+      "id": "23-portrait-lower-controls",
+      "file": "r2-webgl-23-portrait-lower-controls.png",
+      "inspected": true,
+      "sha256": "23786f212f0e9a272dff9b5419ee9bc77bc12b63bd7c3ab620bf77429cee94bd",
+      "bytes": 57727
+    },
+    {
+      "id": "24-gameplay-landscape",
+      "file": "r2-webgl-24-gameplay-landscape.png",
+      "inspected": true,
+      "sha256": "9a554a810f42e16a300c91a98b9ac9892ae0914a5f89685f706724d738c72271",
+      "bytes": 71693
+    },
+    {
+      "id": "25-landscape-lower-controls",
+      "file": "r2-webgl-25-landscape-lower-controls.png",
+      "inspected": true,
+      "sha256": "3f44f11a707629c818369ea4191215d1cd0dd3640705f7698b08d28a957a963d",
+      "bytes": 49526
+    },
+    {
+      "id": "26-showcase-landscape-return",
+      "file": "r2-webgl-26-showcase-landscape-return.png",
+      "inspected": true,
+      "sha256": "86b12335ea3e358671f6c9fcae17389f715e498f09d910a6dd1788ccb01f0ad7",
+      "bytes": 61991
+    },
+    {
+      "id": "27-landscape-restarted",
+      "file": "r2-webgl-27-landscape-restarted.png",
+      "inspected": true,
+      "sha256": "ac2b3f5a26cb187c4b5543184e82730c7e6b247e950c2ce1bce6f77d44700035",
+      "bytes": 56624
+    }
+  ]
+}

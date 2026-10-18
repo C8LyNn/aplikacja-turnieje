@@ -1,0 +1,10 @@
+{
+  "pass": false,
+  "boundary": "NGO scene object mapping across separately regenerated platform scenes",
+  "transportConnected": true,
+  "hostLocalIntentAccepted": true,
+  "remoteIntentAccepted": false,
+  "error": "NetworkPrefab hash was not found; scene NetworkObject could not spawn on WebGL client",
+  "hostReportedObjectHash": 1637104071,
+  "resolution": "Parent BuildTools will reuse and reopen the same saved scene for both platform builds, preserving scene file IDs. No internal NGO IDs are forced."
+}

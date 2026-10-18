@@ -1,0 +1,14 @@
+PASS compression reduces a representative large state
+PASS UTF8 compressed state round trip
+PASS all RPC chunks stay bounded
+PASS out-of-order chunks reconstruct exact snapshot
+PASS stale revision rejected
+PASS negative index rejected
+PASS unbounded chunk count rejected
+PASS oversized fragment rejected
+PASS outgoing raw state size limit
+PASS incoming compressed expansion exceeds raw budget and is rejected
+PASS corrupt gzip rejected
+PASS partial snapshot never applies
+PASS duplicate fragment never completes early
+RESULT: 13 network wire tests passed

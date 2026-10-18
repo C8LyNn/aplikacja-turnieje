@@ -1,0 +1,19 @@
+{
+  "testedAt": "2026-10-16T15:47:30.731Z",
+  "pass": true,
+  "baselineCommit": "ea639ee634c6cd2519f928fbe4049106548f1938",
+  "protectedPaths": [
+    "Assets/CoreClash/Core",
+    "Assets/CoreClash/Physics",
+    "Assets/Resources/Data/catalog.json",
+    "Assets/Resources/Data/featured-decks.json"
+  ],
+  "gameplaySourceChanges": 0,
+  "physicsSourceChanges": 0,
+  "catalogRecords": 227,
+  "canonicalDecks": 36,
+  "featuredDecks": 4,
+  "referenceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "referenceUnchanged": true,
+  "scope": "Source/data preservation check; network clients receive host simulation state. Physical-device equivalence requires runtime QA."
+}

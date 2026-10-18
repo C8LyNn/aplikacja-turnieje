@@ -1,0 +1,51 @@
+{
+  "testedAt": "2026-10-18T09:35:17.856Z",
+  "pass": true,
+  "deviceRuntimeTested": false,
+  "scope": "Static inspection and signature verification of the current source-built APK; no installation or physical-device runtime/network claim.",
+  "checks": [
+    {
+      "name": "Correct Core Clash package and V149 version",
+      "pass": true
+    },
+    {
+      "name": "API26 minimum",
+      "pass": true
+    },
+    {
+      "name": "Internet permission included",
+      "pass": true
+    },
+    {
+      "name": "ARM64-only native build",
+      "pass": true
+    },
+    {
+      "name": "IL2CPP runtime and metadata packaged",
+      "pass": true
+    },
+    {
+      "name": "Debug DoNotShip folders not inside APK",
+      "pass": true
+    },
+    {
+      "name": "APK cryptographic signature verifies",
+      "pass": true
+    }
+  ],
+  "apk": {
+    "path": "Builds/Android/CoreClash.apk",
+    "bytes": 26189223,
+    "sha256": "e294400eff66649b2468d9496826d442a74813490ca164eb2c563728da6709a5"
+  },
+  "manifest": [
+    "package: name='com.coreclash.classdemo' versionCode='1' versionName='149.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+    "sdkVersion:'26'",
+    "targetSdkVersion:'36'",
+    "uses-permission: name='android.permission.INTERNET'",
+    "uses-permission: name='android.permission.ACCESS_NETWORK_STATE'",
+    "uses-permission: name='com.coreclash.classdemo.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'",
+    "native-code: 'arm64-v8a'"
+  ],
+  "signature": "Verifies\r\nVerified using v1 scheme (JAR signing): false\r\nVerified using v2 scheme (APK Signature Scheme v2): true\r\nVerified using v3 scheme (APK Signature Scheme v3): false\r\nVerified using v3.1 scheme (APK Signature Scheme v3.1): false\r\nVerified using v4 scheme (APK Signature Scheme v4): false\r\nVerified for SourceStamp: false\r\nNumber of signers: 1"
+}

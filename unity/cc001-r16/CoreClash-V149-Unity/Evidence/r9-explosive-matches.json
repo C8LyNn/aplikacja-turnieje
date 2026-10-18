@@ -1,0 +1,75 @@
+{
+  "testedAt": "2026-10-16T23:53:45.5581148Z",
+  "pass": true,
+  "testOnlyDeck": [
+    "mine",
+    "timebomb",
+    "bomb",
+    "ice",
+    "agony",
+    "echo",
+    "slingshot",
+    "pinballer",
+    "ward"
+  ],
+  "matches": [
+    {
+      "seed": 0,
+      "actions": 51,
+      "turns": 50,
+      "guards": 1,
+      "explosions": 17,
+      "winner": 1,
+      "deployed": [
+        "agony",
+        "bomb",
+        "echo",
+        "ice",
+        "mine",
+        "normal",
+        "pinballer",
+        "slingshot",
+        "timebomb",
+        "ward"
+      ]
+    },
+    {
+      "seed": 1,
+      "actions": 26,
+      "turns": 25,
+      "guards": 0,
+      "explosions": 7,
+      "winner": 0,
+      "deployed": [
+        "agony",
+        "bomb",
+        "echo",
+        "ice",
+        "mine",
+        "pinballer",
+        "slingshot",
+        "timebomb",
+        "ward"
+      ]
+    },
+    {
+      "seed": 2,
+      "actions": 44,
+      "turns": 43,
+      "guards": 0,
+      "explosions": 16,
+      "winner": 0,
+      "deployed": [
+        "agony",
+        "bomb",
+        "echo",
+        "ice",
+        "mine",
+        "pinballer",
+        "slingshot",
+        "timebomb",
+        "ward"
+      ]
+    }
+  ]
+}

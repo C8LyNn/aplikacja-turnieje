@@ -1,0 +1,92 @@
+{
+  "passed": true,
+  "automation": true,
+  "elapsedSeconds": 6.813,
+  "visiblePlayer": true,
+  "windowStyle": "Normal",
+  "player": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Builds\\Windows\\CoreClash.exe",
+  "playerSha256": "97845574417B7FC4DB70BFBAA4D3F941EAB8628DF2BCC9424DBA328D3A6549C3",
+  "buildFiles": [
+    {
+      "path": "Builds/Windows/CoreClash.exe",
+      "bytes": 667648,
+      "sha256": "97845574417B7FC4DB70BFBAA4D3F941EAB8628DF2BCC9424DBA328D3A6549C3"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll",
+      "bytes": 229888,
+      "sha256": "E5912263CC740C3E7E551CDF29CCE0952D795C9B91B867864E58D931C9816981"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/resources.assets",
+      "bytes": 696156,
+      "sha256": "5927A2455862701FAB1C19CDDE4EF5872F5EA55244F239B4B52D4D6E705940CA"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/level0",
+      "bytes": 3428,
+      "sha256": "65186044F68603493924E37E05FA294773986FDF0A61A48C8BB3749651D005FE"
+    }
+  ],
+  "exitCode": 0,
+  "runtimeEvidence": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Evidence\\r9-native\\r6-native-runtime.json",
+  "log": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Evidence\\r9-native\\r6-native-player.log",
+  "captures": [
+    {
+      "file": "r6-native-01-deck-selection.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 262173,
+      "sha256": "C0BBDBC3527513E0EEDED513F0E3F0CE5DBEB972E55A92B14A1F5E415E51B94B",
+      "sampledColors": 1152
+    },
+    {
+      "file": "r6-native-02-aim.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 222639,
+      "sha256": "A649029732AAC357DC0F5A57D2D7F0D7993848D949194812EE07095D90739A0D",
+      "sampledColors": 928
+    },
+    {
+      "file": "r6-native-03-gameplay.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 209564,
+      "sha256": "0101FE0D0376A2453811FCB109D4BEC987EB01E38CB7526BF67E5A1A424ED777",
+      "sampledColors": 924
+    },
+    {
+      "file": "r6-native-04-ball-details.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 127939,
+      "sha256": "D98AE67F196162E8DC0FB14132DAA90E88644581B7DBE838E34845A485034236",
+      "sampledColors": 368
+    },
+    {
+      "file": "r6-native-05-developer-details.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 166637,
+      "sha256": "AA7FB545202DD673F1B52DDB4D27DD4492DD7E809EC16B7E8C3ADAAE08832EE6",
+      "sampledColors": 452
+    },
+    {
+      "file": "r6-native-06-match-result.png",
+      "width": 1280,
+      "height": 900,
+      "bytes": 338138,
+      "sha256": "17913D2C7D847C141FFD890A04057D3A6CC9705E90EB49DBDC9D8A3AE0D0FBD9",
+      "sampledColors": 1482
+    }
+  ],
+  "launches": 51,
+  "turns": 50,
+  "winner": 0,
+  "baseHp": [
+    11,
+    3
+  ],
+  "result": "50 turns: base HP"
+}

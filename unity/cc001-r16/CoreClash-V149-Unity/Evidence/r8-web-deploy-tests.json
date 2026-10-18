@@ -1,0 +1,51 @@
+{
+  "testedAt": "2026-10-16T23:26:49.406Z",
+  "passed": 11,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "Exact current bytes and MIME types pass under a website subdirectory",
+      "pass": true
+    },
+    {
+      "name": "Deployment verifier rejects HTML fallback",
+      "pass": true
+    },
+    {
+      "name": "Deployment verifier rejects stale bytes",
+      "pass": true
+    },
+    {
+      "name": "Deployment verifier rejects missing data",
+      "pass": true
+    },
+    {
+      "name": "Deployment verifier rejects wrong wasm MIME",
+      "pass": true
+    },
+    {
+      "name": "Deployment verifier rejects asset redirect",
+      "pass": true
+    },
+    {
+      "name": "Long immutable cache is a visible deployment warning",
+      "pass": true
+    },
+    {
+      "name": "The shared folder URL must load, even when direct index.html works",
+      "pass": true
+    },
+    {
+      "name": "HTTP is blocked without explicit loopback test mode",
+      "pass": true
+    },
+    {
+      "name": "Loopback exception never accepts a public HTTP website",
+      "pass": true
+    },
+    {
+      "name": "Base URL rejects credentials, query and fragment",
+      "pass": true
+    }
+  ]
+}

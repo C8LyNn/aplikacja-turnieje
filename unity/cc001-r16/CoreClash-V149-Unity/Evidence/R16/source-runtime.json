@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-18T09:26:13.495Z",
+  "scope": "Actual unchanged V148 HTML runtime with temporary in-memory probe; no disk edits or frame parity claim.",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "pass": true,
+  "tests": [
+    {
+      "name": "embertrap one enemy charge",
+      "pass": true,
+      "radius": 14,
+      "charge": 0,
+      "fire": 1,
+      "ice": 0,
+      "toxin": false
+    },
+    {
+      "name": "frosttrap one enemy charge",
+      "pass": true,
+      "radius": 14,
+      "charge": 0,
+      "fire": 0,
+      "ice": 1,
+      "toxin": false
+    },
+    {
+      "name": "sporetrap one enemy charge",
+      "pass": true,
+      "radius": 14,
+      "charge": 0,
+      "fire": 0,
+      "ice": 0,
+      "toxin": true
+    },
+    {
+      "name": "Venom weak TOUCH infection then payoff",
+      "pass": true,
+      "infected": true,
+      "hp": 25,
+      "venomHp": 20
+    },
+    {
+      "name": "Shatterer weak TOUCH consumes two ICE",
+      "pass": true,
+      "hp": 25,
+      "ice": 0,
+      "frozen": 0
+    }
+  ],
+  "sourceUnchanged": true
+}

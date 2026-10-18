@@ -1,0 +1,10 @@
+*.cs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ps1 text eol=lf
+*.cjs text eol=lf
+*.unity -whitespace
+*.meta -whitespace
+*.asset -whitespace
+Evidence/*.log -whitespace
+Legacy/*.html -text

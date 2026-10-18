@@ -1,0 +1,23 @@
+{
+  "testedAt": "2026-10-18T09:29:21.261Z",
+  "pass": true,
+  "scope": "Real QA runner with dotnet removed from child PATH; must fail without copying seeded historical test PASS files",
+  "status": [
+    {
+      "name": "data",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "managed",
+      "exitCode": null,
+      "status": "BLOCKED"
+    },
+    {
+      "name": "codec",
+      "exitCode": 1,
+      "status": "FAIL"
+    }
+  ],
+  "run": "2026-10-18T09-29-20-711Z"
+}

@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),vm=require('node:vm');
+const root=path.resolve(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'Assets/WebGLTemplates/CoreClash/index.html'),'utf8');
+assert(html.includes('100dvh'),'Dynamic browser height must be supported');
+assert(html.includes('viewport-fit=cover'),'Safe areas must be available');
+assert(html.includes('touch-action: none'),'Canvas gestures must not scroll the page');
+assert(html.includes('devicePixelRatio: 1'),'Unity screen and CSS input coordinates must agree');
+assert(html.includes('CoreClashViewport'),'Bridge for safe-area and touch queries');
+assert(html.includes('joinCode')&&html.includes('joinHost'),'Join URL parameters must survive loader startup');
+const bridge=fs.readFileSync(path.join(root,'Assets/Plugins/WebGL/DeviceViewport.jslib'),'utf8');
+const functions={};vm.runInNewContext(bridge,{mergeInto:(a,b)=>Object.assign(a,b),LibraryManager:{library:functions}});
+assert.equal(Object.keys(functions).length,5);
+const context={window:{CoreClashViewport:{touch:()=>true,inset:side=>({left:12,top:7,right:4,bottom:3})[side]}},mergeInto:(a,b)=>Object.assign(a,b),LibraryManager:{library:{}}};
+vm.createContext(context);vm.runInContext(bridge,context);const f=context.LibraryManager.library;
+assert.equal(f.CcTouchCapable(),1);assert.equal(f.CcSafeInsetLeft(),12);assert.equal(f.CcSafeInsetTop(),7);assert.equal(f.CcSafeInsetRight(),4);assert.equal(f.CcSafeInsetBottom(),3);
+console.log('PASS responsive WebGL shell and five viewport bridge getters');

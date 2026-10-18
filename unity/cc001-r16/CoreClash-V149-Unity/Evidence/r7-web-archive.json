@@ -1,0 +1,49 @@
+{
+  "verifiedAt": "2026-10-16T16:47:18.3445690Z",
+  "pass": true,
+  "archive": "C:/Users/kubap/Desktop/CoreClash-V149-WebGL-R7-Hosting.zip",
+  "bytes": 12064186,
+  "sha256": "fd8c5e74f565f2c5aa84788ab3d5205342d3be78e70ab0e46c3230bf72526fa4",
+  "entries": [
+    {
+      "path": "index.html",
+      "bytes": 6032,
+      "sha256": "2367df37873a75887d8cc1f9f216e883b0d575c3e623bf2b3fa1fd756958a750"
+    },
+    {
+      "path": "Build/WebGL.data",
+      "bytes": 9552215,
+      "sha256": "c8fce237be238dc3a41824b66c867dfa73a646968d47a5ac6ecf6ce788a122e1"
+    },
+    {
+      "path": "Build/WebGL.framework.js",
+      "bytes": 443990,
+      "sha256": "f275c3272f5666908efe965d1a2da32ae53a7f1330507e1858183c143aeef98e"
+    },
+    {
+      "path": "Build/WebGL.loader.js",
+      "bytes": 26982,
+      "sha256": "d847de3bc0a35d2bafe57fe8ff90c7e6ff3d42fc389725c538ad965ed8931d82"
+    },
+    {
+      "path": "Build/WebGL.wasm",
+      "bytes": 34573342,
+      "sha256": "b6be6a267d6538b8c71aa86e31d3668806e2417374689641e8991871d52bb044"
+    },
+    {
+      "path": "StreamingAssets/UnityServicesProjectConfiguration.json",
+      "bytes": 2335,
+      "sha256": "2e63b90c648bb7e413a0625c59394b8313543fb6442d31d4622b00f2ff757783"
+    },
+    {
+      "path": "TemplateData/profiler.js",
+      "bytes": 1573,
+      "sha256": "433e40af9a544d1ef5fec67b0b52af25a851928626c3f3ef0d09b35ded610c0d"
+    },
+    {
+      "path": "release-manifest.json",
+      "bytes": 1302,
+      "sha256": "d0a5adb3e01bf2da4a923f547c597cec9a56aad1c8ff7c37f2913b4612a8396a"
+    }
+  ]
+}

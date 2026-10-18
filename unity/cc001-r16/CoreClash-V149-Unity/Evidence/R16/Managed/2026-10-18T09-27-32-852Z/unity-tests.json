@@ -1,0 +1,1084 @@
+{
+  "spec": "V149 UNITY",
+  "testedAt": "2026-10-18T09:27:40.2886856Z",
+  "passed": 269,
+  "failed": 0,
+  "results": [
+    {
+      "name": "new match has source bases and distinct owners",
+      "pass": true
+    },
+    {
+      "name": "wrong owner cannot consume stock or create a ball",
+      "pass": true
+    },
+    {
+      "name": "NaN and infinite aim cannot mutate match",
+      "pass": true
+    },
+    {
+      "name": "launch consumes one special and follows owner forward direction",
+      "pass": true
+    },
+    {
+      "name": "Standard has unlimited stock",
+      "pass": true
+    },
+    {
+      "name": "unavailable special is rejected before spawn",
+      "pass": true
+    },
+    {
+      "name": "replay stays in same turn and each ball replays once",
+      "pass": true
+    },
+    {
+      "name": "second player gets exactly one extra spawn before turn advances",
+      "pass": true
+    },
+    {
+      "name": "enemy collision damage follows closing speed and not five-HP packets",
+      "pass": true
+    },
+    {
+      "name": "weak collision does not damage",
+      "pass": true
+    },
+    {
+      "name": "friendly collision causes no kinetic HP loss",
+      "pass": true
+    },
+    {
+      "name": "STOP requires hold and emits once until motion restarts",
+      "pass": true
+    },
+    {
+      "name": "shield absorbs exact kinetic damage before HP",
+      "pass": true
+    },
+    {
+      "name": "simultaneous destroyed bases resolve as a draw",
+      "pass": true
+    },
+    {
+      "name": "50-turn tie-break uses base HP then board count then draw",
+      "pass": true
+    },
+    {
+      "name": "enemy-zone pressure uses touching circumference",
+      "pass": true
+    },
+    {
+      "name": "center lead of two deals one and lead of four deals three",
+      "pass": true
+    },
+    {
+      "name": "fire and ice cancel the opposite status before adding stacks",
+      "pass": true
+    },
+    {
+      "name": "toxin ticks only on target owner turns",
+      "pass": true
+    },
+    {
+      "name": "blight zone infects at turn end and expires after three ticks",
+      "pass": true
+    },
+    {
+      "name": "consecrator cleanse emits an Absolver shield payoff",
+      "pass": true
+    },
+    {
+      "name": "Ward cleans modeled negative statuses and adds cleanse payoff",
+      "pass": true
+    },
+    {
+      "name": "Penitent transfers oldest eligible status rather than cleansing it",
+      "pass": true
+    },
+    {
+      "name": "Septic Core needs two qualified hits across per-target turn limits",
+      "pass": true
+    },
+    {
+      "name": "rooted enemies enable Briarheart and cannot be displaced",
+      "pass": true
+    },
+    {
+      "name": "Bonfire copied death effect heals allies and burns enemies without killing source",
+      "pass": true
+    },
+    {
+      "name": "Cascade return chain preserves lineage and has no fourth life",
+      "pass": true
+    },
+    {
+      "name": "Packheart rewards returned ally once per target turn",
+      "pass": true
+    },
+    {
+      "name": "Gravehide upgrades after qualifying returns on three turns",
+      "pass": true
+    },
+    {
+      "name": "singularity consume does not fire death or add graveyard records",
+      "pass": true
+    },
+    {
+      "name": "Mimic steals type while keeping both owners",
+      "pass": true
+    },
+    {
+      "name": "Doppelganger copies enemy type without changing enemy",
+      "pass": true
+    },
+    {
+      "name": "Traitor converts enemy and changes sides as Standard",
+      "pass": true
+    },
+    {
+      "name": "Wildcard transforms to existing non-unique identity",
+      "pass": true
+    },
+    {
+      "name": "Collector records enemy death and replays collected elemental signature",
+      "pass": true
+    },
+    {
+      "name": "Echo can repeat an enemy STOP ability",
+      "pass": true
+    },
+    {
+      "name": "Time Shift swaps with nearest enemy in short range",
+      "pass": true
+    },
+    {
+      "name": "Chronomancer alternates save and one consumed restore",
+      "pass": true
+    },
+    {
+      "name": "Paradox restores beginning-of-turn state without consuming it",
+      "pass": true
+    },
+    {
+      "name": "Requiem repeats Bonfire without killing it",
+      "pass": true
+    },
+    {
+      "name": "Reclaimer pays HP once to revive oldest eligible ally",
+      "pass": true
+    },
+    {
+      "name": "Webber places four single-use root nodes",
+      "pass": true
+    },
+    {
+      "name": "Vinehook pulls nearest unanchored enemy",
+      "pass": true
+    },
+    {
+      "name": "Harpoon selects the farthest enemy within long range",
+      "pass": true
+    },
+    {
+      "name": "Vortex heals when a rooted enemy resists its pull",
+      "pass": true
+    },
+    {
+      "name": "Gatekeeper recast keeps one pair and death removes it",
+      "pass": true
+    },
+    {
+      "name": "Gatekeeper transit preserves most momentum with cooldown",
+      "pass": true
+    },
+    {
+      "name": "Horizon Relay converts three enemy consumes to one base damage",
+      "pass": true
+    },
+    {
+      "name": "Singularity creates a growing bounded consumption field on death",
+      "pass": true
+    },
+    {
+      "name": "Wildfire leaves a three-tick fire field after death",
+      "pass": true
+    },
+    {
+      "name": "Soulburst copied effect grows with missing HP",
+      "pass": true
+    },
+    {
+      "name": "Plagueleech binds a clean enemy then drains on its own turn",
+      "pass": true
+    },
+    {
+      "name": "Vector spreads toxin when an infected enemy actually dies",
+      "pass": true
+    },
+    {
+      "name": "Halo blocks exactly the first kinetic damage instance",
+      "pass": true
+    },
+    {
+      "name": "Gravity Mine arms at STOP and detonates on enemy entry",
+      "pass": true
+    },
+    {
+      "name": "ordinary native collisions do not create kinetic energy",
+      "pass": true
+    },
+    {
+      "name": "third fire stack spreads to nearby enemies without igniting allies",
+      "pass": true
+    },
+    {
+      "name": "new active player cannot inherit a ball outside their deck",
+      "pass": true
+    },
+    {
+      "name": "exhausted selection falls back to unlimited Standard",
+      "pass": true
+    },
+    {
+      "name": "presentation arena and controls remain usable at 1280x900",
+      "pass": true
+    },
+    {
+      "name": "presentation arena and controls remain usable at 960x600",
+      "pass": true
+    },
+    {
+      "name": "presentation arena and controls remain usable at 1920x1080",
+      "pass": true
+    },
+    {
+      "name": "presentation arena and controls remain usable at 390x844",
+      "pass": true
+    },
+    {
+      "name": "presentation arena and controls remain usable at 844x390",
+      "pass": true
+    },
+    {
+      "name": "deck row separates its full name, all nine previews and player actions at width 248",
+      "pass": true
+    },
+    {
+      "name": "deck row separates its full name, all nine previews and player actions at width 318",
+      "pass": true
+    },
+    {
+      "name": "deck row separates its full name, all nine previews and player actions at width 595",
+      "pass": true
+    },
+    {
+      "name": "deck row separates its full name, all nine previews and player actions at width 888",
+      "pass": true
+    },
+    {
+      "name": "narrow rows give a nine-ball preview its own band before either player action",
+      "pass": true
+    },
+    {
+      "name": "wide library rows keep compact selection while allowing a wrapped name",
+      "pass": true
+    },
+    {
+      "name": "every catalog ball has a unique short ASCII identity mark",
+      "pass": true
+    },
+    {
+      "name": "identity marks do not depend on catalog order or current culture",
+      "pass": true
+    },
+    {
+      "name": "identity marks tolerate punctuation and non ASCII names without aliases",
+      "pass": true
+    },
+    {
+      "name": "runtime inspection binds exact instance and follows new snapshots read only",
+      "pass": true
+    },
+    {
+      "name": "inspection retains simultaneous independent states and exact shield amount",
+      "pass": true
+    },
+    {
+      "name": "board inspection finds either owner without turn permission and ignores removed balls",
+      "pass": true
+    },
+    {
+      "name": "wall guide reflects at the ball centre boundary",
+      "pass": true
+    },
+    {
+      "name": "wall guide preserves a direct shot before the wall",
+      "pass": true
+    },
+    {
+      "name": "corner guide reflects both axes and remains inside",
+      "pass": true
+    },
+    {
+      "name": "invalid aim guide cannot generate nonfinite drawing coordinates",
+      "pass": true
+    },
+    {
+      "name": "feedback observes real damage once across repeated snapshots",
+      "pass": true
+    },
+    {
+      "name": "feedback expires on presentation time even after match ends",
+      "pass": true
+    },
+    {
+      "name": "feedback never replays a stale joining snapshot",
+      "pass": true
+    },
+    {
+      "name": "a burst of real effects cannot grow the presentation buffer without bound",
+      "pass": true
+    },
+    {
+      "name": "feedback resets for a new match with reused event IDs",
+      "pass": true
+    },
+    {
+      "name": "LAN advertisement has only five bounded invitation fields",
+      "pass": true
+    },
+    {
+      "name": "LAN rooms use actual sender address and expire",
+      "pass": true
+    },
+    {
+      "name": "invitation query validates address and gameplay port",
+      "pass": true
+    },
+    {
+      "name": "WebRoot paths reject traversal and preserve Unity MIME types",
+      "pass": true
+    },
+    {
+      "name": "real loopback UDP advertisement reaches native room listener",
+      "pass": true
+    },
+    {
+      "name": "real TcpListener serves only bounded read-only WebRoot files",
+      "pass": true
+    },
+    {
+      "name": "showcase Death primary: Agony Cascade RETURN Packheart Gravehide over three turns",
+      "pass": true
+    },
+    {
+      "name": "showcase Death secondary: Requiem repeats Bonfire and Wildfire without their death",
+      "pass": true
+    },
+    {
+      "name": "showcase Death emergent: Reclaimer revive emits RETURN to Packheart and Gravehide",
+      "pass": true
+    },
+    {
+      "name": "showcase Status primary: pool infection enables Septic burst and actual death enables Vector",
+      "pass": true
+    },
+    {
+      "name": "showcase Status secondary: Penitent transfer Consecrator cleanse Absolver shield",
+      "pass": true
+    },
+    {
+      "name": "showcase Status emergent: Ward full native cleanse triggers Absolver once",
+      "pass": true
+    },
+    {
+      "name": "showcase Gravity primary: Web root enables Briarheart HIT payoff",
+      "pass": true
+    },
+    {
+      "name": "showcase Gravity secondary: real hole consumes charge Horizon and skip death/RETURN",
+      "pass": true
+    },
+    {
+      "name": "showcase Reality primary: Echo rewinds both temporal allies using their distinct saves",
+      "pass": true
+    },
+    {
+      "name": "showcase Reality secondary: Traitor captures a STOP ability that Echo can repeat",
+      "pass": true
+    },
+    {
+      "name": "showcase Reality emergent: Mimic current identity on death feeds Collector signature",
+      "pass": true
+    },
+    {
+      "name": "planning freezes physical state and continuous abilities until a launch",
+      "pass": true
+    },
+    {
+      "name": "catalog ability status matches native support and preserves imported metadata",
+      "pass": true
+    },
+    {
+      "name": "thawed ice cannot consume Penitent transfer ahead of a live toxin",
+      "pass": true
+    },
+    {
+      "name": "Gravity Mine explodes at its armed field even after the source is displaced",
+      "pass": true
+    },
+    {
+      "name": "canceled touch never launches",
+      "pass": true
+    },
+    {
+      "name": "other finger cannot release active aim",
+      "pass": true
+    },
+    {
+      "name": "host rejects duplicate and spoofed intent",
+      "pass": true
+    },
+    {
+      "name": "snapshot client retains state without advancing physics",
+      "pass": true
+    },
+    {
+      "name": "complete local Unity match with DEATH ENGINE",
+      "pass": true
+    },
+    {
+      "name": "complete local Unity match with STATUS REACTOR",
+      "pass": true
+    },
+    {
+      "name": "complete local Unity match with GRAVITY TRAP",
+      "pass": true
+    },
+    {
+      "name": "complete local Unity match with REALITY HACKERS",
+      "pass": true
+    },
+    {
+      "name": "LAN approval reserves the sole remote seat before connection completes",
+      "pass": true
+    },
+    {
+      "name": "LAN disconnect frees P2 while late old callbacks cannot release the replacement",
+      "pass": true
+    },
+    {
+      "name": "aborted LAN joins release their reservation without granting authority",
+      "pass": true
+    },
+    {
+      "name": "LAN reservation timeout rejects late completion but does not expire connected P2",
+      "pass": true
+    },
+    {
+      "name": "LAN endpoints accept canonical unicast IPv4 and reject malformed connection input",
+      "pass": true
+    },
+    {
+      "name": "replacement P2 starts sequence one against the same match and still rejects duplicate and spoof",
+      "pass": true
+    },
+    {
+      "name": "Pinned MPS untyped full-room detail gives actionable guidance",
+      "pass": true
+    },
+    {
+      "name": "Invalid service code detail is translated without echoing service content",
+      "pass": true
+    },
+    {
+      "name": "Internet invitation normalizes codes and reads only the explicit joinCode query",
+      "pass": true
+    },
+    {
+      "name": "Internet share URL preserves the hosted game path and removes old connection parameters",
+      "pass": true
+    },
+    {
+      "name": "Canceled Internet creation cannot revive networking or unlock a later request",
+      "pass": true
+    },
+    {
+      "name": "phone portrait reserves a practical launcher board above its touch tray",
+      "pass": true
+    },
+    {
+      "name": "short landscape phone uses a bounded scrollable side panel at 667x325",
+      "pass": true
+    },
+    {
+      "name": "short landscape phone uses a bounded scrollable side panel at 568x270",
+      "pass": true
+    },
+    {
+      "name": "short landscape phone uses a bounded scrollable side panel at 844x340",
+      "pass": true
+    },
+    {
+      "name": "native phone density and safe area preserve readable logical coordinates",
+      "pass": true
+    },
+    {
+      "name": "tablet portrait and landscape use their extra board and tray space",
+      "pass": true
+    },
+    {
+      "name": "desktop high DPI keeps the same logical board and controls",
+      "pass": true
+    },
+    {
+      "name": "safe area pointer mapping and raw arena conversion agree in both origins",
+      "pass": true
+    },
+    {
+      "name": "invalid viewport geometry cannot create nonfinite or negative coordinates",
+      "pass": true
+    },
+    {
+      "name": "profile overrides preserve transform and auto can be restored",
+      "pass": true
+    },
+    {
+      "name": "touch library rows allocate separate 44 point actions without covering previews",
+      "pass": true
+    },
+    {
+      "name": "primary touch survives finger array reorder and cannot be released by another finger",
+      "pass": true
+    },
+    {
+      "name": "missing primary cancels once and a held secondary never becomes a new drag",
+      "pass": true
+    },
+    {
+      "name": "focus or orientation reset cannot resume a held touch launch",
+      "pass": true
+    },
+    {
+      "name": "desktop and safe area phone gestures submit identical world intents",
+      "pass": true
+    },
+    {
+      "name": "Pinballer STOP places a five-charge bumper by the nearest edge",
+      "pass": true
+    },
+    {
+      "name": "Pinballer respects occupied edge points and the fourteen-structure cap",
+      "pass": true
+    },
+    {
+      "name": "Pinballer no-space placement fails cleanly and source death preserves its bumper",
+      "pass": true
+    },
+    {
+      "name": "Bumper rebounds friendly balls without consuming charges",
+      "pass": true
+    },
+    {
+      "name": "Three distinct enemy impacts destroy a bumper and obey type speed caps",
+      "pass": true
+    },
+    {
+      "name": "Slingshot gathers nearby allies and launches along its last heading",
+      "pass": true
+    },
+    {
+      "name": "Slingshot respects root freeze force resistance and legal geometry",
+      "pass": true
+    },
+    {
+      "name": "Slingshot skips blocked placements without teleporting through structures",
+      "pass": true
+    },
+    {
+      "name": "A late Slingshot launch gets time to resolve instead of the old action timeout",
+      "pass": true
+    },
+    {
+      "name": "Slingshot settling extensions stay bounded and the next command resets them",
+      "pass": true
+    },
+    {
+      "name": "Copying Ram clears any previous identity\u0027s action-use history",
+      "pass": true
+    },
+    {
+      "name": "Ram adds impact damage recoil and force on its first enemy HIT",
+      "pass": true
+    },
+    {
+      "name": "Ram ignores TOUCH and allies and only fires once per action",
+      "pass": true
+    },
+    {
+      "name": "Jammed Ram consumes suppression without applying its primary hit",
+      "pass": true
+    },
+    {
+      "name": "Echo repeats Pinballer STOP through the shared effect resolver",
+      "pass": true
+    },
+    {
+      "name": "Mimic copies a live Pinballer power and preserves player ownership",
+      "pass": true
+    },
+    {
+      "name": "New geometry and Ram action history survive an authoritative snapshot",
+      "pass": true
+    },
+    {
+      "name": "Legal mixed-deck matches deploy all three newly ported identities and settle",
+      "pass": true
+    },
+    {
+      "name": "Mine STOP arms without exploding or starting a timed fuse",
+      "pass": true
+    },
+    {
+      "name": "Unarmed Mine and friendly contact never trigger an explosion",
+      "pass": true
+    },
+    {
+      "name": "Armed Mine reacts to weak enemy TOUCH and explodes only once",
+      "pass": true
+    },
+    {
+      "name": "Frost disarms Mine before contact while an allied Frost cannot",
+      "pass": true
+    },
+    {
+      "name": "Destroyed Mine does not acquire a death explosion",
+      "pass": true
+    },
+    {
+      "name": "A fast Frost crossing the ring between physics steps still disarms Mine",
+      "pass": true
+    },
+    {
+      "name": "Armed Mine detonates before Mimic or Traitor in either contact order",
+      "pass": true
+    },
+    {
+      "name": "Enemy armed Mines capture both contact triggers before either explodes",
+      "pass": true
+    },
+    {
+      "name": "Replaying Mine disarms it until its next STOP",
+      "pass": true
+    },
+    {
+      "name": "Time Bomb counts only two own turn starts and shows its fuse",
+      "pass": true
+    },
+    {
+      "name": "Time Bomb enemy contact does not use Mine\u0027s touch trigger",
+      "pass": true
+    },
+    {
+      "name": "A repeated Time Bomb STOP resets the two-turn setup",
+      "pass": true
+    },
+    {
+      "name": "Time Bomb killed before its fuse expires has no death explosion",
+      "pass": true
+    },
+    {
+      "name": "Jammed STOP suppresses arming and a jammed timer turn spends no tick",
+      "pass": true
+    },
+    {
+      "name": "Bomb STOP explodes and dies once with friendly fire",
+      "pass": true
+    },
+    {
+      "name": "Bomb premature death retains its existing one-time death blast",
+      "pass": true
+    },
+    {
+      "name": "Agony can repeat a living Bomb death payload without consuming the Bomb",
+      "pass": true
+    },
+    {
+      "name": "Echo arms nearby explosive STOP powers and detonates a Bomb",
+      "pass": true
+    },
+    {
+      "name": "Mimic steals a timed identity without inheriting its running fuse",
+      "pass": true
+    },
+    {
+      "name": "Authoritative snapshots retain armed Mine and remaining Time Bomb turns",
+      "pass": true
+    },
+    {
+      "name": "A bounded safety settle advances the action once without repeated guard events",
+      "pass": true
+    },
+    {
+      "name": "Three legal mixed explosive matches finish including bounded launch chains",
+      "pass": true
+    },
+    {
+      "name": "R10 Wallmaker STOP creates exactly three independent pillars",
+      "pass": true
+    },
+    {
+      "name": "R10 Wallmaker refuses partial row when fewer than three slots remain",
+      "pass": true
+    },
+    {
+      "name": "R10 structure placement keeps both firing fields empty and respects global cap",
+      "pass": true
+    },
+    {
+      "name": "R10 Repair Pulse repairs own damaged construction before shielding a ball",
+      "pass": true
+    },
+    {
+      "name": "R10 Repair Pulse ignores enemy structures and caps shield",
+      "pass": true
+    },
+    {
+      "name": "R10 Engineer repairs before building and counts only own living segments",
+      "pass": true
+    },
+    {
+      "name": "R10 Barricade makes at most four segments, respects blocked geometry",
+      "pass": true
+    },
+    {
+      "name": "R10 Bastion shields nearest teammate or falls back to self",
+      "pass": true
+    },
+    {
+      "name": "R10 structure collisions count separate episodes, not repeated overlap frames",
+      "pass": true
+    },
+    {
+      "name": "R10 structure lifecycle is included in authoritative JSON snapshots",
+      "pass": true
+    },
+    {
+      "name": "R11 Commander shields only allied Standards, including generated tokens, to cap 10",
+      "pass": true
+    },
+    {
+      "name": "R11 Quartermaster creates Standard 10HP on every second distinct own turn without stock",
+      "pass": true
+    },
+    {
+      "name": "R11 blocked Quartermaster spawn keeps progress and retries once",
+      "pass": true
+    },
+    {
+      "name": "R11 Quartermaster token is not put into normal graveyard and has no stock cost",
+      "pass": true
+    },
+    {
+      "name": "R11 Armorer STOP only shields nearby allied Standards to 15, Echo-compatible",
+      "pass": true
+    },
+    {
+      "name": "R11 Splitter STOP replaces parent with two token shards, not a DEATH trigger",
+      "pass": true
+    },
+    {
+      "name": "R11 Splitter limits to one shard with eleven friendly living units",
+      "pass": true
+    },
+    {
+      "name": "R11 Splitter does not self-destruct if no spawn capacity remains",
+      "pass": true
+    },
+    {
+      "name": "R11 Egg Sac death makes four 5HP radial tokens without invalid overlaps",
+      "pass": true
+    },
+    {
+      "name": "R11 Brood Core dies after fifth successful 5HP birth despite V149 30HP",
+      "pass": true
+    },
+    {
+      "name": "R11 reinforcement and counters survive authoritative snapshot transport",
+      "pass": true
+    },
+    {
+      "name": "R11 Ball Inspection exposes reinforcement progress",
+      "pass": true
+    },
+    {
+      "name": "R11 Echo repeats Armorer STOP for nearby Standard without double counting",
+      "pass": true
+    },
+    {
+      "name": "R11 jam suppresses one Armorer STOP instead of shielding",
+      "pass": true
+    },
+    {
+      "name": "R12 Hatchery produces one 5HP Broodling after two distinct own turns",
+      "pass": true
+    },
+    {
+      "name": "R12 Hatchery caps at three and never creates extra Broodlings",
+      "pass": true
+    },
+    {
+      "name": "R12 Hatchery retries a blocked birth without using stock or progress",
+      "pass": true
+    },
+    {
+      "name": "R12 Replicator clones inherited current HP every two own turns",
+      "pass": true
+    },
+    {
+      "name": "R12 Replicator respects three living owners\u0027 replicas incl. generated",
+      "pass": true
+    },
+    {
+      "name": "R12 Replicator timer resets on capacity block, no partial birth",
+      "pass": true
+    },
+    {
+      "name": "R12 Mitosis splits on weak ball contact and only once",
+      "pass": true
+    },
+    {
+      "name": "R12 Mitosis jam blocks one contact, next eligible contact splits",
+      "pass": true
+    },
+    {
+      "name": "R12 Mitosis cannot split beyond global live-ball cap",
+      "pass": true
+    },
+    {
+      "name": "R12 Mitosis pair resolves before identity theft regardless of source order",
+      "pass": true
+    },
+    {
+      "name": "R12 Swarm Core DEATH summons three non-stock shard tokens",
+      "pass": true
+    },
+    {
+      "name": "R12 Agony can repeat Swarm Core death effect while source survives",
+      "pass": true
+    },
+    {
+      "name": "R12 Conscriptor promotes nearest allied Standard within long range",
+      "pass": true
+    },
+    {
+      "name": "R12 Conscriptor death repeats can upgrade token Standards, not distant ones",
+      "pass": true
+    },
+    {
+      "name": "R12 Evolution counters and Veteran markers survive authoritative JSON snapshot",
+      "pass": true
+    },
+    {
+      "name": "R12 Evolution status labels are readable",
+      "pass": true
+    },
+    {
+      "name": "R12 identity changes clear counters so copied abilities start fresh",
+      "pass": true
+    },
+    {
+      "name": "R13 Firebrand STOP burns enemies within 100 but never allies/outside",
+      "pass": true
+    },
+    {
+      "name": "R13 Firebrand cancels existing ICE without igniting immediately",
+      "pass": true
+    },
+    {
+      "name": "R13 Echo repeats Firebrand STOP using normal elemental rules",
+      "pass": true
+    },
+    {
+      "name": "R13 Chain Frost selects four successive, nonrepeating targets with two ranges",
+      "pass": true
+    },
+    {
+      "name": "R13 Chain Frost stops at gap larger than SHORT after first hop",
+      "pass": true
+    },
+    {
+      "name": "R13 Chain Frost never affects allies or picks the same enemy twice",
+      "pass": true
+    },
+    {
+      "name": "R13 Ash Core gains at most 5 shield per distinct own turn and caps at 15",
+      "pass": true
+    },
+    {
+      "name": "R13 Ash Core does not gain shield for allied burn or cured enemies",
+      "pass": true
+    },
+    {
+      "name": "R13 Furnace makes a single owner-bound 3-tick field and ignites at TURN END",
+      "pass": true
+    },
+    {
+      "name": "R13 Furnace repeated own-turn callback does not duplicate zones",
+      "pass": true
+    },
+    {
+      "name": "R13 Furnace respects FIRE versus ICE cancellation at turn end",
+      "pass": true
+    },
+    {
+      "name": "R13 Frostguard anchors on STOP, shields to cap and freezes only enemy HIT",
+      "pass": true
+    },
+    {
+      "name": "R13 Frostguard counter-freeze never hits allied impacts",
+      "pass": true
+    },
+    {
+      "name": "R13 Frostguard anchor deactivates on a normal launch",
+      "pass": true
+    },
+    {
+      "name": "R13 copying a Frostguard starts without the original anchor",
+      "pass": true
+    },
+    {
+      "name": "R13 elemental runtime fields survive host snapshot",
+      "pass": true
+    },
+    {
+      "name": "R14 structure repair works on another ability\u0027s Wallmaker pillars",
+      "pass": true
+    },
+    {
+      "name": "R14 Commander grants reinforcement shields to generated Quartermaster Standards",
+      "pass": true
+    },
+    {
+      "name": "R14 Firebrand can ignite R12 Replicator copies without damaging ownership",
+      "pass": true
+    },
+    {
+      "name": "R14 combined construction, generated units and elemental fields round-trip",
+      "pass": true
+    },
+    {
+      "name": "R15 wildcard RNG advances inside serialized authoritative GameState",
+      "pass": true
+    },
+    {
+      "name": "R15 restored RNG yields the same future wildcard and next RNG state",
+      "pass": true
+    },
+    {
+      "name": "R15 malformed nested network snapshot is rejected without replacing good state",
+      "pass": true
+    },
+    {
+      "name": "R15 snapshot rejects zero RNG, nonfinite structures and missing subtrees",
+      "pass": true
+    },
+    {
+      "name": "R16 snapshot rejects null presentation events and status stamps atomically",
+      "pass": true
+    },
+    {
+      "name": "R16 snapshot rejects nonfinite zone event and saved-state geometry",
+      "pass": true
+    },
+    {
+      "name": "R16 snapshot rejects duplicate IDs and invalid next-ID cursor",
+      "pass": true
+    },
+    {
+      "name": "R16 malformed snapshots do not throw or poison later revision",
+      "pass": true
+    },
+    {
+      "name": "R16 embertrap STOP places persistent single enemy charge without stock cost",
+      "pass": true
+    },
+    {
+      "name": "R16 embertrap ignores phased banished dead targets and survives source death",
+      "pass": true
+    },
+    {
+      "name": "R16 frosttrap STOP places persistent single enemy charge without stock cost",
+      "pass": true
+    },
+    {
+      "name": "R16 frosttrap ignores phased banished dead targets and survives source death",
+      "pass": true
+    },
+    {
+      "name": "R16 sporetrap STOP places persistent single enemy charge without stock cost",
+      "pass": true
+    },
+    {
+      "name": "R16 sporetrap ignores phased banished dead targets and survives source death",
+      "pass": true
+    },
+    {
+      "name": "R16 elemental trap placement obeys geometry and 256 live zone cap",
+      "pass": true
+    },
+    {
+      "name": "R16 trap is consumed before FIRE ICE cancellation and never roots or explodes",
+      "pass": true
+    },
+    {
+      "name": "R16 Echo repeats trap STOP while jam suppresses one placement",
+      "pass": true
+    },
+    {
+      "name": "R16 Venom TOUCH infects a clean enemy without damage or healing",
+      "pass": true
+    },
+    {
+      "name": "R16 Venom TOUCH pays off existing TOXIN and caps healing",
+      "pass": true
+    },
+    {
+      "name": "R16 Venom ignores allies and Plague immunity on clean infection",
+      "pass": true
+    },
+    {
+      "name": "R16 Cleanse removes Venom payoff; jam suppresses next contact",
+      "pass": true
+    },
+    {
+      "name": "R16 Shatterer consumes two ICE on TOUCH for five damage",
+      "pass": true
+    },
+    {
+      "name": "R16 Shatterer consumes full freeze but ignores one ICE and allies",
+      "pass": true
+    },
+    {
+      "name": "R16 spore trap sets up Venom and Chain Frost sets up Shatterer",
+      "pass": true
+    },
+    {
+      "name": "R16 Mimic can acquire Venom without changing owner or copying status",
+      "pass": true
+    },
+    {
+      "name": "R16 trap charges and toxin payoff survive authoritative JSON snapshot",
+      "pass": true
+    },
+    {
+      "name": "R16 trap activation and status setup have visible read-only feedback",
+      "pass": true
+    },
+    {
+      "name": "R16 two mixed elemental trap payoff matches finish with legal commands",
+      "pass": true
+    }
+  ]
+}

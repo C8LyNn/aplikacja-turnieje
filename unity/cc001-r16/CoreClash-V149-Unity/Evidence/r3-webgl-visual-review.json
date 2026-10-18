@@ -1,0 +1,620 @@
+{
+  "reviewedAt": "2026-10-15T19:09:47.9685731Z",
+  "status": "pass_with_minor_portrait_text_polish",
+  "webglAutomatedPass": true,
+  "automatedCheckCount": 14,
+  "screenshotCount": 36,
+  "allScreensVisuallyInspected": true,
+  "visualReviewMethod": "All 36 screenshots reviewed in six labeled contact sheets; original images additionally inspected for wall guide, next turn, phone library/builder/details/aim, landscape HUD, and genuine 667x375 showcase/library/scrolled library.",
+  "buildFilesUnchanged": true,
+  "referenceUnchanged": true,
+  "browser": "155.0.4283.45",
+  "browserTestedAt": "2026-10-15T19:05:42.301Z",
+  "wasmSha256": "352ae082da77b1c654b7323b4491ca021225a4272fdba191ad71276e548bbc45",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "pageErrors": 0,
+  "requestsFailed": 0,
+  "acceptedVisualChecks": [
+    "Opaque Create/Join modal, with manual host/port fields behind Advanced",
+    "Actual builder nine to zero to nine; disabled empty Use; custom_0 starts",
+    "Selected Gatekeeper orb and same held mouse gesture show shallow first-wall reflection then upward aim before one release",
+    "First-wall guide remains a bounded wall preview, not full collision prediction",
+    "Natural Gatekeeper release produces paired portals, P2 base 19/20 and clean settled P2 turn without stuck float text",
+    "Default player details omit technical migration metadata; F1 toggles developer overlay on and off",
+    "390px RELEASE TO LAUNCH fits on one line with readable power cue",
+    "844x390 player labels and numeric HP are separated",
+    "Phone library, builder, Bouncer details, Close and Back are usable",
+    "Canceled touch clears aim without launch; new touch launches exactly once",
+    "Portrait/landscape lower controls, Match Setup and subsequent Start remain usable",
+    "Fresh Android-user-agent 667x375 canvas asserted; library Start footer separate and P1/P2 controls revealed by ordinary scrolling"
+  ],
+  "supersededR2MobileFindings": [
+    {
+      "old": "390x844 release instruction wraps/clips",
+      "status": "fixed",
+      "evidence": "r3-webgl-20-touch-aim.png"
+    },
+    {
+      "old": "844x390 Player labels and HP overlap",
+      "status": "fixed",
+      "evidence": "r3-webgl-27-landscape-restarted.png"
+    }
+  ],
+  "remainingMinorPolish": [
+    {
+      "file": "r3-webgl-18b-library-portrait.png",
+      "finding": "390px library clips the wrapped second line of a long canonical deck name such as REALITY HACKERS; selection buttons and footer remain usable"
+    },
+    {
+      "file": "r3-webgl-18c-builder-portrait.png",
+      "finding": "390px builder helper sentence clips the bottom of its second line; search, selected slots, cards, information, Use and Back remain usable"
+    }
+  ],
+  "compactLayoutTradeoff": "667x375 library reserves a separate Start footer through a short list viewport; ordinary scrolling within a row reveals the canonical P1/P2 controls.",
+  "nativeCriticalScreensInspected": [
+    "r3-native-01-deck-selection.png",
+    "r3-native-02-aim.png",
+    "r3-native-03-gameplay.png",
+    "r3-native-04-ball-details.png",
+    "r3-native-06-match-result.png"
+  ],
+  "nativeScope": "Separate native runtime report uses live simulation, an initial presentation pointer gesture, subsequent legal commands and bounded acceleration; this visual review does not claim manually played full-match input.",
+  "limits": [
+    "Touch is simulated via Chromium CDP, not a physical phone",
+    "Browser test does not establish all-ability parity, game balance, or all effect rendering",
+    "Multiplayer browser check here is presentation containment, not connectivity",
+    "Phone Bouncer details are short; wheel-scroll attempt does not establish long phone-detail overflow behavior",
+    "Browser uses software WebGL rendering; native captures use their recorded Windows graphics device",
+    "Full source maps, exact glyph art and all richer V148 effects are not reproduced"
+  ],
+  "contactSheets": [
+    "r3-webgl-review-sheet-1.png",
+    "r3-webgl-review-sheet-2.png",
+    "r3-webgl-review-sheet-3.png",
+    "r3-webgl-review-sheet-4.png",
+    "r3-webgl-review-sheet-5.png",
+    "r3-webgl-review-sheet-6.png"
+  ],
+  "screens": [
+    {
+      "id": "01-showcase-desktop",
+      "file": "r3-webgl-01-showcase-desktop.png",
+      "inspected": true,
+      "sha256": "ecea44453083213a1589df112e5e3edc8a4cf9fbb430e5a515d0f2f64657dd47",
+      "bytes": 141811,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "02-multiplayer-create",
+      "file": "r3-webgl-02-multiplayer-create.png",
+      "inspected": true,
+      "sha256": "15fed330181aa7b01354035d424a46f5fa156e622c587c651ccba39f8286c87f",
+      "bytes": 47074,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "03-multiplayer-join",
+      "file": "r3-webgl-03-multiplayer-join.png",
+      "inspected": true,
+      "sha256": "243ba17563c467874b4fbff611a11d591b34014f0c6aac2669d17fcae6048ed7",
+      "bytes": 45106,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "04-multiplayer-advanced",
+      "file": "r3-webgl-04-multiplayer-advanced.png",
+      "inspected": true,
+      "sha256": "e90c7846436dca5afcee1afd7e416889526a2cdd8ec0e49ebb057ee2724783f7",
+      "bytes": 52766,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "05-builder-initial",
+      "file": "r3-webgl-05-builder-initial.png",
+      "inspected": true,
+      "sha256": "c35660ad2d1ac2100fcabe586c955c6c04aeed5f54591d9b82b61edda368fe4c",
+      "bytes": 98194,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "06-builder-empty",
+      "file": "r3-webgl-06-builder-empty.png",
+      "inspected": true,
+      "sha256": "373b28f7b8a096084786f1fe402db05a4a3370302e816e00dbb5d6118f3caf4c",
+      "bytes": 46829,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "07-builder-empty-use-disabled",
+      "file": "r3-webgl-07-builder-empty-use-disabled.png",
+      "inspected": true,
+      "sha256": "651bae58f6e5ef47d0cf9914f28afb6364943771451461fca4f9503424300a1c",
+      "bytes": 46734,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "08-builder-nine",
+      "file": "r3-webgl-08-builder-nine.png",
+      "inspected": true,
+      "sha256": "e5c16a5d457944ad86b382d8670a9834bcc96d2fde22e7dc451aac2727152afc",
+      "bytes": 56892,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "09-custom-deck-setup",
+      "file": "r3-webgl-09-custom-deck-setup.png",
+      "inspected": true,
+      "sha256": "52c376c4c05d30d137524feae0febe4d13298e46d0a9d89cc51a168437b30e19",
+      "bytes": 141975,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "10-gameplay-desktop",
+      "file": "r3-webgl-10-gameplay-desktop.png",
+      "inspected": true,
+      "sha256": "417398bc035992392d278f67a9d3eac4cfcbcce2951ff93f70e2015d8ad98e1d",
+      "bytes": 113383,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "10b-desktop-panel-scrolled",
+      "file": "r3-webgl-10b-desktop-panel-scrolled.png",
+      "inspected": true,
+      "sha256": "78ff785e6af8798cd367a19758d21ca3428295cec68bed8d0050cde577b5b099",
+      "bytes": 112248,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "11-selected-special",
+      "file": "r3-webgl-11-selected-special.png",
+      "inspected": true,
+      "sha256": "2e139c18d153de0202241eb78948737f75883d3a408c23d4670ca31779d52414",
+      "bytes": 115463,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "12-player-details",
+      "file": "r3-webgl-12-player-details.png",
+      "inspected": true,
+      "sha256": "ab9b4a18b564530c2697dc2bbf61d7509e5f9a729d2525e0b5848a3c4119b90d",
+      "bytes": 73694,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "13-developer-details",
+      "file": "r3-webgl-13-developer-details.png",
+      "inspected": true,
+      "sha256": "1115c974fe2c91beac2c8bf7ec4c0be87cb7264d5058c7b5f62d2ad81a138dcf",
+      "bytes": 98084,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "14-player-details-restored",
+      "file": "r3-webgl-14-player-details-restored.png",
+      "inspected": true,
+      "sha256": "737b3a272cfe73eadb246aed747e47a659893ce8b50182aa2754f963331dd764",
+      "bytes": 73706,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "15b-wall-guide",
+      "file": "r3-webgl-15b-wall-guide.png",
+      "inspected": true,
+      "sha256": "5f2c8f8fc7d702d36ba8ce8506a56884de080bf8f3a098c7d74aca4abcc59783",
+      "bytes": 121258,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "15-aim-desktop",
+      "file": "r3-webgl-15-aim-desktop.png",
+      "inspected": true,
+      "sha256": "c380ef8cdaca436597453a45eada46c63b5ecb178e9176341439f9ca2aabf9b7",
+      "bytes": 121344,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "16-resolving-lock",
+      "file": "r3-webgl-16-resolving-lock.png",
+      "inspected": true,
+      "sha256": "5076f4a7b86a1e2ee39f15c23211fa4f2e659eda62374d93e5489af0cc699680",
+      "bytes": 115538,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "17-next-turn",
+      "file": "r3-webgl-17-next-turn.png",
+      "inspected": true,
+      "sha256": "1daeb512c47ca40ff2c3c0f68fa8a98f5fc3f2b6b635549bfe0557283c7abbef",
+      "bytes": 119596,
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      }
+    },
+    {
+      "id": "18-showcase-portrait",
+      "file": "r3-webgl-18-showcase-portrait.png",
+      "inspected": true,
+      "sha256": "355a1fa3d2310b9ffb43f9a52745b5348d8424c5776bb76b96473c39a695088c",
+      "bytes": 84236,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "18b-library-portrait",
+      "file": "r3-webgl-18b-library-portrait.png",
+      "inspected": true,
+      "sha256": "5e16a11c0cb82b4420da7d3196bb55f0281cb9015da5226941bf473b2bcc6d5f",
+      "bytes": 79124,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "18c-builder-portrait",
+      "file": "r3-webgl-18c-builder-portrait.png",
+      "inspected": true,
+      "sha256": "5dd7710d5850b8259f51cd2f3da6d18616cea029960ae9d2ab01d9c35496229f",
+      "bytes": 71601,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "18d-details-portrait",
+      "file": "r3-webgl-18d-details-portrait.png",
+      "inspected": true,
+      "sha256": "df59ae7da1db641f056a8e4876bdbb8fcedd0c442ff04b21d30f51c6351170b4",
+      "bytes": 34594,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "18e-details-scrolled-portrait",
+      "file": "r3-webgl-18e-details-scrolled-portrait.png",
+      "inspected": true,
+      "sha256": "df59ae7da1db641f056a8e4876bdbb8fcedd0c442ff04b21d30f51c6351170b4",
+      "bytes": 34594,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "19-gameplay-portrait",
+      "file": "r3-webgl-19-gameplay-portrait.png",
+      "inspected": true,
+      "sha256": "556ca20bad4bb2934d627897168f9c2496bbd1115d46239e56ade0520cedbb40",
+      "bytes": 65107,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "20-touch-aim",
+      "file": "r3-webgl-20-touch-aim.png",
+      "inspected": true,
+      "sha256": "bbdbe08275bc79e45c876d374aa5269c43efadfdfda33f7097cf2c44cd844c49",
+      "bytes": 71204,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "21-touch-canceled",
+      "file": "r3-webgl-21-touch-canceled.png",
+      "inspected": true,
+      "sha256": "0c24744a9fd1dd84354389b2ecad25c5c573db3b326078edef05cf89edaac06c",
+      "bytes": 67541,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "22-touch-launched",
+      "file": "r3-webgl-22-touch-launched.png",
+      "inspected": true,
+      "sha256": "5cde876d0ff4c3bb56184ae1bd4f4ac99f57d5e32ce87af8108c4f7664ad4ecf",
+      "bytes": 67069,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "23-portrait-lower-controls",
+      "file": "r3-webgl-23-portrait-lower-controls.png",
+      "inspected": true,
+      "sha256": "4a87e3d01e9707f263614231e4415483ad824de70a8c0bba93f6ee78a557469d",
+      "bytes": 57718,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      }
+    },
+    {
+      "id": "24-gameplay-landscape",
+      "file": "r3-webgl-24-gameplay-landscape.png",
+      "inspected": true,
+      "sha256": "bac42a200d29b8afbe9acbc2ca16fa535d35b10ea72f8e1abea894c1a38cd0be",
+      "bytes": 71665,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      }
+    },
+    {
+      "id": "25-landscape-lower-controls",
+      "file": "r3-webgl-25-landscape-lower-controls.png",
+      "inspected": true,
+      "sha256": "6fd834e78c3644aede78e538a63dd19fd5f1258ad1b33e26178b98c635d69eec",
+      "bytes": 49533,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      }
+    },
+    {
+      "id": "26-showcase-landscape-return",
+      "file": "r3-webgl-26-showcase-landscape-return.png",
+      "inspected": true,
+      "sha256": "383bb91e94004f710e2977728d11accbc84be7d23d1c586a8e4a4e5b4dc6837d",
+      "bytes": 61582,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      }
+    },
+    {
+      "id": "27-landscape-restarted",
+      "file": "r3-webgl-27-landscape-restarted.png",
+      "inspected": true,
+      "sha256": "514ab98f3b28c1ea0d4d6d8abce41d66588da654c634657c4c2790a5f6f0e31e",
+      "bytes": 54281,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      }
+    },
+    {
+      "id": "28-showcase-667x375",
+      "file": "r3-webgl-28-showcase-667x375.png",
+      "inspected": true,
+      "sha256": "7c637f5ed31bd021e9948885fc0cfeccbcba48529df1eea9094596af43d71b40",
+      "bytes": 59205,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      }
+    },
+    {
+      "id": "29-library-667x375",
+      "file": "r3-webgl-29-library-667x375.png",
+      "inspected": true,
+      "sha256": "e530f8374630a8c5fc451e7a64fa67957ab432c4344acaed624f12040e8fe200",
+      "bytes": 44418,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      }
+    },
+    {
+      "id": "30-library-scrolled-667x375",
+      "file": "r3-webgl-30-library-scrolled-667x375.png",
+      "inspected": true,
+      "sha256": "29a748d1b5c317d211e6cd6eaca2e4a27eb04a4cf882aceea6f630a69a6ce7e8",
+      "bytes": 46120,
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "reviewedAt": "2026-10-15",
+  "buildScope": "Final rebuilt Unity players; exact tested hashes in webgl-smoke.json. Final manual review confirms opaque portrait LAN panel, readable preset names, 9/9 builder, turn2, touch cancel/launch and landscape lower controls. Subsequent rebuilds require a new smoke run.",
+  "screenshotsVisuallyInspected": [
+    "webgl-builder-nine.png", "webgl-next-turn-desktop.png",
+    "webgl-setup-portrait.png", "webgl-network-panel-portrait.png", "webgl-match-portrait.png",
+    "webgl-touch-cancel.png", "webgl-touch-launch.png", "webgl-match-landscape-scrolled.png",
+    "network-webgl-client.png"
+  ],
+  "confirmed": [
+    "Final builder screenshot shows 9/9 with Agony, Requiem, Bonfire, Wildfire, Soulburst, Reclaimer, Gravehide, Packheart, Cascade; the automated run includes prior removal to zero.",
+    "Mouse launch visibly spawns a moving Standard ball.",
+    "After movement, desktop screenshot shows TURN 2 / 50, PLAYER 2, P1 20 HP and P2 19 HP, with upper launcher active.",
+    "All four updated featured names are fully readable in portrait setup.",
+    "Portrait match board and ten ball choices fit at 390x844; its side panel has a visible scrollbar.",
+    "Canceled simulated touch shows no ball or aim line; subsequent touch launch visibly spawns Standard. Console records exactly one phone launch.",
+    "Landscape side scrollbar exposes Packheart/Cascade and Ball Details/Match Setup. Clicking scrolled Match Setup returns to setup, and a subsequent Start logs another match start.",
+    "Default collapsed LAN button does not obstruct setup or match controls; expanded panel has an opaque readable backdrop."
+  ],
+  "fixedFromFirstBuild": [
+    "Landscape lower stock choices, Details and Setup are now accessible through a scrollbar.",
+    "Portrait featured names no longer wrap/clash with the metadata line.",
+    "Expanded portrait LAN panel no longer shows underlying title text through its backdrop."
+  ],
+  "findings": [],
+  "limitations": [
+    "Headless Edge uses SwiftShader software rendering; these checks do not measure hardware GPU performance.",
+    "Touch events are browser-emulated Android touchStart/touchMove/touchCancel/touchEnd, not physical-device testing.",
+    "Exact four-by-nine featured IDs are validated in source JSON; compiled labels and the initial DEATH ENGINE builder members are inspected in GUI.",
+    "Network overlay visibility is inspected, but host/join, LAN connectivity, full ability parity, and production readiness are outside this UI run."
+  ]
+}

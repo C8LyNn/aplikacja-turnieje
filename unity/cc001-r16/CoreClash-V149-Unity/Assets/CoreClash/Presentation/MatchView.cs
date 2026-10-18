@@ -1,0 +1,93 @@
+using System;
+using System.Linq;
+using CoreClash.Core;
+using CoreClash.Data;
+using UnityEngine;
+namespace CoreClash.Presentation
+{
+    public sealed partial class CoreClashApp
+    {
+        void RenderMatch()
+        {
+            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback);
+            if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
+            if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
+            bool touch=UiViewport.TargetSize>=44;
+            Draw.Surface(side,Draw.Panel);float w=side.width-46,y=0,cardH=layout.Portrait?80:98,content=layout.Portrait?590:810,actionH=UiViewport.TargetSize;
+            matchScroll=Draw.ScrollView(Draw.Inset(side,12),matchScroll,new Rect(0,0,w,content));
+            if(!layout.Portrait){Hud(new Rect(0,y,w,72),false);y+=82;Draw.Surface(new Rect(0,y,w,40),Draw.PanelLight,Draw.Owner(state.turn));Draw.Text(new Rect(12,y+4,w-24,32),TurnText(),w<330?12:w<370?14:17,Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);y+=50;}
+            var d=Catalog.Ball(selected);float orb=layout.Portrait?38:56,stripH=layout.Portrait?50:74;
+            Draw.Surface(new Rect(0,y,w,stripH),Draw.PanelLight);BallView.Preview(new Rect(12,y+(stripH-orb)/2,orb,orb),d,state.turn,true);
+            Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
+            if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
+            Draw.Text(new Rect(0,y,w,18),"YOUR DECK  /  NINE SPECIALS",10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
+            var ids=state.players[state.turn].stock.Select(s=>s.id).ToArray();float cw=(w-16)/3;
+            for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
+            y+=3*(cardH+8)+4;
+            bool normalSelected=selected=="normal";var standard=new Rect(0,y,w,actionH);Draw.Surface(standard,normalSelected?Color.Lerp(Draw.PanelLight,Draw.Owner(state.turn),.14f):Draw.Panel,normalSelected?Draw.Owner(state.turn):Draw.Edge);
+            if(Draw.Button(new Rect(40,y,w-40,actionH),"STANDARD  /  UNLIMITED",Draw.Owner(state.turn),normalSelected,CanChoose,12))SelectBall("normal");BallView.Preview(new Rect(10,y+(actionH-22)/2,22,22),Catalog.Ball("normal"),state.turn,normalSelected);y+=actionH+11;
+            float actionW=(w-20)/3;
+            if(Draw.Button(new Rect(0,y,actionW,actionH),"BALL DETAILS",size:touch?12:10))ShowBallDetails(selected);
+            if(Draw.Button(new Rect(actionW+10,y,actionW,actionH),boardInspection?"CANCEL INSPECT":"INSPECT BOARD",selected:boardInspection,size:touch?12:10))SetBoardInspection(!boardInspection);
+            if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))ReturnToSetup();y+=actionH+11;
+            string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):state.phase==MatchPhase.Moving?"SHOT RELEASED  /  RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"DRAG FROM YOUR LAUNCHER TO AIM";
+            Draw.Text(new Rect(0,y,w,24),hint,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);
+            if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
+            else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
+            else if(notice.Length>0)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
+            else if(state.phase==MatchPhase.Moving&&Time.unscaledTime-releasedAt<3){Draw.Round(new Rect(0,y+32,w,5),Draw.Edge);Draw.Round(new Rect(0,y+32,w*lastPower,5),Draw.Owner(state.turn));}
+            else Draw.Text(new Rect(0,y+27,w,38),state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.",12,Draw.Muted);
+            GUI.EndScrollView();
+        }
+        void RenderPhoneTray()
+        {
+            Draw.Surface(side,Draw.Panel);var inner=Draw.Inset(side,8);bool shortTray=inner.height<180;
+            if(shortTray){matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,inner.width-20,180));inner=new Rect(0,0,inner.width-20,180);}
+            float w=inner.width,y=inner.y;int owner=Simulation.State.turn;
+            Draw.Text(new Rect(inner.x,y,w-128,44),Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
+            if(Draw.Button(new Rect(inner.xMax-120,y,120,44),"STANDARD",Draw.Owner(owner),selected=="normal",CanChoose,12))SelectBall("normal");
+            y+=48;float arrow=44,cardW=96,cardH=80;var ids=Simulation.State.players[owner].stock.Select(s=>s.id).ToArray();float viewW=w-arrow*2-12,fullW=ids.Length*(cardW+8)-8,max=Math.Max(0,fullW-viewW);
+            if(Draw.Button(new Rect(inner.x,y,arrow,cardH),"<",enabled:trayScroll.x>0,size:25))trayScroll.x=Math.Max(0,trayScroll.x-(cardW+8)*2);
+            if(Draw.Button(new Rect(inner.xMax-arrow,y,arrow,cardH),">",enabled:trayScroll.x<max,size:25))trayScroll.x=Math.Min(max,trayScroll.x+(cardW+8)*2);
+            trayScroll=Draw.ScrollView(new Rect(inner.x+arrow+6,y,viewW,cardH),trayScroll,new Rect(0,0,fullW,cardH),true);
+            for(int i=0;i<ids.Length;i++)BallCard(new Rect(i*(cardW+8),0,cardW,cardH),ids[i]);GUI.EndScrollView();y+=cardH+8;
+            float actionW=(w-12)/3;
+            if(Draw.Button(new Rect(inner.x,y,actionW,44),"DETAILS",size:12))ShowBallDetails(selected);
+            if(Draw.Button(new Rect(inner.x+actionW+6,y,actionW,44),boardInspection?"CANCEL":"INSPECT",selected:boardInspection,size:12))SetBoardInspection(!boardInspection);
+            if(Draw.Button(new Rect(inner.x+(actionW+6)*2,y,actionW,44),"SETUP",size:12))ReturnToSetup();
+            if(shortTray)GUI.EndScrollView();
+        }
+        string TurnText()
+        {
+            var s=Simulation.State;if(s.phase==MatchPhase.Over)return s.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(s.winner+1)+" WINS";
+            return "TURN "+s.turnNumber+" / 50     PLAYER "+(s.turn+1)+(s.phase==MatchPhase.Moving?"  /  MOVING":s.bonusPending?"  /  BONUS SHOT":"  /  YOUR SHOT");
+        }
+        void Hud(Rect r,bool compact)
+        {
+            float gap=10,w=(r.width-gap)/2;
+            for(int owner=0;owner<2;owner++){
+                var cell=new Rect(r.x+owner*(w+gap),r.y,w,r.height);Color team=Draw.Owner(owner);int hp=Simulation.State.players[owner].hp;
+                Draw.Surface(cell,Draw.PanelLight,Simulation.State.turn==owner?Color.Lerp(Draw.Edge,team,.65f):Draw.Edge);
+                bool stacked=!compact&&w<175;
+                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1),compact?10:12,team,TextAnchor.MiddleLeft,true);
+                if(stacked)Draw.Text(new Rect(cell.x+12,cell.y+25,w-24,25),hp+" / 20",21,Color.white,TextAnchor.MiddleLeft,true);
+                else Draw.Text(new Rect(cell.x+w*.43f,cell.y+5,w*.57f-12,compact?20:30),hp+" / 20",compact?16:w<205?19:24,Color.white,TextAnchor.MiddleRight,true);
+                Draw.Round(new Rect(cell.x+12,cell.yMax-16,w-24,8),new Color(.035f,.06f,.09f));if(hp>0)Draw.Round(new Rect(cell.x+12,cell.yMax-16,(w-24)*Mathf.Clamp01(hp/20f),8),team);
+                if(!compact&&!stacked)Draw.Text(new Rect(cell.x+12,cell.y+32,w-24,16),"BASE HEALTH",9,Draw.Muted);
+            }
+        }
+        void BallCard(Rect r,string id)
+        {
+            var d=Catalog.Ball(id);int owner=Simulation.State.turn,stock=Simulation.Stock(owner,id);bool picked=id==selected,available=stock>0,canClick=CanChoose&&available,compact=r.height<=80;
+            Color team=Draw.Owner(owner);Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,team,.13f):Draw.PanelLight,picked?team:Draw.Edge);
+            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
+            float orb=compact?29:45;BallView.Preview(new Rect(r.center.x-orb/2,r.y+7,orb,orb),d,owner,picked);
+            Draw.Text(new Rect(r.x+7,r.y+7,44,20),d.hp+" HP",compact?8:10,Draw.Muted);
+            Draw.Text(new Rect(r.xMax-36,r.y+7,29,20),available?"x"+stock:"0",compact?10:12,available?Color.white:Draw.Muted,TextAnchor.MiddleRight,true);
+            Draw.Text(new Rect(r.x+5,r.y+(compact?40:58),r.width-10,compact?35:23),d.name,compact?12:13,available?Color.white:Draw.Muted,TextAnchor.MiddleCenter,true);
+            if(!compact)Draw.Text(new Rect(r.x+5,r.y+81,r.width-10,14),available?Cue(id):"OUT OF STOCK",9,Draw.Muted,TextAnchor.MiddleCenter);
+            if(!available)Draw.Round(Draw.Inset(r,2),new Color(.025f,.04f,.06f,.58f));
+            if(picked)Draw.Round(new Rect(r.x+12,r.yMax-3,r.width-24,2),team);
+        }
+    }
+}

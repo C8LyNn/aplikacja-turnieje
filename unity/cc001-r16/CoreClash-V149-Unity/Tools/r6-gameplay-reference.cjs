@@ -1,0 +1,11 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),base='ea639ee634c6cd2519f928fbe4049106548f1938';
+const protectedPaths=['Assets/CoreClash/Core','Assets/CoreClash/Physics','Assets/Resources/Data/catalog.json','Assets/Resources/Data/featured-decks.json'];
+const result=cp.spawnSync('git',['diff','--name-only',base,'--',...protectedPaths],{cwd:root,encoding:'utf8',windowsHide:true});assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'','Gameplay, physics, roster and featured deck data must remain unchanged');
+const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+const catalog=JSON.parse(fs.readFileSync(path.join(root,'Assets/Resources/Data/catalog.json'))),featured=JSON.parse(fs.readFileSync(path.join(root,'Assets/Resources/Data/featured-decks.json')));
+assert.equal(catalog.balls.length,227);assert.equal(catalog.decks.length,36);assert.equal(featured.decks.length,4);assert(featured.decks.every(d=>d.balls.length===9));
+assert.equal(hash(catalog.sourcePath),catalog.sourceSha256);
+const report={testedAt:new Date().toISOString(),pass:true,baselineCommit:base,protectedPaths,gameplaySourceChanges:0,physicsSourceChanges:0,catalogRecords:227,canonicalDecks:36,featuredDecks:4,referenceSha256:catalog.sourceSha256,referenceUnchanged:true,scope:'Source/data preservation check; network clients receive host simulation state. Physical-device equivalence requires runtime QA.'};
+fs.writeFileSync(path.join(root,'Evidence/r6-gameplay-reference.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));

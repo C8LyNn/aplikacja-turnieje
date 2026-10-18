@@ -1,0 +1,66 @@
+{
+  "candidate": "CC-001 R15 source over R14",
+  "timestamp": "2026-10-18T09:12:37.657Z",
+  "staticOnly": false,
+  "buildWindows": false,
+  "verdict": "FAIL_MANAGED_OR_DEPENDENCY",
+  "staticAudit": {
+    "status": "PASS",
+    "exitCode": 0,
+    "error": null
+  },
+  "isolatedQA": {
+    "status": "FAIL",
+    "exitCode": 1,
+    "error": null
+  },
+  "isolatedResult": "FAIL_OR_BLOCKED",
+  "isolatedStages": [
+    {
+      "name": "static_source_audit",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "log": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-R16-Work\\QA\\R15-baseline\\r15_2026-10-18T09-12-28-252Z_4bea8a\\isolated-QA\\r14_2026-10-18T09-12-28-405Z_442202\\static_source_audit.log"
+    },
+    {
+      "name": "catalog_and_reference",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "log": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-R16-Work\\QA\\R15-baseline\\r15_2026-10-18T09-12-28-252Z_4bea8a\\isolated-QA\\r14_2026-10-18T09-12-28-405Z_442202\\catalog_and_reference.log"
+    },
+    {
+      "name": "csharp_all_tests",
+      "status": "FAIL",
+      "exitCode": 1,
+      "error": null,
+      "log": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-R16-Work\\QA\\R15-baseline\\r15_2026-10-18T09-12-28-252Z_4bea8a\\isolated-QA\\r14_2026-10-18T09-12-28-405Z_442202\\csharp_all_tests.log"
+    },
+    {
+      "name": "network_codec",
+      "status": "PASS",
+      "exitCode": 0,
+      "error": null,
+      "log": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-R16-Work\\QA\\R15-baseline\\r15_2026-10-18T09-12-28-252Z_4bea8a\\isolated-QA\\r14_2026-10-18T09-12-28-405Z_442202\\network_codec.log"
+    }
+  ],
+  "managedStatus": "FAIL",
+  "protectedSourceUnchanged": true,
+  "protectedSourceBefore": {
+    "Evidence/unity-tests.json": "1730e2fa4313e6637e314dfadd99fb000f304b0a94ff024d5d2c92c499c66c50",
+    "Evidence/ability-support.json": "92b8a479c59d448642bd62fab0b01e22abc4a5faa3f07f7e959fe2cfced5b505",
+    "Evidence/network-codec-tests.json": "38189fd65887b4959fe3a55d74de40bb5f8105213f4e473b3ca58ef08c88c3ba",
+    "../Reference/V148_reference_original.html": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e"
+  },
+  "protectedSourceAfter": {
+    "Evidence/unity-tests.json": "1730e2fa4313e6637e314dfadd99fb000f304b0a94ff024d5d2c92c499c66c50",
+    "Evidence/ability-support.json": "92b8a479c59d448642bd62fab0b01e22abc4a5faa3f07f7e959fe2cfced5b505",
+    "Evidence/network-codec-tests.json": "38189fd65887b4959fe3a55d74de40bb5f8105213f4e473b3ca58ef08c88c3ba",
+    "../Reference/V148_reference_original.html": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e"
+  },
+  "sourceCompilerAvailable": true,
+  "noUnityReleaseClaim": true,
+  "publicDeployment": false,
+  "cloudSyncConfirmed": false
+}

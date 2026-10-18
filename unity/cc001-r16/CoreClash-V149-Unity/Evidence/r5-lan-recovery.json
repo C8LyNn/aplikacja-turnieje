@@ -1,0 +1,138 @@
+{
+  "startedAt": "2026-10-16T08:57:20.429Z",
+  "pass": true,
+  "baseline": false,
+  "scope": "One PC: real WebGL public join UI, failed endpoint, retry, native host loss, local-play recovery and canceled pending join; no physical Wi-Fi/device claim.",
+  "checks": [
+    {
+      "name": "Failed public invitation restores setup and visible Join Game without Escape",
+      "pass": true
+    },
+    {
+      "name": "Public failure uses player copy while transport detail remains in debug log",
+      "pass": true
+    },
+    {
+      "name": "Retry through the same player UI/NetworkManager reaches real native authority",
+      "pass": true
+    },
+    {
+      "name": "Unexpected native host loss restores actionable Join Game",
+      "pass": true
+    },
+    {
+      "name": "Local play and a real launch work after host loss",
+      "pass": true
+    },
+    {
+      "name": "Pending join has a visible Cancel Joining action and restores setup",
+      "pass": true
+    },
+    {
+      "name": "Intentional cancellation does not trigger a spurious failure reopen",
+      "pass": true
+    },
+    {
+      "name": "Canceled player retries through normal Join UI and reaches native authority",
+      "pass": true
+    },
+    {
+      "name": "Connected public Disconnect restores local setup without a failure reopen",
+      "pass": true
+    },
+    {
+      "name": "No browser page errors",
+      "pass": true
+    }
+  ],
+  "console": [
+    "[UnityCache] 'http://127.0.0.1:60943/Build/WebGL.data' successfully downloaded and stored in the browser cache",
+    "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n",
+    "    \"memorysetup-bucket-allocator-granularity=16\"\n",
+    "    \"memorysetup-bucket-allocator-bucket-count=8\"\n",
+    "    \"memorysetup-bucket-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-bucket-allocator-block-count=1\"\n",
+    "    \"memorysetup-main-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-thread-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-cache-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-typetree-allocator-block-size=2097152\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n",
+    "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n",
+    "    \"memorysetup-profiler-allocator-block-size=16777216\"\n",
+    "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n",
+    "    \"memorysetup-temp-allocator-size-main=4194304\"\n",
+    "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n",
+    "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n",
+    "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n",
+    "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n",
+    "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n",
+    "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n",
+    "CodeReloadManager initialized\n",
+    "Loading player data from data.unity3d\n",
+    "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n",
+    "Creating WebGL 2.0 context.",
+    "Renderer: WebKit WebGL\n",
+    "Vendor:   WebKit\n",
+    "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n",
+    "GLES:     3\n",
+    " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_render_snorm EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge EXT_texture_norm16 KHR_parallel_shader_compile NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_blend_func_extended WEBGL_clip_cull_distance WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_provoking_vertex WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_render_snorm GL_EXT_\n",
+    "texture_compression_bptc GL_EXT_texture_compression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_norm16 GL_KHR_parallel_shader_compile GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_blend_func_extended GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_provoking_vertex GL_WEBGL_stencil_texturing\n",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "WebGL: INVALID_ENUM: getInternalformatParameter: invalid internalformat",
+    "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n",
+    "Input Manager initialize...\n",
+    "UnloadTime: 0.700001 ms\n",
+    "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n",
+    "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n",
+    "CC_LAN_INVITATION_JOIN host=127.0.0.1 port=54410\n",
+    "WebSocket connection to 'ws://127.0.0.1:54410/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "Failed to connect to server.\n",
+    "CC_NET_DISCONNECT_DETAIL [Disconnect Event][Client-0][TransportClientId-4294967296][MaxConnectionAttempts] Connection closed due to maximum connection attempts reached.\n",
+    "CC_LAN_CONNECTION_FAILED Could not join the game. Check that the host is still running and try again.\n",
+    "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n",
+    "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n",
+    "CC_NET_BRIDGE_SPAWNED server=False\n",
+    "CC_NET_STATE_APPLIED revision=1 owner=1\n",
+    "CC_LAN_PLAYER_CONNECTED owner=1\n",
+    "CC_NET_DISCONNECT_DETAIL [Disconnect Event][Client-1][TransportClientId-4294967296][ClosedByRemote] Connection was closed by remote endpoint.\n",
+    "CC_LAN_CONNECTION_FAILED Connection to the host was lost. You can join again or play locally.\n",
+    "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n",
+    "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n",
+    "CORE_CLASH_LAUNCH owner=0 type=normal\n"
+  ],
+  "pageErrors": [],
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "8771f17ee00ecd1622acbcec57daafb179c0d6637c220ced03aa82c66191b429"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "1183f547143e84a0b5fab39c7a20ca894f05b74384fab98efa9b9ec0c0e19923"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "8a1eeb8463736b34045f9fa2f64d178e98e1a8e1b634f8d2d09704875a0e4914"
+    },
+    "Builds/WebGL/Build/WebGL.data": {
+      "sha256": "9073ab7bbbff583cb40045e8b199c18de4dcf4211529043abe34bc5bf78e8546"
+    },
+    "Builds/WebGL/Build/WebGL.wasm": {
+      "sha256": "d846d7acf7f79840d3810ca93e14d7a63310698534a5c6c65125c1674bcf1737"
+    }
+  },
+  "cancelConsole": [
+    "CC_LAN_INVITATION_JOIN host=127.0.0.1 port=62422\n",
+    "CC_LAN_JOIN_CANCELED setup=True\n",
+    "CC_NET_BRIDGE_SPAWNED server=False\n",
+    "CC_NET_STATE_APPLIED revision=1 owner=1\n",
+    "CC_LAN_PLAYER_CONNECTED owner=1\n"
+  ],
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-16T08:57:44.477Z"
+}

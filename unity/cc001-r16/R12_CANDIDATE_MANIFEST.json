@@ -1,0 +1,33 @@
+{
+  "project": "CC-001 Core Clash V149 Unity",
+  "candidate": "R12 Evolution and Replication source-only",
+  "status": "UNCOMPILED_NOT_RUNTIME_TESTED",
+  "date": "2026-10-17",
+  "baseline": {
+    "filename": "CoreClash-V149-R11-Source-Candidate.zip",
+    "sha256": "c59e075956d0f8d14cea1919d85b9498b19e71c6a295a7930103ad668cf32792"
+  },
+  "changed_files": {
+    "Assets/CoreClash/Core/AbilityResolver.cs": "d04ca4a5b5cbb97841adcd8400f0bc542882241529c1bde3d27082f007f9f137",
+    "Assets/CoreClash/Core/EvolutionEffects.cs": "dc1718f9e63a28b0aed2eddb0033b77d9f41334cb296b2c14c61c39b6ca066ea",
+    "Assets/CoreClash/Core/EvolutionEffects.cs.meta": "1ae3a77a6ca4a22f825fbac47dbf4865894e04e71f0b8c445d7dc259f1a0f7b7",
+    "Assets/CoreClash/Core/ExplosiveEffects.cs": "2e5544198624fe5892b9e6b880f04537f6c7a01abc3aa1c0556422b96399812d",
+    "Assets/CoreClash/Core/GameState.cs": "36e4f6bc01e0152b1c63ad8de72a89261c527796031c8a1b40d7664855285ff0",
+    "Assets/CoreClash/Core/LifecycleEffects.cs": "882016616f47102d22109b4baa5a5f3daa86a701f92063de10f1ba5658ba83f7",
+    "Assets/CoreClash/Core/RealityEffects.cs": "376c1a0b9d6ba9a220eb26c0167514032febb487bb10404ead5e0ea5a205c775",
+    "Assets/CoreClash/Presentation/BallInspection.cs": "4a2541fd7b29c741b696c37a453977cae96188aa34093dd0e4424b4e9030ffa4",
+    "HANDOFF_R12_README.md": "fc25cdf281effe39b6a4d79b7a5c1179bd15b071dfe13f485f3ab9a09a606c7c",
+    "Tests/EvolutionTests.cs": "b7d5a0b734d3def61594e4cb36151cffb30a107966adc1a9b4b442d20feaa1a0",
+    "Tests/Program.cs": "d33bf60806aaa4ac78c5e2ddc4fa452400ebb08f71225d1951e2d8366b19b634",
+    "docs/R12_CANDIDATE_REPORT_PL.md": "4da1353086ad7ab5e31b5af9d56bf58f63c9edb961653071c223ecaadbbc09c9"
+  },
+  "validation": {
+    "data": "PASS",
+    "patch_roundtrip": "PASS",
+    "csharp_tests": "NOT_RUN_dotnet_unavailable",
+    "network_codec": "BLOCKED_dotnet_ENOENT",
+    "unity_build": "NOT_RUN",
+    "deployment": "NOT_PERFORMED"
+  },
+  "authority": "candidate sources only; original R9 evidence is historical"
+}

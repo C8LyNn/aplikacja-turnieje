@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-10-18T09:34:21.764Z",
+  "pass": true,
+  "scope": "Actual Unity Cloud Authentication + MPS Sessions + Relay WSS, Windows native host and WebGL client on one computer. Does not prove connectivity on separate physical devices/networks.",
+  "projectId": "f87462cd-20c0-432c-9108-8f07f77ad27b",
+  "browser": [
+    "CC_NET_SMOKE_OBSERVE_INVITATION\n",
+    "CC_NET_RELAY_STARTED role=client protocol=wss\n",
+    "CC_NET_BRIDGE_SPAWNED server=False\n",
+    "CC_NET_STATE_APPLIED revision=1 owner=1\n",
+    "CC_NET_SMOKE_SPOOF_SENT owner=0 from=remote\n",
+    "CC_LAN_PLAYER_CONNECTED owner=1\n",
+    "CC_NET_INTERNET_SESSION_READY role=client seats=2 protocol=wss\n",
+    "CC_NET_SMOKE_COMMAND role=client acceptedOrSent=True reason=Intent sent to host.\n",
+    "CC_NET_SMOKE_DUPLICATE_SENT seq=1\n",
+    "CC_NET_EXPLOSIVE_STATE role=client mineArmed=True fuse=2\n",
+    "CC_NET_SMOKE_PASS role=client snapshots=22 revision=22 actionSerial=2 events=9 rejected=2\n"
+  ],
+  "pageErrors": [],
+  "physicalCrossDeviceTested": false,
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "a8e53086ca31390b0a14c9d0ae501804f1734a1df89fd0a55eb2c203fe6baa26"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "9fad40b29d445fee6a1fe73c0ba78df9eb544bfec33d354696455b204a924ad8"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "78e3c6f377ab72737c52c90c4f6bb056fdf274e3ad76f3d4ad440935b190b0f4"
+    },
+    "Builds/WebGL/Build/WebGL.data": {
+      "sha256": "6012cbf13e373e1ab0c5555aa11dd382ffcbe34ce062c55c2cdd6339311db7c2"
+    },
+    "Builds/WebGL/Build/WebGL.wasm": {
+      "sha256": "6da2e5ab6d1c7c3bbd0518b7b41c175a65002e7ae6ee96b8af63ab36aa3511ac"
+    }
+  },
+  "sessionCodeIssued": true,
+  "protocol": "wss",
+  "hostAcceptedRemote": true,
+  "rejectedSpoofAndDuplicate": true,
+  "momentum": false,
+  "momentumStateVerified": false,
+  "explosives": true,
+  "explosiveStateVerified": true,
+  "hostMarkers": [
+    "CC_NET_AUTOSTART role=host smoke=True started=True",
+    "CC_NET_BRIDGE_SPAWNED server=True",
+    "CC_NET_RELAY_STARTED role=host protocol=wss",
+    "CC_NET_INTERNET_SESSION_READY role=host seats=2 protocol=wss",
+    "CC_NET_INTERNET_SMOKE_CODE [issued]",
+    "CC_NET_PEER_CONNECTED id=1 owner=1",
+    "CC_NET_INTENT_ACCEPT owner=0 seq=1",
+    "CC_NET_SMOKE_COMMAND role=host acceptedOrSent=True reason=",
+    "CC_LAN_PLAYER_CONNECTED owner=0",
+    "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+    "CC_NET_INTENT_ACCEPT owner=1 seq=1 action=2",
+    "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+    "CC_NET_EXPLOSIVE_STATE role=host mineArmed=True fuse=2",
+    "CC_NET_SMOKE_PASS role=host remoteIntents=1 rejected=2 actionSerial=2"
+  ],
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-18T09:34:36.508Z"
+}

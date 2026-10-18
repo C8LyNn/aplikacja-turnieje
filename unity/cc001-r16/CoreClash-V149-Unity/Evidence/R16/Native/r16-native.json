@@ -1,0 +1,24 @@
+{
+    "pass": true,
+    "platform": "WindowsPlayer",
+    "graphics": "Direct3D11",
+    "scope": "Staged native renderer and Unity JsonUtility checks R10–R16; five R16 powers including weak physical pair collisions. Not a manually played match.",
+    "error": "",
+    "captures": [
+        {
+            "file": "r16-01-construction-summons.png",
+            "sha256": "7228302160c638337b6955e00f189e172f155f493de7183b62d042c465c3cb38",
+            "bytes": 241917
+        },
+        {
+            "file": "r16-02-traps-armed.png",
+            "sha256": "995e3669f852e88f1448d9006c4256812b7f2d8a606fd8d35a581d7e0dfec552",
+            "bytes": 214959
+        },
+        {
+            "file": "r16-03-status-payoffs.png",
+            "sha256": "1baa451d7b304e70dec9fdeef794fbaa4519bc59fa9234d88f676b46e1735d17",
+            "bytes": 227274
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict'),cp=require('node:child_process');
+const root=path.resolve(__dirname,'..'),read=name=>JSON.parse(fs.readFileSync(path.join(root,'Evidence',name+'.json'))),hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const tests=read('unity-tests'),codec=read('network-codec-tests'),web=read('r6-webgl-smoke'),native=read('r6-native-runner'),runtime=read('r6-native-runtime'),internet=read('r6-internet-smoke'),lan=read('lan-runtime'),plain=read('lan-plain-invitation'),rejoin=read('lan-rejoin'),recovery=read('r6-lan-recovery'),android=read('android-package'),reference=read('r6-gameplay-reference'),cloud=read('r6-cloud-status');
+assert.equal(tests.failed,0);assert(tests.passed>=138);assert.equal(codec.exitCode,0);assert.equal(reference.pass,true);
+assert.equal(web.ok,true);assert.equal(web.completeMatrix,true);assert.equal(web.pageErrors.length,0);assert.equal(web.buildFilesUnchanged,true);assert.equal(web.earlierEvidenceUnchanged,true);
+assert.equal(native.passed,true);assert.equal(runtime.passed,true);assert.equal(runtime.fullLocalMatchCompleted,true);assert.equal(runtime.motionGuards,0);
+for(const [name,report]of Object.entries({internet,lan,plain,rejoin,recovery})){assert.equal(report.pass,true,name);assert.equal(report.buildFilesUnchanged,true,name);for(const[p,value]of Object.entries(report.buildFiles))assert.equal(hash(path.join(root,p)),value.sha256.toLowerCase(),name+' stale '+p);}
+for(const[p,value]of Object.entries(web.build))assert.equal(hash(path.join(root,'Builds/WebGL',p)),value.sha256,'Stale browser artifact '+p);
+for(const value of native.buildFiles)assert.equal(hash(path.join(root,value.path)),value.sha256.toLowerCase(),'Stale native artifact');
+for(const value of native.captures)assert.equal(hash(path.join(root,'Evidence',value.file)),value.sha256.toLowerCase(),'Stale capture');
+for(const value of web.screens)assert.equal(hash(path.join(root,'Evidence',value.file)),value.sha256,'Stale browser capture');
+for(const[p,value]of Object.entries(web.build))assert.equal(hash(path.join(root,'Builds/Windows/WebRoot',p)),value.sha256,'Stale packaged WebRoot '+p);
+assert.equal(android.pass,true);assert.equal(hash(path.join(root,android.apk.path)),android.apk.sha256);
+assert.equal(cloud.projectIdConfigured,true);assert.equal(cloud.serviceAccessVerified,true);assert.equal(cloud.internetMatchTested,true);assert.equal(cloud.projectId,internet.projectId);
+const builds={};for(const target of ['StandaloneWindows64','WebGL','Android']){const b=builds[target]=read('build-'+target);assert.equal(b.result,'Succeeded');assert.equal(b.errors,0);assert.equal(b.warnings,1,'Expected one explicitly recorded ServicesCore Editor-login warning');}
+const guard=cp.spawnSync('node',['Tools/r6-gameplay-reference.cjs'],{cwd:root,encoding:'utf8',windowsHide:true});assert.equal(guard.status,0,guard.stderr);
+function files(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?files(path.join(dir,e.name)):[path.join(dir,e.name)]);}
+const entry=f=>({path:path.relative(root,f).replaceAll('\\','/'),bytes:fs.statSync(f).size,sha256:hash(f)});
+const sources=['Assets','Packages','ProjectSettings'].flatMap(d=>files(path.join(root,d))).sort().map(entry);
+const artifacts=['Builds/Windows','Builds/WebGL','Builds/Android'].flatMap(d=>files(path.join(root,d))).filter(f=>!/[\\/][^\\/]*(DoNotShip|DontShip)[^\\/]*[\\/]/.test(f)).concat(path.join(root,'Legacy/core_clash_v149_legacy_presentation.html')).sort().map(entry);
+const result={sealedAt:new Date().toISOString(),specVersion:149,presentationRevision:'R6',scope:'Shared native gameplay with desktop/phone/tablet presentation and live Windows-WebGL LAN/Relay verification on one PC; physical devices and public website remain untested.',sourceTreeSha256:crypto.createHash('sha256').update(sources.map(f=>f.path+'\0'+f.sha256).join('\n')).digest('hex'),checks:{coreTests:{passed:tests.passed,failed:0},wireTests:13,web:{checks:web.checks.length,captures:web.screens.length,surfaces:web.surfaces.length},nativeRenderedFullMatch:true,realRelayWindowsWebgl:true,realLan:true,plainInvitation:true,seatReplacement:true,publicUiRecovery:true,androidPackage:true,physicalAndroid:false,physicalInternetCrossDevice:false,websitePublished:false,builds},cloudProjectId:cloud.projectId,sourceReference:reference,sources,artifacts};
+fs.writeFileSync(path.join(root,'Evidence/delivery-manifest.json'),JSON.stringify(result,null,2)+'\n');console.log('SEALED R6 '+sources.length+' sources / '+artifacts.length+' artifacts; '+tests.passed+' core tests; '+web.surfaces.length+' browser profiles; LAN + Relay verified.');

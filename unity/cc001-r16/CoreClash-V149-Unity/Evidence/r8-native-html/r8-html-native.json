@@ -1,0 +1,19 @@
+{
+    "pass": true,
+    "platform": "WindowsPlayer",
+    "graphics": "Direct3D11",
+    "scope": "Staged native renderer fixture for bumper, Slingshot and Ram. Not a manually played or empty-board legal match.",
+    "error": "",
+    "captures": [
+        {
+            "file": "r8-html-01-bumper.png",
+            "sha256": "8b686965bb5cb29c7c7fb28445e0fdf36ea651a8d73c07843f8c3b1001980e32",
+            "bytes": 208174
+        },
+        {
+            "file": "r8-html-02-launches.png",
+            "sha256": "fee213266ed8d9f71bda99cbc22aff3e75290aaf2e955ddf3c43ea81277496e7",
+            "bytes": 218524
+        }
+    ]
+}

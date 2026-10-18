@@ -1,0 +1,2477 @@
+{
+  "date": "2026-10-18T09:37:59.0173058Z",
+  "inputSha256": "f70497f8be326e34e2f87bbe54c0716294e35887ef5ab9d993a5ae5cade3e21e",
+  "inputEntryCount": 435,
+  "protectedFiles": [
+    {
+      "path": "Reference/V148_reference_original.html",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/catalog.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/catalog.json.meta",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/featured-decks.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/featured-decks.json.meta",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/network-settings.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/network-settings.json.meta",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/presentation-copy.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Assets/Resources/Data/presentation-copy.json.meta",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/ability-support.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/android-package.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/archive-reference-integrity.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/build-Android.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/build-StandaloneWindows64.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/build-WebGL.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/delivery-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/lan-plain-invitation.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/lan-rejoin.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/lan-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/legacy-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/legacy-verification.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/network-codec-tests.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/network-first-failure.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/network-native-startup.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/network-packages.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/network-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-reference.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-interim.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-mobile-interim.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-start-diagnostic.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r2-webgl-visual-review.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r3-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r3-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r3-webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r3-webgl-visual-review.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r4-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r4-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r4-webgl-smoke-interim.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r4-webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r4-webgl-visual-review.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-lan-recovery-before.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-lan-recovery.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-reference-integrity.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-webgl-smoke-interim.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r5-webgl-visual-review.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-build-Android.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-build-StandaloneWindows64.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-build-WebGL.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-cloud-binding.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-cloud-status.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-delivery-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-gameplay-reference.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-internet-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-lan-recovery.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-before-short-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-r7-phone-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-r8-phone-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-r9-phone-phone-portrait-08-match.png",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-r9-phone-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-short-check-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r6-webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-build-Android.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-build-StandaloneWindows64.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-build-WebGL.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-cloud-status.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-delivery-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-device-availability.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-internet-before-errors.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-internet-error-diagnosis.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-internet-lifecycle.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-internet-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-lan/lan-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-native/r6-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-native/r6-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-web-archive.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-web-deploy-tests.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-web-host-local.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r7-web-release-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-build-Android.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-build-StandaloneWindows64.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-build-WebGL.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-cloud-status.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-delivery-manifest.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-internet-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-lan/lan-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-momentum-matches.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-motion-investigation.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-native-html/r8-html-native.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-native-html/r8-html-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-native/r6-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-native/r6-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-source-mechanics.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r8-web-deploy-tests.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-cloud-status.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-explosive-matches.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-internet-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-lan/lan-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-momentum-regression.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-01-armed.png",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-03-blast.png",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-native.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native/r6-native-01-deck-selection.png",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native/r6-native-06-match-result.png",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native/r6-native-runner.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-native/r6-native-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/r9-source-explosives.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/source-featured-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/source-runtime.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/unity-featured-matches.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/unity-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/unity-tests.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/webgl-smoke.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/Evidence/webgl-visual-review.json",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/HANDOFF_R12_README.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/HANDOFF_R13_README.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/docs/R10_CANDIDATE_REPORT_PL.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/docs/R11_CANDIDATE_REPORT_PL.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/docs/R12_CANDIDATE_REPORT_PL.md",
+      "pass": true
+    },
+    {
+      "path": "HANDOFF_MANIFEST.json",
+      "pass": true
+    },
+    {
+      "path": "HANDOFF_R11_README.md",
+      "pass": true
+    },
+    {
+      "path": "HANDOFF_README.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/HANDOFF_R14_README.md",
+      "pass": true
+    },
+    {
+      "path": "CoreClash-V149-Unity/HANDOFF_R15_README.md",
+      "pass": true
+    }
+  ],
+  "protectedUnchanged": true,
+  "historicalManifests": [
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/AbilityResolver.cs",
+      "expected": "c85ec40d785fc30a7809f0b1b0d56f991ad139a1299ad7ec483ba4ad6eed6dae",
+      "actualR15": "b240fa28a88bdfe27bc2791719ec59c0427a8839068ef8ea877d0fc90914f948",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/ConstructionEffects.cs",
+      "expected": "225081072e2a18d515b001672f504658ba161a2a49705ba56b5575b732328cef",
+      "actualR15": "225081072e2a18d515b001672f504658ba161a2a49705ba56b5575b732328cef",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/ConstructionEffects.cs.meta",
+      "expected": "db3ab5d6727fe55e2b69ba5468e0b6f36b1c7141ae2716341dabd13ff8365804",
+      "actualR15": "db3ab5d6727fe55e2b69ba5468e0b6f36b1c7141ae2716341dabd13ff8365804",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/GameSimulation.cs",
+      "expected": "bed4a830cd0c7eae63efe71e4cfd94bf5fdfb5ff1ca2a45809103a5d39ab91de",
+      "actualR15": "fd821fed48c9d6ef722b6e9629ead84d688ec6200efa122c16266b9dee18467f",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/MomentumEffects.cs",
+      "expected": "a30623f65d3e988785a9646cdcb1918db9aa88d7ea4349a22227648cd83dbc71",
+      "actualR15": "a30623f65d3e988785a9646cdcb1918db9aa88d7ea4349a22227648cd83dbc71",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/StructureSystem.cs",
+      "expected": "c2e0ad72cce61a30875f52d92428c754ff6c206bf44e79271ae0f75cc666a118",
+      "actualR15": "c2e0ad72cce61a30875f52d92428c754ff6c206bf44e79271ae0f75cc666a118",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Core/StructureSystem.cs.meta",
+      "expected": "27e1d34395608c64602c3ab658f17d802bafec6f810cacf53119ee0480dce871",
+      "actualR15": "27e1d34395608c64602c3ab658f17d802bafec6f810cacf53119ee0480dce871",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Physics/BallPhysics.cs",
+      "expected": "f0247fa66f43ee89f9b2b0320c13a8a4856ec95c6d2102e26e54b7e2dd4535b9",
+      "actualR15": "f0247fa66f43ee89f9b2b0320c13a8a4856ec95c6d2102e26e54b7e2dd4535b9",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Presentation/BoardView.cs",
+      "expected": "b13926b789863f45d0df80c547b74f1c92c14483733ac98174dc1e6c56e45e43",
+      "actualR15": "c8fd1bacfee47264da1b42fc80dffc4794d9d3ec26d0721869c157b9f74f3a72",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R10",
+      "path": "Assets/CoreClash/Presentation/FeedbackTimeline.cs",
+      "expected": "a7c83559d3ed340a9d0f84e81eb64bae1482c952ed84415a5d06846afa85000d",
+      "actualR15": "ea757c8a087d8e87f00077df668020d773c364b22687247a67682bffc4861113",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R10",
+      "path": "Tests/ConstructionTests.cs",
+      "expected": "f86d648a7d94a23829b8b6204b8e33945dc44a055afe6b9e77fa30cc27839215",
+      "actualR15": "f86d648a7d94a23829b8b6204b8e33945dc44a055afe6b9e77fa30cc27839215",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Tests/MomentumTests.cs",
+      "expected": "fd9596f7aae2e12ec6d7e2e6e7d17e094ba0f4b75e1fc78823e5bc71b9b019f0",
+      "actualR15": "fd9596f7aae2e12ec6d7e2e6e7d17e094ba0f4b75e1fc78823e5bc71b9b019f0",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Tests/Program.cs",
+      "expected": "6ab308d7795cff7f239baf0f581f64b87a8ef39f1ba4fb500ecd6467dfc91989",
+      "actualR15": "79fbe45f805008d281ffac1f83cf11fe9a790e1d8073a88895e987ff2b038f2e",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R10",
+      "path": "Tools/network-codec-test.cjs",
+      "expected": "632b27b69a7cbb527b8c40945f94241a192c21dc4027bee60bdeb52d7a25e92d",
+      "actualR15": "632b27b69a7cbb527b8c40945f94241a192c21dc4027bee60bdeb52d7a25e92d",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "Tools/verify-data.cjs",
+      "expected": "4ba2004e59c8d7a8881eb0a1c10e26c2aea24a60351dc58700c58df317e0b9f4",
+      "actualR15": "4ba2004e59c8d7a8881eb0a1c10e26c2aea24a60351dc58700c58df317e0b9f4",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R10",
+      "path": "docs/R10_CANDIDATE_REPORT_PL.md",
+      "expected": "c58b8610003c0e4e19e0ac672856ff53684133b25c4fe3eb316cf3de8c3d49f3",
+      "actualR15": "c58b8610003c0e4e19e0ac672856ff53684133b25c4fe3eb316cf3de8c3d49f3",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/AbilityResolver.cs",
+      "expected": "d04ca4a5b5cbb97841adcd8400f0bc542882241529c1bde3d27082f007f9f137",
+      "actualR15": "b240fa28a88bdfe27bc2791719ec59c0427a8839068ef8ea877d0fc90914f948",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/EvolutionEffects.cs",
+      "expected": "dc1718f9e63a28b0aed2eddb0033b77d9f41334cb296b2c14c61c39b6ca066ea",
+      "actualR15": "dc1718f9e63a28b0aed2eddb0033b77d9f41334cb296b2c14c61c39b6ca066ea",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/EvolutionEffects.cs.meta",
+      "expected": "1ae3a77a6ca4a22f825fbac47dbf4865894e04e71f0b8c445d7dc259f1a0f7b7",
+      "actualR15": "1ae3a77a6ca4a22f825fbac47dbf4865894e04e71f0b8c445d7dc259f1a0f7b7",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/ExplosiveEffects.cs",
+      "expected": "2e5544198624fe5892b9e6b880f04537f6c7a01abc3aa1c0556422b96399812d",
+      "actualR15": "2e5544198624fe5892b9e6b880f04537f6c7a01abc3aa1c0556422b96399812d",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/GameState.cs",
+      "expected": "36e4f6bc01e0152b1c63ad8de72a89261c527796031c8a1b40d7664855285ff0",
+      "actualR15": "56c70a1750e1af9273776e3c6045be10dbada21333dfad2a57b5710345e5f5f6",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/LifecycleEffects.cs",
+      "expected": "882016616f47102d22109b4baa5a5f3daa86a701f92063de10f1ba5658ba83f7",
+      "actualR15": "882016616f47102d22109b4baa5a5f3daa86a701f92063de10f1ba5658ba83f7",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Core/RealityEffects.cs",
+      "expected": "376c1a0b9d6ba9a220eb26c0167514032febb487bb10404ead5e0ea5a205c775",
+      "actualR15": "5df590231d9e32ac8935e325846d5042ef4ca2d8b6b4626364bc2b623e147147",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R12",
+      "path": "Assets/CoreClash/Presentation/BallInspection.cs",
+      "expected": "4a2541fd7b29c741b696c37a453977cae96188aa34093dd0e4424b4e9030ffa4",
+      "actualR15": "cf53d90bd7c966f6dc587341ca17cb79636024931c6b0410929c0286ef4a3d07",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R12",
+      "path": "HANDOFF_R12_README.md",
+      "expected": "fc25cdf281effe39b6a4d79b7a5c1179bd15b071dfe13f485f3ab9a09a606c7c",
+      "actualR15": "fc25cdf281effe39b6a4d79b7a5c1179bd15b071dfe13f485f3ab9a09a606c7c",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Tests/EvolutionTests.cs",
+      "expected": "b7d5a0b734d3def61594e4cb36151cffb30a107966adc1a9b4b442d20feaa1a0",
+      "actualR15": "b7d5a0b734d3def61594e4cb36151cffb30a107966adc1a9b4b442d20feaa1a0",
+      "status": "MATCH"
+    },
+    {
+      "manifest": "R12",
+      "path": "Tests/Program.cs",
+      "expected": "d33bf60806aaa4ac78c5e2ddc4fa452400ebb08f71225d1951e2d8366b19b634",
+      "actualR15": "79fbe45f805008d281ffac1f83cf11fe9a790e1d8073a88895e987ff2b038f2e",
+      "status": "DIFFERS_IN_LATER_CANDIDATE_NOT_A_CURRENT_MANIFEST"
+    },
+    {
+      "manifest": "R12",
+      "path": "docs/R12_CANDIDATE_REPORT_PL.md",
+      "expected": "4da1353086ad7ab5e31b5af9d56bf58f63c9edb961653071c223ecaadbbc09c9",
+      "actualR15": "4da1353086ad7ab5e31b5af9d56bf58f63c9edb961653071c223ecaadbbc09c9",
+      "status": "MATCH"
+    }
+  ],
+  "note": "R9 handoff and R10–R12 changed-file manifests are historical; differences in files modified by R13–R15 do not establish corruption. R15 has no full current SHA256 ledger. This audit records actual input bytes.",
+  "inputFiles": {
+    "CoreClash-V149-Unity/.gitattributes": {
+      "bytes": 195,
+      "sha256": "b951d1770688c1a2b5b84ffeddb0c01d717ce96839442d71ba69b581cb8fbd73"
+    },
+    "CoreClash-V149-Unity/.gitignore": {
+      "bytes": 135,
+      "sha256": "fdc259bbf308bc25746c5dec231de8cd4e652c9221d75c44f7cd021e0f9fb3a0"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash.meta": {
+      "bytes": 172,
+      "sha256": "bd8653baf0bae551add3330105fc9f2f019603c7ff3378f8f2812557547f5fdb"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core.meta": {
+      "bytes": 172,
+      "sha256": "2188c14ae05313fd0d39b5f31a6709410989a306e779cc4c3d5fec6fde2bd32b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/AbilityResolver.cs": {
+      "bytes": 5361,
+      "sha256": "b240fa28a88bdfe27bc2791719ec59c0427a8839068ef8ea877d0fc90914f948"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/AbilityResolver.cs.meta": {
+      "bytes": 59,
+      "sha256": "c1745e5b6252a15cae062be93c8a5551366ea995748b998956291ac1942e629a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ArchetypeEffects.cs": {
+      "bytes": 1794,
+      "sha256": "57500e996cc782c09711265f2e635e084b0cad465fca84a5a4f03c8d70c001d1"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ArchetypeEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "a6f743ed17cfe449370ae27b20c45da003a5caef5b78f1b1e6bcc156c3448f00"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ConstructionEffects.cs": {
+      "bytes": 5111,
+      "sha256": "225081072e2a18d515b001672f504658ba161a2a49705ba56b5575b732328cef"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ConstructionEffects.cs.meta": {
+      "bytes": 60,
+      "sha256": "db3ab5d6727fe55e2b69ba5468e0b6f36b1c7141ae2716341dabd13ff8365804"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ElementalEffects.cs": {
+      "bytes": 4227,
+      "sha256": "67e519db3640f3713ee94cfb632d06a20cdb54acfda06017bfa4ee1e21a1b0aa"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ElementalEffects.cs.meta": {
+      "bytes": 60,
+      "sha256": "4427a861fddf4065aa0a2f32993edaa20ef544b43611e2d9849dfa3aeedddd16"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/EvolutionEffects.cs": {
+      "bytes": 5754,
+      "sha256": "dc1718f9e63a28b0aed2eddb0033b77d9f41334cb296b2c14c61c39b6ca066ea"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/EvolutionEffects.cs.meta": {
+      "bytes": 60,
+      "sha256": "1ae3a77a6ca4a22f825fbac47dbf4865894e04e71f0b8c445d7dc259f1a0f7b7"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ExplosiveEffects.cs": {
+      "bytes": 3005,
+      "sha256": "2e5544198624fe5892b9e6b880f04537f6c7a01abc3aa1c0556422b96399812d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ExplosiveEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "bd1de08e8621d51528764d36d81b9e268c6bd00a8175c7107b368638d0a2969b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/GameSimulation.cs": {
+      "bytes": 7679,
+      "sha256": "fd821fed48c9d6ef722b6e9629ead84d688ec6200efa122c16266b9dee18467f"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/GameSimulation.cs.meta": {
+      "bytes": 59,
+      "sha256": "b3b4566c236423e86b44dbba775be225be2cb3a65ba1b2a82aef3e715ab65621"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/GameState.cs": {
+      "bytes": 5056,
+      "sha256": "56c70a1750e1af9273776e3c6045be10dbada21333dfad2a57b5710345e5f5f6"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/GameState.cs.meta": {
+      "bytes": 59,
+      "sha256": "f3b119fdba96e66579948e9fe3e9d1bda8be6ec403d82ebcbf64493c30be798f"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/LifecycleEffects.cs": {
+      "bytes": 7900,
+      "sha256": "882016616f47102d22109b4baa5a5f3daa86a701f92063de10f1ba5658ba83f7"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/LifecycleEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "afaeeb4450ae84d28999402b549b7e24f92b011dbbe4ba4855492a81edb23462"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/MatchRules.cs": {
+      "bytes": 1850,
+      "sha256": "c2f414258fa890f4492b67c3543f0990b6ffef624404320545082c5b51fe74aa"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/MatchRules.cs.meta": {
+      "bytes": 59,
+      "sha256": "f2b761dcac2feb937583c3ae7231ac3709d93b91a040dfe746dbce4868acdd8d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/MomentumEffects.cs": {
+      "bytes": 3579,
+      "sha256": "a30623f65d3e988785a9646cdcb1918db9aa88d7ea4349a22227648cd83dbc71"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/MomentumEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "16155dd1a65acd130d2210c195283cb2d31eae5d20e75979fd0280aa62b0f8e2"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/RealityEffects.cs": {
+      "bytes": 5466,
+      "sha256": "5df590231d9e32ac8935e325846d5042ef4ca2d8b6b4626364bc2b623e147147"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/RealityEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "9a983d6fdfee3423b3d570b2c1e5540361179ca873277f862d66941a03613bef"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ReinforcementEffects.cs": {
+      "bytes": 5007,
+      "sha256": "cd2bf7a1a4e926de9abefc2f22a40037b72213fd9aec5882b9ccab2fc9f37aa9"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/ReinforcementEffects.cs.meta": {
+      "bytes": 60,
+      "sha256": "b4fd43c59c012d39b436197511f192cf6d16f4e32d62a5f85b7287ee8254d020"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/SpatialEffects.cs": {
+      "bytes": 6684,
+      "sha256": "473873a9350575ad56efbeed6c63e0560558e1f200faf70722841f9f98c69675"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/SpatialEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "10b7b326db5349b08ed07d7fabc89bb974e9cd3c6eac36e461e17238eeecb88d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/StatusEffects.cs": {
+      "bytes": 8462,
+      "sha256": "ea594de0f138e502a092fee868bb42c7007fdfde7447490ddaeeb72855cfc973"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/StatusEffects.cs.meta": {
+      "bytes": 59,
+      "sha256": "f8b4389b0df076d429441caeb8a7f0aa63fdbcf141e440cfc1a775e149c36e57"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/StructureSystem.cs": {
+      "bytes": 6473,
+      "sha256": "c2e0ad72cce61a30875f52d92428c754ff6c206bf44e79271ae0f75cc666a118"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/StructureSystem.cs.meta": {
+      "bytes": 60,
+      "sha256": "27e1d34395608c64602c3ab658f17d802bafec6f810cacf53119ee0480dce871"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/TurnSystem.cs": {
+      "bytes": 1082,
+      "sha256": "0e768f32c0f7f2ea79b14a0a649aa0202124e4d3bec3f4fe8f5c585b975f7103"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Core/TurnSystem.cs.meta": {
+      "bytes": 59,
+      "sha256": "eda3ef24d98ee1b6726877c65224bdf0c52f677516f66006c3c5b3d1c5100fe2"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data.meta": {
+      "bytes": 172,
+      "sha256": "e237b6850ebc9122ef93811d545d87a1d3d119503b1a00da0d6414066d8beffc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/AbilitySupport.cs": {
+      "bytes": 1248,
+      "sha256": "a1f77c61dec4fc47e18ea80caf583c4e6cde3101c48c0e828e520897c33c854a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/AbilitySupport.cs.meta": {
+      "bytes": 59,
+      "sha256": "78d1715c403a4b9f8cd7be78e459ec1c48dac5ca33ff9ffa27908da56c27c95f"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/Catalog.cs": {
+      "bytes": 1867,
+      "sha256": "6ac551eb9201b806df96aff5038166713b886816c3067ac334ba8097a5aa56d0"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/Catalog.cs.meta": {
+      "bytes": 59,
+      "sha256": "284e0098327a7c08aa1b83d5b10e11b51122bce8e0531ee2afd3b350ec24f733"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/Definitions.cs": {
+      "bytes": 1388,
+      "sha256": "c89f3344702a1ced4cc0bad45f7dcfdfa1d72ef49d80c6f7e65f44a28f73fabc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Data/Definitions.cs.meta": {
+      "bytes": 59,
+      "sha256": "656af96a17e8e75c9c4ac3158614acd3c96b27dae36538c8bba72153e165e662"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Editor.meta": {
+      "bytes": 172,
+      "sha256": "211e8c2024a12d08ef9639d454bae40d2236a7d70d324517bc9fa8f5ce31989a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Editor/BuildTools.cs": {
+      "bytes": 6277,
+      "sha256": "a74fcf599fdf514652a4ee666e134b3c34a20a96d0cc72a00f6905c5024f648e"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Editor/BuildTools.cs.meta": {
+      "bytes": 59,
+      "sha256": "30eb4bbca769c857cfdc40f636e2a3313697dbb7bc82fd8f36a8d3de95cbf39e"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Editor/CloudSetup.cs": {
+      "bytes": 4987,
+      "sha256": "402a53b0b58e23e2dfa6a99a37df19f8dfd6c395b49787bccb7e353cd023cf1a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Editor/CloudSetup.cs.meta": {
+      "bytes": 59,
+      "sha256": "2297617170f47fbd222438ef4bf0373f7c1105f78f85659632292210b7309fca"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input.meta": {
+      "bytes": 172,
+      "sha256": "c17312b020d04c025e7902c89af24f6d40b38a51b20cdf02e0b71ab79308ac8a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/DesktopInput.cs": {
+      "bytes": 564,
+      "sha256": "f578ab35b9c40ef43f5213790656092ee28c9a82e1233ee6da8c92e0c32750dc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/DesktopInput.cs.meta": {
+      "bytes": 59,
+      "sha256": "c6de8062ee268a798cb7388f6dbc690ef6562ccd86483925833c840a9372e257"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/LaunchGesture.cs": {
+      "bytes": 1096,
+      "sha256": "af0e55996f15e52589c730cd73d3716c0cbafb7ee8791d574e4b3a1bf78bd56d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/LaunchGesture.cs.meta": {
+      "bytes": 59,
+      "sha256": "e2854bc52386886db29d1eebe3852636013f3528c3a9f4dcf16e8388f3dab351"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/PrimaryPointer.cs": {
+      "bytes": 1119,
+      "sha256": "0911a18e47439b92f71b4859a9229239861730a42dde089d91b3df65cba846a2"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/PrimaryPointer.cs.meta": {
+      "bytes": 59,
+      "sha256": "cd75d38448b726edcd0c80c1c38e84004c013471836f26c3bec1a43b7abb808d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/TouchInput.cs": {
+      "bytes": 1282,
+      "sha256": "fbdf569fad0c0019842a251ad2a8cfc0432ae604718942a83496ff0522cd6332"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Input/TouchInput.cs.meta": {
+      "bytes": 59,
+      "sha256": "10ac1b122fac7ff5792604319a521b07969aaf0403ae9dbcacf0696a407d2f80"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking.meta": {
+      "bytes": 172,
+      "sha256": "e8ad2115a04e91c607843be60c2fbd09381af8f9c478fd535b598f17bb898bf4"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/IUnityNetworkLink.cs": {
+      "bytes": 320,
+      "sha256": "d3afdc8d33ccec56ad867a5d8c300cb03a35dddae57be30f140b0104531d1cfd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/IUnityNetworkLink.cs.meta": {
+      "bytes": 59,
+      "sha256": "f0884563deee8e5f709cc06b5ccd2a7909496d648a5c0731b5616b5fef06182d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanDiscoveryProtocol.cs": {
+      "bytes": 4826,
+      "sha256": "fb09402c5a0473826de75fb2d76e4097f9a02bf9a21be5490837a2bd2fe4b0de"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanDiscoveryProtocol.cs.meta": {
+      "bytes": 60,
+      "sha256": "0a16f6081fc4ca12286ad3d1c4e3411988536fca568e62990e762a570ff145ed"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanEndpoint.cs": {
+      "bytes": 751,
+      "sha256": "5ccdeb9c20a7deb325c71e3558bcedd7b52b6e6282da745fb84b7a1750068954"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanEndpoint.cs.meta": {
+      "bytes": 59,
+      "sha256": "ab7e7e8d3fdb3d83e41c7cd1577a21a853d9fc4520ec7cdda59ef2715888bf07"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanNativeServices.cs": {
+      "bytes": 10236,
+      "sha256": "d57b9335f42d2340e29036f556225539ab05e06b5d1424d4d37f5e35e66a5cfc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanNativeServices.cs.meta": {
+      "bytes": 60,
+      "sha256": "39a273a7931af508f7b8f7ddae2acd9e4059198830c7766e7c7d3b6c00ee54cc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanSeat.cs": {
+      "bytes": 1061,
+      "sha256": "f3306bbf1e9a15688e6683de90ac30442b27deed5d4c6c5aaa846c4a5549bc6b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/LanSeat.cs.meta": {
+      "bytes": 59,
+      "sha256": "8196c4c64c0f2358b2dc9665f8edf6a7c4faeccfd04e367a2de32c206dc334dc"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs": {
+      "bytes": 4216,
+      "sha256": "88f344635414e44e4648509ee76f0e9bf5f5d4b0d336b21906c8b0b210287838"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs.meta": {
+      "bytes": 59,
+      "sha256": "7faecb3b15cc272461b181f72f9e620bf9560dcc7069e9331152dff89bba9f2c"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs": {
+      "bytes": 16648,
+      "sha256": "0f167001ddb78d68908af8d0c954aaa3c5af152231a4fa6cf8815c645cc2cd8f"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs.meta": {
+      "bytes": 59,
+      "sha256": "2573723273e72250e5bd7194522fdd9195d5281b56ac42e7435feee62096c236"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoInternetSession.cs": {
+      "bytes": 9209,
+      "sha256": "42de1b4c619b38ebedbb2f2ba7ab288ea22a18708207ce7d3fbfab67dc668107"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoInternetSession.cs.meta": {
+      "bytes": 62,
+      "sha256": "63dd1ba48694b3a5b8e3f5212c88bd0e05279dfdcdbcb8a0a7fed5e98934abcd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoLanLobby.cs": {
+      "bytes": 19749,
+      "sha256": "d94e26a0153e2698c492b4e15aa8d3e244a080ec0b15c2f346b1bba1c9e1692a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoLanLobby.cs.meta": {
+      "bytes": 60,
+      "sha256": "b3f4d577a3abb848336148bb23faaaaa4ad64d60e66aa05fe116f8c136b3a5d0"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoRpcBridge.cs": {
+      "bytes": 1525,
+      "sha256": "1a0e72193b8512c128577efc5d78e3139e621fa2c70d2f1717c302cfcf80b993"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoRpcBridge.cs.meta": {
+      "bytes": 59,
+      "sha256": "7e6b2fb4d98b67d1bab22462415cf2c1bc260eb2d83bdcd8bcf6bdd28c888e2a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoWireProtocol.cs": {
+      "bytes": 3634,
+      "sha256": "ee69898d3aba523949996226a2317f101e85f8b75be2056c692c0215e252c777"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoWireProtocol.cs.meta": {
+      "bytes": 59,
+      "sha256": "84b2d7eb0bfe3f9144337d22ed0f90c205ea879fff62edd211997ecec3aa6a68"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineJoinAddress.cs": {
+      "bytes": 3597,
+      "sha256": "e58f6f2c9ceae18bf6825c3514cb38dd725d0bf4432fb859e7476767aba8f9bd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineJoinAddress.cs.meta": {
+      "bytes": 62,
+      "sha256": "3f0987537ac256b5e5aead3e985dd3a0decf48ac0e2150003843478d38b6586d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineServiceError.cs": {
+      "bytes": 956,
+      "sha256": "50dfede37349caa431787bdf27bcfafd9496d3d7c85ccff44fcfb463303f3150"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineServiceError.cs.meta": {
+      "bytes": 59,
+      "sha256": "e31769aebafa8da7fbb0887f14863fbdac1cdd0108951fb4519d3ad83e3bfe67"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics.meta": {
+      "bytes": 172,
+      "sha256": "9cafb930f5b4eb6c4c1d334ed946b26b632e55d4bd38cff436b33abecb6b9a02"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/BallPhysics.cs": {
+      "bytes": 5153,
+      "sha256": "f0247fa66f43ee89f9b2b0320c13a8a4856ec95c6d2102e26e54b7e2dd4535b9"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/BallPhysics.cs.meta": {
+      "bytes": 59,
+      "sha256": "c6f4a9e9f71e45bbb69e298b8d0678a2d4e1c20c170b24a53125d0e15b4262ed"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/CollisionResolver.cs": {
+      "bytes": 2615,
+      "sha256": "0997f17e667653eb026bf58b172a64ccca0573529f0bef9eecd854314079992d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/CollisionResolver.cs.meta": {
+      "bytes": 59,
+      "sha256": "0a5b4070e8ead6019ed26b6a824e96cbb1feb3ba64daf94863419cd0b690d1dd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/ZoneResolver.cs": {
+      "bytes": 623,
+      "sha256": "acb884785fb3c8f81ca9fbdfa4b0845f60eeddf87ca344b90688b4d556a7e33c"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Physics/ZoneResolver.cs.meta": {
+      "bytes": 59,
+      "sha256": "6850dd1c73298672b6f9aa7a87e647517f38bc6d249d5550f316e4e588fa6af5"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation.meta": {
+      "bytes": 172,
+      "sha256": "039f459c43d417e4397bf45da33ec3d8ba3b91d617e269360e0d38869cc602ed"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/AimGuide.cs": {
+      "bytes": 1841,
+      "sha256": "151f858dd491f80fcc8417e508ac1e563afc18234c31d024ab42ea5fb37950ea"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/AimGuide.cs.meta": {
+      "bytes": 59,
+      "sha256": "fb4841f99a39e17582cfa047b2aa00939efce06228f960e4f876866718a0645f"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallIdentity.cs": {
+      "bytes": 1752,
+      "sha256": "479f8341957b40a09e6f234c73b7d3d271b611eb223fe47a4dac5fd7bce51680"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallIdentity.cs.meta": {
+      "bytes": 60,
+      "sha256": "3812d6748210b94bcec1f8d6d4d70589ebe80966189f165e3685e268fe082a94"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallInspection.cs": {
+      "bytes": 4586,
+      "sha256": "cf53d90bd7c966f6dc587341ca17cb79636024931c6b0410929c0286ef4a3d07"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallInspection.cs.meta": {
+      "bytes": 60,
+      "sha256": "9b13ec5d30559f14b0cc7297d6e679210fd1b982926b1249f958edfc4dc20650"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs": {
+      "bytes": 260,
+      "sha256": "63a7b1b191cee0fac820196347e1148db37c0fcafe7f75d68a9e3579c6ea585d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs.meta": {
+      "bytes": 59,
+      "sha256": "4bc05ebf412d2825a23d8ece5382e85b6e07edc2c4c54660f9e40eed04a59532"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs": {
+      "bytes": 9775,
+      "sha256": "efbca79e995a95f52424dcdaf09f060e6bbc0d37d33015970638eb63b39e81e6"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs.meta": {
+      "bytes": 59,
+      "sha256": "d397e8ce0c9af8e8a2f5be01fb6d80f450907fb67fbff16ed3f240bdea45317e"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs": {
+      "bytes": 20336,
+      "sha256": "c8fd1bacfee47264da1b42fc80dffc4794d9d3ec26d0721869c157b9f74f3a72"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs.meta": {
+      "bytes": 59,
+      "sha256": "8ef2eacb02186d6ba022f2b1bf461bb6431caf0da04b07843e3fdb3e1717f361"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs": {
+      "bytes": 13741,
+      "sha256": "36837ebd93b72ec446e267b56662814b8ecb1e69e7b59c0fa2c34f2882c6b9dd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs.meta": {
+      "bytes": 59,
+      "sha256": "517fb091c10f0a862fb41554a674d89feec262bc808bb083c588561e1a4a81ca"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs": {
+      "bytes": 4721,
+      "sha256": "8942c49d5f979e7256a513a1a1d28d72832f640b2d4cae7b70d66f08ca23a10b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs.meta": {
+      "bytes": 59,
+      "sha256": "9697ee744b0f0c3f91acd730e91f6a2836b614d257547e4f8099f8ed9aa58925"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/DeviceViewport.cs": {
+      "bytes": 2286,
+      "sha256": "02c74da6ed1470a6f6dfeb993ef349e9bd20343da5d6a08a9e13a859265551fd"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/DeviceViewport.cs.meta": {
+      "bytes": 59,
+      "sha256": "e473af6f84429b6c69cbdc815d772f5be392e34e1227162324d755ba34e5c7a9"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/Draw.cs": {
+      "bytes": 5759,
+      "sha256": "bc8810e5ae27928db0916a9c3dbaab9921bff607e16eff4822c1d945db9fc39b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/Draw.cs.meta": {
+      "bytes": 59,
+      "sha256": "e08e19d2de567c0e649c6fb3b2f04ed2d06fb37db041451d8592c9f508850975"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/FeedbackTimeline.cs": {
+      "bytes": 1787,
+      "sha256": "ea757c8a087d8e87f00077df668020d773c364b22687247a67682bffc4861113"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/FeedbackTimeline.cs.meta": {
+      "bytes": 59,
+      "sha256": "39e42769f91cfc2b1ea243c3ae6de7f82bb5f0ab46efd1217e6b2a59d84b3a1b"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs": {
+      "bytes": 1615,
+      "sha256": "651cfa99440dc1c48769ca0d4e86f344ba60040cac50ba3a842f66269187a576"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs.meta": {
+      "bytes": 59,
+      "sha256": "0682963fb3262973661e3ba6b93282fd0f7ea1e76c2f802d440179c87bc7fc6d"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs": {
+      "bytes": 9101,
+      "sha256": "6c5aef0ee4df33e00f6d6c98c0eb49f09252c837236c2c2a55af45598b482d19"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs.meta": {
+      "bytes": 59,
+      "sha256": "57af938de1aa1f4defa5dd37721ab927239c02d40fefa67c5d92f3eaec5aaff0"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupLayout.cs": {
+      "bytes": 1555,
+      "sha256": "fd72116d6d31f66da806bb1fdee46c45482b6ba831a52123de58c431bb6e1760"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupLayout.cs.meta": {
+      "bytes": 59,
+      "sha256": "0cc1ec05a1a3c8a9c2173dbf285150dfd8d0d695a4e8b7d7025df83b2c803d44"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupView.cs": {
+      "bytes": 10156,
+      "sha256": "8e4a61c848a7a73e4188c2585a6546bdc9dfec68a5c17463cd78aa55c7fec4a9"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupView.cs.meta": {
+      "bytes": 59,
+      "sha256": "ad8069f6ee3d47574af5a66f9edfa37abfc7dfcb239ed84daf5b356b96992f90"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/UiViewport.cs": {
+      "bytes": 3271,
+      "sha256": "1226a491be613316d2847643bb30c46e6b9b35533d15acae15c3b24d61cdaaf2"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Presentation/UiViewport.cs.meta": {
+      "bytes": 59,
+      "sha256": "78847b822ae75fad6296aa6160dcb87913b995fb83de6a1081062b5ccc2e3a7e"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing.meta": {
+      "bytes": 172,
+      "sha256": "ed5dec89c9d0ae8c14da9bae057212632047b22cc955ff2fdcc1ee5f2688faef"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/ExplosivesSmokeDriver.cs": {
+      "bytes": 4539,
+      "sha256": "46851e4209791fb52783180d5de74ae532aafdea1d5ac291f33b9b269df6ec13"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/ExplosivesSmokeDriver.cs.meta": {
+      "bytes": 59,
+      "sha256": "825d87734d2be65e861b97c99c432c17ea50c7a58bfc8d426d1563406008782a"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/HtmlMechanicsSmokeDriver.cs": {
+      "bytes": 4672,
+      "sha256": "0c74351c680ff83dfe9eb1ad09bea0d3998a613b6ab30a483dcdca2b26060548"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/HtmlMechanicsSmokeDriver.cs.meta": {
+      "bytes": 59,
+      "sha256": "5124ab2ee438ed6e6e6b8ea68ad7471958e782ad79d4829d9760f66f68fc2fef"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/NgoSmokeDriver.cs": {
+      "bytes": 7143,
+      "sha256": "3aa5ea6be599d2dbda687e8a75c29ceb30da730398f411fafa02f609b9d5f236"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/NgoSmokeDriver.cs.meta": {
+      "bytes": 59,
+      "sha256": "6a716b5f21bfde722d1f64aceea7d6014a2b806855708e60f86d0256ab2988e4"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/PresentationSmokeDriver.cs": {
+      "bytes": 24326,
+      "sha256": "9415a0f36f316404695b8cca0bbb4e97063268ea8ec68944aa367a339b165580"
+    },
+    "CoreClash-V149-Unity/Assets/CoreClash/Testing/PresentationSmokeDriver.cs.meta": {
+      "bytes": 59,
+      "sha256": "086749640af6900dc417ce3b36856d16d33bc22a70298f203d227e50bf372c6a"
+    },
+    "CoreClash-V149-Unity/Assets/DefaultNetworkPrefabs.asset": {
+      "bytes": 491,
+      "sha256": "a37fe3fe19e609f5006fbf971b12a0dcc306aad1298cff10ae61afde9047e8ec"
+    },
+    "CoreClash-V149-Unity/Assets/DefaultNetworkPrefabs.asset.meta": {
+      "bytes": 189,
+      "sha256": "320ed2523a7cd1278c6940d0311b73e312f3614ec5feec5a75341e65ceaeae49"
+    },
+    "CoreClash-V149-Unity/Assets/Plugins.meta": {
+      "bytes": 172,
+      "sha256": "2363d190d9c58e48f4617c896f8efd36d99874068b899821c359962149c4a16b"
+    },
+    "CoreClash-V149-Unity/Assets/Plugins/WebGL.meta": {
+      "bytes": 172,
+      "sha256": "15b9c41bafd5d2d1cdb74d9c3088a0ba89f3c24aa32624d9b5d8260590d166e9"
+    },
+    "CoreClash-V149-Unity/Assets/Plugins/WebGL/DeviceViewport.jslib": {
+      "bytes": 611,
+      "sha256": "c88c3015e0dd01963336ff8cf90122eea3a724496cca355c4151e79b4890e528"
+    },
+    "CoreClash-V149-Unity/Assets/Plugins/WebGL/DeviceViewport.jslib.meta": {
+      "bytes": 59,
+      "sha256": "d02c1838b60c02233a3bf4c0bb5b8f0f9f4f0360ce650fb03e0f586c99a78f32"
+    },
+    "CoreClash-V149-Unity/Assets/Resources.meta": {
+      "bytes": 172,
+      "sha256": "bec476324bc7dba6fd64a8e8f5435b38d317a45addf80d647f0111f80c24d5a3"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data.meta": {
+      "bytes": 172,
+      "sha256": "874ba3c50543634b1645d5f59f05ccc7c735054ac353a1cdb5916ce5d395ae6c"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/catalog.json": {
+      "bytes": 677094,
+      "sha256": "5be1f3a853fb25378ee0d597fe977e73edd62f07b499a1b3e4c03268e21f5fd1"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/catalog.json.meta": {
+      "bytes": 158,
+      "sha256": "bbec5932ef186df64621f53b2aa76dca20946f42d1ed46371f4f667f4a1e422a"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/featured-decks.json": {
+      "bytes": 1491,
+      "sha256": "b0931b8d0129a21c7c5b705c3e6da94164b99e652aac3eebb0f68d8b8650b634"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/featured-decks.json.meta": {
+      "bytes": 158,
+      "sha256": "0c4123969dc6ac1a648e25bf6f81298b7590a12df2bc9dcb20d0ee40cc0b6f9e"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/network-settings.json": {
+      "bytes": 27,
+      "sha256": "87e01adbd6a32f5ff30b8c56c9c0ba97312d22ecbdc49ad72951bec780a78b98"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/network-settings.json.meta": {
+      "bytes": 158,
+      "sha256": "1cc9584ddd1920a1b83f6a8304154bbb13aceb819237d41264739a948a548450"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/presentation-copy.json": {
+      "bytes": 15344,
+      "sha256": "5ca641823c7a2e40c52bb4e131a7816d7969e6df92872eb06e42cfb31ac95ae3"
+    },
+    "CoreClash-V149-Unity/Assets/Resources/Data/presentation-copy.json.meta": {
+      "bytes": 158,
+      "sha256": "8b00a4a8730bfd5e841bd2f11204017d4c750fa9d4051accd7ca706395212fa5"
+    },
+    "CoreClash-V149-Unity/Assets/Scenes.meta": {
+      "bytes": 172,
+      "sha256": "50475c9465ce6a6a65cd1a2849873b1503e2dabe455cfb381ee7d6f069f5ce25"
+    },
+    "CoreClash-V149-Unity/Assets/Scenes/CoreClash.unity": {
+      "bytes": 14492,
+      "sha256": "b3e68b25154bcdbb42ded654c306bef8581ffd4bbd0b8ac2c9f238132146b35c"
+    },
+    "CoreClash-V149-Unity/Assets/Scenes/CoreClash.unity.meta": {
+      "bytes": 155,
+      "sha256": "bba2c0bb0f66945322b9e43dacba53b897a2b9e5052843c62a7464f5973674b6"
+    },
+    "CoreClash-V149-Unity/Assets/WebGLTemplates.meta": {
+      "bytes": 172,
+      "sha256": "e2e4d1cb67afed7ec107c26325843389b53a6d6ff62f9bf4d4a6328ad38ac7d1"
+    },
+    "CoreClash-V149-Unity/Assets/WebGLTemplates/CoreClash.meta": {
+      "bytes": 172,
+      "sha256": "f8488ac797e38ab6de17914f99af2c860d5f75f988b368e3d715ea18eb65a2d0"
+    },
+    "CoreClash-V149-Unity/Assets/WebGLTemplates/CoreClash/index.html": {
+      "bytes": 6070,
+      "sha256": "c4ff844cebf6e513dfef2ac1a0ecef87109624e06370d2ad5e9e931a877e0807"
+    },
+    "CoreClash-V149-Unity/Assets/WebGLTemplates/CoreClash/index.html.meta": {
+      "bytes": 155,
+      "sha256": "1a19879513b3bdd89c2cc755c902ca0c75aa39fb9c7854ebf3e64af30cd3b0dd"
+    },
+    "CoreClash-V149-Unity/BUILD_STATUS.md": {
+      "bytes": 3943,
+      "sha256": "f7067d02df250d6969d0d93de05a74156f8c431196a4fcf2cf90a3881fdb7389"
+    },
+    "CoreClash-V149-Unity/Evidence/ability-support.json": {
+      "bytes": 33577,
+      "sha256": "92b8a479c59d448642bd62fab0b01e22abc4a5faa3f07f7e959fe2cfced5b505"
+    },
+    "CoreClash-V149-Unity/Evidence/android-package.json": {
+      "bytes": 1903,
+      "sha256": "5e82f1692d8e5e83b000b67fbcb9d25949c58a4514bbc8ffa5b4568adcd36e17"
+    },
+    "CoreClash-V149-Unity/Evidence/archive-reference-integrity.json": {
+      "bytes": 478,
+      "sha256": "f7a8847eb9dec21899fd65be7f5ca1a16540017f51bcb7a9158c67c534f8cd11"
+    },
+    "CoreClash-V149-Unity/Evidence/build-Android.json": {
+      "bytes": 147,
+      "sha256": "3302ef8cfb2527032a666ab5e8b2a52e4eccb47c60f08f0c61e281fe68762f6c"
+    },
+    "CoreClash-V149-Unity/Evidence/build-StandaloneWindows64.json": {
+      "bytes": 158,
+      "sha256": "19a6cc52eb11f760ca7a05bc3b0e8f80c0b0b6c68edba62a66f46c7b73087a06"
+    },
+    "CoreClash-V149-Unity/Evidence/build-WebGL.json": {
+      "bytes": 144,
+      "sha256": "c02dfd25e569a3540e021b153de13d5e684ae7c55b8a9e00cac27f15cddb1995"
+    },
+    "CoreClash-V149-Unity/Evidence/delivery-manifest.json": {
+      "bytes": 74028,
+      "sha256": "b0dc7ce06f27234d34b5b30f37335b2f0163e88b5e3edefefff7b7b9d78329fe"
+    },
+    "CoreClash-V149-Unity/Evidence/lan-plain-invitation.json": {
+      "bytes": 1903,
+      "sha256": "000871793de1910d04aefa14bd8bf40434849131317d1998ea0b401b613c31e0"
+    },
+    "CoreClash-V149-Unity/Evidence/lan-rejoin.json": {
+      "bytes": 3135,
+      "sha256": "2d284fd4e355b951b8475c7e4667963f720d74824c97b037da7e9c76ea46c49c"
+    },
+    "CoreClash-V149-Unity/Evidence/lan-runtime.json": {
+      "bytes": 4464,
+      "sha256": "e8ef55d34e0d05fccbdcf5edb70757c505cbfe15945cf2c1abf1317c91cb9638"
+    },
+    "CoreClash-V149-Unity/Evidence/legacy-manifest.json": {
+      "bytes": 919,
+      "sha256": "fb1eb816f236da2d32a6109e681214f69194b658f02a3eac4913cb68fe813a2b"
+    },
+    "CoreClash-V149-Unity/Evidence/legacy-verification.json": {
+      "bytes": 24688,
+      "sha256": "17a9643d7e73771bf289149b0bdd6c1f2e9ceec2b84baa410d393baa3c8ef579"
+    },
+    "CoreClash-V149-Unity/Evidence/network-codec-tests.json": {
+      "bytes": 683,
+      "sha256": "38189fd65887b4959fe3a55d74de40bb5f8105213f4e473b3ca58ef08c88c3ba"
+    },
+    "CoreClash-V149-Unity/Evidence/network-first-failure.json": {
+      "bytes": 521,
+      "sha256": "a480ee5d1f93db0a63516b3648cedddb5990f9f48790d60de1fa904d1141a69c"
+    },
+    "CoreClash-V149-Unity/Evidence/network-native-startup.json": {
+      "bytes": 227,
+      "sha256": "b21c057145c191fe788cf6539b22ef3793e72e4d258c96d0ef6b98c527f8a46a"
+    },
+    "CoreClash-V149-Unity/Evidence/network-packages.json": {
+      "bytes": 766,
+      "sha256": "f5f0032a9b4b551dec99d11464f5473d687bf361b605e140645272077654463c"
+    },
+    "CoreClash-V149-Unity/Evidence/network-runtime.json": {
+      "bytes": 6070,
+      "sha256": "29a406d7f541fd89f5c4bb07dfca79972566d9b5a43c07e1bbadf7931b442b4a"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-native-runner.json": {
+      "bytes": 2887,
+      "sha256": "12d9d4ab234abe747f36e411f1dbcc39f509e20bb8812866c26db66fa5826e81"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-native-runtime.json": {
+      "bytes": 7304,
+      "sha256": "0098e7af924b9041675aafb70c7a03081584636292354eb674d7f08e350ec9c1"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-reference.json": {
+      "bytes": 106707,
+      "sha256": "879711ec289b6586a52a8fbd8d46ff3aafac344d0c9087a1f7e47bd72684c812"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-interim.json": {
+      "bytes": 29005,
+      "sha256": "2158764e01991277fd44e1b7926ed3d46f57d7a59068d264937814093dc3ba3f"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-mobile-interim.json": {
+      "bytes": 14918,
+      "sha256": "bf912756806695858d6a3ebd2005c20d0fc699c8cc489a5a22e49fd7a8443ca0"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-webgl-smoke-start-diagnostic.json": {
+      "bytes": 10705,
+      "sha256": "e2db4b68a24441b8580c8141d1557d4a5cac22bd99d8f24a8eb7770b5430c12c"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-webgl-smoke.json": {
+      "bytes": 31632,
+      "sha256": "bdb5bec44fd30d0b2700ee1bcd92d79306f0f49b1c30febbc6d76da92a1b90da"
+    },
+    "CoreClash-V149-Unity/Evidence/r2-webgl-visual-review.json": {
+      "bytes": 8801,
+      "sha256": "ce64938b8fced2309f09dd1717a986c69ba3c0e131dbc6883ce1e86e96c12063"
+    },
+    "CoreClash-V149-Unity/Evidence/r3-native-runner.json": {
+      "bytes": 2890,
+      "sha256": "de8e06673adba9f94287bb55b4d290736026ddab0192b09ed79bda6c4735a745"
+    },
+    "CoreClash-V149-Unity/Evidence/r3-native-runtime.json": {
+      "bytes": 7326,
+      "sha256": "da649f24dad5547cc3306985bbc660b8fea0a1836ebe7ff185b036dfbf87dce1"
+    },
+    "CoreClash-V149-Unity/Evidence/r3-webgl-smoke.json": {
+      "bytes": 41474,
+      "sha256": "272012162887e794a724f2b90c5709f999b2c3732aeb1952d6e91fd6b9ba172d"
+    },
+    "CoreClash-V149-Unity/Evidence/r3-webgl-visual-review.json": {
+      "bytes": 18783,
+      "sha256": "21d55a38e79d5966e95f4e4c095b336ffdc7cbc3662b045bd358251980ebd78c"
+    },
+    "CoreClash-V149-Unity/Evidence/r4-native-runner.json": {
+      "bytes": 2890,
+      "sha256": "a90583ca306c1e74a578aa3e2b3246a3832df2b9673926137c15e1cc64a1e6fa"
+    },
+    "CoreClash-V149-Unity/Evidence/r4-native-runtime.json": {
+      "bytes": 7328,
+      "sha256": "d6e6e5afa3f72563ba22fea0414442d7c8f42bfd43a7cc91161502b61cb6151b"
+    },
+    "CoreClash-V149-Unity/Evidence/r4-webgl-smoke-interim.json": {
+      "bytes": 43683,
+      "sha256": "b6d70933bb5c3dd75a94b54d9c6b9481cda60e83948d641d4282ed5e53bd8ad7"
+    },
+    "CoreClash-V149-Unity/Evidence/r4-webgl-smoke.json": {
+      "bytes": 45383,
+      "sha256": "b3ccca3541b7cd3e90ed0c477268be37576815493681cab4753b54b6562309ac"
+    },
+    "CoreClash-V149-Unity/Evidence/r4-webgl-visual-review.json": {
+      "bytes": 21616,
+      "sha256": "9387bb01ead9cb78797d29001a7f9a4750fe7e6da1bcfbf5476a74411ad29c64"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-lan-recovery-before.json": {
+      "bytes": 6226,
+      "sha256": "35174ccbad38d0cc2eec27211aaf7c9e75d37c2fc0edc7e99bd96649b844d0d5"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-lan-recovery.json": {
+      "bytes": 8344,
+      "sha256": "5a859083b0ada527d67c94a31e040556df4b4d106705f1915a8d8c4b41e9adf2"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-native-runner.json": {
+      "bytes": 2890,
+      "sha256": "bcdaee7f6724d5d48d0446a1f5c6cb261504ed88d2d18954c5838c6293c4b53b"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-native-runtime.json": {
+      "bytes": 7327,
+      "sha256": "e5bcd683e31ace72ed293af19ff5880234739606677fd376fba980632e73ff54"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-reference-integrity.json": {
+      "bytes": 357,
+      "sha256": "6ed1e2e1c085f818cfabaf9575c5ba96e0de78b34e1cdc8cd4a72154629b971b"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-webgl-smoke-interim.json": {
+      "bytes": 63867,
+      "sha256": "345a9dd2891dd5b191fa4a98ca857bc56fd4caf6da1d40b4658682485c3d42cb"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-webgl-smoke.json": {
+      "bytes": 63867,
+      "sha256": "c9127d6d6e941bae926769bbba9c218039557b12c60d0d3971d1a29cfa8e29f1"
+    },
+    "CoreClash-V149-Unity/Evidence/r5-webgl-visual-review.json": {
+      "bytes": 33703,
+      "sha256": "50c47fc9a89da4a0d13995af330d31ac2f2725b5fa5d5a32cf2ce6ce82a39057"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-build-Android.json": {
+      "bytes": 147,
+      "sha256": "84371af000db75ac09d05c5366f05a3eeec6ca82119edd77cf46bd1b4f9328f9"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-build-StandaloneWindows64.json": {
+      "bytes": 158,
+      "sha256": "d49c4f17eea8581291ac3ac41c89ee6837d145e83af831b4a950a1a95e983a9b"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-build-WebGL.json": {
+      "bytes": 144,
+      "sha256": "9ed5739e758f2340b878af278c11316772570c71ac35d2b8e25461a33110599e"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-cloud-binding.json": {
+      "bytes": 224,
+      "sha256": "f3d35b20023488ec185bb76a1870ee09d63461c219fb65ac4f1a484ec594757d"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-cloud-status.json": {
+      "bytes": 401,
+      "sha256": "ad0066b1c47844acceca13938cfcb7fd8f4e5cafdfd7be6800d8dcd30ccaa0a6"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-delivery-manifest.json": {
+      "bytes": 71776,
+      "sha256": "62d1ffc78070bdd61b94f143b22418203fb9c8db7efd5fb10da53e0952daff2b"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-gameplay-reference.json": {
+      "bytes": 694,
+      "sha256": "e53cf0ca5c144a989a4399dd3ff05a39a14c5ddfcf5089a8019c07248441dd48"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-internet-smoke.json": {
+      "bytes": 2636,
+      "sha256": "f833523ea3503ccbf5196bfa9df6b207d435f5c87a6080c0e6bd5452e5d1f94a"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-lan-recovery.json": {
+      "bytes": 4593,
+      "sha256": "0678e4c3145a3459c096e6c35ee6b9660daa24a8e4637d6b87d562131fa5e661"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-native-runner.json": {
+      "bytes": 2891,
+      "sha256": "a20abd8286ed53981a152a39e392a65404e987843dd43ab1a03350f82bbbae9e"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-native-runtime.json": {
+      "bytes": 7327,
+      "sha256": "cd5007c097e14e0d1fc817c3c5b9f2cc219ae81264cd393634548e6c4df58f7f"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-before-short-smoke.json": {
+      "bytes": 38276,
+      "sha256": "a1074570ad93eadd17c6016718c1925afb24089273d740eebad5dd45414f2c4c"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-r7-phone-smoke.json": {
+      "bytes": 85295,
+      "sha256": "a98d01e803583d8f2ac48ec1e862c9fbe1b417741db02c104f372c95fd5727c0"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-r8-phone-smoke.json": {
+      "bytes": 85446,
+      "sha256": "3837a1b9acd547bdca969b02edc3934faf954d01b028846d7db4b4a15e2afb8f"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-r9-phone-phone-portrait-08-match.png": {
+      "bytes": 51385,
+      "sha256": "893accf366420afa9cc8d4c80f3c382bdb63adf1636b3c86217835d54daf62c0"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-r9-phone-smoke.json": {
+      "bytes": 85439,
+      "sha256": "9ccb3bf05d65fbaf685052feca9496bc57f7b60987544975ffab08bb41fee38c"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-short-check-smoke.json": {
+      "bytes": 57209,
+      "sha256": "7ca06d1d623f5aa2f60c7f9b822ad2632e6d4ee8575d2be5ec5c506718b4a90d"
+    },
+    "CoreClash-V149-Unity/Evidence/r6-webgl-smoke.json": {
+      "bytes": 331342,
+      "sha256": "13d0b51507780a046b637ca1ff651f9f6c23c8a054a846527eca7bb9a9ebc998"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-build-Android.json": {
+      "bytes": 147,
+      "sha256": "0570993935d892f3cdbf35631895c001933ad54f577a3a166688a25a252c3700"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-build-StandaloneWindows64.json": {
+      "bytes": 158,
+      "sha256": "4c11d808dfff04dcf72d32b711ce3bb60f02af4120b860dad9a14ae91b3f4e9f"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-build-WebGL.json": {
+      "bytes": 144,
+      "sha256": "ab129c2d01aec3c0a3e57a1e46d6679b845c622fcd4ef8df90900a2cec7ca4ad"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-cloud-status.json": {
+      "bytes": 430,
+      "sha256": "1d78982fee3ebc03e79655c93d2fc41689d35e9f57ac569eb69297565f64f37f"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-delivery-manifest.json": {
+      "bytes": 71970,
+      "sha256": "0b946413530789987170eebfb06c0fc5b32d08cc8ef80b0f63a93f55ccf33306"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-device-availability.json": {
+      "bytes": 224,
+      "sha256": "98b7ea96fce177d1c839b87af9f6c7eeb4b574a44e959331b0ea5ba4acc0d74d"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-internet-before-errors.json": {
+      "bytes": 8318,
+      "sha256": "3f7400041c39b923926ae02a1c3e3bbc025ec5060d274d4bbf9fa10b4b9a56e8"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-internet-error-diagnosis.json": {
+      "bytes": 8605,
+      "sha256": "a1136d27b492e72b6806748c92ae477f8d8560484228598b552fb20af6d45f2d"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-internet-lifecycle.json": {
+      "bytes": 16400,
+      "sha256": "d59c041f17b9005d4a26f799f7bc09cf3ed1bf9ba8c67d19b6e134a1e6e61c57"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-internet-smoke.json": {
+      "bytes": 2636,
+      "sha256": "96c376223948c9f9fc0f7bcff6f3391c00e26ca5b520ea04916c96a6d28beb61"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-lan/lan-runtime.json": {
+      "bytes": 4464,
+      "sha256": "e48caa744d7135138b61db629196af7d61bbd1e713d20703a53eaf1aafcae524"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-native/r6-native-runner.json": {
+      "bytes": 2913,
+      "sha256": "ecae42a8792decbb149374043d40168d60412b30ca7c89414b04ab5f2cb2e367"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-native/r6-native-runtime.json": {
+      "bytes": 7326,
+      "sha256": "83d39435597c7585274e06ce20b823ab8d8042a4c25de1c791a280e05b0013cf"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-web-archive.json": {
+      "bytes": 1587,
+      "sha256": "9c76007e7c03a2d3712535d94c673d4d216477fa2eeea49d779163f1c7b92fec"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-web-deploy-tests.json": {
+      "bytes": 1187,
+      "sha256": "a9f380c29a9389deb142ad3afd1dfa1f469248c702c88efae8e8aef55723c53b"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-web-host-local.json": {
+      "bytes": 2675,
+      "sha256": "f9df0a67db11a9815166869461dd885aa254943016e3b5f4d81d4a275cf0fc34"
+    },
+    "CoreClash-V149-Unity/Evidence/r7-web-release-manifest.json": {
+      "bytes": 1302,
+      "sha256": "d0a5adb3e01bf2da4a923f547c597cec9a56aad1c8ff7c37f2913b4612a8396a"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-build-Android.json": {
+      "bytes": 147,
+      "sha256": "cb229bf9e3ba3fb646f53acf4ab909a6b9703a0da4fa436d4b01758b687b6879"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-build-StandaloneWindows64.json": {
+      "bytes": 158,
+      "sha256": "92e73d6f35f419cbe804c098df5ff6cb4de5613e7b6635d22308a32eac7e86d7"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-build-WebGL.json": {
+      "bytes": 144,
+      "sha256": "de7c1f1b9f8347d394955f966ebede7345dd8477a64e7efae91fb1cded5848c9"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-cloud-status.json": {
+      "bytes": 430,
+      "sha256": "4b64dd44f4095e2302770c497a965be737306ba98b3421afda9603de12b0724d"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-delivery-manifest.json": {
+      "bytes": 73189,
+      "sha256": "a884555086540e561fb612c9471ca6d95644f0558dd069d28b1d894c6e121fe5"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-internet-smoke.json": {
+      "bytes": 2791,
+      "sha256": "289c1d4bf728079f406091fb1aea373a41b3e9fee87ea91de207874c6fdbd93d"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-lan/lan-runtime.json": {
+      "bytes": 4464,
+      "sha256": "f4153c93eac57399016b2f5596f28c29ad12d0f6dfee3ae4bb640aeaa5ff7b16"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-momentum-matches.json": {
+      "bytes": 1272,
+      "sha256": "d5bed1f84f287deebe1bc9f04c68ef662a923ba65e82ab400eaea83a0e74ea3c"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-motion-investigation.json": {
+      "bytes": 8292,
+      "sha256": "a392ad35a287810b42f79607615c75d03a5f5e9f6e51ac2df4197b4736157c42"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-native-html/r8-html-native.json": {
+      "bytes": 622,
+      "sha256": "3be5a6944bb41b7dda607c837e96a2e8ec7ac19da8f1264ef7db8de6f7bd3f05"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-native-html/r8-html-runner.json": {
+      "bytes": 1209,
+      "sha256": "335d9b62e151ff0313591700c5efbe2d57a63e9ed0a2bf99f6db33c70c65539c"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-native/r6-native-runner.json": {
+      "bytes": 2913,
+      "sha256": "bcd2c22d2f50f66f1bd087d8a7de708ba1cc024bc51f46fda0ade89e6640bba8"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-native/r6-native-runtime.json": {
+      "bytes": 7324,
+      "sha256": "96447791b1d02079d811056b552bf3003405d3048198db77571fdcec7209add2"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-source-mechanics.json": {
+      "bytes": 996,
+      "sha256": "1e3344a8030c2ea9796eb0988dc263503f7f03d790144205fd24b1574f3d799d"
+    },
+    "CoreClash-V149-Unity/Evidence/r8-web-deploy-tests.json": {
+      "bytes": 1187,
+      "sha256": "a04e32da3ee452f8368e5360a04051d8883355c8f89dab267b63722540167097"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-cloud-status.json": {
+      "bytes": 430,
+      "sha256": "0fed41d0e61c4333402184b25c683a949e43a8b73982d22800b751310aeae8aa"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-explosive-matches.json": {
+      "bytes": 1271,
+      "sha256": "8d355b0f850dad53b18825c624c3bd0b1cd1542c3f8b11c04ba49496b62902f5"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-internet-smoke.json": {
+      "bytes": 2875,
+      "sha256": "db05a765bf1116bba903ddbfe8c6d422fb4a5281009f0257d02ddb3d10befbb0"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-lan/lan-runtime.json": {
+      "bytes": 4464,
+      "sha256": "9d9b7cedace0a241f313102c99442618c4fa8634cf40e039210a5e4949b06ab0"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-momentum-regression.json": {
+      "bytes": 1348,
+      "sha256": "52b823ca10af5e0cfece95921e63c320d3ae58a9656e09cd46433eb4b0eacf44"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-01-armed.png": {
+      "bytes": 215551,
+      "sha256": "0bcaeb3f550021d1776a0851e821313e654b59fe516e9b0182a20d7025b2f89d"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-03-blast.png": {
+      "bytes": 219552,
+      "sha256": "b18d40da5236d9d29280e09efca7442b28865441ec82c3bbf5c930a8e7916dd4"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-native.json": {
+      "bytes": 820,
+      "sha256": "cdf1d87036acc7eff6e51dc5a60389ad0ccde0a83bff69bfefb80440793d1ef3"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native-html/r9-html-runner.json": {
+      "bytes": 1386,
+      "sha256": "a5a1292e8349e68f349e7bac68edf419ae6219287d3d4223f5f3fd52c61daaa6"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native/r6-native-01-deck-selection.png": {
+      "bytes": 262173,
+      "sha256": "c0bbdbc3527513e0eeded513f0e3f0ce5dbeb972e55a92b14a1f5e415e51b94b"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native/r6-native-06-match-result.png": {
+      "bytes": 338138,
+      "sha256": "17913d2c7d847c141ffd890a04057d3a6cc9705e90eb49dbdc9d8a3ae0d0fbd9"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native/r6-native-runner.json": {
+      "bytes": 2913,
+      "sha256": "00371216358bba6fd0b6109859de56b5a45ad621acfabcdbc11949cc982c7f5c"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-native/r6-native-runtime.json": {
+      "bytes": 7328,
+      "sha256": "a74571c7f9648ab0ef28e9e30e22c65730f038bc8e3e4b9ec73c9de7bda3aaf8"
+    },
+    "CoreClash-V149-Unity/Evidence/r9-source-explosives.json": {
+      "bytes": 1428,
+      "sha256": "ae1eb94bdb49d19c021f2847db938b4f73140e7fab5409ec474c086106cf18b1"
+    },
+    "CoreClash-V149-Unity/Evidence/source-featured-smoke.json": {
+      "bytes": 203610,
+      "sha256": "745822d248d13f4f1433ef1f35ecf8b27f336b680638461d20851ffe08b7396a"
+    },
+    "CoreClash-V149-Unity/Evidence/source-runtime.json": {
+      "bytes": 23103,
+      "sha256": "bab476186f6d7317c3b7ccb28f695493dc0a31a54c4c269af6af234e78efa9bc"
+    },
+    "CoreClash-V149-Unity/Evidence/unity-featured-matches.json": {
+      "bytes": 2280,
+      "sha256": "ce14d487284d52cd596b777aecdd039d2ce18194a8d8f34d07f6cd20ffe5b664"
+    },
+    "CoreClash-V149-Unity/Evidence/unity-smoke.json": {
+      "bytes": 112,
+      "sha256": "e1f43c3951158dee6ff16688b9d3f3597ba8aceeaad6b9e110422bc0bcf9f530"
+    },
+    "CoreClash-V149-Unity/Evidence/unity-tests.json": {
+      "bytes": 21027,
+      "sha256": "1730e2fa4313e6637e314dfadd99fb000f304b0a94ff024d5d2c92c499c66c50"
+    },
+    "CoreClash-V149-Unity/Evidence/webgl-smoke.json": {
+      "bytes": 19060,
+      "sha256": "11262a4101e2efcbc689bb09f1d7032bbb742cd09fd46cec69597316de5c4dde"
+    },
+    "CoreClash-V149-Unity/Evidence/webgl-visual-review.json": {
+      "bytes": 2546,
+      "sha256": "0f7b937aba9e8392d1fa0d61076503b86e169cf9e49afb146effcb9562115280"
+    },
+    "CoreClash-V149-Unity/FEATURED_DECK_PORT_STATUS.md": {
+      "bytes": 15000,
+      "sha256": "e07908eaab47d172b26f61b92ca30b54199ae83de7931a3a3b87ce39a560dd56"
+    },
+    "CoreClash-V149-Unity/HANDOFF_R12_README.md": {
+      "bytes": 1012,
+      "sha256": "fc25cdf281effe39b6a4d79b7a5c1179bd15b071dfe13f485f3ab9a09a606c7c"
+    },
+    "CoreClash-V149-Unity/HANDOFF_R13_README.md": {
+      "bytes": 1000,
+      "sha256": "8a86f4aa36298459b588c1cbf9cf2d7923ab2f0bf713770bda4550165cfd3efd"
+    },
+    "CoreClash-V149-Unity/Legacy/core_clash_v149_legacy_presentation.html": {
+      "bytes": 1477293,
+      "sha256": "03df72f18dadf59ed20291668437637c624644f2f39627208823c8531d58a255"
+    },
+    "CoreClash-V149-Unity/MIGRATION_STATUS.md": {
+      "bytes": 10541,
+      "sha256": "37d99c0cffeaa7537a8602e8d59fcd14da9f6fce426dbfc22731fc1c765c46bd"
+    },
+    "CoreClash-V149-Unity/NETWORKING_STATUS.md": {
+      "bytes": 5345,
+      "sha256": "659e1eb5e148fd522ac3ac3ff1c3940912b01bd70d49b97759c070e6f5608b55"
+    },
+    "CoreClash-V149-Unity/NuGet.Config": {
+      "bytes": 74,
+      "sha256": "9508cae5f76364f56e80eb97cb16493977243cf38e5cca6284e3d74f83b20a2c"
+    },
+    "CoreClash-V149-Unity/Packages/manifest.json": {
+      "bytes": 470,
+      "sha256": "97992b9beb4d85586150249ad252d4b7008c70e0beaf0e080ba5686198d169a2"
+    },
+    "CoreClash-V149-Unity/Packages/packages-lock.json": {
+      "bytes": 6506,
+      "sha256": "a2a7b0032147e3653aab97edf69fc2b7f2f9f9dafe0e4cd49bc47a14ecfd2c66"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/AudioManager.asset": {
+      "bytes": 523,
+      "sha256": "9543c41dbfc7d3951217c4dd9481ed026eb8e529b85ecf4463969a0fea747729"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/ClusterInputManager.asset": {
+      "bytes": 114,
+      "sha256": "40e65dd214bf254955d2c8829ca8ce2130fd3510485560ce012e9a1ddd93e623"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/DynamicsManager.asset": {
+      "bytes": 1553,
+      "sha256": "cb2aaed73306e32df3e8200c74fa0efda690d3c6f68dff45dfeeeb5739128a1d"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/EditorBuildSettings.asset": {
+      "bytes": 255,
+      "sha256": "a06f31f07d9a620a0d472b7524cf895cc42e14899bf4b1d26a85a76e93019d41"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/EditorSettings.asset": {
+      "bytes": 1660,
+      "sha256": "4fb4ed8f1e8758a52bcf5978b120bc54c640ca4b58ee879ba6c8518abc918fe5"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/GraphicsSettings.asset": {
+      "bytes": 2433,
+      "sha256": "40de98f4d46d02fb08e268ad3a722a00eed7289f4ef6d2e759984b1b4a85d2af"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/InputManager.asset": {
+      "bytes": 5816,
+      "sha256": "d0f454ddb880912abcae92e3e12957a7446786ba89e24937e019ff3bbc0d4300"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/MemorySettings.asset": {
+      "bytes": 1192,
+      "sha256": "cb2e41edd7f5a64298d68dd4ab768e8908e33a00f26e5ee53638e4d4251c358e"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/MultiplayerManager.asset": {
+      "bytes": 232,
+      "sha256": "ce4075d7a7dd8ac7ffe55de2427692c63f90dae398208bd80cec0f27cbe09f4b"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/NavMeshAreas.asset": {
+      "bytes": 1361,
+      "sha256": "7ebbf8f53b8033104e1878b95ca07a28d0954092d81c220f14196a42f651e658"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/Physics2DSettings.asset": {
+      "bytes": 1862,
+      "sha256": "1cfc0c8fbceec604fd7cd2a06c04ff05dddee6335b75c92b0f5715ad80ba9490"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/PresetManager.asset": {
+      "bytes": 146,
+      "sha256": "29c125923fe6e29f90190d4fce1c82d660e7051546e2c9d02908d18c9cf2436c"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/ProjectSettings.asset": {
+      "bytes": 22157,
+      "sha256": "defe8e1320bb5a7ef646da36376428cec65baee7d5471de7f567d2ad05195d4f"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/ProjectVersion.txt": {
+      "bytes": 83,
+      "sha256": "8468d7add4c1613c42224053cb9c889688ccf141875f44065a40e6d133bc3ea7"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/QualitySettings.asset": {
+      "bytes": 9802,
+      "sha256": "f1f893b1be47ad2442f58338dd7c860dc1986bb317e2f5bb31084454ffabbf4c"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/SceneTemplateSettings.json": {
+      "bytes": 3535,
+      "sha256": "bb9098b3bfcde78d93e264b96f7b77b5430e64e8c57a7aad7f5a5d9c3945e16a"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/TagManager.asset": {
+      "bytes": 443,
+      "sha256": "996628fdc904025b83606bbfbda4fe08c0bbe916475146110e77cdc2f22c2013"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/TimeManager.asset": {
+      "bytes": 305,
+      "sha256": "3396f52fdc16d445024e01d7a2d99db6f0a37569d1d73c0302e9ffb857d90287"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/UnityConnectSettings.asset": {
+      "bytes": 1063,
+      "sha256": "11251dae0356b6f43dd2c67bb511f6b7ecda4e5de425186bba3297e6f3dc1c6f"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/VFXManager.asset": {
+      "bytes": 525,
+      "sha256": "2973a6af930e142f62cde00076beda8a3cc3a66d9bfcde7a58ba7d4be2251c26"
+    },
+    "CoreClash-V149-Unity/ProjectSettings/VersionControlSettings.asset": {
+      "bytes": 172,
+      "sha256": "e199cdfa6a8f2bf33cfd47e549198f13e3eb2a5099e908fdb4e0f14d939ccc6b"
+    },
+    "CoreClash-V149-Unity/README.md": {
+      "bytes": 10100,
+      "sha256": "653a10aaabdfa79466377e253beeea45625daab853e734373cb773fbbf99f87a"
+    },
+    "CoreClash-V149-Unity/Tests/AbilityTests.cs": {
+      "bytes": 6825,
+      "sha256": "a9ed633ce6fada27c545caf5a761b3f4044622911c37d1e6bfcf2eee27213d6f"
+    },
+    "CoreClash-V149-Unity/Tests/BoundaryTests.cs": {
+      "bytes": 3018,
+      "sha256": "c95669f6cc0dafe5267dc9c3a6227e9a033d69ddb8462c84aa5f8d137b86a4a3"
+    },
+    "CoreClash-V149-Unity/Tests/ConstructionTests.cs": {
+      "bytes": 6390,
+      "sha256": "f86d648a7d94a23829b8b6204b8e33945dc44a055afe6b9e77fa30cc27839215"
+    },
+    "CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj": {
+      "bytes": 1414,
+      "sha256": "f0e7a3b8e6d4c20b224eb17c3a1f631379ba0bb3e7b6addf844e0aca69d87ec8"
+    },
+    "CoreClash-V149-Unity/Tests/DeviceTests.cs": {
+      "bytes": 7606,
+      "sha256": "935a8b3a65a30f2a47635fa7da9398c33baa8010e1948420b5f1b64aa7fa917f"
+    },
+    "CoreClash-V149-Unity/Tests/ElementalTests.cs": {
+      "bytes": 7783,
+      "sha256": "e5b46b858121d78d521cacd0a526b77394085296ad4d524d93687569cccf5ca7"
+    },
+    "CoreClash-V149-Unity/Tests/EvolutionTests.cs": {
+      "bytes": 10043,
+      "sha256": "b7d5a0b734d3def61594e4cb36151cffb30a107966adc1a9b4b442d20feaa1a0"
+    },
+    "CoreClash-V149-Unity/Tests/ExplosiveTests.cs": {
+      "bytes": 11801,
+      "sha256": "09ee01e1f2279ec929b101c31184e0d636ff9f35ae50dd2d2355cc37a92d67e2"
+    },
+    "CoreClash-V149-Unity/Tests/FeedbackTests.cs": {
+      "bytes": 2702,
+      "sha256": "8d80927072a243c1e741a5951c1ecdfc31f47eb3c210e30923a9e275188301ab"
+    },
+    "CoreClash-V149-Unity/Tests/IdentityPresentationTests.cs": {
+      "bytes": 4434,
+      "sha256": "a92eeb658d9f8f77ef4b0344b6bbc3d1d33bab70a19788edbb0283a7ecf84427"
+    },
+    "CoreClash-V149-Unity/Tests/LanDiscoveryTests.cs": {
+      "bytes": 5533,
+      "sha256": "6ec2099cca21dc3e38cf575b4311cae07782012015840751cbd59f2b2f1f7c48"
+    },
+    "CoreClash-V149-Unity/Tests/MatchSmokeTests.cs": {
+      "bytes": 2361,
+      "sha256": "31374f00ceb80a9617391ce3944a6073c1f3929348aefe3aeb37ba78726ecaa3"
+    },
+    "CoreClash-V149-Unity/Tests/MomentumTests.cs": {
+      "bytes": 11072,
+      "sha256": "fd9596f7aae2e12ec6d7e2e6e7d17e094ba0f4b75e1fc78823e5bc71b9b019f0"
+    },
+    "CoreClash-V149-Unity/Tests/NetworkSeatTests.cs": {
+      "bytes": 3025,
+      "sha256": "91bcf084b38e4b08635f6536f56d9a515afcb41feee3ed1b0f0ce909499a0c75"
+    },
+    "CoreClash-V149-Unity/Tests/OnlineSessionTests.cs": {
+      "bytes": 3055,
+      "sha256": "491dca26f22303f80396087851b5d834744e3a65836f8c08e8a6a6494df6a502"
+    },
+    "CoreClash-V149-Unity/Tests/PresentationTests.cs": {
+      "bytes": 1496,
+      "sha256": "51dbf27e141f38764043cb82f7d119de8ba79072d544f0df8c552965962a8133"
+    },
+    "CoreClash-V149-Unity/Tests/Program.cs": {
+      "bytes": 7224,
+      "sha256": "79fbe45f805008d281ffac1f83cf11fe9a790e1d8073a88895e987ff2b038f2e"
+    },
+    "CoreClash-V149-Unity/Tests/RealityTests.cs": {
+      "bytes": 2988,
+      "sha256": "34d24ae9fbb426a5dc45fc9662e16a9b9f776c008d91cc8857bda6150093bc98"
+    },
+    "CoreClash-V149-Unity/Tests/ReinforcementTests.cs": {
+      "bytes": 8689,
+      "sha256": "54d7e1d3d43e8ac2251de77ada6976c4eaf26e7a25b4f8245780711e2ae215f5"
+    },
+    "CoreClash-V149-Unity/Tests/SetupLayoutTests.cs": {
+      "bytes": 2247,
+      "sha256": "4ebfb04ba755f985f331f032d14181987b63be4cddffc678b855b9edeef0eb8b"
+    },
+    "CoreClash-V149-Unity/Tests/ShowcaseTests.cs": {
+      "bytes": 5576,
+      "sha256": "54f0c8c1ad313f98bb3297dffa4d263080472166e17f8f4251d9da2e07a31c36"
+    },
+    "CoreClash-V149-Unity/Tests/SpatialTests.cs": {
+      "bytes": 2560,
+      "sha256": "d44691a96f9685ded166384f58dcc1904c90607bdfa7ab123ef4da27b4f678f6"
+    },
+    "CoreClash-V149-Unity/Tests/web-release-test.cjs": {
+      "bytes": 4416,
+      "sha256": "243fced37e50a1a70ac27733795c58fd7e5c3d8c472a9b1413311e99e4663126"
+    },
+    "CoreClash-V149-Unity/Tools/build.ps1": {
+      "bytes": 1084,
+      "sha256": "8810a587f4d95e706a4ab09173c77147c866e39d1d6d268b012c6ae904fb525e"
+    },
+    "CoreClash-V149-Unity/Tools/cloud-status.ps1": {
+      "bytes": 2037,
+      "sha256": "a38ac0e45c51c9c5fb0e60ca4f54962f7ec49e09057d114b759a77443d4a7ee7"
+    },
+    "CoreClash-V149-Unity/Tools/extract-v148.cjs": {
+      "bytes": 4342,
+      "sha256": "1457e4069b66041d7dfc86ff715f2d3c5f0deacd95b47ea47fe21f84f3b3739f"
+    },
+    "CoreClash-V149-Unity/Tools/lan-package-webroot.ps1": {
+      "bytes": 940,
+      "sha256": "70138799fdab2a32f2ee6fdf619909869873a563ba217297eb7698b80f2d8c33"
+    },
+    "CoreClash-V149-Unity/Tools/lan-plain-invitation-smoke.cjs": {
+      "bytes": 4647,
+      "sha256": "94bb257b985aa84b1bd71a2493716f16a84ab40a07dbf5f6e146eb082f799f9e"
+    },
+    "CoreClash-V149-Unity/Tools/lan-recovery-smoke.cjs": {
+      "bytes": 8840,
+      "sha256": "cf1986d78557d7a4eae9a92e2dff9ded401448bfe765ad454ba5fe10ef1bb8f9"
+    },
+    "CoreClash-V149-Unity/Tools/lan-rejoin-smoke.cjs": {
+      "bytes": 5292,
+      "sha256": "0152d5c3fc95743d1167a469a56eba65e9d196ef38dd0093754f653e41633ff8"
+    },
+    "CoreClash-V149-Unity/Tools/lan-runtime-smoke.cjs": {
+      "bytes": 7712,
+      "sha256": "b289aa000297ce74874162376240741be315e9cecd23e26709d36c535393c0a0"
+    },
+    "CoreClash-V149-Unity/Tools/link-cloud.ps1": {
+      "bytes": 1132,
+      "sha256": "6af9de066d6e8f9706ac3bacd462c3dfff1d61aaf917349f1623c5d77e3e6de0"
+    },
+    "CoreClash-V149-Unity/Tools/network-codec-test.cjs": {
+      "bytes": 4055,
+      "sha256": "632b27b69a7cbb527b8c40945f94241a192c21dc4027bee60bdeb52d7a25e92d"
+    },
+    "CoreClash-V149-Unity/Tools/network-native-smoke.ps1": {
+      "bytes": 1321,
+      "sha256": "7e1b1b3b96e6d8ff5b73b078f032b7914db7876c7e54de16f7355cc2599cb5e7"
+    },
+    "CoreClash-V149-Unity/Tools/network-runtime-smoke.cjs": {
+      "bytes": 4266,
+      "sha256": "272647ecfa6c3d493db6ca1553ece76a79a3a77bc48da9c3e11d9f06024fd0da"
+    },
+    "CoreClash-V149-Unity/Tools/package-demo.ps1": {
+      "bytes": 1745,
+      "sha256": "8499e73ea533cf42f3e498f838aa21673f812595f11b34c183f850fb32c7e65d"
+    },
+    "CoreClash-V149-Unity/Tools/package-webgl.ps1": {
+      "bytes": 1299,
+      "sha256": "9265bc4969048d578b4c0d306ae82f7fe11724ed8e691735f620d706c82bf0a0"
+    },
+    "CoreClash-V149-Unity/Tools/prepare-legacy.cjs": {
+      "bytes": 26031,
+      "sha256": "27f673da2418472aa7e5cc29929cb477bc56647e66c7cd610f7d81f2c4078b33"
+    },
+    "CoreClash-V149-Unity/Tools/r13-qa.ps1": {
+      "bytes": 2677,
+      "sha256": "d8cc9546e61c2a28a8f192555646ee7e3e63e1d16aefcf2514cc413f712d8415"
+    },
+    "CoreClash-V149-Unity/Tools/r2-native-smoke.ps1": {
+      "bytes": 8667,
+      "sha256": "c988f2c5f28236fa9999da9516910fde161974fb7edf69b91b14ac68a0d63512"
+    },
+    "CoreClash-V149-Unity/Tools/r2-reference.cjs": {
+      "bytes": 8175,
+      "sha256": "e4ad0f6a2346e6aa468e592016e772c368179163a989aeb5cafce47912f781a0"
+    },
+    "CoreClash-V149-Unity/Tools/r2-webgl-smoke.cjs": {
+      "bytes": 17115,
+      "sha256": "f272b10c9ed37cb6a0a7eddcd4a8e2e7b40fb4bca35525fc63144891cb8a708f"
+    },
+    "CoreClash-V149-Unity/Tools/r3-native-smoke.ps1": {
+      "bytes": 8702,
+      "sha256": "dd76c7c6f6f883b327cb06ee09805332119d00fed2c4efd0bfa2207175ca14ad"
+    },
+    "CoreClash-V149-Unity/Tools/r3-webgl-smoke.cjs": {
+      "bytes": 19973,
+      "sha256": "e919c5555f76db2c8e74b3bdc1af0150f53bf8b414afe81b9040b9395ffb3702"
+    },
+    "CoreClash-V149-Unity/Tools/r4-native-smoke.ps1": {
+      "bytes": 8702,
+      "sha256": "9aa7f06ed81670776e6504a82772ff18256ed71e57b9a8229bef4803e84f9a31"
+    },
+    "CoreClash-V149-Unity/Tools/r4-webgl-smoke.cjs": {
+      "bytes": 23610,
+      "sha256": "24494e120f31efb184bad4f044a7ecb74fe65457525673142cf3d3a3edaf6b8e"
+    },
+    "CoreClash-V149-Unity/Tools/r5-native-smoke.ps1": {
+      "bytes": 8702,
+      "sha256": "8d1f54e9f14476e2f96b3af68e1abd4bd5c735c7f1a9c6ff229552b5b82cfe9f"
+    },
+    "CoreClash-V149-Unity/Tools/r5-webgl-smoke.cjs": {
+      "bytes": 28870,
+      "sha256": "45b4360c19a176d0f1c6a565c4db00d61622c0c744af3abd6ef8afed4425efc1"
+    },
+    "CoreClash-V149-Unity/Tools/r6-gameplay-reference.cjs": {
+      "bytes": 1742,
+      "sha256": "9abebb7a875d9c63147bfe85c57de1f0ede983a69af8d5bff719cd02c1ea2522"
+    },
+    "CoreClash-V149-Unity/Tools/r6-internet-smoke.cjs": {
+      "bytes": 5212,
+      "sha256": "8e0b10d749908b7ba321f57b827ca8bd8f8896dc9a37b623ec4f96ed5f7a225f"
+    },
+    "CoreClash-V149-Unity/Tools/r6-lan-recovery.cjs": {
+      "bytes": 6207,
+      "sha256": "38ed4ab95b6a58e61a54a3473807cf34b2516535e28c4ea864239abad8282c4d"
+    },
+    "CoreClash-V149-Unity/Tools/r6-native-smoke.ps1": {
+      "bytes": 8702,
+      "sha256": "f982f789d18b8be782f701a852735dc96a86c33860189b82fa851ef77be5c0a7"
+    },
+    "CoreClash-V149-Unity/Tools/r6-report.cjs": {
+      "bytes": 3090,
+      "sha256": "85a19dbfdc7253da810aca8c1a668530ab36b93c0d42b4aeb8286074e92413d6"
+    },
+    "CoreClash-V149-Unity/Tools/r6-seal-delivery.cjs": {
+      "bytes": 4758,
+      "sha256": "b8873cb14a1d3d0da1c9d028d19779dcb8704db94b9b3640c08581a439d274b3"
+    },
+    "CoreClash-V149-Unity/Tools/r6-shell-test.cjs": {
+      "bytes": 1602,
+      "sha256": "6cc95cebdabc1fe973b1bc020668435a5032dd03ea38c98c68974157e8e83abd"
+    },
+    "CoreClash-V149-Unity/Tools/r6-webgl-smoke.cjs": {
+      "bytes": 26773,
+      "sha256": "bcffdbefaef4e58dcface56392cf1d3b42ac675e732898a20d9f76e11a824fd6"
+    },
+    "CoreClash-V149-Unity/Tools/r7-internet-lifecycle.cjs": {
+      "bytes": 10865,
+      "sha256": "ff77ae69d166fd53a2832d68565b89d13478943b8e25edc8f7e90f89255014d9"
+    },
+    "CoreClash-V149-Unity/Tools/r7-seal-delivery.cjs": {
+      "bytes": 5770,
+      "sha256": "6e88ceb4be84541415b96d4e7d579a42862f6b777aeaf9414ff6a71d2db81360"
+    },
+    "CoreClash-V149-Unity/Tools/r8-native-html-smoke.ps1": {
+      "bytes": 2786,
+      "sha256": "83ae02dbe725341120b8cd031c40e01d0fcb1861d87374eedca84fe72653a663"
+    },
+    "CoreClash-V149-Unity/Tools/r8-seal-delivery.cjs": {
+      "bytes": 7241,
+      "sha256": "8e77a40cb4620337b4cf0300b9d151d7a0cb924740eb549625b6671829374b6b"
+    },
+    "CoreClash-V149-Unity/Tools/r8-source-mechanics.cjs": {
+      "bytes": 3483,
+      "sha256": "84816da5d0f40baac91c435068fd8e96d58a7bd29b8beb0784a9df7d2affb038"
+    },
+    "CoreClash-V149-Unity/Tools/r9-native-html-smoke.ps1": {
+      "bytes": 2818,
+      "sha256": "4b18f0710be2901f55fc8dd5f69f3edbceba4d525e00c987e06f7c7c0c870725"
+    },
+    "CoreClash-V149-Unity/Tools/r9-seal-delivery.cjs": {
+      "bytes": 7486,
+      "sha256": "7b9be159d4162904c5ca6b6105a3f6de5050241af556d98673542b48c084b1c3"
+    },
+    "CoreClash-V149-Unity/Tools/r9-source-explosives.cjs": {
+      "bytes": 4089,
+      "sha256": "d58bd8dc1961998eb7cdc6b78706c24deabeb3894ab793181cfb20b1a10357a4"
+    },
+    "CoreClash-V149-Unity/Tools/seal-delivery.cjs": {
+      "bytes": 5806,
+      "sha256": "5ba36658c900d91fb13e8c452469517d676046257ba2e7f0508dca8393eec340"
+    },
+    "CoreClash-V149-Unity/Tools/serve-web.cjs": {
+      "bytes": 2420,
+      "sha256": "10938ba82d6daf6b0cb3c22ff05e17db17a74fd11cd27f34713099f1895fbdc9"
+    },
+    "CoreClash-V149-Unity/Tools/source-featured-smoke.cjs": {
+      "bytes": 48778,
+      "sha256": "9f596346ec206d63894fd54f2c82957c49b480b9548e0841e737721b008ed646"
+    },
+    "CoreClash-V149-Unity/Tools/start-webgl.ps1": {
+      "bytes": 294,
+      "sha256": "c0b627b7db453e5b9be472a075a11ecb96a10ead4079389c8db55b239bc02e8f"
+    },
+    "CoreClash-V149-Unity/Tools/sync-web-shell.cjs": {
+      "bytes": 1108,
+      "sha256": "2ea8ef0f268f371c8ad8ef5c60a186d192906d7b13cb42eb54b3b137ace48148"
+    },
+    "CoreClash-V149-Unity/Tools/verify-android.cjs": {
+      "bytes": 2692,
+      "sha256": "42c9638a979c81b05ed949fa098188449584a12c16de72ac20489ee7c6f2d353"
+    },
+    "CoreClash-V149-Unity/Tools/verify-data.cjs": {
+      "bytes": 2084,
+      "sha256": "4ba2004e59c8d7a8881eb0a1c10e26c2aea24a60351dc58700c58df317e0b9f4"
+    },
+    "CoreClash-V149-Unity/Tools/verify-package.ps1": {
+      "bytes": 2515,
+      "sha256": "f15809e1431af7b4d5a74bfb7448f00a437def9e3003ed44592cfa606081405c"
+    },
+    "CoreClash-V149-Unity/Tools/verify-web-host.cjs": {
+      "bytes": 1429,
+      "sha256": "f1a98a23502af5e2e9bd6f8d7ba7cff53293ebe4679f31b67de670aa612229b5"
+    },
+    "CoreClash-V149-Unity/Tools/web-release.cjs": {
+      "bytes": 4007,
+      "sha256": "e6b2581963a848f86d7da9b0f14fde0895bc9e9bcfbbc8703a21d1d493536eb1"
+    },
+    "CoreClash-V149-Unity/Tools/webgl-smoke.cjs": {
+      "bytes": 10716,
+      "sha256": "1c85885430f8eaf531cd3a3fbd3616f55b8bd6503c1bca92cf99d26dec203045"
+    },
+    "CoreClash-V149-Unity/UNITY_PORT_ARCHITECTURE.md": {
+      "bytes": 8091,
+      "sha256": "70664af4aafd424e8b68793a4a9fa662c825eec7a0945f8588f84110229e0fdc"
+    },
+    "CoreClash-V149-Unity/docs/ARCHIVE_HTML_REVIEW.md": {
+      "bytes": 5889,
+      "sha256": "719a601f52f2e95c85613a39688d50e6f15e1ce17e02c8cc42d5a156806a883c"
+    },
+    "CoreClash-V149-Unity/docs/ARCHIVE_PRESENTATION_REVIEW.md": {
+      "bytes": 4488,
+      "sha256": "9277a6c4bfa4bcc6606720157bb3a3ac7e6a4a0e4065adb155e1e9c8734838ca"
+    },
+    "CoreClash-V149-Unity/docs/IMPLEMENTATION_PLAN.md": {
+      "bytes": 7135,
+      "sha256": "e3a522e2ec56f9a979cd1bb148eafe4c76aff66f76aac1c5e9b852e5ec660b1d"
+    },
+    "CoreClash-V149-Unity/docs/LEGACY_PRESENTATION_STATUS.md": {
+      "bytes": 4201,
+      "sha256": "5acd67cdf570d1b0c8cc2f9f48c76e4c02a3ee3c507f8993cfb0e2eeda7005b8"
+    },
+    "CoreClash-V149-Unity/docs/NGO_PROTOTYPE.md": {
+      "bytes": 7574,
+      "sha256": "4a30fa532da791b56b593d95ac7305184b50d6df41df7c4387d517007874c877"
+    },
+    "CoreClash-V149-Unity/docs/POST_V148_ARCHIVE_REVIEW.md": {
+      "bytes": 5690,
+      "sha256": "17f711329b0d96d627fb8cf2a46861f59123e9a32a8414a1b012884779e4976f"
+    },
+    "CoreClash-V149-Unity/docs/PROGRESS.md": {
+      "bytes": 13136,
+      "sha256": "1c90a8e4a09fc02726d0d6faf687e4a6d75360396cb557f7f3969925ad58afe5"
+    },
+    "CoreClash-V149-Unity/docs/PROPOSED_DESIGN.md": {
+      "bytes": 15550,
+      "sha256": "ee35d541014f015ac9be7e2d787ef6bf2bab1e3714fc0fecb3e9b400b6449d8e"
+    },
+    "CoreClash-V149-Unity/docs/R10_CANDIDATE_REPORT_PL.md": {
+      "bytes": 5648,
+      "sha256": "c58b8610003c0e4e19e0ac672856ff53684133b25c4fe3eb316cf3de8c3d49f3"
+    },
+    "CoreClash-V149-Unity/docs/R11_CANDIDATE_REPORT_PL.md": {
+      "bytes": 4837,
+      "sha256": "3de2254ec817405e6715694630f06ab103e8a80246b9b0a25d9ea39930015e12"
+    },
+    "CoreClash-V149-Unity/docs/R12_CANDIDATE_REPORT_PL.md": {
+      "bytes": 5289,
+      "sha256": "4da1353086ad7ab5e31b5af9d56bf58f63c9edb961653071c223ecaadbbc09c9"
+    },
+    "CoreClash-V149-Unity/docs/R13_ELEMENTAL_CANDIDATE_PL.md": {
+      "bytes": 4225,
+      "sha256": "2135ebaed7abab4ccecaa073ea92dc43044c6d397313216970230586685bfeaa"
+    },
+    "CoreClash-V149-Unity/docs/R2_REFERENCE_NOTES.md": {
+      "bytes": 8556,
+      "sha256": "c2c2a83e823c7edec3a83fa81c93ef74be95d0b323f4a2752d7ca18ebe04ed2b"
+    },
+    "CoreClash-V149-Unity/docs/R2_VISUAL_COMPARISON.md": {
+      "bytes": 9234,
+      "sha256": "78d581b869e86e7d8c328fe8a5989767ef85b3fc450a896740c46cae1406bdfd"
+    },
+    "CoreClash-V149-Unity/docs/R3_VISUAL_COMPARISON.md": {
+      "bytes": 11002,
+      "sha256": "508f65bfcb78b23c7b68d93bbe927cb28469ffd5d8d82df19f64b278df58c1f6"
+    },
+    "CoreClash-V149-Unity/docs/R4_VISUAL_REVIEW.md": {
+      "bytes": 8606,
+      "sha256": "f2f7fcb1c35c765ef5dd52238b0a5480d72df6600af799252d3edbe7074a9ae8"
+    },
+    "CoreClash-V149-Unity/docs/R5_CONTINUATION.md": {
+      "bytes": 3867,
+      "sha256": "789958213f95b738e4169da8d75ea85bdee79283ba34deadf22f7a6b71fdbe06"
+    },
+    "CoreClash-V149-Unity/docs/R5_MOBILE_LAYOUT.md": {
+      "bytes": 5580,
+      "sha256": "21c98fd4eade6253d4511529db1c242aa79f9841ab608febbb51e854ae398ecd"
+    },
+    "CoreClash-V149-Unity/docs/R5_VISUAL_REVIEW.md": {
+      "bytes": 7325,
+      "sha256": "84e1a56e0d54992c4a53a8aebb98ba162aecf347c855e3a1f13dc91d7bbab7eb"
+    },
+    "CoreClash-V149-Unity/docs/R6_CROSS_PLATFORM_PLAN.md": {
+      "bytes": 2874,
+      "sha256": "a48acef6fa8625019196ab95d7a3142bcd66b0d81ecfc0606e7b19236aedfd56"
+    },
+    "CoreClash-V149-Unity/docs/R6_DEVICE_UI.md": {
+      "bytes": 3154,
+      "sha256": "b50bc6afd38e8918a4e4c0af483cb009d4e6c5495598105df84f13b20874e0d6"
+    },
+    "CoreClash-V149-Unity/docs/R6_ONLINE_SESSIONS.md": {
+      "bytes": 7517,
+      "sha256": "3cfbf7c542ea92d333488a72edaf615f7461d628e81a7d7fc39f97705ba5ba6a"
+    },
+    "CoreClash-V149-Unity/docs/R6_PRESENTATION_AND_CROSSPLAY.md": {
+      "bytes": 4445,
+      "sha256": "b5abfc266529bf37825174d7787685c3cae58cec3da5fbe2f061000fb8c3f784"
+    },
+    "CoreClash-V149-Unity/docs/R6_UNITY_CLOUD_SETUP_PL.md": {
+      "bytes": 2258,
+      "sha256": "8b659e1e7d5c98bd008662556525a3980d2faa9695fac0c45d1c29c54241ced9"
+    },
+    "CoreClash-V149-Unity/docs/R6_VISUAL_REVIEW.md": {
+      "bytes": 2260,
+      "sha256": "ad4b5831a12e6648ef23dbd913f8fcbdd767dab1c70c57fc5cf1789ad5fbd091"
+    },
+    "CoreClash-V149-Unity/docs/R7_DEVICE_ACCEPTANCE_PL.md": {
+      "bytes": 2048,
+      "sha256": "286875474a0a4dde273f6993fc962aead4c7bbf754f55a9a98c1e103e32e9ed9"
+    },
+    "CoreClash-V149-Unity/docs/R7_REPORT_PL.md": {
+      "bytes": 4918,
+      "sha256": "62fd93ddd5527ef6dba11efd8965c77aa3a86e72ed8f912161a978d4ffae6280"
+    },
+    "CoreClash-V149-Unity/docs/R7_VALIDATION_PLAN.md": {
+      "bytes": 2507,
+      "sha256": "cfb7f1e88eeef0b5705f25201600ce76da8fbb97361076c5e7f2a69f26e7b9f4"
+    },
+    "CoreClash-V149-Unity/docs/R7_WEB_PUBLICATION_PL.md": {
+      "bytes": 3049,
+      "sha256": "35693303fcc3c7bd8e1bfc32271df104ac14d026dfb39e34dc4bd5ba524ae094"
+    },
+    "CoreClash-V149-Unity/docs/R8_HTML_MECHANICS.md": {
+      "bytes": 3352,
+      "sha256": "0f49bf46c1c0360f10b633e9bb9e3ec782eb9fb9b97f97665adcacdc2380c32a"
+    },
+    "CoreClash-V149-Unity/docs/R8_REPORT_PL.md": {
+      "bytes": 7282,
+      "sha256": "824bc8726cdc647511aea7babf8e786dd7c04a812a2dcb407c98e8dc2f1cff4b"
+    },
+    "CoreClash-V149-Unity/docs/R9_HTML_EXPLOSIVES.md": {
+      "bytes": 2069,
+      "sha256": "a1708ae416ff582e55fbbff115e37f1b6b652a8a2873f298c527d1da24bee850"
+    },
+    "CoreClash-V149-Unity/docs/R9_REPORT_PL.md": {
+      "bytes": 7672,
+      "sha256": "ae28b9fa4911b6975fa2215d27e4686ff24fd1895f328ccb745f16ddda7fa224"
+    },
+    "CoreClash-V149-Unity/docs/SIMPLE_LAN_JOIN.md": {
+      "bytes": 6729,
+      "sha256": "43ccceb2db426135db899f644ea2dad33a88562f587dd0372cfb6be995c531b0"
+    },
+    "CoreClash-V149-Unity/docs/SOURCE_AUDIT.md": {
+      "bytes": 3644,
+      "sha256": "c8e060b1882bd20af3f1e2eaf6c5aeb60892fe62a1507563dc515a317b6a2d16"
+    },
+    "CoreClash-V149-Unity/docs/SOURCE_FEATURED_REVIEW.md": {
+      "bytes": 15245,
+      "sha256": "d7de04cce269b3d9d4c03be42090420aa4a17f9154b446c256aeb608d15a9a54"
+    },
+    "CoreClash-V149-Unity/docs/WEBGL_UI_QA.md": {
+      "bytes": 5279,
+      "sha256": "68918b79550fcf6c4e3f9e7e9c8dd09146c1520cb28a36ff6407b88e26f5bfec"
+    },
+    "HANDOFF_MANIFEST.json": {
+      "bytes": 78071,
+      "sha256": "2ccfe00e43eb80843fa47c8cbb4c549f0beb3a039014b9d1d395d623a2df10d5"
+    },
+    "HANDOFF_R11_README.md": {
+      "bytes": 1130,
+      "sha256": "dfaa3ff12243553557edcb5dd0130d54faba7800fff2af1f564ca02448112bea"
+    },
+    "HANDOFF_README.md": {
+      "bytes": 4203,
+      "sha256": "65c9f3e19b20390d48e259365ec9e4b1d5b9f0a22f9f40bf72483405d83fd70b"
+    },
+    "R10_CANDIDATE_MANIFEST.json": {
+      "bytes": 3609,
+      "sha256": "62d4b2dd2d6d29780c0aedf745c9a97abae9526a7fe2fe0a6ef0a16b7569a230"
+    },
+    "R11_CANDIDATE_MANIFEST.json": {
+      "bytes": 2341,
+      "sha256": "1dcecc124f72dbd8846fec0ee7e6b3f2b23e077e81ea57d819607fc181abf604"
+    },
+    "R12_CANDIDATE_MANIFEST.json": {
+      "bytes": 2006,
+      "sha256": "847914b0e327c1158e2854b69aca193ef42d06185d2ffda3499631a59be2e8cc"
+    },
+    "Reference/HOSTING_AUDIT_20261017.md": {
+      "bytes": 8485,
+      "sha256": "5ed29088ebea3d1d9f4439f6cf34dac520e13db806d22230872fc6f486e960fc"
+    },
+    "Reference/V148_reference_original.html": {
+      "bytes": 1465149,
+      "sha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e"
+    },
+    "CoreClash-V149-Unity/Tests/IntegrationR14Tests.cs": {
+      "bytes": 3600,
+      "sha256": "53a55b845bba88acec0668625d969ede1f0c09fdd371267c2099dabe425e8099"
+    },
+    "CoreClash-V149-Unity/Tools/r14-qa.ps1": {
+      "bytes": 6577,
+      "sha256": "c6ea6ca7321a1b2f02f56337918e248f2fb6f89ae080126a36ecc3322b32b9e1"
+    },
+    "CoreClash-V149-Unity/Tools/r14-qa.cjs": {
+      "bytes": 4829,
+      "sha256": "22373cd1611ec401669245d5c02cef40f4dbd840d23d099ba12fa5c1447ff345"
+    },
+    "CoreClash-V149-Unity/Tools/r14-static-audit.cjs": {
+      "bytes": 5200,
+      "sha256": "99e00402cb9b10f2e8b080add15aa9eb2d81acb2ddb567658acd4562546ed1e6"
+    },
+    "CoreClash-V149-Unity/docs/R14_INTEGRATION_QA_PL.md": {
+      "bytes": 4680,
+      "sha256": "0561a5c23ea88e58d31ea4205754a54dee7b47f46a729b02576b7dce4426e639"
+    },
+    "CoreClash-V149-Unity/HANDOFF_R14_README.md": {
+      "bytes": 928,
+      "sha256": "60a4e2d88ebb4cc9cd218635edc88223c55dfb3d8bb3aad2ddea3d71b76b5cad"
+    },
+    "CoreClash-V149-Unity/HANDOFF_R15_README.md": {
+      "bytes": 2663,
+      "sha256": "0a144a9f2b6974bea411d199863d2bad278855e833ab9dcd15302a2eafd8ed5f"
+    },
+    "CoreClash-V149-Unity/Tests/StabilityR15Tests.cs": {
+      "bytes": 3745,
+      "sha256": "56189efbbf647048f7fc67ef24b118ff7108d2b1bc084164793fe61468fbabdb"
+    },
+    "CoreClash-V149-Unity/Tools/r15-qa.cjs": {
+      "bytes": 4151,
+      "sha256": "55baadb7463ee95e66737bdf7a79a5c6ccf3e3f5502bfc02551d2360165ea8e7"
+    },
+    "CoreClash-V149-Unity/Tools/r15-qa.ps1": {
+      "bytes": 820,
+      "sha256": "5f60288d12e04549f0b55212c82e599a3df22cfb96bb24644001130c39e4e368"
+    },
+    "CoreClash-V149-Unity/Tools/r15-static-audit.cjs": {
+      "bytes": 3288,
+      "sha256": "b79b7df86220e3d3547354ed851c8258a640c4c657c3d584e68485d6c92c8855"
+    }
+  }
+}

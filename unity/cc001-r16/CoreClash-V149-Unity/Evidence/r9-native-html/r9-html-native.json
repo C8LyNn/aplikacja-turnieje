@@ -1,0 +1,24 @@
+{
+    "pass": true,
+    "platform": "WindowsPlayer",
+    "graphics": "Direct3D11",
+    "scope": "Staged renderer fixture: armed Mine, Time Bomb two/one-turn fuse and separate detonations. Not a manual or empty-board legal match.",
+    "error": "",
+    "captures": [
+        {
+            "file": "r9-html-01-armed.png",
+            "sha256": "0bcaeb3f550021d1776a0851e821313e654b59fe516e9b0182a20d7025b2f89d",
+            "bytes": 215551
+        },
+        {
+            "file": "r9-html-02-fuse.png",
+            "sha256": "087f2199b72a53eebe63563161bde063daba839682bcb7dc8ea86bac839f8409",
+            "bytes": 219156
+        },
+        {
+            "file": "r9-html-03-blast.png",
+            "sha256": "b18d40da5236d9d29280e09efca7442b28865441ec82c3bbf5c930a8e7916dd4",
+            "bytes": 219552
+        }
+    ]
+}

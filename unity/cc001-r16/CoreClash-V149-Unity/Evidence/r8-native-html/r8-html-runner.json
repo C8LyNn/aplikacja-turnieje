@@ -1,0 +1,35 @@
+{
+  "testedAt": "2026-10-16T23:26:11.8043519Z",
+  "pass": true,
+  "scope": "Staged native renderer fixture for bumper, Slingshot and Ram. Not a manually played or empty-board legal match.",
+  "buildFiles": [
+    {
+      "path": "Builds/Windows/CoreClash.exe",
+      "sha256": "97845574417b7fc4db70bfbaa4d3f941eab8628df2bcc9424dba328d3a6549c3"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll",
+      "sha256": "f4515f46d737ec35043220a6030b5680aff70cce8e92ac472e5522508e583e97"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/resources.assets",
+      "sha256": "c2578ddf4e40f20a341ea6821273abd3bbef70f60d846f35115da20194aed9b0"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/level0",
+      "sha256": "a2d51fb48f9fa59809849e0050ea0a4d962d372296e9e6fb9e09eda2c8b4e1d1"
+    }
+  ],
+  "captures": [
+    {
+      "file": "r8-html-01-bumper.png",
+      "sha256": "8b686965bb5cb29c7c7fb28445e0fdf36ea651a8d73c07843f8c3b1001980e32",
+      "bytes": 208174
+    },
+    {
+      "file": "r8-html-02-launches.png",
+      "sha256": "fee213266ed8d9f71bda99cbc22aff3e75290aaf2e955ddf3c43ea81277496e7",
+      "bytes": 218524
+    }
+  ]
+}

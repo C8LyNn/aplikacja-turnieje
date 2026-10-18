@@ -1,0 +1,105 @@
+{
+  "startedAt": "2026-10-16T23:28:53.344Z",
+  "scope": "One PC: real native UDP broadcast, native NGO peers, native WebRoot HTTP, real WebGL invitation join. Physical second-device Wi-Fi is not exercised.",
+  "pass": true,
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "f4515f46d737ec35043220a6030b5680aff70cce8e92ac472e5522508e583e97",
+      "bytes": 223232
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "c2578ddf4e40f20a341ea6821273abd3bbef70f60d846f35115da20194aed9b0",
+      "bytes": 694920
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "a2d51fb48f9fa59809849e0050ea0a4d962d372296e9e6fb9e09eda2c8b4e1d1",
+      "bytes": 3300
+    },
+    "Builds/Windows/WebRoot/Build/WebGL.data": {
+      "sha256": "8c1d93b9ff9f81dd6741807ff394b1fb3b71b766ca5ed9b5ab77e79d1411fd82",
+      "bytes": 9556876
+    },
+    "Builds/Windows/WebRoot/Build/WebGL.wasm": {
+      "sha256": "e9dd54b4a67cb95cf17d8d493df35b4e9042d31e33779b62249fc8f88cbcf671",
+      "bytes": 34586253
+    }
+  },
+  "buildFilesUnchanged": true,
+  "cases": [
+    {
+      "name": "native host + UDP-discovered native P2",
+      "port": 53623,
+      "pass": true,
+      "invitation": {
+        "name": "My Core Clash Game",
+        "port": 53623,
+        "players": 1,
+        "host": "192.168.1.3",
+        "fieldCount": 5,
+        "receivedAt": "2026-10-16T23:28:54.115Z"
+      },
+      "hostLines": [
+        "CC_NET_BRIDGE_SPAWNED server=True",
+        "CC_NET_HOST_READY port=53623",
+        "CC_NET_AUTOSTART role=host smoke=True started=True",
+        "CC_LAN_JOIN_URL http://192.168.1.3:8080/?joinHost=192.168.1.3&joinPort=53623",
+        "CC_NET_PEER_CONNECTED id=1 owner=1",
+        "CC_NET_INTENT_ACCEPT owner=0 seq=1",
+        "CC_NET_SMOKE_COMMAND role=host acceptedOrSent=True reason=",
+        "CC_LAN_PLAYER_CONNECTED owner=0",
+        "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+        "CC_NET_INTENT_ACCEPT owner=1 seq=1 action=2",
+        "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+        "CC_NET_SMOKE_PASS role=host remoteIntents=1 rejected=2 actionSerial=2"
+      ],
+      "clientLines": [
+        "CC_NET_AUTOSTART role=client smoke=True started=True",
+        "CC_NET_BRIDGE_SPAWNED server=False",
+        "CC_NET_STATE_APPLIED revision=1 owner=1",
+        "CC_NET_SMOKE_SPOOF_SENT owner=0 from=remote",
+        "CC_LAN_PLAYER_CONNECTED owner=1",
+        "CC_NET_SMOKE_COMMAND role=client acceptedOrSent=True reason=Intent sent to host.",
+        "CC_NET_SMOKE_DUPLICATE_SENT seq=1",
+        "CC_NET_SMOKE_PASS role=client snapshots=24 revision=24 actionSerial=2 events=6 rejected=2"
+      ]
+    },
+    {
+      "name": "native host + WebRoot invitation + WebGL P2",
+      "port": 53630,
+      "pass": true,
+      "pageErrors": [],
+      "browserLines": [
+        "CC_NET_SMOKE_OBSERVE_INVITATION\n",
+        "CC_LAN_INVITATION_JOIN host=192.168.1.3 port=53630\n",
+        "CC_NET_BRIDGE_SPAWNED server=False\n",
+        "CC_NET_STATE_APPLIED revision=1 owner=1\n",
+        "CC_NET_SMOKE_SPOOF_SENT owner=0 from=remote\n",
+        "CC_LAN_PLAYER_CONNECTED owner=1\n",
+        "CC_NET_SMOKE_COMMAND role=client acceptedOrSent=True reason=Intent sent to host.\n",
+        "CC_NET_SMOKE_DUPLICATE_SENT seq=1\n",
+        "CC_NET_SMOKE_PASS role=client snapshots=24 revision=24 actionSerial=2 events=6 rejected=2\n"
+      ],
+      "url": "http://192.168.1.3:8080/?joinHost=192.168.1.3&joinPort=53630",
+      "nativeHttp": {
+        "status": 200,
+        "coop": "same-origin",
+        "coep": "require-corp"
+      },
+      "hostLines": [
+        "CC_NET_BRIDGE_SPAWNED server=True",
+        "CC_NET_HOST_READY port=53630",
+        "CC_NET_AUTOSTART role=host smoke=True started=True",
+        "CC_LAN_JOIN_URL http://192.168.1.3:8080/?joinHost=192.168.1.3&joinPort=53630",
+        "CC_NET_PEER_CONNECTED id=1 owner=1",
+        "CC_NET_INTENT_ACCEPT owner=0 seq=1",
+        "CC_NET_SMOKE_COMMAND role=host acceptedOrSent=True reason=",
+        "CC_LAN_PLAYER_CONNECTED owner=0",
+        "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+        "CC_NET_INTENT_ACCEPT owner=1 seq=1 action=2",
+        "CC_NET_INTENT_REJECT sender=1 reason=Invalid or duplicate intent.",
+        "CC_NET_SMOKE_PASS role=host remoteIntents=1 rejected=2 actionSerial=2"
+      ]
+    }
+  ],
+  "finishedAt": "2026-10-16T23:29:13.498Z"
+}

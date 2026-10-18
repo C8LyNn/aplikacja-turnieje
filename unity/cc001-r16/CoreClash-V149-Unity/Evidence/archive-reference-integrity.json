@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-15T19:47:25.770Z",
+  "pass": true,
+  "referenceFiles": [
+    {
+      "path": "C:/Users/kubap/Downloads/CC001_POST_V148_KOMPLET_PACZEK.zip",
+      "sha256": "4da819a8bd8364dee86718889da1572562d8e9726fbf131bcc6b1b1756bf2058",
+      "unchanged": true
+    },
+    {
+      "path": "C:/Users/kubap/Desktop/CoreClash-V149-ClassDemo-R3.zip",
+      "sha256": "df930e62fb9d083440705a9fc5a60e793dc82553781b733183b5ff8298d68b52",
+      "unchanged": true
+    }
+  ]
+}

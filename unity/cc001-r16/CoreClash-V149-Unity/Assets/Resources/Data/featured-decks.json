@@ -1,0 +1,9 @@
+{
+  "version": "V149",
+  "decks": [
+    {"id":"featured_death_engine","name":"DEATH ENGINE","archetype":"mixed","provisional":true,"description":"CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Trigger death effects, return units and reward lifecycle events.","balls":["agony","requiem","bonfire","wildfire","soulburst","reclaimer","gravehide","packheart","cascade"]},
+    {"id":"featured_status_reactor","name":"STATUS REACTOR","archetype":"mixed","provisional":true,"description":"CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Toxin, virulence, drain, cleanse and status transfer.","balls":["blightpool","plagueleech","vector","septiccore","consecrator","absolver","penitent","ward","halo"]},
+    {"id":"featured_gravity_trap","name":"GRAVITY TRAP","archetype":"mixed","provisional":true,"description":"CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Rooted targets, forces, traps, portals and singularity consumption.","balls":["web","briarheart","vinehook","gravitymine","singularity","horizonrelay","gatekeeper","harpoon","vortexmedic"]},
+    {"id":"featured_reality_hackers","name":"REALITY HACKERS","archetype":"mixed","provisional":true,"description":"CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Type transformation, copied effects, temporal state and ownership.","balls":["mimic","doppelganger","wildcard","collector","echo","timeshift","chronomancer","paradox","traitor"]}
+  ]
+}

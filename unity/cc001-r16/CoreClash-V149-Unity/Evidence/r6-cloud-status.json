@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-10-16T15:47:08.9169545Z",
+  "projectId": "f87462cd-20c0-432c-9108-8f07f77ad27b",
+  "projectIdConfigured": true,
+  "serviceAccessVerified": true,
+  "internetMatchTested": true,
+  "physicalCrossDeviceTested": false,
+  "note": "Service proof comes from the real native Windows / WebGL Relay test on one computer; physical devices and separate networks remain untested."
+}

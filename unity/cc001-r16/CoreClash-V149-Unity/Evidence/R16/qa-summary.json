@@ -1,0 +1,72 @@
+{
+  "revision": "R16",
+  "date": "2026-10-18T09:37:58.280Z",
+  "baseline": {
+    "archive": "CoreClash-V149-R15-Source-Candidate.zip",
+    "sha256": "f70497f8be326e34e2f87bbe54c0716294e35887ef5ab9d993a5ae5cade3e21e",
+    "managedPassed": 243,
+    "managedFailed": 2,
+    "unityCompileExit": 0
+  },
+  "managed": {
+    "passed": 269,
+    "failed": 0,
+    "report": "Evidence/R16/Managed/2026-10-18T09-29-21-321Z/unity-tests.json"
+  },
+  "codecTests": 13,
+  "nativePass": true,
+  "nativeFullMatch": {
+    "pass": true,
+    "shots": 51,
+    "turns": 50,
+    "guards": 0,
+    "bases": [
+      11,
+      3
+    ]
+  },
+  "htmlPass": true,
+  "protectedUnchanged": true,
+  "abilityCounts": {
+    "UNITY_READY": 42,
+    "DATA_ONLY": 134,
+    "PARTIAL": 51
+  },
+  "builds": [
+    {
+      "target": "StandaloneWindows64",
+      "result": "Succeeded",
+      "size": "97710322",
+      "time": "00:00:08.8869650",
+      "errors": 0,
+      "warnings": 1
+    },
+    {
+      "target": "WebGL",
+      "result": "Succeeded",
+      "size": "44791428",
+      "time": "00:02:24.6022940",
+      "errors": 0,
+      "warnings": 1
+    },
+    {
+      "target": "Android",
+      "result": "Succeeded",
+      "size": "551223755",
+      "time": "00:02:11.4126263",
+      "errors": 0,
+      "warnings": 1
+    }
+  ],
+  "networkPass": true,
+  "relayPass": true,
+  "webGL": {
+    "pass": true,
+    "checks": 82,
+    "screens": 94
+  },
+  "androidInspection": true,
+  "physicalDevicesTested": false,
+  "crossNATTested": false,
+  "published": false
+}

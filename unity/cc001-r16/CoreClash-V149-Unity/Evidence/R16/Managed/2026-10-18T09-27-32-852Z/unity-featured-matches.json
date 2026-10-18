@@ -1,0 +1,109 @@
+{
+  "testedAt": "2026-10-18T09:27:38.2499513Z",
+  "matches": [
+    {
+      "deck": "featured_death_engine",
+      "name": "DEATH ENGINE",
+      "actions": 51,
+      "turns": 50,
+      "steps": 24579,
+      "motionGuards": 0,
+      "result": "50 turns: base HP",
+      "winner": 0,
+      "bases": [
+        11,
+        8
+      ],
+      "selectedTypesDeployed": [
+        "agony",
+        "requiem",
+        "bonfire",
+        "wildfire",
+        "soulburst",
+        "reclaimer",
+        "gravehide",
+        "packheart",
+        "cascade"
+      ],
+      "allNineDeployed": true
+    },
+    {
+      "deck": "featured_status_reactor",
+      "name": "STATUS REACTOR",
+      "actions": 44,
+      "turns": 43,
+      "steps": 21822,
+      "motionGuards": 0,
+      "result": "Base destroyed",
+      "winner": 0,
+      "bases": [
+        13,
+        0
+      ],
+      "selectedTypesDeployed": [
+        "blightpool",
+        "plagueleech",
+        "vector",
+        "septiccore",
+        "consecrator",
+        "absolver",
+        "penitent",
+        "ward",
+        "halo"
+      ],
+      "allNineDeployed": true
+    },
+    {
+      "deck": "featured_gravity_trap",
+      "name": "GRAVITY TRAP",
+      "actions": 32,
+      "turns": 31,
+      "steps": 17800,
+      "motionGuards": 0,
+      "result": "Base destroyed",
+      "winner": 0,
+      "bases": [
+        1,
+        0
+      ],
+      "selectedTypesDeployed": [
+        "web",
+        "briarheart",
+        "vinehook",
+        "gravitymine",
+        "singularity",
+        "horizonrelay",
+        "gatekeeper",
+        "harpoon",
+        "vortexmedic"
+      ],
+      "allNineDeployed": true
+    },
+    {
+      "deck": "featured_reality_hackers",
+      "name": "REALITY HACKERS",
+      "actions": 34,
+      "turns": 33,
+      "steps": 16543,
+      "motionGuards": 0,
+      "result": "Base destroyed",
+      "winner": 1,
+      "bases": [
+        0,
+        20
+      ],
+      "selectedTypesDeployed": [
+        "mimic",
+        "doppelganger",
+        "wildcard",
+        "collector",
+        "echo",
+        "timeshift",
+        "chronomancer",
+        "paradox",
+        "traitor"
+      ],
+      "allNineDeployed": true
+    }
+  ]
+}

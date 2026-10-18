@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+  <meta name="theme-color" content="#07101c">
+  <title>Core Clash · V149</title>
+  <style>
+    :root { color-scheme: dark; font: 13px system-ui,sans-serif; background: #07101c; color: #eaf3ff; }
+    * { box-sizing: border-box; }
+    html,body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    #player { display: grid; grid-template-rows: minmax(0,1fr) auto; width: 100%; height: 100vh; height: 100dvh; }
+    #stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+    #unity-canvas { display: block; width: 100%; height: 100%; background: #07101c; touch-action: none; outline: none; }
+    #toolbar { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 3px max(8px,env(safe-area-inset-right)) max(3px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); background: #0b1726; }
+    #toolbar span { margin-right: auto; color: #96a9c0; font-size: 11px; }
+    button,select { min-height: 30px; border: 1px solid #314861; border-radius: 5px; padding: 3px 9px; background: #14283e; color: #edf6ff; font: inherit; }
+    button:focus-visible,select:focus-visible { outline: 2px solid #62dfed; outline-offset: 1px; }
+    #loading { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; padding: 24px; background: #07101c; text-align: center; }
+    #loading h1 { margin: 0; letter-spacing: .12em; font-size: 30px; }
+    #loading p { color: #9eb3cb; max-width: 440px; margin: 0; }
+    progress { width: min(300px,75vw); height: 8px; accent-color: #62dfed; }
+    #safe-probe { position: fixed; visibility: hidden; pointer-events: none; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    @media (pointer:coarse) { button,select { min-height: 44px; } #toolbar { min-height: 50px; } }
+    @media (max-width:420px) { #toolbar span { font-size: 10px; } button,select { padding-inline: 5px; font-size: 12px; } }
+  </style>
+</head>
+<body>
+  <div id="player">
+    <main id="stage">
+      <canvas id="unity-canvas" tabindex="0" aria-label="Core Clash game. Aim by dragging from your launch point; release to launch."></canvas>
+      <div id="loading" role="status" aria-live="polite"><h1>CORE CLASH</h1><p id="load-message">Loading the class demo…</p><progress id="progress" max="1" value="0"></progress></div>
+    </main>
+    <div id="toolbar"><span>V149 · CLASS DEMO</span><label for="profile">View</label><select id="profile" aria-label="Interface layout"><option value="auto">Auto</option><option value="desktop">PC</option><option value="phone">Phone</option><option value="tablet">Tablet</option></select><button id="fullscreen" type="button">Full screen</button></div>
+  </div>
+  <div id="safe-probe" aria-hidden="true"></div>
+  <script>
+    const canvas=document.querySelector('#unity-canvas'), player=document.querySelector('#player');
+    // Unity receives the original page URL, including joinCode or joinHost/joinPort.
+    // The shell does not rewrite history or parse any gameplay/network state.
+    window.CoreClashViewport={
+      touch:()=>matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints>0,
+      inset:side=>{
+        const rect=canvas.getBoundingClientRect(), style=getComputedStyle(document.querySelector('#safe-probe'));
+        const edge={left:rect.left,top:rect.top,right:innerWidth-rect.right,bottom:innerHeight-rect.bottom}[side];
+        return Math.max(0,(parseFloat(style.getPropertyValue('padding-'+side))||0)-edge);
+      }
+    };
+    let unityInstance;
+    const cancelInput=()=>unityInstance?.SendMessage('Core Clash V149','CancelPresentationInput');
+    canvas.addEventListener('blur',cancelInput);
+    document.querySelector('#toolbar').addEventListener('pointerdown',cancelInput);
+    const fullscreen=document.querySelector('#fullscreen');
+    if(!player.requestFullscreen)fullscreen.hidden=true;
+    document.addEventListener('fullscreenchange',()=>{cancelInput();fullscreen.textContent=document.fullscreenElement?'Exit':'Full screen';});
+    fullscreen.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await player.requestFullscreen();canvas.focus();}catch(e){document.querySelector('#toolbar span').textContent='Full screen unavailable';}});
+    document.querySelector('#profile').addEventListener('change',event=>{unityInstance?.SendMessage('Core Clash V149','SetDeviceProfile',event.target.value);canvas.focus();});
+    const script=document.createElement('script');script.src='Build/{{{ LOADER_FILENAME }}}';
+    const fail=message=>{document.querySelector('#loading').style.display='flex';document.querySelector('#load-message').textContent=message;document.querySelector('#progress').hidden=true;};
+    script.onerror=()=>fail('The game could not load. Check your connection and reload this page.');
+    script.onload=()=>createUnityInstance(canvas,{
+      dataUrl:'Build/{{{ DATA_FILENAME }}}',frameworkUrl:'Build/{{{ FRAMEWORK_FILENAME }}}',codeUrl:'Build/{{{ CODE_FILENAME }}}',
+      streamingAssetsUrl:'StreamingAssets',companyName:'Core Clash',productName:'Core Clash V149 Class Demo',productVersion:'149.0.0',
+      matchWebGLToCanvasSize:true,devicePixelRatio: 1,
+      showBanner:(message,type)=>{if(type==='error')fail(message);else console.warn(message);}
+    },value=>document.querySelector('#progress').value=value).then(instance=>{
+      unityInstance=instance;document.querySelector('#loading').style.display='none';canvas.focus();
+      const selected=document.querySelector('#profile').value;if(selected!=='auto')instance.SendMessage('Core Clash V149','SetDeviceProfile',selected);
+    }).catch(()=>fail('The game could not start. Try an up-to-date browser with WebGL enabled.'));
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

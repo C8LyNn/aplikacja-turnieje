@@ -1,0 +1,40 @@
+{
+  "testedAt": "2026-10-16T23:58:20.0588299Z",
+  "pass": true,
+  "scope": "Staged renderer fixture: armed Mine, Time Bomb two/one-turn fuse and separate detonations. Not a manual or empty-board legal match.",
+  "buildFiles": [
+    {
+      "path": "Builds/Windows/CoreClash.exe",
+      "sha256": "97845574417b7fc4db70bfbaa4d3f941eab8628df2bcc9424dba328d3a6549c3"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll",
+      "sha256": "e5912263cc740c3e7e551cdf29cce0952d795c9b91b867864e58d931c9816981"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/resources.assets",
+      "sha256": "5927a2455862701fab1c19cdde4ef5872f5ea55244f239b4b52d4d6e705940ca"
+    },
+    {
+      "path": "Builds/Windows/CoreClash_Data/level0",
+      "sha256": "65186044f68603493924e37e05fa294773986fdf0a61a48c8bb3749651d005fe"
+    }
+  ],
+  "captures": [
+    {
+      "file": "r9-html-01-armed.png",
+      "sha256": "0bcaeb3f550021d1776a0851e821313e654b59fe516e9b0182a20d7025b2f89d",
+      "bytes": 215551
+    },
+    {
+      "file": "r9-html-02-fuse.png",
+      "sha256": "087f2199b72a53eebe63563161bde063daba839682bcb7dc8ea86bac839f8409",
+      "bytes": 219156
+    },
+    {
+      "file": "r9-html-03-blast.png",
+      "sha256": "b18d40da5236d9d29280e09efca7442b28865441ec82c3bbf5c930a8e7916dd4",
+      "bytes": 219552
+    }
+  ]
+}

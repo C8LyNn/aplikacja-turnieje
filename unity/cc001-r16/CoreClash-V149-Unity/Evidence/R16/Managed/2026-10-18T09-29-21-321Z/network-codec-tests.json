@@ -1,0 +1,6 @@
+{
+  "at": "2026-10-18T09:29:32.279Z",
+  "exitCode": 0,
+  "output": "PASS compression reduces a representative large state\r\nPASS UTF8 compressed state round trip\r\nPASS all RPC chunks stay bounded\r\nPASS out-of-order chunks reconstruct exact snapshot\r\nPASS stale revision rejected\r\nPASS negative index rejected\r\nPASS unbounded chunk count rejected\r\nPASS oversized fragment rejected\r\nPASS outgoing raw state size limit\r\nPASS incoming compressed expansion exceeds raw budget and is rejected\r\nPASS corrupt gzip rejected\r\nPASS partial snapshot never applies\r\nPASS duplicate fragment never completes early\r\nRESULT: 13 network wire tests passed\r\n",
+  "error": ""
+}

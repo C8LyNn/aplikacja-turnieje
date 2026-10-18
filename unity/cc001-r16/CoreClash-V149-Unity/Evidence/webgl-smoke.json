@@ -1,0 +1,611 @@
+{
+  "testedAt": "2026-10-15T11:00:21.051Z",
+  "build": {
+    "index.html": {
+      "sha256": "699a40f09971406a0748fb4d0be2b82bdce59999e16201ce52568d006aa06772",
+      "bytes": 7918
+    },
+    "Build/WebGL.data": {
+      "sha256": "574a6be0e5f86edd376fb7ec152211a6f5faf700f12a634ef6ce05f29879b757",
+      "bytes": 5889016
+    },
+    "Build/WebGL.framework.js": {
+      "sha256": "9255b38e1a468ed26cab40f83fff70437606d59efef584dca7154eefd56c0ef6",
+      "bytes": 744048
+    },
+    "Build/WebGL.loader.js": {
+      "sha256": "b4ef73fbbf632bcf448f5c79954e64c1228a6c31226f641411c35cfdb98e4d3d",
+      "bytes": 58348
+    },
+    "Build/WebGL.wasm": {
+      "sha256": "61a8f0e5718ec3d7ce675736253ef9039b5567ff4656732c24b589606d495d0f",
+      "bytes": 42201299
+    }
+  },
+  "console": [
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:53937/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Found NO interfaces on host .\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "UnloadTime: 0.600000 ms\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START custom_0 vs featured_status_reactor\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=normal\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:53937/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Found NO interfaces on host .\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "UnloadTime: 0.700001 ms\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=normal\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    }
+  ],
+  "pageErrors": [],
+  "requestsFailed": [],
+  "checks": [
+    {
+      "name": "Latest four featured JSON names and exact nine IDs preserved",
+      "ok": true
+    },
+    {
+      "name": "WASM MIME",
+      "ok": true
+    },
+    {
+      "name": "Traversal denied",
+      "ok": true
+    },
+    {
+      "name": "Desktop CORE_CLASH_READY",
+      "ok": true
+    },
+    {
+      "name": "Builder selects nine and Start uses custom_0",
+      "ok": true
+    },
+    {
+      "name": "Mouse launch",
+      "ok": true
+    },
+    {
+      "name": "Next turn screenshot",
+      "ok": null,
+      "note": "Visual inspection required; no turn API exported by this baseline build."
+    },
+    {
+      "name": "Simulated touch cancellation emits no launch",
+      "ok": true
+    },
+    {
+      "name": "Simulated touch launch",
+      "ok": true
+    },
+    {
+      "name": "Landscape lower controls reachable through actual scrollbar; Setup and Start work",
+      "ok": true
+    },
+    {
+      "name": "Portrait and landscape screenshots",
+      "ok": true
+    }
+  ],
+  "featuredJson": {
+    "sha256": "b0931b8d0129a21c7c5b705c3e6da94164b99e652aac3eebb0f68d8b8650b634",
+    "decks": [
+      {
+        "id": "featured_death_engine",
+        "name": "DEATH ENGINE",
+        "archetype": "mixed",
+        "provisional": true,
+        "description": "CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Trigger death effects, return units and reward lifecycle events.",
+        "balls": [
+          "agony",
+          "requiem",
+          "bonfire",
+          "wildfire",
+          "soulburst",
+          "reclaimer",
+          "gravehide",
+          "packheart",
+          "cascade"
+        ]
+      },
+      {
+        "id": "featured_status_reactor",
+        "name": "STATUS REACTOR",
+        "archetype": "mixed",
+        "provisional": true,
+        "description": "CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Toxin, virulence, drain, cleanse and status transfer.",
+        "balls": [
+          "blightpool",
+          "plagueleech",
+          "vector",
+          "septiccore",
+          "consecrator",
+          "absolver",
+          "penitent",
+          "ward",
+          "halo"
+        ]
+      },
+      {
+        "id": "featured_gravity_trap",
+        "name": "GRAVITY TRAP",
+        "archetype": "mixed",
+        "provisional": true,
+        "description": "CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Rooted targets, forces, traps, portals and singularity consumption.",
+        "balls": [
+          "web",
+          "briarheart",
+          "vinehook",
+          "gravitymine",
+          "singularity",
+          "horizonrelay",
+          "gatekeeper",
+          "harpoon",
+          "vortexmedic"
+        ]
+      },
+      {
+        "id": "featured_reality_hackers",
+        "name": "REALITY HACKERS",
+        "archetype": "mixed",
+        "provisional": true,
+        "description": "CLASS DEMO / FEATURED — systemic interactions; not balance-certified. Type transformation, copied effects, temporal state and ownership.",
+        "balls": [
+          "mimic",
+          "doppelganger",
+          "wildcard",
+          "collector",
+          "echo",
+          "timeshift",
+          "chronomancer",
+          "paradox",
+          "traitor"
+        ]
+      }
+    ]
+  },
+  "browser": "155.0.4283.45",
+  "desktopCanvas": {
+    "width": 960,
+    "height": 600,
+    "cssWidth": 960,
+    "cssHeight": 600
+  },
+  "builderFixture": {
+    "initialIds": [
+      "agony",
+      "requiem",
+      "bonfire",
+      "wildfire",
+      "soulburst",
+      "reclaimer",
+      "gravehide",
+      "packheart",
+      "cascade"
+    ],
+    "names": [
+      "Agony",
+      "Requiem",
+      "Bonfire",
+      "Wildfire",
+      "Soulburst",
+      "Reclaimer",
+      "Gravehide",
+      "Packheart",
+      "Cascade"
+    ]
+  },
+  "buildFilesUnchanged": true,
+  "ok": true
+}

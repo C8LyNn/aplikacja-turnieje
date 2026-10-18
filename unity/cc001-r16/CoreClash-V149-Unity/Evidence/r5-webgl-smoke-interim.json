@@ -1,0 +1,1928 @@
+{
+  "testedAt": "2026-10-16T08:52:58.814Z",
+  "method": "Fresh isolated Edge; original WebGL build served on ephemeral loopback port; only player UI and real pointer events; no Unity/API state mutation.",
+  "buildRoot": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-Unity\\Builds\\WebGL",
+  "build": {
+    "index.html": {
+      "sha256": "898cce1e5ed480816f6e85c8d93ffdbbe3181f8a7c560548cb2c4c67600fc57a",
+      "bytes": 5630,
+      "modifiedAt": "2026-10-15T11:44:24.818Z"
+    },
+    "Build/WebGL.data": {
+      "sha256": "589687745a21f21e45607e1669473d2988c4b0dbb435fff87da4603f4e276d3f",
+      "bytes": 5930979,
+      "modifiedAt": "2026-10-16T08:52:02.721Z"
+    },
+    "Build/WebGL.framework.js": {
+      "sha256": "55009a9983560ffb692ba4879d09c9a0ea7c35cdd2c0f4375abd83307e4e5b4c",
+      "bytes": 391534,
+      "modifiedAt": "2026-10-16T08:52:04.530Z"
+    },
+    "Build/WebGL.loader.js": {
+      "sha256": "aecb29ea568d588d232e95dce967626b81f40f39295b859ec107de8791cdb4a1",
+      "bytes": 26982,
+      "modifiedAt": "2026-10-16T08:52:04.533Z"
+    },
+    "Build/WebGL.wasm": {
+      "sha256": "0305f81598f5d3f1afba1b19e3d49b782c18bd033c5aa109d6936a5412feff7f",
+      "bytes": 21385172,
+      "modifiedAt": "2026-10-16T08:52:02.761Z"
+    }
+  },
+  "console": [
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:61442/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "UnloadTime: 0.800000 ms\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START custom_0 vs featured_status_reactor\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_SELECT gatekeeper\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_DETAILS gatekeeper developer=False\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_DEVELOPER_OVERLAY True\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_DEVELOPER_OVERLAY False\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=gatekeeper\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_SELECT blightpool\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_DETAILS gatekeeper developer=False\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_DETAILS gatekeeper developer=False\n"
+    },
+    {
+      "surface": "desktop",
+      "type": "log",
+      "text": "CORE_CLASH_LAUNCH owner=1 type=blightpool\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:61442/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "UnloadTime: 0.500000 ms\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_reality_hackers vs featured_reality_hackers\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:61442/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "UnloadTime: 0.100000 ms\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_DETAILS bounce developer=False\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_SELECT agony\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=agony\n"
+    },
+    {
+      "surface": "phone",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "[UnityCache] 'http://127.0.0.1:61442/Build/WebGL.data' successfully downloaded and stored in the browser cache"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "[UnityMemory] Configuration Parameters - Can be set up in boot.config\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-main-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-gfx-thread-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-cache-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-typetree-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-granularity=16\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-bucket-count=8\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-size=4194304\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-bucket-allocator-block-count=1\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-allocator-block-size=16777216\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-profiler-editor-allocator-block-size=1048576\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-main=4194304\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size=2097152\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-block-size-background=1048576\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-job-temp-allocator-reduction-small-platforms=262144\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-main=262144\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-allocator-temp-initial-block-size-worker=262144\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "    \"memorysetup-temp-allocator-size-background-worker=32768\"\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "CodeReloadManager initialized\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Loading player data from data.unity3d\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Initialize engine version: 6000.4.0f1 (8cf496087c8f)\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Creating WebGL 2.0 context."
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Renderer: WebKit WebGL\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Vendor:   WebKit\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Version:  OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "GLES:     3\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": " EXT_clip_control EXT_color_buffer_float EXT_color_buffer_half_float EXT_conservative_depth EXT_depth_clamp EXT_disjoint_timer_query_webgl2 EXT_float_blend EXT_polygon_offset_clamp EXT_texture_compression_bptc EXT_texture_compression_rgtc EXT_texture_filter_anisotropic EXT_texture_mirror_clamp_to_edge NV_shader_noperspective_interpolation OES_draw_buffers_indexed OES_sample_variables OES_shader_multisample_interpolation OES_texture_float_linear OVR_multiview2 WEBGL_clip_cull_distance WEBGL_compressed_texture_astc WEBGL_compressed_texture_etc WEBGL_compressed_texture_etc1 WEBGL_compressed_texture_s3tc WEBGL_compressed_texture_s3tc_srgb WEBGL_debug_renderer_info WEBGL_debug_shaders WEBGL_lose_context WEBGL_multi_draw WEBGL_polygon_mode WEBGL_stencil_texturing GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_conservative_depth GL_EXT_depth_clamp GL_EXT_disjoint_timer_query_webgl2 GL_EXT_float_blend GL_EXT_polygon_offset_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_comp\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "ression_rgtc GL_EXT_texture_filter_anisotropic GL_EXT_texture_mirror_clamp_to_edge GL_NV_shader_noperspective_interpolation GL_OES_draw_buffers_indexed GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_texture_float_linear GL_OVR_multiview2 GL_WEBGL_clip_cull_distance GL_WEBGL_compressed_texture_astc GL_WEBGL_compressed_texture_etc GL_WEBGL_compressed_texture_etc1 GL_WEBGL_compressed_texture_s3tc GL_WEBGL_compressed_texture_s3tc_srgb GL_WEBGL_debug_renderer_info GL_WEBGL_debug_shaders GL_WEBGL_lose_context GL_WEBGL_multi_draw GL_WEBGL_polygon_mode GL_WEBGL_stencil_texturing\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "OPENGL LOG: Creating OpenGL ES 3.0 graphics device ; Context level  <OpenGL ES 3.0> ; Context handle 1\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "Input Manager initialize...\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "UnloadTime: 0.600000 ms\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "surface": "compact",
+      "type": "log",
+      "text": "CORE_CLASH_MATCH_START featured_reality_hackers vs featured_reality_hackers\n"
+    }
+  ],
+  "pageErrors": [],
+  "requestsFailed": [],
+  "screens": [
+    {
+      "id": "01-showcase-desktop",
+      "file": "r5-webgl-01-showcase-desktop.png",
+      "note": "Default player-facing featured showcase, before any interaction.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:04.784Z"
+    },
+    {
+      "id": "02-multiplayer-create",
+      "file": "r5-webgl-02-multiplayer-create.png",
+      "note": "Default Create Game view; manual addressing remains behind Advanced.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:05.241Z"
+    },
+    {
+      "id": "03-multiplayer-join",
+      "file": "r5-webgl-03-multiplayer-join.png",
+      "note": "Join Game invitation view before Advanced; inspect that raw IP and port fields are absent.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:05.705Z"
+    },
+    {
+      "id": "04-multiplayer-advanced",
+      "file": "r5-webgl-04-multiplayer-advanced.png",
+      "note": "Advanced expanded; manual host and gameplay-port fields are now visible.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:06.188Z"
+    },
+    {
+      "id": "05-builder-initial",
+      "file": "r5-webgl-05-builder-initial.png",
+      "note": "P1 Edit Deck opens with the default nine DEATH ENGINE selections.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:07.561Z"
+    },
+    {
+      "id": "06-builder-empty",
+      "file": "r5-webgl-06-builder-empty.png",
+      "note": "All nine default balls removed by actual search/card clicks; expect 0/9 and disabled Use.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:16.052Z"
+    },
+    {
+      "id": "07-builder-empty-use-disabled",
+      "file": "r5-webgl-07-builder-empty-use-disabled.png",
+      "note": "Attempting Use with zero selected must leave the builder open.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:16.426Z"
+    },
+    {
+      "id": "08-builder-nine",
+      "file": "r5-webgl-08-builder-nine.png",
+      "note": "Nine GRAVITY TRAP source balls added through actual roster UI; expect 9/9.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:23.129Z"
+    },
+    {
+      "id": "09-custom-deck-setup",
+      "file": "r5-webgl-09-custom-deck-setup.png",
+      "note": "Builder Use returns to setup with P1 custom deck.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:23.523Z"
+    },
+    {
+      "id": "10-gameplay-desktop",
+      "file": "r5-webgl-10-gameplay-desktop.png",
+      "note": "Initial local match with portrait arena and 3x3 tray.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:24.414Z"
+    },
+    {
+      "id": "10b-desktop-panel-scrolled",
+      "file": "r5-webgl-10b-desktop-panel-scrolled.png",
+      "note": "Actual scrollbar track clicked to bottom before selecting the third row.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:26.447Z"
+    },
+    {
+      "id": "11-selected-special",
+      "file": "r5-webgl-11-selected-special.png",
+      "note": "Gatekeeper selected through the actual third-row orb card.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:26.839Z"
+    },
+    {
+      "id": "12-player-details",
+      "file": "r5-webgl-12-player-details.png",
+      "note": "Default details: name, HP/size, quick text, ability and payoff; no implementation metadata.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:27.237Z"
+    },
+    {
+      "id": "13-developer-details",
+      "file": "r5-webgl-13-developer-details.png",
+      "note": "F1 exposes technical migration/reference metadata in a separate developer overlay.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:27.514Z"
+    },
+    {
+      "id": "14-player-details-restored",
+      "file": "r5-webgl-14-player-details-restored.png",
+      "note": "F1 off returns to the clean player details view.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:27.644Z"
+    },
+    {
+      "id": "15b-wall-guide",
+      "file": "r5-webgl-15b-wall-guide.png",
+      "note": "Actual held shallow-angle mouse aim: first-wall contact and reflected continuation, before release.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:30.217Z"
+    },
+    {
+      "id": "15-aim-desktop",
+      "file": "r5-webgl-15-aim-desktop.png",
+      "note": "Same held mouse gesture moved to normal upward aim: selected orb, vector, drag marker and power cue.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:30.638Z"
+    },
+    {
+      "id": "16-resolving-lock",
+      "file": "r5-webgl-16-resolving-lock.png",
+      "note": "Attempted second drag during physics resolving; launch count remains one.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:31.612Z"
+    },
+    {
+      "id": "17-next-turn",
+      "file": "r5-webgl-17-next-turn.png",
+      "note": "Next active player confirmed by selecting Blight Pool from P2 STATUS REACTOR deck.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:36.793Z"
+    },
+    {
+      "id": "17b-runtime-instance-right-click",
+      "file": "r5-webgl-17b-runtime-instance-right-click.png",
+      "note": "Real right-click on the settled P1 Gatekeeper during P2 turn. Inspect canonical name, P1 live HP, CURRENT STATE and absence of developer IDs.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:37.215Z"
+    },
+    {
+      "id": "17c-inspect-board-mode",
+      "file": "r5-webgl-17c-inspect-board-mode.png",
+      "note": "Actual INSPECT BOARD action during P2 turn; mode hint and Cancel Inspect are visible.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:39.668Z"
+    },
+    {
+      "id": "17d-runtime-instance-inspect-button",
+      "file": "r5-webgl-17d-runtime-instance-inspect-button.png",
+      "note": "Actual Inspect Board then ordinary click selects the same P1 runtime instance during the opponent turn.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:40.079Z"
+    },
+    {
+      "id": "17e-p2-aim-before-combined-release",
+      "file": "r5-webgl-17e-p2-aim-before-combined-release.png",
+      "note": "Fresh real P2 left-button aim before back-to-back empty-space right-button down and left-button release.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:42.711Z"
+    },
+    {
+      "id": "17f-combined-release-launched",
+      "file": "r5-webgl-17f-combined-release-launched.png",
+      "note": "Back-to-back empty-space RMB-down and LMB-up: one accepted P2 launch, resolving state and cleared aim feedback.",
+      "canvas": {
+        "x": 160,
+        "y": 129,
+        "width": 960,
+        "height": 600,
+        "cssWidth": 960,
+        "cssHeight": 600
+      },
+      "capturedAt": "2026-10-16T08:53:43.109Z"
+    },
+    {
+      "id": "18-showcase-portrait",
+      "file": "r5-webgl-18-showcase-portrait.png",
+      "note": "390x844 showcase with visible bottom Start/All Decks actions.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:48.585Z"
+    },
+    {
+      "id": "18b-library-portrait",
+      "file": "r5-webgl-18b-library-portrait.png",
+      "note": "Phone All Decks library opened with normal footer action; both player choices and canonical deck list.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:49.036Z"
+    },
+    {
+      "id": "18b1-library-reality-scrolled-portrait",
+      "file": "r5-webgl-18b1-library-reality-scrolled-portrait.png",
+      "note": "Ordinary library wheel events expose the complete Reality Hackers row, nine previews and separate P1/P2 controls at 390px.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:52.006Z"
+    },
+    {
+      "id": "18b2-library-reality-p1-portrait",
+      "file": "r5-webgl-18b2-library-reality-p1-portrait.png",
+      "note": "Actual left P1 control selects Reality Hackers for Player 1 while Player 2 retains Status Reactor.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:52.593Z"
+    },
+    {
+      "id": "18b3-library-reality-both-portrait",
+      "file": "r5-webgl-18b3-library-reality-both-portrait.png",
+      "note": "Actual separate right P2 control selects Reality Hackers for Player 2; both chosen decks are visible above the scrolled list.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:53.226Z"
+    },
+    {
+      "id": "18b4-library-reality-started-portrait",
+      "file": "r5-webgl-18b4-library-reality-started-portrait.png",
+      "note": "Normal library Start confirms Reality Hackers vs Reality Hackers with READY state and no accidental launch.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:53:54.304Z"
+    },
+    {
+      "id": "18c-builder-portrait",
+      "file": "r5-webgl-18c-builder-portrait.png",
+      "note": "Fresh default Phone P1 Edit Deck opened through the library; measured helper, shifted search/selection, one-column cards and Use action.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:00.538Z"
+    },
+    {
+      "id": "18d-details-portrait",
+      "file": "r5-webgl-18d-details-portrait.png",
+      "note": "Phone builder information button opens ordinary player details with readable orb/name/stats header.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:02.410Z"
+    },
+    {
+      "id": "18e-details-scrolled-portrait",
+      "file": "r5-webgl-18e-details-scrolled-portrait.png",
+      "note": "Phone Bouncer details after an ordinary wheel-scroll attempt; its short honest fallback copy fits without overflow.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:03.987Z"
+    },
+    {
+      "id": "19-gameplay-portrait",
+      "file": "r5-webgl-19-gameplay-portrait.png",
+      "note": "Portrait game: upper HUD, 540:900 arena, compact 3x3 tray in scrollable control panel.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:07.939Z"
+    },
+    {
+      "id": "20-touch-aim",
+      "file": "r5-webgl-20-touch-aim.png",
+      "note": "Actual simulated touch held in aim state.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:08.761Z"
+    },
+    {
+      "id": "21-touch-canceled",
+      "file": "r5-webgl-21-touch-canceled.png",
+      "note": "Touch canceled: aim feedback is cleared and no launch log emitted.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:09.135Z"
+    },
+    {
+      "id": "22-touch-launched",
+      "file": "r5-webgl-22-touch-launched.png",
+      "note": "Real touch release launches once and shows resolving feedback.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:09.592Z"
+    },
+    {
+      "id": "23-portrait-lower-controls",
+      "file": "r5-webgl-23-portrait-lower-controls.png",
+      "note": "Portrait lower Standard / Ball Details / Inspect Board / Match Setup controls reached through normal scrolling.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "capturedAt": "2026-10-16T08:54:11.585Z"
+    },
+    {
+      "id": "24-gameplay-landscape",
+      "file": "r5-webgl-24-gameplay-landscape.png",
+      "note": "844x390 landscape reflows to portrait arena left, controls right.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      },
+      "capturedAt": "2026-10-16T08:54:12.296Z"
+    },
+    {
+      "id": "25-landscape-lower-controls",
+      "file": "r5-webgl-25-landscape-lower-controls.png",
+      "note": "Landscape lower controls reached through actual player scrollbar.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      },
+      "capturedAt": "2026-10-16T08:54:14.280Z"
+    },
+    {
+      "id": "26-showcase-landscape-return",
+      "file": "r5-webgl-26-showcase-landscape-return.png",
+      "note": "Actual third Match Setup action returns to setup in landscape.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      },
+      "capturedAt": "2026-10-16T08:54:14.743Z"
+    },
+    {
+      "id": "27-landscape-restarted",
+      "file": "r5-webgl-27-landscape-restarted.png",
+      "note": "Landscape Start begins another local match through the normal player flow.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "cssWidth": 844,
+        "cssHeight": 390
+      },
+      "capturedAt": "2026-10-16T08:54:15.709Z"
+    },
+    {
+      "id": "28-showcase-667x375",
+      "file": "r5-webgl-28-showcase-667x375.png",
+      "note": "Fresh 667x375 Android-user-agent small landscape context at showcase.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:20.554Z"
+    },
+    {
+      "id": "29-library-667x375",
+      "file": "r5-webgl-29-library-667x375.png",
+      "note": "Small landscape All Decks library: player choices, scrolling canonical presets and Start footer must remain separated.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:21.062Z"
+    },
+    {
+      "id": "30-library-scrolled-667x375",
+      "file": "r5-webgl-30-library-scrolled-667x375.png",
+      "note": "Twelve real wheel events reach the Reality Hackers name in the short landscape library; Start remains below its separate list viewport.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:23.457Z"
+    },
+    {
+      "id": "30b-library-reality-controls-667x375",
+      "file": "r5-webgl-30b-library-reality-controls-667x375.png",
+      "note": "One further ordinary wheel event exposes both full Reality Hackers P1/P2 controls in the short list viewport.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:23.994Z"
+    },
+    {
+      "id": "30c-library-reality-p1-667x375",
+      "file": "r5-webgl-30c-library-reality-p1-667x375.png",
+      "note": "Actual left P1 control selects Reality Hackers while the separate Player 2 choice retains Status Reactor.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:24.597Z"
+    },
+    {
+      "id": "30d-library-reality-both-667x375",
+      "file": "r5-webgl-30d-library-reality-both-667x375.png",
+      "note": "Actual separate right P2 control also selects Reality Hackers; both player cards and separated Start footer are visible.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:25.191Z"
+    },
+    {
+      "id": "30e-library-reality-started-667x375",
+      "file": "r5-webgl-30e-library-reality-started-667x375.png",
+      "note": "Normal library Start confirms Reality Hackers vs Reality Hackers in the compact canvas, without an accidental launch.",
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 667,
+        "height": 375,
+        "cssWidth": 667,
+        "cssHeight": 375
+      },
+      "capturedAt": "2026-10-16T08:54:26.240Z"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Certified V148 reference hash is unchanged",
+      "ok": true
+    },
+    {
+      "name": "WASM is served with application/wasm",
+      "ok": true
+    },
+    {
+      "name": "Desktop canvas uses the expected 960x600 player",
+      "ok": true
+    },
+    {
+      "name": "Builder custom deck starts via the normal Start button",
+      "ok": true
+    },
+    {
+      "name": "Desktop Start release does not submit an accidental arena launch",
+      "ok": true
+    },
+    {
+      "name": "Special orb card selects Gatekeeper",
+      "ok": true
+    },
+    {
+      "name": "F1 enables and disables developer metadata",
+      "ok": true
+    },
+    {
+      "name": "One mouse launch accepted; second shot is blocked while moving",
+      "ok": true
+    },
+    {
+      "name": "Physics settles to P2 turn and P2 first card becomes selectable",
+      "ok": true
+    },
+    {
+      "name": "Opponent-turn right-click inspection opens Gatekeeper details without launching",
+      "ok": true
+    },
+    {
+      "name": "Inspect Board plus real board click opens the instance without launching",
+      "ok": true
+    },
+    {
+      "name": "Empty-space right-down plus left-up accepts exactly one real P2 launch",
+      "ok": true
+    },
+    {
+      "name": "No extra launch follows a fresh press/release while the P2 shot resolves",
+      "ok": true
+    },
+    {
+      "name": "Portrait player canvas fills 390x844 viewport",
+      "ok": true
+    },
+    {
+      "name": "Portrait library P1 and P2 controls select Reality Hackers independently",
+      "ok": true
+    },
+    {
+      "name": "Portrait library Start release does not submit an accidental arena launch",
+      "ok": true
+    },
+    {
+      "name": "Portrait showcase Start release does not submit an accidental arena launch",
+      "ok": true
+    },
+    {
+      "name": "Canceled touch does not launch",
+      "ok": true
+    },
+    {
+      "name": "New touch after cancellation launches exactly once",
+      "ok": true
+    },
+    {
+      "name": "Landscape lower controls and subsequent Start remain usable",
+      "ok": true
+    },
+    {
+      "name": "Landscape Start release does not submit an accidental arena launch",
+      "ok": true
+    },
+    {
+      "name": "Small landscape player canvas fills 667x375 viewport",
+      "ok": true
+    },
+    {
+      "name": "Small landscape library P1 and P2 controls select Reality Hackers independently",
+      "ok": true
+    },
+    {
+      "name": "Small landscape library Start release does not submit an accidental arena launch",
+      "ok": true
+    },
+    {
+      "name": "No browser page errors",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "limits": [
+    "Canvas-rendered text is visually reviewed in saved screenshots; no accessibility DOM or runtime state API is exposed by this player.",
+    "Touch is Chromium CDP simulation, not a physical Android/iOS device.",
+    "Multiplayer scope here is lobby presentation and Advanced containment; connection/authority validation is covered separately."
+  ],
+  "retainedR4": {
+    "Tools/r4-webgl-smoke.cjs": "24494e120f31efb184bad4f044a7ecb74fe65457525673142cf3d3a3edaf6b8e",
+    "Evidence/r4-webgl-01-showcase-desktop.png": "823f44c3d2ad3144ef6dca91c3d9d54146fc173d70b9a4c4c6f6c3630898da7e",
+    "Evidence/r4-webgl-02-multiplayer-create.png": "8b8f329538c4094544eb5cbdf6e0d05faa4d2756204a7f3aca04d24bf46ef68e",
+    "Evidence/r4-webgl-03-multiplayer-join.png": "6a62f231272909b1368720c6ef506b3dc94dad94ee358108a0cbc18797f60c77",
+    "Evidence/r4-webgl-04-multiplayer-advanced.png": "d6b6a16024ac8109a7b496c3323d8aa79edae933e9047c39fe4cd3bc09437477",
+    "Evidence/r4-webgl-05-builder-initial.png": "6ce460974527c7450b8153dc058292f0941b07146a978bcb949dd25d5126793c",
+    "Evidence/r4-webgl-06-builder-empty.png": "9dde9413c9eaaf3898be2fa1e094dbb21f126e2ff07faf136b0e776e72140b9a",
+    "Evidence/r4-webgl-07-builder-empty-use-disabled.png": "73f2c1e58f2a36fc7f57b99fb6ab51bf38e40e5aec32c02e7063253adbb8a062",
+    "Evidence/r4-webgl-08-builder-nine.png": "5b113d535772ed966678a942ab73ce7479daad7976ea516f2abaa3040a87a443",
+    "Evidence/r4-webgl-09-custom-deck-setup.png": "6bbca5c0de5fb33f885c3d577ec8e29318110cf377e855c0eabdeecc35e66040",
+    "Evidence/r4-webgl-10-gameplay-desktop.png": "0cdf2f9cfb6a75f0f94ed4c6daad4acc6021ff3244e9dfe04d1ae3e0fb325051",
+    "Evidence/r4-webgl-10b-desktop-panel-scrolled.png": "564c5961fb3b7b9bb8b5937aa5b93b4e14efff68347fb61c2ed637d045b04544",
+    "Evidence/r4-webgl-11-selected-special.png": "6d42b74d7fa1d27af5ceb100b3df972630294773ddf8112c0daf788d8e2d097f",
+    "Evidence/r4-webgl-12-player-details.png": "842b792cc209ac7593d86da4a4ee778a37c4bb4414141adc3512bcf57f2109d6",
+    "Evidence/r4-webgl-13-developer-details.png": "180fad1dac8ca66857d8f0b94469f6a367c7bd78c583d98cef8e9b9de5547fa2",
+    "Evidence/r4-webgl-14-player-details-restored.png": "1dbe552becd7e38492e5fea680391c242b08f822c4f8f78a1493536cb69f6c74",
+    "Evidence/r4-webgl-15-aim-desktop.png": "409f3a1115211e1255a837c5d1ba385d153aa21311958ec789ffb34aeea42ea6",
+    "Evidence/r4-webgl-15b-wall-guide.png": "101413c0566bab26d5017486e94b2b7cedfca20590fe05af3136c3c5c0a99fad",
+    "Evidence/r4-webgl-16-resolving-lock.png": "f68367d2b036c4ccc867bab0c6e1d211f0bcebe94f293659ee16463d064224ce",
+    "Evidence/r4-webgl-17-next-turn.png": "00310ba08fcfaf2e823f10f4b6ee2254f30f558cb97ce74c26cea8d82040b79a",
+    "Evidence/r4-webgl-17b-runtime-instance-right-click.png": "6e45e43ee9a273f3c574fbd1c3b2fcf1b3e83c170d391d46f479d57f8f4b8547",
+    "Evidence/r4-webgl-17c-inspect-board-mode.png": "bc887f0df014235141d88a5584ba6ece6d8e91ed1e4b4e701951ba96dda351e2",
+    "Evidence/r4-webgl-17d-runtime-instance-inspect-button.png": "89ff61e2be7edbb4a30518a283ec8dd1b7f50ba4b352a956824678c7b8d14044",
+    "Evidence/r4-webgl-17e-p2-aim-before-combined-release.png": "8c533e7f85faf865e02713b2ba62dcbf9173e96fa74c12278929efcf221ab047",
+    "Evidence/r4-webgl-17f-combined-release-launched.png": "db1aa0f68e5ce0b09934440b640cbb6452e6c059ae37b4cc2e74b5e1075214d4",
+    "Evidence/r4-webgl-18-showcase-portrait.png": "355a1fa3d2310b9ffb43f9a52745b5348d8424c5776bb76b96473c39a695088c",
+    "Evidence/r4-webgl-18b-library-portrait.png": "5e16a11c0cb82b4420da7d3196bb55f0281cb9015da5226941bf473b2bcc6d5f",
+    "Evidence/r4-webgl-18c-builder-portrait.png": "43407389fbd07c1e79ea3b96475e190a08f94b5de023f4951c8465201dabd7ce",
+    "Evidence/r4-webgl-18d-details-portrait.png": "ccf5ea92e9d561283a75fb3489bada87b9c7ee6f27565b8f94c11e1fb4a5afe2",
+    "Evidence/r4-webgl-18e-details-scrolled-portrait.png": "ccf5ea92e9d561283a75fb3489bada87b9c7ee6f27565b8f94c11e1fb4a5afe2",
+    "Evidence/r4-webgl-19-gameplay-portrait.png": "dfb490b825ee864ef05d46dc50359ac42005c098452c7a1ee8ccf0fcd204a96c",
+    "Evidence/r4-webgl-20-touch-aim.png": "12755f8d71832fbaf6379ff70c219ebfc135e7a61d9acb5e89f5b0bcd371a1bf",
+    "Evidence/r4-webgl-21-touch-canceled.png": "349181ce5ecdc26ff6e25fe556db74b65f1b757dfd0d78de4959df9a9d5b8ee5",
+    "Evidence/r4-webgl-22-touch-launched.png": "7064bd1cd58325585846b873d51b692ec3bddbb4cd388425d74bbee842f27bd0",
+    "Evidence/r4-webgl-23-portrait-lower-controls.png": "bf4054f087380a6b52904b4ede686db57daf1696ab514bdba74aa2896eb89175",
+    "Evidence/r4-webgl-24-gameplay-landscape.png": "79dc70691bd4928fc776de8f9dd606f02a8742710c30606186e41ad5c4999bcd",
+    "Evidence/r4-webgl-25-landscape-lower-controls.png": "ccfcdcca09bbd90de625b669cffad148e477894c850e820ac4e18c4f9ba2e1b9",
+    "Evidence/r4-webgl-26-showcase-landscape-return.png": "383bb91e94004f710e2977728d11accbc84be7d23d1c586a8e4a4e5b4dc6837d",
+    "Evidence/r4-webgl-27-landscape-restarted.png": "ffe03a0b3fec0b0772339eb6f2146eab76fa309815c897aadbfd9d06953e2789",
+    "Evidence/r4-webgl-28-showcase-667x375.png": "7c637f5ed31bd021e9948885fc0cfeccbcba48529df1eea9094596af43d71b40",
+    "Evidence/r4-webgl-29-library-667x375.png": "e530f8374630a8c5fc451e7a64fa67957ab432c4344acaed624f12040e8fe200",
+    "Evidence/r4-webgl-30-library-scrolled-667x375.png": "29a748d1b5c317d211e6cd6eaca2e4a27eb04a4cf882aceea6f630a69a6ce7e8",
+    "Evidence/r4-webgl-review-sheet-1.png": "a295070928fdfc67f6a9555132dedb5e55df8a5f1e07af1589d018d31a101537",
+    "Evidence/r4-webgl-review-sheet-2.png": "9c6c8a2aa7856e2e48fc91a1f8d64a8d9229b8bd3fcaafc35fc80c1e6c798397",
+    "Evidence/r4-webgl-review-sheet-3.png": "8636b63fc39f0b9bded3b24775185992544684cedb5619d3ceac863746d79896",
+    "Evidence/r4-webgl-review-sheet-4.png": "4b1072d3f64a572584ad5ad7cff153a5d916fe75a8a193ccd9e09caa012da342",
+    "Evidence/r4-webgl-review-sheet-5.png": "2f99f810ece938c9644dbc138a0aa25098ca76a4db9ffc592ab736940ca816c4",
+    "Evidence/r4-webgl-review-sheet-6.png": "0fd9685e34a8f76ec75bc22267e5df45e8d9ec85d8eb31d1e9a82f3400662864",
+    "Evidence/r4-webgl-review-sheet-7.png": "ae4120d4759a8e53487e6d327b4e01531266d23d8213597a3e7020eec0facc43",
+    "Evidence/r4-webgl-smoke-interim.json": "b6d70933bb5c3dd75a94b54d9c6b9481cda60e83948d641d4282ed5e53bd8ad7",
+    "Evidence/r4-webgl-smoke.json": "b3ccca3541b7cd3e90ed0c477268be37576815493681cab4753b54b6562309ac",
+    "Evidence/r4-webgl-visual-review.json": "9387bb01ead9cb78797d29001a7f9a4750fe7e6da1bcfbf5476a74411ad29c64"
+  },
+  "reference": {
+    "file": "C:/Users/kubap/Downloads/core_clash_v148_final_candidate_r2 (1).html",
+    "sha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+    "bytes": 1465149
+  },
+  "builderFixture": {
+    "removedIds": [
+      "agony",
+      "requiem",
+      "bonfire",
+      "wildfire",
+      "soulburst",
+      "reclaimer",
+      "gravehide",
+      "packheart",
+      "cascade"
+    ],
+    "removedNames": [
+      "Agony",
+      "Requiem",
+      "Bonfire",
+      "Wildfire",
+      "Soulburst",
+      "Reclaimer",
+      "Gravehide",
+      "Packheart",
+      "Cascade"
+    ],
+    "addedIds": [
+      "web",
+      "briarheart",
+      "vinehook",
+      "gravitymine",
+      "singularity",
+      "horizonrelay",
+      "gatekeeper",
+      "harpoon",
+      "vortexmedic"
+    ],
+    "addedNames": [
+      "Webber",
+      "Briarheart",
+      "Vinehook",
+      "Gravity Mine",
+      "Singularity",
+      "Horizon Relay",
+      "Gatekeeper",
+      "Harpoon",
+      "Vortex Medic"
+    ]
+  },
+  "browser": "155.0.4283.45",
+  "desktopCanvas": {
+    "x": 160,
+    "y": 129,
+    "width": 960,
+    "height": 600,
+    "cssWidth": 960,
+    "cssHeight": 600
+  },
+  "desktopLayout": {
+    "portrait": false,
+    "board": {
+      "x": 121.20000000000002,
+      "y": 73.99999999999997,
+      "width": 304.8,
+      "height": 508.00000000000006
+    },
+    "panel": {
+      "x": 450,
+      "y": 74,
+      "width": 388.8,
+      "height": 508
+    }
+  },
+  "runtimeInspection": {
+    "input": "Real right mouse button on the existing settled ball, while P2 is confirmed active by ordinary selection log.",
+    "targetWorld": [
+      473,
+      200
+    ],
+    "launchCountBefore": 1,
+    "launchCountAfter": 1,
+    "detailsLog": "CORE_CLASH_DETAILS gatekeeper developer=False\n"
+  },
+  "combinedRelease": {
+    "input": "Held real left aim, then back-to-back right-down, left-up and right-up at empty board space.",
+    "targetWorld": [
+      350,
+      300
+    ],
+    "launchCountBefore": 1,
+    "launchCountAfter": 2,
+    "browserDispatchGapMs": 8,
+    "elapsedThroughCaptureMs": 398,
+    "limit": "Browser event ordering is real; coincidence within one Unity update frame is not observable from this player."
+  },
+  "phoneCanvas": {
+    "x": 0,
+    "y": 0,
+    "width": 390,
+    "height": 844,
+    "cssWidth": 390,
+    "cssHeight": 844
+  },
+  "portraitPresetSelection": {
+    "preset": "featured_reality_hackers",
+    "wheelEvents": 16,
+    "player1Control": [
+      108,
+      474
+    ],
+    "player2Control": [
+      258,
+      474
+    ],
+    "matchLog": "CORE_CLASH_MATCH_START featured_reality_hackers vs featured_reality_hackers\n",
+    "launchCountBeforeStart": 0,
+    "launchCountAfterStart": 0
+  },
+  "portraitLayout": {
+    "portrait": true,
+    "board": {
+      "x": 86.112,
+      "y": 126,
+      "width": 217.776,
+      "height": 362.96000000000004
+    },
+    "panel": {
+      "x": 12,
+      "y": 500.96000000000004,
+      "width": 366,
+      "height": 331.03999999999996
+    }
+  },
+  "landscapeLayout": {
+    "portrait": false,
+    "board": {
+      "x": 140.60000000000002,
+      "y": 74,
+      "width": 178.79999999999998,
+      "height": 298
+    },
+    "panel": {
+      "x": 343.4,
+      "y": 74,
+      "width": 360,
+      "height": 298
+    }
+  },
+  "compactCanvas": {
+    "x": 0,
+    "y": 0,
+    "width": 667,
+    "height": 375,
+    "cssWidth": 667,
+    "cssHeight": 375
+  },
+  "compactPresetSelection": {
+    "preset": "featured_reality_hackers",
+    "wheelEvents": 13,
+    "player1Control": [
+      508,
+      266
+    ],
+    "player2Control": [
+      580,
+      266
+    ],
+    "matchLog": "CORE_CLASH_MATCH_START featured_reality_hackers vs featured_reality_hackers\n",
+    "launchCountBeforeStart": 0,
+    "launchCountAfterStart": 0
+  },
+  "buildFilesUnchanged": true,
+  "referenceUnchanged": true,
+  "retainedR4Unchanged": true,
+  "ok": true
+}

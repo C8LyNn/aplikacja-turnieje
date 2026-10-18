@@ -1,0 +1,621 @@
+{
+  "startedAt": "2026-10-16T16:41:19.379Z",
+  "pass": true,
+  "checks": [
+    {
+      "name": "Exact WebGL files and headers work under a hosting subdirectory",
+      "pass": true
+    },
+    {
+      "name": "Ordinary invitation joins the real Internet host",
+      "pass": true
+    },
+    {
+      "name": "Backend rejects a third participant and restores Join Game",
+      "pass": true
+    },
+    {
+      "name": "Full room gives explicit two-player guidance",
+      "pass": true
+    },
+    {
+      "name": "Disconnect leaves Cloud membership and releases host seat",
+      "pass": true
+    },
+    {
+      "name": "Rejected third participant can retry the same code after P2 leaves",
+      "pass": true
+    },
+    {
+      "name": "Invalid backend code gives copy-code guidance",
+      "pass": true
+    },
+    {
+      "name": "Missing-code response gives expiry guidance and restores Join Game",
+      "pass": true
+    },
+    {
+      "name": "Cancellation holds an actual successful Cloud membership response",
+      "pass": true
+    },
+    {
+      "name": "Canceled late result leaves membership without starting Relay",
+      "pass": true
+    },
+    {
+      "name": "Same player joins normally after canceled response cleanup",
+      "pass": true
+    },
+    {
+      "name": "Loss of Internet host restores Join Game",
+      "pass": true
+    },
+    {
+      "name": "Local play and mouse launch work after Internet host loss",
+      "pass": true
+    },
+    {
+      "name": "No browser page exceptions",
+      "pass": true
+    }
+  ],
+  "console": [
+    {
+      "id": "first",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "first",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "first",
+      "text": "CC_NET_RELAY_STARTED role=client protocol=wss\n"
+    },
+    {
+      "id": "first",
+      "text": "CC_NET_BRIDGE_SPAWNED server=False\n"
+    },
+    {
+      "id": "first",
+      "text": "CC_NET_STATE_APPLIED revision=1 owner=1\n"
+    },
+    {
+      "id": "first",
+      "text": "CC_LAN_PLAYER_CONNECTED owner=1\n"
+    },
+    {
+      "id": "first",
+      "text": "CC_NET_INTERNET_SESSION_READY role=client seats=2 protocol=wss\n"
+    },
+    {
+      "id": "full",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_LAN_CONNECTION_FAILED This game already has two players. Ask the host to create another game.\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_NET_INTERNET_ERROR SessionException Unknown\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "full",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_NET_RELAY_STARTED role=client protocol=wss\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_NET_BRIDGE_SPAWNED server=False\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_NET_STATE_APPLIED revision=12 owner=1\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_LAN_PLAYER_CONNECTED owner=1\n"
+    },
+    {
+      "id": "full",
+      "text": "CC_NET_INTERNET_SESSION_READY role=client seats=2 protocol=wss\n"
+    },
+    {
+      "id": "invalid",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "invalid",
+      "text": "CC_LAN_CONNECTION_FAILED That game code is invalid. Copy the current code from the host and try again.\n"
+    },
+    {
+      "id": "invalid",
+      "text": "CC_NET_INTERNET_ERROR SessionException Unknown\n"
+    },
+    {
+      "id": "invalid",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "missing",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "missing",
+      "text": "CC_LAN_CONNECTION_FAILED That game code has expired or could not be found. Ask the host for the current code.\n"
+    },
+    {
+      "id": "missing",
+      "text": "CC_NET_INTERNET_ERROR SessionException SessionNotFound\n"
+    },
+    {
+      "id": "missing",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_JOIN_CANCELED setup=True\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_RELAY_STARTED role=client protocol=wss\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_BRIDGE_SPAWNED server=False\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_STATE_APPLIED revision=13 owner=1\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_PLAYER_CONNECTED owner=1\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_INTERNET_SESSION_READY role=client seats=2 protocol=wss\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_NET_DISCONNECT_DETAIL [Disconnect Event][Client-3][TransportClientId-4294967296][ProtocolTimeout] Connection closed due to timed out.\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_CONNECTION_FAILED Connection to the host was lost. You can join again or play locally.\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CC_LAN_CONNECTION_RECOVERED setup=True mode=join\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_MATCH_START featured_death_engine vs featured_status_reactor\n"
+    },
+    {
+      "id": "cancel",
+      "text": "CORE_CLASH_LAUNCH owner=0 type=normal\n"
+    }
+  ],
+  "responses": [
+    {
+      "id": "first",
+      "service": "player-auth.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": true,
+      "leave": false
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 304,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "first",
+      "service": "relay-allocations.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "player-auth.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 409,
+      "join": true,
+      "leave": false,
+      "error": {
+        "code": 16004,
+        "title": "Conflict",
+        "detail": "lobby is full"
+      }
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "DELETE",
+      "status": 204,
+      "join": false,
+      "leave": true
+    },
+    {
+      "id": "first",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 403,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": true,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 304,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "relay-allocations.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "full",
+      "service": "lobby.services.api.unity.com",
+      "method": "DELETE",
+      "status": 204,
+      "join": false,
+      "leave": true
+    },
+    {
+      "id": "invalid",
+      "service": "player-auth.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "invalid",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 400,
+      "join": true,
+      "leave": false,
+      "error": {
+        "code": 16010,
+        "title": "Bad Request",
+        "detail": "lobby code '000000' contains an invalid character '0' (U+0030) at index 0"
+      }
+    },
+    {
+      "id": "missing",
+      "service": "player-auth.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "missing",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 404,
+      "join": true,
+      "leave": false,
+      "error": {
+        "code": 16001,
+        "title": "Not Found",
+        "detail": "lobby not found"
+      }
+    },
+    {
+      "id": "cancel",
+      "service": "player-auth.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": true,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 304,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "relay-allocations.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "DELETE",
+      "status": 204,
+      "join": false,
+      "leave": true
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": true,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 304,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "relay-allocations.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "POST",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "GET",
+      "status": 200,
+      "join": false,
+      "leave": false
+    },
+    {
+      "id": "cancel",
+      "service": "lobby.services.api.unity.com",
+      "method": "DELETE",
+      "status": 204,
+      "join": false,
+      "leave": true
+    }
+  ],
+  "pageErrors": [],
+  "scope": "Actual Unity Cloud and Relay with Windows host and isolated WebGL participants on one PC. One test delays a real successful backend response. No physical-device/cross-NAT claim.",
+  "buildFiles": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": {
+      "sha256": "afdcbe3f4c2521e3a64cfc6437e60092da8adef0bb4bac519f5e8db74d1a473a"
+    },
+    "Builds/Windows/CoreClash_Data/resources.assets": {
+      "sha256": "623783e75b2f21c783d8246039a8e1831c04aa9e575047942db7afd3af559610"
+    },
+    "Builds/Windows/CoreClash_Data/level0": {
+      "sha256": "77b5d5941a0e53a2a8eb9c5c9bfa3dfadc053bc19d7e376d103b3ead5df05a96"
+    },
+    "Builds/WebGL/Build/WebGL.data": {
+      "sha256": "c8fce237be238dc3a41824b66c867dfa73a646968d47a5ac6ecf6ce788a122e1"
+    },
+    "Builds/WebGL/Build/WebGL.wasm": {
+      "sha256": "b6be6a267d6538b8c71aa86e31d3668806e2417374689641e8991871d52bb044"
+    },
+    "Builds/WebGL/index.html": {
+      "sha256": "2367df37873a75887d8cc1f9f216e883b0d575c3e623bf2b3fa1fd756958a750"
+    }
+  },
+  "staticHosting": {
+    "testedAt": "2026-10-16T16:41:23.682Z",
+    "url": "http://127.0.0.1:63106/core-clash/",
+    "pass": true,
+    "files": [
+      {
+        "path": "Build/WebGL.data",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/octet-stream",
+        "cacheControl": "no-store",
+        "bytes": 9552215,
+        "sha256": "c8fce237be238dc3a41824b66c867dfa73a646968d47a5ac6ecf6ce788a122e1"
+      },
+      {
+        "path": "Build/WebGL.framework.js",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 443990,
+        "sha256": "f275c3272f5666908efe965d1a2da32ae53a7f1330507e1858183c143aeef98e"
+      },
+      {
+        "path": "Build/WebGL.loader.js",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 26982,
+        "sha256": "d847de3bc0a35d2bafe57fe8ff90c7e6ff3d42fc389725c538ad965ed8931d82"
+      },
+      {
+        "path": "Build/WebGL.wasm",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/wasm",
+        "cacheControl": "no-store",
+        "bytes": 34573342,
+        "sha256": "b6be6a267d6538b8c71aa86e31d3668806e2417374689641e8991871d52bb044"
+      },
+      {
+        "path": "StreamingAssets/UnityServicesProjectConfiguration.json",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 2335,
+        "sha256": "2e63b90c648bb7e413a0625c59394b8313543fb6442d31d4622b00f2ff757783"
+      },
+      {
+        "path": "TemplateData/profiler.js",
+        "errors": [],
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 1573,
+        "sha256": "433e40af9a544d1ef5fec67b0b52af25a851928626c3f3ef0d09b35ded610c0d"
+      },
+      {
+        "path": "index.html",
+        "errors": [],
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 6032,
+        "sha256": "2367df37873a75887d8cc1f9f216e883b0d575c3e623bf2b3fa1fd756958a750"
+      }
+    ],
+    "errors": [],
+    "warnings": []
+  },
+  "fullRoomMessage": "CC_LAN_CONNECTION_FAILED This game already has two players. Ask the host to create another game.\n",
+  "heldJoinStatus": 200,
+  "heldResponseReceived": true,
+  "buildFilesUnchanged": true,
+  "finishedAt": "2026-10-16T16:42:17.266Z",
+  "hostMarkers": [
+    "CC_NET_AUTOSTART role=host smoke=True started=True",
+    "CC_NET_BRIDGE_SPAWNED server=True",
+    "CC_NET_RELAY_STARTED role=host protocol=wss",
+    "CC_NET_INTERNET_SESSION_READY role=host seats=2 protocol=wss",
+    "CC_NET_INTERNET_SMOKE_CODE [issued]",
+    "CC_NET_PEER_CONNECTED id=1 owner=1",
+    "CC_NET_INTENT_ACCEPT owner=0 seq=1",
+    "CC_NET_SMOKE_COMMAND role=host acceptedOrSent=True reason=",
+    "CC_LAN_PLAYER_CONNECTED owner=0",
+    "CC_NET_SEAT_RELEASED id=1",
+    "CC_NET_PEER_CONNECTED id=2 owner=1",
+    "CC_LAN_PLAYER_CONNECTED owner=0",
+    "CC_NET_SEAT_RELEASED id=2",
+    "CC_NET_PEER_CONNECTED id=3 owner=1",
+    "CC_LAN_PLAYER_CONNECTED owner=0"
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "seed": 0,
+    "shots": 40,
+    "turns": 39,
+    "guards": 0,
+    "deployed": [
+      "embertrap",
+      "frosttrap",
+      "sporetrap",
+      "venom",
+      "shatterer",
+      "chainfrost",
+      "firebrand",
+      "hatchery",
+      "wallmaker"
+    ],
+    "winner": 0
+  },
+  {
+    "seed": 1,
+    "shots": 24,
+    "turns": 23,
+    "guards": 0,
+    "deployed": [
+      "embertrap",
+      "frosttrap",
+      "sporetrap",
+      "venom",
+      "shatterer",
+      "chainfrost",
+      "firebrand",
+      "hatchery",
+      "wallmaker"
+    ],
+    "winner": 1
+  }
+]

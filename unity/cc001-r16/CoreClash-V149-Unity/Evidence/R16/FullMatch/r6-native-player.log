@@ -1,0 +1,140 @@
+Mono path[0] = 'C:/Users/kubap/Desktop/CoreClash-V149-R16-Work/Candidate/CoreClash-V149-Unity/Builds/Windows/CoreClash_Data/Managed'
+Mono config path = 'C:/Users/kubap/Desktop/CoreClash-V149-R16-Work/Candidate/CoreClash-V149-Unity/Builds/Windows/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.4.0f1 (8cf496087c8f)
+[Subsystems] Discovering subsystems at path C:/Users/kubap/Desktop/CoreClash-V149-R16-Work/Candidate/CoreClash-V149-Unity/Builds/Windows/CoreClash_Data/UnitySubsystems
+Forcing GfxDevice: Direct3D 11
+GfxDevice: creating device client; kGfxThreadingModeClientWorkerJobs
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 5080 (ID=0x2c02)
+    Vendor:   NVIDIA
+    VRAM:     15977 MB
+    Driver:   32.0.16.1062
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 5080
+[D3D12 Device Filter] Driver Version: 32.0.16.1062
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 15977 MB
+[D3D12 Device Filter] Processor Count: 32
+[D3D12 Device Filter] Device Type: Discrete
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.002 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+<RI> Initializing input.
+<RI> Input initialized.
+UnloadTime: 0.450800 ms
+CORE_CLASH_READY V149 catalog=227 canonicalDecks=36 featured=4
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_SMOKE_BOOTSTRAP release=true graphics=Direct3D11 size=1280x900
+Direct3D: detected that IDXGISwapChain::GetFrameStatistics is broken (it does not return proper timestamps). Delta time will now be calculated using cpu-side time stampling until the game window is moved.
+CC_R2_RENDER_READY splashFinished=true elapsed=3,00358 repaintFrames=673
+CC_R2_CAPTURE_REQUEST r6-native-01-deck-selection.png
+CC_R2_CAPTURE_PASS r6-native-01-deck-selection.png bytes=262173 colors=1152 sha256=C0BBDBC3527513E0EEDED513F0E3F0CE5DBEB972E55A92B14A1F5E415E51B94B
+CORE_CLASH_MATCH_START featured_gravity_trap vs featured_status_reactor
+CORE_CLASH_SELECT gatekeeper
+CC_R2_CAPTURE_REQUEST r6-native-02-aim.png
+CC_R2_CAPTURE_PASS r6-native-02-aim.png bytes=222639 colors=928 sha256=A649029732AAC357DC0F5A57D2D7F0D7993848D949194812EE07095D90739A0D
+CORE_CLASH_LAUNCH owner=0 type=gatekeeper
+CC_R2_CAPTURE_REQUEST r6-native-03-gameplay.png
+CC_R2_CAPTURE_PASS r6-native-03-gameplay.png bytes=209564 colors=924 sha256=0101FE0D0376A2453811FCB109D4BEC987EB01E38CB7526BF67E5A1A424ED777
+CORE_CLASH_DEVELOPER_OVERLAY False
+CORE_CLASH_DETAILS gatekeeper developer=False
+CC_R2_CAPTURE_REQUEST r6-native-04-ball-details.png
+CC_R2_CAPTURE_PASS r6-native-04-ball-details.png bytes=127939 colors=368 sha256=D98AE67F196162E8DC0FB14132DAA90E88644581B7DBE838E34845A485034236
+CORE_CLASH_DEVELOPER_OVERLAY True
+CC_R2_CAPTURE_REQUEST r6-native-05-developer-details.png
+CC_R2_CAPTURE_PASS r6-native-05-developer-details.png bytes=166637 colors=452 sha256=AA7FB545202DD673F1B52DDB4D27DD4492DD7E809EC16B7E8C3ADAAE08832EE6
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=2 type=blightpool action=2
+CC_R2_MATCH_LAUNCH owner=1 turn=2 type=plagueleech action=3
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=3 type=web action=4
+CC_R2_MATCH_LAUNCH owner=1 turn=4 type=vector action=5
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=5 type=briarheart action=6
+CC_R2_MATCH_LAUNCH owner=1 turn=6 type=septiccore action=7
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=7 type=vinehook action=8
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=8 type=consecrator action=9
+CC_R2_MATCH_LAUNCH owner=0 turn=9 type=gravitymine action=10
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=10 type=absolver action=11
+CC_R2_MATCH_LAUNCH owner=0 turn=11 type=singularity action=12
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=12 type=penitent action=13
+CC_R2_MATCH_LAUNCH owner=0 turn=13 type=horizonrelay action=14
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=14 type=ward action=15
+CC_R2_MATCH_LAUNCH owner=0 turn=15 type=harpoon action=16
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=16 type=halo action=17
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=17 type=vortexmedic action=18
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=18 type=blightpool action=19
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=19 type=web action=20
+CC_R2_MATCH_LAUNCH owner=1 turn=20 type=plagueleech action=21
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=21 type=briarheart action=22
+CC_R2_MATCH_LAUNCH owner=1 turn=22 type=vector action=23
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=23 type=vinehook action=24
+CC_R2_MATCH_LAUNCH owner=1 turn=24 type=septiccore action=25
+CC_R2_MATCH_LAUNCH owner=0 turn=25 type=gravitymine action=26
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=26 type=consecrator action=27
+CC_R2_MATCH_LAUNCH owner=0 turn=27 type=horizonrelay action=28
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=28 type=absolver action=29
+CC_R2_MATCH_LAUNCH owner=0 turn=29 type=harpoon action=30
+CC_R2_MATCH_LAUNCH owner=1 turn=30 type=penitent action=31
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=31 type=vortexmedic action=32
+CC_R2_MATCH_LAUNCH owner=1 turn=32 type=ward action=33
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=33 type=web action=34
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=34 type=halo action=35
+CC_R2_MATCH_LAUNCH owner=0 turn=35 type=briarheart action=36
+CC_R2_MATCH_LAUNCH owner=1 turn=36 type=blightpool action=37
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=0 turn=37 type=vinehook action=38
+CC_R2_MATCH_LAUNCH owner=1 turn=38 type=plagueleech action=39
+CC_R2_MATCH_LAUNCH owner=0 turn=39 type=gravitymine action=40
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=40 type=vector action=41
+CC_R2_MATCH_LAUNCH owner=0 turn=41 type=harpoon action=42
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=42 type=absolver action=43
+CC_R2_MATCH_LAUNCH owner=0 turn=43 type=vortexmedic action=44
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=44 type=penitent action=45
+CC_R2_MATCH_LAUNCH owner=0 turn=45 type=web action=46
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=46 type=ward action=47
+CC_R2_MATCH_LAUNCH owner=0 turn=47 type=web action=48
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=48 type=halo action=49
+CC_R2_MATCH_LAUNCH owner=0 turn=49 type=normal action=50
+CORE_CLASH_DEVELOPER_OVERLAY False
+CC_R2_MATCH_LAUNCH owner=1 turn=50 type=plagueleech action=51
+CC_R2_CAPTURE_REQUEST r6-native-06-match-result.png
+CC_R2_CAPTURE_PASS r6-native-06-match-result.png bytes=338138 colors=1482 sha256=17913D2C7D847C141FFD890A04057D3A6CC9705E90EB49DBDC9D8A3AE0D0FBD9
+CC_R2_SMOKE_PASS launches=51 turns=50 winner=0 bases=11,3 result=50 turns: base HP
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed

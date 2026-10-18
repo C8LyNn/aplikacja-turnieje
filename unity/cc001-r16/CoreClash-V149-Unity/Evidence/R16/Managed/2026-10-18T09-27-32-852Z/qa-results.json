@@ -1,0 +1,24 @@
+{
+  "time": "2026-10-18T09:27:42.310Z",
+  "candidate": "R16",
+  "stages": [
+    {
+      "name": "data",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "managed",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "codec",
+      "exitCode": 0,
+      "status": "PASS"
+    }
+  ],
+  "historicalEvidenceUnchanged": true,
+  "isolatedProject": "C:\\Users\\kubap\\Desktop\\CoreClash-V149-R16-Work\\QA\\R16-final-managed\\2026-10-18T09-27-32-852Z\\isolated\\CoreClash-V149-Unity",
+  "unityTested": false
+}

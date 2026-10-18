@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-18T09:33:49.897Z",
+  "pass": true,
+  "scope": "Real native NGO/UTP WebSocket host plus WebGL client on one PC over loopback; P1 FIRE trap/P2 TOXIN trap snapshots, spoof and duplicate intent rejection. No cross-NAT or physical-device claim.",
+  "pageErrors": [],
+  "hostTrapState": true,
+  "clientTrapState": true,
+  "hostRejected": true,
+  "clientLogs": [
+    "CC_NET_AUTOSTART role=client smoke=True started=True\n",
+    "CC_NET_BRIDGE_SPAWNED server=False\n",
+    "CC_NET_STATE_APPLIED revision=1 owner=1\n",
+    "CC_NET_SMOKE_SPOOF_SENT owner=0 from=remote\n",
+    "CC_NET_SMOKE_COMMAND role=client acceptedOrSent=True reason=Intent sent to host.\n",
+    "CC_NET_SMOKE_DUPLICATE_SENT seq=1\n",
+    "CC_NET_STATUS_STATE role=client ember=P1 spore=P2 rng=149\n",
+    "CC_NET_SMOKE_PASS role=client snapshots=22 revision=22 actionSerial=2 events=9 rejected=2\n"
+  ],
+  "buildHashes": {
+    "Builds/Windows/CoreClash_Data/Managed/Assembly-CSharp.dll": "a8e53086ca31390b0a14c9d0ae501804f1734a1df89fd0a55eb2c203fe6baa26",
+    "Builds/WebGL/Build/WebGL.wasm": "6da2e5ab6d1c7c3bbd0518b7b41c175a65002e7ae6ee96b8af63ab36aa3511ac"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "pass": true,
+  "pid": 48216,
+  "port": 47891,
+  "networkLines": [
+    "CC_NET_BRIDGE_SPAWNED server=True\r",
+    "CC_NET_HOST_READY port=47891\r",
+    "CC_NET_AUTOSTART role=host smoke=True started=True\r"
+  ]
+}

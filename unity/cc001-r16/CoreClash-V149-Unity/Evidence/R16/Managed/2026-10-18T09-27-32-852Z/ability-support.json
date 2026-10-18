@@ -1,0 +1,1605 @@
+{
+  "testedAt": "2026-10-18T09:27:40.2916693Z",
+  "categories": [
+    "UNITY_READY",
+    "PARTIAL",
+    "DATA_ONLY",
+    "NOT_PORTED"
+  ],
+  "counts": {
+    "UNITY_READY": 42,
+    "DATA_ONLY": 134,
+    "PARTIAL": 51
+  },
+  "balls": [
+    {
+      "id": "normal",
+      "name": "Standard",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "bounce",
+      "name": "Bouncer",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "fire",
+      "name": "Fire",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "ice",
+      "name": "Frost",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "bomb",
+      "name": "Bomb",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "mine",
+      "name": "Mine",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "web",
+      "name": "Webber",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "spike",
+      "name": "Spikes",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "plague",
+      "name": "Plague",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "leech",
+      "name": "Leech",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "medic",
+      "name": "Medic",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "magnet",
+      "name": "Magnet",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "pulse",
+      "name": "Pulse",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "anchor",
+      "name": "Anchor",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "ram",
+      "name": "Ram",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "phase",
+      "name": "Phase",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "cleanser",
+      "name": "Cleanser",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "dart",
+      "name": "Dart",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "splitter",
+      "name": "Splitter",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "booster",
+      "name": "Booster",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "swap",
+      "name": "Swapper",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "breaker",
+      "name": "Breaker",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "glue",
+      "name": "Glue",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "reflector",
+      "name": "Reflector",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "jammer",
+      "name": "Jammer",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "dampener",
+      "name": "Dampener",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "detector",
+      "name": "Interdictor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "regen",
+      "name": "Regenerator",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "sapper",
+      "name": "Demolitionist",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "quake",
+      "name": "Quake",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "wallmaker",
+      "name": "Wallmaker",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "pinballer",
+      "name": "Pinballer",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "pillar",
+      "name": "Pillar",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "mimic",
+      "name": "Mimic",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": true
+    },
+    {
+      "id": "singularity",
+      "name": "Singularity",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "barbed",
+      "name": "Barbed Wire",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "banish",
+      "name": "Banish",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "colossus",
+      "name": "Colossus",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "thornback",
+      "name": "Thornback",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "warp",
+      "name": "Warp",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "wallrunner",
+      "name": "Wallrunner",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "rover",
+      "name": "Rover",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "raider",
+      "name": "Raider",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "sentry",
+      "name": "Sentry",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "grappler",
+      "name": "Grappler",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "blink",
+      "name": "Blink",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "fusion",
+      "name": "Fusion",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "halo",
+      "name": "Halo",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "springer",
+      "name": "Springer",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "replicator",
+      "name": "Replicator",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "assimilator",
+      "name": "Assimilator",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "engineer",
+      "name": "Engineer",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "echo",
+      "name": "Echo",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": true
+    },
+    {
+      "id": "agony",
+      "name": "Agony",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "oscillator",
+      "name": "Oscillator",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "sanctuary",
+      "name": "Sanctuary",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "saboteur",
+      "name": "Saboteur",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "slingshot",
+      "name": "Slingshot",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "doubleagent",
+      "name": "Double Agent",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "bounty",
+      "name": "Bounty Hunter",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "pandemonium",
+      "name": "Pandemonium",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "harpoon",
+      "name": "Harpoon",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "imploder",
+      "name": "Imploder",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "chainburst",
+      "name": "Chainburst",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "relay",
+      "name": "Relay",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "chainmedic",
+      "name": "Chain Medic",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "gravitymine",
+      "name": "Gravity Mine",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "lifebond",
+      "name": "Lifebond",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "genesis",
+      "name": "Genesis",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "cascade",
+      "name": "Cascade",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "brood",
+      "name": "Brood Core",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "mitosis",
+      "name": "Mitosis",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "mirage",
+      "name": "Mirage",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "requiem",
+      "name": "Requiem",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "deathpulse",
+      "name": "Death Pulse",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "frostgrave",
+      "name": "Frostgrave",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "phoenix",
+      "name": "Phoenix",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "martyr",
+      "name": "Martyr",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "plagueburst",
+      "name": "Plagueburst",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "chainfrost",
+      "name": "Chain Frost",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "shockanchor",
+      "name": "Shock Anchor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "bloodram",
+      "name": "Blood Ram",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "ward",
+      "name": "Ward",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "gravemedic",
+      "name": "Grave Medic",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "frostbomb",
+      "name": "Frost Bomb",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "conductor",
+      "name": "Conductor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "bastion",
+      "name": "Bastion",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "swarmcore",
+      "name": "Swarm Core",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "revenant",
+      "name": "Revenant",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "vortexmedic",
+      "name": "Vortex Medic",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "shockwave",
+      "name": "Shockwave",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "frostguard",
+      "name": "Frostguard",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "plagueleech",
+      "name": "Plague Leech",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "deathshield",
+      "name": "Deathshield",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "embercore",
+      "name": "Ember Core",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "phasebomb",
+      "name": "Phase Bomb",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "repairpulse",
+      "name": "Repair Pulse",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "chainshock",
+      "name": "Chain Shock",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "lifewave",
+      "name": "Life Wave",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "graveram",
+      "name": "Grave Ram",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "siphon",
+      "name": "Siphon",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "guardian",
+      "name": "Guardian",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "bonfire",
+      "name": "Bonfire",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "recycler",
+      "name": "Recycler",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "staticfield",
+      "name": "Static Field",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "chronomedic",
+      "name": "Chrono Medic",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "duelist",
+      "name": "Duelist",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "nexus",
+      "name": "Nexus",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "deathcleanser",
+      "name": "Last Rite",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "gatekeeper",
+      "name": "Gatekeeper",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "chronomancer",
+      "name": "Chronomancer",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "kingpin",
+      "name": "Kingpin",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "doppelganger",
+      "name": "Doppelg\u00E4nger",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": true
+    },
+    {
+      "id": "possessor",
+      "name": "Possessor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "worldshaper",
+      "name": "Worldshaper",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "titan",
+      "name": "Titan",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "prisoner",
+      "name": "Prisoner",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "singularitycore",
+      "name": "Singularity Core",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "traitor",
+      "name": "Traitor",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "laststand",
+      "name": "Last Stand",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "paradox",
+      "name": "Paradox",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "architect",
+      "name": "Architect",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "collector",
+      "name": "Collector",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": true
+    },
+    {
+      "id": "unstoppable",
+      "name": "Unstoppable",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "theend",
+      "name": "The End",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "commander",
+      "name": "Commander",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "armorer",
+      "name": "Armorer",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "detonator",
+      "name": "Detonator",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "quartermaster",
+      "name": "Quartermaster",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "veteran",
+      "name": "Veteran",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "formation",
+      "name": "Formation",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "conscriptor",
+      "name": "Conscriptor",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "arsenal",
+      "name": "Arsenal",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "cataclysm",
+      "name": "Cataclysm",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "scorch",
+      "name": "Scorch",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "wildfire",
+      "name": "Wildfire",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "furnace",
+      "name": "Furnace",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "flare",
+      "name": "Flare",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "ashcore",
+      "name": "Ash Core",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "rocketbomb",
+      "name": "Rocket Bomb",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "clusterbomb",
+      "name": "Cluster Bomb",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "volatile",
+      "name": "Volatile",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "seismiccharge",
+      "name": "Seismic Charge",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "cryolance",
+      "name": "Cryolance",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "snowball",
+      "name": "Snowball",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "permafrost",
+      "name": "Permafrost",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "shatterer",
+      "name": "Shatterer",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "cindertrail",
+      "name": "Cinder Trail",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "infernotrail",
+      "name": "Inferno Wake",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "comettrail",
+      "name": "Fire Comet",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "frostpath",
+      "name": "Frost Path",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "rimerunner",
+      "name": "Rime Runner",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "glaciertrail",
+      "name": "Glacier Wake",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "homeblinker",
+      "name": "Home Blinker",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "assaultblinker",
+      "name": "Assault Blinker",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "venom",
+      "name": "Venom",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "miasma",
+      "name": "Miasma",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "blight",
+      "name": "Blight",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "toxicburst",
+      "name": "Toxic Burst",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "nullspace",
+      "name": "Nullspace",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "soulburst",
+      "name": "Soulburst",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "hatchery",
+      "name": "Hatchery",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "centerstep",
+      "name": "Centerstep",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "rimstep",
+      "name": "Rimstep",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "resurrector",
+      "name": "Resurrector",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "necromancer",
+      "name": "Necromancer",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "soulanchor",
+      "name": "Soul Anchor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "reclaimer",
+      "name": "Reclaimer",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "lifeline",
+      "name": "Lifeline",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "toxicwake",
+      "name": "Toxic Wake",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "embertrap",
+      "name": "Ember Trap",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "frosttrap",
+      "name": "Frost Trap",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "sporetrap",
+      "name": "Spore Trap",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "polaritytrap",
+      "name": "Polarity Trap",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "fluxmine",
+      "name": "Flux Mine",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "graviton",
+      "name": "Graviton",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "polaritycore",
+      "name": "Polarity Core",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "executioner",
+      "name": "Executioner",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "relentless",
+      "name": "Relentless",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "cinderjudge",
+      "name": "Cinder Judge",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "secondwind",
+      "name": "Second Wind",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "standardbearer",
+      "name": "Standard Bearer",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "pyrecore",
+      "name": "Pyre Core",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "timebomb",
+      "name": "Time Bomb",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": false
+    },
+    {
+      "id": "faultline",
+      "name": "Faultline",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "contagion",
+      "name": "Contagion",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "blizzardcore",
+      "name": "Blizzard Core",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "wildcard",
+      "name": "Wildcard",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": true
+    },
+    {
+      "id": "ricochet",
+      "name": "Ricochet",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "timeshift",
+      "name": "Time Shift",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "snarefield",
+      "name": "Snare Field",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "capacitor",
+      "name": "Capacitor",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "orbitcore",
+      "name": "Orbit Core",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "barricade",
+      "name": "Barricade",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "triage",
+      "name": "Triage",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "bulldozer",
+      "name": "Bulldozer",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "eggsac",
+      "name": "Egg Sac",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "dirge",
+      "name": "Dirge",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "beacon",
+      "name": "Control Beacon",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "kindler",
+      "name": "Kindler",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "firebrand",
+      "name": "Firebrand",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "rotspore",
+      "name": "Rot Spore",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "rimeburst",
+      "name": "Rimeburst",
+      "hidden": false,
+      "status": "PARTIAL",
+      "featured": false
+    },
+    {
+      "id": "trailwarden",
+      "name": "Trailwarden",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "stalker",
+      "name": "Stalker",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "denmother",
+      "name": "Den Mother",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "packheart",
+      "name": "Packheart",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "gravehide",
+      "name": "Gravehide",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "cultivator",
+      "name": "Cultivator",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "elderbloom",
+      "name": "Elderbloom",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "barkguard",
+      "name": "Barkguard",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "vinehook",
+      "name": "Vinehook",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "briarheart",
+      "name": "Briarheart",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "absolver",
+      "name": "Absolver",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "consecrator",
+      "name": "Consecrator",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "penitent",
+      "name": "Penitent",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "vector",
+      "name": "Vector",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "septiccore",
+      "name": "Septic Core",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "blightpool",
+      "name": "Blightpool",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "hungercore",
+      "name": "Hunger Core",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "mirecloak",
+      "name": "Mirecloak",
+      "hidden": false,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "horizonrelay",
+      "name": "Horizon Relay",
+      "hidden": false,
+      "status": "UNITY_READY",
+      "featured": true
+    },
+    {
+      "id": "shard",
+      "name": "Shard",
+      "hidden": true,
+      "status": "DATA_ONLY",
+      "featured": false
+    },
+    {
+      "id": "broodling",
+      "name": "Broodling",
+      "hidden": true,
+      "status": "DATA_ONLY",
+      "featured": false
+    }
+  ]
+}

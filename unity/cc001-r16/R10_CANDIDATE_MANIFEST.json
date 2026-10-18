@@ -1,0 +1,73 @@
+{
+  "source": "Core Clash V149 Unity R9 verified handoff",
+  "source_sha256": "dd063f9f05051acf5808c0ceafbca7a0b06fb48b6608c110841a78160a16afc0",
+  "scope": "R10 SOURCE CANDIDATE — not built, not tested in .NET/Unity, not released",
+  "data_unchanged": true,
+  "ability_status_unchanged": true,
+  "changed_files": {
+    "Assets/CoreClash/Core/AbilityResolver.cs": {
+      "sha256": "c85ec40d785fc30a7809f0b1b0d56f991ad139a1299ad7ec483ba4ad6eed6dae",
+      "baseline_sha256": "d67cb5a040ff3b0e50af9b676f7a31a8833028d54a2156a6b03c21021bc5063b"
+    },
+    "Assets/CoreClash/Core/ConstructionEffects.cs": {
+      "sha256": "225081072e2a18d515b001672f504658ba161a2a49705ba56b5575b732328cef",
+      "baseline_sha256": null
+    },
+    "Assets/CoreClash/Core/ConstructionEffects.cs.meta": {
+      "sha256": "db3ab5d6727fe55e2b69ba5468e0b6f36b1c7141ae2716341dabd13ff8365804",
+      "baseline_sha256": null
+    },
+    "Assets/CoreClash/Core/GameSimulation.cs": {
+      "sha256": "bed4a830cd0c7eae63efe71e4cfd94bf5fdfb5ff1ca2a45809103a5d39ab91de",
+      "baseline_sha256": "9253bf99e68ceb59289f474d6fcde4a3851094caefcb0645f9a9332268eb6bba"
+    },
+    "Assets/CoreClash/Core/MomentumEffects.cs": {
+      "sha256": "a30623f65d3e988785a9646cdcb1918db9aa88d7ea4349a22227648cd83dbc71",
+      "baseline_sha256": "e44beb70734e55e37009dca89a4ea4e2e4db255e1aec6ecd4b27ec6b6da87747"
+    },
+    "Assets/CoreClash/Core/StructureSystem.cs": {
+      "sha256": "c2e0ad72cce61a30875f52d92428c754ff6c206bf44e79271ae0f75cc666a118",
+      "baseline_sha256": null
+    },
+    "Assets/CoreClash/Core/StructureSystem.cs.meta": {
+      "sha256": "27e1d34395608c64602c3ab658f17d802bafec6f810cacf53119ee0480dce871",
+      "baseline_sha256": null
+    },
+    "Assets/CoreClash/Physics/BallPhysics.cs": {
+      "sha256": "f0247fa66f43ee89f9b2b0320c13a8a4856ec95c6d2102e26e54b7e2dd4535b9",
+      "baseline_sha256": "639610295d027f2c5d692539a3a2409d30ab6527feb626452cf8d80642fd0957"
+    },
+    "Assets/CoreClash/Presentation/BoardView.cs": {
+      "sha256": "b13926b789863f45d0df80c547b74f1c92c14483733ac98174dc1e6c56e45e43",
+      "baseline_sha256": "775234b8b7ab4771da8617a6ab6e9b8cfc7c273b628bd5d44bf8018abe01654d"
+    },
+    "Assets/CoreClash/Presentation/FeedbackTimeline.cs": {
+      "sha256": "a7c83559d3ed340a9d0f84e81eb64bae1482c952ed84415a5d06846afa85000d",
+      "baseline_sha256": "3eec9e785f519068cbbf06474f4d7078c411a756e2b864ae1de90f6f70cccdd5"
+    },
+    "Tests/ConstructionTests.cs": {
+      "sha256": "f86d648a7d94a23829b8b6204b8e33945dc44a055afe6b9e77fa30cc27839215",
+      "baseline_sha256": null
+    },
+    "Tests/MomentumTests.cs": {
+      "sha256": "fd9596f7aae2e12ec6d7e2e6e7d17e094ba0f4b75e1fc78823e5bc71b9b019f0",
+      "baseline_sha256": "1e43440a4fb4ff3ed89f3784b77af2ab2e4f972ac82f9511955cb5f117ab70a0"
+    },
+    "Tests/Program.cs": {
+      "sha256": "6ab308d7795cff7f239baf0f581f64b87a8ef39f1ba4fb500ecd6467dfc91989",
+      "baseline_sha256": "5d4c79275a435c91ba84e3ace19d36e3f2af61b2dbba67e24e95b1b7e667093d"
+    },
+    "Tools/network-codec-test.cjs": {
+      "sha256": "632b27b69a7cbb527b8c40945f94241a192c21dc4027bee60bdeb52d7a25e92d",
+      "baseline_sha256": "48ee3f23646fc417611d75454dc35cced7d8e4e24d2d1cc187daccea43ac540c"
+    },
+    "Tools/verify-data.cjs": {
+      "sha256": "4ba2004e59c8d7a8881eb0a1c10e26c2aea24a60351dc58700c58df317e0b9f4",
+      "baseline_sha256": "314e6774fea45096be3d1bd49d14b40120b5fdc82197ebe33aab3a42ac52e5b8"
+    },
+    "docs/R10_CANDIDATE_REPORT_PL.md": {
+      "sha256": "c58b8610003c0e4e19e0ac672856ff53684133b25c4fe3eb316cf3de8c3d49f3",
+      "baseline_sha256": null
+    }
+  }
+}

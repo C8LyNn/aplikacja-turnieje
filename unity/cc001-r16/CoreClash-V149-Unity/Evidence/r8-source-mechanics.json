@@ -1,0 +1,41 @@
+{
+  "testedAt": "2026-10-16T23:22:26.391Z",
+  "scope": "Actual certified V148 runtime with in-memory probe hooks; source file never edited.",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "pass": true,
+  "tests": [
+    {
+      "name": "Pinballer creates the runtime five-HP edge bumper",
+      "pass": true,
+      "bumper": {
+        "x": 59.3,
+        "y": 450,
+        "r": 20,
+        "bounce": 1.42,
+        "hitsRemaining": 5
+      },
+      "limit": 14
+    },
+    {
+      "name": "Slingshot gathers and launches nearby allies",
+      "pass": true,
+      "power": 330,
+      "enemyPower": 0
+    },
+    {
+      "name": "Ram strong enemy collision adds damage and recoil",
+      "pass": true,
+      "active": {
+        "ramHp": 20,
+        "targetHp": 20,
+        "targetVx": 432.3750869565217
+      },
+      "blocked": {
+        "ramHp": 25,
+        "targetHp": 25,
+        "targetVx": 314.3750869565217
+      }
+    }
+  ],
+  "sourceUnchanged": true
+}

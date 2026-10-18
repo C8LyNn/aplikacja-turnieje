@@ -1,0 +1,8 @@
+{
+  "checkedAt":"2026-10-15",
+  "editor":"6000.4.0f1",
+  "netcode":{"name":"com.unity.netcode.gameobjects","version":"2.13.3","minimumUnity":"6000.0","registry":"https://packages.unity.com/com.unity.netcode.gameobjects","package":"https://download.packages.unity.com/com.unity.netcode.gameobjects/-/com.unity.netcode.gameobjects-2.13.3.tgz","dependencies":{"com.unity.transport":"2.6.0","com.unity.nuget.mono-cecil":"1.11.4"}},
+  "transport":{"name":"com.unity.transport","version":"2.6.0","minimumUnity":"2022.3","registry":"https://packages.unity.com/com.unity.transport","dependencies":{"com.unity.burst":"1.8.24","com.unity.collections":"2.2.1","com.unity.mathematics":"1.3.2"}},
+  "transportMode":"direct LAN WebSocket",
+  "externalServicesProvisioned":false
+}

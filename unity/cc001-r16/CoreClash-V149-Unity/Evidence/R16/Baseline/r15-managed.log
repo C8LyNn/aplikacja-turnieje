@@ -1,0 +1,249 @@
+$ dotnet run --project Tests/CoreClash.Tests.csproj -- .
+PASS new match has source bases and distinct owners
+PASS wrong owner cannot consume stock or create a ball
+PASS NaN and infinite aim cannot mutate match
+PASS launch consumes one special and follows owner forward direction
+PASS Standard has unlimited stock
+PASS unavailable special is rejected before spawn
+PASS replay stays in same turn and each ball replays once
+PASS second player gets exactly one extra spawn before turn advances
+PASS enemy collision damage follows closing speed and not five-HP packets
+PASS weak collision does not damage
+PASS friendly collision causes no kinetic HP loss
+PASS STOP requires hold and emits once until motion restarts
+PASS shield absorbs exact kinetic damage before HP
+PASS simultaneous destroyed bases resolve as a draw
+PASS 50-turn tie-break uses base HP then board count then draw
+PASS enemy-zone pressure uses touching circumference
+PASS center lead of two deals one and lead of four deals three
+PASS fire and ice cancel the opposite status before adding stacks
+PASS toxin ticks only on target owner turns
+PASS blight zone infects at turn end and expires after three ticks
+PASS consecrator cleanse emits an Absolver shield payoff
+PASS Ward cleans modeled negative statuses and adds cleanse payoff
+PASS Penitent transfers oldest eligible status rather than cleansing it
+PASS Septic Core needs two qualified hits across per-target turn limits
+PASS rooted enemies enable Briarheart and cannot be displaced
+PASS Bonfire copied death effect heals allies and burns enemies without killing source
+PASS Cascade return chain preserves lineage and has no fourth life
+PASS Packheart rewards returned ally once per target turn
+PASS Gravehide upgrades after qualifying returns on three turns
+PASS singularity consume does not fire death or add graveyard records
+PASS Mimic steals type while keeping both owners
+PASS Doppelganger copies enemy type without changing enemy
+PASS Traitor converts enemy and changes sides as Standard
+PASS Wildcard transforms to existing non-unique identity
+PASS Collector records enemy death and replays collected elemental signature
+PASS Echo can repeat an enemy STOP ability
+PASS Time Shift swaps with nearest enemy in short range
+PASS Chronomancer alternates save and one consumed restore
+PASS Paradox restores beginning-of-turn state without consuming it
+PASS Requiem repeats Bonfire without killing it
+PASS Reclaimer pays HP once to revive oldest eligible ally
+PASS Webber places four single-use root nodes
+PASS Vinehook pulls nearest unanchored enemy
+PASS Harpoon selects the farthest enemy within long range
+PASS Vortex heals when a rooted enemy resists its pull
+PASS Gatekeeper recast keeps one pair and death removes it
+PASS Gatekeeper transit preserves most momentum with cooldown
+PASS Horizon Relay converts three enemy consumes to one base damage
+PASS Singularity creates a growing bounded consumption field on death
+PASS Wildfire leaves a three-tick fire field after death
+PASS Soulburst copied effect grows with missing HP
+PASS Plagueleech binds a clean enemy then drains on its own turn
+PASS Vector spreads toxin when an infected enemy actually dies
+PASS Halo blocks exactly the first kinetic damage instance
+PASS Gravity Mine arms at STOP and detonates on enemy entry
+PASS ordinary native collisions do not create kinetic energy
+PASS third fire stack spreads to nearby enemies without igniting allies
+PASS new active player cannot inherit a ball outside their deck
+PASS exhausted selection falls back to unlimited Standard
+PASS presentation arena and controls remain usable at 1280x900
+PASS presentation arena and controls remain usable at 960x600
+PASS presentation arena and controls remain usable at 1920x1080
+PASS presentation arena and controls remain usable at 390x844
+PASS presentation arena and controls remain usable at 844x390
+PASS deck row separates its full name, all nine previews and player actions at width 248
+PASS deck row separates its full name, all nine previews and player actions at width 318
+PASS deck row separates its full name, all nine previews and player actions at width 595
+PASS deck row separates its full name, all nine previews and player actions at width 888
+PASS narrow rows give a nine-ball preview its own band before either player action
+PASS wide library rows keep compact selection while allowing a wrapped name
+PASS every catalog ball has a unique short ASCII identity mark
+PASS identity marks do not depend on catalog order or current culture
+PASS identity marks tolerate punctuation and non ASCII names without aliases
+PASS runtime inspection binds exact instance and follows new snapshots read only
+PASS inspection retains simultaneous independent states and exact shield amount
+PASS board inspection finds either owner without turn permission and ignores removed balls
+PASS wall guide reflects at the ball centre boundary
+PASS wall guide preserves a direct shot before the wall
+PASS corner guide reflects both axes and remains inside
+PASS invalid aim guide cannot generate nonfinite drawing coordinates
+PASS feedback observes real damage once across repeated snapshots
+PASS feedback expires on presentation time even after match ends
+PASS feedback never replays a stale joining snapshot
+PASS a burst of real effects cannot grow the presentation buffer without bound
+PASS feedback resets for a new match with reused event IDs
+PASS LAN advertisement has only five bounded invitation fields
+PASS LAN rooms use actual sender address and expire
+PASS invitation query validates address and gameplay port
+PASS WebRoot paths reject traversal and preserve Unity MIME types
+PASS real loopback UDP advertisement reaches native room listener
+PASS real TcpListener serves only bounded read-only WebRoot files
+PASS showcase Death primary: Agony Cascade RETURN Packheart Gravehide over three turns
+PASS showcase Death secondary: Requiem repeats Bonfire and Wildfire without their death
+PASS showcase Death emergent: Reclaimer revive emits RETURN to Packheart and Gravehide
+PASS showcase Status primary: pool infection enables Septic burst and actual death enables Vector
+PASS showcase Status secondary: Penitent transfer Consecrator cleanse Absolver shield
+PASS showcase Status emergent: Ward full native cleanse triggers Absolver once
+PASS showcase Gravity primary: Web root enables Briarheart HIT payoff
+PASS showcase Gravity secondary: real hole consumes charge Horizon and skip death/RETURN
+PASS showcase Reality primary: Echo rewinds both temporal allies using their distinct saves
+PASS showcase Reality secondary: Traitor captures a STOP ability that Echo can repeat
+PASS showcase Reality emergent: Mimic current identity on death feeds Collector signature
+PASS planning freezes physical state and continuous abilities until a launch
+PASS catalog ability status matches native support and preserves imported metadata
+PASS thawed ice cannot consume Penitent transfer ahead of a live toxin
+PASS Gravity Mine explodes at its armed field even after the source is displaced
+PASS canceled touch never launches
+PASS other finger cannot release active aim
+PASS host rejects duplicate and spoofed intent
+PASS snapshot client retains state without advancing physics
+PASS complete local Unity match with DEATH ENGINE
+PASS complete local Unity match with STATUS REACTOR
+PASS complete local Unity match with GRAVITY TRAP
+PASS complete local Unity match with REALITY HACKERS
+PASS LAN approval reserves the sole remote seat before connection completes
+PASS LAN disconnect frees P2 while late old callbacks cannot release the replacement
+PASS aborted LAN joins release their reservation without granting authority
+PASS LAN reservation timeout rejects late completion but does not expire connected P2
+PASS LAN endpoints accept canonical unicast IPv4 and reject malformed connection input
+PASS replacement P2 starts sequence one against the same match and still rejects duplicate and spoof
+PASS Pinned MPS untyped full-room detail gives actionable guidance
+PASS Invalid service code detail is translated without echoing service content
+PASS Internet invitation normalizes codes and reads only the explicit joinCode query
+PASS Internet share URL preserves the hosted game path and removes old connection parameters
+PASS Canceled Internet creation cannot revive networking or unlock a later request
+PASS phone portrait reserves a practical launcher board above its touch tray
+PASS short landscape phone uses a bounded scrollable side panel at 667x325
+PASS short landscape phone uses a bounded scrollable side panel at 568x270
+PASS short landscape phone uses a bounded scrollable side panel at 844x340
+PASS native phone density and safe area preserve readable logical coordinates
+PASS tablet portrait and landscape use their extra board and tray space
+PASS desktop high DPI keeps the same logical board and controls
+PASS safe area pointer mapping and raw arena conversion agree in both origins
+PASS invalid viewport geometry cannot create nonfinite or negative coordinates
+PASS profile overrides preserve transform and auto can be restored
+PASS touch library rows allocate separate 44 point actions without covering previews
+PASS primary touch survives finger array reorder and cannot be released by another finger
+PASS missing primary cancels once and a held secondary never becomes a new drag
+PASS focus or orientation reset cannot resume a held touch launch
+PASS desktop and safe area phone gestures submit identical world intents
+PASS Pinballer STOP places a five-charge bumper by the nearest edge
+PASS Pinballer respects occupied edge points and the fourteen-structure cap
+PASS Pinballer no-space placement fails cleanly and source death preserves its bumper
+PASS Bumper rebounds friendly balls without consuming charges
+PASS Three distinct enemy impacts destroy a bumper and obey type speed caps
+PASS Slingshot gathers nearby allies and launches along its last heading
+PASS Slingshot respects root freeze force resistance and legal geometry
+PASS Slingshot skips blocked placements without teleporting through structures
+PASS A late Slingshot launch gets time to resolve instead of the old action timeout
+PASS Slingshot settling extensions stay bounded and the next command resets them
+PASS Copying Ram clears any previous identity's action-use history
+PASS Ram adds impact damage recoil and force on its first enemy HIT
+PASS Ram ignores TOUCH and allies and only fires once per action
+PASS Jammed Ram consumes suppression without applying its primary hit
+PASS Echo repeats Pinballer STOP through the shared effect resolver
+PASS Mimic copies a live Pinballer power and preserves player ownership
+PASS New geometry and Ram action history survive an authoritative snapshot
+FAIL Legal mixed-deck matches deploy all three newly ported identities and settle: expected 0, got 1
+PASS Mine STOP arms without exploding or starting a timed fuse
+PASS Unarmed Mine and friendly contact never trigger an explosion
+PASS Armed Mine reacts to weak enemy TOUCH and explodes only once
+PASS Frost disarms Mine before contact while an allied Frost cannot
+PASS Destroyed Mine does not acquire a death explosion
+PASS A fast Frost crossing the ring between physics steps still disarms Mine
+PASS Armed Mine detonates before Mimic or Traitor in either contact order
+PASS Enemy armed Mines capture both contact triggers before either explodes
+PASS Replaying Mine disarms it until its next STOP
+PASS Time Bomb counts only two own turn starts and shows its fuse
+PASS Time Bomb enemy contact does not use Mine's touch trigger
+PASS A repeated Time Bomb STOP resets the two-turn setup
+PASS Time Bomb killed before its fuse expires has no death explosion
+PASS Jammed STOP suppresses arming and a jammed timer turn spends no tick
+PASS Bomb STOP explodes and dies once with friendly fire
+PASS Bomb premature death retains its existing one-time death blast
+PASS Agony can repeat a living Bomb death payload without consuming the Bomb
+PASS Echo arms nearby explosive STOP powers and detonates a Bomb
+PASS Mimic steals a timed identity without inheriting its running fuse
+PASS Authoritative snapshots retain armed Mine and remaining Time Bomb turns
+PASS A bounded safety settle advances the action once without repeated guard events
+PASS Three legal mixed explosive matches finish including bounded launch chains
+PASS R10 Wallmaker STOP creates exactly three independent pillars
+PASS R10 Wallmaker refuses partial row when fewer than three slots remain
+PASS R10 structure placement keeps both firing fields empty and respects global cap
+PASS R10 Repair Pulse repairs own damaged construction before shielding a ball
+PASS R10 Repair Pulse ignores enemy structures and caps shield
+PASS R10 Engineer repairs before building and counts only own living segments
+PASS R10 Barricade makes at most four segments, respects blocked geometry
+PASS R10 Bastion shields nearest teammate or falls back to self
+PASS R10 structure collisions count separate episodes, not repeated overlap frames
+PASS R10 structure lifecycle is included in authoritative JSON snapshots
+PASS R11 Commander shields only allied Standards, including generated tokens, to cap 10
+PASS R11 Quartermaster creates Standard 10HP on every second distinct own turn without stock
+PASS R11 blocked Quartermaster spawn keeps progress and retries once
+PASS R11 Quartermaster token is not put into normal graveyard and has no stock cost
+PASS R11 Armorer STOP only shields nearby allied Standards to 15, Echo-compatible
+PASS R11 Splitter STOP replaces parent with two token shards, not a DEATH trigger
+PASS R11 Splitter limits to one shard with eleven friendly living units
+PASS R11 Splitter does not self-destruct if no spawn capacity remains
+PASS R11 Egg Sac death makes four 5HP radial tokens without invalid overlaps
+PASS R11 Brood Core dies after fifth successful 5HP birth despite V149 30HP
+PASS R11 reinforcement and counters survive authoritative snapshot transport
+PASS R11 Ball Inspection exposes reinforcement progress
+PASS R11 Echo repeats Armorer STOP for nearby Standard without double counting
+PASS R11 jam suppresses one Armorer STOP instead of shielding
+PASS R12 Hatchery produces one 5HP Broodling after two distinct own turns
+PASS R12 Hatchery caps at three and never creates extra Broodlings
+PASS R12 Hatchery retries a blocked birth without using stock or progress
+PASS R12 Replicator clones inherited current HP every two own turns
+PASS R12 Replicator respects three living owners' replicas incl. generated
+PASS R12 Replicator timer resets on capacity block, no partial birth
+PASS R12 Mitosis splits on weak ball contact and only once
+PASS R12 Mitosis jam blocks one contact, next eligible contact splits
+PASS R12 Mitosis cannot split beyond global live-ball cap
+PASS R12 Mitosis pair resolves before identity theft regardless of source order
+PASS R12 Swarm Core DEATH summons three non-stock shard tokens
+PASS R12 Agony can repeat Swarm Core death effect while source survives
+PASS R12 Conscriptor promotes nearest allied Standard within long range
+PASS R12 Conscriptor death repeats can upgrade token Standards, not distant ones
+PASS R12 Evolution counters and Veteran markers survive authoritative JSON snapshot
+PASS R12 Evolution status labels are readable
+PASS R12 identity changes clear counters so copied abilities start fresh
+PASS R13 Firebrand STOP burns enemies within 100 but never allies/outside
+PASS R13 Firebrand cancels existing ICE without igniting immediately
+PASS R13 Echo repeats Firebrand STOP using normal elemental rules
+PASS R13 Chain Frost selects four successive, nonrepeating targets with two ranges
+PASS R13 Chain Frost stops at gap larger than SHORT after first hop
+PASS R13 Chain Frost never affects allies or picks the same enemy twice
+PASS R13 Ash Core gains at most 5 shield per distinct own turn and caps at 15
+PASS R13 Ash Core does not gain shield for allied burn or cured enemies
+PASS R13 Furnace makes a single owner-bound 3-tick field and ignites at TURN END
+PASS R13 Furnace repeated own-turn callback does not duplicate zones
+PASS R13 Furnace respects FIRE versus ICE cancellation at turn end
+PASS R13 Frostguard anchors on STOP, shields to cap and freezes only enemy HIT
+PASS R13 Frostguard counter-freeze never hits allied impacts
+PASS R13 Frostguard anchor deactivates on a normal launch
+PASS R13 copying a Frostguard starts without the original anchor
+PASS R13 elemental runtime fields survive host snapshot
+PASS R14 structure repair works on another ability's Wallmaker pillars
+FAIL R14 Commander grants reinforcement shields to generated Quartermaster Standards: expected 5, got 10
+PASS R14 Firebrand can ignite R12 Replicator copies without damaging ownership
+PASS R14 combined construction, generated units and elemental fields round-trip
+PASS R15 wildcard RNG advances inside serialized authoritative GameState
+PASS R15 restored RNG yields the same future wildcard and next RNG state
+PASS R15 malformed nested network snapshot is rejected without replacing good state
+PASS R15 snapshot rejects zero RNG, nonfinite structures and missing subtrees
+RESULT: 243 passed, 2 failed
+
+

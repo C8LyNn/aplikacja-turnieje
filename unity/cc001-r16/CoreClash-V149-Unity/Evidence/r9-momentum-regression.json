@@ -1,0 +1,76 @@
+{
+  "testedAt": "2026-10-16T23:53:44.9474212Z",
+  "pass": true,
+  "testOnlyDeck": [
+    "pinballer",
+    "slingshot",
+    "ram",
+    "web",
+    "gatekeeper",
+    "agony",
+    "bonfire",
+    "ward",
+    "anchor"
+  ],
+  "matches": [
+    {
+      "seed": 0,
+      "launches": 39,
+      "turns": 38,
+      "guards": 0,
+      "winner": 0,
+      "result": "Base destroyed",
+      "deployed": [
+        "agony",
+        "anchor",
+        "bonfire",
+        "gatekeeper",
+        "normal",
+        "pinballer",
+        "ram",
+        "slingshot",
+        "ward",
+        "web"
+      ]
+    },
+    {
+      "seed": 1,
+      "launches": 29,
+      "turns": 28,
+      "guards": 0,
+      "winner": 1,
+      "result": "Base destroyed",
+      "deployed": [
+        "agony",
+        "anchor",
+        "bonfire",
+        "gatekeeper",
+        "normal",
+        "pinballer",
+        "ram",
+        "slingshot",
+        "ward",
+        "web"
+      ]
+    },
+    {
+      "seed": 2,
+      "launches": 18,
+      "turns": 17,
+      "guards": 0,
+      "winner": 1,
+      "result": "Base destroyed",
+      "deployed": [
+        "agony",
+        "anchor",
+        "bonfire",
+        "gatekeeper",
+        "pinballer",
+        "ram",
+        "slingshot",
+        "ward",
+        "web"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "testedAt": "2026-10-16T16:47:19.638Z",
+  "url": "http://127.0.0.1:55143/core-clash/v149-r7/",
+  "pass": true,
+  "files": [
+    {
+      "path": "Build/WebGL.data",
+      "errors": [],
+      "requestPath": "Build/WebGL.data",
+      "status": 200,
+      "contentType": "application/octet-stream",
+      "cacheControl": "no-store",
+      "bytes": 9552215,
+      "sha256": "c8fce237be238dc3a41824b66c867dfa73a646968d47a5ac6ecf6ce788a122e1"
+    },
+    {
+      "path": "Build/WebGL.framework.js",
+      "errors": [],
+      "requestPath": "Build/WebGL.framework.js",
+      "status": 200,
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 443990,
+      "sha256": "f275c3272f5666908efe965d1a2da32ae53a7f1330507e1858183c143aeef98e"
+    },
+    {
+      "path": "Build/WebGL.loader.js",
+      "errors": [],
+      "requestPath": "Build/WebGL.loader.js",
+      "status": 200,
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 26982,
+      "sha256": "d847de3bc0a35d2bafe57fe8ff90c7e6ff3d42fc389725c538ad965ed8931d82"
+    },
+    {
+      "path": "Build/WebGL.wasm",
+      "errors": [],
+      "requestPath": "Build/WebGL.wasm",
+      "status": 200,
+      "contentType": "application/wasm",
+      "cacheControl": "no-store",
+      "bytes": 34573342,
+      "sha256": "b6be6a267d6538b8c71aa86e31d3668806e2417374689641e8991871d52bb044"
+    },
+    {
+      "path": "StreamingAssets/UnityServicesProjectConfiguration.json",
+      "errors": [],
+      "requestPath": "StreamingAssets/UnityServicesProjectConfiguration.json",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 2335,
+      "sha256": "2e63b90c648bb7e413a0625c59394b8313543fb6442d31d4622b00f2ff757783"
+    },
+    {
+      "path": "TemplateData/profiler.js",
+      "errors": [],
+      "requestPath": "TemplateData/profiler.js",
+      "status": 200,
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 1573,
+      "sha256": "433e40af9a544d1ef5fec67b0b52af25a851928626c3f3ef0d09b35ded610c0d"
+    },
+    {
+      "path": "index.html",
+      "errors": [],
+      "requestPath": "./",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 6032,
+      "sha256": "2367df37873a75887d8cc1f9f216e883b0d575c3e623bf2b3fa1fd756958a750"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "scope": "Local HTTP only, using final deployment verifier and exact build files under a versioned website subdirectory; no public hosting claim."
+}

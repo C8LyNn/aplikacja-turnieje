@@ -1,0 +1,5 @@
+{
+  "at": "2026-10-18T09:29:21.162Z",
+  "exitCode": null,
+  "error": "spawnSync dotnet ENOENT"
+}

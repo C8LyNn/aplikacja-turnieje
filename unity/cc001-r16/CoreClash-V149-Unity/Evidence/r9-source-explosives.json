@@ -1,0 +1,61 @@
+{
+  "testedAt": "2026-10-16T23:46:08.129Z",
+  "scope": "Actual unchanged V148 runtime, temporary in-memory probe hooks; no source edits or native-parity claim.",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "pass": true,
+  "tests": [
+    {
+      "name": "Unarmed Mine does not detonate on enemy contact",
+      "pass": true,
+      "dead": false,
+      "armed": false,
+      "targetHp": 30
+    },
+    {
+      "name": "Armed Mine detonates on weak enemy TOUCH",
+      "pass": true,
+      "dead": true,
+      "armed": false,
+      "targetHp": 20
+    },
+    {
+      "name": "Armed Mine ignores friendly contact",
+      "pass": true,
+      "dead": false,
+      "armed": true,
+      "targetHp": 30
+    },
+    {
+      "name": "Frost disarms the Mine ring before physical contact",
+      "pass": true,
+      "armed": false,
+      "ice": 1
+    },
+    {
+      "name": "Time Bomb waits for two own turn starts",
+      "pass": true,
+      "enemyTurn": 0,
+      "first": {
+        "counter": 1,
+        "dead": false
+      },
+      "finalDead": true,
+      "targetHp": 20
+    },
+    {
+      "name": "Bomb STOP and premature DEATH both damage nearby teams",
+      "pass": true,
+      "stop": {
+        "dead": true,
+        "allyHp": 15,
+        "enemyHp": 15
+      },
+      "death": {
+        "dead": true,
+        "allyHp": 15,
+        "enemyHp": 15
+      }
+    }
+  ],
+  "sourceUnchanged": true
+}

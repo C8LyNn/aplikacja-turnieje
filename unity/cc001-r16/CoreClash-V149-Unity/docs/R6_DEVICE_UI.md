@@ -1,0 +1,15 @@
+# R6 adaptive viewport and input
+
+All IMGUI presentation and the multiplayer lobby render inside one safe-area transform. `UiViewport.Width` / `Height` are logical dimensions, `GuiMatrix` maps them to the canvas, and `PointerToLogical` accepts Unity's raw bottom-left pointer coordinates. `CoreClashApp.UiArenaRect` is logical; the existing `ArenaRect` remains **raw top-left screen pixels**, preserving presentation smoke fixtures.
+
+`DeviceViewport` is Unity independent. Its safe rectangle uses a top-left origin, is clipped to the raw canvas, and falls back to the canvas for invalid or empty geometry. Density divides the safe dimensions. Desktop native density uses DPI / 96 with available-space limits and a large-display fallback; native handheld density uses DPI / 160. WebGL uses CSS canvas resolution (`devicePixelRatio = 1`) and the shell's coarse-pointer and CSS safe-inset getters, so a device's DPR cannot silently shrink controls.
+
+Auto selects Desktop without a coarse/touch device; touch devices use Tablet at a logical shortest safe edge of 600 or more, otherwise Phone. `CoreClashApp.SetDeviceProfile("auto" | "desktop" | "phone" | "tablet")` supports the shell's selector. Overrides change layout, retaining the coordinate transform. Resize, orientation, profile changes, focus loss and application pause cancel pending aim; resuming requires a fresh press.
+
+Portrait phones reserve a larger arena and keep Standard, Details, Inspect and Setup accessible around a horizontally scrolling nine-special tray. Both swipe and 44-point arrow controls reveal later cards. Short portrait trays scroll vertically; landscape phones use a bounded side panel even below 760 pixels wide. Tablets use larger boards and their available deck space in portrait and landscape. Touch actions allocate a minimum height of 44 logical points; no hit box expands across a neighboring control. Touch scroll views begin panning after an eight-point movement threshold and cancel a pressed card when panning begins. The browser toolbar remains available in full screen and explicitly cancels pending aim on focus, pointer or fullscreen changes.
+
+Mouse drag, right-click inspection, Escape and F1 remain available. Keyboard 1–9 selects a stocked special, 0 selects Standard, and I toggles board inspection. Touch ownership follows the original finger ID across reordered touch arrays; a missing or canceled primary touch cancels rather than handing an aim to another finger.
+
+The fixed 120 Hz simulation, command format, host authority, gameplay values and catalog data are unchanged. Desktop and phone coordinates are transformed into the same world-space `LaunchGesture` commands.
+
+Pure verification: `dotnet run --project Tests/CoreClash.Tests.csproj -- .`. The device tests cover native density, high DPI desktop parity, tablet orientations, safe areas and both pointer origins, invalid geometry, overrides, practical phone arena size, separate 44-point library actions, stable primary touch, missing-finger cancellation, focus/orientation reset, and cross-device command parity. Browser/device runtime evidence is recorded by the coordinated R6 QA pass.

@@ -1,0 +1,21 @@
+{
+  "run": "2026-10-18T09-29-21-321Z",
+  "stages": [
+    {
+      "name": "data",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "managed",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    {
+      "name": "codec",
+      "exitCode": 0,
+      "status": "PASS"
+    }
+  ],
+  "historicalEvidenceUnchanged": true
+}

@@ -1,0 +1,1009 @@
+{
+  "version": "V149 HTML LEGACY / PRESENTATION",
+  "sourceSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "sourceBytes": 1465149,
+  "featuredDataSha256": "b0931b8d0129a21c7c5b705c3e6da94164b99e652aac3eebb0f68d8b8650b634",
+  "outputSha256": "03df72f18dadf59ed20291668437637c624644f2f39627208823c8531d58a255",
+  "outputBytes": 1477293,
+  "sourceRestorationSha256": "bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5c5ef9ca4623e",
+  "originalSourcePreserved": true,
+  "canonicalGameplayChanges": 0,
+  "canonicalDeckChanges": 0,
+  "featuredDeckCount": 4,
+  "featuredBallCount": 36,
+  "balanceCertified": false,
+  "unityNetworkCompatible": false,
+  "modifications": [
+    "document title",
+    "additive menu notice",
+    "additive scoped CSS",
+    "additive featured selection block",
+    "additive QuickPlay hero and AI/local shortcuts",
+    "additive advanced options disclosure"
+  ],
+  "verificationDate": "2026-10-15T19:30:34.104Z",
+  "regression": {
+    "self": {
+      "version": "V147-R2",
+      "passed": 30,
+      "total": 30,
+      "ok": true,
+      "tests": [
+        {
+          "name": "01 load/bootstrap",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "triggers": 15
+          }
+        },
+        {
+          "name": "02 Base HP 20",
+          "pass": true,
+          "ms": 0,
+          "detail": 20
+        },
+        {
+          "name": "03 TOUCH slow",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "04 TOUCH fast",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "05 TOUCH contact episode anti-spam",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "06 separation + re-touch",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "07 HIT below threshold",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "08 HIT above threshold",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "09 TOUCH + HIT ordering",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "10 SELF SOURCE",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "source": {
+              "id": 705,
+              "type": "normal",
+              "owner": "player",
+              "x": 2215,
+              "y": 200,
+              "vx": 100,
+              "vy": 0,
+              "r": 15,
+              "hp": 20,
+              "maxHp": 20,
+              "mass": 1,
+              "dead": false,
+              "isMirageGhost": false,
+              "motionState": "moving",
+              "motionTouchCount": 0,
+              "motionHitCount": 0
+            },
+            "target": {
+              "id": 706,
+              "type": "normal",
+              "owner": "cpu",
+              "x": 2218,
+              "y": 200,
+              "vx": 0,
+              "vy": 0,
+              "r": 15,
+              "hp": 20,
+              "maxHp": 20,
+              "mass": 1,
+              "dead": false,
+              "isMirageGhost": false,
+              "motionState": "moving",
+              "motionTouchCount": 0,
+              "motionHitCount": 0
+            },
+            "aRole": "SOURCE",
+            "bRole": "TARGET",
+            "aInbound": 100,
+            "bInbound": 0
+          }
+        },
+        {
+          "name": "11 SELF TARGET",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "source": {
+              "id": 708,
+              "type": "normal",
+              "owner": "cpu",
+              "x": 2224,
+              "y": 200,
+              "vx": -100,
+              "vy": 0,
+              "r": 15,
+              "hp": 20,
+              "maxHp": 20,
+              "mass": 1,
+              "dead": false,
+              "isMirageGhost": false,
+              "motionState": "moving",
+              "motionTouchCount": 0,
+              "motionHitCount": 0
+            },
+            "target": {
+              "id": 707,
+              "type": "normal",
+              "owner": "player",
+              "x": 2221,
+              "y": 200,
+              "vx": 0,
+              "vy": 0,
+              "r": 15,
+              "hp": 20,
+              "maxHp": 20,
+              "mass": 1,
+              "dead": false,
+              "isMirageGhost": false,
+              "motionState": "moving",
+              "motionTouchCount": 0,
+              "motionHitCount": 0
+            },
+            "aRole": "TARGET",
+            "bRole": "SOURCE",
+            "aInbound": 0,
+            "bInbound": 100
+          }
+        },
+        {
+          "name": "12 enemy/ally filtering",
+          "pass": true,
+          "ms": 0.4,
+          "detail": null
+        },
+        {
+          "name": "13 LIMIT 1/TURN",
+          "pass": true,
+          "ms": 0.2,
+          "detail": null
+        },
+        {
+          "name": "14 LIMIT N/TURN",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "15 COUNT AT N",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "16 COUNT EVERY N",
+          "pass": true,
+          "ms": 0,
+          "detail": [
+            false,
+            true,
+            false,
+            true
+          ]
+        },
+        {
+          "name": "17 turn reset",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "18 STACK add",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "19 STACK max",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "20 STACK unlimited",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "21 STACK consume",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "22 per-stack effect",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "23 threshold effect",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "24 UPGRADE once",
+          "pass": true,
+          "ms": 0.2,
+          "detail": {
+            "applied": true,
+            "tier": 1,
+            "state": {
+              "abilityId": "u",
+              "range": "medium",
+              "params": {},
+              "physics": {},
+              "activeAbilitySet": [
+                "primary"
+              ],
+              "visualState": null,
+              "resetOnDeath": false
+            }
+          }
+        },
+        {
+          "name": "25 legacy trigger regression",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "26 EFFECT chain sanity",
+          "pass": true,
+          "ms": 0.3,
+          "detail": null
+        },
+        {
+          "name": "27 BoardSnapshot sanity",
+          "pass": true,
+          "ms": 0.3,
+          "detail": {
+            "enemyTraps": 1,
+            "friendlyStructures": 1
+          }
+        },
+        {
+          "name": "28 AI reacts to board modification",
+          "pass": true,
+          "ms": 0.4,
+          "detail": {
+            "empty": {
+              "x": 270,
+              "y": 50
+            },
+            "modified": {
+              "x": 270,
+              "y": 450,
+              "label": "center"
+            }
+          }
+        },
+        {
+          "name": "29 basic AI match",
+          "pass": true,
+          "ms": 0.5,
+          "detail": {
+            "player": "build-center",
+            "cpu": "build-center"
+          }
+        },
+        {
+          "name": "30 performance smoke",
+          "pass": true,
+          "ms": 1,
+          "detail": {
+            "iterations": 20000,
+            "ms": 1
+          }
+        }
+      ]
+    },
+    "r2": {
+      "version": "V147-R2",
+      "passed": 36,
+      "total": 36,
+      "ok": true,
+      "tests": [
+        {
+          "name": "01 bootstrap",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "02 Base HP 20",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "03 ball-ball TOUCH",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "04 ball-wall TOUCH",
+          "pass": true,
+          "ms": 0.5,
+          "detail": null
+        },
+        {
+          "name": "05 ball-base TOUCH",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "06 ball-structure TOUCH",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "07 ball-ball HIT",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "08 ball-wall HIT",
+          "pass": true,
+          "ms": 0.2,
+          "detail": null
+        },
+        {
+          "name": "09 ball-base HIT",
+          "pass": true,
+          "ms": 0.2,
+          "detail": null
+        },
+        {
+          "name": "10 ball-structure HIT",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "11 contact episode anti-spam",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "12 separation/re-entry",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "13 SOURCE/TARGET base",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "episode": 10,
+            "turn": 1,
+            "frame": 180,
+            "sourceId": 908,
+            "sourceOwner": "player",
+            "sourceType": "mitosis",
+            "targetId": "base:cpu",
+            "targetKind": "base",
+            "targetOwner": "cpu",
+            "targetType": "base",
+            "impact": 100,
+            "surfaceKey": "role-base",
+            "event": "HIT"
+          }
+        },
+        {
+          "name": "14 SOURCE/TARGET structure",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "episode": 11,
+            "turn": 1,
+            "frame": 190,
+            "sourceId": 909,
+            "sourceOwner": "player",
+            "sourceType": "mitosis",
+            "targetId": 88,
+            "targetKind": "structure",
+            "targetOwner": "cpu",
+            "targetType": "turret",
+            "impact": 100,
+            "surfaceKey": "role-structure",
+            "event": "HIT"
+          }
+        },
+        {
+          "name": "15 owner filtering",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "16 ally/enemy filtering",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "17 migrated legacy HIT abilities",
+          "pass": true,
+          "ms": 0.2,
+          "detail": {
+            "count": 50
+          }
+        },
+        {
+          "name": "18 breaker",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "classification": "UNRESOLVED",
+            "runtimeEvent": "TOUCH",
+            "status": "LEGACY_CONTACT_COMPAT",
+            "reason": "Legacy text says removal of a defense layer on contact, but does not define whether weak contact should count."
+          }
+        },
+        {
+          "name": "19 mitosis",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "classification": "UNRESOLVED",
+            "runtimeEvent": "TOUCH",
+            "status": "LEGACY_CONTACT_COMPAT",
+            "reason": "Legacy text says first physical impact; strength requirement is not explicit."
+          }
+        },
+        {
+          "name": "20 COUNT with base/structure",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "21 LIMIT with base/structure",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "22 BoardSnapshot enemy trap",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "23 BoardSnapshot friendly trap",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "24 persistent field ownership",
+          "pass": true,
+          "ms": 0.2,
+          "detail": null
+        },
+        {
+          "name": "25 AI score changes with enemy hazard",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "clean": 100,
+            "enemy": 10.399999999999997
+          }
+        },
+        {
+          "name": "26 AI score changes with friendly benefit",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "clean": 100,
+            "friendly": 168.75
+          }
+        },
+        {
+          "name": "27 UPGRADE actual stat change",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "before": {
+              "mass": 1,
+              "r": 15,
+              "restitution": 0.7,
+              "maxSpeed": 500
+            },
+            "after": {
+              "mass": 1.4,
+              "r": 18,
+              "restitution": 0.7999999999999999,
+              "maxSpeed": 550,
+              "maxHp": 25
+            }
+          }
+        },
+        {
+          "name": "28 UPGRADE actual ability/state change",
+          "pass": true,
+          "ms": 0.3,
+          "detail": {
+            "before": [
+              "TOUCH"
+            ],
+            "after": [
+              "HIT"
+            ],
+            "range": "medium",
+            "damage": 9
+          }
+        },
+        {
+          "name": "29 upgrade-once",
+          "pass": true,
+          "ms": 0.8,
+          "detail": {
+            "tierAfterTurn": 1,
+            "deathResetTier": 0,
+            "newMatchTier": 0
+          }
+        },
+        {
+          "name": "30 legacy trigger regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "31 EFFECT chain sanity",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "32 Cosmos/performance regression",
+          "pass": true,
+          "ms": 22,
+          "detail": {
+            "iterations": 20000,
+            "ms": 22
+          }
+        },
+        {
+          "name": "33 AI vs AI smoke hook",
+          "pass": true,
+          "ms": 0.4,
+          "detail": {
+            "player": "build-center",
+            "cpu": "build-center"
+          }
+        },
+        {
+          "name": "34 long-match smoke hook",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "externalRuntimeRequired": true
+          }
+        },
+        {
+          "name": "35 trap physical contact coverage",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "touch": true,
+            "hit": true,
+            "targetOwner": "cpu",
+            "targetType": "mine"
+          }
+        },
+        {
+          "name": "36 structure ownership scoring",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "enemy": {
+              "owner": "cpu",
+              "targetValue": 25.2,
+              "pathRisk": -8,
+              "opportunity": 42
+            },
+            "friendly": {
+              "owner": "player",
+              "targetValue": 0,
+              "pathRisk": -4,
+              "opportunity": 11
+            }
+          }
+        }
+      ]
+    },
+    "r3": {
+      "version": "V147-R3",
+      "passed": 26,
+      "total": 26,
+      "ok": true,
+      "tests": [
+        {
+          "name": "01 bootstrap",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "02 Base HP 20",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "03 Fire/BURN before upgrade",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "event": [
+              "TOUCH"
+            ]
+          }
+        },
+        {
+          "name": "04 Fire/BURN upgrade trigger",
+          "pass": true,
+          "ms": 0.1,
+          "detail": {
+            "abilityId": "fire:primary",
+            "type": "fire",
+            "event": [
+              "HIT"
+            ],
+            "role": "SELF_ANY",
+            "conditions": [
+              "CEL: KULKA"
+            ],
+            "effect": {
+              "id": "legacy.fire",
+              "summary": "35 HP • TOUCH · CEL: KULKA: PODPALENIE — nakłada standardowy PODPALENIE (5 dmg przez 2 własne tury celu)"
+            },
+            "range": "contact",
+            "params": {},
+            "count": null,
+            "limit": null,
+            "stack": null,
+            "upgrade": {
+              "tier": 1,
+              "state": {
+                "abilityId": "fire:primary",
+                "range": null,
+                "params": {},
+                "physics": {},
+                "activeAbilitySet": [
+                  "primary"
+                ],
+                "visualState": null,
+                "resetOnDeath": false
+              },
+              "activeAbilitySet": [
+                "primary"
+              ]
+            },
+            "migration": {
+              "classification": "HIT → TOUCH",
+              "runtimeEvent": "TOUCH",
+              "status": "RESOLVED"
+            }
+          }
+        },
+        {
+          "name": "05 Fire/BURN after upgrade uses HIT",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "06 old TOUCH no longer fires upgraded BURN",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "07 HIT fires upgraded BURN",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "08 no double-proc TOUCH + HIT",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "effectiveEvents": [
+              "HIT"
+            ],
+            "legacyBodyExecutionsPerEpisode": 1
+          }
+        },
+        {
+          "name": "09 current event stored correctly",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "override": [
+              "HIT"
+            ],
+            "effective": [
+              "HIT"
+            ]
+          }
+        },
+        {
+          "name": "10 migration metadata unchanged",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "historical": "TOUCH"
+          }
+        },
+        {
+          "name": "11 runtime resolver reads dynamic state",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "12 Quick Summary reads dynamic state",
+          "pass": true,
+          "ms": 0.1,
+          "detail": "HIT · CEL: KULKA: PODPALENIE — nakłada standardowy PODPALENIE (5 dmg przez 2 własne tury celu)"
+        },
+        {
+          "name": "13 Player Description reads dynamic state",
+          "pass": true,
+          "ms": 0.2,
+          "detail": "35 HP • HIT · CEL: KULKA: PODPALENIE — nakłada standardowy PODPALENIE (5 dmg przez 2 własne tury celu)"
+        },
+        {
+          "name": "14 Full Rules reads dynamic state",
+          "pass": true,
+          "ms": 0,
+          "detail": {
+            "trigger": "HIT",
+            "conditions": [
+              "CEL: WRÓG"
+            ],
+            "role": "SELF_SOURCE"
+          }
+        },
+        {
+          "name": "15 debug/telemetry reads dynamic state",
+          "pass": true,
+          "ms": 0.2,
+          "detail": {
+            "eventId": 19,
+            "turn": 1,
+            "ballId": 1012,
+            "type": "fire",
+            "trigger": "HIT",
+            "abilityEvent": [
+              "HIT"
+            ],
+            "selfRole": "SOURCE",
+            "eventKey": "r3-debug",
+            "pass": true,
+            "reason": null,
+            "stages": {
+              "event": true,
+              "role": true,
+              "conditions": true,
+              "count": null,
+              "limit": null,
+              "state": true,
+              "effect": true
+            },
+            "otherOwner": "cpu",
+            "otherType": "normal"
+          }
+        },
+        {
+          "name": "16 reset/new match restores initial state",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "17 second upgrade / duplicate protection",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "18 STACK -> UPGRADE regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "19 COUNT -> UPGRADE regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "20 LIMIT -> UPGRADE regression",
+          "pass": true,
+          "ms": 0.1,
+          "detail": null
+        },
+        {
+          "name": "21 TOUCH/HIT regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "22 STOP regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "23 ZONE regression",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "24 EFFECT bounded chains",
+          "pass": true,
+          "ms": 0,
+          "detail": null
+        },
+        {
+          "name": "25 Cosmos performance smoke",
+          "pass": true,
+          "ms": 0.5,
+          "detail": {
+            "iterations": 20000,
+            "ms": 0.4
+          }
+        },
+        {
+          "name": "26 AI vs AI smoke",
+          "pass": true,
+          "ms": 0.2,
+          "detail": {
+            "player": "build-center",
+            "cpu": "emergency-defense"
+          }
+        }
+      ]
+    }
+  },
+  "featuredSelections": [
+    {
+      "id": "featured_death_engine",
+      "balls": [
+        "agony",
+        "requiem",
+        "bonfire",
+        "wildfire",
+        "soulburst",
+        "reclaimer",
+        "gravehide",
+        "packheart",
+        "cascade"
+      ],
+      "selected": "featured_death_engine",
+      "ready": true,
+      "canonical": 36
+    },
+    {
+      "id": "featured_status_reactor",
+      "balls": [
+        "blightpool",
+        "plagueleech",
+        "vector",
+        "septiccore",
+        "consecrator",
+        "absolver",
+        "penitent",
+        "ward",
+        "halo"
+      ],
+      "selected": "featured_status_reactor",
+      "ready": true,
+      "canonical": 36
+    },
+    {
+      "id": "featured_gravity_trap",
+      "balls": [
+        "web",
+        "briarheart",
+        "vinehook",
+        "gravitymine",
+        "singularity",
+        "horizonrelay",
+        "gatekeeper",
+        "harpoon",
+        "vortexmedic"
+      ],
+      "selected": "featured_gravity_trap",
+      "ready": true,
+      "canonical": 36
+    },
+    {
+      "id": "featured_reality_hackers",
+      "balls": [
+        "mimic",
+        "doppelganger",
+        "wildcard",
+        "collector",
+        "echo",
+        "timeshift",
+        "chronomancer",
+        "paradox",
+        "traitor"
+      ],
+      "selected": "featured_reality_hackers",
+      "ready": true,
+      "canonical": 36
+    }
+  ],
+  "pageErrors": [],
+  "rosterCount": 227,
+  "specialRosterCount": 224,
+  "canonicalDeckCount": 36,
+  "rosterCanonicalRulesMatchOriginal": true,
+  "menuFeaturedSelections": 4,
+  "advancedOptionsAccessible": true,
+  "quickPlayAi": true,
+  "canonicalPresetSelections": 36,
+  "canonicalPresetSelectionPreserved": true,
+  "builderSavePreserved": true,
+  "existingStartFlowPreserved": true,
+  "quickPlayLocalPvpSeparateDecks": true,
+  "phoneFeaturedSelections": 4,
+  "phoneFeaturedNoHorizontalOverflow": true,
+  "phoneQuickPlayLocalPvp": true,
+  "actualFileOfflineSmokePassed": true,
+  "actualFileOfflineNetworkRequests": 0,
+  "sourceUnchangedAfterVerification": true,
+  "ok": true
+}
