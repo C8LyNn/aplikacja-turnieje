@@ -70,6 +70,18 @@ const SOURCE_AUTHORITY_KEYS = new Set([
   "sourceCas", "casToken",
 ]);
 
+/**
+ * Operational Undo may retain historical, opaque metadata (including a plain
+ * "id" or "revision"), but must never carry source action identities or CAS
+ * expectations at ANY nesting depth. Such tokens belong to an untrusted
+ * backup, not to the newly cloned tournament's mutation authority.
+ */
+const NESTED_AUTHORITY_KEYS = new Set([
+  "actionId", "sourceActionId", "expectedCompletionActionId",
+  "expectedMatchRevision", "expectedRevision", "sourceCas", "casToken",
+  "portableActionId", "sourceActionIndex", "stateRevision",
+]);
+
 function fail(code: ActionLocalProvenanceIssueCode, path: string, message: string): never {
   throw new ActionLocalProvenanceError([{ code, path, message }]);
 }
@@ -128,6 +140,9 @@ function recognizedRefs(
   const seen = new WeakSet<object>();
   const visit = (value: unknown, key: string | null, where: string, depth: number): void => {
     if (depth > 32) fail("SHAPE", where, "Undo payload nesting too deep.");
+    if (key !== null && NESTED_AUTHORITY_KEYS.has(key)) {
+      fail("SOURCE_AUTHORITY", where, "Untrusted source action identity or CAS token inside Undo payload.");
+    }
     if (key && (PLAYER_REFERENCE_KEYS.has(key) || MATCH_REFERENCE_KEYS.has(key))) {
       const actionType = action.actionType;
       const allowed =
