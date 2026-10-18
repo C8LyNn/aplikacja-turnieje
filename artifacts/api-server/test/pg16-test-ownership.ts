@@ -161,3 +161,54 @@ export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<v
   createdSchemaReceipts.delete(schema);
   emit("S1_DROP_CONFIRMED", { schema, oid: existing.oid, owner: existing.owner });
 }
+
+/**
+ * Child process env is built from an explicit allowlist, never `...process.env`.
+ * Only child URLs to DBs positively created by this run are permitted.
+ */
+export function sealedFixtureChildEnv(
+  additions: Record<string, string>, receipts: readonly CreatedDatabaseReceipt[],
+): NodeJS.ProcessEnv {
+  const ctx = requireSafetyContext();
+  const owned = new Set(receipts.filter(r => r.createdByRun &&
+    same(r, ctx)).map(r => r.name));
+  const permitted = new Set([
+    "DATABASE_URL",
+    "SCHEMA_COMPARE_DEVELOPMENT_DATABASE_URL",
+    "SCHEMA_COMPARE_PRODUCTION_DATABASE_URL",
+    "SCHEMA_COMPARE_EXPECTED_DEVELOPMENT_DATABASE_NAME",
+    "SCHEMA_COMPARE_EXPECTED_PRODUCTION_DATABASE_NAME",
+    "SCHEMA_COMPARE_EXPECTED_SCHEMA",
+  ]);
+  if (owned.size === 0) hold("CHILD_NO_CONFIRMED_S2_DATABASES");
+  const result: NodeJS.ProcessEnv = {
+    PATH: "/usr/local/bin:/usr/bin:/bin",
+    HOME: "/tmp/web005/home",
+    TMPDIR: "/tmp/web005/tmp",
+    XDG_CACHE_HOME: "/tmp/web005/cache",
+    XDG_CONFIG_HOME: "/tmp/web005/config",
+    XDG_DATA_HOME: "/tmp/web005/data",
+    LANG: "C.UTF-8", TZ: "UTC", NODE_ENV: "test",
+    WEB005_RUN_ID: ctx.runId,
+    WEB005_PG16_CLUSTER_CERT_SHA256: ctx.clusterCertificateSha256,
+  };
+  for (const [key, value] of Object.entries(additions)) {
+    if (!permitted.has(key) || typeof value !== "string") hold("CHILD_FORBIDDEN_ENV_KEY");
+    if (key.endsWith("_DATABASE_URL") || key === "DATABASE_URL") {
+      let u: URL;
+      try { u = new URL(value); } catch { hold("CHILD_INVALID_DSN"); }
+      const name = decodeURIComponent(u.pathname.replace(/^\//, ""));
+      if (!["postgres:", "postgresql:"].includes(u.protocol) ||
+          u.hostname !== "127.0.0.1" || u.port !== "55432" ||
+          !owned.has(name)) {
+        hold("CHILD_DSN_NOT_OWNED_SCRATCH_DATABASE");
+      }
+    } else if (key === "SCHEMA_COMPARE_EXPECTED_SCHEMA") {
+      if (value !== "public") hold("CHILD_UNEXPECTED_SCHEMA");
+    } else if (!owned.has(value)) {
+      hold("CHILD_EXPECTED_NAME_NOT_OWNED");
+    }
+    result[key] = value;
+  }
+  return result;
+}
