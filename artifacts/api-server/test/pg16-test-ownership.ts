@@ -172,7 +172,12 @@ export async function createRunDatabase(
     journal(context, slot, "CREATE_AMBIGUOUS", name);
     throw new Error("WEB005_CLEANUP_HOLD:S2_CREATE_RESPONSE_UNCONFIRMED", { cause: error });
   }
-  const created = await dbIdentity(pool, name);
+  let created: DatabaseIdentity | null;
+  try { created = await dbIdentity(pool, name); }
+  catch(error) {
+    journal(context, slot, "CREATE_AMBIGUOUS", name);
+    throw new Error("WEB005_CLEANUP_HOLD:S2_POST_CREATE_CATALOG_UNAVAILABLE", {cause:error});
+  }
   if (!created || !/^\d+$/.test(created.oid) ||
       created.owner !== created.principal || created.ownerOid !== context.roleOid ||
       created.principalOid !== context.roleOid) {
