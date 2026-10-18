@@ -1,3 +1,9 @@
+> **WAŻNE — IDENTITY LOCK / WERSJA POPRAWIONA**
+> Ten starszy plik zawiera szczegółowy opis techniczny, ale NIE JEST punktami wejścia. Najpierw otwórz **[ROLE_LOCK_A40.md](../ROLE_LOCK_A40.md)**.
+> **TEN AGENT = A40 | ISSUE #92 | GATE READY NOW.** Nie jesteś A10. Nie zgaduj numeru agenta z pozostałych dokumentów.
+> Pierwszy wiersz odpowiedzi: `IDENTITY_OK | CC-001 | A40 | ISSUE #92 | READY NOW`.
+> Gdy historia sesji jednoznacznie wskazuje innego agenta, wstrzymaj zapis i zgłoś `IDENTITY_CONFLICT`.
+
 # CODEX TASK — A40 / Five-ability Lifecycle + RETURN implementation
 PROJECT: CC-001 — Core Clash Unity; WAVE: R17-W4 recovery
 ISSUE: https://github.com/C8LyNn/aplikacja-turnieje/issues/92 (EXISTING)
