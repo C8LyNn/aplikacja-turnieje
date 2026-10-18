@@ -348,7 +348,7 @@ function sendTournamentRosterError(
 ): void {
   const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND"
     ? 404
-    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME"
+    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME" || error.code === "UNDO_ACTION_CHANGED"
       ? 409
       : 422;
   res.status(status).json({ error: error.message, code: error.code });
@@ -2190,6 +2190,52 @@ async function logAction(params: {
   });
 }
 
+/**
+ * MP2A: reject candidates selected before the tournament mutation lock if a
+ * newer undoable action committed while the request was waiting. Both generic
+ * Undo and revert_match must call this inside that same locked transaction.
+ */
+async function lockLatestUndoableAction(
+  tx: RouteTransaction,
+  tournamentId: number,
+  candidate: typeof actionLogTable.$inferSelect,
+): Promise<typeof actionLogTable.$inferSelect> {
+  const [lockedAction] = await tx
+    .select()
+    .from(actionLogTable)
+    .where(and(
+      eq(actionLogTable.id, candidate.id),
+      eq(actionLogTable.tournamentId, tournamentId),
+    ))
+    .for("update");
+  if (
+    !lockedAction ||
+    lockedAction.isUndone ||
+    !lockedAction.undoPayload ||
+    lockedAction.actionType !== candidate.actionType ||
+    lockedAction.undoPayload !== candidate.undoPayload ||
+    lockedAction.matchId !== candidate.matchId ||
+    lockedAction.createdAt.getTime() !== candidate.createdAt.getTime()
+  ) {
+    throw new RevertMatchError("UNDO_ACTION_CHANGED");
+  }
+
+  const [latestUndoable] = await tx
+    .select({ id: actionLogTable.id })
+    .from(actionLogTable)
+    .where(and(
+      eq(actionLogTable.tournamentId, tournamentId),
+      eq(actionLogTable.isUndone, false),
+      sql`${actionLogTable.undoPayload} IS NOT NULL`,
+    ))
+    .orderBy(desc(actionLogTable.createdAt), desc(actionLogTable.id))
+    .limit(1);
+  if (latestUndoable?.id !== lockedAction.id) {
+    throw new RevertMatchError("UNDO_ACTION_CHANGED");
+  }
+  return lockedAction;
+}
+
 function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
   return {
     id: entry.id,
@@ -2317,12 +2363,21 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
       if (!Number.isInteger(matchId) || matchId < 1) {
         throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
       }
-      const result = await revertMatch({
-        matchId,
-        expectedTournamentId: params.data.id,
-        expectedCompletionActionId: lastAction.id,
-        actor: mutationActor,
-      });
+      // Pass the locked transaction to RevertMatch; otherwise an independent
+      // transaction would release global LIFO protection before the result reset.
+      const result = await withTournamentMutationLock(
+        params.data.id,
+        mutationActor,
+        async (tx) => {
+          await lockLatestUndoableAction(tx, params.data.id, lastAction);
+          return revertMatch({
+            matchId,
+            expectedTournamentId: params.data.id,
+            expectedCompletionActionId: lastAction.id,
+            actor: mutationActor,
+          }, {}, tx);
+        },
+      );
       res.json({
         action: mapActionLog(result.completionAction),
         message: `Cofnięto: ${lastAction.description}`,
@@ -2334,20 +2389,10 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
       params.data.id,
       mutationActor,
       async (tx) => {
-        const [lockedAction] = await tx
-          .select()
-          .from(actionLogTable)
-          .where(eq(actionLogTable.id, lastAction.id))
-          .for("update");
-        if (
-          !lockedAction ||
-          lockedAction.tournamentId !== params.data.id ||
-          lockedAction.isUndone ||
-          !lockedAction.undoPayload
-        ) {
-          throw new RevertMatchError("UNDO_ACTION_CHANGED");
-        }
-        const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
+        const lockedAction = await lockLatestUndoableAction(
+          tx, params.data.id, lastAction,
+        );
+        const lockedPayload = JSON.parse(lockedAction.undoPayload!) as Record<string, unknown>;
         if (lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
         }

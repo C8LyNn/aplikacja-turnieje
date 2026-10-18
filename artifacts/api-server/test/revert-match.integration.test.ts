@@ -485,3 +485,249 @@ describe("RevertMatch tournament finalization", () => {
     for (const removed of ["wins", "draws", "losses", "points"]) assert.equal(names.includes(removed), false);
   });
 });
+
+
+/**
+ * MP2A / OPS-01: a queued undo must not act on an action selected before a
+ * concurrent tournament mutation committed a newer undoable action.
+ * pg_blocking_pids proves X already reached the tournament row lock,
+ * avoiding timing-based sleeps or test-only HTTP hooks.
+ */
+async function waitUntilTournamentLockIsQueued(blockerPid: number): Promise<void> {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    const observed = await database.pool.query(
+      "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid <> $1 AND $1 = ANY(pg_blocking_pids(pid))) AS queued",
+      [blockerPid],
+    );
+    if (observed.rows[0]?.queued === true) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+  }
+  throw new Error("MP2A_TEST_BARRIER_TIMEOUT: expected queued tournament lock waiter");
+}
+
+for (const target of ["revert_match", "restore_status"] as const) {
+  test("MP2A global LIFO: stale queued " + target + " returns 409 and never writes", async () => {
+    const f = await createFixture({ format: "single_elimination", bracket: true });
+    assert.ok(f.secondMatchId !== null);
+    if (target === "revert_match") {
+      assert.equal((await complete(f)).status, 200);
+    } else {
+      const started = await request(app).patch("/api/matches/" + f.matchId)
+        .set(f.organizerHeaders).send({ status: "in_progress" });
+      assert.equal(started.status, 200);
+    }
+
+    const before = await snapshot(f);
+    const initialAction = await database.pool.query(
+      "SELECT id,action_type,is_undone FROM action_log WHERE tournament_id=$1 AND undo_payload IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 1",
+      [f.tournamentId],
+    );
+    assert.equal(initialAction.rows[0]?.action_type,
+      target === "revert_match" ? "match_result_submitted" : "match_started");
+
+    const blocker = await database.pool.connect();
+    let committed = false;
+    let xPromise: Promise<Response> | undefined;
+    try {
+      await blocker.query("BEGIN");
+      const pid = await blocker.query("SELECT pg_backend_pid()::int AS pid");
+      await blocker.query("SELECT id FROM tournaments WHERE id=$1 FOR UPDATE", [f.tournamentId]);
+
+      // X sees the older candidate and queues behind B's tournament lock.
+      xPromise = undo(f);
+      await waitUntilTournamentLockIsQueued(pid.rows[0].pid);
+
+      // Y commits before X obtains its lock and must remain the latest.
+      await blocker.query("UPDATE matches SET status='in_progress' WHERE id=$1", [f.secondMatchId]);
+      const later = await blocker.query(
+        "INSERT INTO action_log (tournament_id,action_type,description,match_id,undo_payload) VALUES ($1,'match_started','MP2A newer action',$2,$3) RETURNING id",
+        [f.tournamentId, f.secondMatchId,
+          JSON.stringify({ type: "restore_status", matchId: f.secondMatchId, prevStatus: "pending" })],
+      );
+      const laterId: number = later.rows[0].id;
+      await blocker.query("COMMIT");
+      committed = true;
+
+      const rejected = await xPromise;
+      assertError(rejected, 409, "UNDO_ACTION_CHANGED");
+      const after = await snapshot(f);
+      assert.deepEqual(after.match, before.match);
+      assert.deepEqual(after.players, before.players);
+      assert.deepEqual(after.history, before.history);
+      assert.deepEqual(after.downstream, before.downstream);
+      assert.deepEqual(after.tournament, before.tournament);
+      assert.deepEqual(after.actions, before.actions);
+      const actionRows = await database.pool.query(
+        "SELECT id,action_type,is_undone FROM action_log WHERE tournament_id=$1 ORDER BY id",
+        [f.tournamentId],
+      );
+      assert.equal(actionRows.rows.length, 2, "one original and one newer action; X added none");
+      assert.deepEqual(actionRows.rows.map((r) => r.is_undone), [false, false]);
+      assert.equal(actionRows.rows[0].id, initialAction.rows[0].id);
+      assert.equal(actionRows.rows[1].id, laterId);
+      const second = await database.pool.query("SELECT status FROM matches WHERE id=$1", [f.secondMatchId]);
+      assert.equal(second.rows[0].status, "in_progress", "newer mutation remains committed");
+    } finally {
+      if (!committed) await blocker.query("ROLLBACK");
+      blocker.release();
+      if (xPromise) await xPromise.catch(() => undefined);
+    }
+  });
+}
+
+
+/**
+ * T040 R17 / P09: roster Undo must obey the same global latest undoable action
+ * as result/status Undo. These are real PG-lock tests, not timing-only mocks.
+ * All records below are synthetic and live only in the isolated test schema.
+ */
+type RosterUndoKind = "delete_player" | "restore_player";
+
+async function createDraftRosterUndoFixture(kind: RosterUndoKind) {
+  const suffix = randomUUID();
+  const [tournament] = await database.db.insert(database.tournamentsTable).values({
+    name: "Roster LIFO " + suffix,
+    format: "single_elimination",
+    status: "draft",
+    visibility: "public_online",
+    organizerPasswordHash: ORGANIZER_PASSWORD_HASH,
+    defaultBestOf: 3,
+    currentRound: 1,
+    totalRounds: 2,
+  }).returning();
+  const [player] = await database.db.insert(database.playersTable).values({
+    tournamentId: tournament.id,
+    name: (kind === "restore_player" ? "Edited-" : "Added-") + suffix,
+    seed: 1,
+  }).returning();
+  const previousName = "Original-" + suffix;
+  const payload = kind === "delete_player"
+    ? { type: kind, playerId: player.id }
+    : { type: kind, playerId: player.id, prevData: {
+      name: previousName, seed: 1, rank: null, country: null, teamName: null,
+    } };
+  const action = await database.pool.query(
+    "INSERT INTO action_log (tournament_id,action_type,description,undo_payload,is_undone) " +
+    "VALUES ($1,$2,$3,$4,false) RETURNING id",
+    [tournament.id, kind === "delete_player" ? "player_added" : "player_edited",
+      "R17 original roster action", JSON.stringify(payload)],
+  );
+  return {
+    tournamentId: tournament.id,
+    playerId: player.id,
+    originalActionId: action.rows[0].id as number,
+    previousName,
+    organizerHeaders: {
+      "x-organizer-token": signOrganizerToken(tournament.id, ORGANIZER_PASSWORD_HASH),
+    },
+  };
+}
+
+async function undoRoster(fixture: { tournamentId: number; organizerHeaders: Headers }): Promise<Response> {
+  return request(app).post("/api/tournaments/" + fixture.tournamentId + "/undo-last")
+    .set(fixture.organizerHeaders).send({});
+}
+
+async function rosterUndoState(
+  tournamentId: number,
+  query: (statement: string, values: unknown[]) => Promise<{ rows: unknown[] }>,
+) {
+  const statements = [
+    "SELECT * FROM tournaments WHERE id=$1 ORDER BY id",
+    "SELECT * FROM players WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM matches WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM result_history WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM tournament_stages WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM stage_participants WHERE tournament_id=$1 ORDER BY id",
+    "SELECT * FROM match_game_picks WHERE match_id IN " +
+      "(SELECT id FROM matches WHERE tournament_id=$1) ORDER BY match_id,game_number",
+  ];
+  const snapshots: unknown[] = [];
+  for (const statement of statements) {
+    const result = await query(statement, [tournamentId]);
+    snapshots.push(JSON.parse(JSON.stringify(result.rows)));
+  }
+  return snapshots;
+}
+
+for (const kind of ["delete_player", "restore_player"] as const) {
+  test("MP2A roster LIFO: queued stale " + kind +
+    " rejects with 409 and preserves committed newer action", async () => {
+    const fixture = await createDraftRosterUndoFixture(kind);
+    const blocker = await database.pool.connect();
+    let committed = false;
+    let xPromise: Promise<Response> | undefined;
+    try {
+      await blocker.query("BEGIN");
+      const pid = await blocker.query("SELECT pg_backend_pid()::int AS pid");
+      await blocker.query("SELECT id FROM tournaments WHERE id=$1 FOR UPDATE",
+        [fixture.tournamentId]);
+
+      // X observes old roster action before it can lock the draft tournament.
+      xPromise = undoRoster(fixture);
+      await waitUntilTournamentLockIsQueued(pid.rows[0].pid);
+
+      // Y is a second legitimate roster addition, committed while X waits.
+      const laterPlayer = await blocker.query(
+        "INSERT INTO players (tournament_id,name,seed) VALUES ($1,$2,$3) RETURNING id",
+        [fixture.tournamentId, "Newer-" + randomUUID(), 2],
+      );
+      const later = await blocker.query(
+        "INSERT INTO action_log (tournament_id,action_type,description,undo_payload,is_undone) " +
+        "VALUES ($1,'player_added','R17 newer roster action',$2,false) RETURNING id",
+        [fixture.tournamentId,
+          JSON.stringify({ type: "delete_player", playerId: laterPlayer.rows[0].id })],
+      );
+
+      // Snapshot Y while B still owns the lock: this cannot race with X.
+      const expected = await rosterUndoState(fixture.tournamentId,
+        (sql, args) => blocker.query(sql, args));
+      await blocker.query("COMMIT");
+      committed = true;
+
+      const staleResponse = await xPromise;
+      assertError(staleResponse, 409, "UNDO_ACTION_CHANGED");
+      const actual = await rosterUndoState(fixture.tournamentId,
+        (sql, args) => database.pool.query(sql, args));
+      assert.deepEqual(actual, expected, "stale X did not write or undo Y");
+      const actions = await database.pool.query(
+        "SELECT id,is_undone FROM action_log WHERE tournament_id=$1 ORDER BY id",
+        [fixture.tournamentId],
+      );
+      assert.deepEqual(actions.rows.map((row: any) => [row.id, row.is_undone]), [
+        [fixture.originalActionId, false], [later.rows[0].id, false],
+      ]);
+
+      // Newly latest Y remains undoable, proving no global Undo deadlock.
+      const current = await undoRoster(fixture);
+      assert.equal(current.status, 200, current.text);
+      const laterAfter = await database.pool.query("SELECT id FROM players WHERE id=$1",
+        [laterPlayer.rows[0].id]);
+      assert.equal(laterAfter.rows.length, 0);
+    } finally {
+      if (!committed) await blocker.query("ROLLBACK");
+      blocker.release();
+      if (xPromise) await xPromise.catch(() => undefined);
+    }
+  });
+
+  test("MP2A roster LIFO: latest valid " + kind + " still undoes exactly once", async () => {
+    const fixture = await createDraftRosterUndoFixture(kind);
+    const response = await undoRoster(fixture);
+    assert.equal(response.status, 200, response.text);
+    const action = await database.pool.query(
+      "SELECT is_undone FROM action_log WHERE id=$1", [fixture.originalActionId]);
+    assert.equal(action.rows[0].is_undone, true);
+    const player = await database.pool.query(
+      "SELECT name FROM players WHERE id=$1", [fixture.playerId]);
+    if (kind === "delete_player") {
+      assert.equal(player.rows.length, 0);
+    } else {
+      assert.equal(player.rows[0]?.name, fixture.previousName);
+    }
+    const repeated = await undoRoster(fixture);
+    assert.notEqual(repeated.status, 200, "same roster action cannot be undone twice");
+  });
+}
