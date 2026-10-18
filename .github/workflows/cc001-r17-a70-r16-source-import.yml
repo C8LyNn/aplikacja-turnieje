@@ -30,9 +30,27 @@ jobs:
         run: |
           git config user.name "cc001-a70-source-import[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f -A -- unity/cc001-r16
+          # Existing R16 .gitattributes normalizes some CRLF files; bypass filters
+          # so Git blobs preserve exact source bytes from the SHA-verified ZIP.
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import subprocess
+          from pathlib import Path
+          manifest=json.loads(Path("docs/cc001/swarm/R17_A70_SOURCE_MANIFEST.json").read_text(encoding="utf-8"))
+          for item in manifest["files"]:
+              p=Path("unity/cc001-r16") / item["path"]
+              raw=p.read_bytes()
+              if hashlib.sha256(raw).hexdigest()!=item["sha256"]:
+                  raise RuntimeError("Changed source bytes: "+str(p))
+              sha=subprocess.check_output(["git","hash-object","-w","--no-filters",str(p)],text=True).strip()
+              subprocess.run(["git","update-index","--add","--cacheinfo","100644,"+sha+","+p.as_posix()],check=True)
+          print("BYTE-EXACT GIT OBJECTS STAGED:",len(manifest["files"]))
+          PY
           git add -A -- docs/cc001/swarm/r17-import-parts docs/cc001/swarm/R17_A70_SOURCE_MANIFEST.json
-          git diff --cached --check
+          # Historical R16 sources contain pre-existing whitespace defects.
+          # Audit only newly authored metadata, never rewrite source files.
+          git diff --cached --check -- docs/cc001/swarm/R17_A70_SOURCE_MANIFEST.json
           if git diff --cached --quiet; then
             echo "No import changes detected"
             exit 0
