@@ -9,8 +9,12 @@ namespace CoreClash.Physics
         readonly Dictionary<long,int> contacts=new Dictionary<long,int>();
         public CollisionResolver(GameSimulation s){sim=s;}
         public static int ImpactDamage(float impact){if(impact<=90)return 0;float t=GameSimulation.Clamp((impact-90)/340,0,1);return Math.Max(1,GameSimulation.Round(1+15*(float)Math.Pow(t,1.18)));}
-        public static float ForceScale(BallRuntime b)=>b.rooted?0:Math.Max(.34f,1-b.anchorStacks*.22f);
-        public static float Mass(BallRuntime b)=>b.mass*(b.anchorStacks>=3?2:1)*(1+b.anchorStacks*.35f);
+        // Mirror V148: real Earth stacks take precedence over the defensive
+        // Frostguard anchor for force resistance; a plain anchor yields 0.30.
+        public static float ForceScale(BallRuntime b)=>b.rooted?0:b.anchorStacks>0?Math.Max(.34f,1-b.anchorStacks*.22f):b.frostguardAnchored?.30f:1f;
+        // Keep the existing >=3 Earth-stack mass effect while honoring the
+        // independent defensive Frostguard anchor without synthetic stacks.
+        public static float Mass(BallRuntime b)=>b.mass*(b.frostguardAnchored||b.anchorStacks>=3?2f:1f)*(1+b.anchorStacks*.35f);
         float SizeForce(BallRuntime b){string k=sim.Catalog.Ball(b.type).size;return k=="small"?.8f:k=="large"?1.28f:1;}
         public void Resolve(BallRuntime a,BallRuntime b)
         {
