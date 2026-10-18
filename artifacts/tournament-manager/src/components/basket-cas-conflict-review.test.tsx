@@ -131,7 +131,7 @@ test("WAVE2-04 pending canonical GET disables stale review decisions and duplica
     onRefreshRemote={() => invoked.push("refresh")}
     onReconcile={(action) => invoked.push(action)}
   />);
-  assert.ok(screen.getByRole("status").textContent?.includes("Pobieranie"));
+  assert.ok(screen.getByText(/Pobieranie aktualnej wersji/));
   for (const name of [/Zachowaj mój szkic/, /Odrzuć mój szkic/, /Odśwież porównanie/]) {
     const button = screen.getByRole("button", { name }) as HTMLButtonElement;
     assert.equal(button.disabled, true, String(name));
