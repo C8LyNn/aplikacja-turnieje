@@ -79,6 +79,7 @@ let pools: Record<"dev" | "prod" | "fresh", QueryPool>;
 let urls: Record<"dev" | "prod" | "fresh", string>;
 let databaseNames: Record<"dev" | "prod" | "fresh", string>;
 const createdDatabaseReceipts: Partial<Record<"dev" | "prod" | "fresh", CreatedDatabaseReceipt>> = {};
+const attemptedDatabaseLabels = new Set<"dev" | "prod" | "fresh">();
 
 function quoteIdentifier(identifier: string): string {
   if (
@@ -496,6 +497,7 @@ before(async () => {
   pools = {} as typeof pools;
 
   for (const label of ["dev", "prod", "fresh"] as const) {
+    attemptedDatabaseLabels.add(label);
     createdDatabaseReceipts[label] = await createRunDatabase(
       adminPool, databaseNames[label], DATABASE_NAME_PATTERN,
     );
@@ -521,8 +523,16 @@ after(async () => {
   }
   if (adminPool) {
     try {
+      // If a CREATE response failed or became ambiguous, preserve ALL databases
+      // for independently signed exact-object G5 instead of partially FORCE dropping.
+      if ([...attemptedDatabaseLabels].some((label) => !createdDatabaseReceipts[label])) {
+        throw new Error("WEB005_CLEANUP_HOLD:CATALOG_AMBIGUOUS_CREATE_NO_DROP");
+      }
       for (const label of ["dev", "prod", "fresh"] as const) {
-        await dropRunDatabase(adminPool, createdDatabaseReceipts[label], DATABASE_NAME_PATTERN);
+        const receipt = createdDatabaseReceipts[label];
+        if (receipt) {
+          await dropRunDatabase(adminPool, receipt, DATABASE_NAME_PATTERN);
+        }
       }
     } finally {
       await adminPool.end();
