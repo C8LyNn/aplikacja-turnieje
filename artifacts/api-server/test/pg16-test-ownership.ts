@@ -13,6 +13,9 @@ export interface CreatedDatabaseReceipt extends SafetyContext {
 }
 interface DatabaseIdentity { oid: string; owner: string; principal: string }
 interface SchemaIdentity { oid: string; owner: string; principal: string; marker: string | null }
+interface SchemaReceipt extends SafetyContext { schema: string; oid: string; owner: string }
+const createdSchemaReceipts = new Map<string, SchemaReceipt>();
+
 
 function emit(event: string, details: Record<string, string> = {}): void {
   // Emitted on STDERR for an operator-side private append-only collector.
@@ -59,7 +62,13 @@ export async function createRunDatabase(
   const safeName = quote(name, pattern);
   if (await dbIdentity(pool, name)) hold("DATABASE_NAME_COLLISION_BEFORE_CREATE");
   // If CREATE fails or its response is ambiguous, no DROP receipt is produced.
-  await pool.query(`CREATE DATABASE ${safeName}`);
+  emit("S2_CREATE_ATTEMPTED", { name });
+  try {
+    await pool.query(`CREATE DATABASE ${safeName}`);
+  } catch (error) {
+    emit("S2_CREATE_FAILED_OR_AMBIGUOUS", { name });
+    throw new Error("WEB005_CLEANUP_HOLD:S2_CREATE_RESPONSE_UNCONFIRMED", { cause: error });
+  }
   const created = await dbIdentity(pool, name);
   if (!created || !/^\d+$/.test(created.oid) || created.owner !== created.principal) {
     hold("CREATE_SUCCEEDED_BUT_IDENTITY_UNCONFIRMED");
@@ -73,7 +82,7 @@ export async function createRunDatabase(
 export async function dropRunDatabase(
   pool: SafetyPool, receipt: CreatedDatabaseReceipt | undefined, pattern: RegExp,
 ): Promise<void> {
-  if (!receipt) return; // NEVER DROP after failed/uncertain CREATE.
+  if (!receipt) hold("S2_MISSING_CREATE_RECEIPT_NO_DROP");
   const context = requireSafetyContext();
   if (!receipt.createdByRun || !same(context, receipt)) hold("DROP_CONTEXT_MISMATCH");
   const safeName = quote(receipt.name, pattern);
@@ -122,8 +131,9 @@ export async function createRunSchema(pool: SafetyPool, schema: string): Promise
   // Marker characters are strictly generated from validated hex + fixed chars.
   // Failed marker write => CLEANUP_HOLD, never blind rollback/drop.
   await pool.query(`COMMENT ON SCHEMA ${safe} IS '${schemaMarker(ctx)}'`);
-  await requireOwnedSchema(pool, schema, ctx);
-  emit("S1_CREATE_CONFIRMED", { schema });
+  const owned = await requireOwnedSchema(pool, schema, ctx);
+  createdSchemaReceipts.set(schema, { ...ctx, schema, oid: owned.oid, owner: owned.owner });
+  emit("S1_CREATE_CONFIRMED", { schema, oid: owned.oid, owner: owned.owner });
 }
 export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
@@ -140,8 +150,14 @@ export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<v
   const ctx = requireSafetyContext();
   const safe = safeS1Name(schema, ctx);
   const existing = await requireOwnedSchema(pool, schema, ctx);
+  const receipt = createdSchemaReceipts.get(schema);
+  if (!receipt || receipt.schema !== schema || receipt.oid !== existing.oid ||
+      receipt.owner !== existing.owner || !same(receipt, ctx)) {
+    hold("S1_MISSING_POSITIVE_CREATE_RECEIPT");
+  }
   emit("S1_DROP_ALLOWED", { schema, oid: existing.oid, owner: existing.owner });
   await pool.query(`DROP SCHEMA ${safe} CASCADE`);
   if (await schemaIdentity(pool, schema)) hold("S1_DROP_NOT_CONFIRMED");
+  createdSchemaReceipts.delete(schema);
   emit("S1_DROP_CONFIRMED", { schema, oid: existing.oid, owner: existing.owner });
 }
