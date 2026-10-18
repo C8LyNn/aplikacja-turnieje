@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {test} from 'node:test';
 const get = p => readFileSync(p,'utf8');
+const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, '');
 
 test('Pack20 action plan never grants permission or performs writes',()=>{
   const s=get('artifacts/api-server/src/domain/tournament/se-correction-action-plan.ts');
@@ -12,7 +13,7 @@ test('Pack20 action plan never grants permission or performs writes',()=>{
 });
 test('Readiness endpoint keeps a read-only repeatable-read transaction',()=>{
   const s=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
+  assert.match(withoutComments(s),/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
   assert.match(s,/deriveSeCorrectionActionPlan\(/);
   assert.doesNotMatch(s,/\.insert\(|\.update\(|\.delete\(/);
 });
@@ -42,4 +43,36 @@ test('No unexpected SE mutation route was added',()=>{
   const s=get('artifacts/api-server/src/routes/index.ts');
   assert.doesNotMatch(s,/tournament-se-correction-execute/);
   assert.ok(existsSync('artifacts/api-server/src/domain/tournament/se-correction-action-plan.ts'));
+});
+
+test('Pack20 snapshot contract rejects missing or downgraded transaction protections',()=>{
+  const source=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
+  const contract=/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/;
+  assert.match(withoutComments(source),contract);
+  const reordered=source.replace(/isolationLevel\s*:\s*["']repeatable read["']\s*,\s*accessMode\s*:\s*["']read only["']/, 'accessMode:"read only", isolationLevel:"repeatable read"');
+  assert.notEqual(reordered,source);
+  assert.match(withoutComments(reordered),contract);
+  for (const [pattern,replacement] of [
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, 'isolationLevel:"read committed"'],
+    [/\baccessMode\s*:\s*["']read only["']/, 'accessMode:"read write"'],
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, ''],
+    [/\baccessMode\s*:\s*["']read only["']/, ''],
+    [/\baccessMode\s*:\s*["']read only["']/, 'accessMode:"read only",accessMode:"read write"'],
+    [/\bisolationLevel\s*:\s*["']repeatable read["']/, 'isolationLevel:"repeatable read",isolationLevel:"read committed"'],
+  ]) {
+    const invalid=source.replace(pattern,replacement);
+    assert.notEqual(invalid,source);
+    assert.doesNotMatch(withoutComments(invalid),contract);
+  }
+});
+
+test('Pack20 rejects read-only transaction options spoofed inside a comment',()=>{
+  const source=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
+  const unsafe=source.replace(/\baccessMode\s*:\s*["']read only["']/,'accessMode:"read write"');
+  assert.notEqual(unsafe,source,'must mutate the actual transaction');
+  const commentSpoof=unsafe+'\n// }, {isolationLevel:"repeatable read",accessMode:"read only"})';
+  const contract=/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/;
+  assert.doesNotMatch(withoutComments(commentSpoof),contract,'comment-only valid options must not count as read-only');
+  const blockSpoof=unsafe+'\n/* }, {isolationLevel:"repeatable read",accessMode:"read only"}) */';
+  assert.doesNotMatch(withoutComments(blockSpoof),contract,'block comment may not satisfy transaction contract');
 });

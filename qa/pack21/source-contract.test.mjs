@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync,existsSync} from "node:fs";
 import {test} from "node:test";
 const get=p=>readFileSync(p,"utf8");
+const withoutComments = source => source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*/g, '');
 test("diagnostic never authorizes a SE write",()=>{
   const s=get("artifacts/api-server/src/domain/tournament/se-correction-diagnostic.ts");
   assert.match(s,/executionEnabled:false/);assert.match(s,/writePerformed:false/);
@@ -12,7 +13,7 @@ test("diagnostic never authorizes a SE write",()=>{
 test("diagnostic generated inside one read-only repeatable-read DB snapshot",()=>{
   const s=get("artifacts/api-server/src/routes/tournament-se-correction-readiness.ts");
   assert.match(s,/deriveSeCorrectionDiagnostic\(/);
-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
+  assert.match(withoutComments(s),/\},\s*\{(?=[^{}]*\bisolationLevel\s*:\s*["']repeatable read["'])(?=[^{}]*\baccessMode\s*:\s*["']read only["'])(?![^{}]*\baccessMode\s*:[^{}]*\baccessMode\s*:)(?![^{}]*\bisolationLevel\s*:[^{}]*\bisolationLevel\s*:)[^{}]*\}\s*\)/);
   assert.doesNotMatch(s,/\btx\.(?:update|insert|delete)\s*\(/);
 });
 test("assessment is tied to original completion action and proposed score",()=>{
