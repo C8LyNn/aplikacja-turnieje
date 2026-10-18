@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
+import { createRunDatabase, dropRunDatabase, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -77,6 +78,7 @@ let adminPool: QueryPool;
 let pools: Record<"dev" | "prod" | "fresh", QueryPool>;
 let urls: Record<"dev" | "prod" | "fresh", string>;
 let databaseNames: Record<"dev" | "prod" | "fresh", string>;
+const createdDatabaseReceipts: Partial<Record<"dev" | "prod" | "fresh", CreatedDatabaseReceipt>> = {};
 
 function quoteIdentifier(identifier: string): string {
   if (
@@ -494,8 +496,8 @@ before(async () => {
   pools = {} as typeof pools;
 
   for (const label of ["dev", "prod", "fresh"] as const) {
-    await adminPool.query(
-      `CREATE DATABASE ${quoteIdentifier(databaseNames[label])}`,
+    createdDatabaseReceipts[label] = await createRunDatabase(
+      adminPool, databaseNames[label], DATABASE_NAME_PATTERN,
     );
     const url = new URL(baseUrl);
     url.pathname = `/${databaseNames[label]}`;
@@ -514,13 +516,14 @@ after(async () => {
   if (pools) {
     await Promise.allSettled(Object.values(pools).map((pool) => pool.end()));
   }
-  if (adminPool && databaseNames) {
-    for (const databaseName of Object.values(databaseNames)) {
-      await adminPool.query(
-        `DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)} WITH (FORCE)`,
-      );
+  if (adminPool) {
+    try {
+      for (const label of ["dev", "prod", "fresh"] as const) {
+        await dropRunDatabase(adminPool, createdDatabaseReceipts[label], DATABASE_NAME_PATTERN);
+      }
+    } finally {
+      await adminPool.end();
     }
-    await adminPool.end();
   }
 });
 
