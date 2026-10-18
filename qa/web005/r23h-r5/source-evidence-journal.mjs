@@ -7,7 +7,7 @@
 import { openSync, writeSync, fsyncSync, closeSync, readFileSync, lstatSync } from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
 const DIR="/run/web005/evidence";
-const valid=x=>typeof x==="string" && /^[a-z0-9_:-]{1,120}$/.test(x);
+const valid=x=>typeof x==="string" && /^[A-Za-z0-9_:-]{1,120}$/.test(x);
 function stop(message){throw new Error("WEB005_CLEANUP_HOLD:JOURNAL_"+message)}
 function checkedDir(){
  let d;try{d=lstatSync(DIR)}catch{stop("MISSING_DIR")}
