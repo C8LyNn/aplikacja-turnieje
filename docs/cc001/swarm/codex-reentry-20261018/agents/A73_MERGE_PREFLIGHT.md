@@ -1,3 +1,9 @@
+> **WAŻNE — IDENTITY LOCK / WERSJA POPRAWIONA**
+> Ten starszy plik zawiera szczegółowy opis techniczny, ale NIE JEST punktami wejścia. Najpierw otwórz **[ROLE_LOCK_A73.md](../ROLE_LOCK_A73.md)**.
+> **TEN AGENT = A73 | ISSUE #136 | GATE READY NOW.** Nie jesteś A10. Nie zgaduj numeru agenta z pozostałych dokumentów.
+> Pierwszy wiersz odpowiedzi: `IDENTITY_OK | CC-001 | A73 | ISSUE #136 | READY NOW`.
+> Gdy historia sesji jednoznacznie wskazuje innego agenta, wstrzymaj zapis i zgłoś `IDENTITY_CONFLICT`.
+
 # CODEX TASK — A73 / Exact W3 branch + conflict preflight
 PROJECT: CC-001 — Core Clash Unity; WAVE: R17-W4 recovery
 ISSUE: https://github.com/C8LyNn/aplikacja-turnieje/issues/136
