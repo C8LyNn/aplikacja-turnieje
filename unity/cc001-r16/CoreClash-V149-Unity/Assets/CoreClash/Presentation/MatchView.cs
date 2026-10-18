@@ -10,6 +10,7 @@ namespace CoreClash.Presentation
         void RenderMatch()
         {
             var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback);
+            if(layout.CompactLandscape){RenderCompactLandscape();return;}
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
             bool touch=UiViewport.TargetSize>=44;
@@ -38,6 +39,75 @@ namespace CoreClash.Presentation
             else if(state.phase==MatchPhase.Moving&&Time.unscaledTime-releasedAt<3){Draw.Round(new Rect(0,y+32,w,5),Draw.Edge);Draw.Round(new Rect(0,y+32,w*lastPower,5),Draw.Owner(state.turn));}
             else Draw.Text(new Rect(0,y+27,w,38),state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.",12,Draw.Muted);
             GUI.EndScrollView();
+        }
+        // Compact phone landscape does not use the 810-unit desktop scroll view.
+        // Every critical control is drawn from testable MatchLayout rectangles.
+        void RenderCompactLandscape()
+        {
+            var state=Simulation.State;
+            int owner=state.turn;
+            Draw.Surface(side,Draw.Panel);
+            Rect hud=RectOf(layout.CompactHud),choice=RectOf(layout.CompactChoice);
+            Rect cards=RectOf(layout.CompactCards),actions=RectOf(layout.CompactActions);
+            Rect feedbackRow=RectOf(layout.CompactFeedback);
+            Hud(new Rect(hud.x,hud.y,hud.width*.67f,hud.height),true);
+            Draw.Surface(new Rect(hud.x+hud.width*.67f+3,hud.y,hud.width*.33f-3,hud.height),Draw.PanelLight,Draw.Owner(owner));
+            string phase=state.phase==MatchPhase.Over?(state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS"):
+                state.phase==MatchPhase.Moving?"MOVING":state.bonusPending?"BONUS":"AIM";
+            float turnX=hud.x+hud.width*.67f+6,turnW=hud.width*.33f-10;
+            Draw.Text(new Rect(turnX,hud.y+3,turnW,17),state.phase==MatchPhase.Over?"RESULT":"TURN "+state.turnNumber+"/50",13,Draw.Owner(owner),TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(turnX,hud.y+22,turnW,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
+
+            Draw.Surface(choice,Draw.PanelLight);
+            string name=state.phase==MatchPhase.Over?TurnText():Catalog.Ball(selected).name;
+            Draw.Text(new Rect(choice.x+8,choice.y+2,choice.width-138,22),name,14,Color.white,TextAnchor.MiddleLeft,true);
+            string hint=state.phase==MatchPhase.Over?state.resultReason:
+                notice.Length>0?notice:boardInspection?"TAP BALL TO INSPECT":
+                state.phase==MatchPhase.Moving?"SHOT RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"DRAG FROM LAUNCHER";
+            Draw.Text(new Rect(choice.x+8,choice.y+23,choice.width-138,20),hint,11,Draw.Muted,TextAnchor.MiddleLeft);
+            if(Draw.Button(new Rect(choice.xMax-124,choice.y,124,44),"STANDARD",Draw.Owner(owner),selected=="normal",CanChoose,12))SelectBall("normal");
+
+            if(state.phase==MatchPhase.Over){
+                Draw.Surface(cards,Draw.PanelLight,Draw.Gold);
+                Draw.Text(Draw.Inset(cards,6),state.resultReason.Length>0?state.resultReason:TurnText(),12,Draw.Gold,TextAnchor.MiddleCenter,true);
+            }else{
+                float arrow=44,cardW=106,gap=6;
+                var ids=state.players[owner].stock.Select(s=>s.id).ToArray();
+                float viewW=cards.width-arrow*2-12;
+                float fullW=Math.Max(viewW,ids.Length*(cardW+gap)-gap);
+                float max=Math.Max(0,fullW-viewW);
+                trayScroll.x=Mathf.Clamp(trayScroll.x,0,max);
+                if(Draw.Button(new Rect(cards.x,cards.y,arrow,cards.height),"<",enabled:trayScroll.x>0,size:22))trayScroll.x=Math.Max(0,trayScroll.x-(cardW+gap)*2);
+                if(Draw.Button(new Rect(cards.xMax-arrow,cards.y,arrow,cards.height),">",enabled:trayScroll.x<max,size:22))trayScroll.x=Math.Min(max,trayScroll.x+(cardW+gap)*2);
+                trayScroll=Draw.ScrollView(new Rect(cards.x+arrow+6,cards.y,viewW,cards.height),trayScroll,new Rect(0,0,fullW,cards.height),true);
+                for(int i=0;i<ids.Length;i++)CompactBallCard(new Rect(i*(cardW+gap),0,cardW,cards.height),ids[i]);
+                GUI.EndScrollView();
+            }
+
+            float actionW=(actions.width-8)/3;
+            if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),"DETAILS",size:12))ShowBallDetails(selected);
+            if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?"CANCEL":"INSPECT",selected:boardInspection,size:12))SetBoardInspection(!boardInspection);
+            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),"SETUP",size:12))ReturnToSetup();
+            if(feedbackRow.height>=20){
+                string message=state.phase==MatchPhase.Over?TurnText():
+                    notice.Length>0?notice:boardInspection?"CANCEL INSPECT TO AIM":
+                    state.phase==MatchPhase.Moving?"SHOT RELEASED / RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"SELECT A BALL AND DRAG TO AIM";
+                Draw.Text(feedbackRow,message,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(owner),TextAnchor.MiddleLeft,true);
+            }
+        }
+        void CompactBallCard(Rect r,string id)
+        {
+            int owner=Simulation.State.turn,stock=Simulation.Stock(owner,id);
+            bool picked=id==selected,available=stock>0,canClick=CanChoose&&available;
+            var tint=Draw.Owner(owner);
+            Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,tint,.2f):Draw.PanelLight,picked?tint:Draw.Edge);
+            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;
+            if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);
+            GUI.enabled=prior;
+            float orb=Math.Min(32,r.height-12);
+            BallView.Preview(new Rect(r.x+5,r.y+(r.height-orb)/2,orb,orb),Catalog.Ball(id),owner,picked);
+            Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(35,r.height-17)),Catalog.Ball(id).name,10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(r.x+orb+9,r.yMax-19,r.width-orb-13,17),available?"x"+stock:"EMPTY",11,available?tint:Draw.Muted,TextAnchor.MiddleLeft,true);
         }
         void RenderPhoneTray()
         {
