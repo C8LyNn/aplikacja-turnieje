@@ -6,6 +6,7 @@ export function redactEvidence(value) {
   return String(value)
     .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
     .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>]+/gi, '[URL REDACTED]')
+    .replace(/\b(Basic)(\s+)[A-Za-z0-9+/_-]+={0,2}/gi, '$1$2[REDACTED]')
     .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+/gi, 'Bearer [REDACTED]')
     .replace(/\b([A-Za-z_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY)[A-Za-z_]*)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1=[REDACTED]')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
