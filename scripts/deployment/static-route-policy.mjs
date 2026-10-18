@@ -2,7 +2,9 @@
  * WEB-005 Issue #70: pure static/SPA route classifier.
  *
  * Adapter contract: caller MUST use an accurate built-public-root existence
- * check and MUST translate `not_found` to an actual HTTP 404. This module
+ * check and MUST translate `not_found` to an actual HTTP 404. The existence
+ * checker MUST return a synchronous boolean; Promise/thenable/non-boolean
+ * results and exceptions fail closed to `not_found`. This module
  * performs no filesystem, network or deployment operations and is not wired
  * into the current Replit static deployment.
  */
@@ -26,9 +28,25 @@ function inPrefix(pathname, prefix) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+/** Safely determine existence without accidentally treating a Promise as true. */
+function checkedExists(exists, path) {
+  try {
+    const result = exists(path);
+    if (typeof result === 'boolean') return result;
+    // A rejected async probe must not cause an unhandledRejection in callers
+    // of a synchronous helper. Its result remains untrusted either way.
+    if (result !== null && (typeof result === 'object' || typeof result === 'function')) {
+      void Promise.resolve(result).catch(() => {});
+    }
+  } catch {
+    // A storage/access error is never evidence that the asset exists.
+  }
+  return null; // UNKNOWN, distinct from a confirmed synchronous false.
+}
+
 /**
  * @param {string} urlPath Requested URL path, optionally with query string.
- * @param {(path:string) => boolean} exists Does this exact built public file exist?
+ * @param {(path:string) => boolean} exists Synchronous existence predicate; other results deny.
  * @returns {{kind:'static', path:string}|{kind:'spa', path:'/index.html'}|{kind:'not_found'|'invalid_path',path:string}}
  */
 export function resolveStaticRoute(urlPath, exists) {
@@ -55,14 +73,19 @@ export function resolveStaticRoute(urlPath, exists) {
   }
 
   // Existing assets ALWAYS win over SPA fallbacks (including binary Unity files).
-  if (exists(decoded)) return { kind: 'static', path: decoded };
+  const directlyPresent = checkedExists(exists, decoded);
+  if (directlyPresent === null) return { kind: 'not_found', path: decoded };
+  if (directlyPresent) return { kind: 'static', path: decoded };
 
   // Only known, physically present directory indexes receive a clean URL.
   const directory = decoded.endsWith('/') && decoded !== '/'
     ? decoded.slice(0, -1) : decoded;
   const index = STATIC_DIRECTORIES.get(directory);
   if (index) {
-    return exists(index) ? { kind: 'static', path: index } : { kind: 'not_found', path: decoded };
+    const indexPresent = checkedExists(exists, index);
+    return indexPresent === true
+      ? { kind: 'static', path: index }
+      : { kind: 'not_found', path: decoded };
   }
 
   // Static namespaces MUST fail closed when their requested file is absent.
