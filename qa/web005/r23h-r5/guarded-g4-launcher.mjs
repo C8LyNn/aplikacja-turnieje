@@ -10,6 +10,7 @@ import { createPublicKey, verify as verifySignature } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { requireVerifiedSourceContext } from "./signed-source-context.mjs";
 
 const SOURCE_ONLY_LOCK = true;
 const TRUSTED_ED25519_PUBLIC_KEYS = Object.freeze({}); // external issuer keys NOT PROVIDED
@@ -173,6 +174,14 @@ export function verifyFutureExecutionPlan(plan) {
  */
 export async function sourceOnlyMain() {
   assertUntaintedParentEnv(process.env);
+  // Source verifier cryptographically authenticates role quorum and scoped
+  // physical claims. Trust roots intentionally absent, hence guaranteed HOLD.
+  const claims = requireVerifiedSourceContext();
+  assertSealedTarget({
+    host:claims.host, port:claims.port,network_mode:claims.network_mode,
+    host_ports:0, pg_major:16,rootfs_read_only:true,caps_dropped:true,
+    unique_pgdata_attested:true,cluster_system_identifier:claims.system_identifier,
+  });
   if (SOURCE_ONLY_LOCK) stop("STOP_SOURCE_ONLY_NO_G4_AUTHORIZATION");
   stop("STOP_MISSING_EXTERNAL_ATOMIC_LEDGER_AND_PHYSICAL_OBSERVER");
 }
