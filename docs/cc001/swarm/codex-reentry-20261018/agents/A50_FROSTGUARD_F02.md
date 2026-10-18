@@ -1,3 +1,9 @@
+> **WAŻNE — IDENTITY LOCK / WERSJA POPRAWIONA**
+> Ten starszy plik zawiera szczegółowy opis techniczny, ale NIE JEST punktami wejścia. Najpierw otwórz **[ROLE_LOCK_A50.md](../ROLE_LOCK_A50.md)**.
+> **TEN AGENT = A50 | ISSUE #138 | GATE READY NOW.** Nie jesteś A10. Nie zgaduj numeru agenta z pozostałych dokumentów.
+> Pierwszy wiersz odpowiedzi: `IDENTITY_OK | CC-001 | A50 | ISSUE #138 | READY NOW`.
+> Gdy historia sesji jednoznacznie wskazuje innego agenta, wstrzymaj zapis i zgłoś `IDENTITY_CONFLICT`.
+
 # CODEX TASK — A50 / Frostguard F02 coordinated physics repair
 PROJECT: CC-001 — Core Clash Unity; WAVE: R17-W4 recovery
 ISSUE: https://github.com/C8LyNn/aplikacja-turnieje/issues/138
