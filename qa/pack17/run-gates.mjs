@@ -6,6 +6,7 @@
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { assertCompleteTap, assertSafeTestDatabaseEnv } from './gate-contract.mjs';
+import { firstFailureEvidence } from './failure-evidence.mjs';
 
 const mode = process.argv[2];
 if (process.argv.length !== 3 || !['--static', '--integration', '--full'].includes(mode)) {
@@ -40,12 +41,28 @@ function run(name, cmd, args, { tapSummaries = 0 } = {}) {
     encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
     shell: process.platform === 'win32', env: process.env,
   });
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
-  if (result.error || result.signal || result.status !== 0) {
-    console.error('BLOCKED: ' + name + ' execution failed', result.error?.message ?? ('exit ' + result.status + '; signal ' + (result.signal ?? 'none')));
+  // In a large full-suite run GitHub Actions can truncate high-volume TAP
+  // before the actual failing test. Keep raw child stdout/stderr in memory for
+  // assertCompleteTap; emit only short redacted evidence to shared CI logs.
+  const failed = Boolean(result.error || result.signal || result.status !== 0);
+  if (failed) {
+    const evidence = firstFailureEvidence(result.stdout, result.stderr);
+    console.error('FIRST_FAILING_TAP: ' + (evidence.firstFailingTap ?? 'NOT_FOUND_IN_CAPTURED_OUTPUT'));
+    if (evidence.firstDiagnostic) console.error('FIRST_TAP_DIAGNOSTIC: ' + evidence.firstDiagnostic);
+    console.error('TAP_COUNTERS: ' + JSON.stringify(evidence.summary));
+    console.error('CAPTURE_METADATA: ' + JSON.stringify({
+      stdoutChars:evidence.stdoutChars,stderrChars:evidence.stderrChars,
+      stderrKind:evidence.stderrKind,
+    }));
+    console.error('BLOCKED: ' + name + ' execution failed', result.error?.code ?? ('exit ' + result.status + '; signal ' + (result.signal ?? 'none')));
+    // No raw SQL credentials, HTTP headers, private fixtures or CI secrets.
     process.exit(result.status || 1);
   }
+  // Successful tests are summarized by assertCompleteTap below; dumping all
+  // passing subtests would exhaust the shared workflow log budget.
+  console.log('CAPTURED ' + name + ': stdout chars ' +
+    String(result.stdout ?? '').length + ', stderr chars ' +
+    String(result.stderr ?? '').length);
   if (tapSummaries) {
     try {
       const evidence = assertCompleteTap(result.stdout, tapSummaries);
