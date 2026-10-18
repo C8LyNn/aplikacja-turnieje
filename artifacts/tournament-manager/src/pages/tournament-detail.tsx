@@ -45,7 +45,7 @@ import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
 import { StageBasketsPanel } from "@/components/stage-baskets-panel";
-import { parseTournamentBackupFile } from "@/lib/backup-file";
+import { useScopedBackupPreview } from "@/hooks/use-scoped-backup-preview";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
@@ -227,15 +227,37 @@ export default function TournamentDetail() {
     else if (role === "support" && tournament.hasSupportPassword) setShowSupModal(true);
   }, [tournament?.hasOrganizerPassword, tournament?.hasSupportPassword, isAuthenticated, role]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Backup state
+  // Backup preview and newly entered credentials belong to one tournament context.
+  // The owner gate prevents a stale A form from even rendering during a B rerender,
+  // before passive route-change cleanup runs.
   const [isExporting, setIsExporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<any>(null);
+  const [backupContextId, setBackupContextId] = useState(id);
+  const [storedImportPreview, setImportPreview] = useState<any>(null);
   const [importPending, setImportPending] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [restoreOrganizerPassword, setRestoreOrganizerPassword] = useState("");
-  const [restoreViewerPassword, setRestoreViewerPassword] = useState("");
-  const [restoreSupportPassword, setRestoreSupportPassword] = useState("");
+  const [storedImportError, setImportError] = useState<string | null>(null);
+  const [storedOrganizerPassword, setRestoreOrganizerPassword] = useState("");
+  const [storedViewerPassword, setRestoreViewerPassword] = useState("");
+  const [storedSupportPassword, setRestoreSupportPassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importPreview = backupContextId === id ? storedImportPreview : null;
+  const importError = backupContextId === id ? storedImportError : null;
+  const restoreOrganizerPassword = backupContextId === id ? storedOrganizerPassword : "";
+  const restoreViewerPassword = backupContextId === id ? storedViewerPassword : "";
+  const restoreSupportPassword = backupContextId === id ? storedSupportPassword : "";
+  const backupReader = useScopedBackupPreview(id, {
+    onPreview: value => { setImportPreview(value); setImportError(null); },
+    onError: message => { setImportPreview(null); setImportError(message); },
+  });
+  useEffect(() => {
+    backupReader.invalidate();
+    setBackupContextId(id);
+    setImportPreview(null);
+    setImportError(null);
+    setRestoreOrganizerPassword("");
+    setRestoreViewerPassword("");
+    setRestoreSupportPassword("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [newPlayerName, setNewPlayerName] = useState("");
   const [addPlayerError, setAddPlayerError] = useState<string | null>(null);
@@ -345,24 +367,21 @@ export default function TournamentDetail() {
   };
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    backupReader.invalidate();
+    setBackupContextId(id);
     setImportError(null);
     setImportPreview(null);
+    setRestoreOrganizerPassword("");
+    setRestoreViewerPassword("");
+    setRestoreSupportPassword("");
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (!file) return;
     if (!file.name.endsWith(".json")) {
       setImportError("Nieprawidłowy format pliku. Wybierz plik .json z backupem TM_SYS.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const parsed = parseTournamentBackupFile(String(ev.target?.result ?? ""));
-      if (!parsed.ok) {
-        setImportError(parsed.error);
-        return;
-      }
-      setImportPreview(parsed.backup);
-    };
-    reader.readAsText(file);
+    backupReader.read(file);
   };
 
   const handleImportConfirm = () => {
@@ -1680,6 +1699,7 @@ export default function TournamentDetail() {
                           {importPending ? "Przywracanie…" : "Przywróć turniej"}
                         </Button>
                         <Button variant="outline" onClick={() => {
+                          backupReader.invalidate();
                           setImportPreview(null);
                           setImportError(null);
                           setRestoreOrganizerPassword("");
