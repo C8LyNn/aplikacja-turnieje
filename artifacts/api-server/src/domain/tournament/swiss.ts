@@ -72,8 +72,10 @@ function chooseScoreFirstPairs(
   }
 
   // Bounded deterministic fallback above 16 entrants. Start with score-first
-  // greedy matching, then allow at most FOUR strictly improving cross-pair
-  // exchanges. Polynomial, always complete, no claim of global optimality.
+  // greedy matching, then do at most FOUR full improvement sweeps. Each sweep
+  // can repair multiple independent rematches (one swap per left slot), rather
+  // than stopping after only four swaps for the entire tournament. Polynomial,
+  // deterministic and complete; still no global optimum guarantee.
   const remaining = [...ids];
   const pairs: Pair[] = [];
   while (remaining.length > 0) {
@@ -88,8 +90,8 @@ function chooseScoreFirstPairs(
   }
   for (let pass = 0; pass < FALLBACK_SWAP_PASSES; pass += 1) {
     let improved = false;
-    outer: for (let left = 0; left < pairs.length; left += 1) {
-      for (let right = left + 1; right < pairs.length; right += 1) {
+    for (let left = 0; left < pairs.length; left += 1) {
+      rightSearch: for (let right = left + 1; right < pairs.length; right += 1) {
         const a = pairs[left], b = pairs[right];
         const aCost = cost(a), bCost = cost(b);
         const oldCost = {
@@ -109,7 +111,7 @@ function chooseScoreFirstPairs(
             pairs[left] = first;
             pairs[right] = second;
             improved = true;
-            break outer;
+            break rightSearch;
           }
         }
       }
