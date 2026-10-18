@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { requireSafetyContext, resetRunSchema, dropRunSchema } from "./pg16-test-ownership";
 
 const RESET_CONFIRMATION = "DROP_TM_TEST_SCHEMA";
 const SAFE_SCHEMA_PATTERN = /^tm_test_[a-z0-9_]+$/;
@@ -169,7 +170,11 @@ export function getSafeTestDatabaseConfig(env: NodeJS.ProcessEnv = process.env):
     );
   }
 
-  const schema = env.TEST_DATABASE_SCHEMA ?? "tm_test_access";
+  const context = requireSafetyContext(env);
+  const schema = env.TEST_DATABASE_SCHEMA;
+  if (schema !== `tm_test_${context.runId}`) {
+    throw new Error("WEB005_CLEANUP_HOLD:S1 schema must be bound to the sealed run.");
+  }
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
     throw new Error("TEST_DATABASE_SCHEMA must match ^tm_test_[a-z0-9_]+$ and cannot be public.");
   }
@@ -186,8 +191,7 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
   assertSafeTestSchema(schema);
   let schemaCreated = false;
   try {
-    await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-    await pool.query(`CREATE SCHEMA "${schema}"`);
+    await resetRunSchema(pool, schema);
     schemaCreated = true;
     await pool.query(`SET search_path TO "${schema}"`);
     const migrationSql = renderSeriesV1MigrationForTestSchema(
@@ -414,18 +418,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       throw error;
     }
   } catch (error) {
-    if (schemaCreated) {
-      try {
-        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      } catch {
-        // Preserve the original setup error; cleanup will be retried on the next run.
-      }
-    }
+    // Preserve partial migration and catalog state after failed setup.
+    // No destructive best-effort cleanup, retries or silent suppression.
+    console.error("[WEB005_SAFETY] S1_SETUP_FAILED_CLEANUP_HOLD", schema, schemaCreated);
     throw error;
   }
 }
 
 export async function dropTestSchema(pool: TestPool, schema: string): Promise<void> {
   assertSafeTestSchema(schema);
-  await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+  await dropRunSchema(pool, schema);
 }
