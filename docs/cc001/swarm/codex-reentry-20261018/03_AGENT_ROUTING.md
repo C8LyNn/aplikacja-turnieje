@@ -1,29 +1,35 @@
-# R17-W4 — Agent routing and session map
+# CC-001 R17-W4 — ROLE-LOCKED AGENT ROUTING
 
-Use the five READY prompts below in **five independent Codex sessions/worktrees**. Each agent re-reads the W4 master dispatch, its existing Issue and the current branch HEAD before acting. Other workstreams must not wait for independent ones.
+**KRYTYCZNE:** To jest mapa, NIE uniwersalny prompt do wykonania. Zawsze wklej konkretny `ROLE_LOCK_<ID>.md`, a nie opis zbiorowy. Obecna fala R17-W4 nie jest zamknięta i nie tworzymy W5.
 
-| Agent | Existing Issue | Existing work branch | Prompt file | Expected real deliverable |
-| --- | --- | --- | --- | --- |
-| A60 SOURCE G0 | https://github.com/C8LyNn/aplikacja-turnieje/issues/126 | feat/cc001-r17-w3-a60-baseline-qa | agents/A60_SOURCE_ADMISSION.md | Independent source-only PASS/HOLD report on original A60 branch |
-| A73 MERGE PREFLIGHT | https://github.com/C8LyNn/aplikacja-turnieje/issues/136 | feat/cc001-r17-w4-a73-merge-preview | agents/A73_MERGE_PREFLIGHT.md | Actual read-only post-W3 ancestry/path/conflict report |
-| A72 MANAGED CI | https://github.com/C8LyNn/aplikacja-turnieje/issues/113 | feat/cc001-r17-w4-a72-managed-ci | agents/A72_MANAGED_CI.md | Executable opt-in .NET9 CI workflow/script and honest test results |
-| A40 LIFECYCLE | https://github.com/C8LyNn/aplikacja-turnieje/issues/92 | feat/cc001-r17-w4-a40-lifecycle-return | agents/A40_LIFECYCLE_IMPLEMENTATION.md | Narrow implemented/test-authored lifecycle/RETURN deltas or exact documented scope blockage |
-| A50 FROSTGUARD | https://github.com/C8LyNn/aplikacja-turnieje/issues/138 | feat/cc001-r17-w4-a50-f02-physics | agents/A50_FROSTGUARD_F02.md | Minimal F02 production fix, red/green evidence or precise NOT_RUN |
+| **A60-G0** | Independent QA G0 | [Issue #126](https://github.com/C8LyNn/aplikacja-turnieje/issues/126) | [ROLE_LOCK_A60-G0.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-G0.md) | READY NOW |
+| **A73** | Git Integration | [Issue #136](https://github.com/C8LyNn/aplikacja-turnieje/issues/136) | [ROLE_LOCK_A73.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A73.md) | READY NOW |
+| **A72** | Build & CI | [Issue #113](https://github.com/C8LyNn/aplikacja-turnieje/issues/113) | [ROLE_LOCK_A72.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A72.md) | READY NOW |
+| **A40** | Unity Gameplay | [Issue #92](https://github.com/C8LyNn/aplikacja-turnieje/issues/92) | [ROLE_LOCK_A40.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A40.md) | READY NOW |
+| **A50** | Simulation / F02 | [Issue #138](https://github.com/C8LyNn/aplikacja-turnieje/issues/138) | [ROLE_LOCK_A50.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A50.md) | READY NOW |
+| **A70** | Integration / Release | [Issue #137](https://github.com/C8LyNn/aplikacja-turnieje/issues/137) | [ROLE_LOCK_A70.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A70.md) | WAIT |
+| **A71** | Source Integrity | [Issue #140](https://github.com/C8LyNn/aplikacja-turnieje/issues/140) | [ROLE_LOCK_A71.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A71.md) | WAIT |
+| **A74** | Repository Hygiene | [Issue #141](https://github.com/C8LyNn/aplikacja-turnieje/issues/141) | [ROLE_LOCK_A74.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A74.md) | WAIT |
+| **A20** | UX/UI & Game Feel | [Issue #95](https://github.com/C8LyNn/aplikacja-turnieje/issues/95) | [ROLE_LOCK_A20.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A20.md) | WAIT |
+| **A31** | Networking | [Issue #94](https://github.com/C8LyNn/aplikacja-turnieje/issues/94) | [ROLE_LOCK_A31.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A31.md) | WAIT |
+| **A60-CANDIDATE** | Independent Candidate QA | [Issue #139](https://github.com/C8LyNn/aplikacja-turnieje/issues/139) | [ROLE_LOCK_A60-CANDIDATE.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-CANDIDATE.md) | WAIT |
 
-## Shared source ownership (no collisions)
-A60 ONLY docs/cc001/swarm/w3/A60/** and existing #126, READ-ONLY source.
-A73 ONLY docs/cc001/swarm/w4/A73/**, READ-ONLY source.
-A72 ONLY .github/workflows/cc001-r17-managed.yml, scripts/cc001/w4/a72/**, docs/cc001/swarm/w4/A72/**.
-A40 ONLY Unity Core/LifecycleEffects.cs, Core/GameState.cs, Core/AbilityResolver.cs, Core/TurnSystem.cs, Tests/AbilityTests.cs, docs/cc001/swarm/w4/A40/**.
-A50 ONLY Unity Core/ElementalEffects.cs, Physics/CollisionResolver.cs, Tests/ElementalTests.cs, docs/cc001/swarm/w4/A50/**.
+## Jak sprawdzić ID
+W pierwszym wierszu agent musi przedstawić format:
+`IDENTITY_OK | CC-001 | <ID Z KOLUMNY 1> | ISSUE #<NUMER Z KOLUMNY 3> | <DOKŁADNY GATE Z ROLE_LOCK>`
 
-Unity source root is unity/cc001-r16/CoreClash-V149-Unity/. No A40 edit to CollisionResolver.cs; A50 owns it exclusively. Neither A40 nor A50 can edit Tests/Program.cs or frozen V148. Different agent sessions MUST NOT share a writable worktree. Neither a source diff nor new test definitions justify PASS without actual compiler/test runs.
+Dla pierwszego wątku QA: `IDENTITY_OK | CC-001 | A60-G0 | ISSUE #126 | READY NOW`.
+`A10` zamiast `A60-G0` to FAIL — bez wykonania plikowych modyfikacji.
 
-## WAIT roles
-A70 #137 until G0 PASS + accepted A73 report; A71 #140 and A74 #141 after real integrated candidate SHA; A60 #139 after G1/G2; A20 #95 and A31 #94 after suitable G2 physical build. See 05_WAITING_AGENTS.md.
+A60-G0 i A60-CANDIDATE są dwiema fazami TEGO SAMEGO agenta, ale odrębnymi Issue, gałęziami i bramkami. Tylko A60-G0 ma READY.
 
-## Simple text to start each Codex session
+## Bezpieczna izolacja prac
+A60-G0 — tylko source QA docs/cc001/swarm/w3/A60/**.
+A73 — tylko docs/cc001/swarm/w4/A73/**.
+A72 — tylko .github/workflows/cc001-r17-managed.yml + scripts/cc001/w4/a72/** + docs/cc001/swarm/w4/A72/**.
+A40 — tylko pięć Unity lifecycle plików z dispatchu + docs/w4/A40/**.
+A50 — tylko ElementalEffects.cs + CollisionResolver.cs (WYŁĄCZNE) + ElementalTests.cs + docs/w4/A50/**.
+A70/A71/A74/A20/A31/A60-CANDIDATE — WAIT, zgodnie ze swoją unikalną kartą roli.
+A10, A41 i A51 nie mają nowych samodzielnych aktywnych zadań W4 w tej paczce. Kontekst/historyczne raporty A10 nie nadają agentowi tożsamości A10.
 
-PROJECT CC-001 / WAVE R17-W4. Keep existing role and history. Read the W4 MASTER DISPATCH and this Codex re-entry packet, especially 02_VERIFIED_STATE_AND_GATES.md, 04_HANDOFF_AND_TEST_EVIDENCE.md and YOUR OWN agents/Axx file. Refetch your GitHub Issue and branch, perform only your authorized READY task in your own isolated branch/worktree, run honest tests, push exact SHA and report HANDOFF to your existing Issue. No other agent's files, main merge, force push or release.
-
-Append the exact per-agent prompt link to the text above. Reading the complete agent file is mandatory.
+Wszystkie gałęzie istnieją; przed działaniem pobierz na żywo aktualny commit HEAD. Brak merge/main/deploy, żadnych fałszywych PASS.
