@@ -4,11 +4,11 @@ namespace CoreClash.Core
 {
     public sealed partial class AbilityResolver
     {
-        public void EmitReturn(BallRuntime source,BallRuntime target)
+        public void EmitReturn(BallRuntime source,BallRuntime target,string subtype="Returned",PhoenixHandEntry hand=null)
         {
-            if(target==null||Token(target))return;sim.Emit("RETURN",target,"Returned",source?.id??0);
+            if(target==null||Token(target))return;sim.Emit("RETURN",target,subtype,source?.id??0);
             foreach(var b in Living().Where(x=>x.owner==target.owner)){
-                if(b.type=="packheart"&&PerTargetTurn(b,target))sim.Shield(target,5);
+                if(b.type=="packheart"&&PerTargetTurn(b,target)){if(hand!=null)hand.shield+=5;else sim.Shield(target,5);}
                 if(b.type!="gravehide"||b.lastReturnTurn==S.turnNumber)continue;
                 b.lastReturnTurn=S.turnNumber;b.returnStacks=Math.Min(3,b.returnStacks+1);
                 var line=S.lineages.FirstOrDefault(x=>x.id==b.lineageId);if(line==null){line=new LineageRecord{id=b.lineageId};S.lineages.Add(line);}line.returnStacks=b.returnStacks;
@@ -18,6 +18,12 @@ namespace CoreClash.Core
         void DeathObservers(BallRuntime dead)
         {
             foreach(var listener in Living()){
+                if(listener.type=="denmother"&&listener.owner==dead.owner&&Archetype(dead,"beasts")&&!Token(dead)&&listener.lastDenMotherTurn!=S.turnNumber){
+                    // V148 commits the 1/TURN limit before trying safe placement.
+                    listener.lastDenMotherTurn=S.turnNumber;
+                    var brood=Generate(dead,"broodling",5,5);
+                    if(brood!=null){brood.owner=listener.owner;brood.generated=true;}
+                }
                 if(listener.type=="collector"&&!listener.collection.Contains(dead.type)){
                     listener.collection.Add(dead.type);listener.maxHp=Math.Min(40,sim.Catalog.Ball("collector").hp+Math.Min(20,((listener.collection.Count+2)/3)*5));sim.Heal(listener,5);sim.Emit("COLLECT",listener,dead.type);
                 }
@@ -27,7 +33,7 @@ namespace CoreClash.Core
                 }
             }
         }
-        bool DeathSupported(string type)=>new[]{"bonfire","wildfire","soulburst","cascade","singularity","genesis","bomb","deathpulse","frostgrave","martyr","plagueburst","eggsac","swarmcore","conscriptor"}.Contains(type);
+        bool DeathSupported(string type)=>new[]{"bonfire","wildfire","soulburst","cascade","singularity","genesis","bomb","deathpulse","frostgrave","martyr","plagueburst","eggsac","swarmcore","conscriptor","revenant","soulanchor","dirge"}.Contains(type);
         bool TriggerDeathEffect(BallRuntime b)
         {
             if(!DeathSupported(b.type))return false;
@@ -46,8 +52,110 @@ namespace CoreClash.Core
                 case "eggsac":SpawnEggSacBroodlings(b);break;
                 case "swarmcore":SpawnSwarmShards(b);break;
                 case "conscriptor":ConscriptorDeath(b);break;
+                case "revenant":RevenantDeathEffect(b);break;
+                case "soulanchor":SoulAnchorDeathEffect(b);break;
+                case "dirge":DirgeDeathEffect(b);break;
             }
             return true;
+        }
+        // Preserve V148's 230px/1.05s per-entry fire aura without a second SPAWN event.
+        void PhoenixSpawn(BallRuntime b)
+        {
+            b.phoenixEntryTimer=1.05f;
+            b.affectedIds.Clear();
+        }
+        void LifecycleStep(float dt)
+        {
+            foreach(var p in Living().Where(b=>b.type=="phoenix"&&b.phoenixEntryTimer>0).ToArray()){
+                p.phoenixEntryTimer=Math.Max(0,p.phoenixEntryTimer-dt);
+                foreach(var target in Near(p,230)){
+                    if(p.affectedIds.Contains(target.id)||target.dead)continue;
+                    p.affectedIds.Add(target.id);
+                    sim.Damage(target,5,false,p.id);
+                    if(!target.dead)ApplyFire(target,p.owner);
+                }
+            }
+        }
+        void PhoenixDeathEffect(BallRuntime b)
+        {
+            // From frozen V148: short (100) + 18, base damage 12, impulse 390.
+            Explode(b,118,12,390);
+            foreach(var target in Near(b,118))if(!target.dead)ApplyFire(target,b.owner);
+            var hand=new PhoenixHandEntry{owner=b.owner,sourceBallId=b.id,lineageId=b.lineageId,
+                hp=5,maxHp=sim.Catalog.Ball("phoenix").hp,shield=0,
+                createdOwnerTurns=S.players[b.owner].ownerTurns,
+                lastProcessedOwnerTurns=S.players[b.owner].ownerTurns,ready=false};
+            // V148 one-hand-slot policy: replace, do not duplicate the same owner's opportunity.
+            S.phoenixHand.RemoveAll(x=>x.owner==b.owner);
+            S.phoenixHand.Add(hand);
+            EmitReturn(b,b,"REPLAY_RETURN",hand);
+        }
+        void LifecycleHandTurn(int owner)
+        {
+            foreach(var h in S.phoenixHand.Where(x=>x.owner==owner)){
+                int now=S.players[owner].ownerTurns;
+                if(now<=h.lastProcessedOwnerTurns)continue;
+                int steps=now-h.lastProcessedOwnerTurns;
+                h.hp=Math.Min(h.maxHp,h.hp+steps*5);
+                h.lastProcessedOwnerTurns=now;
+                h.ready=now>h.createdOwnerTurns;
+            }
+        }
+        // RETURN:REVIVE is not a board SPAWN. The normal GameSimulation.Spawn API
+        // emits SPAWN and calls OnSpawn; using it would violate the A10 contract.
+        BallRuntime CreateReturnedForm(BallRuntime source,string type,int hp,int maxHp,
+            float desiredX,float desiredY,int lineageId,int life,int reviveGeneration)
+        {
+            if(Living().Length>=256)return null;
+            var d=sim.Catalog.Ball(type);
+            if(d==null||d.hidden||maxHp<=0)return null;
+            if(!FindPlacement(desiredX,desiredY,d.radius,0,180,source.angle,out float x,out float y))return null;
+            var child=new BallRuntime{id=S.nextId++,owner=source.owner,type=type,x=x,y=y,
+                hp=Math.Min(hp,maxHp),maxHp=maxHp,radius=d.radius,mass=d.mass,
+                restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed,
+                lineageId=lineageId,life=life,reviveGeneration=reviveGeneration,
+                generated=false,spawnGrace=.38f,angle=source.angle};
+            S.balls.Add(child);
+            S.replayedIds.Add(child.id);
+            return child;
+        }
+        void RevenantDeathEffect(BallRuntime source)
+        {
+            var pool=sim.Catalog.Data.balls.Where(d=>d!=null&&!d.hidden&&
+                d.id!="revenant"&&d.id!="mirage"&&d.tier!="unique").ToArray();
+            if(pool.Length==0)return;
+            var type=pool[RandomIndex(pool.Length)];
+            var returned=CreateReturnedForm(source,type.id,10,Math.Max(10,type.hp),
+                source.x,source.y,source.lineageId,source.life+1,0);
+            if(returned!=null)EmitReturn(source,returned,"REVIVE");
+        }
+        void SoulAnchorDeathEffect(BallRuntime source)
+        {
+            var record=S.graveyard.LastOrDefault(x=>x.owner==source.owner&&x.ballId!=source.id);
+            if(record==null)return;
+            var returned=CreateReturnedForm(source,record.type,10,record.maxHp,
+                record.x,record.y,record.lineageId,record.life+1,1);
+            if(returned==null)return;
+            var lineage=S.lineages.FirstOrDefault(x=>x.id==record.lineageId);
+            if(lineage!=null){
+                returned.returnStacks=lineage.returnStacks;
+                returned.ancestral=lineage.ancestral;
+                if(returned.ancestral){
+                    returned.maxHp=Math.Max(returned.maxHp,sim.Catalog.Ball(returned.type).hp+10);
+                    returned.mass+=.2f;returned.radius*=1.1f;
+                }
+            }
+            S.graveyard.Remove(record);
+            EmitReturn(source,returned,"REVIVE");
+        }
+        void DirgeDeathEffect(BallRuntime source)
+        {
+            // V148 executable search is GLOBAL, even though legacy metadata says SHORT.
+            var target=Living().Where(x=>x.owner==source.owner&&x.id!=source.id&&
+                x.type!="dirge"&&x.type!="phoenix"&&x.type!="denmother"&&
+                DeathSupported(x.type))
+                .OrderBy(x=>Dist(source,x)).ThenBy(x=>x.id).FirstOrDefault();
+            if(target!=null)TriggerDeathEffect(target); // body only: no DEATH/grave/observers
         }
         void LifecycleStop(BallRuntime b)
         {
