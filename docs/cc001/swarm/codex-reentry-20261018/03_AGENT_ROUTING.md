@@ -1,35 +1,34 @@
-# CC-001 R17-W4 — ROLE-LOCKED AGENT ROUTING
+# CC-001 R17-W4 — Role/Issue/Branch reference (NOT a prompt)
 
-**KRYTYCZNE:** To jest mapa, NIE uniwersalny prompt do wykonania. Zawsze wklej konkretny `ROLE_LOCK_<ID>.md`, a nie opis zbiorowy. Obecna fala R17-W4 nie jest zamknięta i nie tworzymy W5.
+**Paste ONE SAME full universal prompt into every EXISTING CC-001 thread:**
+https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/UNIVERSAL_PROMPT_ALL_THREADS.md
 
-| **A60-G0** | Independent QA G0 | [Issue #126](https://github.com/C8LyNn/aplikacja-turnieje/issues/126) | [ROLE_LOCK_A60-G0.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-G0.md) | READY NOW |
-| **A73** | Git Integration | [Issue #136](https://github.com/C8LyNn/aplikacja-turnieje/issues/136) | [ROLE_LOCK_A73.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A73.md) | READY NOW |
-| **A72** | Build & CI | [Issue #113](https://github.com/C8LyNn/aplikacja-turnieje/issues/113) | [ROLE_LOCK_A72.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A72.md) | READY NOW |
-| **A40** | Unity Gameplay | [Issue #92](https://github.com/C8LyNn/aplikacja-turnieje/issues/92) | [ROLE_LOCK_A40.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A40.md) | READY NOW |
-| **A50** | Simulation / F02 | [Issue #138](https://github.com/C8LyNn/aplikacja-turnieje/issues/138) | [ROLE_LOCK_A50.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A50.md) | READY NOW |
-| **A70** | Integration / Release | [Issue #137](https://github.com/C8LyNn/aplikacja-turnieje/issues/137) | [ROLE_LOCK_A70.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A70.md) | WAIT |
-| **A71** | Source Integrity | [Issue #140](https://github.com/C8LyNn/aplikacja-turnieje/issues/140) | [ROLE_LOCK_A71.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A71.md) | WAIT |
-| **A74** | Repository Hygiene | [Issue #141](https://github.com/C8LyNn/aplikacja-turnieje/issues/141) | [ROLE_LOCK_A74.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A74.md) | WAIT |
-| **A20** | UX/UI & Game Feel | [Issue #95](https://github.com/C8LyNn/aplikacja-turnieje/issues/95) | [ROLE_LOCK_A20.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A20.md) | WAIT |
-| **A31** | Networking | [Issue #94](https://github.com/C8LyNn/aplikacja-turnieje/issues/94) | [ROLE_LOCK_A31.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A31.md) | WAIT |
-| **A60-CANDIDATE** | Independent Candidate QA | [Issue #139](https://github.com/C8LyNn/aplikacja-turnieje/issues/139) | [ROLE_LOCK_A60-CANDIDATE.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-CANDIDATE.md) | WAIT |
+The agent must identify itself solely from earlier direct assignment within THAT existing thread BEFORE opening shared documents. Role table is a lookup, NEVER a way to choose or change role. A60 is not A10.
 
-## Jak sprawdzić ID
-W pierwszym wierszu agent musi przedstawić format:
-`IDENTITY_OK | CC-001 | <ID Z KOLUMNY 1> | ISSUE #<NUMER Z KOLUMNY 3> | <DOKŁADNY GATE Z ROLE_LOCK>`
+| Pre-existing thread role | Current W4 Issue | Assigned branch / source | Gate |
+|---|---|---|---|
+| A60 — QA | #126 | feat/cc001-r17-w3-a60-baseline-qa | READY source G0 |
+| A73 — Git | #136 | feat/cc001-r17-w4-a73-merge-preview | READY |
+| A72 — CI | #113 | feat/cc001-r17-w4-a72-managed-ci | READY |
+| A40 — Gameplay | #92 | feat/cc001-r17-w4-a40-lifecycle-return | READY |
+| A50 — Simulation | #138 | feat/cc001-r17-w4-a50-f02-physics | READY |
+| A70 — Integration | #137 | integration/cc001-r17-w4-disposable-candidate-20261018 | WAIT G0 + A73 |
+| A71 — Integrity | #140 | feat/cc001-r17-w4-a71-candidate-integrity | WAIT candidate |
+| A74 — Hygiene | #141 | feat/cc001-r17-w4-a74-candidate-hygiene | WAIT candidate |
+| A20 — UX | #95 | prior W3 compact layout + gated physical QA | WAIT G2 |
+| A31 — Network | #94 | prior A31 network docs + gated physical QA | WAIT G2 |
+| A60 (future candidate phase) | #139 | feat/cc001-r17-w4-a60-candidate-qa | WAIT candidate G1/G2 |
+| A10/A41/A51/others | none newly assigned | no branch change | NO_TASK |
 
-Dla pierwszego wątku QA: `IDENTITY_OK | CC-001 | A60-G0 | ISSUE #126 | READY NOW`.
-`A10` zamiast `A60-G0` to FAIL — bez wykonania plikowych modyfikacji.
+Do not confuse A60 G0 Issue #126 with future A60 candidate QA Issue #139.
+A10 authored game semantics but is not the owner of A60. Prior contract authors are context only.
 
-A60-G0 i A60-CANDIDATE są dwiema fazami TEGO SAMEGO agenta, ale odrębnymi Issue, gałęziami i bramkami. Tylko A60-G0 ma READY.
+Identity control:
+`IDENTITY_CHECK | CC-001 | A<agent based on this thread's earlier user assignment> | ISSUE #<row above> | READY/WAIT/NO_TASK`.
 
-## Bezpieczna izolacja prac
-A60-G0 — tylko source QA docs/cc001/swarm/w3/A60/**.
-A73 — tylko docs/cc001/swarm/w4/A73/**.
-A72 — tylko .github/workflows/cc001-r17-managed.yml + scripts/cc001/w4/a72/** + docs/cc001/swarm/w4/A72/**.
-A40 — tylko pięć Unity lifecycle plików z dispatchu + docs/w4/A40/**.
-A50 — tylko ElementalEffects.cs + CollisionResolver.cs (WYŁĄCZNE) + ElementalTests.cs + docs/w4/A50/**.
-A70/A71/A74/A20/A31/A60-CANDIDATE — WAIT, zgodnie ze swoją unikalną kartą roli.
-A10, A41 i A51 nie mają nowych samodzielnych aktywnych zadań W4 w tej paczce. Kontekst/historyczne raporty A10 nie nadają agentowi tożsamości A10.
+When the conversation lacks a readable prior agent assignment, write `IDENTITY_CONFLICT — NIE WYKONUJĘ ZMIAN`, do not guess and do not write any files. For an entirely blank new session, one identical prompt cannot create different identities without extra context.
 
-Wszystkie gałęzie istnieją; przed działaniem pobierz na żywo aktualny commit HEAD. Brak merge/main/deploy, żadnych fałszywych PASS.
+Source and task authority:
+https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
+
+No main merge, deployment, force push, frozen R16/V148 mutations, protocol149 change, cross-agent paths or fake runtime test claims.
