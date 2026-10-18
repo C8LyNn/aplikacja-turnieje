@@ -37,3 +37,30 @@ Variant B source commit: record from Draft PR head only; *NOT executed*.
 | A50-R5-EVIDENCE-002 | A SQL ERROR is expected negative assertion with TAP PASS | do not invent first failing test |
 
 **No row represents a passing test.** Safety after state-check-before-DROP still relies on authenticated exclusive cluster writers and A31/A60 review; in-memory receipts and schema comments alone are not cryptographic authorizations.
+
+
+## R5-R2 / A22 SQLR5 source-of-truth IDs
+
+The original A50/A24/A31 legacy IDs remain above for provenance. For **all new evidence and review reports** use the unique `SQLR5-*` identifiers below. **NO CASE EXECUTED**.
+
+| Canonical ID | Injection / question | Required result | Current result |
+|---|---|---|---|
+| SQLR5-S2-01 | Foreign/same-role scratch DB exists before CREATE | NAME_COLLISION; no CREATE, no DROP | DESIGNED / NOT_EXECUTED |
+| SQLR5-S2-02 | CREATE rejected | CREATE_AMBIGUOUS/HOLD (conservative) | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S2-03 | Lost CREATE acknowledgment after server commit | CREATE_AMBIGUOUS, zero FORCE DROP | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S2-04 | CREATE succeeded, catalog SELECT fails | CREATE_AMBIGUOUS, orphan G5 HOLD | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S2-05 | OID or owner/role OID mismatches receipt | PRE_DROP hold | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S2-06 | Same-role replacement/OID reuse/foreign writer | STOP by external exclusive-writer observer | EXTERNAL_P0_PENDING |
+| SQLR5-S2-07 | FORCE blocked/ambiguous SQL reply | DROP_ATTEMPTED, CLEANUP_HOLD, no retry | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S2-08 | dev confirmed, prod ambiguous, fresh not attempted | independent 3-slot ledger; zero further destructive operations | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S1-01 | Existing schema even with copied COMMENT | HOLD; no CASCADE | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S1-02 | Changed S1 OID / owner OID | no CASCADE; durable receipt match | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S1-03 | COMMENT or observer failure after CREATE | CREATE_AMBIGUOUS, hold orphan | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-S1-04 | Cross-schema dependency CASCADE hazard | source partial SQL scanner + independent exhaustive owner closure | P0_PENDING |
+| SQLR5-CTX-01 | Same localhost and role, wrong system identifier | signed G2 physical-attestor mismatch STOP | P0_PENDING |
+| SQLR5-CTX-02 | Inherited PG* / DATABASE_URL / NODE_OPTIONS | STOP before fork; test-children receive allowlisted DSN | SOURCE_GUARD_PARTIAL / NOT_EXECUTED |
+| SQLR5-DRZ-01 | First or second FORCE push emits public DDL | transcript quarantine + signed independent SQL witness | SERVER_WITNESS_PENDING |
+| SQLR5-DRZ-02 | Installed Drizzle CLI/config/lock changed | compare SHA256 against signed context; stop before child | SOURCE-GUARDED / NOT_EXECUTED |
+| SQLR5-MIG-01 | 0030 header expects 0029 but correction fixture omits it | Source dependency map, A22 signed scope decision | REVIEW_PENDING |
+
+**Evidence policy:** text/source gates are not TAP/runtime PASS; a journal written by the same fixture user is not independently tamper-proof. Trust roots are deliberately unprovisioned; all G0–G5 remain HOLD.
