@@ -307,7 +307,11 @@ function syntheticExportSnapshotV3(): Record<string, any> {
 
 test("WAVE4-A90-01: synthetic V3 export snapshot passes real DB-free V3 semantic validator", () => {
   const doc = syntheticExportSnapshotV3();
-  validateBackupV3(doc as any); // REAL source validator, unlike the WAVE3 spies
+  try { validateBackupV3(doc as any); } catch (error) {
+    assert.fail(error instanceof Error && "details" in error
+      ? JSON.stringify((error as { details: string[] }).details)
+      : String(error));
+  } // REAL source validator, unlike WAVE3 spies
   const events: string[] = [];
   const p = spies(events);
   p.validateV3 = (parsed) => {
