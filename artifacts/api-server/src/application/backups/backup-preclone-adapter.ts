@@ -97,6 +97,19 @@ function canonical(value: unknown): string {
   return JSON.stringify(value) ?? "undefined";
 }
 
+/**
+ * The preclone adapter is deliberately synchronous. TypeScript accepts an
+ * async function in a void-returning callback slot, so enforce the *runtime*
+ * contract too: any return value (including Promise/thenable/false) means
+ * semantic or action-local validation has NOT completed synchronously.
+ * Do not await unknown user-controlled callbacks during security preflight.
+ */
+function isThenable(value: unknown): boolean {
+  return (typeof value === "object" && value !== null ||
+    typeof value === "function") &&
+    typeof (value as { then?: unknown }).then === "function";
+}
+
 /** Single raw JSON text entry, side effect free; never return import authority. */
 export function validateRawBackupBeforeClone(
   raw: unknown,
@@ -119,6 +132,7 @@ export function validateRawBackupBeforeClone(
   try {
     untouched = JSON.parse(raw) as unknown;
     parsed = parser(structuredClone(untouched));
+    if (isThenable(parsed)) return decision("PARSER_FAILED", profile);
   } catch {
     return decision("PARSER_FAILED", profile);
   }
@@ -139,7 +153,10 @@ export function validateRawBackupBeforeClone(
 
   let semanticsPassed = false;
   try {
-    semantic(parsed);
+    const completed: unknown = semantic(parsed);
+    if (completed !== undefined) {
+      return decision("SEMANTIC_VALIDATION_FAILED", profile);
+    }
     if (canonical(untouched) !== canonical(parsed)) {
       return decision("SEMANTIC_VALIDATION_FAILED", profile);
     }
@@ -163,7 +180,10 @@ export function validateRawBackupBeforeClone(
     return decision("MISSING_DEPENDENCY", profile, semanticsPassed);
   }
   try {
-    ports.validateActionLocalV3(parsed);
+    const completed: unknown = ports.validateActionLocalV3(parsed);
+    if (completed !== undefined) {
+      return decision("ACTION_LOCAL_CLOSURE_FAILED", profile, semanticsPassed);
+    }
     if (canonical(untouched) !== canonical(parsed)) {
       return decision("ACTION_LOCAL_CLOSURE_FAILED", profile, semanticsPassed);
     }
