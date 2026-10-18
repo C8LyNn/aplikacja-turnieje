@@ -96,3 +96,19 @@ test('Vite bound to loopback does not trigger exposure warning',()=>fixture(({ro
   writeFileSync(vite,"server: { host: '127.0.0.1', allowedHosts: ['localhost'] }");
   assert.equal(check(inspect(root),'frontend_bind').status,'PASS');
 }));
+
+test('API DEPLOYMENT_TASK cannot be inherited by a DB-free preflight',()=>fixture(({root})=>{
+  const value='series_v1_reset';
+  const r=inspect(root,{DEPLOYMENT_TASK:value});
+  assert.equal(r.status,'BLOCKED');
+  assert.equal(check(r,'environment').status,'FAIL');
+  assert.match(check(r,'environment').detail,/DEPLOYMENT_TASK/);
+  assert.equal(r.pg16IntegrationAuthorized,false);
+}));
+test('API_PROXY_TARGET cannot redirect local frontend to external API',()=>fixture(({root})=>{
+  const secret='https://external.example.invalid/private-secret';
+  const r=inspect(root,{API_PROXY_TARGET:secret});
+  assert.equal(r.status,'BLOCKED');
+  assert.match(check(r,'environment').detail,/API_PROXY_TARGET/);
+  assert.doesNotMatch(JSON.stringify(r),/private-secret/);
+}));
