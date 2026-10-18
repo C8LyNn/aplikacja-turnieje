@@ -274,3 +274,51 @@ test("AP19 result history parity, negative scores, invalid series winner and BYE
   Object.assign(e.resultHistory[0], { resultType: "bye", player2BackupId: null, score1: null, score2: null, resultReason: "system_bye" });
   invalid(e, "COMPLETION_PROVENANCE");
 });
+
+test("DF01 nested source action and CAS-looking keys are rejected from a valid match Undo", () => {
+  for (const key of [
+    "expectedCompletionActionId", "expectedMatchRevision",
+    "expectedRevision", "sourceActionId", "actionId",
+    "sourceCas", "casToken", "portableActionId",
+    "sourceActionIndex", "stateRevision",
+  ]) {
+    const b = fixture();
+    b.actionLog[0].undoPayload = {
+      type: "revert_match", matchId: 21,
+      diagnostic: { nested: { [key]: 777 } },
+    };
+    invalid(b, "SOURCE_AUTHORITY");
+  }
+});
+
+test("DF02 operational payload arrays reject disguised tokens but keep opaque diagnostics", () => {
+  const clean = fixture();
+  clean.actionLog[0].undoPayload = {
+    type: "revert_match", matchId: 21,
+    diagnostic: [{ counter: 99999 }, { label: "scrim", value: 4 }],
+  };
+  valid(clean);
+
+  const poisoned = fixture();
+  poisoned.actionLog[0].undoPayload = {
+    type: "revert_match", matchId: 21,
+    diagnostic: [{ counter: 99999 }, { sourceActionIndex: 0 }],
+  };
+  invalid(poisoned, "SOURCE_AUTHORITY");
+});
+
+test("DF03 valid cross-stage prevFeaturedMatchId survives; nested foreign authority does not", () => {
+  const validFeature = fixture();
+  addAction(validFeature, {
+    actionType: "match_featured", matchBackupId: 21, stageBackupId: null,
+    canUndo: true, isUndone: false, createdAt: at,
+    undoPayload: { type: "restore_featured", prevFeaturedMatchId: 22 },
+  }, "featured-safe");
+  valid(validFeature);
+
+  validFeature.actionLog[1].undoPayload = {
+    type: "restore_featured", prevFeaturedMatchId: 22,
+    before: { casToken: "external-source-token" },
+  };
+  invalid(validFeature, "SOURCE_AUTHORITY");
+});
