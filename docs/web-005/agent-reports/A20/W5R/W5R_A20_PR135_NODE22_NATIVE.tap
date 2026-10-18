@@ -32,7 +32,7 @@ ok 5 - libpq and child compare overrides fail closed
 # Subtest: local .env path blocks without reading file content
 ok 6 - local .env path blocks without reading file content
   ---
-  duration_ms: 1.014110
+  duration_ms: 1.01411
   type: 'test'
   ...
 # Subtest: broken JSON is blocked
@@ -50,7 +50,7 @@ ok 8 - package name drift is blocked
 # Subtest: API test script drift blocks
 ok 9 - API test script drift blocks
   ---
-  duration_ms: 1.053680
+  duration_ms: 1.05368
   type: 'test'
   ...
 # Subtest: Node20 mismatch remains explicit warning
