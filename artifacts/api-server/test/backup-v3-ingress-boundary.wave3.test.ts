@@ -300,6 +300,12 @@ function syntheticExportSnapshotV3(): Record<string, any> {
   doc.tournament.activeStageBackupId = null;
   doc.stages[0].status = "planned";
   doc.stages[0].startedAt = null;
+  // Real validateBackupV3 requires every player in stage 1, even on a draft.
+  doc.stageParticipants = [{
+    backupId: 51, stageBackupId: 3, playerBackupId: 11,
+    stageSeed: 1, groupBackupId: null, status: "active",
+    qualificationSource: "registration", createdAt: stamp,
+  }];
   // These ISO timestamps and optional nulls match the exporter's projection
   // conventions, but this is NOT an archived exporter-produced fixture.
   return JSON.parse(JSON.stringify(doc)) as Record<string, any>;
