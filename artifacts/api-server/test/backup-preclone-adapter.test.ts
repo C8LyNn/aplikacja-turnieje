@@ -213,3 +213,66 @@ test("R23C thrown parser, semantic validator and parse-time mutation cannot beco
   const t = ports(); t.parseV3 = (v: any) => ({ ...v, actionLog: [] });
   assert.equal(validateRawBackupBeforeClone(raw(strict()), t).code, "PARSED_PROFILE_CONFLICT");
 });
+
+
+test("development-first: async V2/V3 semantic validators must never be marked validated", () => {
+  const cases: Array<{ backup: Record<string, any>; version: 2 | 3 }> = [
+    { backup: v2(), version: 2 }, { backup: v3(), version: 3 },
+  ];
+  for (const { backup, version } of cases) {
+    const p = ports();
+    if (version === 2) p.validateV2 = async () => {};
+    else p.validateV3 = async () => {};
+    const result = validateRawBackupBeforeClone(raw(backup), p);
+    assert.equal(result.code, "SEMANTIC_VALIDATION_FAILED");
+    assert.equal(result.semanticValidated, false);
+    noAuthority(result);
+  }
+});
+
+test("development-first: Promise-like and unexpected non-void domain validator result are denied", () => {
+  for (const value of [Promise.resolve(), { then: (_resolve: () => void) => {} }, false]) {
+    const p = ports();
+    p.validateV2 = () => value;
+    const result = validateRawBackupBeforeClone(raw(v2()), p);
+    assert.equal(result.code, "SEMANTIC_VALIDATION_FAILED");
+    assert.equal(result.semanticValidated, false);
+    noAuthority(result);
+  }
+});
+
+test("development-first: async action-local closure must never be reported completed", () => {
+  const p = ports();
+  p.validateActionLocalV3 = async () => {};
+  const result = validateRawBackupBeforeClone(raw(strict()), p);
+  assert.equal(result.code, "ACTION_LOCAL_CLOSURE_FAILED");
+  assert.equal(result.semanticValidated, true);
+  assert.equal(result.actionLocalValidated, false);
+  noAuthority(result);
+});
+
+test("development-first: thenable or false action-local callback cannot bypass closure", () => {
+  for (const value of [Promise.resolve(), { then: (_resolve: () => void) => {} }, false]) {
+    const p = ports();
+    p.validateActionLocalV3 = () => value;
+    const result = validateRawBackupBeforeClone(raw(strict()), p);
+    assert.equal(result.code, "ACTION_LOCAL_CLOSURE_FAILED");
+    assert.equal(result.actionLocalValidated, false);
+    noAuthority(result);
+  }
+});
+
+test("development-first: async versioned parser denied before semantic callback", () => {
+  for (const version of [2, 3]) {
+    const p = ports();
+    if (version === 2) p.parseV2 = async () => v2();
+    else p.parseV3 = async () => v3();
+    let called = 0;
+    p.validateV2 = () => { called++; };
+    p.validateV3 = () => { called++; };
+    const result = validateRawBackupBeforeClone(raw(version === 2 ? v2() : v3()), p);
+    assert.equal(result.code, "PARSER_FAILED");
+    assert.equal(called, 0);
+    noAuthority(result);
+  }
+});
