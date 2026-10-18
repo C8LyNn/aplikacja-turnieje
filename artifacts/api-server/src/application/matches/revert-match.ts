@@ -638,11 +638,25 @@ export async function revertMatch(
         .returning({ id: tournamentsTable.id });
       let reactivatedWinner: { id: number } | undefined;
       if (!isSingleStageTournament && shouldReopenRoundRobin) {
+        // Only entrants of the reopened terminal RR stage are eligible again.
+        // Earlier nonqualifiers must retain their global eliminated status.
+        const stageRoster = await tx
+          .select({ playerId: stageParticipantsTable.playerId })
+          .from(stageParticipantsTable)
+          .where(eq(stageParticipantsTable.stageId, stage.id))
+          .orderBy(stageParticipantsTable.playerId)
+          .for("update");
         const reactivatedPlayers = await tx
           .update(playersTable)
           .set({ status: "active" })
-          .where(eq(playersTable.tournamentId, tournament.id))
+          .where(and(
+            eq(playersTable.tournamentId, tournament.id),
+            inArray(playersTable.id, stageRoster.map(({ playerId }) => playerId)),
+          ))
           .returning({ id: playersTable.id });
+        if (reactivatedPlayers.length !== stageRoster.length) {
+          throw new RevertMatchError("CONCURRENT_MODIFICATION");
+        }
         reactivatedWinner = reactivatedPlayers.find(({ id }) => id === finalizedWinner!.id);
         await tx
           .update(stageParticipantsTable)
