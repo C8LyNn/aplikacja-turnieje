@@ -40,6 +40,8 @@ export interface BasketCasDraftView {
   /** Only HTTP denial status, never a server body or private graph. */
   readonly authorizationFailure: 401 | 403 | null;
   readonly saving: boolean;
+  /** A newer canonical GET is pending; forbid save/reconcile against the old ETag. */
+  readonly refreshing: boolean;
 }
 
 export interface BasketCasDraftSession {
@@ -122,6 +124,7 @@ export function createBasketCasDraftSession(
   // Only one first GET may establish a base within the same session epoch.
   let initializingEpoch: number | null = null;
   let remoteRequestId = 0;
+  let refreshingRequestId: number | null = null;
   let editEpoch = 0;
   let destroyed = false;
 
@@ -133,6 +136,7 @@ export function createBasketCasDraftSession(
     epoch += 1;
     initializingEpoch = null;
     remoteRequestId += 1;
+    refreshingRequestId = null;
     editEpoch += 1;
     scope = { ...next };
     base = null;
@@ -160,6 +164,7 @@ export function createBasketCasDraftSession(
       dependencyMayHaveChanged: contextChanged,
       authorizationFailure,
       saving,
+      refreshing: refreshingRequestId !== null,
     };
   }
 
@@ -219,6 +224,7 @@ export function createBasketCasDraftSession(
     }
     const requestEpoch = epoch;
     const requestId = ++remoteRequestId;
+    refreshingRequestId = requestId;
     const requestEditEpoch = editEpoch;
     try {
       const latest = await client.load({ ...scope });
@@ -242,6 +248,10 @@ export function createBasketCasDraftSession(
         }
       }
       throw error;
+    } finally {
+      // A late GET (including a denied one) must not unset the busy guard
+      // belonging to a newer refresh or a newly authorized tournament scope.
+      if (refreshingRequestId === requestId) refreshingRequestId = null;
     }
   }
 
@@ -250,6 +260,9 @@ export function createBasketCasDraftSession(
     | { readonly action: "edited"; readonly draft: BasketCasGraph; readonly confirmedByOrganizer: true }
   ) {
     active();
+    if (refreshingRequestId !== null) {
+      throw new BasketCasError("PROTOCOL_ERROR", "Finish remote refresh before reconciling.");
+    }
     if (input.confirmedByOrganizer !== true || phase !== "reviewing" ||
       !remote || !draft || saving) {
       throw new BasketCasError("PROTOCOL_ERROR", "Refresh and explicitly compare remote before reconciling.");
@@ -271,6 +284,9 @@ export function createBasketCasDraftSession(
 
   async function save(): Promise<"saved" | "stale" | "precondition-required" | "superseded"> {
     active();
+    if (refreshingRequestId !== null) {
+      throw new BasketCasError("PROTOCOL_ERROR", "Finish remote refresh before saving.");
+    }
     if (!base || !draft || phase !== "editing" || contextChanged || saving) {
       throw new BasketCasError("PROTOCOL_ERROR", "Reconcile conflict before a new explicit save.");
     }
