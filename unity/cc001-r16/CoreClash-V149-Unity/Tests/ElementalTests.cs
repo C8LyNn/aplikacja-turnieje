@@ -80,11 +80,49 @@ public static partial class Program
         });
         Test("R13 Frostguard anchors on STOP, shields to cap and freezes only enemy HIT", () => {
             var s=Sim();var guard=s.Spawn(0,"frostguard",200,450);var enemy=s.Spawn(1,"normal",265,450);
-            s.Abilities.OnStop(guard);True(guard.frostguardAnchored);Eq(3,guard.anchorStacks);Eq(10,guard.shield);
+            s.Abilities.OnStop(guard);True(guard.frostguardAnchored);Eq(0,guard.anchorStacks);Eq(10,guard.shield);
             s.Abilities.OnPairContact(guard,enemy,false,false,30);Eq(0,enemy.iceStacks);
             s.Abilities.OnPairContact(guard,enemy,true,false,110);Eq(1,enemy.iceStacks);
             s.Abilities.OnStop(guard);Eq(15,guard.shield);
             True(BallInspection.Statuses(guard).Any(x=>x.Code=="FRG"));
+        });
+        // R17-W3 A50 F02: these golden V148 parity fixtures are intentionally
+        // RED against the frozen R16 baseline. Keep pre-fix results as evidence.
+        // CollisionResolver ignores frostguardAnchored, so full parity cannot be
+        // repaired in ElementalEffects.cs alone without physics-scope authority.
+        Test("R17 F02-G00 Frostguard STOP does not synthesize Earth anchor stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            Eq(0,guard.anchorStacks);guard.vx=80;guard.vy=-20;
+            s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(0,guard.anchorStacks);
+            Eq(0f,guard.vx);Eq(0f,guard.vy);Eq(10,guard.shield);
+        });
+        Test("R17 F02-G01 plain Frostguard anchor has V148 force and mass", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            False(guard.rooted);Eq(0,guard.anchorStacks);
+            s.Abilities.OnStop(guard);
+            Near(.30f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(2f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        Test("R17 F02-G04 Frostguard replay clears anchor without residual Earth stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            s.Abilities.OnStop(guard);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));
+            False(guard.frostguardAnchored);Eq(0,guard.anchorStacks);
+            Near(1f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        Test("R17 F02-G08 Frostguard STOP preserves independently existing Earth stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+        });
+        Test("R17 F02 earth-status negative control retains normal stack physics", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",270,450);
+            ball.anchorStacks=2;
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(ball));
+            Near(1.70f*ball.mass,CoreClash.Physics.CollisionResolver.Mass(ball));
         });
         Test("R13 Frostguard counter-freeze never hits allied impacts", () => {
             var s=Sim();var guard=s.Spawn(0,"frostguard",200,450);var ally=s.Spawn(0,"normal",265,450);
@@ -110,7 +148,7 @@ public static partial class Program
             var packet=new NetworkGameSession(s).Capture(state=>JsonSerializer.Serialize(state,opts));
             var adapter=new NetworkGameStateAdapter();
             True(adapter.Apply(packet,json=>JsonSerializer.Deserialize<GameState>(json,opts),out _));
-            True(adapter.State.balls.Single(x=>x.id==guard.id).frostguardAnchored);
+            True(adapter.State.balls.Single(x=>x.id==guard.id).frostguardAnchored);Eq(0,adapter.State.balls.Single(x=>x.id==guard.id).anchorStacks);
             Eq(s.State.turnNumber,adapter.State.balls.Single(x=>x.id==furnace.id).lastElementalTurn);
             Eq(1,adapter.State.zones.Count(z=>!z.dead&&z.kind=="furnaceFire"));
         });
