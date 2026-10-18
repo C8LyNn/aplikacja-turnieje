@@ -104,3 +104,38 @@ Once A40 publishes a real `GameSimulation.cs` diff and A70 assembles a permitted
 **MERGE / FORCE-PUSH / PUBLIC DEPLOY:** NONE.
 
 **NEXT:** A40 applies/records shared delta under Issue #92. A70 may assemble only when its own integration gates permit. A50 then independently checks G09B and controls on the exact combined SHA. A60 final QA remains a separate mandatory gate.
+
+---
+
+## 8. LIVE DELTA UPDATE — A40 SHARED CODE NOW PRESENT, BUT NOT COMBINED
+
+After initial oracle publication, A40's isolated W4 HEAD advanced from `22b1d1b...` to exact **`f6fc42e3f5d1c938fb0c9090f7033845b3e30c2a`**. A40 owns and modified `GameSimulation.cs` (plus its own `AbilityTests.cs`). Relevant new source:
+
+```cs
+if(Catalog.Ball(ball.type).archetype=="earth")
+    ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);
+ball.frostguardAnchored=false;
+```
+
+Git blob SHA `GameSimulation.cs`: **`d4e44b35e6ba89b49a804a4adb6b00daefaa29ed`**.
+
+A50 independently compared that exact A40 source with the exact A50 HEAD and confirmed:
+
+1. A40's Earth-only decrement predicate matches the required G09B/G09C/G09E policy.
+2. The mutation remains after command and `CanReplay` validation (G09D rejected command is not affected).
+3. A40 clears the defensive flag on successful launch.
+4. A50's `ElementalEffects.cs` does not inject Earth stacks.
+5. A50's `CollisionResolver.cs` still handles plain defensive force0.30/mass2.0 and real Earth effects.
+6. The catalog identifies `anchor` as Earth and the four named G09B/C/D/E tests are on the A50 branch.
+
+**12/12 independent cross-branch source assertions PASS.** These are ***source-static inspections***, not an executed test or actual combined build.
+
+Precise tracked blobs:
+- A40 `GameSimulation.cs`: `d4e44b35e6ba89b49a804a4adb6b00daefaa29ed`
+- A50 `ElementalEffects.cs`: `4e0ce8287e71778dc7bf647e785680ddf03a8e18`
+- A50 `CollisionResolver.cs`: `d514c359d57056310eda031984f33ec316de98a6`
+- A50 `ElementalTests.cs`: `f846df155ef95128bc04d58a04f6852f58f3b2be`
+
+**CRITICAL:** A70's separate disposable development candidate now has exact HEAD **`06caeb173a2573f5daebfc8159b56a7265636395`**, but Git readback shows its `GameSimulation.cs`, `ElementalEffects.cs`, and `CollisionResolver.cs` blobs remain the **frozen R16 originals** `d079da76a0cf58c838a32d9e5e201d30cb00354a`, `31e4785f94d69abac5cbf21a59a844ad46393636`, and `03753b8814d4503737e229aeebd22cd8488b9aa2`. The candidate includes other agents' safe/dev contributions, **NOT** the combined A40+A50 Frostguard fix.
+
+**Therefore G09B combined-candidate actual verification remains NOT_RUN / HOLD.** Do not convert the source 12/12 preflight into G1, QA, or Unity PASS. The next specific gate is controlled A70 combination of exact blob identities followed by real managed/native runs and independent A60 review. No A40 or A70 file was modified by A50.
