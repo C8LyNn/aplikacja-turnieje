@@ -175,8 +175,21 @@ export function getSafeTestDatabaseConfig(env: NodeJS.ProcessEnv = process.env):
       !parsed.password || parsed.protocol !== "postgresql:") {
     throw new Error("WEB005_CLEANUP_HOLD:S1_SIGNED_BASE_DSN_MISMATCH");
   }
-  if (env.DATABASE_URL && env.DATABASE_URL !== rawUrl) {
-    throw new Error("WEB005_CLEANUP_HOLD:S1_DATABASE_URL_ALIAS_MISMATCH");
+  if (env.DATABASE_URL) {
+    let alias: URL;
+    try { alias = new URL(env.DATABASE_URL); }
+    catch { throw new Error("WEB005_CLEANUP_HOLD:S1_ALIAS_NOT_A_URL"); }
+    // Application imports may add the sealed search_path option. No other
+    // alias target/credential/parameter differences are authorized.
+    const aliasOptions = alias.searchParams.get("options");
+    if (aliasOptions !== null &&
+        aliasOptions !== `-c search_path=tm_test_${context.runId}`) {
+      throw new Error("WEB005_CLEANUP_HOLD:S1_ALIAS_OPTIONS_MISMATCH");
+    }
+    alias.searchParams.delete("options");
+    if (alias.toString() !== parsed.toString()) {
+      throw new Error("WEB005_CLEANUP_HOLD:S1_DATABASE_URL_ALIAS_MISMATCH");
+    }
   }
   const schema = env.TEST_DATABASE_SCHEMA;
   if (schema !== `tm_test_${context.runId}`) {
