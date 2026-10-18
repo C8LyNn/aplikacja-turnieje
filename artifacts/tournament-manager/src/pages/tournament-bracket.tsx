@@ -25,13 +25,8 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
-
-const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-};
 
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 2.0;
@@ -265,7 +260,7 @@ export default function TournamentBracket() {
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
           {publicStageLabel(publicStage)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
-            : (FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
+            : (publicStage ? STAGE_FORMAT_LABELS[publicStage.format] : "")}
           {publicStage?.currentRound && publicStage.totalRounds
             ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
             : ""}
