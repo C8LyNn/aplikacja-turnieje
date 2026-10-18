@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, describe, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
-import { createRunDatabase, dropRunDatabase, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
+import { createRunDatabase, dropRunDatabase, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -190,10 +190,9 @@ async function applyReplitPushToDisposableDatabase(): Promise<string> {
     ],
     {
       cwd: fileURLToPath(DB_WORKSPACE_URL),
-      env: {
-        ...process.env,
-        DATABASE_URL: testConnectionString,
-      },
+      env: sealedFixtureChildEnv(
+        { DATABASE_URL: testConnectionString }, [createdDatabaseReceipt!],
+      ),
       timeout: 60_000,
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024,
