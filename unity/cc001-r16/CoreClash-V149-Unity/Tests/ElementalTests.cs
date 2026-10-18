@@ -130,6 +130,19 @@ public static partial class Program
             Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
             Near(3.40f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
         });
+        // SOURCE-PREDICTED RED even after the W4 F02 fix: this pinpoints the
+        // existing, unowned GameSimulation.TryCommand replay stack decrement.
+        // V148 only decrements genuine Earth stacks for Earth-archetype balls.
+        Test("R17 F02-G09B replay preserves genuine Earth stacks on non-Earth Frostguard", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            Eq(2,guard.anchorStacks);True(guard.frostguardAnchored);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));False(guard.frostguardAnchored);
+            Eq(2,guard.anchorStacks);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(1.70f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
         Test("R17 F02-G10 unrelated Earth stacks of three retain existing physics", () => {
             var s=Sim();var ball=s.Spawn(0,"normal",270,450);
             ball.anchorStacks=3;
