@@ -60,6 +60,12 @@ export function verifySignedSourceContextBytes(jsonBytes) {
       !hex(claims.nonce,32) || !/^[0-9]{10,}$/.test(claims.system_identifier) ||
       !/^[0-9]+$/.test(claims.base_database_oid) ||
       !/^[0-9]+$/.test(claims.role_oid) ||
+      !/^[a-z_][a-z0-9_]*$/.test(claims.role_name) ||
+      !hex(claims.lock_sha256,64) ||
+      !hex(claims.drizzle_kit_sha256,64) ||
+      !hex(claims.drizzle_config_sha256,64) ||
+      claims.five_db_contexts !== 5 || claims.integration_entrypoints !== 36 ||
+      claims.drizzle_force_calls !== 2 ||
       claims.base_database !== "web005_c01_test_" + claims.run_id ||
       claims.host !== "127.0.0.1" || claims.port !== 55432 ||
       claims.network_mode !== "service:pg16" ||
