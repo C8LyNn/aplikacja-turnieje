@@ -113,12 +113,12 @@ export async function createRunSchema(pool: SafetyPool, schema: string): Promise
 }
 export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
-  const safe = safeS1Name(schema, ctx);
-  const old = await schemaIdentity(pool, schema);
-  if (old) {
-    await requireOwnedSchema(pool, schema, ctx);
-    console.error("[WEB005_SAFETY] S1_SAME_RUN_RESET", schema, old.oid);
-    await pool.query(`DROP SCHEMA ${safe} CASCADE`);
+  safeS1Name(schema, ctx);
+  // A fresh signed run must start with an ABSENT schema. Even a same-run
+  // leftover may contain a partial committed migration after an error:
+  // never auto-reset it and erase diagnostic evidence.
+  if (await schemaIdentity(pool, schema)) {
+    hold("S1_PREEXISTING_SCHEMA_CLEANUP_HOLD");
   }
   await createRunSchema(pool, schema);
 }
