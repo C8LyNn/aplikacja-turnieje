@@ -162,15 +162,22 @@ export function getSafeTestDatabaseConfig(env: NodeJS.ProcessEnv = process.env):
     throw new Error("TEST_DATABASE_URL must use the postgres:// or postgresql:// protocol.");
   }
 
-  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
-  const targetFingerprint = `${parsed.hostname}/${databaseName}`.toLowerCase();
-  if (!databaseName.toLowerCase().includes("test") || targetFingerprint.includes("prod")) {
-    throw new Error(
-      "Refusing integration tests: the PostgreSQL database name must contain 'test' and the target must not contain 'prod'.",
-    );
-  }
-
   const context = requireSafetyContext(env);
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+  // The old substring 'test' / no-'prod' guard was never a physical target
+  // identity check. Fail before opening ANY test DB connection.
+  if (parsed.hostname !== "127.0.0.1" ||
+      parsed.port !== "55432" ||
+      parsed.username !== encodeURIComponent(context.roleName) &&
+        decodeURIComponent(parsed.username) !== context.roleName ||
+      databaseName !== context.baseDatabase ||
+      parsed.hash !== "" || parsed.search !== "" ||
+      !parsed.password || parsed.protocol !== "postgresql:") {
+    throw new Error("WEB005_CLEANUP_HOLD:S1_SIGNED_BASE_DSN_MISMATCH");
+  }
+  if (env.DATABASE_URL && env.DATABASE_URL !== rawUrl) {
+    throw new Error("WEB005_CLEANUP_HOLD:S1_DATABASE_URL_ALIAS_MISMATCH");
+  }
   const schema = env.TEST_DATABASE_SCHEMA;
   if (schema !== `tm_test_${context.runId}`) {
     throw new Error("WEB005_CLEANUP_HOLD:S1 schema must be bound to the sealed run.");
