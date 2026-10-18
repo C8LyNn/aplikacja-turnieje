@@ -143,6 +143,80 @@ public static partial class Program
             s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
             Eq(15,h.hp);
         });
+        Test("W4 A40 authorized Phoenix hand spawn consumes only ready hand and emits ordinary SPAWN",()=>{
+            var s=Sim();var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            Eq(0,s.Stock(0,"phoenix"));
+            var command=Shot(s,0,"phoenix");
+            int countBefore=s.State.balls.Count;
+            int serial=s.State.eventSerial;
+            False(s.TryCommand(command,out _));Eq(1,s.State.phoenixHand.Count);
+            s.State.players[0].ownerTurns++;
+            s.Abilities.OnTurnStart(0);
+            Eq(10,s.State.phoenixHand.Single().hp);
+            True(s.TryCommand(command,out _));
+            var born=s.State.balls.Last();
+            Eq(countBefore+1,s.State.balls.Count);
+            Eq("phoenix",born.type);Eq(10,born.hp);
+            Eq(0,s.Stock(0,"phoenix"));Eq(0,s.State.phoenixHand.Count);
+            Eq(1,s.State.events.Count(e=>e.id>serial&&e.kind=="SPAWN"&&e.ballId==born.id));
+            Eq(0,s.State.events.Count(e=>e.id>serial&&e.kind=="RETURN"));
+            False(s.TryCommand(command,out _));
+        });
+        Test("W4 A40 Phoenix stored Shield transfers exactly once on deliberate hand spawn",()=>{
+            var s=Sim();s.Spawn(0,"packheart",110,450);
+            var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            Eq(5,s.State.phoenixHand.Single().shield);
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(5,s.State.balls.Last().shield);
+            Eq(0,s.State.phoenixHand.Count);
+        });
+        Test("W4 A40 Phoenix stock has precedence over ready hand as in V148",()=>{
+            var s=Sim();var original=s.Spawn(0,"phoenix",270,440);s.Kill(original);
+            s.State.players[0].stock.Add(new StockEntry{id="phoenix",remaining=1});
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(0,s.Stock(0,"phoenix"));
+            Eq(1,s.State.phoenixHand.Count);
+            Eq(s.Catalog.Ball("phoenix").hp,s.State.balls.Last().hp);
+        });
+        Test("W4 A40 non-Earth Frostguard replay preserves genuine Earth stacks",()=>{
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;guard.frostguardAnchored=true;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));
+            Eq(2,guard.anchorStacks);False(guard.frostguardAnchored);
+        });
+        Test("W4 A40 genuine Earth archetype replay spends exactly one Earth stack",()=>{
+            var s=Sim();var earth=s.Spawn(0,"anchor",270,805);
+            earth.anchorStacks=2;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=earth.id;
+            True(s.TryCommand(cmd,out _));
+            Eq(1,earth.anchorStacks);
+        });
+        Test("W4 A40 malformed Phoenix command cannot consume hand or stock",()=>{
+            var s=Sim();var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            var cmd=Shot(s,0,"phoenix");cmd.dx=float.NaN;
+            False(s.TryCommand(cmd,out _));
+            Eq(1,s.State.phoenixHand.Count);
+            cmd=Shot(s,1,"phoenix");False(s.TryCommand(cmd,out _));
+            Eq(1,s.State.phoenixHand.Count);
+        });
+        Test("W4 A40 grave cap keeps newest allied record for Soul Anchor and DEATH precedes RETURN",()=>{
+            var s=Sim();
+            for(int i=0;i<18;i++){var b=s.Spawn(0,"normal",160,370);s.Kill(b);}
+            var newest=s.Spawn(0,"normal",325,540);s.Kill(newest);
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            var anchor=s.Spawn(0,"soulanchor",110,250);
+            int after=s.State.eventSerial;s.Kill(anchor);
+            var revived=s.State.balls.Last();
+            Eq(newest.lineageId,revived.lineageId);
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            int deathId=s.State.events.Where(e=>e.id>after&&e.kind=="DEATH"&&e.ballId==anchor.id).Select(e=>e.id).Single();
+            int returnId=s.State.events.Where(e=>e.id>after&&e.kind=="RETURN"&&e.ballId==revived.id).Select(e=>e.id).Single();
+            True(deathId<returnId);
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
