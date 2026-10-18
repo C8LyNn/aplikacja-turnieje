@@ -26,7 +26,7 @@ export function BasketCasConflictReview({
           nie jest wyświetlana. Po przywróceniu dostępu odśwież wersję serwerową
           i ręcznie porównaj zmiany. Zapis nie zostanie ponowiony automatycznie.
         </p>
-        <button type="button" disabled={view.saving}
+        <button type="button" disabled={view.saving || view.refreshing}
           onClick={() => { void onRefreshRemote(); }}>
           Ponów autoryzowane pobranie
         </button>
@@ -42,6 +42,9 @@ export function BasketCasConflictReview({
         Twój lokalny szkic pozostaje zachowany. Zapis wymaga ręcznego
         sprawdzenia aktualnej wersji serwerowej; nie ponawiamy zapisu automatycznie.
       </p>
+      {view.refreshing && (
+        <p aria-live="polite">Pobieranie aktualnej wersji serwerowej…</p>
+      )}
       {view.dependencyMayHaveChanged && (
         <p role="status">
           Mogły zmienić się etapy lub uczestnicy. Zweryfikuj przypisania i trasy,
@@ -49,7 +52,8 @@ export function BasketCasConflictReview({
         </p>
       )}
       {view.phase === "conflict" && (
-        <button type="button" onClick={() => { void onRefreshRemote(); }}>
+        <button type="button" disabled={view.saving || view.refreshing}
+          onClick={() => { void onRefreshRemote(); }}>
           Odśwież wersję serwerową do porównania
         </button>
       )}
@@ -85,15 +89,15 @@ export function BasketCasConflictReview({
             Żadna opcja nie wykonuje HTTP PUT. Zapis wymaga osobnego zatwierdzenia.
           </p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={view.saving}
+            <button type="button" disabled={view.saving || view.refreshing}
               onClick={() => onReconcile("keep-local")}>
               Zachowaj mój szkic i uzgodnij ręcznie
             </button>
-            <button type="button" disabled={view.saving}
+            <button type="button" disabled={view.saving || view.refreshing}
               onClick={() => onReconcile("use-remote")}>
               Odrzuć mój szkic i przyjmij serwerowy
             </button>
-            <button type="button" disabled={view.saving}
+            <button type="button" disabled={view.saving || view.refreshing}
               onClick={() => { void onRefreshRemote(); }}>
               Odśwież porównanie
             </button>
