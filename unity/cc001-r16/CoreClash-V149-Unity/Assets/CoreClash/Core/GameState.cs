@@ -54,7 +54,7 @@ namespace CoreClash.Core
         public int ownTurnCounter,spawnCount,lineageId,life=1,reviveGeneration,lastAbilityTurn=-1,lastWallFrame=-100,lastDamageSourceId;
         public int rootExpiresOwnerTurn=-1,returnStacks,lastReturnTurn=-1,horizon,linkedTargetId,lastVectorTurn=-1,lastPenitentTurn=-1;
         public string type;
-        public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky;
+        public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky,phoenixEntryTimer;
         public bool dead,moving,phased,mineArmed,exploded,splitDone,abilityUsed,resurrected,generated,hitUsed,wallUsed,launchImmune,rooted,ancestral,divineShield,banished,identityUsed;
         public int banishedUntilTurn,jammed;
         // Per-instance, serialized once-per-turn DEATH observer gate.
