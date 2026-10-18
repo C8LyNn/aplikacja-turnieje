@@ -57,3 +57,30 @@ The 15 new pure test blocks check deterministic repeated parsing, legal modern a
 **Integration / security status:** Independent A60 exact new SHA review **PENDING**. WAVE 3 performs no R23H broad audit, does not resolve earlier full-app A50 test debt, and never authorizes integrating this stacked test candidate independently into C02. **No game files, SQL, Docker, schema/migrations, merge, live/Replit, paid CI or SWARM-006.**
 
 **Final verdict:** `WAVE3_HANDOFF / DONE / NO_CODE_CHANGES / PURE_15_OF_15_PASS / FULL_APP_QA_NOT_RUN / RELEASE_NO_GO / SWARM006_HOLD`.
+
+
+---
+
+## WAVE4_HANDOFF — 2026-10-18 · match result validation / Undo integration readiness
+
+**AGENT | TASK | STATUS:** A70 Match Lifecycle & Undo | WEB-005-T040-A70-WAVE4-SERIES-PARITY | **DONE — TEST-ONLY / NO PRODUCTION CODE CHANGES**.
+
+**Existing candidate reused to reduce PR proliferation:** [PR #132](https://github.com/C8LyNn/aplikacja-turnieje/pull/132), OPEN DRAFT; Wave4 starting HEAD **0d49af511600b8d6199fcd915f62bc1995bfd6fe**, PR base [#119](https://github.com/C8LyNn/aplikacja-turnieje/pull/119) **b650a8e8de1841802c60f2af356bf0b404bd8018** (both PR119 and PR104 remain unchanged). New Wave4 test addition commit **999dbf3ec52a3feb02586f2bf2934b9bf822f4a1**; use live PR132 HEAD **after this handoff commit** as the final SHA. Original release PR42 exact parent **021bed269f9ea8ac8ce53caeea44263c098aa2dd**.
+
+**WAVE4 CHANGED PATHS (relative to WAVE3 HEAD, exact allowlist prepublished on PR132):**
+1. **NEW** `artifacts/api-server/test/match-lifecycle-series-parity.wave4.test.ts` — Git blob **4576094c48a73aa35c5ccf487794d79dee2a8e83**, six pure node:test blocks.
+2. **EXISTING A70-owned documentation** `docs/web-005/agent-reports/A70/WEB-005_A70_WAVE3_HANDOFF.md` — only this Wave4 append. **NO CODE CHANGES** to `series-result.ts`, `complete-match.ts`, `revert-match.ts`, roster Undo, routes, PR119/104, A40/140 source, DB or games.
+
+**Source contract:** production pure `artifacts/api-server/src/domain/match/series-result.ts` blob **3aa22ad7b4b5acb887a5d45e5f338dbd20e63a1a** is imported by **both** `complete-match.ts` and `revert-match.ts`. Older `test/series-result.test.ts` blob **b1f1a291af213bfc4f134c338f4070ec2e402125** exercised example BO1/3/5/7 cases; new W4 unit tests add exhaustive and boundary coverage without duplicating the existing DB integration suite.
+
+**Actual test execution (verified identical canonical Git blob before local import adjustment):**
+- Source byte-for-byte local Git blob SHA **3aa22ad7b4b5acb887a5d45e5f338dbd20e63a1a**; new test original byte-for-byte local blob **4576094c48a73aa35c5ccf487794d79dee2a8e83**. Native Node isolated copy changed **only** the test import specifier to `../src/series-result.ts` to resolve the same untouched function in a minimal workspace; all assertions/data remain identical.
+- Node v22.16.0: `node --experimental-strip-types --test /mnt/data/t040_wave4_localqa/test/match-lifecycle-series-parity.wave4.test.ts`: **EXIT 0; TAP 6 tests / 6 PASS / 0 FAIL / 0 SKIP**, raw log SHA256 **fa4c726f6c723620e8b8c855e579a9b499c6768842f2a3422de9a51db08168ff**.
+- TypeScript v5.8.3: `tsc --strict --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022 /mnt/data/t040_wave4_localqa/src/series-result.ts`: **EXIT 0**, isolated shared domain module only; not the complete application/test typecheck.
+- W4-S01: 1056 legal BO1–63 completed score configurations derive exactly one consistent winner; W4-S02: 590 premature/tied checks rejected; W4-S03: all BO1–63 simultaneous threshold and overrun cases rejected; W4-S04: negative/noninteger/NaN/infinite inputs rejected; W4-S05: repeated validation deterministic and input remains frozen; W4-S06: int32 PG bestOf edge numerically stable.
+- Earlier WAVE3 15/15 pure parser result remains historical separate evidence; **WAVE3 tests were NOT rerun as part of WAVE4**.
+- **NOT EXECUTED:** complete monorepo `pnpm --filter @workspace/api-server typecheck`, API routes, genuine Complete → Revert → Complete, repeated Direct Revert/Undo 200/409, CAS revision conflicts, PostgreSQL LIFO transactions, rollback/fault injection, C01/C02 or Replit/live. Existing original `revert-match.integration.test.ts` contains such source-authored scenarios, but their physical PG16 test receipts are still missing. No such results are asserted as PASS.
+
+**ISSUES / CONFLICTS / NEXT OWNER:** There is no file conflict with A40 PR101 or A140 PR116. Existing PR51/PR42 both change `routes/tournaments.ts` and `test/revert-match.integration.test.ts`, so no new writes were made to those files. The route's earlier source-confirmed malformed Undo JSON behavior still requires a separately reserved route owner/GO; this test candidate neither fixes nor masks it. **A60** independently review final PR132 SHA and provenance/scope; **A10** update exact manifest for PR132 child of PR119/42; **A40** consider it only after QA, avoid cherry-pick conflicts and retain C01 failures; **A50/A20** later run actual integration/rollback only in approved disposable PostgreSQL16. No unapproved source composite merge.
+
+**Final A70 verdict:** `WAVE4_HANDOFF / DONE / SOURCE_TEST_ONLY / DB_FREE_SERIES_TEST_6_PASS / FULL_APP_AND_UNDO_RUNTIME_NOT_TESTED / INDEPENDENT_A60_QA_PENDING / RELEASE_NO_GO / SWARM006_HOLD`.
