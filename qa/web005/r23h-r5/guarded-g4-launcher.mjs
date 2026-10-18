@@ -179,8 +179,11 @@ export async function sourceOnlyMain() {
   const claims = requireVerifiedSourceContext();
   assertSealedTarget({
     host:claims.host, port:claims.port,network_mode:claims.network_mode,
-    host_ports:0, pg_major:16,rootfs_read_only:true,caps_dropped:true,
-    unique_pgdata_attested:true,cluster_system_identifier:claims.system_identifier,
+    host_ports:claims.host_ports, pg_major:claims.pg_major,
+    rootfs_read_only:claims.rootfs_read_only,
+    caps_dropped:claims.caps_dropped,
+    unique_pgdata_attested:claims.unique_pgdata_attested,
+    cluster_system_identifier:claims.system_identifier,
   });
   if (SOURCE_ONLY_LOCK) stop("STOP_SOURCE_ONLY_NO_G4_AUTHORIZATION");
   stop("STOP_MISSING_EXTERNAL_ATOMIC_LEDGER_AND_PHYSICAL_OBSERVER");
