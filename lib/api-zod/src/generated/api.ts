@@ -3958,7 +3958,7 @@ export const UpdateMatchParams = zod.object({
 
 
 export const UpdateMatchBody = zod.object({
-  "status": zod.enum(['pending', 'in_progress', 'postponed', 'cancelled']).optional(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed']).optional(),
   "note": zod.string().optional(),
   "bestOf": zod.number().min(1).optional()
 })
@@ -4060,7 +4060,8 @@ export const CancelMatchParams = zod.object({
 })
 
 export const CancelMatchBody = zod.object({
-  "note": zod.string().optional()
+  "note": zod.string().optional(),
+  "expectedRevision": zod.number().int().min(1).optional()
 })
 
 
@@ -4100,6 +4101,10 @@ export const CancelMatchResponse = zod.object({
  */
 export const RestoreCancelledMatchParams = zod.object({
   "id": zod.coerce.number()
+})
+
+export const RestoreCancelledMatchBody = zod.object({
+  "expectedRevision": zod.number().int().min(1).optional()
 })
 
 

@@ -120,6 +120,7 @@ export * from './marvelTournamentConfigV1';
 export * from './marvelTournamentGameConfig';
 export * from './match';
 export * from './matchCancelInput';
+export * from './matchRestoreCancelledInput';
 export * from './matchResult';
 export * from './matchResultType';
 export * from './matchStatus';

@@ -157,6 +157,7 @@ import {
   CancelMatchParams,
   CancelMatchBody,
   RestoreCancelledMatchParams,
+  RestoreCancelledMatchBody,
   SwapMatchPlayersParams,
   ReorderMatchesParams,
   ReorderMatchesBody,
@@ -2505,6 +2506,13 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     });
     return;
   }
+  if (rawBody.status === "cancelled") {
+    res.status(422).json({
+      error: "Anulowanie meczu wymaga dedykowanej operacji.",
+      code: "MATCH_CANCELLATION_REQUIRES_DEDICATED_ACTION",
+    });
+    return;
+  }
   if (rawBody.status === "completed") {
     res.status(422).json({
       error: "Ten status wymaga dedykowanego przypadku użycia.",
@@ -2533,6 +2541,9 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("MATCH_NOT_FOUND");
+      if (lockedMatch.status === "cancelled" && parsed.data.status != null) {
+        throw new Error("CANCELLED_MATCH_PATCH_FORBIDDEN");
+      }
       if (
         lockedMatch.status === "completed" &&
         (parsed.data.status != null || parsed.data.bestOf != null)
@@ -2578,6 +2589,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     if (!(error instanceof Error)) throw error;
     const responses: Record<string, { status: number; error: string; code?: string }> = {
       MATCH_NOT_FOUND: { status: 404, error: "Match not found" },
+      CANCELLED_MATCH_PATCH_FORBIDDEN: {
+        status: 422,
+        error: "Anulowany mecz można przywrócić wyłącznie przez dedykowaną operację.",
+        code: "CANCELLED_MATCH_PATCH_FORBIDDEN",
+      },
       FINALIZED_MATCH_PATCH_FORBIDDEN: {
         status: 422,
         error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
@@ -2701,6 +2717,15 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
 router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   const params = CancelMatchParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  // MP1 compatibility: legacy Host sends no revision. MP3 will make it mandatory.
+  // When provided, the revision is checked inside the tournament transaction.
+  const suppliedRevision = req.body && typeof req.body === "object"
+    ? (req.body as Record<string, unknown>).expectedRevision : undefined;
+  if (suppliedRevision !== undefined &&
+      (!Number.isSafeInteger(suppliedRevision) || (suppliedRevision as number) < 1)) {
+    res.status(422).json({ error: "expectedRevision must be a positive integer.", code: "INVALID_MATCH_REVISION" });
+    return;
+  }
   const parsed = CancelMatchBody.safeParse(req.body ?? {});
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
@@ -2717,10 +2742,21 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during cancellation");
-      const blockedStatuses = ["completed", "cancelled"];
-      if (blockedStatuses.includes(lockedMatch.status)) {
-        throw new Error(`MATCH_CANNOT_CANCEL:${lockedMatch.status}`);
+      if (parsed.data.expectedRevision !== undefined &&
+          lockedMatch.revision !== parsed.data.expectedRevision) {
+        throw new Error("CONCURRENT_MODIFICATION");
       }
+      if (lockedMatch.status === "cancelled") throw new Error("MATCH_ALREADY_CANCELLED");
+      if (lockedMatch.status === "completed") throw new Error("MATCH_CANNOT_CANCEL_COMPLETED");
+      if (lockedMatch.resultType != null || lockedMatch.completedAt != null) {
+        throw new Error("MATCH_RESULT_STATE_INCONSISTENT");
+      }
+      const [stage] = await tx.select({ status: tournamentStagesTable.status })
+        .from(tournamentStagesTable).where(and(
+          eq(tournamentStagesTable.id, lockedMatch.stageId),
+          eq(tournamentStagesTable.tournamentId, lockedMatch.tournamentId),
+        ));
+      if (!stage || stage.status !== "active") throw new Error("MATCH_STAGE_NOT_ACTIVE");
       const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
       const namePlayers = p1Ids.length > 0
         ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
@@ -2745,18 +2781,25 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
           matchId: lockedMatch.id,
           prevStatus: lockedMatch.status,
           prevNote: lockedMatch.note,
+          nextNote: saved.note,
+          nextRevision: saved.revision,
         },
       }, tx);
       return saved;
     },
   ).catch((error: unknown) => {
-    if (error instanceof Error && error.message.startsWith("MATCH_CANNOT_CANCEL:")) {
-      res.status(400).json({
-        error: `Nie można anulować meczu o statusie: ${error.message.split(":")[1]}`,
-      });
-      return null;
-    }
-    throw error;
+    if (!(error instanceof Error)) throw error;
+    const cases: Record<string, { status: number; code: string }> = {
+      CONCURRENT_MODIFICATION: { status: 409, code: "CONCURRENT_MODIFICATION" },
+      MATCH_ALREADY_CANCELLED: { status: 409, code: "MATCH_ALREADY_CANCELLED" },
+      MATCH_CANNOT_CANCEL_COMPLETED: { status: 422, code: "MATCH_CANNOT_CANCEL_COMPLETED" },
+      MATCH_RESULT_STATE_INCONSISTENT: { status: 422, code: "MATCH_RESULT_STATE_INCONSISTENT" },
+      MATCH_STAGE_NOT_ACTIVE: { status: 422, code: "MATCH_STAGE_NOT_ACTIVE" },
+    };
+    const response = cases[error.message];
+    if (!response) throw error;
+    res.status(response.status).json({ error: error.message, code: response.code });
+    return null;
   });
   if (!updated) return;
   const [enriched] = await enrichMatches([updated]);
@@ -2767,6 +2810,20 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
 router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> => {
   const params = RestoreCancelledMatchParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  // MP1 compatibility: legacy Host sends no revision. MP3 will make it mandatory.
+  // When provided, the revision is checked inside the tournament transaction.
+  const suppliedRevision = req.body && typeof req.body === "object"
+    ? (req.body as Record<string, unknown>).expectedRevision : undefined;
+  if (suppliedRevision !== undefined &&
+      (!Number.isSafeInteger(suppliedRevision) || (suppliedRevision as number) < 1)) {
+    res.status(422).json({ error: "expectedRevision must be a positive integer.", code: "INVALID_MATCH_REVISION" });
+    return;
+  }
+  const parsed = RestoreCancelledMatchBody.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(422).json({ error: parsed.error.message, code: "INVALID_MATCH_REVISION" });
+    return;
+  }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   const access = await requireTournamentWrite(req, res, match.tournamentId);
@@ -2781,7 +2838,20 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during restore");
+      if (parsed.data.expectedRevision !== undefined &&
+          lockedMatch.revision !== parsed.data.expectedRevision) {
+        throw new Error("CONCURRENT_MODIFICATION");
+      }
       if (lockedMatch.status !== "cancelled") throw new Error("MATCH_NOT_CANCELLED");
+      if (lockedMatch.resultType != null || lockedMatch.completedAt != null) {
+        throw new Error("MATCH_RESULT_STATE_INCONSISTENT");
+      }
+      const [stage] = await tx.select({ status: tournamentStagesTable.status })
+        .from(tournamentStagesTable).where(and(
+          eq(tournamentStagesTable.id, lockedMatch.stageId),
+          eq(tournamentStagesTable.tournamentId, lockedMatch.tournamentId),
+        ));
+      if (!stage || stage.status !== "active") throw new Error("MATCH_STAGE_NOT_ACTIVE");
       const [saved] = await tx
         .update(matchesTable)
         .set({ status: "pending" })
@@ -2798,16 +2868,25 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         actionType: "match_restored",
         description: `Przywrócono anulowany mecz ${matchLabel}`,
         matchId: lockedMatch.id,
-        undoPayload: { type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled" },
+        undoPayload: {
+          type: "restore_status", matchId: lockedMatch.id, prevStatus: "cancelled",
+          nextStatus: "pending", nextRevision: saved.revision,
+        },
       }, tx);
       return saved;
     },
   ).catch((error: unknown) => {
-    if (error instanceof Error && error.message === "MATCH_NOT_CANCELLED") {
-      res.status(400).json({ error: "Mecz nie jest anulowany" });
-      return null;
-    }
-    throw error;
+    if (!(error instanceof Error)) throw error;
+    const cases: Record<string, { status: number; code: string }> = {
+      CONCURRENT_MODIFICATION: { status: 409, code: "CONCURRENT_MODIFICATION" },
+      MATCH_NOT_CANCELLED: { status: 422, code: "MATCH_NOT_CANCELLED" },
+      MATCH_RESULT_STATE_INCONSISTENT: { status: 422, code: "MATCH_RESULT_STATE_INCONSISTENT" },
+      MATCH_STAGE_NOT_ACTIVE: { status: 422, code: "MATCH_STAGE_NOT_ACTIVE" },
+    };
+    const response = cases[error.message];
+    if (!response) throw error;
+    res.status(response.status).json({ error: error.message, code: response.code });
+    return null;
   });
   if (!updated) return;
   const [enriched] = await enrichMatches([updated]);

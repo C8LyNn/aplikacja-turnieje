@@ -8,4 +8,5 @@
 
 export interface MatchCancelInput {
   note?: string;
+  expectedRevision?: number;
 }
