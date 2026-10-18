@@ -4,16 +4,61 @@
  * authentication: external signed G4 physical identity and exclusive writer
  * attestation are indispensable before execution.
  */
+import { requireVerifiedSourceContext } from "../../../qa/web005/r23h-r5/signed-source-context.mjs";
+import { persistSafetyEvent, verifyPersistedEvent, type EventReceipt } from "../../../qa/web005/r23h-r5/source-evidence-journal.mjs";
+
 export interface SafetyPool {
   query(text: string, values?: unknown[]): Promise<{ rows: unknown[]; rowCount: number | null }>;
 }
-export interface SafetyContext { runId: string; clusterCertificateSha256: string }
-export interface CreatedDatabaseReceipt extends SafetyContext {
-  name: string; oid: string; owner: string; createdByRun: true;
+export interface SafetyContext {
+  runId: string; clusterCertificateSha256: string; signedContextSha256: string;
+  systemIdentifier: string; baseDatabase: string; baseDatabaseOid: string;
+  roleOid: string; roleName: string; exclusiveWriter: true;
 }
-interface DatabaseIdentity { oid: string; owner: string; principal: string }
-interface SchemaIdentity { oid: string; owner: string; principal: string; marker: string | null }
-interface SchemaReceipt extends SafetyContext { schema: string; oid: string; owner: string }
+export interface CreatedDatabaseReceipt extends SafetyContext {
+  name: string; oid: string; owner: string; ownerOid: string; slot: string;
+  createdByRun: true; evidence: EventReceipt;
+}
+interface DatabaseIdentity {
+  oid: string; owner: string; principal: string; ownerOid: string; principalOid: string;
+}
+interface SchemaIdentity {
+  oid: string; owner: string; principal: string; ownerOid: string;
+  principalOid: string; marker: string | null;
+}
+interface SchemaReceipt extends SafetyContext {
+  schema: string; oid: string; owner: string; ownerOid: string; slot: string;
+  evidence: EventReceipt;
+}
+type SlotStatus = "NOT_ATTEMPTED" | "CREATE_ATTEMPTED" | "CREATE_CONFIRMED" |
+  "CREATE_AMBIGUOUS" | "DROP_ATTEMPTED" | "DROP_CONFIRMED" | "CLEANUP_HOLD";
+interface SlotRecord { slot: string; name: string; state: SlotStatus }
+const slotStates = new Map<string, SlotRecord>();
+export function sourceOnlySlotStateSnapshot(): ReadonlyArray<Readonly<SlotRecord>> {
+  return [...slotStates.values()].map(item => Object.freeze({...item}));
+}
+function slotForDb(name: string): string {
+  if (/^tm_catalog_test_[a-f0-9]{16}_(dev|prod|fresh)$/.test(name)) {
+    return "catalog_" + name.split("_").at(-1);
+  }
+  if (/^tm_drizzle_schema_test_[a-f0-9]{32}$/.test(name)) return "drizzle";
+  hold("UNKNOWN_S2_SLOT");
+}
+function slotForSchema(name: string): string {
+  if (name.endsWith("_marker_drift")) return "s1_marker_drift";
+  if (name.endsWith("_rollback")) return "s1_rollback";
+  return "s1_base";
+}
+function journal(ctx: SafetyContext, slot: string, event: SlotStatus, name: string,
+                 details: Record<string,string> = {}): EventReceipt {
+  const evidence = persistSafetyEvent({
+    run_id: ctx.runId, cluster_cert_sha256: ctx.clusterCertificateSha256,
+    signed_context_sha256: ctx.signedContextSha256, slot, event, name, ...details,
+  });
+  slotStates.set(slot, {slot, name, state:event});
+  emit(event, {slot, name, ...details});
+  return evidence;
+}
 const createdSchemaReceipts = new Map<string, SchemaReceipt>();
 
 
@@ -33,12 +78,49 @@ function hold(reason: string): never {
   throw new Error(`WEB005_CLEANUP_HOLD:${reason}`);
 }
 export function requireSafetyContext(env: NodeJS.ProcessEnv = process.env): SafetyContext {
-  const runId = env.WEB005_RUN_ID ?? "";
-  const clusterCertificateSha256 = env.WEB005_PG16_CLUSTER_CERT_SHA256 ?? "";
-  if (!/^[a-f0-9]{32}$/.test(runId) || !/^[a-f0-9]{64}$/.test(clusterCertificateSha256)) {
-    hold("SIGNED_G4_RUN_AND_CLUSTER_CERT_REQUIRED");
+  // Signed, canonical, triply Ed25519 authenticated bytes at an image-fixed
+  // operator-owned path, NEVER an environment-provided root/signature/URL.
+  // Current reviewed tree has no pinned actual trust roots -> fail closed.
+  const certified = requireVerifiedSourceContext();
+  if (env.WEB005_RUN_ID !== certified.run_id ||
+      env.WEB005_PG16_CLUSTER_CERT_SHA256 !== certified.cluster_cert_sha256) {
+    hold("SIGNED_G4_ENV_SCOPE_MISMATCH");
   }
-  return { runId, clusterCertificateSha256 };
+  if (certified.exclusive_writer !== true || certified.native_windows_pg_untouched !== true) {
+    hold("EXCLUSIVE_WRITER_OR_WINDOWS_ATTESTATION_MISSING");
+  }
+  return {
+    runId: certified.run_id, clusterCertificateSha256: certified.cluster_cert_sha256,
+    signedContextSha256: certified.signed_payload_sha256,
+    systemIdentifier: certified.system_identifier,
+    baseDatabase: certified.base_database, baseDatabaseOid: certified.base_database_oid,
+    roleOid: certified.role_oid, roleName: certified.role_name, exclusiveWriter: true,
+  };
+}
+/** G2-admitted BASE+principal consistency read, required before source SQL mutation.
+ * Does not independently prove Docker netns/PGDATA/system_identifier; signed
+ * attestor and external no-foreign-writer control remain additional MUST gates.
+ */
+export async function requireBaseAndRoleIdentity(pool: SafetyPool, context = requireSafetyContext()): Promise<void> {
+  const observed = await pool.query(
+    `SELECT current_database() AS database_name, db.oid::text AS database_oid,
+       current_user AS role_name, role.oid::text AS role_oid,
+       role.rolcanlogin AS can_login, role.rolcreatedb AS can_create_db,
+       role.rolsuper AS superuser, role.rolcreaterole AS can_create_role,
+       role.rolreplication AS replication, role.rolbypassrls AS bypass_rls
+       FROM pg_database db JOIN pg_roles role ON role.rolname = current_user
+       WHERE db.datname = current_database()`
+  );
+  const row = observed.rows[0] as Record<string,unknown>|undefined;
+  if (observed.rows.length !== 1 || !row ||
+      row.database_name !== context.baseDatabase ||
+      row.database_oid !== context.baseDatabaseOid ||
+      row.role_oid !== context.roleOid || row.role_name !== context.roleName ||
+      row.can_login !== true || row.can_create_db !== true ||
+      row.superuser !== false || row.can_create_role !== false ||
+      row.replication !== false || row.bypass_rls !== false) {
+    hold("G2_BASE_ROLE_OID_PRIVILEGES_MISMATCH");
+  }
 }
 function quote(name: string, pattern: RegExp): string {
   if (name.length > 63 || !pattern.test(name)) hold("UNSAFE_IDENTIFIER");
@@ -46,37 +128,51 @@ function quote(name: string, pattern: RegExp): string {
 }
 async function dbIdentity(pool: SafetyPool, name: string): Promise<DatabaseIdentity | null> {
   const {rows} = await pool.query(
-    `SELECT oid::text AS oid, pg_get_userbyid(datdba) AS owner,
-        current_user AS principal FROM pg_database WHERE datname = $1`,
+    `SELECT db.oid::text AS oid, pg_get_userbyid(db.datdba) AS owner,
+        db.datdba::text AS "ownerOid", current_user AS principal,
+        role.oid::text AS "principalOid"
+       FROM pg_database db CROSS JOIN pg_roles role
+       WHERE db.datname = $1 AND role.rolname = current_user`,
     [name]);
   if (rows.length > 1) hold("DUPLICATE_DATABASE_CATALOG_ROWS");
   return (rows[0] as DatabaseIdentity | undefined) ?? null;
 }
 function same(a: SafetyContext, b: SafetyContext): boolean {
-  return a.runId === b.runId && a.clusterCertificateSha256 === b.clusterCertificateSha256;
+  return a.runId === b.runId && a.clusterCertificateSha256 === b.clusterCertificateSha256 &&
+         a.signedContextSha256 === b.signedContextSha256 &&
+         a.systemIdentifier === b.systemIdentifier && a.roleOid === b.roleOid &&
+         a.baseDatabaseOid === b.baseDatabaseOid;
 }
 export async function createRunDatabase(
   pool: SafetyPool, name: string, pattern: RegExp,
 ): Promise<CreatedDatabaseReceipt> {
   const context = requireSafetyContext();
   const safeName = quote(name, pattern);
+  const slot = slotForDb(name);
+  await requireBaseAndRoleIdentity(pool, context);
   if (await dbIdentity(pool, name)) hold("DATABASE_NAME_COLLISION_BEFORE_CREATE");
-  // If CREATE fails or its response is ambiguous, no DROP receipt is produced.
-  emit("S2_CREATE_ATTEMPTED", { name });
+  // Fsync local attempt receipt BEFORE sending destructive SQL, otherwise STOP.
+  journal(context, slot, "CREATE_ATTEMPTED", name);
   try {
     await pool.query(`CREATE DATABASE ${safeName}`);
   } catch (error) {
-    emit("S2_CREATE_FAILED_OR_AMBIGUOUS", { name });
+    journal(context, slot, "CREATE_AMBIGUOUS", name);
     throw new Error("WEB005_CLEANUP_HOLD:S2_CREATE_RESPONSE_UNCONFIRMED", { cause: error });
   }
   const created = await dbIdentity(pool, name);
-  if (!created || !/^\d+$/.test(created.oid) || created.owner !== created.principal) {
+  if (!created || !/^\d+$/.test(created.oid) ||
+      created.owner !== created.principal || created.ownerOid !== context.roleOid ||
+      created.principalOid !== context.roleOid) {
+    journal(context, slot, "CREATE_AMBIGUOUS", name);
     hold("CREATE_SUCCEEDED_BUT_IDENTITY_UNCONFIRMED");
   }
+  const evidence = journal(context, slot, "CREATE_CONFIRMED", name, {
+    oid: created.oid, owner: created.owner, owner_oid: created.ownerOid,
+  });
   const receipt: CreatedDatabaseReceipt = {
-    ...context, name, oid: created.oid, owner: created.owner, createdByRun: true,
+    ...context, name, oid: created.oid, owner: created.owner,
+    ownerOid:created.ownerOid, slot, createdByRun: true, evidence,
   };
-  emit("S2_CREATE_CONFIRMED", { name, oid: created.oid, owner: created.owner });
   return receipt;
 }
 export async function dropRunDatabase(
@@ -85,17 +181,29 @@ export async function dropRunDatabase(
   if (!receipt) hold("S2_MISSING_CREATE_RECEIPT_NO_DROP");
   const context = requireSafetyContext();
   if (!receipt.createdByRun || !same(context, receipt)) hold("DROP_CONTEXT_MISMATCH");
+  await requireBaseAndRoleIdentity(pool, context);
   const safeName = quote(receipt.name, pattern);
+  verifyPersistedEvent(receipt.evidence, {
+    event: "CREATE_CONFIRMED",slot:receipt.slot,run_id:context.runId,
+    name:receipt.name, oid:receipt.oid,owner_oid:receipt.ownerOid,
+    signed_context_sha256:context.signedContextSha256,
+  });
   const current = await dbIdentity(pool, receipt.name);
-  if (!current || current.oid !== receipt.oid ||
-      current.owner !== receipt.owner || current.principal !== receipt.owner) {
-    hold("PRE_DROP_OID_OWNER_MISMATCH");
+  if (!current || current.oid !== receipt.oid || current.owner !== receipt.owner ||
+      current.ownerOid !== receipt.ownerOid || current.principalOid !== context.roleOid) {
+    hold("PRE_DROP_OID_OWNER_CLUSTER_MISMATCH");
   }
-  // Guard+DROP is NOT atomic against untrusted third-party DB writers.
-  emit("S2_DROP_ALLOWED", { name: receipt.name, oid: receipt.oid, owner: receipt.owner });
-  await pool.query(`DROP DATABASE ${safeName} WITH (FORCE)`);
+  // This still requires external certified exclusion of foreign DB writers.
+  journal(context, receipt.slot, "DROP_ATTEMPTED", receipt.name,
+          {oid:receipt.oid, owner_oid:receipt.ownerOid});
+  try {
+    await pool.query(`DROP DATABASE ${safeName} WITH (FORCE)`);
+  } catch (error) {
+    journal(context, receipt.slot, "CLEANUP_HOLD", receipt.name);
+    throw new Error("WEB005_CLEANUP_HOLD:S2_DROP_RESPONSE_UNCONFIRMED", {cause:error});
+  }
   if (await dbIdentity(pool, receipt.name)) hold("DROP_NOT_CONFIRMED");
-  emit("S2_DROP_CONFIRMED", { name: receipt.name, oid: receipt.oid, owner: receipt.owner });
+  journal(context, receipt.slot, "DROP_CONFIRMED", receipt.name, {oid:receipt.oid});
 }
 const S1_PATTERN = /^tm_test_[a-f0-9]{32}(?:_(?:rollback|marker_drift))?$/;
 function schemaMarker(context: SafetyContext): string {
@@ -104,8 +212,11 @@ function schemaMarker(context: SafetyContext): string {
 async function schemaIdentity(pool: SafetyPool, name: string): Promise<SchemaIdentity | null> {
   const {rows} = await pool.query(
     `SELECT n.oid::text AS oid, pg_get_userbyid(n.nspowner) AS owner,
-        current_user AS principal, obj_description(n.oid, 'pg_namespace') AS marker
-       FROM pg_namespace n WHERE n.nspname = $1`, [name]);
+        n.nspowner::text AS "ownerOid", current_user AS principal,
+        role.oid::text AS "principalOid",
+        obj_description(n.oid, 'pg_namespace') AS marker
+       FROM pg_namespace n CROSS JOIN pg_roles role
+       WHERE n.nspname = $1 AND role.rolname = current_user`, [name]);
   if (rows.length > 1) hold("DUPLICATE_SCHEMA_CATALOG_ROWS");
   return (rows[0] as SchemaIdentity | undefined) ?? null;
 }
@@ -118,6 +229,7 @@ function safeS1Name(name: string, context: SafetyContext): string {
 async function requireOwnedSchema(pool: SafetyPool, name: string, ctx: SafetyContext): Promise<SchemaIdentity> {
   const identity = await schemaIdentity(pool, name);
   if (!identity || identity.owner !== identity.principal ||
+      identity.ownerOid !== ctx.roleOid || identity.principalOid !== ctx.roleOid ||
       identity.marker !== schemaMarker(ctx) || !/^\d+$/.test(identity.oid)) {
     hold("UNOWNED_SCHEMA_OR_MARKER_COLLISION");
   }
@@ -126,14 +238,31 @@ async function requireOwnedSchema(pool: SafetyPool, name: string, ctx: SafetyCon
 export async function createRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
   const safe = safeS1Name(schema, ctx);
+  const slot = slotForSchema(schema);
+  await requireBaseAndRoleIdentity(pool,ctx);
   if (await schemaIdentity(pool, schema)) hold("SCHEMA_NAME_PREEXISTS");
-  await pool.query(`CREATE SCHEMA ${safe}`);
+  journal(ctx, slot, "CREATE_ATTEMPTED", schema);
+  try {
+    await pool.query(`CREATE SCHEMA ${safe}`);
+  } catch(error) {
+    journal(ctx, slot, "CREATE_AMBIGUOUS", schema);
+    throw new Error("WEB005_CLEANUP_HOLD:S1_CREATE_AMBIGUOUS", {cause:error});
+  }
   // Marker characters are strictly generated from validated hex + fixed chars.
   // Failed marker write => CLEANUP_HOLD, never blind rollback/drop.
-  await pool.query(`COMMENT ON SCHEMA ${safe} IS '${schemaMarker(ctx)}'`);
-  const owned = await requireOwnedSchema(pool, schema, ctx);
-  createdSchemaReceipts.set(schema, { ...ctx, schema, oid: owned.oid, owner: owned.owner });
-  emit("S1_CREATE_CONFIRMED", { schema, oid: owned.oid, owner: owned.owner });
+  try {
+    await pool.query(`COMMENT ON SCHEMA ${safe} IS '${schemaMarker(ctx)}'`);
+    const owned = await requireOwnedSchema(pool, schema, ctx);
+    const evidence = journal(ctx, slot, "CREATE_CONFIRMED",schema, {
+      oid:owned.oid,owner:owned.owner,owner_oid:owned.ownerOid
+    });
+    createdSchemaReceipts.set(schema, {
+      ...ctx, schema, oid: owned.oid,owner:owned.owner,ownerOid:owned.ownerOid,slot,evidence
+    });
+  } catch(error) {
+    journal(ctx,slot,"CREATE_AMBIGUOUS",schema);
+    throw new Error("WEB005_CLEANUP_HOLD:S1_MARKER_OR_CREATE_RECEIPT_FAILED",{cause:error});
+  }
 }
 export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
@@ -149,17 +278,41 @@ export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<
 export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
   const safe = safeS1Name(schema, ctx);
+  await requireBaseAndRoleIdentity(pool,ctx);
   const existing = await requireOwnedSchema(pool, schema, ctx);
   const receipt = createdSchemaReceipts.get(schema);
   if (!receipt || receipt.schema !== schema || receipt.oid !== existing.oid ||
-      receipt.owner !== existing.owner || !same(receipt, ctx)) {
+      receipt.owner !== existing.owner || receipt.ownerOid !== existing.ownerOid ||
+      !same(receipt, ctx)) {
     hold("S1_MISSING_POSITIVE_CREATE_RECEIPT");
   }
-  emit("S1_DROP_ALLOWED", { schema, oid: existing.oid, owner: existing.owner });
-  await pool.query(`DROP SCHEMA ${safe} CASCADE`);
+  verifyPersistedEvent(receipt.evidence, {
+    event:"CREATE_CONFIRMED",slot:receipt.slot,name:schema,run_id:ctx.runId,
+    oid:existing.oid,owner_oid:existing.ownerOid,
+    signed_context_sha256:ctx.signedContextSha256
+  });
+  // Reject visible cross-schema dependent relations/functions: conservative
+  // static scope, NOT proof that every possible dependency class is captured.
+  const deps = await pool.query(
+    `SELECT COUNT(*)::int AS foreign_count FROM pg_depend d
+       JOIN pg_class ref ON d.refclassid = 'pg_class'::regclass AND ref.oid=d.refobjid
+       JOIN pg_class dep ON d.classid='pg_class'::regclass AND dep.oid=d.objid
+       JOIN pg_namespace refn ON refn.oid=ref.relnamespace
+       WHERE refn.nspname=$1 AND dep.relnamespace<>refn.oid`, [schema]
+  );
+  if (Number((deps.rows[0] as {foreign_count?:number}|undefined)?.foreign_count ?? -1)!==0) {
+    hold("S1_FOREIGN_CASCADE_DEPENDENCY");
+  }
+  journal(ctx,receipt.slot,"DROP_ATTEMPTED",schema,{oid:existing.oid,owner_oid:existing.ownerOid});
+  try{
+    await pool.query(`DROP SCHEMA ${safe} CASCADE`);
+  } catch(error) {
+    journal(ctx,receipt.slot,"CLEANUP_HOLD",schema);
+    throw new Error("WEB005_CLEANUP_HOLD:S1_DROP_AMBIGUOUS",{cause:error});
+  }
   if (await schemaIdentity(pool, schema)) hold("S1_DROP_NOT_CONFIRMED");
   createdSchemaReceipts.delete(schema);
-  emit("S1_DROP_CONFIRMED", { schema, oid: existing.oid, owner: existing.owner });
+  journal(ctx,receipt.slot,"DROP_CONFIRMED",schema,{oid:existing.oid});
 }
 
 /**
