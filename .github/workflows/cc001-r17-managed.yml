@@ -1,0 +1,80 @@
+# CC-001 / R17-W4 / A72 — opt-in managed regression only.
+# Never triggered by tournament pushes/PRs. No Unity, deployment, release or secrets.
+name: CC-001 R17-W4 Managed .NET 9 (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Exact source snapshot: frozen baseline, isolated W3 or HQ-selected candidate"
+        required: true
+        type: choice
+        default: baseline
+        options:
+          - baseline
+          - w3-a20
+          - w3-a41
+          - w3-a50
+          - w3-a51
+          - candidate
+      candidate_sha:
+        description: "Candidate ONLY: exact lowercase 40-character commit SHA (no branch/ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cc001-r17-w4-managed-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  managed:
+    # Branch + repository guard: no main, tournaments, website release or arbitrary forks.
+    if: ${{ github.repository == 'C8LyNn/aplikacja-turnieje' && github.ref == 'refs/heads/feat/cc001-r17-w4-a72-managed-ci' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout exact A72 runner commit and fetch pinned snapshots
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Run A72 positive and negative policy controls
+        run: node scripts/cc001/w4/a72/managed-ci.cjs --self-test
+
+      - name: Run isolated managed and codec suites
+        env:
+          CC001_TARGET: ${{ inputs.target }}
+          CC001_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/cc001-r17-w4-managed"
+          node scripts/cc001/w4/a72/managed-ci.cjs \
+            "--target=$CC001_TARGET" \
+            "--candidate-sha=$CC001_CANDIDATE_SHA" \
+            "--out=$RUNNER_TEMP/cc001-r17-w4-managed"
+
+      - name: Upload scoped QA evidence even after failure
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc001-r17-w4-a72-${{ github.run_id }}-${{ inputs.target }}
+          path: ${{ runner.temp }}/cc001-r17-w4-managed/
+          if-no-files-found: warn
+          retention-days: 14
