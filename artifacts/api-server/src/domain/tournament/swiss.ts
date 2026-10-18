@@ -118,6 +118,64 @@ function chooseScoreFirstPairs(
     }
     if (!improved) break;
   }
+  // The 2-pair neighborhood can be locally stuck above 16 entrants even if
+  // three matched pairs can be rearranged at identical score distance to
+  // eliminate a repeated encounter. Search a strictly bounded 3-pair
+  // neighborhood only for fields of up to 64 participants. This does not
+  // claim global optimum; larger fields retain the existing 4-sweep fallback.
+  if (pairs.length <= 32 && pairs.length >= 3) {
+    const patterns: number[][] = [];
+    const enumerate = (unused: number[], chosen: number[]): void => {
+      if (unused.length === 0) {
+        patterns.push(chosen);
+        return;
+      }
+      for (let index = 1; index < unused.length; index += 1) {
+        enumerate(
+          unused.slice(1, index).concat(unused.slice(index + 1)),
+          [...chosen, unused[0], unused[index]],
+        );
+      }
+    };
+    enumerate([0, 1, 2, 3, 4, 5], []); // 15 perfect matchings of six slots.
+
+    for (let pass = 0; pass < 2; pass += 1) {
+      let improved = false;
+      for (let left = 0; left < pairs.length; left += 1) {
+        nextMiddle: for (let middle = left + 1; middle < pairs.length; middle += 1) {
+          for (let right = middle + 1; right < pairs.length; right += 1) {
+            const original = [pairs[left], pairs[middle], pairs[right]];
+            const oldCosts = original.map(cost);
+            const oldCost: PairingCost = {
+              distance: oldCosts.reduce((sum, item) => sum + item.distance, 0),
+              rematches: oldCosts.reduce((sum, item) => sum + item.rematches, 0),
+            };
+            if (oldCost.distance === 0 && oldCost.rematches === 0) continue;
+            const six = original.flat();
+            for (const pattern of patterns) {
+              const replacement: [Pair, Pair, Pair] = [
+                [six[pattern[0]], six[pattern[1]]],
+                [six[pattern[2]], six[pattern[3]]],
+                [six[pattern[4]], six[pattern[5]]],
+              ];
+              const candidateCosts = replacement.map(cost);
+              if (strictlyBetter({
+                distance: candidateCosts.reduce((sum, item) => sum + item.distance, 0),
+                rematches: candidateCosts.reduce((sum, item) => sum + item.rematches, 0),
+              }, oldCost)) {
+                pairs[left] = replacement[0];
+                pairs[middle] = replacement[1];
+                pairs[right] = replacement[2];
+                improved = true;
+                break nextMiddle;
+              }
+            }
+          }
+        }
+      }
+      if (!improved) break;
+    }
+  }
   return pairs;
 }
 
