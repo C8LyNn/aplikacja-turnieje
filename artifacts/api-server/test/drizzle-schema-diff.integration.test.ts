@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, describe, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
-import { createRunDatabase, dropRunDatabase, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
+import { createRunDatabase, dropRunDatabase, reserveRunDatabaseSlot, holdRunDatabaseSlot, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -266,6 +266,7 @@ before(async () => {
     connectionString: baseUrl.toString(),
   });
   databaseName = `tm_drizzle_schema_test_${randomUUID().replaceAll("-", "")}`;
+  reserveRunDatabaseSlot(databaseName);
   databaseCreateAttempted = true;
   createdDatabaseReceipt = await createRunDatabase(adminPool, databaseName, DATABASE_NAME_PATTERN);
 
@@ -312,9 +313,11 @@ after(async () => {
   if (adminPool) {
     try {
       if (drizzlePushOutcomeUncertain) {
+        holdRunDatabaseSlot(databaseName);
         throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_PUSH_UNCERTAIN_NO_FORCE_DROP");
       }
       if (databaseCreateAttempted && !createdDatabaseReceipt) {
+        holdRunDatabaseSlot(databaseName);
         throw new Error("WEB005_CLEANUP_HOLD:DRIZZLE_AMBIGUOUS_CREATE_NO_DROP");
       }
       if (createdDatabaseReceipt) {
