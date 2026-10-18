@@ -25,6 +25,7 @@ import {
   tournamentsTable,
 } from "@workspace/db/schema";
 import type { TournamentBackupV3 } from "@workspace/api-zod";
+import { validateBackupV3FlowIntegrity } from "./backup-v3-flow-integrity";
 import {
   parseTournamentGameConfig,
   TournamentGameConfigError,
@@ -1695,6 +1696,8 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     }
   }
 
+  // B1: exact cross-record qualification/output/route provenance, before clone.
+  errors.push(...validateBackupV3FlowIntegrity(backup));
   if (errors.length > 0)
     throw new BackupV3ValidationError([...new Set(errors)]);
 }
@@ -2375,12 +2378,16 @@ export async function importBackupV3(
       const sourceBasketBackup = (backup.stageBaskets ?? []).find(
         (basket) => basket.id === exec.sourceBasketId,
       );
-      if (!sourceBasketBackup) continue; // validated above
+      if (!sourceBasketBackup) {
+        throw new BackupV3ValidationError(["B1: route execution source basket is missing."]);
+      }
       const restoredSourceStageId = stageIds.get(sourceBasketBackup.stageBackupId)!;
       const targetBasketBackup = (backup.stageBaskets ?? []).find(
         (basket) => basket.id === exec.targetBasketId,
       );
-      if (!targetBasketBackup) continue;
+      if (!targetBasketBackup) {
+        throw new BackupV3ValidationError(["B1: route execution target basket is missing."]);
+      }
       const restoredTargetStageId = stageIds.get(targetBasketBackup.stageBackupId)!;
 
       // Look up the restored proposal for the source stage.
@@ -2393,7 +2400,9 @@ export async function importBackupV3(
             eq(qualificationProposalsTable.stageId, restoredSourceStageId),
           ),
         );
-      if (!restoredProposal) continue;
+      if (!restoredProposal) {
+        throw new BackupV3ValidationError(["B1: route execution source proposal was not restored."]);
+      }
 
       // Insert the execution row.
       const [insertedExecution] = await tx
@@ -2416,7 +2425,9 @@ export async function importBackupV3(
       // Insert entry rows.
       for (const entry of exec.entries) {
         const restoredPlayerId = playerIds.get(entry.playerBackupId);
-        if (restoredPlayerId == null) continue;
+        if (restoredPlayerId == null) {
+          throw new BackupV3ValidationError(["B1: route arrival player remapping failed."]);
+        }
 
         // Look up the restored output player row (needed for FK).
         const [outputPlayerRow] = await tx
@@ -2430,7 +2441,9 @@ export async function importBackupV3(
               eq(stageBasketsOutputPlayersTable.playerId, restoredPlayerId),
             ),
           );
-        if (!outputPlayerRow) continue;
+        if (!outputPlayerRow) {
+          throw new BackupV3ValidationError(["B1: route arrival source output was not restored."]);
+        }
 
         await tx.insert(stageBasketRouteEntriesTable).values({
           executionId: insertedExecution.id,
