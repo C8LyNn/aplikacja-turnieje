@@ -155,9 +155,15 @@
     "git_unique_diff": "5 added files, 1 parent, 0 behind, 1 ahead",
     "local_native_app_tests": "NOT_EXECUTED; no complete local clone or pnpm",
     "automatic_pr_ci_run": 39125456595,
-    "automatic_pr_ci_status_at_manifest": "IN_PROGRESS (do not infer final PASS)",
+    "automatic_pr_ci_status_at_manifest": "COMPLETED FAILURE; Pack19–26 source+domain SUCCESS, Pack17 source 12/12 PASS, fail-closed 24/24 PASS, automatic GitHub ephemeral PG atomic 8/8 PASS, workspace typecheck PASS; API integration exit 1, first failed assertion unknown; later frontend/build NOT_EXECUTED",
     "c01_inherited_failure": "API integration exit 1, first failing assertion UNKNOWN",
-    "release": "NO_GO"
+    "release": "NO_GO",
+    "automatic_pr_ci_job": 117669533771,
+    "automatic_pr_ci_final_failure_gate": "BLOCKED: API integration tests execution failed exit 1; signal none",
+    "automatic_pr_ci_first_failing_test": "NOT_IDENTIFIED_FROM_AVAILABLE_DECODED_LOG",
+    "automatic_pr_ci_later_frontend_api_build": "NOT_EXECUTED",
+    "autoci_numeric_process_exit": 1,
+    "evidence_notice": "All automatic CI was PR-triggered, not manually dispatched or paid rerun by A40. CI PG16 tests are existing automatic ephemeral workflow, not manual A40 database actions."
   },
   "replit": {
     "preservation": "NO_TOUCH",
