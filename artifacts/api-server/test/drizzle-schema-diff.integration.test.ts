@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, describe, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
+import { createRunDatabase, dropRunDatabase, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -70,6 +71,7 @@ const execFileAsync = promisify(execFile);
 let adminPool: QueryPool;
 let testPool: QueryPool;
 let databaseName: string;
+let createdDatabaseReceipt: CreatedDatabaseReceipt | undefined;
 let testConnectionString: string;
 
 function quotedIdentifier(identifier: string): string {
@@ -228,7 +230,7 @@ before(async () => {
     connectionString: baseUrl.toString(),
   });
   databaseName = `tm_drizzle_schema_test_${randomUUID().replaceAll("-", "")}`;
-  await adminPool.query(`CREATE DATABASE ${quotedIdentifier(databaseName)}`);
+  createdDatabaseReceipt = await createRunDatabase(adminPool, databaseName, DATABASE_NAME_PATTERN);
 
   const testUrl = new URL(baseUrl);
   testUrl.pathname = `/${databaseName}`;
@@ -270,11 +272,12 @@ after(async () => {
   if (testPool) {
     await testPool.end();
   }
-  if (adminPool && databaseName) {
-    await adminPool.query(
-      `DROP DATABASE IF EXISTS ${quotedIdentifier(databaseName)} WITH (FORCE)`,
-    );
-    await adminPool.end();
+  if (adminPool) {
+    try {
+      await dropRunDatabase(adminPool, createdDatabaseReceipt, DATABASE_NAME_PATTERN);
+    } finally {
+      await adminPool.end();
+    }
   }
 });
 
