@@ -101,3 +101,21 @@ The changed/new files **before this report** are only:
 **Current operational status:** `P0_OPEN_7 / PG16_EXECUTION_HOLD / G0_NO_GO / G1_G5_HOLD / C01_INTEGRATION_HOLD / C02_HOLD / RELEASE_NO_GO / SWARM006_HOLD`.
 
 **Final source-only recommendation:** request A22+A31+A30+A23+A60 independent review of this NEW SHA, then source-only corrective iterations and separately authorized static compiler/synthetic negative evaluation. Do NOT execute the launcher, Docker, PostgreSQL, SQL/migrations, CI or test suites merely to complete this PR.
+
+
+## 7. Post-A22 issue #88 corrective delta (append-only; source-only)
+
+A22 independently reviewed **earlier** code checkpoint `3517658652a01c133ab1bf8c790128ec62d14bd6` and reported six must-fix P0 items in [Issue #88](https://github.com/C8LyNn/aplikacja-turnieje/issues/88). Its verdict **`B_SOURCE_NOT_APPROVED` remains valid for that SHA**; the newer branch needs new independent review.
+
+Changes made AFTER the reviewed checkpoint:
+1. **S1:** in-memory `createdSchemaReceipts` now captures positive CREATE+COMMENT+OID/owner/marker observation before any DROP; existing main/helper schemas STOP. Still no external signed/durable creation receipt or full CASCADE dependency audit.
+2. **S2:** `S2_CREATE_ATTEMPTED`, failed/ambiguous CREATE and `CLEANUP_HOLD` explicitly logged. Catalog denies all hook DROPs if any attempted CREATE lacks receipt; Drizzle likewise. Potential orphans preserved for separately signed G5.
+3. **S2 physical:** name/OID/owner/current principal and run-cert fingerprint checked; signed real cluster system ID and exclusive-writer/TOCTOU defense still **PENDING**. OID alone is not unforgeable authority.
+4. **S2 child DSNs:** comparator and Drizzle no longer spread `process.env`; `sealedFixtureChildEnv()` limits child variables to an explicit allowlist and owned scratch DBs at `127.0.0.1:55432`. Actual Drizzle 0.31.10 SQL effects and two `--force` invocations remain **UNKNOWN**.
+5. **S1/DB grants:** runtime launcher is intentionally locked; effective base DB, server catalog permissions and cluster-wide CREATEDB are NOT verified. Migration 0029 exists but is not included in the reviewed normal 0001–0028 S1 reset nor S2-Drizzle 0001–0020, S2-catalog 0001–0011; special 0030/0031 need independent mapping.
+
+**20/20 current textual source/changed-path checks satisfied**. This is static string-based validation only, **NOT compiler/AST/runtime/negative unit/API test PASS**. N15/N16 namespaced cases remain DESIGN ONLY. All six A22 issues require fresh A22+A31+A30+A23+A60 review; no P0 operational closure or G0 authorization.
+
+**Outstanding review blockers:** durable external SQL and owner/OID receipts; cross-schema CASCADE dependents; signed physical cert and exclusive writer; atomic single-use phase/approvals; actual installed Drizzle binary/effects; private raw event custody and secure cloud redaction; source-compatibility TS and 36-file integration still NOT_EXECUTED.
+
+**Updated status:** `R23H_R5_VARIANT_B_SOURCE_PATCH_READY_FOR_INDEPENDENT_REVIEW / STATIC_20_OF_20 / B_SOURCE_NOT_APPROVED / G0_NO_GO / RUNTIME_NOT_EXECUTED`. The canonical new exact SHA is the Draft PR #89 HEAD, as this report cannot safely include its own containing commit SHA.
