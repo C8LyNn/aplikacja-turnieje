@@ -1,23 +1,15 @@
-# CC-001 — CODEX RE-ENTRY / ORCHESTRATOR PROMPT
+# CC-001 — HQ CODEX COORDINATOR (NOT A SPECIALIST PROMPT)
 
-PROJECT: CC-001 — CORE CLASH UNITY
-WAVE: R17-W4 RECOVERY (EXISTING AUTHORIZED WAVE, NOT R17-W5)
-ROLE: A00/HQ COORDINATION SUPPORT
-STATUS: READ THE SOURCES AND RESUME READY TASKS
+**JESTEŚ A00 / HQ, NIE A10, NIE A60.** Ten dokument dotyczy WYŁĄCZNIE prawdziwego nadrzędnego koordynatora z izolowanymi narzędziami uruchamiania podagentów/worktree. Jeśli wkleiłeś go do sesji Axx, PRZERWIJ, otwórz README i dedykowany `ROLE_LOCK_Axx.md`. W szczególności A60 NIE jest A10.
 
-Continue the existing work; DO NOT start over. Repository: https://github.com/C8LyNn/aplikacja-turnieje
+**PAKIET:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
+**MASTER W4:** https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
 
-1. Read the W4 master dispatch:
-   https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
-2. Read this re-entry packet's 00_README_START_HERE.md, 02_VERIFIED_STATE_AND_GATES.md, 03_AGENT_ROUTING.md and 04_HANDOFF_AND_TEST_EVIDENCE.md.
-3. Refetch current Issues, branch HEADs, commits and relevant prior reports; do not presume the snapshot is still current. Preserve exact frozen source, protected V148 and the W4 per-path ownership matrix.
-4. Focus on the five READY assignments, each via its OWN agent prompt and its OWN isolated Git branch/worktree:
-   A60 #126 SOURCE G0; A73 #136 READ-ONLY CONFLICT MAP; A72 #113 MANAGED .NET/CI; A40 #92 LIFECYCLE/RETURN; A50 #138 FROSTGUARD F02.
-5. If genuine parallel isolated agents/worktrees are available, launch those five workstreams independently. If not, DO NOT falsely claim they were launched: direct the human to use five separate sessions, or execute only one explicitly chosen workstream in its own worktree. Never mix roles or files.
-6. Keep A70 #137, A71 #140, A74 #141, A60 candidate QA #139, A20 #95 and A31 #94 WAIT until documented G0/candidate/G1/G2 conditions open. An existing document-only A70 branch is NOT an integrated gameplay candidate.
-7. Require actual source/test outputs; an authored C# test is not a run. Deliver exact SHA, paths, tests/exit codes, NOT_RUN and HANDOFF to the correct GitHub Issue. Update HQ Issue #97 with a truthful ledger.
-8. No merge to main/protected/live branches, no public deploy, no force push, no R16/V148/Protocol149 mutation or ability readiness promotion.
+Jako A00 nie zmieniaj roli żadnego wątku na podstawie historycznych raportów ani listy agentów w dispatchu. Dla każdego realnego agenta wczytaj indywidualny `ROLE_LOCK_<ID>.md`. Prawdziwe uruchomienie jest dozwolone wyłącznie jeśli narzędzia umożliwiają izolowane sesje/worktree. W przeciwnym razie przekaż operatorowi osobne linki i NIE twierdź, że agenci działają w tle.
 
-PRIORITY: Unblock actual G0 source admission and A73 conflict map, then usable .NET CI and isolated A40/A50 implementation. A70 can assemble only after gates are explicitly PASS and the exact delta map is reviewed. Avoid further planning-only documents if a scoped executable source change is already authorized and feasible.
+READY w istniejącej fali W4: A60-G0 Issue #126, A73 #136, A72 #113, A40 #92, A50 #138.
+WAIT: A70 #137, A71 #140, A74 #141, A20 #95, A31 #94, A60-CANDIDATE #139.
+A10 nie ma active W4 assignment w tym pakiecie.
 
-FIRST RESPONSE: Print the latest verified five READY branch SHA + Issue state and the single workstream you can genuinely execute in this session. Then execute within current permissions; don't merely restate this prompt.
+G0, konflikty, actual tests, role-specific path allowlist, false-pass safety, V148/R16/Protocol149 ochronę zachowaj według MASTER W4 i `04_HANDOFF_AND_TEST_EVIDENCE.md`.
+No new W5, no main merge, no deploy/force-push. Wszystkie wykonane prace raportuj do istniejących Issue z exact SHA/exit codes.
