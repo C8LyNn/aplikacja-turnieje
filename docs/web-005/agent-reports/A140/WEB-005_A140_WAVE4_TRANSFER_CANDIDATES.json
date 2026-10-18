@@ -1,0 +1,272 @@
+{
+  "schema": "WEB-005-A140-WAVE4-TRANSFER-CANDIDATES-V1",
+  "created_date": "2026-10-18",
+  "agent": "A140",
+  "task": "WEB-005-T140-W4-LIVE-PRESERVATION",
+  "verified_github_release_commit": "1db3734b8988940acc6be8b992420a58fc39624a",
+  "replit_workspace": {
+    "head_agent_reported": "5e68f0f4b7d73cb5ff6aad0065dbe54c5f691776",
+    "branch": "feat/double-elimination-full-integration",
+    "clean_agent_reported": true,
+    "verification": "REPLIT_AGENT_ONLY_NOT_PUBLISHED"
+  },
+  "github_editor_commit": "28da3ef94f3b30f90c1b3b70a88ab7f61462d99c",
+  "published": {
+    "historic_checkpoint": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "historical_reported_drift_paths": 140,
+    "exact_full_manifest_available": false,
+    "last_native_publish_status": "failed",
+    "actual_served_tree": "UNVERIFIED"
+  },
+  "sources": [
+    {
+      "kind": "github",
+      "ref": "release/tournament-ops-20261013-01",
+      "sha": "1db3734b8988940acc6be8b992420a58fc39624a"
+    },
+    {
+      "kind": "github",
+      "ref": "catalog-editor",
+      "sha": "28da3ef94f3b30f90c1b3b70a88ab7f61462d99c"
+    },
+    {
+      "kind": "github_pr",
+      "number": 69,
+      "head": "1bc087384542b16bb82bc9ab58ec48780fc0e972"
+    },
+    {
+      "kind": "github_pr",
+      "number": 34,
+      "head": "fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+    },
+    {
+      "kind": "github_pr",
+      "number": 78,
+      "head": "11e8d5d0bea679515a807f002724926113bdafc1"
+    },
+    {
+      "kind": "github_pr",
+      "number": 103,
+      "head": "9fb85b2ca5c137c6107a360bbdb45efec6bf1dde"
+    },
+    {
+      "kind": "github_pr",
+      "number": 116,
+      "head": "a0f1d8066bbcf4e4b602cb587aebf599e327d067",
+      "meaning": "previous A140 HEAD before WAVE4 addendum"
+    }
+  ],
+  "capture_method": "GH fetch_file/GH PR diff for GitHub blobs; Replit Agent read-only git hash-object for workspace. No direct independent full Replit tree export and no published tree.",
+  "policy": "No automatic copying, no live deploy, no SQL, no game edits. GitHub source OID comparisons vs agent-reported Replit hashes are NOT published parity proofs.",
+  "decision_summary": {
+    "source_only_reviewable": 2,
+    "narrow_hunk_candidate": 1,
+    "reported_identical_no_copy": 2,
+    "integration_ready_for_production": 0
+  },
+  "rows": [
+    {
+      "path": "artifacts/tournament-manager/src/App.tsx",
+      "github_release_blob": "298f94ac19dbbdc6df775543e720ec250a1de82a",
+      "replit_workspace_blob_agent_reported": "91f9bc2155b13abf9d233e59e1cc573ebf590daa",
+      "decision": "PRESERVE_REPLIT_THREE_WAY_REVIEW",
+      "owner": "A40/A120/A140",
+      "evidence": "Release Wouter routes include stream, catalog, research; current Replit reports fewer routes. Whole-file replacement could remove running UI.",
+      "next_gate": "A40 explicit route-by-route adaptation and A60 regression; game routes untouched."
+    },
+    {
+      "path": "artifacts/tournament-manager/vite.config.ts",
+      "github_release_blob": "4c833bf13a03b28174f9202dc0498f1f5d25d3ea",
+      "replit_workspace_blob_agent_reported": "2011f5fa44b68a0569b27a204f393a0205fd1305",
+      "decision": "NARROW_HUNK_REVIEW_ONLY",
+      "owner": "A120/A140",
+      "evidence": "Release has development middleware for /portfolio and /stream/animated-effects; workspace source differs and lacks verified artifact paths.",
+      "next_gate": "Validate actual public assets and direct reload before any adaptation; do not copy complete file."
+    },
+    {
+      "path": "artifacts/tournament-manager/.replit-artifact/artifact.toml",
+      "github_release_blob": "377637a6e88f5db4142dedb5035e854b99f422c1",
+      "replit_workspace_blob_agent_reported": "c4d8f2bc41e771f796be22506370f979922edd78",
+      "decision": "PRESERVE_REPLIT_ROUTING_HOLD",
+      "owner": "A120/A140",
+      "evidence": "Release declares /dev/animated-effects and /* rewrites; current Replit declares only /*. Current workspace missing target HTML for legacy /dev route.",
+      "next_gate": "Do not port legacy rewrite to nonexistent target. A120/host must verify 404 fallback and valid static bundle."
+    },
+    {
+      "path": ".replit",
+      "github_release_blob": "7e63a433931aa73310a7ed67f51f1316a101436a",
+      "replit_workspace_blob_agent_reported": "1489e8ab835a947e398ab2babbd57f7a32a169d8",
+      "decision": "PRESERVE_REPLIT_CONFIG_HOLD",
+      "owner": "A20/A140",
+      "evidence": "Different Replit workspace/deployment configuration blob. Runtime effects not attested.",
+      "next_gate": "Environment-specific comparison and approved non-production startup probe."
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "github_release_blob": "97ceb41938b53e8fc98f788ac1aa0c625761a2f2",
+      "replit_workspace_blob_agent_reported": "1e9e256937fe8cf7c5e469ae522b11d7c6b458a0",
+      "decision": "NO_AUTO_COPY_LOCKFILE",
+      "owner": "A20/A40/A140",
+      "evidence": "Dependency lockfile drift; no install run to establish parity.",
+      "next_gate": "Resolve package changes on isolated candidate branch with offline lockfile review."
+    },
+    {
+      "path": "artifacts/api-server/src/routes/index.ts",
+      "github_release_blob": "7a61b2513d4e24526edbeb947a870d94f2f64a75",
+      "replit_workspace_blob_agent_reported": "597796cca7bcb4a59f56d9edb5f4a54f8a669cdb",
+      "decision": "SECURITY_INTEGRATION_BLOCKED",
+      "owner": "A30/A40",
+      "evidence": "Release registers Steam catalog alongside other routers; Replit workspace registers health, auth and tournaments only.",
+      "next_gate": "Do not port release Steam routes unguarded. Preserve Replit routes. Adopt reviewed PR34 contract only with security/DB gates."
+    },
+    {
+      "path": "artifacts/api-server/src/routes/steam-game-catalog.ts",
+      "github_release_blob": "31ca80345f0bc7c0cf8328723bce974d487f460a",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "SECURITY_INTEGRATION_BLOCKED",
+      "owner": "A30/A40",
+      "evidence": "Release has POST/PUT catalog mutations without required guard; workspace file absent.",
+      "next_gate": "Require PR34 admin guard, route tests, approved migrations, DB staging acceptance before source adaptation."
+    },
+    {
+      "path": "artifacts/api-server/src/application/catalog/steam-catalog-access.ts",
+      "github_release_blob": null,
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "GUARD_REQUIRED_IF_STEAM_ENABLED",
+      "owner": "A30/A40",
+      "evidence": "Absent release and workspace; GitHub editor and PR34 provide fail-closed token middleware (Git blob feff5ff...).",
+      "next_gate": "Use approved PR34 guard and tests; no key injection/production API activation.",
+      "candidate_source": "PR34@fae2eea2f22df3f1b02ad035a7db00bc411ea73f"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/index.css",
+      "github_release_blob": "8e347f9a1aa70e3e4cb8f5adc94faca6ad9bbaa8",
+      "replit_workspace_blob_agent_reported": "120812ce2afc2d5fbce9d3cfe156e4aa64c02e92",
+      "decision": "NARROW_HUNK_CANDIDATE",
+      "owner": "A120/A40",
+      "evidence": "Agent verified dead Valve Pulp @font-face remains in Replit; PR69 removes only this declaration. Five workspace references to --app-font-deadlock-display were counted (not fully reviewed).",
+      "next_gate": "Rebase only verified deletion hunk onto isolated source; confirm all CSS fallbacks; independent QA; do not copy entire CSS.",
+      "candidate_source": "PR69@1bc087384542b16bb82bc9ab58ec48780fc0e972"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/portfolio-ui.tsx",
+      "github_release_blob": "88c7a2dab88bad2b4ea5cc1172aa3522a8bda849",
+      "replit_workspace_blob_agent_reported": "88c7a2dab88bad2b4ea5cc1172aa3522a8bda849",
+      "decision": "NO_COPY_REPORTED_IDENTICAL",
+      "owner": "A120/A140",
+      "evidence": "Matching Git OID between GitHub release and Agent-reported workspace.",
+      "next_gate": "No port required; published artifact unverified."
+    },
+    {
+      "path": "artifacts/api-server/.replit-artifact/artifact.toml",
+      "github_release_blob": "814b9ad51b47b2302b7364ccb37849767aec680e",
+      "replit_workspace_blob_agent_reported": "814b9ad51b47b2302b7364ccb37849767aec680e",
+      "decision": "NO_COPY_REPORTED_IDENTICAL",
+      "owner": "A20/A140",
+      "evidence": "Matching Git OID between GitHub release and Agent-reported workspace.",
+      "next_gate": "No port required; published artifact unverified."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/portfolio/index.html",
+      "github_release_blob": "197bd447df2449947fda3203ab76e7a63e58a48f",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "Confirmed source artifact in GitHub release; absent Replit workspace public/dist at requested location.",
+      "next_gate": "Review entire portfolio static bundle and refs before isolated integration; verify direct navigation and HTML/CSS/JS status."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/portfolio/projects/index.html",
+      "github_release_blob": "98a74d8ab002d9ac34d01c042715ca3d6db4f7f4",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "Confirmed GitHub source; absent Replit workspace public/dist. References ../src/styles.css, nested case studies, relative resources.",
+      "next_gate": "A120 verify transitive assets and links; no single-index cherry-pick."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/portfolio/src/styles.css",
+      "github_release_blob": "63bae595003549c336328db0e3c730e4e92e4011",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "GitHub source asset for portfolio/projects index exists. Replit status for this particular file not checked.",
+      "next_gate": "Full source/path parity required before classifying absent or copy."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/stream/animated-effects/index.html",
+      "github_release_blob": "5af45933e47ac0bb84de9fb95cc761cc82b804e7",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "GitHub release index exists; absent Replit workspace public/dist; refers to hashed CSS and JS assets.",
+      "next_gate": "Confirm complete matching hashed asset bundle and routing; no placeholder HTML."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/stream/animated-effects/assets/index-CQVbN-Tt.js",
+      "github_release_blob": "07d3c219efb536760752bc63ae3cd185c9d35ed9",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "GitHub source asset referenced by stream index; Replit status for this particular file not checked.",
+      "next_gate": "Confirm bundle dependencies and cache semantics, not isolated HTML transfer."
+    },
+    {
+      "path": "artifacts/tournament-manager/public/stream/animated-effects/assets/index-B16dW5Hr.css",
+      "github_release_blob": "d21707305988bae194d78b691a0a426d80b5ed9e",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "BUNDLE_DEPENDENCY_REVIEW",
+      "owner": "A120/A140",
+      "evidence": "GitHub source asset referenced by stream index; Replit status for this particular file not checked.",
+      "next_gate": "Confirm bundle dependencies and cache semantics, not isolated HTML transfer."
+    },
+    {
+      "path": "scripts/deployment/static-route-policy.mjs",
+      "github_release_blob": null,
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "SOURCE_ONLY_REVIEW_CANDIDATE",
+      "owner": "A120/A10/A40",
+      "evidence": "PR103 adds a standalone pure route classifier; neither Replit hosting nor application server loads it.",
+      "next_gate": "A10/A60 review PR103 and tests; A40 may include as source-only helper, no assertion of HTTP 404 fix.",
+      "candidate_source": "PR103@9fb85b2ca5c137c6107a360bbdb45efec6bf1dde"
+    },
+    {
+      "path": "scripts/qa/r23d-static-route-probe.mjs",
+      "github_release_blob": null,
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "SOURCE_ONLY_REVIEW_CANDIDATE",
+      "owner": "A120/A10/A40",
+      "evidence": "PR78 contains a synthetic read-only HTTP probe. Not run against real Live here.",
+      "next_gate": "A10/A60 review PR78; A40 may integrate isolated QA script; no live requests without approved target.",
+      "candidate_source": "PR78@11e8d5d0bea679515a807f002724926113bdafc1"
+    },
+    {
+      "path": "lib/db/migrations/0030_controlled_correction_operations.sql",
+      "github_release_blob": "50aa71ae0199806de3aaf3c57700d2739f2c42bc",
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "PG16_MIGRATION_HOLD",
+      "owner": "A20/A22",
+      "evidence": "Release has controlled-correction 0030; editor Steam migration also uses 0030 for a different purpose. A30 partial manifest reports Replit workspace absent.",
+      "next_gate": "D01-D04 owner decision, validated migration graph/ledger and isolation gates; A140 takes no SQL action."
+    },
+    {
+      "path": "lib/db/migrations/0030_steam_catalog_abstract_world.sql",
+      "github_release_blob": null,
+      "replit_workspace_blob_agent_reported": null,
+      "decision": "PG16_MIGRATION_HOLD",
+      "owner": "A20/A22",
+      "evidence": "Editor-only 0030 source recorded in PR79 manifest (Git blob a6d4ce6...); collides with release 0030.",
+      "next_gate": "Preserve separate histories; no migration number allocation or deployment before signed D01-D04."
+    }
+  ],
+  "unknowns": [
+    "No full 140-path published-checkpoint Git tree",
+    "No real published bundle provenance",
+    "No native Replit HTTP/SPA regression",
+    "No PG16 migration ledger",
+    "No approved Steam write-admin token provisioning",
+    "No isolated source merge or deployment authorization"
+  ],
+  "handoff": "A10 register decisions; A40 choose source-only, independently validated packets; A60 verify exact WAVE4 head and negative tests; A120 own font/routes/static bundles; A30 own Steam auth; A20/A22 own SQL decisions.",
+  "overall": "PARTIAL_PRESERVATION_MANIFEST_READY_FOR_REVIEW / REAL_LIVE_UNVERIFIED / NO_SYNC / NO_DEPLOY"
+}
