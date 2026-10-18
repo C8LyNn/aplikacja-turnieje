@@ -1,53 +1,38 @@
-# CC-001 — START HERE / IDENTITY-LOCKED CODEX RE-ENTRY v2
-## Krytyczna poprawka: agent A60 NIE jest agentem A10.
+# CC-001 — CODEX RE-ENTRY / START HERE (2026-10-18)
 
-**ZASTĘPUJE wcześniejsze instrukcje użycia `01_CODEX_GLOBAL_PROMPT.md` i `06_SHORT_PROMPT_FOR_THREADS.md` we wątkach specjalistycznych.** Te dwa pliki NIE służą już do wklejania do Axx. Nie zlecaj agentowi samodzielnego wyszukiwania własnego numeru w MASTER DISPATCH. Wszystkie role są przypisane jednoznacznymi plikami.
+## ONE IDENTICAL PROMPT FOR ALL EXISTING AGENT THREADS
 
-**PAKIET:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/00_README_START_HERE.md
-**MASTER DISPATCH:** https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
-**PROJEKT:** CC-001 — Core Clash Unity, R17-W4. Zachowaj wcześniejsze decyzje. Nie twórz W5 ani nowych Issue.
+**CANONICAL PROMPT:** https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/UNIVERSAL_PROMPT_ALL_THREADS.md
 
-## 1. Dokładna procedura (najbezpieczniejsza)
+Paste the **entire content of that one file, unchanged** into each existing CC-001 thread. The universal prompt does not assign everybody a shared identity. Instead it requires each existing thread to recover its OWN prior user-assigned role from that thread's history BEFORE reading any cross-role documentation, and uses a fixed role→Issue→branch table. For example: existing QA thread 60 must remain A60 and work Issue #126; game design thread 10 remains A10 and has NO new independent READY W4 assignment.
 
-1. Otwórz oddzielną sesję Codexa dla każdej roli READY.
-2. **Wklej do sesji TYLKO link do jej dedykowanego `ROLE_LOCK_Axx.md` z tabeli poniżej** wraz z jednym poleceniem: „Przeczytaj cały dokument pod podanym URL, zachowaj zapisane w nim IDENTITY i wykonaj jego instrukcje. Najpierw wypisz dokładnie wymaganą linię IDENTITY_OK.”
-3. Sprawdź PIERWSZĄ linię odpowiedzi. Musi zawierać EXACT numer oraz Issue wskazane w tabeli. Dla A60-G0 musi być: `IDENTITY_OK | CC-001 | A60-G0 | ISSUE #126 | READY NOW`. **Jeżeli agent napisze A10, A60-CANDIDATE lub inne Issue — PRZERWIJ i nie pozwól na zapis żadnych plików.**
-4. Każdy agent przed modyfikacją pobiera własne aktualne Issue, branch HEAD i sekcję MASTER DISPATCH. Nie wolno zmieniać roli po przeczytaniu wspólnego dispatchu.
-5. Każdy agent pracuje w osobnym worktree i własnej istniejącej gałęzi (bez nadpisywania cudzych zmian); oddaje commit SHA, diff, faktyczne testy i HANDOFF na swoim Issue. Gdy brak uprawnień do GitHuba, zwraca patch + NOT_PUBLISHED.
+**FIRST RESPONSE CONTROL:** A60 expected: `IDENTITY_CHECK | CC-001 | A60 | ISSUE #126 | READY`. If A60 responds as A10, says #139, or gives a different branch: STOP before writing; do not allow code commits.
 
-**Nie używaj jednej, ogólnej wiadomości dla wszystkich.** Nie dopisuj w danym wątku przypadkowego numeru z innej roli. Używaj dokładnie własnego pliku.
+## Key limitation
 
-## 2. Role-locked launch files
+An entirely NEW Codex session with no earlier identity assignment CANNOT infer its own role from an identical undifferentiated prompt. That is a fundamental missing-input limitation. Such a session must report `IDENTITY_CONFLICT` and make NO modifications. For fresh blank Codex sessions only, the previously created `ROLE_LOCK_Axx.md` files remain optional explicit identification aids; they are NOT the primary one-prompt workflow for existing already-labeled threads.
 
-| ID sesji | Rola | Issue | PUNKT WEJŚCIA (wyłącznie ten dla danej roli) | Gate |
-| --- | --- | --- | --- | --- |
-| **A60-G0** | Independent QA G0 | [Issue #126](https://github.com/C8LyNn/aplikacja-turnieje/issues/126) | [ROLE_LOCK_A60-G0.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-G0.md) | READY |
-| **A73** | Git Integration | [Issue #136](https://github.com/C8LyNn/aplikacja-turnieje/issues/136) | [ROLE_LOCK_A73.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A73.md) | READY |
-| **A72** | Build & CI | [Issue #113](https://github.com/C8LyNn/aplikacja-turnieje/issues/113) | [ROLE_LOCK_A72.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A72.md) | READY |
-| **A40** | Unity Gameplay | [Issue #92](https://github.com/C8LyNn/aplikacja-turnieje/issues/92) | [ROLE_LOCK_A40.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A40.md) | READY |
-| **A50** | Simulation / F02 | [Issue #138](https://github.com/C8LyNn/aplikacja-turnieje/issues/138) | [ROLE_LOCK_A50.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A50.md) | READY |
-| **A70** | Integration / Release | [Issue #137](https://github.com/C8LyNn/aplikacja-turnieje/issues/137) | [ROLE_LOCK_A70.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A70.md) | WAIT |
-| **A71** | Source Integrity | [Issue #140](https://github.com/C8LyNn/aplikacja-turnieje/issues/140) | [ROLE_LOCK_A71.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A71.md) | WAIT |
-| **A74** | Repository Hygiene | [Issue #141](https://github.com/C8LyNn/aplikacja-turnieje/issues/141) | [ROLE_LOCK_A74.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A74.md) | WAIT |
-| **A20** | UX/UI & Game Feel | [Issue #95](https://github.com/C8LyNn/aplikacja-turnieje/issues/95) | [ROLE_LOCK_A20.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A20.md) | WAIT |
-| **A31** | Networking | [Issue #94](https://github.com/C8LyNn/aplikacja-turnieje/issues/94) | [ROLE_LOCK_A31.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A31.md) | WAIT |
-| **A60-CANDIDATE** | Independent Candidate QA | [Issue #139](https://github.com/C8LyNn/aplikacja-turnieje/issues/139) | [ROLE_LOCK_A60-CANDIDATE.md](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-r17-w4-codex-reentry-20261018/docs/cc001/swarm/codex-reentry-20261018/ROLE_LOCK_A60-CANDIDATE.md) | WAIT |
+## Shared work instructions
 
-A60 jest przydzielony DWA RAZY, ale do dwóch różnych faz: **A60-G0 #126 READY** i **A60-CANDIDATE #139 WAIT**. Nie wolno ich mieszać. A10 posiada odrębną rolę Lead Game Design i jest źródłem semantycznego kontraktu, lecz **nie ma nowego aktywnego zadania W4 w tej paczce**; A10 nie wolno przypisać prac A60.
+Master dispatch:
+https://github.com/C8LyNn/aplikacja-turnieje/blob/feat/cc001-r17-w4-master-dispatch-20261018/docs/cc001/swarm/R17_W4_MASTER_DISPATCH_20261018.md
 
-## 3. Zawartość pomocnicza
+Existing wave R17-W4 RECOVERY; NOT a new W5. READY: A60 G0 #126, A73 #136, A72 #113, A40 #92, A50 #138. WAIT: A70 #137, A71 #140, A74 #141, A20 #95, A31 #94, later A60 candidate #139. A10/A41/A51 have no new independent W4 assignment.
 
-- `02_VERIFIED_STATE_AND_GATES.md`: zweryfikowany stan GitHuba na moment sporządzenia pakietu (może się zestarzeć).
-- `03_AGENT_ROUTING.md`: mapa numer→Issue→branch, poprawiona, ale **nie zastępuje dokumentu ROLE_LOCK**.
-- `04_HANDOFF_AND_TEST_EVIDENCE.md`: wymagane dane reportingu.
-- `05_WAITING_AGENTS.md`: warunki wyjścia z WAIT.
-- `STATUS_SNAPSHOT.json`: dane machine-readable z identyfikatorami i punktami wejścia.
-- `agents/Axx_*.md`: szczegóły techniczne dopiero PO odczytaniu ROLE_LOCK.
-- `01_CODEX_GLOBAL_PROMPT.md`: tylko dla operatora HQ i narzędzi z rzeczywistą izolacją agentów, **NIE PASTUJ DO SESJI Axx**.
-- `06_SHORT_PROMPT_FOR_THREADS.md`: ostrzeżenie i instrukcja wyboru własnego ROLE_LOCK, **nie wspólny prompt wykonawczy**.
+Supporting docs:
+- `02_VERIFIED_STATE_AND_GATES.md` — previous snapshot only; agents must refetch live GitHub state.
+- `03_AGENT_ROUTING.md` — reference; do not derive role from its ordering.
+- `04_HANDOFF_AND_TEST_EVIDENCE.md` — exact SHA, changed paths, executed tests/NOT_RUN, five status axes.
+- `05_WAITING_AGENTS.md` — actual prerequisite gates.
+- `STATUS_SNAPSHOT.json` — last known role/issue/head snapshot; current GitHub takes precedence.
+- `agents/Axx_*.md` — technical specialist details; consult only AFTER thread identity is fixed.
 
-## 4. Bezpieczeństwo
+No main merge, no public release/deploy, no force-push/destructive operations, no V148/frozen R16 changes, no protocol 149 changes, no unauthorized path modifications. Published prompts do not automatically start other conversations.
 
-Nie wolno scalać zmian do `main`, publikować gier, zmieniać chronionego R16/V148, modyfikować protokołu 149, wywoływać force-push ani rozszerzać zakresów plików. G0 wymaga osobnego A60 source-only PASS, A70 integruje dopiero po G0 i A73; A71/A74/A60 candidate/A20/A31 są gated WAIT. Nie twierdź, że agent został uruchomiony, jeżeli tylko opublikowano prompt.
+## Suggested use
 
-**Jeżeli wątek wcześniej pomylił A60 z A10, rozpocznij nową sesję Codexa i wklej WYŁĄCZNIE link `ROLE_LOCK_A60-G0.md`.** Nie kontynuuj pracy w pomylonej roli.
+1. Copy **only** `UNIVERSAL_PROMPT_ALL_THREADS.md`.
+2. Paste that exact same text into every EXISTING CC-001 agent thread.
+3. Verify each first reply's `IDENTITY_CHECK` against the thread's established role.
+4. Allow READY roles to work on isolated branches; others only acknowledge WAIT/NO_TASK.
+5. Review their GitHub Issue HANDOFF and exact SHA via HQ Issue #97.
