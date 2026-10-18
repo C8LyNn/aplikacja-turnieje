@@ -50,13 +50,23 @@ namespace CoreClash.Presentation
             Rect hud=RectOf(layout.CompactHud),choice=RectOf(layout.CompactChoice);
             Rect cards=RectOf(layout.CompactCards),actions=RectOf(layout.CompactActions);
             Rect feedbackRow=RectOf(layout.CompactFeedback);
-            Hud(new Rect(hud.x,hud.y,hud.width*.67f,hud.height),true);
-            Draw.Surface(new Rect(hud.x+hud.width*.67f+3,hud.y,hud.width*.33f-3,hud.height),Draw.PanelLight,Draw.Owner(owner));
+            // Three short cells avoid the R16 Hud() 2-column label/HP collision
+            // that occurs when a 44-high compact header is very narrow.
+            float cellW=(hud.width-8)/3;
+            for(int i=0;i<2;i++){
+                float x=hud.x+i*(cellW+4);
+                Draw.Surface(new Rect(x,hud.y,cellW,44),Draw.PanelLight,i==owner?Draw.Owner(i):Draw.Edge);
+                int hp=state.players[i].hp;
+                Draw.Text(new Rect(x+4,hud.y+4,cellW-8,26),"P"+(i+1)+"  "+hp+"/20",14,Color.white,TextAnchor.MiddleCenter,true);
+                Draw.Round(new Rect(x+8,hud.y+35,cellW-16,5),Draw.Edge);
+                if(hp>0)Draw.Round(new Rect(x+8,hud.y+35,(cellW-16)*Mathf.Clamp01(hp/20f),5),Draw.Owner(i));
+            }
+            float turnX=hud.x+2*(cellW+4);
+            Draw.Surface(new Rect(turnX,hud.y,cellW,44),Draw.PanelLight,Draw.Owner(owner));
             string phase=state.phase==MatchPhase.Over?(state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS"):
                 state.phase==MatchPhase.Moving?"MOVING":state.bonusPending?"BONUS":"AIM";
-            float turnX=hud.x+hud.width*.67f+6,turnW=hud.width*.33f-10;
-            Draw.Text(new Rect(turnX,hud.y+3,turnW,17),state.phase==MatchPhase.Over?"RESULT":"TURN "+state.turnNumber+"/50",13,Draw.Owner(owner),TextAnchor.MiddleCenter,true);
-            Draw.Text(new Rect(turnX,hud.y+22,turnW,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(turnX+3,hud.y+3,cellW-6,18),state.phase==MatchPhase.Over?"RESULT":"TURN "+state.turnNumber+"/50",13,Draw.Owner(owner),TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(turnX+3,hud.y+22,cellW-6,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
 
             Draw.Surface(choice,Draw.PanelLight);
             string name=state.phase==MatchPhase.Over?TurnText():Catalog.Ball(selected).name;
@@ -106,7 +116,7 @@ namespace CoreClash.Presentation
             GUI.enabled=prior;
             float orb=Math.Min(32,r.height-12);
             BallView.Preview(new Rect(r.x+5,r.y+(r.height-orb)/2,orb,orb),Catalog.Ball(id),owner,picked);
-            Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(35,r.height-17)),Catalog.Ball(id).name,10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(36,r.height-29)),Catalog.Ball(id).name,10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(r.x+orb+9,r.yMax-19,r.width-orb-13,17),available?"x"+stock:"EMPTY",11,available?tint:Draw.Muted,TextAnchor.MiddleLeft,true);
         }
         void RenderPhoneTray()
