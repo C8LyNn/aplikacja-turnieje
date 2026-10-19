@@ -11,6 +11,7 @@ const W3 = Object.freeze({
 });
 const CANDIDATE_SOURCE = new Set([
   'Assets/CoreClash/Core/LifecycleEffects.cs', 'Assets/CoreClash/Core/GameState.cs',
+  'Assets/CoreClash/Core/GameSimulation.cs',
   'Assets/CoreClash/Core/AbilityResolver.cs', 'Assets/CoreClash/Core/TurnSystem.cs',
   'Assets/CoreClash/Core/ElementalEffects.cs', 'Assets/CoreClash/Physics/CollisionResolver.cs',
   'Assets/CoreClash/Presentation/MatchLayout.cs', 'Assets/CoreClash/Presentation/MatchView.cs',
