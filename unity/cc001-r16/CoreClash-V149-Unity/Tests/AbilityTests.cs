@@ -66,8 +66,8 @@ public static partial class Program
             True(s.State.events.Skip(n).Any(e=>e.kind=="DEATH"&&e.ballId==rev.id));
         });
         Test("W4 A40 Soul Anchor restores newest ally grave near recorded death position",()=>{
-            var s=Sim();var older=s.Spawn(0,"normal",190,390);s.Kill(older);
-            var newer=s.Spawn(0,"normal",355,530);s.Kill(newer);
+            var s=Sim();var older=s.Spawn(0,"booster",190,390);s.Kill(older);
+            var newer=s.Spawn(0,"booster",355,530);s.Kill(newer);
             var anchor=s.Spawn(0,"soulanchor",110,270);int serial=s.State.eventSerial;s.Kill(anchor);
             var child=s.State.balls.Single(b=>!b.dead);
             Eq(10,child.hp);Eq(0,child.owner);Eq(newer.lineageId,child.lineageId);
@@ -88,7 +88,7 @@ public static partial class Program
             False(s.State.events.Any(e=>e.kind=="RETURN"&&e.otherId==rev.id));
         });
         Test("W4 A40 Soul Anchor placement failure leaves allied grave intact",()=>{
-            var s=Sim();var earlier=s.Spawn(0,"normal",250,450);s.Kill(earlier);
+            var s=Sim();var earlier=s.Spawn(0,"booster",250,450);s.Kill(earlier);
             var anchorBall=s.Spawn(0,"soulanchor",150,330);
             for(int i=0;i<256;i++)s.Spawn(0,"normal",150,390);
             s.Kill(anchorBall);
@@ -205,8 +205,8 @@ public static partial class Program
         });
         Test("W4 A40 grave cap keeps newest allied record for Soul Anchor and DEATH precedes RETURN",()=>{
             var s=Sim();
-            for(int i=0;i<18;i++){var b=s.Spawn(0,"normal",160,370);s.Kill(b);}
-            var newest=s.Spawn(0,"normal",325,540);s.Kill(newest);
+            for(int i=0;i<18;i++){var b=s.Spawn(0,"booster",160,370);s.Kill(b);}
+            var newest=s.Spawn(0,"booster",325,540);s.Kill(newest);
             Eq(18,s.State.graveyard.Count(g=>g.owner==0));
             var anchor=s.Spawn(0,"soulanchor",110,250);
             int after=s.State.eventSerial;s.Kill(anchor);
@@ -218,6 +218,30 @@ public static partial class Program
             int deathId=s.State.events.Where(e=>e.id>after&&e.kind=="DEATH"&&e.ballId==anchor.id).Select(e=>e.id).Single();
             int returnId=s.State.events.Where(e=>e.id>after&&e.kind=="RETURN"&&e.ballId==revived.id).Select(e=>e.id).Single();
             True(deathId<returnId);
+        });
+        Test("W5 A40 source-truth excluded grave types cannot become Soul Anchor candidates",()=>{
+            var s=Sim();var valid=s.Spawn(0,"booster",230,470);s.Kill(valid);
+            var standard=s.Spawn(0,"normal",160,350);s.Kill(standard);
+            var cascade=s.Spawn(0,"cascade",355,430);s.Kill(cascade);
+            var genesis=s.Spawn(0,"genesis",350,540);s.Kill(genesis);
+            True(s.State.graveyard.Any(g=>g.ballId==valid.id));
+            False(s.State.graveyard.Any(g=>g.ballId==standard.id));
+            False(s.State.graveyard.Any(g=>g.ballId==cascade.id));
+            False(s.State.graveyard.Any(g=>g.ballId==genesis.id));
+            var anchor=s.Spawn(0,"soulanchor",90,250);s.Kill(anchor);
+            var returned=s.State.balls.Single(b=>!b.dead&&b.lineageId==valid.lineageId);
+            Eq(10,returned.hp);Eq(1,returned.reviveGeneration);
+            False(s.State.graveyard.Any(g=>g.ballId==valid.id));
+        });
+        Test("W5 A40 excluded deaths cannot evict oldest eligible grave at cap 18",()=>{
+            var s=Sim();int firstId=0;
+            for(int i=0;i<18;i++){var b=s.Spawn(0,"booster",160,360);if(i==0)firstId=b.id;s.Kill(b);}
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            s.Kill(s.Spawn(0,"normal",260,400));
+            s.Kill(s.Spawn(0,"cascade",350,560));
+            s.Kill(s.Spawn(0,"genesis",420,460));
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            True(s.State.graveyard.Any(g=>g.ballId==firstId));
         });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
