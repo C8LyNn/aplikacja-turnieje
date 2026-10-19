@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: synthetic source ready means DB-FREE ONLY and no PG authorization
+ok 1 - synthetic source ready means DB-FREE ONLY and no PG authorization
+  ---
+  duration_ms: 6.717697
+  type: 'test'
+  ...
+# Subtest: no lock file is blocked
+ok 2 - no lock file is blocked
+  ---
+  duration_ms: 1.450398
+  type: 'test'
+  ...
+# Subtest: lockfile version drift is blocked
+ok 3 - lockfile version drift is blocked
+  ---
+  duration_ms: 1.438751
+  type: 'test'
+  ...
+# Subtest: production DB URL is denied without secret value disclosure
+ok 4 - production DB URL is denied without secret value disclosure
+  ---
+  duration_ms: 1.015192
+  type: 'test'
+  ...
+# Subtest: libpq and child compare overrides fail closed
+ok 5 - libpq and child compare overrides fail closed
+  ---
+  duration_ms: 0.870924
+  type: 'test'
+  ...
+# Subtest: local .env path blocks without reading file content
+ok 6 - local .env path blocks without reading file content
+  ---
+  duration_ms: 1.01411
+  type: 'test'
+  ...
+# Subtest: broken JSON is blocked
+ok 7 - broken JSON is blocked
+  ---
+  duration_ms: 1.603991
+  type: 'test'
+  ...
+# Subtest: package name drift is blocked
+ok 8 - package name drift is blocked
+  ---
+  duration_ms: 0.921351
+  type: 'test'
+  ...
+# Subtest: API test script drift blocks
+ok 9 - API test script drift blocks
+  ---
+  duration_ms: 1.05368
+  type: 'test'
+  ...
+# Subtest: Node20 mismatch remains explicit warning
+ok 10 - Node20 mismatch remains explicit warning
+  ---
+  duration_ms: 1.128182
+  type: 'test'
+  ...
+# Subtest: Vite bound to loopback does not trigger exposure warning
+ok 11 - Vite bound to loopback does not trigger exposure warning
+  ---
+  duration_ms: 0.883944
+  type: 'test'
+  ...
+# Subtest: API DEPLOYMENT_TASK cannot be inherited by a DB-free preflight
+ok 12 - API DEPLOYMENT_TASK cannot be inherited by a DB-free preflight
+  ---
+  duration_ms: 0.703472
+  type: 'test'
+  ...
+# Subtest: API_PROXY_TARGET cannot redirect local frontend to external API
+ok 13 - API_PROXY_TARGET cannot redirect local frontend to external API
+  ---
+  duration_ms: 0.738284
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.931606
