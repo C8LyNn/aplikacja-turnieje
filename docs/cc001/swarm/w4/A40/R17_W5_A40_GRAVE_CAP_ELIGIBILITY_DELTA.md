@@ -68,7 +68,7 @@ import hashlib, re
 p=Path('/mnt/data/cc001_stage_audit/CC001_T011_A30_candidate_copy1.html')
 s=p.read_text()
 print(hashlib.sha256(p.read_bytes()).hexdigest())
-print(re.search(r'const REVIVE_EXCLUDED_TYPES=new Set\\(\\[([^\\]]+)\\]\\);',s).group(1))
+print(re.search(r'const REVIVE_EXCLUDED_TYPES=new Set\(\[([^\]]+)\]\);',s).group(1))
 PY
 ```
 The performed equivalent scanner checked exact SHA, excluded `normal`, `cascade`, `genesis`, `list.length>18`, and use of exclusion gate: **5/5 TRUE, exit code 0** (STATIC_V148_SOURCE_ORACLE_PASS). Protected file **read only**.
