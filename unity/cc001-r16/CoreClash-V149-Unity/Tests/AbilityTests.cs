@@ -17,6 +17,232 @@ public static partial class Program
         Test("Packheart rewards returned ally once per target turn",()=>{var s=Sim();s.Spawn(0,"packheart",100,450);var c=s.Spawn(0,"cascade",270,450);s.Kill(c);var child=s.State.balls.Last();Eq(5,child.shield);s.Abilities.EmitReturn(c,child);Eq(5,child.shield);});
         Test("Gravehide upgrades after qualifying returns on three turns",()=>{var s=Sim();var g=s.Spawn(0,"gravehide",100,450);var c=s.Spawn(0,"normal",300,450);int max=g.maxHp;for(int i=0;i<3;i++){s.State.turnNumber++;s.Abilities.EmitReturn(c,c);}Eq(max+10,g.maxHp);Near(catalog.Ball("gravehide").mass+.2f,g.mass);});
         Test("singularity consume does not fire death or add graveyard records",()=>{var s=Sim();var source=s.Spawn(0,"singularity",100,450);var bomb=s.Spawn(1,"bonfire",270,450);s.Abilities.Consume(0,source.id,bomb);False(s.State.balls.Contains(bomb));Eq(0,s.State.graveyard.Count);Eq(20,s.State.players[0].hp);});
+        // R17-W4 A40: test-first lifecycle/RETURN contract (authored assertions; execution is separately gated).
+        Test("W4 A40 Den Mother makes one token SPAWN per instance per turn without RETURN",()=>{
+            var s=Sim();var mother=s.Spawn(0,"denmother",100,450);var first=s.Spawn(0,"booster",250,450);
+            int before=s.State.events.Count(e=>e.kind=="RETURN");
+            s.Kill(first);var pups=s.State.balls.Where(b=>b.type=="broodling"&&!b.dead).ToArray();
+            Eq(1,pups.Length);Eq(5,pups[0].hp);True(pups[0].generated);Eq(0,pups[0].owner);
+            True(s.State.events.Any(e=>e.kind=="SPAWN"&&e.ballId==pups[0].id));
+            Eq(before,s.State.events.Count(e=>e.kind=="RETURN"));
+            var second=s.Spawn(0,"relay",360,450);s.Kill(second);
+            Eq(1,s.State.balls.Count(b=>b.type=="broodling"&&!b.dead));
+            s.State.turnNumber++;s.Kill(s.Spawn(0,"armorer",300,550));
+            Eq(2,s.State.balls.Count(b=>b.type=="broodling"&&!b.dead));
+            Eq(s.State.turnNumber,mother.lastDenMotherTurn);
+        });
+        Test("W4 A40 two Den Mothers independently observe eligible ally death",()=>{
+            var s=Sim();s.Spawn(0,"denmother",70,270);s.Spawn(0,"denmother",470,270);
+            s.Kill(s.Spawn(0,"booster",270,450));
+            Eq(2,s.State.balls.Count(b=>b.type=="broodling"&&!b.dead));
+        });
+        Test("W4 A40 Den Mother ignores non-Beasts enemies and Beast tokens",()=>{
+            var s=Sim();s.Spawn(0,"denmother",95,260);
+            s.Kill(s.Spawn(0,"normal",240,450));
+            s.Kill(s.Spawn(1,"booster",310,450));
+            s.Kill(s.Spawn(0,"broodling",360,450));
+            Eq(0,s.State.balls.Count(b=>b.type=="broodling"&&!b.dead));
+        });
+        Test("W4 A40 Dirge repeats remote nearest ally death body without second DEATH",()=>{
+            var s=Sim();var dirge=s.Spawn(0,"dirge",90,300);
+            var bonfire=s.Spawn(0,"bonfire",400,550);
+            int deaths=s.State.events.Count(e=>e.kind=="DEATH");
+            s.Kill(dirge);
+            False(bonfire.dead);Eq(deaths+1,s.State.events.Count(e=>e.kind=="DEATH"));
+            True(s.State.events.Any(e=>e.kind=="BONFIRE"&&e.ballId==bonfire.id));
+            False(s.State.graveyard.Any(g=>g.ballId==bonfire.id));
+        });
+        Test("W4 A40 Revenant emits RETURN REVIVE not SPAWN and uses serialized RNG",()=>{
+            var s=Sim();s.State.randomState=1234567;var rev=s.Spawn(0,"revenant",270,440);
+            int n=s.State.events.Count;s.Kill(rev);
+            var child=s.State.balls.Single(b=>!b.dead&&b.id!=rev.id);
+            Eq(10,child.hp);Eq(0,child.owner);Eq(rev.lineageId,child.lineageId);Eq(rev.life+1,child.life);
+            False(child.generated);False(child.type=="revenant"||child.type=="mirage");
+            False(s.Catalog.Ball(child.type).hidden);False(s.Catalog.Ball(child.type).tier=="unique");
+            False(s.State.graveyard.Any(g=>g.ballId==rev.id));
+            True(s.State.replayedIds.Contains(child.id));
+            False(s.State.events.Skip(n).Any(e=>e.kind=="SPAWN"&&e.ballId==child.id));
+            True(s.State.events.Skip(n).Any(e=>e.kind=="RETURN"&&e.ballId==child.id&&e.text=="REVIVE"));
+            True(s.State.events.Skip(n).Any(e=>e.kind=="DEATH"&&e.ballId==rev.id));
+        });
+        Test("W4 A40 Soul Anchor restores newest ally grave near recorded death position",()=>{
+            var s=Sim();var older=s.Spawn(0,"booster",190,390);s.Kill(older);
+            var newer=s.Spawn(0,"booster",355,530);s.Kill(newer);
+            var anchor=s.Spawn(0,"soulanchor",110,270);int serial=s.State.eventSerial;s.Kill(anchor);
+            var child=s.State.balls.Single(b=>!b.dead);
+            Eq(10,child.hp);Eq(0,child.owner);Eq(newer.lineageId,child.lineageId);
+            Eq(newer.life+1,child.life);Eq(1,child.reviveGeneration);
+            True(System.Math.Abs(child.x-newer.x)<180&&System.Math.Abs(child.y-newer.y)<180);
+            False(s.State.graveyard.Any(g=>g.ballId==newer.id));
+            True(s.State.graveyard.Any(g=>g.ballId==older.id));
+            True(s.State.graveyard.Any(g=>g.ballId==anchor.id));
+            False(s.State.events.Any(e=>e.id>serial&&e.kind=="SPAWN"&&e.ballId==child.id));
+            Eq(1,s.State.events.Count(e=>e.id>serial&&e.kind=="RETURN"&&e.ballId==child.id&&e.text=="REVIVE"));
+            True(s.State.replayedIds.Contains(child.id));
+        });
+        Test("W4 A40 capped Revenant creates no child or false RETURN",()=>{
+            var s=Sim();var rev=s.Spawn(0,"revenant",270,440);
+            for(int i=0;i<256;i++)s.Spawn(0,"normal",150,390);
+            int before=s.State.balls.Count;s.Kill(rev);
+            Eq(before,s.State.balls.Count);
+            False(s.State.events.Any(e=>e.kind=="RETURN"&&e.otherId==rev.id));
+        });
+        Test("W4 A40 Soul Anchor placement failure leaves allied grave intact",()=>{
+            var s=Sim();var earlier=s.Spawn(0,"booster",250,450);s.Kill(earlier);
+            var anchorBall=s.Spawn(0,"soulanchor",150,330);
+            for(int i=0;i<256;i++)s.Spawn(0,"normal",150,390);
+            s.Kill(anchorBall);
+            True(s.State.graveyard.Any(g=>g.ballId==earlier.id));
+            False(s.State.events.Any(e=>e.kind=="RETURN"&&e.otherId==anchorBall.id));
+        });
+        Test("W4 A40 Den Mother spends limit when legal observation hits living cap",()=>{
+            var s=Sim();var mother=s.Spawn(0,"denmother",100,450);
+            for(int i=0;i<255;i++)s.Spawn(0,"normal",140,430);
+            var dead=s.Spawn(0,"booster",270,450);s.Kill(dead);
+            Eq(s.State.turnNumber,mother.lastDenMotherTurn);
+            False(s.State.balls.Any(b=>b.type=="broodling"));
+            s.Kill(s.Spawn(0,"booster",350,450));
+            False(s.State.balls.Any(b=>b.type=="broodling"));
+        });
+        Test("W4 A40 Dirge never substitutes distant supported ally for nearer unported body",()=>{
+            var s=Sim();var dirge=s.Spawn(0,"dirge",150,450);
+            s.Spawn(0,"deathshield",210,450);s.Spawn(0,"bonfire",450,450);
+            s.Kill(dirge);
+            False(s.State.events.Any(e=>e.kind=="BONFIRE"));
+        });
+        Test("W4 A40 Phoenix entry aura hits allies and enemies once per entry",()=>{
+            var s=Sim();var phoenix=s.Spawn(0,"phoenix",270,450);
+            var ally=s.Spawn(0,"normal",300,450);var enemy=s.Spawn(1,"normal",350,450);
+            s.Abilities.OnStep(1f/120);
+            Eq(25,ally.hp);Eq(25,enemy.hp);Eq(1,ally.fireStacks);Eq(1,enemy.fireStacks);
+            s.Abilities.OnStep(1f/120);
+            Eq(25,ally.hp);Eq(25,enemy.hp);
+            True(phoenix.phoenixEntryTimer>0);
+        });
+        Test("W4 A40 lifecycle hand observer and RNG persist through JSON snapshot",()=>{
+            var s=Sim();s.Spawn(0,"packheart",150,450);
+            var phoenix=s.Spawn(0,"phoenix",270,440);s.Kill(phoenix);
+            var den=s.Spawn(0,"denmother",100,250);s.Kill(s.Spawn(0,"booster",310,450));
+            s.State.randomState=0xBEEF1234;
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            string snapshot=System.Text.Json.JsonSerializer.Serialize(s.State,options);
+            var restored=System.Text.Json.JsonSerializer.Deserialize<GameState>(snapshot,options);
+            Eq(s.State.randomState,restored.randomState);
+            Eq(1,restored.phoenixHand.Count);Eq(5,restored.phoenixHand[0].hp);
+            Eq(5,restored.phoenixHand[0].shield);
+            Eq(den.lastDenMotherTurn,restored.balls.Single(b=>b.id==den.id).lastDenMotherTurn);
+        });
+        Test("W4 A40 Phoenix death records replay-return hand and regenerates on next owner turn",()=>{
+            var s=Sim();var p=s.Spawn(0,"phoenix",250,440);int eventId=s.State.eventSerial;s.Kill(p);
+            Eq(1,s.State.phoenixHand.Count);
+            var h=s.State.phoenixHand[0];Eq(p.owner,h.owner);Eq(5,h.hp);False(h.ready);
+            False(s.State.graveyard.Any(g=>g.ballId==p.id));
+            Eq(1,s.State.events.Count(e=>e.id>eventId&&e.kind=="RETURN"&&e.text=="REPLAY_RETURN"));
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            True(h.ready);Eq(10,h.hp);
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            Eq(15,h.hp);
+        });
+        Test("W4 A40 authorized Phoenix hand spawn consumes only ready hand and emits ordinary SPAWN",()=>{
+            var s=Sim();var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            Eq(0,s.Stock(0,"phoenix"));
+            var command=Shot(s,0,"phoenix");
+            int countBefore=s.State.balls.Count;
+            int serial=s.State.eventSerial;
+            False(s.TryCommand(command,out _));Eq(1,s.State.phoenixHand.Count);
+            s.State.players[0].ownerTurns++;
+            s.Abilities.OnTurnStart(0);
+            Eq(10,s.State.phoenixHand.Single().hp);
+            True(s.TryCommand(command,out _));
+            var born=s.State.balls.Last();
+            Eq(countBefore+1,s.State.balls.Count);
+            Eq("phoenix",born.type);Eq(10,born.hp);
+            Eq(0,s.Stock(0,"phoenix"));Eq(0,s.State.phoenixHand.Count);
+            Eq(1,s.State.events.Count(e=>e.id>serial&&e.kind=="SPAWN"&&e.ballId==born.id));
+            Eq(0,s.State.events.Count(e=>e.id>serial&&e.kind=="RETURN"));
+            False(s.TryCommand(command,out _));
+        });
+        Test("W4 A40 Phoenix stored Shield transfers exactly once on deliberate hand spawn",()=>{
+            var s=Sim();s.Spawn(0,"packheart",110,450);
+            var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            Eq(5,s.State.phoenixHand.Single().shield);
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(5,s.State.balls.Last().shield);
+            Eq(0,s.State.phoenixHand.Count);
+        });
+        Test("W4 A40 Phoenix stock has precedence over ready hand as in V148",()=>{
+            var s=Sim();var original=s.Spawn(0,"phoenix",270,440);s.Kill(original);
+            s.State.players[0].stock.Add(new StockEntry{id="phoenix",remaining=1});
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(0,s.Stock(0,"phoenix"));
+            Eq(1,s.State.phoenixHand.Count);
+            Eq(s.Catalog.Ball("phoenix").hp,s.State.balls.Last().hp);
+        });
+        Test("W4 A40 non-Earth Frostguard replay preserves genuine Earth stacks",()=>{
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;guard.frostguardAnchored=true;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));
+            Eq(2,guard.anchorStacks);False(guard.frostguardAnchored);
+        });
+        Test("W4 A40 genuine Earth archetype replay spends exactly one Earth stack",()=>{
+            var s=Sim();var earth=s.Spawn(0,"anchor",270,805);
+            earth.anchorStacks=2;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=earth.id;
+            True(s.TryCommand(cmd,out _));
+            Eq(1,earth.anchorStacks);
+        });
+        Test("W4 A40 malformed Phoenix command cannot consume hand or stock",()=>{
+            var s=Sim();var p=s.Spawn(0,"phoenix",270,440);s.Kill(p);
+            s.State.players[0].ownerTurns++;s.Abilities.OnTurnStart(0);
+            var cmd=Shot(s,0,"phoenix");cmd.dx=float.NaN;
+            False(s.TryCommand(cmd,out _));
+            Eq(1,s.State.phoenixHand.Count);
+            cmd=Shot(s,1,"phoenix");False(s.TryCommand(cmd,out _));
+            Eq(1,s.State.phoenixHand.Count);
+        });
+        Test("W4 A40 grave cap keeps newest allied record for Soul Anchor and DEATH precedes RETURN",()=>{
+            var s=Sim();
+            for(int i=0;i<18;i++){var b=s.Spawn(0,"booster",160,370);s.Kill(b);}
+            var newest=s.Spawn(0,"booster",325,540);s.Kill(newest);
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            var anchor=s.Spawn(0,"soulanchor",110,250);
+            int after=s.State.eventSerial;s.Kill(anchor);
+            var revived=s.State.balls.Last();
+            Eq(newest.lineageId,revived.lineageId);
+            // 18 records before Soul Anchor death, then its own record displaces
+            // the oldest, and successful revive consumes the newest: 17 remain.
+            Eq(17,s.State.graveyard.Count(g=>g.owner==0));
+            int deathId=s.State.events.Where(e=>e.id>after&&e.kind=="DEATH"&&e.ballId==anchor.id).Select(e=>e.id).Single();
+            int returnId=s.State.events.Where(e=>e.id>after&&e.kind=="RETURN"&&e.ballId==revived.id).Select(e=>e.id).Single();
+            True(deathId<returnId);
+        });
+        Test("W5 A40 source-truth excluded grave types cannot become Soul Anchor candidates",()=>{
+            var s=Sim();var valid=s.Spawn(0,"booster",230,470);s.Kill(valid);
+            var standard=s.Spawn(0,"normal",160,350);s.Kill(standard);
+            var cascade=s.Spawn(0,"cascade",355,430);s.Kill(cascade);
+            var genesis=s.Spawn(0,"genesis",350,540);s.Kill(genesis);
+            True(s.State.graveyard.Any(g=>g.ballId==valid.id));
+            False(s.State.graveyard.Any(g=>g.ballId==standard.id));
+            False(s.State.graveyard.Any(g=>g.ballId==cascade.id));
+            False(s.State.graveyard.Any(g=>g.ballId==genesis.id));
+            var anchor=s.Spawn(0,"soulanchor",90,250);s.Kill(anchor);
+            var returned=s.State.balls.Single(b=>!b.dead&&b.lineageId==valid.lineageId);
+            Eq(10,returned.hp);Eq(1,returned.reviveGeneration);
+            False(s.State.graveyard.Any(g=>g.ballId==valid.id));
+        });
+        Test("W5 A40 excluded deaths cannot evict oldest eligible grave at cap 18",()=>{
+            var s=Sim();int firstId=0;
+            for(int i=0;i<18;i++){var b=s.Spawn(0,"booster",160,360);if(i==0)firstId=b.id;s.Kill(b);}
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            s.Kill(s.Spawn(0,"normal",260,400));
+            s.Kill(s.Spawn(0,"cascade",350,560));
+            s.Kill(s.Spawn(0,"genesis",420,460));
+            Eq(18,s.State.graveyard.Count(g=>g.owner==0));
+            True(s.State.graveyard.Any(g=>g.ballId==firstId));
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});

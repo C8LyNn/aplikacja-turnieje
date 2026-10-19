@@ -41,11 +41,29 @@ namespace CoreClash.Core
             double length=Math.Sqrt((double)c.dx*c.dx+(double)c.dy*c.dy);if(length<.0001||double.IsInfinity(length)){reason="Aim direction required.";return false;}
             BallRuntime ball;
             if(c.kind==CommandKind.Spawn){
-                if(Catalog.Ball(c.ballType)==null||Stock(c.owner,c.ballType)<=0){reason="That ball has no stock in this deck.";return false;}
+                // V148 precedence: spend a genuine stock copy before a returned Phoenix
+                // hand opportunity. A Phoenix in hand never grants an extra stock copy.
+                var definition=Catalog.Ball(c.ballType);
+                var stockEntry=c.ballType=="normal"?null:State.players[c.owner].stock.FirstOrDefault(x=>x.id==c.ballType);
+                bool hasStock=c.ballType=="normal"||(stockEntry!=null&&stockEntry.remaining>0);
+                var hand=c.ballType=="phoenix"
+                    ?State.phoenixHand?.FirstOrDefault(x=>x.owner==c.owner&&x.ready&&
+                        x.createdOwnerTurns<State.players[c.owner].ownerTurns&&
+                        x.lastProcessedOwnerTurns>=State.players[c.owner].ownerTurns)
+                    :null;
+                if(definition==null||(!hasStock&&hand==null)){reason="That ball has no stock in this deck.";return false;}
                 float angle=(float)Math.Atan2(c.dx,c.owner==0?-c.dy:c.dy);angle=Clamp(angle,-1.53589f,1.53589f);
                 float vx=(float)Math.Sin(angle)*c.power,vy=(float)Math.Cos(angle)*c.power*(c.owner==0?-1:1);
-                if(c.ballType!="normal")State.players[c.owner].stock.First(x=>x.id==c.ballType).remaining--;
-                ball=Spawn(c.owner,c.ballType,270,c.owner==0?853:47,vx,vy);ball.launchImmune=true;
+                ball=Spawn(c.owner,c.ballType,270,c.owner==0?853:47,vx,vy);
+                if(hasStock){if(c.ballType!="normal")stockEntry.remaining--;}
+                else{
+                    // A normal SPAWN after a REPLAY_RETURN, not a second RETURN event.
+                    ball.maxHp=Math.Min(ball.maxHp,hand.maxHp);
+                    ball.hp=Math.Min(ball.maxHp,Math.Max(1,hand.hp));
+                    ball.shield=Math.Max(0,hand.shield);
+                    State.phoenixHand.Remove(hand);
+                }
+                ball.launchImmune=true;
                 State.actionKind=State.bonusPending?"bonus":"spawn";if(State.bonusPending){State.bonusPending=false;State.bonusUsed=true;}
             }else if(c.kind==CommandKind.Replay){
                 ball=State.balls.FirstOrDefault(x=>x.id==c.ballId);
@@ -53,7 +71,7 @@ namespace CoreClash.Core
                 ball.vx=(float)(c.dx/length*c.power);ball.vy=(float)(c.dy/length*c.power);ball.launchImmune=true;
                 State.replayedIds.Add(ball.id);State.actionKind="replay";
             }else{reason="Unknown command.";return false;}
-            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
+            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;if(Catalog.Ball(ball.type).archetype=="earth")ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
             ball.phased=ball.type=="phase";ball.angle=(float)Math.Atan2(ball.vy,ball.vx);ball.motionPeak=c.power;
             State.phase=MatchPhase.Moving;State.actionTime=0;State.actionDeadline=14;State.settledTime=0;State.actionSerial++;State.revision++;
             Emit("LAUNCH",ball,State.actionKind);Abilities.OnLaunch(ball);return true;
@@ -86,7 +104,12 @@ namespace CoreClash.Core
         public void Kill(BallRuntime b)
         {
             if(b==null||b.dead)return;b.dead=true;b.vx=b.vy=0;
-            if(!b.generated&&b.reviveGeneration==0&&!Catalog.Ball(b.type).hidden&&Catalog.Ball(b.type).tier!="unique"){
+            // V148 registerGraveyardDeath excludes Standard and Cascade even though
+            // both are non-unique, visible types. Do not let ineligible deaths
+            // evict a valid entry from the bounded per-owner history (18).
+            // Other explicit V148 exclusions are already covered by hidden/unique.
+            if(!b.generated&&b.reviveGeneration==0&&b.type!="normal"&&b.type!="cascade"&&
+                !Catalog.Ball(b.type).hidden&&Catalog.Ball(b.type).tier!="unique"){
                 State.graveyard.Add(new GraveRecord{owner=b.owner,type=b.type,ballId=b.id,maxHp=b.maxHp,lineageId=b.lineageId,life=b.life,turn=State.turnNumber,x=b.x,y=b.y});
                 while(State.graveyard.Count(x=>x.owner==b.owner)>18)State.graveyard.Remove(State.graveyard.First(x=>x.owner==b.owner));
             }

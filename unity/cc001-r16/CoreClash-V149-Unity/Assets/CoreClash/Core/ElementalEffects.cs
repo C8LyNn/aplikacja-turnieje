@@ -24,7 +24,8 @@ namespace CoreClash.Core
                     ChainFrost(source);
                     break;
                 case "frostguard":
-                    source.anchorStacks = 3;
+                    // V148 Frostguard has a defensive anchor independent of
+                    // Earth stacks. Never manufacture or overwrite those stacks.
                     source.frostguardAnchored = true;
                     source.vx = source.vy = 0;
                     if (source.shield < 15) sim.Shield(source, 10, 15);

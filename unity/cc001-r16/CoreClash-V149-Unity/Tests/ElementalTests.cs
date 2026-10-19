@@ -80,11 +80,117 @@ public static partial class Program
         });
         Test("R13 Frostguard anchors on STOP, shields to cap and freezes only enemy HIT", () => {
             var s=Sim();var guard=s.Spawn(0,"frostguard",200,450);var enemy=s.Spawn(1,"normal",265,450);
-            s.Abilities.OnStop(guard);True(guard.frostguardAnchored);Eq(3,guard.anchorStacks);Eq(10,guard.shield);
+            s.Abilities.OnStop(guard);True(guard.frostguardAnchored);Eq(0,guard.anchorStacks);Eq(10,guard.shield);
             s.Abilities.OnPairContact(guard,enemy,false,false,30);Eq(0,enemy.iceStacks);
             s.Abilities.OnPairContact(guard,enemy,true,false,110);Eq(1,enemy.iceStacks);
             s.Abilities.OnStop(guard);Eq(15,guard.shield);
             True(BallInspection.Statuses(guard).Any(x=>x.Code=="FRG"));
+        });
+        // R17-W4 A50 F02: carried forward from W3 as test-first golden
+        // parity oracles. Run against frozen R16 first (expected RED), then
+        // separately against the scoped W4 production patch.
+        Test("R17 F02-G00 Frostguard STOP does not synthesize Earth anchor stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            Eq(0,guard.anchorStacks);guard.vx=80;guard.vy=-20;
+            s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(0,guard.anchorStacks);
+            Eq(0f,guard.vx);Eq(0f,guard.vy);Eq(10,guard.shield);
+        });
+        Test("R17 F02-G01 plain Frostguard anchor has V148 force and mass", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            False(guard.rooted);Eq(0,guard.anchorStacks);
+            s.Abilities.OnStop(guard);
+            Near(.30f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(2f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        Test("R17 F02-G04 Frostguard replay clears anchor without residual Earth stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            s.Abilities.OnStop(guard);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));
+            False(guard.frostguardAnchored);Eq(0,guard.anchorStacks);
+            Near(1f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        Test("R17 F02-G08 Frostguard STOP preserves independently existing Earth stacks", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+        });
+        Test("R17 F02 earth-status negative control retains normal stack physics", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",270,450);
+            ball.anchorStacks=2;
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(ball));
+            Near(1.70f*ball.mass,CoreClash.Physics.CollisionResolver.Mass(ball));
+        });
+        Test("R17 F02-G09 existing Earth stacks combine with defensive Frostguard anchor", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            Eq(2,guard.anchorStacks);True(guard.frostguardAnchored);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(3.40f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        // SOURCE-PREDICTED RED even after the W4 F02 fix: this pinpoints the
+        // existing, unowned GameSimulation.TryCommand replay stack decrement.
+        // V148 only decrements genuine Earth stacks for Earth-archetype balls.
+        Test("R17 F02-G09B replay preserves genuine Earth stacks on non-Earth Frostguard", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            Eq(2,guard.anchorStacks);True(guard.frostguardAnchored);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=guard.id;
+            True(s.TryCommand(cmd,out _));False(guard.frostguardAnchored);
+            Eq(2,guard.anchorStacks);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(1.70f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        // Authoritative A50 replay oracle for A40-owned GameSimulation.cs.
+        // These fixtures are source-predicted; no managed run is claimed here.
+        Test("R17 F02-G09C Earth archetype replay decrements one genuine stack", () => {
+            var s=Sim();var earth=s.Spawn(0,"anchor",270,805);
+            Eq("earth",s.Catalog.Ball(earth.type).archetype);
+            earth.anchorStacks=2;False(earth.rooted);
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=earth.id;
+            True(s.TryCommand(cmd,out _));Eq(1,earth.anchorStacks);
+            False(earth.frostguardAnchored);
+            Near(.78f,CoreClash.Physics.CollisionResolver.ForceScale(earth));
+            Near(1.35f*earth.mass,CoreClash.Physics.CollisionResolver.Mass(earth));
+        });
+        Test("R17 F02-G09D rejected Frostguard replay cannot change anchor state", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,805);
+            guard.anchorStacks=2;s.Abilities.OnStop(guard);
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+            var invalid=Shot(s,1);invalid.kind=CommandKind.Replay;invalid.ballId=guard.id;
+            False(s.TryCommand(invalid,out _));
+            True(guard.frostguardAnchored);Eq(2,guard.anchorStacks);
+            Eq(0,s.State.replayedIds.Count);
+        });
+        Test("R17 F02-G09E non-Earth replay preserves genuine stacks without Frostguard flag", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",270,805);
+            False(ball.frostguardAnchored);ball.anchorStacks=2;
+            var cmd=Shot(s);cmd.kind=CommandKind.Replay;cmd.ballId=ball.id;
+            True(s.TryCommand(cmd,out _));Eq(2,ball.anchorStacks);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(ball));
+            Near(1.70f*ball.mass,CoreClash.Physics.CollisionResolver.Mass(ball));
+        });
+        Test("R17 F02-G10 unrelated Earth stacks of three retain existing physics", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",270,450);
+            ball.anchorStacks=3;
+            Near(.34f,CoreClash.Physics.CollisionResolver.ForceScale(ball));
+            Near(4.10f*ball.mass,CoreClash.Physics.CollisionResolver.Mass(ball));
+        });
+        Test("R17 F02-G11 rooted Frostguard remains force-immune", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            guard.rooted=true;s.Abilities.OnStop(guard);
+            Eq(0,guard.anchorStacks);
+            Near(0f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(2f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+        });
+        Test("R17 F02-G12 unanchored Frostguard with real Earth stacks remains unanchored", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",270,450);
+            guard.anchorStacks=2;
+            False(guard.frostguardAnchored);
+            Near(.56f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(1.70f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
         });
         Test("R13 Frostguard counter-freeze never hits allied impacts", () => {
             var s=Sim();var guard=s.Spawn(0,"frostguard",200,450);var ally=s.Spawn(0,"normal",265,450);
@@ -102,6 +208,8 @@ public static partial class Program
             s.Abilities.OnStop(guard);True(guard.frostguardAnchored);
             s.Abilities.OnContact(mimic,guard,true,true,110);Eq("frostguard",mimic.type);
             False(mimic.frostguardAnchored);False(guard.frostguardAnchored);
+            Near(1f,CoreClash.Physics.CollisionResolver.ForceScale(mimic));
+            Near(mimic.mass,CoreClash.Physics.CollisionResolver.Mass(mimic));
         });
         Test("R13 elemental runtime fields survive host snapshot", () => {
             var s=Sim();var furnace=s.Spawn(0,"furnace",200,450);var guard=s.Spawn(0,"frostguard",320,450);
@@ -110,7 +218,7 @@ public static partial class Program
             var packet=new NetworkGameSession(s).Capture(state=>JsonSerializer.Serialize(state,opts));
             var adapter=new NetworkGameStateAdapter();
             True(adapter.Apply(packet,json=>JsonSerializer.Deserialize<GameState>(json,opts),out _));
-            True(adapter.State.balls.Single(x=>x.id==guard.id).frostguardAnchored);
+            True(adapter.State.balls.Single(x=>x.id==guard.id).frostguardAnchored);Eq(0,adapter.State.balls.Single(x=>x.id==guard.id).anchorStacks);
             Eq(s.State.turnNumber,adapter.State.balls.Single(x=>x.id==furnace.id).lastElementalTurn);
             Eq(1,adapter.State.zones.Count(z=>!z.dead&&z.kind=="furnaceFire"));
         });

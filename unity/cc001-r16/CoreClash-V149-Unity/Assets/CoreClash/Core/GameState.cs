@@ -41,6 +41,8 @@ namespace CoreClash.Core
         public List<StructureRuntime> structures=new List<StructureRuntime>();
         public List<ZoneRuntime> zones=new List<ZoneRuntime>();
         public List<GraveRecord> graveyard=new List<GraveRecord>();
+        // Host-owned hand payload, distinct from normal stock and ordinary board SPAWN.
+        public List<PhoenixHandEntry> phoenixHand=new List<PhoenixHandEntry>();
         public List<GameEvent> events=new List<GameEvent>();
         public List<int> replayedIds=new List<int>();
         public List<LineageRecord> lineages=new List<LineageRecord>();
@@ -52,9 +54,11 @@ namespace CoreClash.Core
         public int ownTurnCounter,spawnCount,lineageId,life=1,reviveGeneration,lastAbilityTurn=-1,lastWallFrame=-100,lastDamageSourceId;
         public int rootExpiresOwnerTurn=-1,returnStacks,lastReturnTurn=-1,horizon,linkedTargetId,lastVectorTurn=-1,lastPenitentTurn=-1;
         public string type;
-        public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky;
+        public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky,phoenixEntryTimer;
         public bool dead,moving,phased,mineArmed,exploded,splitDone,abilityUsed,resurrected,generated,hitUsed,wallUsed,launchImmune,rooted,ancestral,divineShield,banished,identityUsed;
         public int banishedUntilTurn,jammed;
+        // Per-instance, serialized once-per-turn DEATH observer gate.
+        public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;
         public int lastElementalTurn=-1;
         public bool frostguardAnchored;
@@ -83,6 +87,11 @@ namespace CoreClash.Core
         public float x,y,radius,coreRadius,pull,exitX,exitY;
         public bool trap,dead;
         public List<int> inside=new List<int>();
+    }
+    [Serializable] public sealed class PhoenixHandEntry
+    {
+        public int owner,sourceBallId,lineageId,hp,maxHp,shield,createdOwnerTurns,lastProcessedOwnerTurns;
+        public bool ready;
     }
     [Serializable] public sealed class GraveRecord
     {
