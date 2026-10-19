@@ -104,7 +104,12 @@ namespace CoreClash.Core
         public void Kill(BallRuntime b)
         {
             if(b==null||b.dead)return;b.dead=true;b.vx=b.vy=0;
-            if(!b.generated&&b.reviveGeneration==0&&!Catalog.Ball(b.type).hidden&&Catalog.Ball(b.type).tier!="unique"){
+            // V148 registerGraveyardDeath excludes Standard and Cascade even though
+            // both are non-unique, visible types. Do not let ineligible deaths
+            // evict a valid entry from the bounded per-owner history (18).
+            // Other explicit V148 exclusions are already covered by hidden/unique.
+            if(!b.generated&&b.reviveGeneration==0&&b.type!="normal"&&b.type!="cascade"&&
+                !Catalog.Ball(b.type).hidden&&Catalog.Ball(b.type).tier!="unique"){
                 State.graveyard.Add(new GraveRecord{owner=b.owner,type=b.type,ballId=b.id,maxHp=b.maxHp,lineageId=b.lineageId,life=b.life,turn=State.turnNumber,x=b.x,y=b.y});
                 while(State.graveyard.Count(x=>x.owner==b.owner)>18)State.graveyard.Remove(State.graveyard.First(x=>x.owner==b.owner));
             }
