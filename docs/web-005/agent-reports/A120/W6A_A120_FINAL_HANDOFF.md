@@ -22,7 +22,7 @@
 | [PR103](https://github.com/C8LyNn/aplikacja-turnieje/pull/103) parent | `9fb85b2ca5c137c6107a360bbdb45efec6bf1dde` | OPEN DRAFT, unmerged |
 | [PR142](https://github.com/C8LyNn/aplikacja-turnieje/pull/142) classifier fix | `b289cbd75ebc828d3e562eabef5ae40d1e92cce5` | OPEN DRAFT, unmerged; child of PR103 |
 | [PR120](https://github.com/C8LyNn/aplikacja-turnieje/pull/120) test matrix | `e97e9d582e76cc4c4b6ba5bb784c89feb6be50ab` | OPEN DRAFT, unmerged; **sibling** of PR142, child of PR103 |
-| A20 [PR135](https://github.com/C8LyNn/aplikacja-turnieje/pull/135) readiness | **`c625c8cbc93869ecbb24919f34148fea38179a76`** | OPEN DRAFT; HEAD advanced from `cb261868...` by documentation-only W6A A20 handoff, **not new full-checkout PASS** |
+| A20 [PR135](https://github.com/C8LyNn/aplikacja-turnieje/pull/135) readiness | **`6dae0a532632b6d9c17247c5c28cc17a827a7f6f`** | OPEN DRAFT; final HEAD advanced from `c625c8...` by A20 final-report-only commit, **not new full-checkout PASS** |
 | Frozen C03 [PR134](https://github.com/C8LyNn/aplikacja-turnieje/pull/134) | `80bb4ca7a9a359fbe76dbab1478a1af16ded0174` | OPEN DRAFT, CI API integration true exit1, first failing assertion UNKNOWN |
 
 PR103/120/142 **unchanged**; no merge/rebase/cherry-pick/sibling composition. PR142's prior independent A60 [exact-source QA](https://github.com/C8LyNn/aplikacja-turnieje/blob/e0375536cc77b97b92bb7b9d0f7bb53f80dbc9e1/docs/web-005/agent-reports/A60/W5R_A60_FINAL_QA.md) reports **17/17 native Node tests PASS, exit0**, but **not** production HTTP or browser. No repeated #142 fix.
@@ -43,7 +43,9 @@ PR103/120/142 **unchanged**; no merge/rebase/cherry-pick/sibling composition. PR
 
 ## 4. Blocker handoff and ready/hold decision
 
-**[A20 W6A final checkout handoff](https://github.com/C8LyNn/aplikacja-turnieje/blob/c625c8cbc93869ecbb24919f34148fea38179a76/docs/web-005/agent-reports/A20/W6A/W6A_A20_FULL_CHECKOUT_HANDOFF.md)**, blob `ee08389242ae68ef7d44254baf00d9159876c4e3`, reports **PARTIAL / OPERATOR_REQUIRED**, full isolated checkout NOT_VERIFIED. New A20 PR135 HEAD was documents-only. Actual physical Windows operator must approve a distinct non-live workspace, pin exact SHA and clean file tree/lock SHA256, record safe environment variable **names only**, run DB-free full-project source preflight with true process exit, and provide receipts. The full checkout must precede A120/A60 further commands.
+**[A20 W6A full-checkout operator report](https://github.com/C8LyNn/aplikacja-turnieje/blob/6dae0a532632b6d9c17247c5c28cc17a827a7f6f/docs/web-005/agent-reports/A20/W6A/W6A_A20_FULL_CHECKOUT_HANDOFF.md)**, blob `ee08389242ae68ef7d44254baf00d9159876c4e3`, reports **PARTIAL / OPERATOR_REQUIRED**, full isolated checkout NOT_VERIFIED. New A20 PR135 HEAD was documents-only. Actual physical Windows operator must approve a distinct non-live workspace, pin exact SHA and clean file tree/lock SHA256, record safe environment variable **names only**, run DB-free full-project source preflight with true process exit, and provide receipts. The full checkout must precede A120/A60 further commands.
+
+**[A20 W6A final confirmation](https://github.com/C8LyNn/aplikacja-turnieje/blob/6dae0a532632b6d9c17247c5c28cc17a827a7f6f/docs/web-005/agent-reports/A20/W6A/W6A_FINAL_HANDOFF.md)**, final Git blob `ba5113168cc7dc0092ac0eea387cffab96316f06`: no new full checkout, no fresh preview, R0 OPERATOR_REQUIRED and R1 NO-GO; PR135 last commit modified documentation only.
 
 **After A20 R0 verified**, A60/A120 can execute on **two separate immutable full-checkout SHAs**:
 - PR120 `e97e9d...`: `node --test scripts/deployment/presentation-route-source-contract.test.mjs` (target **4 PASS / 0 SKIP**) and `node --test scripts/deployment/presentation-route-refresh.integration.test.mjs` (target **12 PASS**, **synthetic HTTP only**).
