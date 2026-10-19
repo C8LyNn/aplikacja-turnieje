@@ -10,9 +10,9 @@
 - **A72 → #113:** workflow CI opublikowany jako `ab6074f4…`; kolejnym celem jest rzeczywiste G1 na dostępnym runnerze .NET 9, a nie ponowne przygotowywanie workflow.
 - **A40 → #92:** lifecycle/RETURN PARTIAL; nowy komentarz HQ do #92 przyznaje A40 WYŁĄCZNĄ, wąską edycję `GameSimulation.cs` (Phoenix TryCommand, uzasadniona kolejność Kill, replay F02 z oraklem A50).
 - **A50 → #138:** Frostguard F02 PARTIAL; A50 nadal właściciel ElementalEffects/CollisionResolver/ElementalTests, ale `GameSimulation.cs` należy wyłącznie do A40 — A50 przekazuje orakl i weryfikuje G09B na połączonym kandydacie.
-- **A70 → #137:** G0 PASS i raport A73 są teraz dostępne; HQ w najnowszym komentarzu #137 autoryzował STAGE 1 development-only disposable candidate assembly, bez statusu release/green; nie zakładaj, że QA G1/G2 PASS.
-- **A71 → #140, WAIT:** integralność po powstaniu rzeczywistego kandydata.
-- **A74 → #141, WAIT:** higiena po powstaniu rzeczywistego kandydata.
+- **A70 → #137:** STAGE 1 DEV CANDIDATE już dostarczony — SHA `ab624c2789b6efda015e742e8bd9bcbb86766735` (35 plików; 5 C#), ale NIE jest buildem ani release. Nie powtarzaj Stage1; kolejne integracje wymagają decyzji HQ i kontroli A71/A74, G1/G2 nadal HOLD.
+- **A71 → #140, READY:** A70 Stage1 istnieje. Najnowszy komentarz HQ #140 zleca niezależny SOURCE audit dokładnego SHA `ab624c2789b6efda015e742e8bd9bcbb86766735` (nie runtime).
+- **A74 → #141, READY:** A70 Stage1 istnieje. Najnowszy komentarz HQ #141 zleca niedestrukcyjny audyt higieny dokładnego SHA `ab624c2789b6efda015e742e8bd9bcbb86766735` (nie runtime).
 - **A20 → #95, WAIT:** fizyczne testy UI po G2.
 - **A31 → #94, WAIT:** fizyczny multiplayer po G2.
 - **A10, A41, A51 i pozostali → NO_TASK:** brak nowego samodzielnego zadania W4 w tym pakiecie.
@@ -31,4 +31,4 @@ Przeczytaj tylko SWÓJ zakres, wskazane Issue (ZWŁASZCZA najnowsze decyzje HQ),
 
 **4. WYKONANIE:** Sprawdź bieżący gate. READY / PARTIAL / otwarty zakres — wykonaj rzeczywistą pracę tylko we własnej izolowanej gałęzi i dozwolonych plikach. PASS / ukończone — nie powtarzaj pracy; przekaż handoff i oczekuj na nowe wejście. WAIT/HOLD — nie omijaj blokady; po spełnieniu warunku i wyraźnej aktualnej autoryzacji HQ podejmij zadanie, bez pozorowania testów. NO_TASK — bez zmian. Nie twórz duplikatów Issue ani nowej W5. Nie kończ na ogólnym planie, jeśli możesz wykonać przydzielone zadanie.
 
-**UWAGA LIVE HQ:** aktualne decyzje A70 #137, A40 #92 i A50 #138 mają pierwszeństwo przed wcześniejszym stanem WAIT/scope w starym promptcie, ale nie znoszą zakazu merge do main i publicznej publikacji.\n\n**5. HANDOFF:** Opublikuj w SWOIM Issue dokładne SHA, zmienione pliki, faktyczne testy i exit codes (lub NOT_RUN), stan DESIGNED / IMPLEMENTED / TESTED / INTEGRATED / RELEASED i blokady. Bez merge do main, deploy, force push, zmian chronionego R16/V148, protokołu 149, cudzych plików i bez fałszywych PASS.
+**UWAGA LIVE HQ:** aktualne decyzje A70 #137, A40 #92, A50 #138, A71 #140 i A74 #141 mają pierwszeństwo przed wcześniejszym stanem WAIT/scope w starym promptcie, ale nie znoszą zakazu merge do main i publicznej publikacji.\n\n**5. HANDOFF:** Opublikuj w SWOIM Issue dokładne SHA, zmienione pliki, faktyczne testy i exit codes (lub NOT_RUN), stan DESIGNED / IMPLEMENTED / TESTED / INTEGRATED / RELEASED i blokady. Bez merge do main, deploy, force push, zmian chronionego R16/V148, protokołu 149, cudzych plików i bez fałszywych PASS.
