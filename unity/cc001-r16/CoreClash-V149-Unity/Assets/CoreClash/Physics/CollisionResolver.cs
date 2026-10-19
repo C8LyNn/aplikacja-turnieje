@@ -11,7 +11,7 @@ namespace CoreClash.Physics
         public static int ImpactDamage(float impact){if(impact<=90)return 0;float t=GameSimulation.Clamp((impact-90)/340,0,1);return Math.Max(1,GameSimulation.Round(1+15*(float)Math.Pow(t,1.18)));}
         // Mirror V148: real Earth stacks take precedence over the defensive
         // Frostguard anchor for force resistance; a plain anchor yields 0.30.
-        public static float ForceScale(BallRuntime b)=>b.rooted?0:b.anchorStacks>0?Math.Max(.34f,1-b.anchorStacks*.22f):b.frostguardAnchored?.30f:1f;
+        public static float ForceScale(BallRuntime b)=>b.rooted?0:b.anchorStacks>0?Math.Max(.34f,1-b.anchorStacks*.22f):b.frostguardAnchored ? 0.30f : 1f;
         // Keep the existing >=3 Earth-stack mass effect while honoring the
         // independent defensive Frostguard anchor without synthetic stacks.
         public static float Mass(BallRuntime b)=>b.mass*(b.frostguardAnchored||b.anchorStacks>=3?2f:1f)*(1+b.anchorStacks*.35f);
