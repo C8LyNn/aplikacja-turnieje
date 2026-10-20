@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "task": "WEB-005-R23D-A30-ISSUES-72-76",
+  "generated_on": "2026-10-16",
+  "scope": "exact_sparse_verified_paths_only_NOT_FULL_140",
+  "dispatch_blob": "226b6a89c3fd8348eac814221de1c9715ee6ae25",
+  "github_release": {
+    "commit": "1db3734b8988940acc6be8b992420a58fc39624a",
+    "tree": "00690ad5721c52d30821ed6b2ac3e329af446716",
+    "verification": "GitHub recursive tree at commit"
+  },
+  "github_editor": {
+    "commit": "28da3ef94f3b30f90c1b3b70a88ab7f61462d99c",
+    "verification": "GitHub recursive tree at commit"
+  },
+  "replit_workspace": {
+    "agent_reported_head": "5e68f0f4b7d73cb5ff6aad0065dbe54c5f691776",
+    "branch": "feat/double-elimination-full-integration",
+    "basis": "read-only Replit Agent git hash-object report; NOT independent checked-out bytes in this connector"
+  },
+  "replit_published_checkpoint": {
+    "commit": "cb55335ea8e789d5e0f7912955da7d679d7dbb5f",
+    "git_tree_unavailable": true,
+    "published_bytes_unverified": true
+  },
+  "reported_140_drift": {
+    "expected": 140,
+    "exact_manifest_available": false,
+    "verified_as_published_diff": false
+  },
+  "path_rows": [
+    {
+      "path": "artifacts/tournament-manager/src/App.tsx",
+      "github_release_blob": "298f94ac19dbbdc6df775543e720ec250a1de82a",
+      "replit_workspace_blob_agent_reported": "91f9bc2155b13abf9d233e59e1cc573ebf590daa",
+      "github_editor_blob": "4a6ac3185aa62c2e95da2caa070c3530a4355923",
+      "owner": "frontend_routing",
+      "preservation": "workspace_diff_release_keep_local",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/portfolio-ui.tsx",
+      "github_release_blob": "88c7a2dab88bad2b4ea5cc1172aa3522a8bda849",
+      "replit_workspace_blob_agent_reported": "88c7a2dab88bad2b4ea5cc1172aa3522a8bda849",
+      "github_editor_blob": "7289a7a938fe98ba89bebf10929d07dfc1b0132a",
+      "owner": "portfolio",
+      "preservation": "workspace_same_as_release",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "github_release_blob": "97ceb41938b53e8fc98f788ac1aa0c625761a2f2",
+      "replit_workspace_blob_agent_reported": "1e9e256937fe8cf7c5e469ae522b11d7c6b458a0",
+      "github_editor_blob": "97ceb41938b53e8fc98f788ac1aa0c625761a2f2",
+      "owner": "dependencies",
+      "preservation": "workspace_diff_release_do_not_install_or_overwrite",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/src/index.ts",
+      "github_release_blob": "31b1ba194f1aa84d17787af70618e3f3664f5dec",
+      "replit_workspace_blob_agent_reported": "31b1ba194f1aa84d17787af70618e3f3664f5dec",
+      "github_editor_blob": "9ef87b29e93adc596d1b7f5092e3bae919cb38ff",
+      "owner": "backend_startup",
+      "preservation": "workspace_same_as_release_editor_worker_start_diff",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/src/routes/index.ts",
+      "github_release_blob": "7a61b2513d4e24526edbeb947a870d94f2f64a75",
+      "replit_workspace_blob_agent_reported": "597796cca7bcb4a59f56d9edb5f4a54f8a669cdb",
+      "github_editor_blob": "858b5fc6699708b186ab831401598fe7fc664747",
+      "owner": "backend_router",
+      "preservation": "workspace_diff_release_editor_registers_steam",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/tournament-manager/vite.config.ts",
+      "github_release_blob": "4c833bf13a03b28174f9202dc0498f1f5d25d3ea",
+      "replit_workspace_blob_agent_reported": "2011f5fa44b68a0569b27a204f393a0205fd1305",
+      "github_editor_blob": "f2227b6761441ab3ff54b924f843fe6a07775a6c",
+      "owner": "frontend_config",
+      "preservation": "three_way_diff_preserve",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/.replit-artifact/artifact.toml",
+      "github_release_blob": "814b9ad51b47b2302b7364ccb37849767aec680e",
+      "replit_workspace_blob_agent_reported": "814b9ad51b47b2302b7364ccb37849767aec680e",
+      "github_editor_blob": "814b9ad51b47b2302b7364ccb37849767aec680e",
+      "owner": "replit_config",
+      "preservation": "same_three_way",
+      "source_status": "github_blobs_verified_workspace_blob_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/src/routes/steam-game-catalog.ts",
+      "github_release_blob": "31ca80345f0bc7c0cf8328723bce974d487f460a",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "c318c3ecd9295c6b52b88ddd15db783c0ccec87f",
+      "owner": "catalog_api",
+      "preservation": "absent_in_inspected_workspace_preserve_editor_capabilities",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/src/application/catalog/steam-catalog-access.ts",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "feff5ff50443f40ae8f3e51ebe4f34b524ad2638",
+      "owner": "catalog_auth",
+      "preservation": "guard_present_editor_and_PR34_not_release",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "artifacts/api-server/src/application/catalog/steam-catalog-import-jobs.ts",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "a2cbce6876b612063e35dc472353ba40c7c4e376",
+      "owner": "catalog_worker",
+      "preservation": "editor_only_source_new_DB_dependencies",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0030_controlled_correction_operations.sql",
+      "github_release_blob": "50aa71ae0199806de3aaf3c57700d2739f2c42bc",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "ABSENT",
+      "owner": "migration_release",
+      "preservation": "conflicts_editor_0030",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0031_atomic_correction_receipts.sql",
+      "github_release_blob": "d44601f4b6477dc9366fc7a65475a0eede1c34c1",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "ABSENT",
+      "owner": "migration_release",
+      "preservation": "conflicts_editor_0031",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0030_steam_catalog_abstract_world.sql",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "a6d4ce679136b016dc6eed0e490e3e54060ada22",
+      "owner": "migration_editor",
+      "preservation": "proposed_canonical_0032_not_applied",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0031_steam_catalog_pagination_indexes.sql",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "b813547b834febe8e7398d1b2cfe204b84dd1ed5",
+      "owner": "migration_editor",
+      "preservation": "proposed_canonical_0033_not_applied",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0032_steam_catalog_classification_revision.sql",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "694c4e7d30694551c38a944e44e7dd0efe35f030",
+      "owner": "migration_editor",
+      "preservation": "proposed_canonical_0034_not_applied",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0035_steam_catalog_import_jobs.sql",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "fadfe2786d2a119ef663106e541f9e225e2e0000",
+      "owner": "migration_editor",
+      "preservation": "proposed_canonical_0037_not_applied",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    },
+    {
+      "path": "lib/db/migrations/0038_steam_catalog_global_source_throttle.sql",
+      "github_release_blob": "ABSENT",
+      "replit_workspace_blob_agent_reported": "NOT_FOUND_IN_REPORTED_WORKSPACE",
+      "github_editor_blob": "332f983a8ea541a1a3579d476dd6e21bcd61c9dc",
+      "owner": "migration_editor",
+      "preservation": "proposed_canonical_0040_not_applied",
+      "source_status": "workspace_absence_agent_reported",
+      "published_checkpoint_blob": "NOT_AVAILABLE"
+    }
+  ],
+  "missing_evidence": [
+    "Exact 140-path published-tree manifest of cb55335ea",
+    "Replit published build artifact tree",
+    "Raw independently verified workspace blob bytes",
+    "Physical DB migration ledger and execution receipts",
+    "Signed D01–D04 and Steam admin 403/503 policy"
+  ],
+  "no_go": [
+    "NO_DEPLOY",
+    "NO_SYNC",
+    "NO_SQL",
+    "NO_GAME_CHANGES",
+    "NO_PRODUCTION_SECRETS",
+    "NO_MERGE",
+    "SWARM006_HOLD"
+  ]
+}
