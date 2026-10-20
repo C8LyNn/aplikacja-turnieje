@@ -1,0 +1,291 @@
+{
+  "project": "CC-001",
+  "wave": "R17-W6",
+  "agent": "A50 — Simulation / Physics",
+  "issue": 138,
+  "source_candidate_sha": "a67a37a0e4105dd680f52ae6728e93face61f4ce",
+  "source_integration_sha": "e58ba23a9f20e7a0865668655bd1e819845474bc",
+  "frozen_R16_sha": "de1fe4b88fce3bd08ef383165dc2cd622af2536b",
+  "own_existing_branch": "feat/cc001-r17-w4-a50-f02-physics",
+  "qa_receipt": "PENDING_A60_RAW_BYTES",
+  "disclaimer": "ALL ten runtime scenarios are designs only, not executed tests. No new simulation or Unity build was performed by A50.",
+  "requirements": {
+    "exact_candidate_required": true,
+    "opt_in_player_harness_required": true,
+    "renderer_required_for_visual": true,
+    "step_rate_hz": 120,
+    "one_physics_tick_owner": true,
+    "skip_legacy_R16_webgl_android_results": true
+  },
+  "common_trace_fields": [
+    "candidate_commit",
+    "runner_commit",
+    "build_exe_sha256",
+    "unity_version",
+    "platform",
+    "graphics_api",
+    "fixture_id",
+    "seed_or_random_state",
+    "simulation_tick",
+    "frame",
+    "dt",
+    "action_serial",
+    "turn_number",
+    "owner",
+    "ball_ids",
+    "states_before_after",
+    "event_ids_order",
+    "snapshot_json_sha256",
+    "result_status",
+    "error_log_sha256"
+  ],
+  "scenarios": [
+    {
+      "id": "F02-P01",
+      "priority": "P0",
+      "type": "native_state",
+      "coverage": "Managed G00/G01 covered; native STOP physics not established",
+      "setup": "In fresh local Windows Player match with Frostguard spawned owner0 at (270,450), anchorStacks=0, shield=0, no rooted/ICE/FIRE; use an opt-in player harness, not simulated menu clicks",
+      "stimulus": "Trigger actual STOP through physics UpdateMotion after velocity falls <=14 and a continuous stopHold >=0.12s; hold fixed simulation dt=1/120",
+      "expected": [
+        "exactly one STOP/FROSTGUARD event sequence per stopping episode",
+        "frostguardAnchored=true",
+        "anchorStacks remains 0",
+        "shield becomes 10 then caps at 15 on a later legitimate STOP",
+        "vx=vy=0",
+        "ForceScale=0.30, Mass/baseMass=2.00"
+      ],
+      "trace": [
+        "stopHold",
+        "stopCount",
+        "frostguardAnchored",
+        "anchorStacks",
+        "shield",
+        "vx",
+        "vy",
+        "force_scale",
+        "effective_mass",
+        "events"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P02",
+      "priority": "P0",
+      "type": "native_collision",
+      "coverage": "Core physical collision response versus source-derived scalar oracle not covered by managed",
+      "setup": "Frostguard owner0 stopped at (270,450); enemy normal owner1 along +X separated at guard.radius+enemy.radius+epsilon; spawnGrace=0; no shield extras except intended guard STOP",
+      "stimulus": "Schedule a single fresh inward collision with measured closing normal velocity >90 (e.g. 120) at exact tick; use actual GameSimulation.Step(1/120) inside real Windows Player",
+      "expected": [
+        "HIT emitted (not TOUCH) once for the fresh episode",
+        "Frostguard counter-ICE applied to the hostile normal on an authorized HIT",
+        "production impulse uses Mass(guard)=2x base mass and reports pre/post vector",
+        "damage/shield/HP are recorded and valid; do not assume a numerical impulse without the full collision state",
+        "state remains finite, no overlapping balls remain beyond collision resolution tolerance"
+      ],
+      "trace": [
+        "contact_normal",
+        "closing_speed",
+        "mass_guard",
+        "mass_enemy",
+        "pre_post_position_velocity",
+        "event_order",
+        "iceStacks",
+        "shield",
+        "hp",
+        "frame"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P03",
+      "priority": "P0",
+      "type": "native_negative",
+      "coverage": "Touch/ally defensive counter verified managed only",
+      "setup": "A fresh pair on owner0 Frostguard STOP and owner1 normal weak attacker; repeat with allied normal, reset scene each time",
+      "stimulus": "Generate exactly one controlled weak opposing contact with 0 < closing speed <90; separately allied HIT with >90; use fixed ticks and distinct contact episodes",
+      "expected": [
+        "enemy weak contact TOUCH produces no Frostguard counter-ICE",
+        "allied strong HIT produces no Frostguard counter-ICE",
+        "no friendly kinetic HP damage",
+        "counter triggers on hostile HIT, not merely collision overlap or STOP"
+      ],
+      "trace": [
+        "contact_type",
+        "owner_pair",
+        "iceStacks",
+        "kinetic_damage",
+        "event_order",
+        "frame"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P04",
+      "priority": "P0",
+      "type": "native_replay",
+      "coverage": "G04 managed green by HQ; native UI+resolver replay route not proven",
+      "setup": "Legal owner0 Frostguard near own home zone (270,805), genuine Earth stacks=0, Stop applied, phase=Aiming, own turn, replay not used, bonusPending=false",
+      "stimulus": "Use Player-visible replay gesture (or direct authorized presentation input) to select own Frostguard and issue a legal REPLAY at documented power/direction; advance real fixed ticks through settle",
+      "expected": [
+        "TryCommand accepts one legal replay",
+        "frostguardAnchored=false and anchorStacks=0 immediately after launch",
+        "ForceScale=1 and Mass/baseMass=1",
+        "replayedIds includes this ball once; duplicate REPLAY rejected without mutating state",
+        "Replay resolves to same owner's Aiming turn, subject to normal match rules"
+      ],
+      "trace": [
+        "command",
+        "ui_gesture",
+        "replayedIds",
+        "action_kind",
+        "turn",
+        "turnNumber",
+        "phase",
+        "force_scale",
+        "effective_mass",
+        "shield",
+        "events"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P05",
+      "priority": "P0",
+      "type": "diagnostic_injected",
+      "coverage": "Managed G09B/C/D/E green according to HQ; Player scenario unexecuted",
+      "setup": "Opt-in diagnostic state injection (not evidence this occurs in ordinary play): separate fresh games: Frostguard Earth stacks=2 with flag true; Earth archetype 'anchor' stacks=2; normal non-Earth stacks=2; Frostguard with wrong owner replay",
+      "stimulus": "Apply valid REPLAY for first three, invalid wrong-owner REPLAY for fourth, with real TryCommand and Player stepping",
+      "expected": [
+        "Frostguard successful replay: defensive flag false, real stacks preserved=2, force=.56 mass=1.70x",
+        "Earth anchor successful replay: stacks 2->1, force=.78 mass=1.35x",
+        "normal non-Earth successful replay: stacks remain 2, force=.56 mass=1.70x",
+        "wrong-owner command rejected, no flag/stack/replay-ID/revision mutation"
+      ],
+      "trace": [
+        "archetype",
+        "command_acceptance",
+        "rejection_reason",
+        "frostguardAnchored",
+        "anchorStacks",
+        "replayedIds",
+        "revision",
+        "force_scale",
+        "effective_mass"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P06",
+      "priority": "P0",
+      "type": "native_render",
+      "coverage": "Current R6 presentation smoke featured decks exclude Frostguard",
+      "setup": "Build a dedicated diagnostic local Player setup containing an owner0 Frostguard; freeze gameplay setup before first shot; real D3D11 graphics/non-development Player",
+      "stimulus": "Present pre-STOP, STOP anchored shield/counter state and post-REPLAY on screen; capture 3 distinct real backbuffer PNGs and host snapshot in each state",
+      "expected": [
+        "Frostguard visible and identifiable in each screenshot",
+        "STOP shield and status indicators reconcile with actual GameState",
+        "After REPLAY anchoring indicator absent and UI agrees with state",
+        "captures nontrivial, SHA-256 logged; no Unity exceptions"
+      ],
+      "trace": [
+        "screenshot_paths_sha256",
+        "device_info",
+        "state_snapshots",
+        "visual_indicators",
+        "console_exception_count"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P07",
+      "priority": "P1",
+      "type": "native_determinism",
+      "coverage": "No repeatability proof for F02 collision/replay events in Player",
+      "setup": "Two or more clean new local Player runs of the same fixture with identical catalog, deck, randomState=149, initial state/IDs, command serials, and 1/120 simulation tick schedule",
+      "stimulus": "Run identical P02+P04 script twice; record state/event digests at fixed tick milestones (do not hash wall-clock timestamps or screenshots)",
+      "expected": [
+        "stable event sequence IDs/kinds/order at equivalent tick checkpoints",
+        "stable ball state fields (owner/type, position, velocity, HP, shield, genuine anchor stacks, defensive flag) under fixed tick-count and equivalent float implementation",
+        "no unplanned duplicate counter effects across repeated contact frames",
+        "any divergence documented with first mismatching tick and full source/runner SHA; not immediately deemed deterministic failure across unlike platforms"
+      ],
+      "trace": [
+        "tick_index",
+        "randomState",
+        "state_digest",
+        "event_sequence",
+        "source_machine_arch",
+        "first_divergent_tick"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P08",
+      "priority": "P1",
+      "type": "native_framerate",
+      "coverage": "CoreClashApp Update accumulator cap and Time.unscaledDeltaTime effects not managed-tested",
+      "setup": "Same P02/P04 reproducible fixture on Windows Player; render fps targets 30/60/120; CoreClashApp uses 1/120 steps and clamps accumulated unscaled delta to <=.1",
+      "stimulus": "Record actual simulation tick count and event timings while varying rendering frame rate; compare at matching simulation ticks rather than matching elapsed wall time",
+      "expected": [
+        "same gameplay state/event ordering at matched simulation ticks for same initial state/inputs where single tick ownership holds",
+        "if wall time differs due accumulator cap, report it separately instead of misclassifying as physics drift",
+        "avoid double-stepping when a smoke driver accelerates sim while CoreClashApp.Update also runs"
+      ],
+      "trace": [
+        "fps_target",
+        "frame_times",
+        "tick_count",
+        "accumulator_clamp_count",
+        "state_digests",
+        "event_order"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P09",
+      "priority": "P1",
+      "type": "native_snapshot",
+      "coverage": "Managed snapshot serializes fields but transient contact cache is not in GameState",
+      "setup": "Owner0 Frostguard STOP and hostile ball positioned near a pending or just completed physical contact; capture NetworkGameSession state, restore to supported Player-side state adapter in an isolated diagnostic session",
+      "stimulus": "Restore authoritative state at controlled frame boundary and continue one or more ticks with same inputs; compare first-contact events with an uninterrupted authoritative run",
+      "expected": [
+        "anchor flag/shield/Earth stacks round-trip without loss",
+        "no unjustified repeat Frostguard counter-ICE or duplicate authoritative damage when contact persists",
+        "if behavior diverges because CollisionResolver.contacts is nonserialized, preserve precise reproduction; classify as risk until confirmed"
+      ],
+      "trace": [
+        "captured_snapshot_sha256",
+        "authoritative_vs_restored_event_ids",
+        "contact_episode",
+        "iceStacks",
+        "hp",
+        "frame"
+      ],
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "F02-P10",
+      "priority": "P1",
+      "type": "native_lifecycle_interaction",
+      "coverage": "A40 + F02 interplay beyond isolated managed",
+      "setup": "Frostguard defending near a natural Phoenix/return or spawned hostile unit in real local Player; use exact Stage2 state and A40-owned ability path, not inferred or unimplemented effects",
+      "stimulus": "Run a controlled hostile HIT and legal replay after a lifecycle event; observe any new ball IDs, owner, anchor flags, turn and shield",
+      "expected": [
+        "no inheritance/leak of frostguardAnchored to unrelated generated/returned units",
+        "counter-freeze targets actual hostile owner post lifecycle/ownership resolution",
+        "turn and replay validation unaffected",
+        "any mismatch escalated to A40 for GameSimulation ownership, not edited by A50"
+      ],
+      "trace": [
+        "lifecycle_events",
+        "ball_ids_owner",
+        "frostguardAnchored",
+        "anchorStacks",
+        "turn",
+        "replayedIds"
+      ],
+      "status": "NOT_RUN"
+    }
+  ]
+}
