@@ -113,7 +113,8 @@ public static partial class Program
             Eq("EMPTY",BallSelection.StockLabel(s,0,"phoenix"));
         });
         Test("PHX-UI-08 exhausted non-Phoenix ball still falls back to Standard",()=>{
-            var s=Sim();var entry=s.State.players[0].stock.First(x=>x.id=="fire");entry.remaining=0;
+            var s=Sim();PhoenixUiHand(s); // A Phoenix hand must not unlock a different exhausted ball.
+            var entry=s.State.players[0].stock.First(x=>x.id=="fire");entry.remaining=0;
             Eq(BallSelectionSource.None,BallSelection.Source(s,0,"fire"));
             False(BallSelection.CanSelect(s,0,"fire"));
             Eq("normal",BallSelection.ForTurn(s,"fire"));
@@ -121,6 +122,7 @@ public static partial class Program
         });
         Test("PHX-UI-09 opponent turn never enables own Phoenix hand or stock",()=>{
             var s=PhoenixUiFixture(1);PhoenixUiHand(s);
+            s.State.players[1].stock.Add(new StockEntry{id="phoenix",remaining=1});
             Eq(BallSelectionSource.None,BallSelection.Source(s,1,"phoenix"));
             False(BallSelection.CanSelect(s,1,"phoenix"));
         });
