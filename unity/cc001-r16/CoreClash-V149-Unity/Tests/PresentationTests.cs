@@ -58,5 +58,93 @@ public static partial class Program
             False(MatchLayout.For(600,250,DeviceProfile.Phone).CompactLandscape);
             False(MatchLayout.For(400,330,DeviceProfile.Phone).CompactLandscape);
         });
+
+        // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
+        Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
+            var s=PhoenixUiFixture();PhoenixUiHand(s);
+            Eq(0,s.Stock(0,"phoenix"));
+            Eq(BallSelectionSource.Hand,BallSelection.Source(s,0,"phoenix"));
+            True(BallSelection.CanSelect(s,0,"phoenix"));
+            Eq("phoenix",BallSelection.ForTurn(s,"phoenix"));
+            Eq("HAND READY",BallSelection.StockLabel(s,0,"phoenix"));
+        });
+        Test("PHX-UI-02 exhausted Phoenix without ready hand falls back to Standard",()=>{
+            var s=PhoenixUiFixture();
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            False(BallSelection.CanSelect(s,0,"phoenix"));
+            Eq("normal",BallSelection.ForTurn(s,"phoenix"));
+            Eq("EMPTY",BallSelection.StockLabel(s,0,"phoenix"));
+        });
+        Test("PHX-UI-03 genuine Phoenix stock takes priority over ready hand",()=>{
+            var s=PhoenixUiFixture(1);PhoenixUiHand(s);
+            Eq(BallSelectionSource.Stock,BallSelection.Source(s,0,"phoenix"));
+            Eq("x1",BallSelection.StockLabel(s,0,"phoenix"));
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(0,s.Stock(0,"phoenix"));Eq(1,s.State.phoenixHand.Count);
+            Eq(BallSelectionSource.Hand,BallSelection.Source(s,0,"phoenix"));
+        });
+        Test("PHX-UI-04 unready Phoenix hand is unavailable",()=>{
+            var s=PhoenixUiFixture();var h=PhoenixUiHand(s);h.ready=false;
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            Eq("normal",BallSelection.ForTurn(s,"phoenix"));
+        });
+        Test("PHX-UI-05 opponent-owned ready Phoenix hand is unavailable",()=>{
+            var s=PhoenixUiFixture();var h=PhoenixUiHand(s);h.owner=1;
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            False(BallSelection.CanSelect(s,0,"phoenix"));
+        });
+        Test("PHX-UI-06 same-turn and stale-processed Phoenix hands are unavailable",()=>{
+            var s=PhoenixUiFixture();var h=PhoenixUiHand(s);
+            h.createdOwnerTurns=s.State.players[0].ownerTurns;
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            h.createdOwnerTurns=s.State.players[0].ownerTurns-1;
+            h.lastProcessedOwnerTurns=s.State.players[0].ownerTurns-1;
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            h.lastProcessedOwnerTurns=s.State.players[0].ownerTurns+1;
+            Eq(BallSelectionSource.Hand,BallSelection.Source(s,0,"phoenix"));
+        });
+        Test("PHX-UI-07 consuming last ready hand removes Phoenix availability",()=>{
+            var s=PhoenixUiFixture();PhoenixUiHand(s);
+            True(BallSelection.CanSelect(s,0,"phoenix"));
+            True(s.TryCommand(Shot(s,0,"phoenix"),out _));
+            Eq(0,s.Stock(0,"phoenix"));Eq(0,s.State.phoenixHand.Count);
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"phoenix"));
+            Eq("normal",BallSelection.ForTurn(s,"phoenix"));
+            Eq("EMPTY",BallSelection.StockLabel(s,0,"phoenix"));
+        });
+        Test("PHX-UI-08 exhausted non-Phoenix ball still falls back to Standard",()=>{
+            var s=Sim();var entry=s.State.players[0].stock.First(x=>x.id=="fire");entry.remaining=0;
+            Eq(BallSelectionSource.None,BallSelection.Source(s,0,"fire"));
+            False(BallSelection.CanSelect(s,0,"fire"));
+            Eq("normal",BallSelection.ForTurn(s,"fire"));
+            Eq("EMPTY",BallSelection.StockLabel(s,0,"fire"));
+        });
+        Test("PHX-UI-09 opponent turn never enables own Phoenix hand or stock",()=>{
+            var s=PhoenixUiFixture(1);PhoenixUiHand(s);
+            Eq(BallSelectionSource.None,BallSelection.Source(s,1,"phoenix"));
+            False(BallSelection.CanSelect(s,1,"phoenix"));
+        });
+        Test("PHX-UI-10 one ready hand wins over an invalid earlier hand",()=>{
+            var s=PhoenixUiFixture();var early=PhoenixUiHand(s);early.ready=false;
+            PhoenixUiHand(s);
+            Eq(BallSelectionSource.Hand,BallSelection.Source(s,0,"phoenix"));
+        });
     }
+    static GameSimulation PhoenixUiFixture(int stock=0)
+    {
+        var s=Sim();
+        s.State.players[0].stock.Add(new StockEntry{id="phoenix",remaining=stock});
+        return s;
+    }
+    static PhoenixHandEntry PhoenixUiHand(GameSimulation simulation)
+    {
+        var turns=simulation.State.players[0].ownerTurns;
+        var hand=new PhoenixHandEntry{
+            owner=0,ready=true,createdOwnerTurns=turns-1,
+            lastProcessedOwnerTurns=turns,hp=10,maxHp=25,shield=0
+        };
+        simulation.State.phoenixHand.Add(hand);
+        return hand;
+    }
+
 }
