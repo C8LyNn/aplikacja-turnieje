@@ -15,6 +15,8 @@ const CANDIDATE_SOURCE = new Set([
   'Assets/CoreClash/Core/AbilityResolver.cs', 'Assets/CoreClash/Core/TurnSystem.cs',
   'Assets/CoreClash/Core/ElementalEffects.cs', 'Assets/CoreClash/Physics/CollisionResolver.cs',
   'Assets/CoreClash/Presentation/MatchLayout.cs', 'Assets/CoreClash/Presentation/MatchView.cs',
+  'Assets/CoreClash/Presentation/BallSelection.cs',
+  'Assets/CoreClash/Presentation/CoreClashApp.cs',
   'Tests/AbilityTests.cs', 'Tests/ElementalTests.cs', 'Tests/NetworkSeatTests.cs',
   'Tests/PresentationTests.cs', 'Tests/StabilityR16Tests.cs'
 ]);
