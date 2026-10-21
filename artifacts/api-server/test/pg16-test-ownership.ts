@@ -301,7 +301,7 @@ export async function resetRunSchema(pool: SafetyPool, schema: string): Promise<
 }
 export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<void> {
   const ctx = requireSafetyContext();
-  const safe = safeS1Name(schema, ctx);
+  safeS1Name(schema, ctx);
   await requireBaseAndRoleIdentity(pool,ctx);
   const existing = await requireOwnedSchema(pool, schema, ctx);
   const receipt = createdSchemaReceipts.get(schema);
