@@ -1,6 +1,6 @@
 # CC-001 — R17-W7 / A72 diagnostic Phoenix Windows Player
 
-> **SUPERSEDED / NIE UŻYWAĆ STAREJ PACZKI:** Windows checkout recovery R2, nowy SHA-256 oraz instrukcje w [R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md](R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md). Poprzedni operator-kit zatrzymywał się na niezweryfikowanym Git `M` wywołanym normalizacją końców linii; użyj wyłącznie paczki R2.
+> **SUPERSEDED / NIE UŻYWAĆ STAREJ PACZKI:** Windows checkout recovery R3, nowy SHA-256 oraz instrukcje w [R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md](R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md). Poprzedni operator-kit zatrzymywał się na niezweryfikowanym Git `M` wywołanym normalizacją końców linii; użyj wyłącznie paczki R2.
 
 
 **IDENTITY:** A72 Build & CI / Issue #113.  
