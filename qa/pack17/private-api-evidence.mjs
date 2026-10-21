@@ -38,7 +38,10 @@ export class TapStreamInspector {
     const line = raw.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '').replace(/\r/g, '');
     if (/^TAP version 13\s*$/.test(line)) {
       state.headers++;
-      state.sections.push(Object.create(null));
+      state.sections.push(Object.assign(Object.create(null), {
+        assertions:0, failedAssertions:0, rootAssertions:0, nestedAssertions:0,
+        nestedPlanTests:0, rootPlan:null, malformed:false, countersStarted:false,
+      }));
     }
     if (state.firstFailure === null && /^\s*not ok\s+\d+\s+-\s+\S/.test(line)) {
       state.firstFailure = redactEvidence(line.trim());
@@ -46,9 +49,37 @@ export class TapStreamInspector {
     if (state.firstDiagnostic === null && /^\s*(?:failureType|error|code):\s+\S|^\s*(?:Error|TypeError|SyntaxError|ReferenceError):\s+\S/.test(line)) {
       state.firstDiagnostic = redactEvidence(line.trim());
     }
+    // Node's TAP summaries can be forged without executing any test. Require
+    // concrete assertions, sequential root IDs, and root/nested test plans.
+    const section = state.sections.at(-1);
+    if (!section) return;
+    const assertion = /^([ \t]*)(not )?ok ([0-9]+) - \S/.exec(line);
+    const plan = /^([ \t]*)([0-9]+)\.\.([0-9]+)\s*$/.exec(line);
+    if (assertion) {
+      const id = Number(assertion[3]);
+      section.assertions++;
+      if (assertion[2]) section.failedAssertions++;
+      if (section.countersStarted || section.rootPlan !== null || !Number.isSafeInteger(id) || id < 1) {
+        section.malformed = true;
+      }
+      if (assertion[1] === '') {
+        section.rootAssertions++;
+        if (id !== section.rootAssertions) section.malformed = true;
+      } else section.nestedAssertions++;
+    }
+    if (plan) {
+      const from = Number(plan[2]);
+      const to = Number(plan[3]);
+      if (section.countersStarted || section.rootPlan !== null || from !== 1 ||
+          !Number.isSafeInteger(to) || to < 1) section.malformed = true;
+      if (plan[1] === '') {
+        if (section.rootPlan !== null) section.malformed = true;
+        section.rootPlan = to;
+      } else section.nestedPlanTests += to;
+    }
     const match = /^# (tests|pass|fail|cancelled|skipped|todo) (\d+)\s*$/.exec(line);
-    if (match && state.sections.length) {
-      const section = state.sections[state.sections.length - 1];
+    if (match) {
+      section.countersStarted = true;
       if (Object.hasOwn(section, match[1])) section.duplicate = true;
       else section[match[1]] = Number(match[2]);
     }
@@ -89,7 +120,12 @@ export class TapStreamInspector {
     const sections=out.sections;
     const complete=Number.isInteger(expectedHeaders) && expectedHeaders>=1 &&
       out.headers===expectedHeaders && err.headers===0 && !out.oversizedLine && !err.oversizedLine &&
-      sections.length===expectedHeaders && sections.every(s=>!s.duplicate && kinds.every(k=>Number.isSafeInteger(s[k])));
+      sections.length===expectedHeaders && sections.every(s=>
+        !s.duplicate && !s.malformed && kinds.every(k=>Number.isSafeInteger(s[k])) &&
+        s.rootPlan !== null && s.rootPlan===s.rootAssertions && s.rootAssertions>=1 &&
+        s.nestedPlanTests===s.nestedAssertions && s.assertions===s.tests &&
+        s.failedAssertions===s.fail &&
+        s.pass+s.fail+s.cancelled+s.skipped+s.todo===s.tests);
     const allPass=complete && !out.firstFailure && !err.firstFailure && sections.every(s=>s.tests>=1 && s.pass===s.tests &&
       s.fail===0 && s.cancelled===0 && s.skipped===0 && s.todo===0);
     const counters=Object.fromEntries(kinds.map(k=>[k,complete?sections.reduce((n,s)=>n+s[k],0):null]));

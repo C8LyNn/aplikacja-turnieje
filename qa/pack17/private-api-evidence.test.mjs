@@ -6,7 +6,7 @@ import { readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { capturePrivateEvidence, redactEvidence } from './private-api-evidence.mjs';
 
-const summary=(tests,pass,fail)=> `# tests ${tests}\n# pass ${pass}\n# fail ${fail}\n# cancelled 0\n# skipped 0\n# todo 0\n`;
+const summary=(tests,pass,fail)=> `1..${tests}\n# tests ${tests}\n# pass ${pass}\n# fail ${fail}\n# cancelled 0\n# skipped 0\n# todo 0\n`;
 async function launch(js,{headers=1}={}){
   const r=await capturePrivateEvidence({command:process.execPath,args:['-e',js],env:{PATH:process.env.PATH||'',NODE_ENV:'test'},expectedHeaders:headers});
   const stdout=readFileSync(join(r.privateFolder,'stdout.raw'));
@@ -102,4 +102,43 @@ test('oversized uninspectable TAP line is privately retained, public PASS denied
   const a=await launch(`process.stdout.write(${JSON.stringify(data)})`);
   assert.equal(a.r.exitCode,0);assert.equal(a.r.summary.oversizedLine,true);
   assert.equal(a.r.success,false);assert.ok(a.stdout.includes('Z'.repeat(10000)));
+});
+
+// W6F-R2: negative proof against forged TAP success counters, plus Node nesting.
+test('W6F-R2 counters-only exit0 cannot pass without an assertion or root plan',async()=>{
+  const tap='TAP version 13\n# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.exitCode,0);assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
+});
+test('W6F-R2 plan plus counters but no assertion remains invalid',async()=>{
+  const tap='TAP version 13\n1..1\n'+summary(1,1,0).replace('1..1\n','');
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
+});
+test('W6F-R2 actual assertion and counters without root plan is incomplete',async()=>{
+  const tap='TAP version 13\nok 1 - synthetic\n'+summary(1,1,0).replace('1..1\n','');
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
+});
+test('W6F-R2 root plan and assertion numbering must agree',async()=>{
+  const tap='TAP version 13\nok 1 - only one\n1..2\n'+summary(1,1,0).replace('1..1\n','');
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
+});
+test('W6F-R2 duplicated root assertion identifiers must fail',async()=>{
+  const tap='TAP version 13\nok 1 - one\nok 1 - forged duplicate\n'+summary(2,2,0);
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
+});
+test('W6F-R2 real native Node nested test TAP validates nested plans',async()=>{
+  const js=`const {test}=require('node:test');test('outer',async t=>{await t.test('child 1',()=>{});await t.test('child 2',()=>{});});`;
+  const a=await launch(js);
+  assert.equal(a.r.exitCode,0);assert.equal(a.r.success,true);
+  assert.equal(a.r.summary.tapComplete,true);assert.equal(a.r.summary.counters.tests,3);
+  assert.match(a.stdout,/    1\.\.2/);assert.match(a.stdout,/^1\.\.1$/m);
+});
+test('W6F-R2 nested assertions with no nested plan cannot pass',async()=>{
+  const tap='TAP version 13\n    ok 1 - child\nok 1 - parent\n1..1\n'+summary(2,2,0).replace('1..2\n','');
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
+  assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
 });
