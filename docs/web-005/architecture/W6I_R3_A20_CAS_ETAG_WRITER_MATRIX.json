@@ -746,6 +746,155 @@
         "SEEDING"
       ],
       "proofObligation": "action authorization/Undo separate, avoid derived basket token from action history unless required"
+    },
+    "tournament_routing_stage_group_sizes": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "routing_stage_id",
+        "position",
+        "exact_group_size"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized plan child for exact stage-group size"
+    },
+    "tournament_routing_entry_points": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "entry_key",
+        "exact_capacity"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "plan entry-point capacities must equal sealed canonicalPayload checksum"
+    },
+    "tournament_routing_logical_matches": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "match_key",
+        "match_order"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "logical match topology child omitted from current digest"
+    },
+    "tournament_routing_logical_match_slots": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "routing_stage_id",
+        "logical_match_id",
+        "slot"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "logical slot edges child omitted from current digest"
+    },
+    "tournament_routing_outputs": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "output_key",
+        "exact_capacity"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "routing outputs and capacity child omitted from current digest"
+    },
+    "tournament_routing_selection_group_sizes": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "route_id",
+        "position",
+        "exact_group_size"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "routing selection group sizes child omitted from current digest"
+    },
+    "marvel_stage_rounds": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "round_number",
+        "status",
+        "advancing_count"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MARVEL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "post-start stage runtime; confirm no draft graph dependency"
+    },
+    "marvel_stage_group_entries": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "group_id",
+        "player_id",
+        "placement",
+        "qualified"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MARVEL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "group membership/results runtime, no draft write allowed if excluded"
+    },
+    "result_history": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "match_id",
+        "tournament_id",
+        "stage_id",
+        "revision",
+        "winner_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_NON_DEPENDENCY",
+      "writers": [
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "TOURNAMENT_ROUTES"
+      ],
+      "proofObligation": "post-start match history, excluded only while basket stage immutable"
     }
   },
   "openProofObligations": [
@@ -758,6 +907,21 @@
     "Routing normalized-plan children missing; prove sealed checksum immutability or include actual rows",
     "Physical SQL triggers from 0002/0026/0027 modify stage and roster; lock order cannot be proven from isolated CAS adapter",
     "Other writers/DB roles/worker paths not proven exhaustive; release must not claim completeness",
-    "Schema D01-D04 T055 not allocated; server ports never wired; no PG16/HTTP runtime certification"
-  ]
+    "Schema D01-D04 T055 not allocated; server ports never wired; no PG16/HTTP runtime certification",
+    "All 15 normalized tournament_routing_* child tables must be sealed and proven equal to signed plan canonicalPayload/checksum, or be included directly in ETag dependency digest"
+  ],
+  "schemaProof": {
+    "physicalColumnVerification": "ALL existing columnSubset literals verified against frozen C03 GitHub schema source; ONLY two A00-approved planned columns intentionally absent",
+    "plannedNotPresent": [
+      {
+        "table": "tournaments",
+        "column": "basket_config_revision"
+      },
+      {
+        "table": "tournaments",
+        "column": "basket_edit_epoch"
+      }
+    ],
+    "verificationMethod": "compare quoted physical identifiers inside pgTable schema block, no DB/SQL execution"
+  }
 }
