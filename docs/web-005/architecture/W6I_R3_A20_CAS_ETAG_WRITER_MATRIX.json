@@ -1,0 +1,940 @@
+{
+  "manifestVersion": "WEB005-CAS-ETAG-WRITER-R3-1",
+  "scope": "A20 SOURCE CONTRACT only; not complete runtime or DBA proof",
+  "evidence": {
+    "frozenC03": "80bb4ca7a9a359fbe76dbab1478a1af16ded0174",
+    "a50Pin": "cab5f837f039b9e8543ac14d2c45392e5ef18a67",
+    "a30Verdict": "SECURITY_CONDITIONAL",
+    "a60Independent": "18/18 DB-free PASS on pinned A50 HEAD",
+    "schemaSourceGitBlobs": {
+      "lib/db/src/schema/tournaments.ts": "0fb1a93e2ea99a5944e71ea1e7bc54d4097f60a8",
+      "lib/db/src/schema/tournament-routing.ts": "4814a26d5c89bcd95ce925405f21a1912dc8ad56"
+    },
+    "a50PriorIndependentQaPin": "fae8a91feae13e779b7c27baa7452df725d370a2",
+    "a50R3Candidate": {
+      "head": "cab5f837f039b9e8543ac14d2c45392e5ef18a67",
+      "adapterBlob": "f7ad5f79178826fa7d8eac91451bdcb57e1caa78",
+      "testBlob": "c69d49f8f691b99229c772f392ebe5c8e31131d2",
+      "coreBlob": "3e19ede99e9591b9eae784f3a1474e84c9b4a4f7",
+      "status": "AUTHOR_PATCH_PRESENT_INDEPENDENT_SECURITY_QA_PENDING",
+      "codeDeltas": [
+        "strict true for authorization ports",
+        "single sealed executeBasketCasWrite method replaces exported transaction callback",
+        "pool release(error) quarantine on uncertain connections"
+      ]
+    }
+  },
+  "rules": {
+    "parentLockOrder": [
+      "tournaments FOR UPDATE",
+      "tournament_stages deterministic id",
+      "players deterministic id",
+      "stage_participants deterministic key",
+      "basket/route graph",
+      "routing plans/executions"
+    ],
+    "readSnapshot": "READ ONLY REPEATABLE READ using same transaction/client for graph and dependencies",
+    "writeSnapshot": "SERIALIZABLE and parent FOR UPDATE before child state, organizer positive auth, If-Match, validator, graph rewrite, conditional +1 revision",
+    "sourceEtags": "versioned SHA256 strong opaque quoted base64url from server row id+epoch+revision+complete canonical stageDigest+rosterGraphDigest",
+    "clone": "new tournament fresh server-owned UUID epoch and 0n revision; in-place restore denied",
+    "unsupported": "any unverified digest dependency or unlocked mutable draft writer => fail closed / do not enable CAS",
+    "a50PreActivationSecurity": [
+      "CAS-SEC-01: candidate code changed, independent verification pending",
+      "CAS-SEC-02: candidate code changed, independent verification pending",
+      "CAS-SEC-03: candidate code changed, independent verification pending"
+    ],
+    "schemaGate": "T055 REQUESTED_NOT_ALLOCATED; D01-D04 HOLD; no SQL/DDL"
+  },
+  "writerRegistry": {
+    "BASKET_REPLACE": {
+      "path": "artifacts/api-server/src/application/stages/stage-basket-configuration.ts",
+      "range": "308-530",
+      "lock": "parent_first",
+      "operation": "replace baskets/routes/assignments; update stage+flow",
+      "source": "C03"
+    },
+    "BASKET_GET": {
+      "path": "artifacts/api-server/src/application/stages/stage-basket-configuration.ts",
+      "range": "69-303",
+      "lock": "multi_read_not_atomic",
+      "operation": "read basket graph/validation",
+      "source": "C03"
+    },
+    "ROSTER_MUTATIONS": {
+      "path": "artifacts/api-server/src/application/players/tournament-roster.ts",
+      "range": "58-465",
+      "lock": "parent_first",
+      "operation": "player add/update/delete/undo/CSV",
+      "source": "C03"
+    },
+    "STAGE_FIRST_PLAYER": {
+      "path": "artifacts/api-server/src/application/stages/create-tournament-with-plan.ts",
+      "range": "266-330",
+      "lock": "stage_first_without_parent",
+      "operation": "standalone exported compatibility add player and transient stage rewrite",
+      "source": "C03"
+    },
+    "CREATE_TOURNAMENT": {
+      "path": "artifacts/api-server/src/application/stages/create-tournament-with-plan.ts",
+      "range": "107-255",
+      "lock": "new_parent_row",
+      "operation": "new tournament + initial stage plan + game config",
+      "source": "C03"
+    },
+    "BACKUP_V2_CLONE": {
+      "path": "artifacts/api-server/src/application/backups/backup-v2.ts",
+      "range": "253-330",
+      "lock": "new_parent_row",
+      "operation": "new target from V2 backup",
+      "source": "C03"
+    },
+    "BACKUP_V3_CLONE": {
+      "path": "artifacts/api-server/src/application/backups/backup-v3.ts",
+      "range": "1727-2485",
+      "lock": "new_parent_row",
+      "operation": "new target from V3 backup; stages/baskets/routes/players/proposals/executions",
+      "source": "C03"
+    },
+    "STAGE_LIFECYCLE": {
+      "path": "artifacts/api-server/src/application/stages/stage-lifecycle.ts",
+      "range": "580-1360",
+      "lock": "parent_first",
+      "operation": "start/complete stage, membership, player status, routing",
+      "source": "C03"
+    },
+    "TOURNAMENT_ROUTES": {
+      "path": "artifacts/api-server/src/routes/tournaments.ts",
+      "range": "1434-1780",
+      "lock": "parent_first",
+      "operation": "draft start; Swiss next-round changes",
+      "source": "C03"
+    },
+    "SEEDING": {
+      "path": "artifacts/api-server/src/application/stages/seeding-ceremony.ts",
+      "range": "480-635",
+      "lock": "parent_first",
+      "operation": "prepare/reveal/reset ceremony, stage seeding audit/version",
+      "source": "C03"
+    },
+    "GAME_CONFIG": {
+      "path": "artifacts/api-server/src/application/games/tournament-game-config.ts",
+      "range": "56-166",
+      "lock": "injected_tx_parent_not_enforced",
+      "operation": "game config upsert/delete; stage group quotas without version increment",
+      "source": "C03"
+    },
+    "QUAL_PROPOSAL": {
+      "path": "artifacts/api-server/src/application/stages/stage-basket-qualification.ts",
+      "range": "216-440",
+      "lock": "proposal_first_no_parent",
+      "operation": "proposal create/supersede, entries rewrite",
+      "source": "C03"
+    },
+    "QUAL_APPROVAL": {
+      "path": "artifacts/api-server/src/application/stages/stage-basket-qualification.ts",
+      "range": "532-700",
+      "lock": "parent_first",
+      "operation": "approve proposal and replace basket output rows",
+      "source": "C03"
+    },
+    "ROUTE_EXEC": {
+      "path": "artifacts/api-server/src/application/stages/stage-basket-route-execution.ts",
+      "range": "188-440",
+      "lock": "parent_first",
+      "operation": "execute stage basket route, create execution/entries",
+      "source": "C03"
+    },
+    "ROUTE_PLAN_SAVE": {
+      "path": "artifacts/api-server/src/application/routing/routing-plan-persistence.ts",
+      "range": "1100-1400",
+      "lock": "parent_first",
+      "operation": "save compiled plan and normalized routing graph",
+      "source": "C03"
+    },
+    "ROUTE_STATE": {
+      "path": "artifacts/api-server/src/application/routing/routing-execution-persistence.ts",
+      "range": "36-190",
+      "lock": "execution_row_first_no_parent",
+      "operation": "create/update/correct/reset routing execution",
+      "source": "C03"
+    },
+    "BASKET_ROSTER_HELPER": {
+      "path": "artifacts/api-server/src/application/stages/basket-input-roster.ts",
+      "range": "16-92",
+      "lock": "injected_tx_parent_not_enforced",
+      "operation": "materialize stage membership from basket input",
+      "source": "C03"
+    },
+    "MATCH_COMPLETE": {
+      "path": "artifacts/api-server/src/application/matches/complete-match.ts",
+      "range": "180-535",
+      "lock": "parent_first",
+      "operation": "complete match; update player/stage/membership and tournament",
+      "source": "C03"
+    },
+    "MATCH_REVERT": {
+      "path": "artifacts/api-server/src/application/matches/revert-match.ts",
+      "range": "197-720",
+      "lock": "parent_first",
+      "operation": "revert match; undo memberships/player/stage/tournament",
+      "source": "C03"
+    },
+    "MARVEL": {
+      "path": "artifacts/api-server/src/application/stages/marvel-elimination-stage.ts",
+      "range": "368-595",
+      "lock": "parent_first",
+      "operation": "Marvel group allocation/results",
+      "source": "C03"
+    },
+    "DE_STAGE": {
+      "path": "artifacts/api-server/src/application/stages/double-elimination-stage.ts",
+      "range": "170-220",
+      "lock": "parent_first",
+      "operation": "double elimination execution",
+      "source": "C03"
+    },
+    "TOURNAMENT_DELETE": {
+      "path": "artifacts/api-server/src/routes/tournaments.ts",
+      "range": "1364-1375",
+      "lock": "direct_parent_delete",
+      "operation": "delete tournament cascade to child graph",
+      "source": "C03"
+    },
+    "TRIGGER_PLAYER": {
+      "path": "lib/db/migrations/0027_preserve_started_stage_memberships.sql",
+      "range": "1-62",
+      "lock": "trigger_indirect",
+      "operation": "player INSERT/UPDATE -> stage membership seed/count",
+      "source": "C03"
+    },
+    "TRIGGER_SEED": {
+      "path": "lib/db/migrations/0002_tournament_stages_v1.sql",
+      "range": "693-805",
+      "lock": "trigger_indirect",
+      "operation": "player seed normalization and participant update, deleted-player count",
+      "source": "C03"
+    },
+    "TRIGGER_STAGE": {
+      "path": "lib/db/migrations/0002_tournament_stages_v1.sql",
+      "range": "473-624",
+      "lock": "trigger_indirect",
+      "operation": "stage INSERT/UPDATE status -> update tournament active_stage_id; tournament mutation -> stage sync",
+      "source": "C03"
+    },
+    "TRIGGER_FLOW": {
+      "path": "lib/db/migrations/0026_basket_authority_trigger_bypass.sql",
+      "range": "125-265",
+      "lock": "trigger_indirect",
+      "operation": "tournament single-stage flow compatibility group/route behavior",
+      "source": "C03"
+    },
+    "CAS_ADAPTER": {
+      "path": "artifacts/api-server/src/domain/tournament/basket-cas-pg-source-adapter.mjs",
+      "range": "1-223",
+      "lock": "source_only_injected_transaction",
+      "operation": "guarded source-only executeBasketCasWrite; strict affirmative auth; clone/GET; SQL strings no real DB wire",
+      "source": "PR146"
+    }
+  },
+  "tables": {
+    "tournaments": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "status",
+        "basket_flow_authority_version",
+        "max_players",
+        "active_stage_id",
+        "basket_config_revision",
+        "basket_edit_epoch"
+      ],
+      "etagCurrent": "partial_parent_row",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_REPLACE",
+        "ROSTER_MUTATIONS",
+        "STAGE_LIFECYCLE",
+        "CREATE_TOURNAMENT",
+        "BACKUP_V2_CLONE",
+        "BACKUP_V3_CLONE",
+        "TOURNAMENT_ROUTES",
+        "TRIGGER_STAGE",
+        "TOURNAMENT_DELETE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "PLANNED_COLUMNS_NOT_IN_SCHEMA; current adapter hashes id,rev,epoch and uses status as guard but not authority mode or max_players"
+    },
+    "tournament_stages": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_key",
+        "position",
+        "status",
+        "version",
+        "participant_count",
+        "format",
+        "qualification_mode",
+        "advancing_count",
+        "group_count",
+        "qualifiers_per_group",
+        "participants_per_group",
+        "seeding_audit"
+      ],
+      "etagCurrent": "stage_rows_all_jsonb",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_REPLACE",
+        "STAGE_LIFECYCLE",
+        "STAGE_FIRST_PLAYER",
+        "GAME_CONFIG",
+        "SEEDING",
+        "TOURNAMENT_ROUTES",
+        "TRIGGER_PLAYER",
+        "TRIGGER_SEED",
+        "TRIGGER_STAGE",
+        "TRIGGER_FLOW",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "stage version alone insufficient; source stage writes sometimes skip version increment"
+    },
+    "players": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "seed",
+        "status",
+        "name",
+        "rank",
+        "team_name"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "ROSTER_MUTATIONS",
+        "STAGE_FIRST_PLAYER",
+        "TRIGGER_PLAYER",
+        "TRIGGER_SEED",
+        "STAGE_LIFECYCLE",
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "BACKUP_V2_CLONE",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "trigger resequencing changes seed/status/membership"
+    },
+    "stage_participants": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "player_id",
+        "stage_seed",
+        "status",
+        "qualification_source",
+        "group_id",
+        "final_rank",
+        "qualification_rank"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_ROSTER_HELPER",
+        "STAGE_LIFECYCLE",
+        "TRIGGER_PLAYER",
+        "TRIGGER_SEED",
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "MARVEL",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "stage-first compatibility writer or triggers may bypass parent lock"
+    },
+    "stage_baskets": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "basket_type",
+        "ordinal",
+        "display_order",
+        "qualifier_count"
+      ],
+      "etagCurrent": "graph_port_unproved",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_REPLACE",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "ports.readGraph MUST prove fully queried inside same client; cannot assume from object shape alone"
+    },
+    "stage_basket_routes": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "source_stage_id",
+        "source_basket_id",
+        "target_stage_id",
+        "target_basket_id"
+      ],
+      "etagCurrent": "graph_port_unproved",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_REPLACE",
+        "BACKUP_V3_CLONE",
+        "ROUTE_EXEC"
+      ],
+      "proofObligation": "route graph must come from same snapshot; no nested independent transaction"
+    },
+    "stage_basket_participants": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "tournament_id",
+        "stage_id",
+        "basket_id",
+        "player_id"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "BASKET_REPLACE",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "both roster SQL and graph input; detect inserts/deletes"
+    },
+    "stage_groups": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "stage_id",
+        "position",
+        "participant_count",
+        "qualifiers_count"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "CONDITIONAL_STAGE_SCOPE",
+      "writers": [
+        "STAGE_LIFECYCLE",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "not hashed; include in stage-level digest or prove immutable/non-participation while draft"
+    },
+    "tournament_game_configs": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "tournament_id",
+        "game_id",
+        "config_version",
+        "config"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "CORE_OR_DENY",
+      "writers": [
+        "GAME_CONFIG",
+        "CREATE_TOURNAMENT",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "Marvel/group quotas alter stage rule validation; source writer can omit stage.version bump"
+    },
+    "qualification_proposals": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "revision",
+        "status",
+        "ranking_fingerprint"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "INCLUDE_OR_PROVE_EXCLUSION",
+      "writers": [
+        "QUAL_PROPOSAL",
+        "QUAL_APPROVAL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "proposal creation has no parent lock; acceptance and downstream output may affect route flow"
+    },
+    "qualification_proposal_entries": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "proposal_id",
+        "tournament_id",
+        "stage_id",
+        "basket_id",
+        "player_id",
+        "placement_rank"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "INCLUDE_OR_PROVE_EXCLUSION",
+      "writers": [
+        "QUAL_PROPOSAL",
+        "QUAL_APPROVAL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "dependent on proposal; not hashed by current six roster sources"
+    },
+    "stage_basket_output_players": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "basket_id",
+        "player_id",
+        "proposal_id",
+        "final_rank"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "INCLUDE_OR_PROVE_EXCLUSION",
+      "writers": [
+        "QUAL_APPROVAL",
+        "BACKUP_V3_CLONE",
+        "ROUTE_EXEC"
+      ],
+      "proofObligation": "approved output ranks affect routing and are not part of current roster sources"
+    },
+    "stage_basket_route_executions": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "route_id",
+        "source_stage_id",
+        "source_basket_id",
+        "target_stage_id",
+        "target_basket_id",
+        "source_proposal_revision"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "ROUTE_EXEC",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "already included by adapter; execution possible after stage complete, basket edits must be denied"
+    },
+    "stage_basket_route_entries": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "route_id",
+        "execution_id",
+        "player_id",
+        "target_stage_id",
+        "target_basket_id"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "ROUTE_EXEC",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "already included; insertion may follow source transition"
+    },
+    "tournament_routing_plans": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "revision",
+        "checksum",
+        "canonical_payload",
+        "status"
+      ],
+      "etagCurrent": "roster_rows_all_jsonb",
+      "etagRequired": "CORE_REQUIRED",
+      "writers": [
+        "ROUTE_PLAN_SAVE",
+        "CREATE_TOURNAMENT",
+        "BACKUP_V3_CLONE",
+        "CAS_ADAPTER"
+      ],
+      "proofObligation": "one sealed-plan row hashed, not all normalized plan children; prove checksum validates them"
+    },
+    "tournament_routing_buckets": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "ordinal",
+        "bucket_key",
+        "exact_capacity"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized route child not independently hashed"
+    },
+    "tournament_routing_stages": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "tournament_id",
+        "stage_id",
+        "exact_participant_capacity",
+        "format_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized route stage child"
+    },
+    "tournament_routing_routes": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "route_key",
+        "reserved_slots",
+        "route_order"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized routing edge child"
+    },
+    "tournament_routing_selections": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "route_id",
+        "plan_id",
+        "selection_type",
+        "exact_cardinality",
+        "count"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized routing selector child"
+    },
+    "tournament_routing_route_sources": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "route_id",
+        "plan_id",
+        "source_type",
+        "routing_stage_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized routing source child"
+    },
+    "tournament_routing_route_targets": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "route_id",
+        "plan_id",
+        "target_type",
+        "routing_stage_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized routing target child"
+    },
+    "tournament_routing_route_conditions": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "route_id",
+        "plan_id",
+        "condition_type"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized routing condition child"
+    },
+    "tournament_routing_dependencies": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "route_id",
+        "plan_id",
+        "source_node_key",
+        "target_node_key"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized plan dependency child"
+    },
+    "tournament_routing_executions": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "stage_key",
+        "revision",
+        "state"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "INCLUDE_OR_PROVE_EXCLUSION",
+      "writers": [
+        "ROUTE_STATE",
+        "STAGE_LIFECYCLE"
+      ],
+      "proofObligation": "standalone writer locks execution row but not tournament parent"
+    },
+    "matches": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "revision",
+        "status",
+        "player1_id",
+        "player2_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "STAGE_LIFECYCLE",
+        "TOURNAMENT_ROUTES"
+      ],
+      "proofObligation": "match data must not be needed for draft basket validator, otherwise add scope"
+    },
+    "marvel_stage_groups": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "round_id",
+        "status"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MARVEL"
+      ],
+      "proofObligation": "active Marvel stage only; draft basket must reject with post-start status"
+    },
+    "action_log": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "action_type",
+        "is_undone"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_NON_DEPENDENCY",
+      "writers": [
+        "ROSTER_MUTATIONS",
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "SEEDING"
+      ],
+      "proofObligation": "action authorization/Undo separate, avoid derived basket token from action history unless required"
+    },
+    "tournament_routing_stage_group_sizes": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "routing_stage_id",
+        "position",
+        "exact_group_size"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "normalized plan child for exact stage-group size"
+    },
+    "tournament_routing_entry_points": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "entry_key",
+        "exact_capacity"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "plan entry-point capacities must equal sealed canonicalPayload checksum"
+    },
+    "tournament_routing_logical_matches": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "match_key",
+        "match_order"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "logical match topology child omitted from current digest"
+    },
+    "tournament_routing_logical_match_slots": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "routing_stage_id",
+        "logical_match_id",
+        "slot"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "logical slot edges child omitted from current digest"
+    },
+    "tournament_routing_outputs": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "id",
+        "plan_id",
+        "routing_stage_id",
+        "output_key",
+        "exact_capacity"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "routing outputs and capacity child omitted from current digest"
+    },
+    "tournament_routing_selection_group_sizes": {
+      "schemaPath": "lib/db/src/schema/tournament-routing.ts",
+      "columnSubset": [
+        "plan_id",
+        "route_id",
+        "position",
+        "exact_group_size"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_CHILD_IMMUTABILITY_OR_HASH",
+      "writers": [
+        "ROUTE_PLAN_SAVE"
+      ],
+      "proofObligation": "routing selection group sizes child omitted from current digest"
+    },
+    "marvel_stage_rounds": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "round_number",
+        "status",
+        "advancing_count"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MARVEL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "post-start stage runtime; confirm no draft graph dependency"
+    },
+    "marvel_stage_group_entries": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "tournament_id",
+        "stage_id",
+        "group_id",
+        "player_id",
+        "placement",
+        "qualified"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "POST_DRAFT_IMMUTABLE_GATE",
+      "writers": [
+        "MARVEL",
+        "BACKUP_V3_CLONE"
+      ],
+      "proofObligation": "group membership/results runtime, no draft write allowed if excluded"
+    },
+    "result_history": {
+      "schemaPath": "lib/db/src/schema/tournaments.ts",
+      "columnSubset": [
+        "id",
+        "match_id",
+        "tournament_id",
+        "stage_id",
+        "revision",
+        "winner_id"
+      ],
+      "etagCurrent": "missing",
+      "etagRequired": "PROVE_NON_DEPENDENCY",
+      "writers": [
+        "MATCH_COMPLETE",
+        "MATCH_REVERT",
+        "TOURNAMENT_ROUTES"
+      ],
+      "proofObligation": "post-start match history, excluded only while basket stage immutable"
+    }
+  },
+  "openProofObligations": [
+    "P0 stage-first standalone exported addPlayerWithStagePlanCompatibility needs parent-first or fail-closed disable; verify external caller reachability",
+    "Qualification proposal writer proposal lock before parent and missing ETag domain; include with lock or prove post-draft exclusion",
+    "Routing execution state updater row-first and missing ETag; include with lock or prove post-draft exclusion",
+    "tournament_game_configs missing ETag, stage changes may skip stage.version increment",
+    "ports.readGraph/replaceGraph must be audited same-client Drizzle in-transaction implementation; no nested transaction",
+    "Basket validation/authorization must not be bypassed by low-level tx ports (CAS-SEC-02), positive auth only (SEC-01) and uncertainty discard (SEC-03)",
+    "Routing normalized-plan children missing; prove sealed checksum immutability or include actual rows",
+    "Physical SQL triggers from 0002/0026/0027 modify stage and roster; lock order cannot be proven from isolated CAS adapter",
+    "Other writers/DB roles/worker paths not proven exhaustive; release must not claim completeness",
+    "Schema D01-D04 T055 not allocated; server ports never wired; no PG16/HTTP runtime certification",
+    "All 15 normalized tournament_routing_* child tables must be sealed and proven equal to signed plan canonicalPayload/checksum, or be included directly in ETag dependency digest"
+  ],
+  "schemaProof": {
+    "physicalColumnVerification": "ALL existing columnSubset literals verified against frozen C03 GitHub schema source; ONLY two A00-approved planned columns intentionally absent",
+    "plannedNotPresent": [
+      {
+        "table": "tournaments",
+        "column": "basket_config_revision"
+      },
+      {
+        "table": "tournaments",
+        "column": "basket_edit_epoch"
+      }
+    ],
+    "verificationMethod": "compare quoted physical identifiers inside pgTable schema block, no DB/SQL execution"
+  }
+}
