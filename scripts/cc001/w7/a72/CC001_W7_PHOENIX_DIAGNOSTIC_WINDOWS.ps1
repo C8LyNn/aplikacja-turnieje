@@ -65,7 +65,7 @@ function AuditWorktree([string]$checkout,[string]$phase,[string]$settingsHash,[s
  $label=if($phase -eq 'BEFORE'){'initial-eol-status'}else{'configured-eol-status'}
  Exec $git @('-C',(Quote $checkout),'-c','core.quotePath=false','status','--porcelain=v1','-z','--untracked-files=all') $script:Root $label|Out-Null
  $statusLog=Join-Path $script:Root ('logs\'+('{0:D2}' -f $script:Step)+'_'+$label+'.stdout.txt')
- $utf8=New-Object System.Text.UTF8Encoding($false,$true)
+ $utf8=[System.Text.UTF8Encoding]::new($false,$true)
  $records=@($utf8.GetString([IO.File]::ReadAllBytes($statusLog)).Split([char]0)|Where-Object {$_.Length -gt 0})
  $audit=@();$temporaries=@();$paths=@{}
  $setRel=$ProjectSubdir+'/ProjectSettings/ProjectSettings.asset'
