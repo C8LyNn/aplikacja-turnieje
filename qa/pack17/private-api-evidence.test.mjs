@@ -91,3 +91,15 @@ test('stderr-only first failure retained with stdout incomplete',async()=>{
   assert.equal(a.r.summary.firstFailingTap,'not ok 1 - stderr first');
   assert.equal(a.r.summary.firstDiagnostic,'Error: synthetic');
 });
+test('contradictory TAP with not ok and forged PASS counters must fail closed',async()=>{
+  const forged='TAP version 13\nok 1 - fake\nnot ok 2 - genuine failure\n# tests 1\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
+  const a=await launch(`process.stdout.write(${JSON.stringify(forged)})`);
+  assert.equal(a.r.exitCode,0);assert.equal(a.r.success,false);
+  assert.equal(a.r.summary.firstFailingTap,'not ok 2 - genuine failure');
+});
+test('oversized uninspectable TAP line is privately retained, public PASS denied',async()=>{
+  const data='TAP version 13\n'+('Z'.repeat(10000))+'\nok 1 - pass\n'+summary(1,1,0);
+  const a=await launch(`process.stdout.write(${JSON.stringify(data)})`);
+  assert.equal(a.r.exitCode,0);assert.equal(a.r.summary.oversizedLine,true);
+  assert.equal(a.r.success,false);assert.ok(a.stdout.includes('Z'.repeat(10000)));
+});
