@@ -9,15 +9,14 @@ import { readFileSync } from 'node:fs';
 
 const source = name => readFileSync(new URL('../../../artifacts/api-server/test/' + name, import.meta.url), 'utf8');
 
-test('B01: S1 CASCADE preflight follows all pg_depend catalog classes', () => {
-  const code = source('pg16-test-ownership.ts');
-  const cleanup = code.slice(code.indexOf('export async function dropRunSchema('),code.indexOf('export function sealedFixtureChildEnv('));
-  assert.match(cleanup, /WITH RECURSIVE impacted\(classid, objid\)/);
-  assert.match(cleanup, /FROM pg_depend d[\s\S]*?JOIN impacted i ON d\.refclassid=i\.classid AND d\.refobjid=i\.objid/);
-  assert.match(cleanup, /CROSS JOIN LATERAL pg_identify_object\(i\.classid, i\.objid, 0\) obj/);
-  assert.match(cleanup, /obj\.schema IS DISTINCT FROM \$1/);
-  assert.doesNotMatch(cleanup, /JOIN pg_class dep ON d\.classid/);
-  assert.ok(cleanup.indexOf('S1_FOREIGN_CASCADE_DEPENDENCY') < cleanup.indexOf('DROP SCHEMA'));
+test('B01 W6H: automatic S1 CASCADE is prohibited until exhaustive proof', () => {
+  const code=source('pg16-test-ownership.ts');
+  const cleanup=code.slice(code.indexOf('export async function dropRunSchema('),code.indexOf('export function sealedFixtureChildEnv('));
+  assert.match(cleanup,/S1_AUTOMATIC_CASCADE_DISABLED/);
+  assert.match(cleanup,/journal\(ctx,receipt\.slot,"CLEANUP_HOLD",schema/);
+  assert.doesNotMatch(cleanup,/DROP SCHEMA/);
+  assert.doesNotMatch(cleanup,/DROP_ATTEMPTED/);
+  assert.ok(cleanup.indexOf('S1_AUTOMATIC_CASCADE_DISABLED') > cleanup.indexOf('verifyPersistedEvent('));
 });
 
 test('B02: an earlier confirmed catalog DROP cannot be rewritten as HOLD', () => {
@@ -61,14 +60,11 @@ test('B03: first successful Drizzle push still cannot unlock FORCE cleanup', () 
   assert.doesNotMatch(fn, /^\s*drizzlePushOutcomeUncertain = false;/m);
 });
 
-test('B01: catalog failure, missing closure and unknown dependency type all HOLD before CASCADE', () => {
+test('B01 W6H: no executable owned-schema auto-delete remains', () => {
   const code=source('pg16-test-ownership.ts');
   const cleanup=code.slice(code.indexOf('export async function dropRunSchema('),code.indexOf('export function sealedFixtureChildEnv('));
-  assert.match(cleanup,/S1_CASCADE_CATALOG_UNVERIFIED/);
-  assert.match(cleanup,/S1_FOREIGN_OR_UNCLASSIFIED_CASCADE_DEPENDENCY/);
-  assert.match(cleanup,/COUNT\(\*\) FILTER \(WHERE i\.classid/);
-  assert.match(cleanup,/obj\.type IS NULL/);
-  assert.match(cleanup,/d\.deptype NOT IN/);
-  assert.match(cleanup,/Number\.isSafeInteger\(visited\)/);
-  assert.ok(cleanup.indexOf('S1_FOREIGN_OR_UNCLASSIFIED_CASCADE_DEPENDENCY') < cleanup.indexOf('DROP SCHEMA'));
+  assert.match(cleanup,/requireOwnedSchema\(pool, schema, ctx\)/);
+  assert.match(cleanup,/verifyPersistedEvent\(receipt\.evidence/);
+  assert.doesNotMatch(cleanup,/pool\.query\(.*DROP SCHEMA/);
+  assert.doesNotMatch(cleanup,/createdSchemaReceipts\.delete\(schema\)/);
 });

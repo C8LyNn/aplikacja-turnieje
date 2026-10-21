@@ -319,59 +319,14 @@ export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<v
   // pg_constraint, pg_proc and pg_type are not necessarily pg_class objects.
   // Unclassifiable objects (NULL namespace) count as foreign: fail closed.
   // Physical isolation and exclusive writers remain separate G0/G2 prerequisites.
-  // B01: SQL/catalog errors and unsupported dependency types are all HOLD,
-  // never optimistic evidence that CASCADE cannot touch an external object.
-  let deps;
-  try {
-    deps = await pool.query(
-      `WITH RECURSIVE impacted(classid, objid) AS (
-         SELECT 'pg_namespace'::regclass::oid, n.oid
-         FROM pg_namespace n WHERE n.nspname=$1
-         UNION
-         SELECT d.classid, d.objid FROM pg_depend d
-         JOIN impacted i ON d.refclassid=i.classid AND d.refobjid=i.objid
-       )
-       SELECT
-         COUNT(*)::int AS visited_count,
-         COUNT(*) FILTER (WHERE i.classid <> 'pg_namespace'::regclass::oid
-           AND obj.schema IS DISTINCT FROM $1)::int AS foreign_count,
-         COUNT(*) FILTER (WHERE i.classid <> 'pg_namespace'::regclass::oid
-           AND obj.type IS NULL)::int AS unknown_count,
-         (SELECT COUNT(*)::int FROM pg_depend d
-           JOIN impacted ref ON d.refclassid=ref.classid AND d.refobjid=ref.objid
-           WHERE d.deptype NOT IN ('n','a','i','e','x','P','S')) AS unsupported_count
-       FROM impacted i
-       CROSS JOIN LATERAL pg_identify_object(i.classid, i.objid, 0) obj`, [schema]
-    );
-  } catch (error) {
-    journal(ctx,receipt.slot,"CLEANUP_HOLD",schema);
-    throw new Error("WEB005_CLEANUP_HOLD:S1_CASCADE_CATALOG_UNVERIFIED",{cause:error});
-  }
-  const boundary=deps.rows[0] as {
-    visited_count?:number; foreign_count?:number;
-    unknown_count?:number; unsupported_count?:number;
-  }|undefined;
-  const visited=Number(boundary?.visited_count ?? NaN);
-  const foreign=Number(boundary?.foreign_count ?? NaN);
-  const unknown=Number(boundary?.unknown_count ?? NaN);
-  const unsupported=Number(boundary?.unsupported_count ?? NaN);
-  if (!Number.isSafeInteger(visited) || visited < 1 ||
-      !Number.isSafeInteger(foreign) || foreign !== 0 ||
-      !Number.isSafeInteger(unknown) || unknown !== 0 ||
-      !Number.isSafeInteger(unsupported) || unsupported !== 0) {
-    journal(ctx,receipt.slot,"CLEANUP_HOLD",schema);
-    hold("S1_FOREIGN_OR_UNCLASSIFIED_CASCADE_DEPENDENCY");
-  }
-  journal(ctx,receipt.slot,"DROP_ATTEMPTED",schema,{oid:existing.oid,owner_oid:existing.ownerOid});
-  try{
-    await pool.query(`DROP SCHEMA ${safe} CASCADE`);
-  } catch(error) {
-    journal(ctx,receipt.slot,"CLEANUP_HOLD",schema);
-    throw new Error("WEB005_CLEANUP_HOLD:S1_DROP_AMBIGUOUS",{cause:error});
-  }
-  if (await schemaIdentity(pool, schema)) hold("S1_DROP_NOT_CONFIRMED");
-  createdSchemaReceipts.delete(schema);
-  journal(ctx,receipt.slot,"DROP_CONFIRMED",schema,{oid:existing.oid});
+  // W6H P0 / A22+A30: exhaustive PostgreSQL CASCADE closure is UNPROVEN.
+  // Do not perform a partially checked destructive DROP. The exact schema is
+  // preserved for separately authorized, independently attested G5 recovery.
+  // A verified CREATE receipt/owner is a prerequisite, NOT DROP authorization.
+  journal(ctx,receipt.slot,"CLEANUP_HOLD",schema,{
+    oid:existing.oid, reason:"S1_AUTOMATIC_CASCADE_DISABLED"
+  });
+  throw new Error("WEB005_CLEANUP_HOLD:S1_AUTOMATIC_CASCADE_DISABLED");
 }
 
 /**
