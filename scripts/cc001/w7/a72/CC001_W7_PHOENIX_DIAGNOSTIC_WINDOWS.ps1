@@ -211,7 +211,9 @@ try {
  Ensure ($tree -ceq $TreeSHA) ('Source tree mismatch: '+$tree)
  $blob=Exec $git @('-C',(Quote $checkout),'rev-parse',('HEAD:'+$ProjectSubdir+'/Assets/CoreClash/Presentation/CoreClashApp.cs')) $script:Root 'blob'
  Ensure ($blob -ceq $AppBlob) 'Diagnostic C# blob mismatch'
- Ensure ([string]::IsNullOrEmpty((Exec $git @('-C',(Quote $checkout),'status','--porcelain=v1','--untracked-files=all') $script:Root 'initial-clean'))) 'Checkout is not clean'
+ $auditBefore=AuditCheckout $checkout 'BEFORE' '' ''
+ Json (Join-Path $script:Root 'logs\checkout-eol-audit-before.json') $auditBefore
+ Write-Host ('CHECKOUT EOL: '+$auditBefore.verdict+', files='+$auditBefore.modifiedCount) -ForegroundColor Yellow
  $project=Join-Path $checkout $ProjectSubdir
  Ensure ((Get-Content -LiteralPath (Join-Path $project 'ProjectSettings\ProjectVersion.txt') -Raw).Contains('m_EditorVersion: 6000.4.0f1')) 'Project Unity version wrong'
  Ensure ((Get-Content -LiteralPath (Join-Path $project 'Assets\CoreClash\Presentation\CoreClashApp.cs') -Raw).Contains('#if CC001_PHOENIX_DIAGNOSTIC')) 'Diagnostic source guard missing'
