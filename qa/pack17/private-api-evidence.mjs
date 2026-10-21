@@ -31,7 +31,7 @@ export class TapStreamInspector {
     this.streams = [this.newState(), this.newState()];
   }
   newState() {
-    return { decoder:new StringDecoder('utf8'), pending:'', overflow:false, headers:0,
+    return { decoder:new StringDecoder('utf8'), pending:'', overflow:false, oversizedLine:false, headers:0,
       sections:[], firstFailure:null, firstDiagnostic:null, bytes:0 };
   }
   line(state, raw) {
@@ -64,7 +64,7 @@ export class TapStreamInspector {
         if (!state.overflow) {
           const remaining = str.slice(pos);
           if (state.pending.length + remaining.length > MAX_LINE) {
-            state.pending = ''; state.overflow = true;
+            state.pending = ''; state.overflow = true; state.oversizedLine = true;
           } else state.pending += remaining;
         }
         break;
@@ -72,6 +72,7 @@ export class TapStreamInspector {
       if (!state.overflow) {
         const fragment = str.slice(pos, eol);
         if (state.pending.length + fragment.length <= MAX_LINE) this.line(state, state.pending + fragment);
+        else state.oversizedLine = true;
       }
       state.pending=''; state.overflow=false; pos=eol+1;
     }
@@ -87,15 +88,15 @@ export class TapStreamInspector {
     const [out,err] = this.streams;
     const sections=out.sections;
     const complete=Number.isInteger(expectedHeaders) && expectedHeaders>=1 &&
-      out.headers===expectedHeaders && err.headers===0 &&
+      out.headers===expectedHeaders && err.headers===0 && !out.oversizedLine && !err.oversizedLine &&
       sections.length===expectedHeaders && sections.every(s=>!s.duplicate && kinds.every(k=>Number.isSafeInteger(s[k])));
-    const allPass=complete && sections.every(s=>s.tests>=1 && s.pass===s.tests &&
+    const allPass=complete && !out.firstFailure && !err.firstFailure && sections.every(s=>s.tests>=1 && s.pass===s.tests &&
       s.fail===0 && s.cancelled===0 && s.skipped===0 && s.todo===0);
     const counters=Object.fromEntries(kinds.map(k=>[k,complete?sections.reduce((n,s)=>n+s[k],0):null]));
     return {firstFailingTap:out.firstFailure ?? err.firstFailure,
       firstDiagnostic:out.firstDiagnostic ?? err.firstDiagnostic,
       tapComplete:complete, tapPass:allPass, counters,
-      headers:out.headers, stdoutBytes:out.bytes, stderrBytes:err.bytes};
+      headers:out.headers, oversizedLine:out.oversizedLine||err.oversizedLine, stdoutBytes:out.bytes, stderrBytes:err.bytes};
   }
 }
 
