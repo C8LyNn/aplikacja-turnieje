@@ -3,8 +3,8 @@
 [CmdletBinding()]
 param([switch]$NoPlayer)
 $ErrorActionPreference='Stop'
-$expected='181B250E35FDC3DA06BC32F8041C7B45AA8E2BE5751C2A33DBBAB587A6B9D771'
-$scriptCommit='a17966133899c82d87c9a805cfcb0d09682d3650'
+$expected='64C49626F4BD0EE29A9004B421FC2E23AF2C845B3EF6D3692C53BA1BCB9A49B3'
+$scriptCommit='516041349695285766b3f46415c5cc7f2bb50466'
 $scriptPath='scripts/cc001/w7/a72/CC001_W7_PHOENIX_DIAGNOSTIC_WINDOWS.ps1'
 $repo='https://github.com/C8LyNn/aplikacja-turnieje.git'
 $branch='feat/cc001-r17-w4-a72-managed-ci'
