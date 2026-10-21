@@ -58,6 +58,11 @@ export function basketCasEtag(snapshot){
  */
 export async function executeBasketCas(adapter,{tournamentId,actor,ifMatch,graph}={}){
   if(!Number.isSafeInteger(tournamentId)||tournamentId<1)throw Error('WEB005_BASKET_CAS_TOURNAMENT_INVALID');
+  // The PG source adapter intentionally exposes only its sealed CAS write.
+  // The older callback protocol remains for isolated W6H mock fixtures only.
+  if(adapter&&typeof adapter.executeBasketCasWrite==='function'){
+    return adapter.executeBasketCasWrite({tournamentId,actor,ifMatch,graph});
+  }
   if(!adapter||typeof adapter.withTournamentTransaction!=='function')throw Error('WEB005_BASKET_CAS_ADAPTER_REQUIRED');
   return adapter.withTournamentTransaction(tournamentId,async tx=>{
     await tx.assertOrganizer(actor);

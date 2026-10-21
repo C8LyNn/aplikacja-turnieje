@@ -9,20 +9,22 @@ const GRAPH={baskets:[],routes:[]};
 const REPLACE={baskets:[{id:'new'}],routes:[]};
 function fake(){
  let db={tournament:{...BASE},graph:structuredClone(GRAPH),stages:[{id:9,status:'planned',version:1}],players:[{id:12,name:'A'}],memberships:[],assignments:[],routes:[],routeEntries:[],routeExecutions:[],routingPlans:[]};
- let log=[],begun=false,working=null,commits=0,rollbacks=0,fail='',denyWrite=false,denyRead=false,releaseCount=0;
+ let log=[],begun=false,working=null,commits=0,rollbacks=0,fail='',denyWrite=false,denyRead=false,releaseCount=0,releaseArgs=[];
  const ports={
-   async assertOrganizer(client,row,actor){log.push('authorize-write');if(denyWrite||actor!=='owner')throw Error('DENIED_WRITE');},
-   async assertReader(client,row,actor){log.push('authorize-read');if(denyRead||actor!=='viewer')throw Error('DENIED_READ');},
+   async assertOrganizer(client,row,actor){log.push('authorize-write');if(denyWrite||actor!=='owner')throw Error('DENIED_WRITE');return true;},
+   async assertReader(client,row,actor){log.push('authorize-read');if(denyRead||actor!=='viewer')throw Error('DENIED_READ');return true;},
    async readGraph(client,id){log.push('graph-read');return structuredClone(working.graph);},
-   async validateGraph(client,id,graph){log.push('graph-validate');if(!graph||!Array.isArray(graph.baskets)||!Array.isArray(graph.routes))throw Error('INVALID_GRAPH');if(fail==='validation')throw Error('BAD_GRAPH');},
-   async replaceGraph(client,id,graph){log.push('graph-replace');working.graph=structuredClone(graph);if(fail==='replace')throw Error('REPLACE_FAILURE');},
+   async validateGraph(client,id,graph){log.push('graph-validate');if(!graph||!Array.isArray(graph.baskets)||!Array.isArray(graph.routes))throw Error('INVALID_GRAPH');if(fail==='validation')throw Error('BAD_GRAPH');return true;},
+   async replaceGraph(client,id,graph){log.push('graph-replace');working.graph=structuredClone(graph);if(fail==='replace')throw Error('REPLACE_FAILURE');return true;},
  };
  const client={
    async query(sql,params=[]){
      log.push(sql); if(fail==='query' && /to_jsonb/.test(sql))throw Error('READ_FAILURE');
+     if(fail==='network' && /to_jsonb/.test(sql)){const e=Error('SIMULATED_CONNECTION_TERMINATED');e.code='08006';throw e;}
+     if(fail==='begin' && sql.startsWith('BEGIN'))throw Error('SIMULATED_BEGIN_FAILED');
      if(sql.startsWith('BEGIN')){assert.equal(begun,false);begun=true;working=structuredClone(db);return {rowCount:0,rows:[]};}
      if(sql==='COMMIT'){if(fail==='commit')throw Error('COMMIT_FAILURE');db=working;commits++;begun=false;return {rowCount:0,rows:[]};}
-     if(sql==='ROLLBACK'){rollbacks++;begun=false;return {rowCount:0,rows:[]};}
+     if(sql==='ROLLBACK'){if(fail==='rollback')throw Error('ROLLBACK_CONNECTION_FAILED');rollbacks++;begun=false;return {rowCount:0,rows:[]};}
      assert.ok(begun,'query outside transaction');
      if(/SELECT.*FROM tournaments.*FOR UPDATE/i.test(sql))return {rows:[{...working.tournament}],rowCount:1};
      if(/SELECT.*FROM tournaments/i.test(sql))return {rows:[{...working.tournament}],rowCount:1};
@@ -41,11 +43,11 @@ function fake(){
      }
      throw Error('UNEXPECTED_SQL '+sql);
    },
-   release(){releaseCount++;}
+   release(reason){releaseCount++;releaseArgs.push(reason);}
  };
  const pool={async connect(){log.push('connect');return client;}};
  const adapter=createBasketCasPgSourceAdapter({pool,ports});
- return {adapter,ports,log,read:()=>structuredClone(db),mutate(fn){fn(db);},fail(v){fail=v;},denyWrite(v){denyWrite=v;},denyRead(v){denyRead=v;},commits:()=>commits,rollbacks:()=>rollbacks,releases:()=>releaseCount};
+ return {adapter,ports,log,read:()=>structuredClone(db),mutate(fn){fn(db);},fail(v){fail=v;},denyWrite(v){denyWrite=v;},denyRead(v){denyRead=v;},commits:()=>commits,rollbacks:()=>rollbacks,releases:()=>releaseCount,releaseArgs:()=>releaseArgs};
 }
 async function current(f){const x=await readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'viewer'});return x.etag;}
 
@@ -137,4 +139,72 @@ test('W6I-18 missing stages cannot yield apparently valid validator',async()=>{
  const f=fake();f.mutate(x=>{x.stages=[]});
  await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'viewer'}),/STAGES_MISSING/);
  assert.equal(f.rollbacks(),1);
+});
+
+// W6I-R3 / A30 negative regression matrix: explicit authorization, sealing,
+// and connection quarantine. Pure injected fake client; no real SQL executed.
+test('R3-01 CAS-SEC-01: organizer false, null, undefined and nonboolean reject before graph',async()=>{
+  for(const result of [false,null,undefined,0,1,'true',{},[]]){
+    const f=fake();f.ports.assertOrganizer=async()=>result;
+    await assert.rejects(executeBasketCas(f.adapter,{tournamentId:77,actor:'owner',ifMatch:undefined,graph:REPLACE}),/WEB005_BASKET_CAS_AUTHORIZATION_DENIED/);
+    assert.ok(!f.log.includes('graph-read'));assert.ok(!f.log.includes('graph-replace'));
+    assert.equal(f.commits(),0);assert.equal(f.rollbacks(),1);assert.equal(f.releases(),1);
+  }
+});
+test('R3-02 CAS-SEC-01: reader false, null, undefined and nonboolean reject before graph',async()=>{
+  for(const result of [false,null,undefined,0,1,'true',{},[]]){
+    const f=fake();f.ports.assertReader=async()=>result;
+    await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'viewer'}),/WEB005_BASKET_CAS_AUTHORIZATION_DENIED/);
+    assert.ok(!f.log.includes('graph-read'));assert.equal(f.commits(),0);assert.equal(f.rollbacks(),1);
+  }
+});
+test('R3-03 CAS-SEC-02: arbitrary transaction callback no longer publicly available',()=>{
+  const f=fake();assert.equal('withTournamentTransaction' in f.adapter,false);
+  assert.equal(typeof f.adapter.executeBasketCasWrite,'function');
+});
+test('R3-04 CAS-SEC-02: direct writer cannot omit If-Match even if organizer valid',async()=>{
+  const f=fake();await assert.rejects(f.adapter.executeBasketCasWrite({tournamentId:77,actor:'owner',graph:REPLACE}),e=>e.status===428);
+  assert.deepEqual(f.read().graph,GRAPH);assert.equal(f.read().tournament.revision,'0');assert.equal(f.commits(),0);
+});
+test('R3-05 CAS-SEC-02: direct writer cannot bypass organizer with valid ETag',async()=>{
+  const f=fake();const etag=await current(f);f.ports.assertOrganizer=async()=>false;
+  await assert.rejects(f.adapter.executeBasketCasWrite({tournamentId:77,actor:'owner',ifMatch:etag,graph:REPLACE}),/AUTHORIZATION_DENIED/);
+  assert.deepEqual(f.read().graph,GRAPH);assert.equal(f.read().tournament.revision,'0');
+});
+test('R3-06 CAS-SEC-02: direct writer must validate graph and cannot bump revision on rejected graph',async()=>{
+  const f=fake(),etag=await current(f);f.ports.validateGraph=async()=>false;
+  await assert.rejects(f.adapter.executeBasketCasWrite({tournamentId:77,actor:'owner',ifMatch:etag,graph:REPLACE}),/GRAPH_VALIDATION_DENIED/);
+  assert.equal(f.read().tournament.revision,'0');assert.deepEqual(f.read().graph,GRAPH);
+  assert.ok(!f.log.includes('graph-replace'));assert.ok(!f.log.some(x=>/^UPDATE tournaments/.test(x)));
+});
+test('R3-07 CAS-SEC-02: one direct valid no-op write increments exactly once',async()=>{
+  const f=fake(),etag=await current(f);const result=await f.adapter.executeBasketCasWrite({tournamentId:77,actor:'owner',ifMatch:etag,graph:GRAPH});
+  assert.equal(result.status,200);assert.equal(f.read().tournament.revision,'1');assert.notEqual(result.etag,etag);
+  assert.equal(f.log.filter(x=>/^UPDATE tournaments/.test(x)).length,1);
+});
+test('R3-08 CAS-SEC-03: uncertain COMMIT discards client (never reusable release)',async()=>{
+  const f=fake(),etag=await current(f);f.fail('commit');
+  await assert.rejects(executeBasketCas(f.adapter,{tournamentId:77,actor:'owner',ifMatch:etag,graph:REPLACE}),/COMMIT_UNCERTAIN/);
+  assert.equal(f.releases(),2);assert.ok(f.releaseArgs()[1] instanceof Error);
+  assert.equal(f.releaseArgs()[0],undefined);
+});
+test('R3-09 CAS-SEC-03: failed ROLLBACK quarantines and preserves causes',async()=>{
+  const f=fake();f.fail('rollback');let cause;
+  await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'untrusted'}),e=>{
+    cause=e.cause;return /ROLLBACK_UNCERTAIN/.test(e.message)&&cause instanceof AggregateError&&cause.errors.length===2;
+  });
+  assert.ok(f.releaseArgs()[0] instanceof Error);assert.match(cause.errors[0].message,/DENIED_READ/);
+  assert.match(cause.errors[1].message,/ROLLBACK_CONNECTION_FAILED/);
+});
+test('R3-10 CAS-SEC-03: terminal network errors discard even after successful ROLLBACK',async()=>{
+  const f=fake();f.fail('network');await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'viewer'}),/SIMULATED_CONNECTION_TERMINATED/);
+  assert.equal(f.rollbacks(),1);assert.ok(f.releaseArgs()[0] instanceof Error);
+});
+test('R3-11 CAS-SEC-03: BEGIN uncertainty discards, no normal release',async()=>{
+  const f=fake();f.fail('begin');await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'viewer'}),/SIMULATED_BEGIN_FAILED/);
+  assert.ok(f.releaseArgs()[0] instanceof Error);assert.equal(f.releases(),1);
+});
+test('R3-12 CAS-SEC-03: ordinary validated rollback returns healthy client normally',async()=>{
+  const f=fake();await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'not-viewer'}),/DENIED_READ/);
+  assert.equal(f.releaseArgs()[0],undefined);assert.equal(f.rollbacks(),1);
 });

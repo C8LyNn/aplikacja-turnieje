@@ -9,7 +9,8 @@
  * PG16 runtime/rollback/serialization QA and route composition by SWARM006.
  */
 import { createHash, randomUUID } from 'node:crypto';
-import { basketCasEtag } from './basket-cas-server-core.mjs';
+import { basketCasEtag, nextBasketRevision } from './basket-cas-server-core.mjs';
+import { parseBasketIfMatch, requireMatchingBasketEtag } from './basket-cas-precondition.ts';
 
 const MAX_REV=(1n<<63n)-1n;
 const STAGE_SQL='SELECT to_jsonb(s) AS row FROM tournament_stages s WHERE s.tournament_id=$1 ORDER BY s.id';
@@ -62,23 +63,61 @@ function requireRow(result,id){
   dbRevision(row.revision);
   return row;
 }
+function isTerminalConnectionError(error){
+  let e=error;
+  for(let depth=0;depth<3&&e&&typeof e==='object';depth++,e=e.cause){
+    const code=e.code;
+    if(typeof code==='string'&&(/^(08[A-Z0-9]{3}|57P0[123]|ECONNRESET|EPIPE|ECONNREFUSED|ETIMEDOUT)$/.test(code)))return true;
+  }
+  return false;
+}
 async function inTx(pool,mode,fn){
-  const client=await pool.connect();let begun=false;
+  const client=await pool.connect();let begun=false, quarantine=false, primaryError;
   try{
-    await client.query(mode==='read'?'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY':'BEGIN ISOLATION LEVEL SERIALIZABLE');
-    begun=true;
+    if(!client||typeof client.query!=='function'||typeof client.release!=='function'){
+      quarantine=true;
+      throw Error('WEB005_BASKET_CAS_CLIENT_CONTRACT_INVALID');
+    }
+    try{
+      await client.query(mode==='read'?'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY':'BEGIN ISOLATION LEVEL SERIALIZABLE');
+      begun=true;
+    }catch(error){
+      // BEGIN may have reached server even without a client-side acknowledgement.
+      quarantine=true;throw error;
+    }
     const result=await fn(client);
     try{await client.query('COMMIT');}
-    catch(error){throw new Error('WEB005_BASKET_CAS_COMMIT_UNCERTAIN',{cause:error});}
+    catch(error){
+      // COMMIT may already be durable. A later ROLLBACK proves nothing.
+      quarantine=true;
+      throw new Error('WEB005_BASKET_CAS_COMMIT_UNCERTAIN',{cause:error});
+    }
     begun=false;
     return result;
   }catch(error){
+    primaryError=error;
+    if(isTerminalConnectionError(error))quarantine=true;
     if(begun){try{await client.query('ROLLBACK');}catch(rollback){
-      throw new Error('WEB005_BASKET_CAS_ROLLBACK_UNCERTAIN',{cause:new AggregateError([error,rollback])});
+      quarantine=true;
+      primaryError=new Error('WEB005_BASKET_CAS_ROLLBACK_UNCERTAIN',{
+        cause:new AggregateError([error,rollback],'CAS transaction and rollback both failed')
+      });
     }}
-    throw error;
+    throw primaryError;
   }finally{
-    client.release();
+    // node-postgres PoolClient.release(error) removes the client from the pool.
+    // Never use normal release when BEGIN/COMMIT/ROLLBACK or transport is uncertain.
+    if(client&&typeof client.release==='function'){
+      try{
+        if(quarantine)client.release(new Error('WEB005_BASKET_CAS_CLIENT_QUARANTINED'));
+        else client.release();
+      }catch(releaseFailure){
+        const errors=primaryError?[primaryError,releaseFailure]:[releaseFailure];
+        throw new Error('WEB005_BASKET_CAS_CLIENT_RELEASE_FAILED',{
+          cause:new AggregateError(errors,'CAS transaction release failed')
+        });
+      }
+    }
   }
 }
 function verifyPorts(pool,ports){
@@ -118,49 +157,51 @@ export function createBasketCasPgSourceAdapter({pool,ports}={}){
     };
   };
   return Object.freeze({
-    async withTournamentTransaction(id,fn){
+    // CAS mutation is a single sealed public operation. Arbitrary callers
+    // cannot obtain raw tx.replaceGraph/tx.advanceRevision phase methods.
+    async executeBasketCasWrite({tournamentId:id,actor,ifMatch,graph}={}){
       tournamentId(id);
-      if(typeof fn!=='function')throw Error('WEB005_BASKET_CAS_CALLBACK_INVALID');
       return inTx(pool,'write',async client=>{
-        // Mandatory first SELECT locks the parent row. No auth/graph reads ahead.
         const parent=requireRow(await client.query(ROW_LOCK,[id]),id);
-        let authorized=false;
-        const tx={
-          async assertOrganizer(actor){
-            await ports.assertOrganizer(client,parent,actor);
-            authorized=true;
-          },
-          async readBasketState(){
-            if(!authorized)throw Error('WEB005_BASKET_CAS_AUTHORIZE_FIRST');
-            return readState(client,id);
-          },
-          async validateReplacementGraph(graph){
-            if(!authorized)throw Error('WEB005_BASKET_CAS_AUTHORIZE_FIRST');
-            const state=await readState(client,id);
-            if(state._tournamentStatus!=='draft'||state._stageStates.some(status=>status!=='planned'))throw Error('WEB005_BASKET_CAS_CONFIGURATION_IMMUTABLE');
-            await ports.validateGraph(client,id,graph);
-          },
-          async replaceGraph(graph){
-            if(!authorized)throw Error('WEB005_BASKET_CAS_AUTHORIZE_FIRST');
-            await ports.replaceGraph(client,id,graph);
-          },
-          async advanceRevision(previous,next){
-            if(!authorized)throw Error('WEB005_BASKET_CAS_AUTHORIZE_FIRST');
-            if(typeof previous!=='bigint'||typeof next!=='bigint'||next!==previous+1n||next>MAX_REV)throw Error('WEB005_BASKET_CAS_REVISION_TRANSITION_INVALID');
-            const result=await client.query(ADVANCE,[id,previous.toString(),parent.epoch,next.toString()]);
-            if(result?.rowCount!==1||result.rows?.length!==1)return 0;
-            if(dbRevision(result.rows[0].revision)!==next)throw Error('WEB005_BASKET_CAS_REVISION_ACK_MISMATCH');
-            return 1;
-          }
-        };
-        return fn(Object.freeze(tx));
+        if(await ports.assertOrganizer(client,parent,actor)!==true){
+          throw Error('WEB005_BASKET_CAS_AUTHORIZATION_DENIED');
+        }
+        // Auth first; then require client-supplied current strong validator.
+        const supplied=parseBasketIfMatch(ifMatch);
+        const before=await readState(client,id);
+        requireMatchingBasketEtag(supplied,basketCasEtag(before));
+        const next=nextBasketRevision(before.revision);
+        if(before._tournamentStatus!=='draft'||before._stageStates.some(status=>status!=='planned')){
+          throw Error('WEB005_BASKET_CAS_CONFIGURATION_IMMUTABLE');
+        }
+        if(await ports.validateGraph(client,id,graph)!==true){
+          throw Error('WEB005_BASKET_CAS_GRAPH_VALIDATION_DENIED');
+        }
+        if(await ports.replaceGraph(client,id,graph)!==true){
+          throw Error('WEB005_BASKET_CAS_GRAPH_REPLACEMENT_DENIED');
+        }
+        // Compare-and-swap, exactly one revision update, same parent epoch.
+        const result=await client.query(ADVANCE,[id,before.revision.toString(),before.epoch,next.toString()]);
+        if(result?.rowCount!==1||result.rows?.length!==1){
+          throw Error('WEB005_BASKET_CAS_CONDITIONAL_REVISION_WRITE_FAILED');
+        }
+        if(dbRevision(result.rows[0].revision)!==next){
+          throw Error('WEB005_BASKET_CAS_REVISION_ACK_MISMATCH');
+        }
+        const after=await readState(client,id);
+        if(after.tournamentId!==id||after.epoch!==before.epoch||after.revision!==next){
+          throw Error('WEB005_BASKET_CAS_COMMIT_SNAPSHOT_INCOHERENT');
+        }
+        return {status:200,graph:after.graph,etag:basketCasEtag(after)};
       });
     },
     async withSnapshotTransaction(id,actor){
       tournamentId(id);
       return inTx(pool,'read',async client=>{
         const parent=requireRow(await client.query(ROW_READ,[id]),id);
-        await ports.assertReader(client,parent,actor);
+        if(await ports.assertReader(client,parent,actor)!==true){
+          throw Error('WEB005_BASKET_CAS_AUTHORIZATION_DENIED');
+        }
         return readState(client,id);
       });
     }
