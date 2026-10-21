@@ -44,8 +44,11 @@ export function reserveRunDatabaseSlot(name: string): void {
   journal(ctx,slot,"NOT_ATTEMPTED",name);
 }
 export function holdRunDatabaseSlot(name: string): void {
+  const slot=slotForDb(name);
+  // B02: preserve terminal DROP_CONFIRMED; a redundant HOLD has no effect.
+  if (slotStates.get(slot)?.state==="DROP_CONFIRMED") return;
   const ctx=requireSafetyContext();
-  journal(ctx,slotForDb(name),"CLEANUP_HOLD",name);
+  journal(ctx,slot,"CLEANUP_HOLD",name);
 }
 function slotForDb(name: string): string {
   if (/^tm_catalog_test_[a-f0-9]{16}_(dev|prod|fresh)$/.test(name)) {
@@ -61,6 +64,9 @@ function slotForSchema(name: string): string {
 }
 function journal(ctx: SafetyContext, slot: string, event: SlotStatus, name: string,
                  details: Record<string,string> = {}): EventReceipt {
+  if (slotStates.get(slot)?.state==="DROP_CONFIRMED") {
+    hold("S2_TERMINAL_DROP_CONFIRMED_IMMUTABLE");
+  }
   const evidence = persistSafetyEvent({
     run_id: ctx.runId, cluster_cert_sha256: ctx.clusterCertificateSha256,
     signed_context_sha256: ctx.signedContextSha256, slot, event, name, ...details,

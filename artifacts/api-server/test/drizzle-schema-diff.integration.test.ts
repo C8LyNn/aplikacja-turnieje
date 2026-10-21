@@ -75,7 +75,8 @@ let testPool: QueryPool;
 let databaseName: string;
 let createdDatabaseReceipt: CreatedDatabaseReceipt | undefined;
 let databaseCreateAttempted = false;
-let drizzlePushOutcomeUncertain = false;
+// B03: deny automatic teardown until BOTH ordinal pushes are confirmed.
+let drizzlePushOutcomeUncertain = true;
 let drizzlePushOrdinal = 0;
 let testConnectionString: string;
 
@@ -225,7 +226,7 @@ async function applyReplitPushToDisposableDatabase(): Promise<string> {
       stdout_sha256:digest(Buffer.from(stdout,"utf8")),
       stderr_sha256:digest(Buffer.from(stderr,"utf8"))
     });
-    drizzlePushOutcomeUncertain = false;
+    if (ord === 2) drizzlePushOutcomeUncertain = false;
     return transcript;
   } catch(error) {
     drizzlePushOutcomeUncertain=true;

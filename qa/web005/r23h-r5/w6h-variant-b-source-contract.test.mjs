@@ -43,3 +43,20 @@ test('B03: any Drizzle preflight STOP blocks automatic FORCE DROP', () => {
   assert.ok(after.indexOf('if (drizzlePushOutcomeUncertain)') < after.indexOf('await dropRunDatabase('));
   assert.match(after,/DRIZZLE_PUSH_UNCERTAIN_NO_FORCE_DROP/);
 });
+
+test('B02: terminal confirmed DB slot is immutable, even on redundant HOLD', () => {
+  const code=source('pg16-test-ownership.ts');
+  const hold=code.slice(code.indexOf('export function holdRunDatabaseSlot('),code.indexOf('function slotForDb('));
+  assert.match(hold,/slotStates\.get\(slot\)\?\.state==="DROP_CONFIRMED"\) return/);
+  const journal=code.slice(code.indexOf('function journal('),code.indexOf('const createdSchemaReceipts'));
+  assert.match(journal,/S2_TERMINAL_DROP_CONFIRMED_IMMUTABLE/);
+  assert.ok(journal.indexOf('S2_TERMINAL_DROP_CONFIRMED_IMMUTABLE') < journal.indexOf('persistSafetyEvent('));
+});
+
+test('B03: first successful Drizzle push still cannot unlock FORCE cleanup', () => {
+  const code=source('drizzle-schema-diff.integration.test.ts');
+  assert.match(code,/let drizzlePushOutcomeUncertain = true/);
+  const fn=code.slice(code.indexOf('async function applyReplitPushToDisposableDatabase()'),code.indexOf('async function documentedProductionCleanupSql()'));
+  assert.match(fn,/if \(ord === 2\) drizzlePushOutcomeUncertain = false/);
+  assert.doesNotMatch(fn, /^\s*drizzlePushOutcomeUncertain = false;/m);
+});
