@@ -17,7 +17,7 @@ $script:Root=''
 $script:Step=0
 function Ensure([bool]$ok,[string]$reason){if(-not $ok){throw ('STOP: '+$reason)}}
 function Hash([string]$f){Ensure (Test-Path -LiteralPath $f -PathType Leaf) ('File missing: '+$f);return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToUpperInvariant()}
-function Json([string]$f,$data){[IO.File]::WriteAllText($f,($data|ConvertTo-Json -Depth 20)+[Environment]::NewLine,(New-Object Text.UTF8Encoding($false)))}
+function Json([string]$f,$data){[IO.File]::WriteAllText($f,($data|ConvertTo-Json -Depth 20)+[Environment]::NewLine,(New-Object System.Text.UTF8Encoding($false)))}
 function Quote([string]$s){Ensure (-not $s.Contains('"')) 'Invalid quote in path';return '"'+$s+'"'}
 function Exec([string]$exe,[string[]]$arguments,[string]$cwd,[string]$label){
  $script:Step++
@@ -73,6 +73,13 @@ function Collect([string]$folder){
   New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force|Out-Null
   Copy-Item -LiteralPath $item[0] -Destination $dest
  }
+ $playerExitLog=Join-Path $folder 'logs\player-exit.json'
+ $playerExitCode=$null
+ if(Test-Path -LiteralPath $playerExitLog -PathType Leaf){
+  $exitRecord=Get-Content -LiteralPath $playerExitLog -Raw|ConvertFrom-Json
+  $playerExitCode=[int]$exitRecord.exitCode
+  Copy-Item -LiteralPath $playerExitLog -Destination (Join-Path $evidence 'player-exit.json')
+ }
  $playerLog=Join-Path $folder 'logs\Player.log'
  $runtimeStatus='NOT_RUN'
  if(Test-Path -LiteralPath $playerLog -PathType Leaf){
@@ -107,7 +114,7 @@ function Collect([string]$folder){
   markerInCompiledAssembly=$compiled
   unityBuild=$summary.result;unityErrors=$summary.errors;unityWarnings=$summary.warnings
   exeSHA256=$exeHash;assemblyCSharpSHA256=$dllHash;unityBuildLogSHA256=(Hash $buildLog)
-  playerLogStatus=$runtimeStatus;screenshotNames=$screenNames
+  playerLogStatus=$runtimeStatus;playerProcessExitCode=$playerExitCode;screenshotNames=$screenNames
   playerFileInventory=$inventory;includedFiles=$payload
   phoenixUIResult='NOT_EVALUATED_BY_A72'
   limitations='Screenshots are checked for PNG signature only; A60 must inspect actual game window and match BEFORE/AFTER same run/match/trace. ZIP is evidence, not a complete runnable Windows Player installation.'
@@ -116,7 +123,7 @@ function Collect([string]$folder){
  Ensure (-not (Test-Path -LiteralPath $zip)) 'Existing evidence ZIP: refuse overwrite'
  Compress-Archive -Path (Join-Path $evidence '*') -DestinationPath $zip -CompressionLevel Optimal
  $receipt='ZIP: '+$zip+[Environment]::NewLine+'SHA256: '+(Hash $zip)+[Environment]::NewLine+'SOURCE: '+$SourceSHA+[Environment]::NewLine+'PHOENIX_REAL_UI: NOT_EVALUATED_BY_A72'+[Environment]::NewLine
- [IO.File]::WriteAllText((Join-Path $folder 'EVIDENCE_SHA256.txt'),$receipt,(New-Object Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText((Join-Path $folder 'EVIDENCE_SHA256.txt'),$receipt,(New-Object System.Text.UTF8Encoding($false)))
  Write-Host $receipt -ForegroundColor Green
 }
 try {
@@ -158,12 +165,12 @@ try {
  Ensure ((Get-Content -LiteralPath (Join-Path $project 'Assets\CoreClash\Presentation\CoreClashApp.cs') -Raw).Contains('#if CC001_PHOENIX_DIAGNOSTIC')) 'Diagnostic source guard missing'
  $rsp=Join-Path $project 'Assets\csc.rsp'
  Ensure (-not (Test-Path -LiteralPath $rsp)) 'Existing csc.rsp; refusing overwrite'
- [IO.File]::WriteAllText($rsp,('-define:'+$Symbol+[Environment]::NewLine),(New-Object Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText($rsp,('-define:'+$Symbol+[Environment]::NewLine),(New-Object System.Text.UTF8Encoding($false)))
  $settings=Join-Path $project 'ProjectSettings\ProjectSettings.asset'
  $settingsText=[IO.File]::ReadAllText($settings)
  Ensure ($settingsText.Contains('  scriptingDefineSymbols: {}')) 'Unexpected existing scripting defines'
  $settingsText=$settingsText.Replace('  scriptingDefineSymbols: {}',('  scriptingDefineSymbols:'+[Environment]::NewLine+'    Standalone: '+$Symbol))
- [IO.File]::WriteAllText($settings,$settingsText,(New-Object Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText($settings,$settingsText,(New-Object System.Text.UTF8Encoding($false)))
  $dirty=Exec $git @('-C',(Quote $checkout),'status','--porcelain=v1','--untracked-files=all') $script:Root 'local-only-symbol'
  $allowed1='M '+$ProjectSubdir+'/ProjectSettings/ProjectSettings.asset'
  $allowed2='?? '+$ProjectSubdir+'/Assets/csc.rsp'
@@ -202,7 +209,7 @@ try {
 } catch {
  Write-Host ('A72 STOP: '+$_.Exception.Message) -ForegroundColor Red
  if($script:Root -and (Test-Path -LiteralPath $script:Root)){
-  [IO.File]::WriteAllText((Join-Path $script:Root 'FAILURE.txt'),($_|Out-String),(New-Object Text.UTF8Encoding($false)))
+  [IO.File]::WriteAllText((Join-Path $script:Root 'FAILURE.txt'),($_|Out-String),(New-Object System.Text.UTF8Encoding($false)))
  }
  exit 1
 }
