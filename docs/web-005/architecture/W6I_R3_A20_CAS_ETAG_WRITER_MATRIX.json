@@ -3,12 +3,25 @@
   "scope": "A20 SOURCE CONTRACT only; not complete runtime or DBA proof",
   "evidence": {
     "frozenC03": "80bb4ca7a9a359fbe76dbab1478a1af16ded0174",
-    "a50Pin": "fae8a91feae13e779b7c27baa7452df725d370a2",
+    "a50Pin": "cab5f837f039b9e8543ac14d2c45392e5ef18a67",
     "a30Verdict": "SECURITY_CONDITIONAL",
     "a60Independent": "18/18 DB-free PASS on pinned A50 HEAD",
     "schemaSourceGitBlobs": {
       "lib/db/src/schema/tournaments.ts": "0fb1a93e2ea99a5944e71ea1e7bc54d4097f60a8",
       "lib/db/src/schema/tournament-routing.ts": "4814a26d5c89bcd95ce925405f21a1912dc8ad56"
+    },
+    "a50PriorIndependentQaPin": "fae8a91feae13e779b7c27baa7452df725d370a2",
+    "a50R3Candidate": {
+      "head": "cab5f837f039b9e8543ac14d2c45392e5ef18a67",
+      "adapterBlob": "f7ad5f79178826fa7d8eac91451bdcb57e1caa78",
+      "testBlob": "c69d49f8f691b99229c772f392ebe5c8e31131d2",
+      "coreBlob": "3e19ede99e9591b9eae784f3a1474e84c9b4a4f7",
+      "status": "AUTHOR_PATCH_PRESENT_INDEPENDENT_SECURITY_QA_PENDING",
+      "codeDeltas": [
+        "strict true for authorization ports",
+        "single sealed executeBasketCasWrite method replaces exported transaction callback",
+        "pool release(error) quarantine on uncertain connections"
+      ]
     }
   },
   "rules": {
@@ -26,9 +39,9 @@
     "clone": "new tournament fresh server-owned UUID epoch and 0n revision; in-place restore denied",
     "unsupported": "any unverified digest dependency or unlocked mutable draft writer => fail closed / do not enable CAS",
     "a50PreActivationSecurity": [
-      "CAS-SEC-01",
-      "CAS-SEC-02",
-      "CAS-SEC-03"
+      "CAS-SEC-01: candidate code changed, independent verification pending",
+      "CAS-SEC-02: candidate code changed, independent verification pending",
+      "CAS-SEC-03: candidate code changed, independent verification pending"
     ],
     "schemaGate": "T055 REQUESTED_NOT_ALLOCATED; D01-D04 HOLD; no SQL/DDL"
   },
@@ -217,9 +230,9 @@
     },
     "CAS_ADAPTER": {
       "path": "artifacts/api-server/src/domain/tournament/basket-cas-pg-source-adapter.mjs",
-      "range": "1-181",
+      "range": "1-223",
       "lock": "source_only_injected_transaction",
-      "operation": "SQL string source read/write, ETag; not wired",
+      "operation": "guarded source-only executeBasketCasWrite; strict affirmative auth; clone/GET; SQL strings no real DB wire",
       "source": "PR146"
     }
   },
