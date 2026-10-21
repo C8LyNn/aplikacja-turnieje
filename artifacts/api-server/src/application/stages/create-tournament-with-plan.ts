@@ -266,15 +266,27 @@ export async function createTournamentWithStagePlan(input: {
 export async function addPlayerWithStagePlanCompatibility(
   values: typeof playersTable.$inferInsert,
 ): Promise<typeof playersTable.$inferSelect> {
-  return db.transaction((tx) =>
-    addPlayerWithStagePlanCompatibilityInTransaction(tx, values),
-  );
+  return db.transaction(async (tx) => {
+    // W6I source safety: lock tournament parent before ANY stage/player access.
+    const [parent] = await tx.select({ id: tournamentsTable.id })
+      .from(tournamentsTable)
+      .where(eq(tournamentsTable.id, values.tournamentId))
+      .for("update");
+    if (!parent) throw new Error("WEB005_BASKET_CAS_PARENT_MISSING");
+    return addPlayerWithStagePlanCompatibilityInTransaction(tx, values);
+  });
 }
 
 export async function addPlayerWithStagePlanCompatibilityInTransaction(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   values: typeof playersTable.$inferInsert,
 ): Promise<typeof playersTable.$inferSelect> {
+  // W6I: also protect direct callers of the in-transaction helper. Parent
+  // FOR UPDATE precedes firstStage FOR UPDATE; same-client repeated locks safe.
+  const [casParent] = await tx.select({ id: tournamentsTable.id })
+    .from(tournamentsTable).where(eq(tournamentsTable.id, values.tournamentId))
+    .for("update");
+  if (!casParent) throw new Error("WEB005_BASKET_CAS_PARENT_MISSING");
   const [firstStage] = await tx
     .select()
     .from(tournamentStagesTable)
