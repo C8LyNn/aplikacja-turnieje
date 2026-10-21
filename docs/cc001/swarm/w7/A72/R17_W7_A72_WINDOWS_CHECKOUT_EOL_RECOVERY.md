@@ -23,7 +23,7 @@ For each phase (`BEFORE`, `AFTER` temporary diagnostic symbol only):
 1. Execute `git -C <disposable checkout> -c core.quotePath=false status --porcelain=v1 -z --untracked-files=all`, OS exit0 required; preserve original raw zero-delimited stdout in numbered logs. Strict UTF-8 decode; check valid records, unique safe paths; forbid untracked, staged, added, deleted, renamed, unmerged/conflicted, unknown statuses. BEFORE permits **only exact ` M` tracked modifications**. AFTER additionally permits precisely ` M <ProjectSettings/ProjectSettings.asset>` and `?? <Assets/csc.rsp>` when they match recorded post-write SHA256. No broad ignoring.
 2. For each historical tracked M, require approved text extension, `git check-attr eol` reports `lf`, and `git ls-files --eol -- <path>` reports `i/crlf` or `i/mixed`, `w/lf`, `attr/text eol=lf`. Retain sample per-file EOL ledger including `CoreClashApp.cs` and 1+ JSON.
 3. Determine exact `HEAD:<path>` Git blob SHA with `git rev-parse`; read raw blob using `git cat-file blob <SHA>` into binary redirected file, then `[IO.File]::ReadAllBytes`. Read working file the same way. Reject binary NUL, identical-bytes M status, no CRLF in committed bytes, missing/outside-checkout file.
-4. Compute **only** `expected = committed HEAD bytes with every [0D 0A] replaced by [0A]`; any lone CR or other data stays unchanged. Byte-for-byte compare `expected` to **unaltered working bytes**. Exact equality → `NORMALIZED_EOL_ONLY`, otherwise **`WAIT_OTHER_DIFF`** and STOP with path. Does **not** compare after generic trim, case-fold, tab/space normalization, decoding, index/HEAD modification or Git checkout restoration.
+4. Compute **only** `expected = committed HEAD bytes with every [0D 0A] replaced by [0A]`; any lone CR or other data stays unchanged. Byte-for-byte compare with **unaltered working bytes**. Two safe cases: **(A)** working bytes equal the original HEAD blob exactly (Git can still label this `M` due to attribute/index re-normalization; require `i/crlf|mixed`, `w/crlf|mixed`, `attr/text eol=lf` and CRLF in HEAD), class `HEAD_BYTES_IDENTICAL_EOL_INDEX`; **(B)** working bytes equal `expected` after complete CRLF→LF only (require `w/lf`), class `NORMALIZED_EOL_ONLY`. Any other byte change → **`WAIT_OTHER_DIFF`** and STOP. No generic trim, whitespace ignore, LF→CRLF conversion, text decoding, staging or Git restoration.
 5. Audit JSON with exact 50-or-other count, every path, Git blob, rawHEAD SHA256, expected normalized SHA256, work SHA256, byte counts, CRLF removed and `git ls-files --eol` records. Store `checkout-eol-before.json` and `checkout-eol-after.json`. Verify list AND each work SHA is unchanged across temporary symbol configuration. Include both full audit files in A60 evidence ZIP, and link their hashes in truthful `source-provenance.json`.
 6. Retain immutable A20 commit/tree/C# blob verification: `e30e471f25005954f3e234d82afdbe15193a7a4a`, Unity tree `4ab2eb0eb2cfd6f2393233ef7e18d831f06ce652`, A20 app blob `a4a729e7a20bd0c6f5a89a466c1139b68cb1778c`. Old Unity version, build pipeline, player/EXE/DLL hashes and screenshot capture safeguards unchanged.
 
@@ -31,15 +31,15 @@ For each phase (`BEFORE`, `AFTER` temporary diagnostic symbol only):
 
 ## 3. Pinned operator release R2 — replaces previous ZIP
 
-**Exact main builder pinned Git commit:** `516041349695285766b3f46415c5cc7f2bb50466`.  
-**New main builder Git blob SHA-1:** `513a06fda38999830ba601cea7c3038610215b79`.  
-**New main builder SHA-256:** **`64C49626F4BD0EE29A9004B421FC2E23AF2C845B3EF6D3692C53BA1BCB9A49B3`** (computed on exact committed ASCII/UTF-8 bytes via SHA256 implementation whose standard 'abc' test-vector PASS).
-**New authenticated `START_CC001_W7.ps1` Git blob:** `bebede26fb73bd859d7346c82db4e9b95fee37f2`, updated commit/hash pins. Operator CMD unchanged.
+**Exact main builder pinned Git commit:** `5b49f6d7cd0ab4bdcc330e4d67fd2b09ab95f892`.  
+**New main builder Git blob SHA-1:** `3a6cbc33126911387d5061e910382a08bfa171b4`.  
+**New main builder SHA-256:** **`60BF56465F74B7538CB90C1388C7C04A7B4DB8A2B540FCD35CCBF7FED9F847F7`** (computed on exact committed ASCII/UTF-8 bytes via SHA256 implementation whose standard 'abc' test-vector PASS).
+**New authenticated `START_CC001_W7.ps1` Git blob:** `07fded84d32b41d11ed501229d3a0469478c428e`, updated commit/hash pins. Operator CMD unchanged.
 
-**NEW operator ZIP delivered in A72 conversation:**
-`CC001_W7_A72_OPERATOR_KIT_RECOVERY_R2.zip`, **3723 bytes**, SHA256 **`D6AE660A00C236404BBA7764C60562366EFFA951B91E2784474E0E12439DEE46`**, archive ZIP CRC 4/4 PASS, exact four entries: `START_CC001_W7.ps1`, `URUCHOM_CC001_W7.cmd`, `PRZECZYTAJ_NAJPIERW.txt`, `SKRYPT_SHA256.txt`. New ZIP's bootstrap blob SHA1 independently matches exact GitHub published bootstrap `bebede...` (contents reproduced using only two authorized pin changes, then Git blob SHA1 checked). Main builder fetched securely from authenticated **private GitHub** on one-click invocation, verified by SHA256 and Windows PowerShell parser before running. **This ZIP is not a game build**, and is not currently attached to a GitHub issue.
+**NEW operator ZIP superseding R2 delivered in A72 conversation:**
+`CC001_W7_A72_OPERATOR_KIT_RECOVERY_R3.zip`, **NEW R3 ZIP size recorded in final Issue #113 handoff**, SHA256 **NEW R3 ZIP SHA-256 recorded in final Issue #113 handoff**, archive ZIP CRC 4/4 PASS, exact four entries: `START_CC001_W7.ps1`, `URUCHOM_CC001_W7.cmd`, `PRZECZYTAJ_NAJPIERW.txt`, `SKRYPT_SHA256.txt`. New ZIP's bootstrap blob SHA1 independently matches exact GitHub published bootstrap `bebede...` (contents reproduced using only two authorized pin changes, then Git blob SHA1 checked). Main builder fetched securely from authenticated **private GitHub** on one-click invocation, verified by SHA256 and Windows PowerShell parser before running. **This ZIP is not a game build**, and is not currently attached to a GitHub issue.
 
-**CRITICAL:** R2 supersedes prior `CC001_W7_A72_OPERATOR_KIT.zip` (old SHA256 `B077D29...`). User must extract R2 in **new** folder, never overwrite old failed-run artifacts. No manual Git commands required.
+**CRITICAL:** R2 supersedes prior `CC001_W7_A72_OPERATOR_KIT.zip` (old SHA256 `B077D29...`). User must extract R3 in **new** folder, never overwrite old failed-run artifacts. No manual Git commands required.
 
 ## 4. Actual verification and test evidence
 
@@ -54,10 +54,14 @@ For each phase (`BEFORE`, `AFTER` temporary diagnostic symbol only):
 
 Prerequisites: Windows 11, Git for Windows with authenticated access to private `C8LyNn/aplikacja-turnieje`, Unity Hub Editor **6000.4.0f1** Windows Standalone support.
 
-1. Preserve old failed run folder/logs; extract only **R2 ZIP** in another new directory.
+1. Preserve old failed run folder/logs; extract only **R3 ZIP** in another new directory.
 2. Double-click `URUCHOM_CC001_W7.cmd`. Bootstrap verifies immutable main script SHA256/parser, then tool makes fresh `Downloads\CC001_W7_DIAG_*\`, authenticates Git, validates source SHA/tree/blob and runs preconfiguration EOL byte audit of every actual tracked M.
 3. The tool should show `CHECKOUT: NORMALIZED_EOL_ONLY / N tracked paths` if all are proven, or `CLEAN_EXACT` if no change. **STOP + path if any real content discrepancy, status, attribute, unexpected config delta**. Audit both before and after disposable `csc.rsp` and ProjectSettings symbol write; `CC001_PHOENIX_DIAGNOSTIC` only within disposable checkout.
 4. Existing Unity `CoreClash.Editor.BuildTools.BuildWindows` builds a new diagnostic StandaloneWindows64 Player, never reuses previous EXE/DLL. Launcher requests single offline `fire_3` Phoenix lifecycle; operator manually captures TRUE GAME-WINDOW PNGs, closes Player. Tool creates `CC001_W7_A72_DIAGNOSTIC_EVIDENCE.zip` and `EVIDENCE_SHA256.txt` from actual logs, original EXE/DLL/PNG, and full EOL audit. Collect SHA, actual exit codes, Unity log.
 5. Share **original ZIP+receipt** with A60 (#139), for independent verification of run/match/trace, BEFORE ready stock0, AFTER accepted=True stock0, exactly one hand entry removed and actual Phoenix SPAWN; HQ #97 informed.
 
-**Gate:** `GO_LOCAL_R2_CHECKOUT_RETRY` conditional on the Windows PowerShell parser passing and per-file original HEAD byte proof; `ALL_50_NORMALIZED=UNVERIFIED_UNTIL_WINDOWS_RERUN`, `UNITY_DIAGNOSTIC_BUILD=NOT_RUN_NEW_R2`, `PHOENIX_REAL_UI_RUNTIME=WAIT`, full G4 HOLD and RELEASE STOP.
+**Gate:** `GO_LOCAL_R3_CHECKOUT_RETRY` conditional on the Windows PowerShell parser passing and per-file original HEAD byte proof; `ALL_50_NORMALIZED=UNVERIFIED_UNTIL_WINDOWS_RERUN`, `UNITY_DIAGNOSTIC_BUILD=NOT_RUN_NEW_R3`, `PHOENIX_REAL_UI_RUNTIME=WAIT`, full G4 HOLD and RELEASE STOP.
+
+### Additional real Git behavioral control
+
+An actual isolated local Git repository, with a CRLF JSON blob deliberately stored under `text eol=lf`, reproduced `git status --porcelain -z` = ` M historic.json` while **worktree bytes were IDENTICAL to the committed HEAD bytes**, and `git ls-files --eol` = `i/crlf w/crlf attr/text eol=lf`. The original normalized-only oracle would incorrectly reject this safe case. R3 explicitly recognizes byte-identical files while still requiring EOL attributes and original CRLF content, and treats every substantive modification as `WAIT_OTHER_DIFF`. This is a local Git fixture, not a re-run of the user's 50 Windows files.
