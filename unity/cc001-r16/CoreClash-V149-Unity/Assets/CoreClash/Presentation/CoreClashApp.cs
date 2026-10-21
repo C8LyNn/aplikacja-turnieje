@@ -39,6 +39,74 @@ namespace CoreClash.Presentation
         List<string> custom=new List<string>();
         DeckDefinition[] decks;
         bool CanChoose=>Simulation.State.phase==MatchPhase.Aiming&&(NetworkLink==null||(NetworkLink.IsConnected&&Simulation.State.turn==NetworkLink.LocalOwner));
+#if CC001_PHOENIX_DIAGNOSTIC
+        // W7 / A20 — read-only diagnostic, excluded from every build without this symbol.
+        // Sequence and run id correlate input selection with an actual Phoenix Submit.
+        const string PhoenixDiagnosticMarker="CC001_PHOENIX_DIAGNOSTIC";
+        readonly string phoenixDiagnosticRunId=Guid.NewGuid().ToString("N");
+        int phoenixDiagnosticSequence,phoenixDiagnosticMatchNumber;
+        string phoenixDiagnosticKeyboardOrigin;
+
+        void PhoenixDiagnosticLog(string stage,int trace,string message)
+        {
+            Debug.Log(PhoenixDiagnosticMarker+" run="+phoenixDiagnosticRunId+
+                " match="+phoenixDiagnosticMatchNumber+" trace="+trace+
+                " utc="+DateTime.UtcNow.ToString("o")+" frame="+Time.frameCount+
+                " stage="+stage+" "+message);
+        }
+
+        static string PhoenixDiagnosticEntries(GameState state)
+        {
+            if(state==null||state.phoenixHand==null)return "none";
+            if(state.phoenixHand.Count==0)return "empty";
+            return string.Join(";",state.phoenixHand.Select((h,index)=>h==null
+                ?index+":null"
+                :index+":owner"+h.owner+":source"+h.sourceBallId+":lineage"+h.lineageId+
+                 ":ready"+h.ready+":created"+h.createdOwnerTurns+
+                 ":processed"+h.lastProcessedOwnerTurns+
+                 ":hp"+h.hp+":maxHp"+h.maxHp+":shield"+h.shield).ToArray());
+        }
+
+        string PhoenixDiagnosticState(int owner)
+        {
+            var state=Simulation?.State;
+            if(state==null)return "state=null";
+            if(owner<0||owner>=state.players.Length)return "owner_invalid="+owner;
+            var player=state.players[owner];
+            return "owner="+owner+" turn="+state.turn+" turnNumber="+state.turnNumber+
+                " ownerTurns="+player.ownerTurns+" phase="+state.phase+
+                " phoenixStock="+Simulation.Stock(owner,"phoenix")+
+                " handCount="+(state.phoenixHand==null?-1:state.phoenixHand.Count)+
+                " handEntries="+PhoenixDiagnosticEntries(state)+
+                " eventSerial="+state.eventSerial;
+        }
+
+        static string PhoenixDiagnosticSpawnEvents(GameState state,int eventSerialBefore)
+        {
+            if(state==null||state.events==null)return "events_unavailable";
+            var events=state.events.Where(e=>e!=null&&e.id>eventSerialBefore&&e.kind=="SPAWN").ToArray();
+            if(events.Length==0)return "none";
+            return string.Join(";",events.Select(e=>{
+                var b=state.balls==null?null:state.balls.FirstOrDefault(x=>x.id==e.ballId);
+                return "event"+e.id+":turn"+e.turn+":ball"+e.ballId+
+                    ":type"+(b==null?"unknown":b.type)+":owner"+(b==null?-1:b.owner)+
+                    ":hp"+(b==null?-1:b.hp)+":shield"+(b==null?-1:b.shield);
+            }).ToArray());
+        }
+
+        string PhoenixDiagnosticInputOrigin()
+        {
+            if(!string.IsNullOrEmpty(phoenixDiagnosticKeyboardOrigin))
+                return phoenixDiagnosticKeyboardOrigin;
+            var current=Event.current;
+            if(current==null)return "CALL_WITHOUT_GUI_EVENT_UNATTRIBUTED";
+            if(current.type==EventType.MouseUp)
+                return UnityEngine.Input.touchCount==0
+                    ?"GUI_MOUSE_UP_NO_TOUCH_REPORTED"
+                    :"GUI_MOUSE_UP_TOUCH_PRESENT";
+            return "GUI_EVENT_"+current.type+"_HARDWARE_UNATTRIBUTED";
+        }
+#endif
         void Awake(){Initialize();}
         public void Initialize()
         {
@@ -78,8 +146,27 @@ namespace CoreClash.Presentation
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal){gesture.Active=false;return;}
             if(CanChoose){
-                if(UnityEngine.Input.GetKeyDown(KeyCode.Alpha0)||UnityEngine.Input.GetKeyDown(KeyCode.Keypad0))SelectBall("normal");
-                for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
+                if(UnityEngine.Input.GetKeyDown(KeyCode.Alpha0)||UnityEngine.Input.GetKeyDown(KeyCode.Keypad0)){
+#if CC001_PHOENIX_DIAGNOSTIC
+                    phoenixDiagnosticKeyboardOrigin="KEYBOARD_0_OR_NUMPAD0";
+#endif
+                    SelectBall("normal");
+#if CC001_PHOENIX_DIAGNOSTIC
+                    phoenixDiagnosticKeyboardOrigin=null;
+#endif
+                }
+                for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++){
+                    if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||
+                       UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i))){
+#if CC001_PHOENIX_DIAGNOSTIC
+                        phoenixDiagnosticKeyboardOrigin="KEYBOARD_"+(i+1)+"_OR_NUMPAD"+(i+1);
+#endif
+                        SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
+#if CC001_PHOENIX_DIAGNOSTIC
+                        phoenixDiagnosticKeyboardOrigin=null;
+#endif
+                    }
+                }
             }
             if(UnityEngine.Input.GetKeyDown(KeyCode.I))SetBoardInspection(!boardInspection);
             if(UnityEngine.Input.touchCount==0&&UnityEngine.Input.GetMouseButtonDown(1)&&InspectAt(UnityEngine.Input.mousePosition))return;
@@ -99,15 +186,67 @@ namespace CoreClash.Presentation
             }
             if(p.held||p.up)gesture.Move(p.id,world.x,world.y);
             if(p.up&&gesture.Release(p.id,Simulation.State.turn,Simulation.State.turnNumber,selected,replayId,out var command)){
-                command.sequence=++sequence;bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
+                command.sequence=++sequence;
+#if CC001_PHOENIX_DIAGNOSTIC
+                bool phoenixDiagnosticShot=command.kind==CommandKind.Spawn&&command.ballType=="phoenix";
+                int phoenixDiagnosticTrace=0,phoenixDiagnosticBeforeEventSerial=0;
+                if(phoenixDiagnosticShot){
+                    phoenixDiagnosticTrace=++phoenixDiagnosticSequence;
+                    phoenixDiagnosticBeforeEventSerial=Simulation.State.eventSerial;
+                    PhoenixDiagnosticLog("BEFORE_SUBMIT",phoenixDiagnosticTrace,
+                        "kind="+command.kind+" type="+command.ballType+
+                        " commandOwner="+command.owner+" commandTurn="+command.turnNumber+
+                        " commandSequence="+command.sequence+
+                        " network="+(NetworkLink==null?"LOCAL":"NETWORK_MAY_BE_ASYNC")+" "+
+                        PhoenixDiagnosticState(command.owner));
+                }
+#endif
+                bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
+#if CC001_PHOENIX_DIAGNOSTIC
+                if(phoenixDiagnosticShot){
+                    PhoenixDiagnosticLog("AFTER_SUBMIT",phoenixDiagnosticTrace,
+                        "accepted="+accepted+" reason="+(string.IsNullOrEmpty(notice)?"none":notice.Replace(" ","_"))+
+                        " commandSequence="+command.sequence+" "+
+                        PhoenixDiagnosticState(command.owner)+
+                        " newSpawnEvents="+PhoenixDiagnosticSpawnEvents(Simulation.State,phoenixDiagnosticBeforeEventSerial));
+                }
+#endif
                 if(!accepted){Debug.LogWarning("Intent rejected: "+notice);notice="This shot could not be played. Try again.";}
                 else{releasedAt=Time.unscaledTime;lastPower=command.power/590;notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";releasedAt=-100;trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
-        public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
+        void StartMatchState(){NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";releasedAt=-100;trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);
+#if CC001_PHOENIX_DIAGNOSTIC
+            phoenixDiagnosticMatchNumber++;
+            PhoenixDiagnosticLog("MATCH_START",++phoenixDiagnosticSequence,
+                "deckP1="+chosen[0].id+" deckP2="+chosen[1].id);
+#endif
+        }
+        public void SelectBall(string id)
+        {
+#if CC001_PHOENIX_DIAGNOSTIC
+            string phoenixDiagnosticPriorSelection=selected;
+            bool phoenixDiagnosticAdmitted=false;
+#endif
+            if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){
+                selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);
+#if CC001_PHOENIX_DIAGNOSTIC
+                phoenixDiagnosticAdmitted=true;
+#endif
+            }
+#if CC001_PHOENIX_DIAGNOSTIC
+            if(id=="phoenix"||phoenixDiagnosticPriorSelection=="phoenix"){
+                int trace=++phoenixDiagnosticSequence;
+                PhoenixDiagnosticLog("SELECT",trace,
+                    "inputOrigin="+PhoenixDiagnosticInputOrigin()+
+                    " requested="+id+" previous="+phoenixDiagnosticPriorSelection+
+                    " selected="+selected+" admitted="+phoenixDiagnosticAdmitted+" "+
+                    PhoenixDiagnosticState(Simulation==null||Simulation.State==null?-1:Simulation.State.turn));
+            }
+#endif
+        }
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
         public void CloseBallDetails(){inspect="";inspectBallId=0;}
