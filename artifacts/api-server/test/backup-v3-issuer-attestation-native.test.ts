@@ -10,9 +10,11 @@ import test from "node:test";
  */
 test("W6H A90 attestation Ed25519 source-only security matrix (native Node)", () => {
   const suite = fileURLToPath(new URL("./backup-v3-issuer-attestation.test.mjs", import.meta.url));
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT; // Nested Node --test must emit its own TAP to stdout.
   const run = spawnSync(process.execPath,
     ["--test", "--test-reporter=tap", suite],
-    { encoding: "utf8", timeout: 20_000, maxBuffer: 4 * 1024 * 1024, env: { ...process.env } });
+    { encoding: "utf8", timeout: 20_000, maxBuffer: 4 * 1024 * 1024, env });
   assert.equal(run.error, undefined, "native Node runner failed");
   assert.equal(run.signal, null, "security suite timed out or terminated by signal");
   assert.equal(run.status, 0, (run.stdout ?? "") + "\n" + (run.stderr ?? ""));
