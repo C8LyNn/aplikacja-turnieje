@@ -21,11 +21,11 @@
 On A72 branch, under `scripts/cc001/w7/a72/`:
 
 1. `CC001_W7_PHOENIX_DIAGNOSTIC_WINDOWS.ps1`: PowerShell 5.1 pinned source clone, temporary defines, Unity Windows BuildTools build, fresh DLL/EXE validation, Player launch and evidence ZIP.
-2. `START_CC001_W7.ps1`: secure bootstrap for **PRIVATE** GitHub repo; uses user's authenticated Git and fetches the main script from immutable commit `0dde984c41ff825aa7dd30c317f2637f3ca63db7` rather than unauthenticated public GitHub RAW. Verifies exact SHA-256 and invokes Windows PowerShell parser BEFORE any execution. Needs no API keys inside the package.
+2. `START_CC001_W7.ps1`: secure bootstrap for **PRIVATE** GitHub repo; uses user's authenticated Git and fetches the main script from immutable commit `a17966133899c82d87c9a805cfcb0d09682d3650` rather than unauthenticated public GitHub RAW. Verifies exact SHA-256 and invokes Windows PowerShell parser BEFORE any execution. Needs no API keys inside the package.
 3. `URUCHOM_CC001_W7.cmd`: double-click Windows entrypoint, running the bootstrap under process-local Windows PowerShell execution policy.
 
-**Main builder SHA-256 (UTF-8/LF GitHub committed bytes):** `F83DD3BA968C454A81FF0FD74B5C3964059AFABB198D37A3E8DCF90DFFA69BDE`  
-**Main builder Git blob SHA-1:** `056e2e8ef8269ffca9dc1e901a849e49db18a561`.
+**Main builder SHA-256 (UTF-8/LF GitHub committed bytes):** `181B250E35FDC3DA06BC32F8041C7B45AA8E2BE5751C2A33DBBAB587A6B9D771`  
+**Main builder Git blob SHA-1:** `141d3bfcccc96de882ba7a6769a645f5f306d151`.
 
 ### Windows 11 — minimal operator instructions
 
@@ -38,7 +38,7 @@ On A72 branch, under `scripts/cc001/w7/a72/`:
 5. If Unity compiles successfully, the launcher checks `CORE_CLASH_BUILD_PASS StandaloneWindows64`, `build-StandaloneWindows64.json` `Succeeded`/errors0, real fresh `Builds/Windows/CoreClash.exe`, and `CoreClash_Data/Managed/Assembly-CSharp.dll` whose SHA must differ from old W6 `909D71C3...`. It checks the **compiled DLL byte content** for the diagnostic marker. A source file containing the string does NOT count as compiled proof.
 6. The script displays the screenshot directory and instructions, then waits for ENTER to start a **visible** Windows Player. Make a LOCAL/OFFLINE match with Player 1 deck **Ogień · Popiół (`fire_3`)**. Spend the single genuine Phoenix stock, wait for organic return to hand at `HAND READY`/stock0. Click the Phoenix card **with the mouse**, then press keyboard **0**, **1**, aim and RELEASE for actual SPAWN. 
 7. While the game is foremost, take real **game-window** PNGs at BEFORE, MOUSE, KEYBOARD, AFTER, and CARD_AFTER using **Alt+PrintScreen → Paint** or **Win+Shift+S → Window**. Save each image in the script-created `Screenshots` folder. Reopen images immediately; discard screenshots showing PowerShell/browser/desktop instead of the game. The tool NEVER programmatically captures the desktop or injects UI events.
-8. **Close the game normally.** The script then uses its fresh custom `logs/Player.log`, hashes build logs, EXE, DLL, **ALL** Windows Player files with unflattened relative paths, creates `evidence/manifest.json` with copy/hashes of EXE/DLL and original screenshots/logs, compresses `CC001_W7_A72_DIAGNOSTIC_EVIDENCE.zip`, and writes `EVIDENCE_SHA256.txt`.
+8. **Close the game normally.** The script then uses its fresh custom `logs/Player.log`, hashes build logs, EXE, DLL, **ALL** Windows Player files with unflattened relative paths, creates `evidence/manifest.json` with copy/hashes of EXE/DLL, the actual player process exit record (when run), and original screenshots/logs, compresses `CC001_W7_A72_DIAGNOSTIC_EVIDENCE.zip`, and writes `EVIDENCE_SHA256.txt`.
 9. Upload the **original ZIP and SHA256 receipt** to A60 #139 (or a verified private Google Drive sharing channel). The operator's successful build is not independent QA acceptance.
 
 If the game closed before screenshots were collected, the script saves a build-only archive and marks `WAIT_SCREENSHOT`/runtime incomplete; do not falsely claim UI PASS. For recovery, use the same source script with `-Mode Collect -RunFolder <EXACT_GENERATED_RUN_FOLDER>` **only when no evidence archive exists**. It never overwrites previous evidence. Keep the full, original unflattened `Builds/Windows` folder in the isolated run directory for troubleshooting; the small evidence ZIP includes binaries/logs/PNGs and a full inventory, not a full runnable game installation.
