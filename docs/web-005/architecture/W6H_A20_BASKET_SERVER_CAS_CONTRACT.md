@@ -74,13 +74,15 @@ Required semantics:
 
 **Separate SWARM-006 later:** combine client #63/#130, API routes, OpenAPI client generation and current application state. Until that later composition, no "APPLICATION_PASS" and CAS UI stays OFF.
 
-## 6. Decisions A00 must sign before A50 mutates database contract
+## 6. A00 owner decisions and separate migration gates
 
-| ID | Required choice | Minimal safe default while pending |
+The **existing A00 D01–D04 migration gate** is not redefined here: canonical migration DAG, release-first/editor-second sequencing, independently auditable database execution/rollback receipts, and exclusive migration-number allocator all require the owner-signed decision packet. **No column/sidecar migration, SQL, PG16 or deployment is authorized by A20.**
+
+| CAS decision | Required choice | Minimal safe default while pending |
 |---|---|---|
-| `D01` | Canonical migration DAG + numbering allocator and exclusive owner | **HOLD** schema/SQL edits and any SQL execution |
-| `D02` | Release/editor deployment order + source/rollback receipt gates | **HOLD** PG16, migrations, server cutover |
-| `D03` | Column on tournaments vs sidecar table; revision initial value/overflow/no-op; epoch regeneration and restore rule | **Prefer column + UUID epoch**, but **CONDITIONAL** until signed |
-| `D04` | Universal parent-lock acquisition by stage/roster writers; persistence/rollback tests and failure policy | **HOLD** any "atomic CAS guaranteed" claim until inventory and approval |
+| `CAS-DEC-01` | Persisted revision location: dedicated `tournaments` column vs sidecar row, initial/retry/overflow behavior | Prefer new bigint column + UUID epoch; **not implemented / HOLD until A00+DB owner signoff** |
+| `CAS-DEC-02` | A no-op authenticated PUT increments revision? ETag binary format/compatibility | Prefer increment on every accepted PUT and a single strict server ETag; **CONDITIONAL** |
+| `CAS-DEC-03` | Stage/roster writer inventory and shared per-tournament lock discipline; read isolation for coherent GET | **HOLD** full concurrency guarantee until all mutators reviewed |
+| `CAS-DEC-04` | Cloning/restore epoch regeneration, backup revision discard and client activation sequence | Fresh target epoch, no replay; feature flag **OFF** until separately approved integration |
 
 **Disposition:** `IMPLEMENTABLE_ARCHITECTURE_CONTRACT_READY / CAS_BACKEND_NOT_IMPLEMENTED_BY_A20 / A50_BLOCKED_ON_D01_D04 / PG16_HOLD / SWARM006_HOLD`. A20 creates no migration and does not change C03.
