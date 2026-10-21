@@ -19,7 +19,7 @@ export function redactEvidence(value) {
     .replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
     .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>]+/gi, '[URL REDACTED]')
     .replace(/\b(Basic)(\s+)(?:"[A-Za-z0-9+/_-]+={0,2}"|'[A-Za-z0-9+/_-]+={0,2}'|[A-Za-z0-9+/_-]+={0,2})/gi, '$1$2[REDACTED]')
-    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+/gi, 'Bearer [REDACTED]')
+    .replace(/\bBearer\s+(?:"[A-Za-z0-9._~+/-]+={0,2}"|'[A-Za-z0-9._~+/-]+={0,2}'|[A-Za-z0-9._~+/-]+={0,2})/gi, 'Bearer [REDACTED]')
     .replace(/\b([A-Za-z_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|ACCESS_KEY)[A-Za-z_]*)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, '$1=[REDACTED]')
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .slice(0, 400);
@@ -40,7 +40,7 @@ export class TapStreamInspector {
       state.headers++;
       state.sections.push(Object.assign(Object.create(null), {
         assertions:0, failedAssertions:0, rootAssertions:0, nestedAssertions:0,
-        nestedPlanTests:0, rootPlan:null, malformed:false, countersStarted:false,
+        nestedPlanTests:0, nestedScopes:new Map(), rootPlan:null, malformed:false, countersStarted:false,
       }));
     }
     if (state.firstFailure === null && /^\s*not ok\s+\d+\s+-\s+\S/.test(line)) {
@@ -65,7 +65,18 @@ export class TapStreamInspector {
       if (assertion[1] === '') {
         section.rootAssertions++;
         if (id !== section.rootAssertions) section.malformed = true;
-      } else section.nestedAssertions++;
+      } else {
+        const depth=assertion[1].length;
+        // IDs restart at 1 for EACH completed nested subtest scope, not for
+        // each assertion. A duplicated child ID inside one scope is malformed.
+        for (const openDepth of section.nestedScopes.keys()) {
+          if (openDepth>depth) section.malformed=true;
+        }
+        const seen=section.nestedScopes.get(depth) ?? 0;
+        if (id!==seen+1) section.malformed=true;
+        section.nestedScopes.set(depth,seen+1);
+        section.nestedAssertions++;
+      }
     }
     if (plan) {
       const from = Number(plan[2]);
@@ -73,9 +84,17 @@ export class TapStreamInspector {
       if (section.countersStarted || section.rootPlan !== null || from !== 1 ||
           !Number.isSafeInteger(to) || to < 1) section.malformed = true;
       if (plan[1] === '') {
-        if (section.rootPlan !== null) section.malformed = true;
+        if (section.rootPlan !== null || section.nestedScopes.size) section.malformed = true;
         section.rootPlan = to;
-      } else section.nestedPlanTests += to;
+      } else {
+        const depth=plan[1].length;
+        for (const openDepth of section.nestedScopes.keys()) {
+          if (openDepth>depth) section.malformed=true;
+        }
+        if (section.nestedScopes.get(depth)!==to) section.malformed=true;
+        section.nestedScopes.delete(depth);
+        section.nestedPlanTests += to;
+      }
     }
     const match = /^# (tests|pass|fail|cancelled|skipped|todo) (\d+)\s*$/.exec(line);
     if (match) {

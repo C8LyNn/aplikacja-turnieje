@@ -142,3 +142,56 @@ test('W6F-R2 nested assertions with no nested plan cannot pass',async()=>{
   const a=await launch(`process.stdout.write(${JSON.stringify(tap)})`);
   assert.equal(a.r.success,false);assert.equal(a.r.summary.tapComplete,false);
 });
+
+// W6F-R4: A60 nested-assertion identity / A30 quoted-Bearer disclosure regressions.
+test('W6F-R4 A60 rejects duplicate child assertion ID within one nested scope', async()=>{
+  // Derive malicious TAP from a real native Node nested test run, altering only ID 2 -> 1.
+  const js=`const {test}=require('node:test');test('outer',async t=>{await t.test('child 1',()=>{});await t.test('child 2',()=>{});});`;
+  const original=await launch(js);
+  assert.equal(original.r.success,true);
+  assert.match(original.stdout,/^    ok 2 - child 2/m);
+  const forged=original.stdout.replace(/^    ok 2 - child 2/m,'    ok 1 - child 2');
+  const a=await launch(`process.stdout.write(${JSON.stringify(forged)})`);
+  assert.equal(a.r.exitCode,0);
+  assert.equal(a.r.summary.tapComplete,false);
+  assert.equal(a.r.success,false);
+});
+test('W6F-R4 A60 accepts legitimate nested ID resets across separate scopes',async()=>{
+  const js=`const {test}=require('node:test');test('outer',async t=>{await t.test('first group',async t=>{await t.test('leaf A',()=>{});});await t.test('second group',async t=>{await t.test('leaf B',()=>{});});});`;
+  const a=await launch(js);
+  assert.equal(a.r.exitCode,0);
+  assert.equal(a.r.summary.tapComplete,true);
+  assert.equal(a.r.success,true);
+  assert.equal(a.r.summary.counters.tests,5);
+  assert.match(a.stdout,/^        ok 1 - leaf A/m);
+  assert.match(a.stdout,/^        ok 1 - leaf B/m);
+});
+test('W6F-R4 A30 quoted double-Bearer is hidden from public TAP first failure',async()=>{
+  const token='SYNTHONLY.abc_123';
+  const tap=`TAP version 13\nnot ok 1 - Authorization: Bearer "${token}"\n${summary(1,0,1)}`;
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)});process.exitCode=1`);
+  assert.ok(a.stdout.includes(token));
+  assert.ok(!a.r.summary.firstFailingTap.includes(token));
+  assert.match(a.r.summary.firstFailingTap,/Bearer \[REDACTED\]/);
+  assert.equal(a.r.exitCode,1);
+});
+test('W6F-R4 A30 quoted single-Bearer is hidden from public child stderr',async()=>{
+  const token='SYNTHONLY.abc_123';
+  const tap='TAP version 13\nnot ok 1 - deliberate\n'+summary(1,0,1);
+  const stderr=`Error: Proxy-Authorization: Bearer '${token}'\n`;
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)});process.stderr.write(${JSON.stringify(stderr)});process.exitCode=1`);
+  assert.ok(a.stderr.includes(token));
+  assert.ok(!a.r.summary.firstDiagnostic.includes(token));
+  assert.match(a.r.summary.firstDiagnostic,/Bearer \[REDACTED\]/);
+});
+test('W6F-R4 A30 receipt public summary fields redact both quoted Bearer variants',async()=>{
+  const token='SYNTHONLY.abc_123';
+  const tap=`TAP version 13\nnot ok 1 - Authorization: Bearer "${token}"\n${summary(1,0,1)}`;
+  const stderr=`Error: Proxy-Authorization: Bearer '${token}'\n`;
+  const a=await launch(`process.stdout.write(${JSON.stringify(tap)});process.stderr.write(${JSON.stringify(stderr)});process.exitCode=1`);
+  assert.ok(a.stdout.includes(token));assert.ok(a.stderr.includes(token));
+  for(const value of [a.r.summary.firstFailingTap,a.r.summary.firstDiagnostic]){
+    assert.ok(!value.includes(token));
+    assert.match(value,/Bearer \[REDACTED\]/);
+  }
+});
