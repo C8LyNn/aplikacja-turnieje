@@ -95,7 +95,7 @@ function AuditWorktree([string]$checkout,[string]$phase,[string]$settingsHash,[s
   $attr=Exec $git @('-C',(Quote $checkout),'check-attr','eol','--',(Quote $relative)) $script:Root 'check-eol-attribute'
   Ensure ($attr -match ': eol: lf$') ('No explicit eol=lf: '+$relative)
   $eol=Exec $git @('-C',(Quote $checkout),'ls-files','--eol','--',(Quote $relative)) $script:Root 'check-index-eol'
-  Ensure ($eol -match 'i/(crlf|mixed)\s+w/lf\s+attr/text eol=lf') ('Index/worktree EOL mismatch: '+$relative+' '+$eol)
+  Ensure ($eol -match 'i/(crlf|mixed)\s+w/(lf|crlf|mixed)\s+attr/text eol=lf') ('Index/worktree EOL mismatch: '+$relative+' '+$eol)
   $blob=Exec $git @('-C',(Quote $checkout),'rev-parse',('HEAD:'+$relative)) $script:Root 'head-blob-id'
   Ensure ($blob -match '^[0-9a-f]{40}$') ('Invalid pinned Git blob: '+$relative)
   $tmp=Join-Path $script:Root ('logs\raw-head-'+[Guid]::NewGuid().ToString('N')+'.tmp')
@@ -106,15 +106,21 @@ function AuditWorktree([string]$checkout,[string]$phase,[string]$settingsHash,[s
   [IO.File]::Delete($tmp);[IO.File]::Delete($err)
   $work=[IO.File]::ReadAllBytes($disk)
   Ensure (-not ($before -contains [byte]0) -and -not ($work -contains [byte]0)) ('Binary NUL content: '+$relative)
-  Ensure (-not (ByteEqual $before $work)) ('Modified flag but identical bytes: '+$relative)
   $normalized=CanonicalLF $before
   Ensure ($before.Length -gt $normalized.Length) ('HEAD lacks CRLF: '+$relative)
-  Ensure (ByteEqual $normalized $work) ('WAIT_OTHER_DIFF: non-EOL source bytes: '+$relative)
-  $audit+= [ordered]@{path=$relative;classification='NORMALIZED_EOL_ONLY';gitBlob=$blob;headRawSHA256=(ByteSHA $before);workSHA256=(ByteSHA $work);normalizedSHA256=(ByteSHA $normalized);headBytes=$before.Length;workBytes=$work.Length;crlfRemoved=($before.Length-$normalized.Length);eolEvidence=$eol}
+  if(ByteEqual $before $work){
+   Ensure ($eol -match 'w/(crlf|mixed)\s+attr/text eol=lf') ('Unchanged bytes but unexplained EOL metadata: '+$relative)
+   $class='HEAD_BYTES_IDENTICAL_EOL_INDEX'
+  }else{
+   Ensure ($eol -match 'w/lf\s+attr/text eol=lf') ('Changed bytes but worktree is not LF: '+$relative)
+   Ensure (ByteEqual $normalized $work) ('WAIT_OTHER_DIFF: non-EOL source bytes: '+$relative)
+   $class='NORMALIZED_EOL_ONLY'
+  }
+  $audit+= [ordered]@{path=$relative;classification=$class;gitBlob=$blob;headRawSHA256=(ByteSHA $before);workSHA256=(ByteSHA $work);normalizedSHA256=(ByteSHA $normalized);headBytes=$before.Length;workBytes=$work.Length;crlfRemoved=($before.Length-$normalized.Length);eolEvidence=$eol}
  }
  if($phase -eq 'BEFORE'){Ensure ($temporaries.Count -eq 0) 'Pre-build config files unexpectedly present'}
  else{Ensure ($temporaries.Count -eq 2) 'Exactly two disposable diagnostic config files required'}
- return [ordered]@{phase=$phase;classification=if($audit.Count){'NORMALIZED_EOL_ONLY'}else{'CLEAN_EXACT'};modifiedCount=$audit.Count;verifiedFiles=@($audit);temporaries=@($temporaries);porcelainLogSHA256=(Hash $statusLog)}
+ return [ordered]@{phase=$phase;classification=if($audit.Count){'EOL_ONLY_BYTE_PROVEN'}else{'CLEAN_EXACT'};modifiedCount=$audit.Count;verifiedFiles=@($audit);temporaries=@($temporaries);porcelainLogSHA256=(Hash $statusLog)}
 }
 function Collect([string]$folder){
  $source=Join-Path $folder 'source'
