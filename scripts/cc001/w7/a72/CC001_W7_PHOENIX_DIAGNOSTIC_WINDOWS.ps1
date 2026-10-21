@@ -144,7 +144,9 @@ function Collect([string]$folder){
     @($dll,'player-binaries\CoreClash_Data\Managed\Assembly-CSharp.dll'),
     @($buildLog,'unity-editor.log'),
     @($buildJson,'build-StandaloneWindows64.json'),
-    @($provenance,'source-provenance.json')
+    @($provenance,'source-provenance.json'),
+    @((Join-Path $folder 'logs\checkout-eol-before.json'),'checkout-eol-before.json'),
+    @((Join-Path $folder 'logs\checkout-eol-after.json'),'checkout-eol-after.json')
  )){
   $dest=Join-Path $evidence $item[1]
   New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force|Out-Null
