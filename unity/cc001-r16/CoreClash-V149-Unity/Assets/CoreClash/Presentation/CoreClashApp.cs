@@ -100,11 +100,13 @@ namespace CoreClash.Presentation
                 return phoenixDiagnosticKeyboardOrigin;
             var current=Event.current;
             if(current==null)return "CALL_WITHOUT_GUI_EVENT_UNATTRIBUTED";
-            if(current.type==EventType.MouseUp)
+            // IMGUI Button may consume MouseUp (current.type becomes Used).
+            // rawType records the underlying event, not just the consumed phase.
+            if(current.rawType==EventType.MouseUp||current.type==EventType.MouseUp)
                 return UnityEngine.Input.touchCount==0
                     ?"GUI_MOUSE_UP_NO_TOUCH_REPORTED"
                     :"GUI_MOUSE_UP_TOUCH_PRESENT";
-            return "GUI_EVENT_"+current.type+"_HARDWARE_UNATTRIBUTED";
+            return "GUI_EVENT_"+current.type+"_RAW_"+current.rawType+"_HARDWARE_UNATTRIBUTED";
         }
 #endif
         void Awake(){Initialize();}
