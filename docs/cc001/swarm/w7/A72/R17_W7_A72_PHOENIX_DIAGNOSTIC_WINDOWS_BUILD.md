@@ -1,5 +1,8 @@
 # CC-001 — R17-W7 / A72 diagnostic Phoenix Windows Player
 
+> **SUPERSEDED / NIE UŻYWAĆ STAREJ PACZKI:** Windows checkout recovery R2, nowy SHA-256 oraz instrukcje w [R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md](R17_W7_A72_WINDOWS_CHECKOUT_EOL_RECOVERY.md). Poprzedni operator-kit zatrzymywał się na niezweryfikowanym Git `M` wywołanym normalizacją końców linii; użyj wyłącznie paczki R2.
+
+
 **IDENTITY:** A72 Build & CI / Issue #113.  
 **AUTHORITY:** https://github.com/C8LyNn/aplikacja-turnieje/issues/113#issuecomment-6313005982  
 **STATUS:** OPERATOR_PACKAGE_PREPARED / WINDOWS_UNITY_RUNTIME_NOT_RUN_BY_A72 / RELEASE_STOP
