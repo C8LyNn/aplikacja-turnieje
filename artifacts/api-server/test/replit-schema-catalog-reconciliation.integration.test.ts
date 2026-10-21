@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { after, before, test } from "node:test";
 import { getSafeTestDatabaseConfig } from "./test-database";
+import { createRunDatabase, dropRunDatabase, reserveRunDatabaseSlot, holdRunDatabaseSlot, sealedFixtureChildEnv, type CreatedDatabaseReceipt } from "./pg16-test-ownership";
 
 interface QueryPool {
   query: (
@@ -77,6 +78,10 @@ let adminPool: QueryPool;
 let pools: Record<"dev" | "prod" | "fresh", QueryPool>;
 let urls: Record<"dev" | "prod" | "fresh", string>;
 let databaseNames: Record<"dev" | "prod" | "fresh", string>;
+const createdDatabaseReceipts: Partial<Record<"dev" | "prod" | "fresh", CreatedDatabaseReceipt>> = {};
+const attemptedDatabaseLabels = new Set<"dev" | "prod" | "fresh">();
+// B02: only a successful dropRunDatabase return records terminal DROP_CONFIRMED.
+const completedDropLabels = new Set<"dev" | "prod" | "fresh">();
 
 function quoteIdentifier(identifier: string): string {
   if (
@@ -492,10 +497,15 @@ before(async () => {
   };
   urls = {} as typeof urls;
   pools = {} as typeof pools;
-
+  // Fsync a durable NOT_ATTEMPTED receipt for ALL three source slots.
+  // Later failed CREATE never loses evidence about the remaining slots.
   for (const label of ["dev", "prod", "fresh"] as const) {
-    await adminPool.query(
-      `CREATE DATABASE ${quoteIdentifier(databaseNames[label])}`,
+    reserveRunDatabaseSlot(databaseNames[label]);
+  }
+  for (const label of ["dev", "prod", "fresh"] as const) {
+    attemptedDatabaseLabels.add(label);
+    createdDatabaseReceipts[label] = await createRunDatabase(
+      adminPool, databaseNames[label], DATABASE_NAME_PATTERN,
     );
     const url = new URL(baseUrl);
     url.pathname = `/${databaseNames[label]}`;
@@ -512,15 +522,42 @@ before(async () => {
 
 after(async () => {
   if (pools) {
-    await Promise.allSettled(Object.values(pools).map((pool) => pool.end()));
-  }
-  if (adminPool && databaseNames) {
-    for (const databaseName of Object.values(databaseNames)) {
-      await adminPool.query(
-        `DROP DATABASE IF EXISTS ${quoteIdentifier(databaseName)} WITH (FORCE)`,
-      );
+    const closures = await Promise.allSettled(Object.values(pools).map((pool) => pool.end()));
+    if (closures.some((result) => result.status === "rejected")) {
+      throw new Error("WEB005_CLEANUP_HOLD:S2_POOL_CLOSE_UNCONFIRMED");
     }
-    await adminPool.end();
+  }
+  if (adminPool) {
+    try {
+      // If a CREATE response failed or became ambiguous, preserve ALL databases
+      // for independently signed exact-object G5 instead of partially FORCE dropping.
+      if ([...attemptedDatabaseLabels].some((label) => !createdDatabaseReceipts[label])) {
+        for (const label of ["dev", "prod", "fresh"] as const) {
+          holdRunDatabaseSlot(databaseNames[label]);
+        }
+        throw new Error("WEB005_CLEANUP_HOLD:CATALOG_AMBIGUOUS_CREATE_NO_DROP");
+      }
+      for (const label of ["dev", "prod", "fresh"] as const) {
+        const receipt = createdDatabaseReceipts[label];
+        if (receipt) {
+          try {
+            await dropRunDatabase(adminPool, receipt, DATABASE_NAME_PATTERN);
+            completedDropLabels.add(label);
+          } catch(error) {
+            // Stop destructive cleanup on first uncertain result. Preserve a
+            // separate documented disposition for every other catalog slot.
+            for (const later of ["dev", "prod", "fresh"] as const) {
+              if (later !== label && createdDatabaseReceipts[later] && !completedDropLabels.has(later)) {
+                holdRunDatabaseSlot(databaseNames[later]);
+              }
+            }
+            throw error;
+          }
+        }
+      }
+    } finally {
+      await adminPool.end();
+    }
   }
 });
 
@@ -677,14 +714,13 @@ test("reconciles Development, Production and fresh catalogs without data loss", 
     process.execPath,
     [fileURLToPath(COMPARISON_SCRIPT_URL)],
     {
-      env: {
-        ...process.env,
+      env: sealedFixtureChildEnv({
         SCHEMA_COMPARE_DEVELOPMENT_DATABASE_URL: urls.dev,
         SCHEMA_COMPARE_PRODUCTION_DATABASE_URL: urls.prod,
         SCHEMA_COMPARE_EXPECTED_DEVELOPMENT_DATABASE_NAME: databaseNames.dev,
         SCHEMA_COMPARE_EXPECTED_PRODUCTION_DATABASE_NAME: databaseNames.prod,
         SCHEMA_COMPARE_EXPECTED_SCHEMA: "public",
-      },
+      }, [createdDatabaseReceipts.dev!, createdDatabaseReceipts.prod!, createdDatabaseReceipts.fresh!]),
       windowsHide: true,
       timeout: 30_000,
       maxBuffer: 5 * 1024 * 1024,

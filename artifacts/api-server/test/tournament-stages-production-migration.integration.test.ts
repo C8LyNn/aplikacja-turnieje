@@ -7,6 +7,7 @@ import {
   renderSeriesV1MigrationForTestSchema,
   type TestDatabaseConfig,
 } from "./test-database";
+import { resetRunSchema } from "./pg16-test-ownership";
 // @ts-expect-error The production migration runner intentionally stays plain ESM for direct Node execution.
 import { renderTournamentStagesConsoleMigration } from "../../../lib/db/scripts/migrate-tournament-stages-v1.mjs";
 
@@ -36,8 +37,7 @@ before(async () => {
   process.env.NODE_ENV = "test";
   process.env.DATABASE_URL = config.connectionString;
   database = (await import("@workspace/db")) as DatabaseModule;
-  await database.pool.query(`DROP SCHEMA IF EXISTS "${config.schema}" CASCADE`);
-  await database.pool.query(`CREATE SCHEMA "${config.schema}"`);
+  await resetRunSchema(database.pool, config.schema);
   await database.pool.query(`SET search_path TO "${config.schema}"`);
   schemaCreated = true;
   const seriesSql = renderSeriesV1MigrationForTestSchema(

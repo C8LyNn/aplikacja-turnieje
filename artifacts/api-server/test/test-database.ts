@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { requireSafetyContext, resetRunSchema, dropRunSchema } from "./pg16-test-ownership";
 
 const RESET_CONFIRMATION = "DROP_TM_TEST_SCHEMA";
 const SAFE_SCHEMA_PATTERN = /^tm_test_[a-z0-9_]+$/;
@@ -161,15 +162,39 @@ export function getSafeTestDatabaseConfig(env: NodeJS.ProcessEnv = process.env):
     throw new Error("TEST_DATABASE_URL must use the postgres:// or postgresql:// protocol.");
   }
 
+  const context = requireSafetyContext(env);
   const databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
-  const targetFingerprint = `${parsed.hostname}/${databaseName}`.toLowerCase();
-  if (!databaseName.toLowerCase().includes("test") || targetFingerprint.includes("prod")) {
-    throw new Error(
-      "Refusing integration tests: the PostgreSQL database name must contain 'test' and the target must not contain 'prod'.",
-    );
+  // The old substring 'test' / no-'prod' guard was never a physical target
+  // identity check. Fail before opening ANY test DB connection.
+  if (parsed.hostname !== "127.0.0.1" ||
+      parsed.port !== "55432" ||
+      parsed.username !== encodeURIComponent(context.roleName) &&
+        decodeURIComponent(parsed.username) !== context.roleName ||
+      databaseName !== context.baseDatabase ||
+      parsed.hash !== "" || parsed.search !== "" ||
+      !parsed.password || parsed.protocol !== "postgresql:") {
+    throw new Error("WEB005_CLEANUP_HOLD:S1_SIGNED_BASE_DSN_MISMATCH");
   }
-
-  const schema = env.TEST_DATABASE_SCHEMA ?? "tm_test_access";
+  if (env.DATABASE_URL) {
+    let alias: URL;
+    try { alias = new URL(env.DATABASE_URL); }
+    catch { throw new Error("WEB005_CLEANUP_HOLD:S1_ALIAS_NOT_A_URL"); }
+    // Application imports may add the sealed search_path option. No other
+    // alias target/credential/parameter differences are authorized.
+    const aliasOptions = alias.searchParams.get("options");
+    if (aliasOptions !== null &&
+        aliasOptions !== `-c search_path=tm_test_${context.runId}`) {
+      throw new Error("WEB005_CLEANUP_HOLD:S1_ALIAS_OPTIONS_MISMATCH");
+    }
+    alias.searchParams.delete("options");
+    if (alias.toString() !== parsed.toString()) {
+      throw new Error("WEB005_CLEANUP_HOLD:S1_DATABASE_URL_ALIAS_MISMATCH");
+    }
+  }
+  const schema = env.TEST_DATABASE_SCHEMA;
+  if (schema !== `tm_test_${context.runId}`) {
+    throw new Error("WEB005_CLEANUP_HOLD:S1 schema must be bound to the sealed run.");
+  }
   if (!SAFE_SCHEMA_PATTERN.test(schema)) {
     throw new Error("TEST_DATABASE_SCHEMA must match ^tm_test_[a-z0-9_]+$ and cannot be public.");
   }
@@ -186,8 +211,7 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
   assertSafeTestSchema(schema);
   let schemaCreated = false;
   try {
-    await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-    await pool.query(`CREATE SCHEMA "${schema}"`);
+    await resetRunSchema(pool, schema);
     schemaCreated = true;
     await pool.query(`SET search_path TO "${schema}"`);
     const migrationSql = renderSeriesV1MigrationForTestSchema(
@@ -414,18 +438,14 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       throw error;
     }
   } catch (error) {
-    if (schemaCreated) {
-      try {
-        await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
-      } catch {
-        // Preserve the original setup error; cleanup will be retried on the next run.
-      }
-    }
+    // Preserve partial migration and catalog state after failed setup.
+    // No destructive best-effort cleanup, retries or silent suppression.
+    console.error("[WEB005_SAFETY] S1_SETUP_FAILED_CLEANUP_HOLD", schema, schemaCreated);
     throw error;
   }
 }
 
 export async function dropTestSchema(pool: TestPool, schema: string): Promise<void> {
   assertSafeTestSchema(schema);
-  await pool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+  await dropRunSchema(pool, schema);
 }
