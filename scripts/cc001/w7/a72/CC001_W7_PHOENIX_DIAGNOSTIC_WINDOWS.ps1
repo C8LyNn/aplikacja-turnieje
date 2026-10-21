@@ -165,10 +165,10 @@ try {
  $settingsText=$settingsText.Replace('  scriptingDefineSymbols: {}',('  scriptingDefineSymbols:'+[Environment]::NewLine+'    Standalone: '+$Symbol))
  [IO.File]::WriteAllText($settings,$settingsText,(New-Object Text.UTF8Encoding($false)))
  $dirty=Exec $git @('-C',(Quote $checkout),'status','--porcelain=v1','--untracked-files=all') $script:Root 'local-only-symbol'
- $allowed1=' M '+$ProjectSubdir+'/ProjectSettings/ProjectSettings.asset'
+ $allowed1='M '+$ProjectSubdir+'/ProjectSettings/ProjectSettings.asset'
  $allowed2='?? '+$ProjectSubdir+'/Assets/csc.rsp'
  foreach($line in @($dirty -split '[\r\n]+'|Where-Object { $_.Length -gt 0 })){
-  Ensure ($line -ceq $allowed1 -or $line -ceq $allowed2) ('Unexpected change: '+$line)
+  Ensure ($line.TrimStart(' ') -ceq $allowed1 -or $line.TrimStart(' ') -ceq $allowed2) ('Unexpected change: '+$line)
  }
  Json (Join-Path $script:Root 'logs\source-provenance.json') ([ordered]@{
   sourceSHA=$SourceSHA;projectTreeSHA=$TreeSHA;coreClashAppBlob=$AppBlob
