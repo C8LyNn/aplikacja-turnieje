@@ -21,6 +21,12 @@ const ROSTER_SOURCES=Object.freeze([
   ['stage_basket_route_entries','re','re.route_id, re.player_id'],
   ['stage_basket_route_executions','rx','rx.route_id'],
   ['tournament_routing_plans','rp','rp.revision'],
+  // A20 R3 selected ETAG dependencies; these rows may change without
+  // tournament_stages.version. No optimistic exclusion during draft editing.
+  ['tournament_game_configs','gc','gc.game_id'],
+  ['qualification_proposals','qp','qp.id'],
+  ['qualification_proposal_entries','qpe','qpe.id'],
+  ['stage_basket_output_players','op','op.id'],
 ]);
 const ROW_LOCK='SELECT id, status, basket_config_revision::text AS revision, basket_edit_epoch::text AS epoch FROM tournaments WHERE id=$1 FOR UPDATE';
 const ROW_READ='SELECT id, status, basket_config_revision::text AS revision, basket_edit_epoch::text AS epoch FROM tournaments WHERE id=$1';
@@ -138,6 +144,9 @@ export function createBasketCasPgSourceAdapter({pool,ports}={}){
   verifyPorts(pool,ports);
   const readState=async(client,id)=>{
     const row=requireRow(await client.query(ROW_READ,[id]),id);
+    // Include every mutable tournament-level rule, not only status and epoch.
+    const parentState=await queryRows(client,'SELECT to_jsonb(t) AS row FROM tournaments t WHERE t.id=$1',id);
+    if(parentState.length!==1)throw Error('WEB005_BASKET_CAS_PARENT_DIGEST_INCOMPLETE');
     const stages=await queryRows(client,STAGE_SQL,id);
     if(stages.length===0)throw Error('WEB005_BASKET_CAS_STAGES_MISSING');
     const roster=[];
@@ -145,13 +154,19 @@ export function createBasketCasPgSourceAdapter({pool,ports}={}){
       const sql=`SELECT to_jsonb(${alias}) AS row FROM ${table} ${alias} WHERE ${alias}.tournament_id=$1 ORDER BY ${order}`;
       roster.push([table,await queryRows(client,sql,id)]);
     }
+    // stage_groups is keyed by stage_id, not tournament_id.
+    const groups=await queryRows(client,
+      'SELECT to_jsonb(g) AS row FROM stage_groups g JOIN tournament_stages s ON s.id=g.stage_id WHERE s.tournament_id=$1 ORDER BY g.id',id);
+    // Executions reference routing plans; no tournament_id on child row.
+    const executions=await queryRows(client,
+      'SELECT to_jsonb(e) AS row FROM tournament_routing_executions e JOIN tournament_routing_plans rp ON rp.id=e.plan_id WHERE rp.tournament_id=$1 ORDER BY e.plan_id,e.stage_key',id);
     const graph=await ports.readGraph(client,id);
     if(!graph||!Array.isArray(graph.baskets)||!Array.isArray(graph.routes))throw Error('WEB005_BASKET_CAS_GRAPH_SNAPSHOT_INVALID');
     return {
       tournamentId:id,epoch:row.epoch,revision:dbRevision(row.revision),
       stageDigest:digest('WEB005/CAS/STAGES/V1',stages),
       // Include canonical graph as an additional out-of-band drift detector.
-      rosterDigest:digest('WEB005/CAS/ROSTER/GRAPH/V1',[roster,graph]),
+      rosterDigest:digest('WEB005/CAS/ROSTER/GRAPH/V2',[parentState,roster,groups,executions,graph]),
       graph:structuredClone(graph),
       _stageStates:stages.map(stage=>stage.status),_tournamentStatus:row.status,
     };
@@ -174,10 +189,10 @@ export function createBasketCasPgSourceAdapter({pool,ports}={}){
         if(before._tournamentStatus!=='draft'||before._stageStates.some(status=>status!=='planned')){
           throw Error('WEB005_BASKET_CAS_CONFIGURATION_IMMUTABLE');
         }
-        if(await ports.validateGraph(client,id,graph)!==true){
+        if(await ports.validateGraph(client,id,graph,actor)!==true){
           throw Error('WEB005_BASKET_CAS_GRAPH_VALIDATION_DENIED');
         }
-        if(await ports.replaceGraph(client,id,graph)!==true){
+        if(await ports.replaceGraph(client,id,graph,actor)!==true){
           throw Error('WEB005_BASKET_CAS_GRAPH_REPLACEMENT_DENIED');
         }
         // Compare-and-swap, exactly one revision update, same parent epoch.

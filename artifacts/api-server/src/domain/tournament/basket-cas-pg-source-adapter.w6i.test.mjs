@@ -8,14 +8,14 @@ const BASE={ id:77,status:'draft',revision:'0',epoch:EPOCH };
 const GRAPH={baskets:[],routes:[]};
 const REPLACE={baskets:[{id:'new'}],routes:[]};
 function fake(){
- let db={tournament:{...BASE},graph:structuredClone(GRAPH),stages:[{id:9,status:'planned',version:1}],players:[{id:12,name:'A'}],memberships:[],assignments:[],routes:[],routeEntries:[],routeExecutions:[],routingPlans:[]};
+ let db={tournament:{...BASE},graph:structuredClone(GRAPH),stages:[{id:9,status:'planned',version:1}],players:[{id:12,name:'A'}],memberships:[],assignments:[],routes:[],routeEntries:[],routeExecutions:[],routingPlans:[],gameConfigs:[],proposals:[],proposalEntries:[],outputPlayers:[],groups:[],routingExecutions:[]};
  let log=[],begun=false,working=null,commits=0,rollbacks=0,fail='',denyWrite=false,denyRead=false,releaseCount=0,releaseArgs=[];
  const ports={
    async assertOrganizer(client,row,actor){log.push('authorize-write');if(denyWrite||actor!=='owner')throw Error('DENIED_WRITE');return true;},
    async assertReader(client,row,actor){log.push('authorize-read');if(denyRead||actor!=='viewer')throw Error('DENIED_READ');return true;},
    async readGraph(client,id){log.push('graph-read');return structuredClone(working.graph);},
-   async validateGraph(client,id,graph){log.push('graph-validate');if(!graph||!Array.isArray(graph.baskets)||!Array.isArray(graph.routes))throw Error('INVALID_GRAPH');if(fail==='validation')throw Error('BAD_GRAPH');return true;},
-   async replaceGraph(client,id,graph){log.push('graph-replace');working.graph=structuredClone(graph);if(fail==='replace')throw Error('REPLACE_FAILURE');return true;},
+   async validateGraph(client,id,graph,actor){log.push('validate-actor:'+String(actor));log.push('graph-validate');if(!graph||!Array.isArray(graph.baskets)||!Array.isArray(graph.routes))throw Error('INVALID_GRAPH');if(fail==='validation')throw Error('BAD_GRAPH');return true;},
+   async replaceGraph(client,id,graph,actor){log.push('replace-actor:'+String(actor));log.push('graph-replace');working.graph=structuredClone(graph);if(fail==='replace')throw Error('REPLACE_FAILURE');return true;},
  };
  const client={
    async query(sql,params=[]){
@@ -26,6 +26,7 @@ function fake(){
      if(sql==='COMMIT'){if(fail==='commit')throw Error('COMMIT_FAILURE');db=working;commits++;begun=false;return {rowCount:0,rows:[]};}
      if(sql==='ROLLBACK'){if(fail==='rollback')throw Error('ROLLBACK_CONNECTION_FAILED');rollbacks++;begun=false;return {rowCount:0,rows:[]};}
      assert.ok(begun,'query outside transaction');
+     if(sql.includes('to_jsonb(t) AS row FROM tournaments t'))return {rows:[{row:structuredClone(working.tournament)}],rowCount:1};
      if(/SELECT.*FROM tournaments.*FOR UPDATE/i.test(sql))return {rows:[{...working.tournament}],rowCount:1};
      if(/SELECT.*FROM tournaments/i.test(sql))return {rows:[{...working.tournament}],rowCount:1};
      if(/UPDATE tournaments/i.test(sql)){
@@ -36,7 +37,9 @@ function fake(){
        return {rows:[{revision:String(next)}],rowCount:1};
      }
      if(sql.includes('to_jsonb(')){
-       const hit=[['tournament_stages','stages'],['stage_participants','memberships'],['stage_basket_participants','assignments'],['stage_basket_route_entries','routeEntries'],['stage_basket_route_executions','routeExecutions'],['tournament_routing_plans','routingPlans'],['players','players']].find(([table])=>sql.includes('FROM '+table+' '));
+       if(sql.includes('FROM stage_groups g JOIN'))return {rows:working.groups.map(row=>({row:structuredClone(row)}))};
+       if(sql.includes('FROM tournament_routing_executions e JOIN'))return {rows:working.routingExecutions.map(row=>({row:structuredClone(row)}))};
+       const hit=[['tournament_stages','stages'],['stage_participants','memberships'],['stage_basket_participants','assignments'],['stage_basket_route_entries','routeEntries'],['stage_basket_route_executions','routeExecutions'],['tournament_routing_plans','routingPlans'],['tournament_game_configs','gameConfigs'],['qualification_proposals','proposals'],['qualification_proposal_entries','proposalEntries'],['stage_basket_output_players','outputPlayers'],['players','players']].find(([table])=>sql.includes('FROM '+table+' '));
        if(!hit)throw Error('UNEXPECTED_SQL '+sql);
        const rows=working[hit[1]];
        return {rows:rows.map(row=>({row:structuredClone(row)})),rowCount:rows.length};
@@ -207,4 +210,33 @@ test('R3-11 CAS-SEC-03: BEGIN uncertainty discards, no normal release',async()=>
 test('R3-12 CAS-SEC-03: ordinary validated rollback returns healthy client normally',async()=>{
   const f=fake();await assert.rejects(readBasketCasSnapshot(f.adapter,{tournamentId:77,actor:'not-viewer'}),/DENIED_READ/);
   assert.equal(f.releaseArgs()[0],undefined);assert.equal(f.rollbacks(),1);
+});
+
+test('CLOSE-01 full mutable parent and game config change the ETag',async()=>{
+ const f=fake(),previous=await current(f);
+ f.mutate(x=>x.tournament.maxPlayers=64);assert.notEqual(await current(f),previous);
+ const f2=fake(),old=await current(f2);f2.mutate(x=>x.gameConfigs.push({tournament_id:77,game_id:'g',config:{quota:3}}));assert.notEqual(await current(f2),old);
+});
+test('CLOSE-02 qualification proposals and output cannot reuse old validator',async()=>{
+ for(const field of ['proposals','proposalEntries','outputPlayers']){
+  const f=fake(),old=await current(f);f.mutate(x=>x[field].push({id:17,tournament_id:77,revision:2}));assert.notEqual(await current(f),old);
+ }
+});
+test('CLOSE-03 group and routing-execution mutation invalidate GET',async()=>{
+ for(const field of ['groups','routingExecutions']){
+  const f=fake(),old=await current(f);f.mutate(x=>x[field].push({id:18,revision:3}));assert.notEqual(await current(f),old);
+ }
+});
+test('CLOSE-04 injected graph operations receive exact authenticated actor and shared client',async()=>{
+ const f=fake(),token=await current(f);
+ const out=await executeBasketCas(f.adapter,{tournamentId:77,actor:'owner',ifMatch:token,graph:REPLACE});
+ assert.equal(out.status,200);assert.ok(f.log.includes('validate-actor:owner'));assert.ok(f.log.includes('replace-actor:owner'));
+ const lock=f.log.findIndex(x=>typeof x==='string'&&x.includes('FOR UPDATE'));
+ assert.ok(lock<f.log.indexOf('validate-actor:owner'));
+});
+test('CLOSE-05 no write accepted on stale game config snapshot',async()=>{
+ const f=fake(),stale=await current(f);
+ f.mutate(x=>x.gameConfigs.push({tournament_id:77,game_id:'g',config:{quota:99}}));
+ await assert.rejects(executeBasketCas(f.adapter,{tournamentId:77,actor:'owner',ifMatch:stale,graph:REPLACE}),e=>e.status===412);
+ assert.equal(f.read().tournament.revision,'0');assert.deepEqual(f.read().graph,GRAPH);
 });
