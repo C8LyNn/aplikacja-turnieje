@@ -60,3 +60,15 @@ test('B03: first successful Drizzle push still cannot unlock FORCE cleanup', () 
   assert.match(fn,/if \(ord === 2\) drizzlePushOutcomeUncertain = false/);
   assert.doesNotMatch(fn, /^\s*drizzlePushOutcomeUncertain = false;/m);
 });
+
+test('B01: catalog failure, missing closure and unknown dependency type all HOLD before CASCADE', () => {
+  const code=source('pg16-test-ownership.ts');
+  const cleanup=code.slice(code.indexOf('export async function dropRunSchema('),code.indexOf('export function sealedFixtureChildEnv('));
+  assert.match(cleanup,/S1_CASCADE_CATALOG_UNVERIFIED/);
+  assert.match(cleanup,/S1_FOREIGN_OR_UNCLASSIFIED_CASCADE_DEPENDENCY/);
+  assert.match(cleanup,/COUNT\(\*\) FILTER \(WHERE i\.classid/);
+  assert.match(cleanup,/obj\.type IS NULL/);
+  assert.match(cleanup,/d\.deptype NOT IN/);
+  assert.match(cleanup,/Number\.isSafeInteger\(visited\)/);
+  assert.ok(cleanup.indexOf('S1_FOREIGN_OR_UNCLASSIFIED_CASCADE_DEPENDENCY') < cleanup.indexOf('DROP SCHEMA'));
+});
