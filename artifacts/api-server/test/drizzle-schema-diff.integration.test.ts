@@ -175,6 +175,9 @@ async function targetedSchemaDiff(): Promise<string[]> {
 }
 
 async function applyReplitPushToDisposableDatabase(): Promise<string> {
+  // B03: preserve the created database on ALL preflight failure paths,
+  // including signed-context/ordinal validation and source-file/hash drift.
+  drizzlePushOutcomeUncertain = true;
   const signed = requireVerifiedSourceContext();
   const ord = ++drizzlePushOrdinal;
   if (ord !== 1 && ord !== 2 || !createdDatabaseReceipt) {
@@ -222,6 +225,7 @@ async function applyReplitPushToDisposableDatabase(): Promise<string> {
       stdout_sha256:digest(Buffer.from(stdout,"utf8")),
       stderr_sha256:digest(Buffer.from(stderr,"utf8"))
     });
+    drizzlePushOutcomeUncertain = false;
     return transcript;
   } catch(error) {
     drizzlePushOutcomeUncertain=true;

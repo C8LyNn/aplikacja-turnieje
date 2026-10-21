@@ -309,14 +309,23 @@ export async function dropRunSchema(pool: SafetyPool, schema: string): Promise<v
     oid:existing.oid,owner_oid:existing.ownerOid,
     signed_context_sha256:ctx.signedContextSha256
   });
-  // Reject visible cross-schema dependent relations/functions: conservative
-  // static scope, NOT proof that every possible dependency class is captured.
+  // B01: Traverse all dependency classes from run-owned schema; pg_rewrite,
+  // pg_constraint, pg_proc and pg_type are not necessarily pg_class objects.
+  // Unclassifiable objects (NULL namespace) count as foreign: fail closed.
+  // Physical isolation and exclusive writers remain separate G0/G2 prerequisites.
   const deps = await pool.query(
-    `SELECT COUNT(*)::int AS foreign_count FROM pg_depend d
-       JOIN pg_class ref ON d.refclassid = 'pg_class'::regclass AND ref.oid=d.refobjid
-       JOIN pg_class dep ON d.classid='pg_class'::regclass AND dep.oid=d.objid
-       JOIN pg_namespace refn ON refn.oid=ref.relnamespace
-       WHERE refn.nspname=$1 AND dep.relnamespace<>refn.oid`, [schema]
+    `WITH RECURSIVE impacted(classid, objid) AS (
+       SELECT 'pg_namespace'::regclass::oid, n.oid
+       FROM pg_namespace n WHERE n.nspname=$1
+       UNION
+       SELECT d.classid, d.objid FROM pg_depend d
+       JOIN impacted i ON d.refclassid=i.classid AND d.refobjid=i.objid
+     )
+     SELECT COUNT(*)::int AS foreign_count
+     FROM impacted i
+     CROSS JOIN LATERAL pg_identify_object(i.classid, i.objid, 0) obj
+     WHERE i.classid <> 'pg_namespace'::regclass::oid
+       AND obj.schema IS DISTINCT FROM $1`, [schema]
   );
   if (Number((deps.rows[0] as {foreign_count?:number}|undefined)?.foreign_count ?? -1)!==0) {
     hold("S1_FOREIGN_CASCADE_DEPENDENCY");

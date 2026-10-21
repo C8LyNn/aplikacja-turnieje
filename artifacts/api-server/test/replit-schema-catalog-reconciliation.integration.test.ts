@@ -80,6 +80,8 @@ let urls: Record<"dev" | "prod" | "fresh", string>;
 let databaseNames: Record<"dev" | "prod" | "fresh", string>;
 const createdDatabaseReceipts: Partial<Record<"dev" | "prod" | "fresh", CreatedDatabaseReceipt>> = {};
 const attemptedDatabaseLabels = new Set<"dev" | "prod" | "fresh">();
+// B02: only a successful dropRunDatabase return records terminal DROP_CONFIRMED.
+const completedDropLabels = new Set<"dev" | "prod" | "fresh">();
 
 function quoteIdentifier(identifier: string): string {
   if (
@@ -540,11 +542,12 @@ after(async () => {
         if (receipt) {
           try {
             await dropRunDatabase(adminPool, receipt, DATABASE_NAME_PATTERN);
+            completedDropLabels.add(label);
           } catch(error) {
             // Stop destructive cleanup on first uncertain result. Preserve a
             // separate documented disposition for every other catalog slot.
             for (const later of ["dev", "prod", "fresh"] as const) {
-              if (later !== label && createdDatabaseReceipts[later]) {
+              if (later !== label && createdDatabaseReceipts[later] && !completedDropLabels.has(later)) {
                 holdRunDatabaseSlot(databaseNames[later]);
               }
             }
