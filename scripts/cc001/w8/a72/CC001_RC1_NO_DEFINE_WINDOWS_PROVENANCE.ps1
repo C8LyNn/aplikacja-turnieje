@@ -145,18 +145,23 @@ function NoDiagnostic([string]$project,[string]$phase){
  $core=Join-Path $project 'Assets\CoreClash\Presentation\CoreClashApp.cs'
  Ensure (-not ([IO.File]::ReadAllText($core).Contains($Symbol))) 'W7 diagnostic C# detected (wrong source)'
  $response=@(Get-ChildItem -LiteralPath $project -Filter '*.rsp' -File -Recurse -ErrorAction Stop)
+ $rspLedger=@()
  foreach($rsp in $response){
   $body=[IO.File]::ReadAllText($rsp.FullName)
   Ensure (-not $body.Contains($Symbol)) ('Diagnostic compiler response: '+$rsp.FullName)
-  # For this reproducibility pass, reject ANY existing compiler response file,
-  # which could introduce unrecorded #define directives or direct compiler args.
-  throw ('Unapproved *.rsp compiler flags: '+$rsp.FullName)
+  $rel=$rsp.FullName.Substring($project.Length).TrimStart('\','/').Replace('\','/')
+  if($phase -ne 'AFTER_UNITY_BUILD'){
+   # A new RC1 checkout must contain no pre-existing response file at all.
+   throw ('Unapproved pre-build *.rsp compiler flags: '+$rsp.FullName)
+  }
+  Ensure ($rel.StartsWith('Library/',[StringComparison]::OrdinalIgnoreCase) -or $rel.StartsWith('Temp/',[StringComparison]::OrdinalIgnoreCase)) ('Unexpected generated compiler response outside Unity cache: '+$rel)
+  $rspLedger+= [ordered]@{path=$rel;sha256=(Hash $rsp.FullName)}
  }
  foreach($key in @('UNITY_CSHARP_DEFINES','UNITY_EXTRA_DEFINES','CscToolPath','CscToolExe')){
   $v=[Environment]::GetEnvironmentVariable($key)
   Ensure ([string]::IsNullOrEmpty($v)) ('Unexpected external compiler override: '+$key)
  }
- return [ordered]@{phase=$phase;sourceContainsDiagnostic=$false;projectSettingsContainsDiagnostic=$false;settingsSHA256=(Hash $settings);responseFiles=@();environmentOverrides='NONE';result='PASS_SOURCE_CONFIGURATION_ONLY'}
+ return [ordered]@{phase=$phase;sourceContainsDiagnostic=$false;projectSettingsContainsDiagnostic=$false;settingsSHA256=(Hash $settings);responseFiles=@($rspLedger);environmentOverrides='NONE';result='PASS_SOURCE_CONFIGURATION_ONLY'}
 }
 function Collect([string]$folder,$sourceBefore,$auditBefore,$auditAfter,$noDefineBefore,$noDefineAfter){
  $checkout=Join-Path $folder 'source'
