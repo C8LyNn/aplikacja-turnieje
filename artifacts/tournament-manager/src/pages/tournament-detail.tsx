@@ -176,6 +176,9 @@ export default function TournamentDetail() {
   const { data: stages } = useListTournamentStages(id, {
     query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
+  const hasMultipleStages = (stages?.length ?? 0) > 1;
+  const stageScopeUnknown = stages === undefined;
+  const standingsInformational = hasMultipleStages || stageScopeUnknown;
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -1383,15 +1386,22 @@ export default function TournamentDetail() {
 
           <TabsContent value="standings" className="pt-6">
             <Card>
-              <CardHeader><CardTitle>{tournament.format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : tournament.format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}</CardTitle></CardHeader>
               <CardContent>
+                {standingsInformational && (
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {hasMultipleStages ? "Bilans informacyjny wszystkich etapów — nie klasyfikacja bieżącego etapu. Awans i zwycięzcę wyznaczają wyniki etapów; zobacz Etapy i Drabinka." : "Liczba etapów nie została potwierdzona. Bilans nie może służyć do wyłaniania awansujących ani zwycięzcy."}
+                  </p>
+                )}
                 {!standings || standings.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">Brak danych klasyfikacji.</div>
                 ) : tournament.format === "single_elimination" ? (
                   <div>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      Awans i mistrz wynikają wyłącznie z drabinki. Bilans nie ustala kolejności eliminacji.
-                    </p>
+                    {!standingsInformational && (
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        Awans i mistrz wynikają wyłącznie z drabinki. Bilans nie ustala kolejności eliminacji.
+                      </p>
+                    )}
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {standings.map((s) => (
                         <div key={s.playerId} className="rounded-lg border bg-muted/10 p-4">
@@ -1416,7 +1426,7 @@ export default function TournamentDetail() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-left text-muted-foreground">
-                          <th className="py-2 px-2 w-8">#</th>
+                          {!standingsInformational && <th className="py-2 px-2 w-8">#</th>}
                           <th className="py-2 px-2">Gracz</th>
                           <th className="py-2 px-2 text-center">Mecze</th>
                           <th className="py-2 px-2 text-center">W</th>
@@ -1429,9 +1439,11 @@ export default function TournamentDetail() {
                       <tbody>
                         {standings.map((s) => (
                           <tr key={s.playerId} className="border-b last:border-0 hover:bg-muted/20">
-                            <td className={`py-2 px-2 font-mono font-bold ${s.rank === 1 ? "text-yellow-400" : s.rank === 2 ? "text-gray-400" : s.rank === 3 ? "text-amber-600" : "text-muted-foreground"}`}>
-                              {s.rank}
-                            </td>
+                            {!standingsInformational && (
+                              <td className={`py-2 px-2 font-mono font-bold ${s.rank === 1 ? "text-yellow-400" : s.rank === 2 ? "text-gray-400" : s.rank === 3 ? "text-amber-600" : "text-muted-foreground"}`}>
+                                {s.rank}
+                              </td>
+                            )}
                             <td className="py-2 px-2">
                               <div className="font-semibold">{s.playerName}</div>
                               <div className="flex gap-2 text-xs text-muted-foreground">

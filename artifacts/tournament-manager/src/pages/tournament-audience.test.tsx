@@ -184,6 +184,37 @@ test("completed Audience names the persisted winner, not the aggregate standings
   assertWinner();
 });
 
+test("multi-stage standings do not advertise qualification or podium places", async () => {
+  const standing = { playerId: 1, playerName: "Alpha", rank: 1, matchesPlayed: 3, matchWins: 2, matchLosses: 1, gameWins: 2, gameLosses: 1, gameDiff: 1, status: "active" };
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({ ...tournamentPayload(), format: "round_robin", activeStageId: 2 });
+    if (url.endsWith("/stages")) return jsonResponse([
+      { id: 1, position: 1, name: "Grupy", status: "completed", format: "round_robin" },
+      { id: 2, position: 2, name: "Playoff", status: "active", format: "single_elimination" },
+    ]);
+    if (url.endsWith("/standings")) return jsonResponse([standing]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  }, undefined, "standings");
+  const panel = await screen.findByRole("region", { name: "Bilans łączny meczów — wszystkie etapy" });
+  assert.match(panel.textContent ?? "", /Awans i zwycięzcę wyznaczają wyniki etapów/);
+  assert.equal(within(panel).queryByRole("columnheader", { name: "Miejsce" }), null);
+});
+
+test("single-stage standings retain ranked-table presentation", async () => {
+  renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) return jsonResponse({ ...tournamentPayload(), format: "round_robin", activeStageId: 1 });
+    if (url.endsWith("/stages")) return jsonResponse([{ id: 1, position: 1, name: "Grupy", status: "active", format: "round_robin" }]);
+    if (url.endsWith("/standings")) return jsonResponse([{ playerId: 1, playerName: "Alpha", rank: 1, matchesPlayed: 1, matchWins: 1, matchLosses: 0, gameWins: 1, gameLosses: 0, gameDiff: 1, status: "active" }]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  }, undefined, "standings");
+  const panel = await screen.findByRole("region", { name: "Klasyfikacja" });
+  assert.ok(within(panel).getByRole("columnheader", { name: "Miejsce" }));
+});
+
 describe("TournamentAudience — password gate regression", () => {
 
   test("private_online without viewer session shows password gate", async () => {

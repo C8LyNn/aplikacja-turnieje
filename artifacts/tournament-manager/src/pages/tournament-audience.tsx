@@ -183,6 +183,9 @@ export default function TournamentAudience() {
     },
   });
   const { data: stages } = stagesQuery;
+  const hasMultipleStages = (stages?.length ?? 0) > 1;
+  const stageScopeUnknown = stages === undefined;
+  const standingsInformational = hasMultipleStages || stageScopeUnknown;
   const publicStage = selectPublicStage(stages, tournament?.activeStageId);
   const bracket = publicStageBracket(tournamentBracket, publicStage);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -427,7 +430,7 @@ export default function TournamentAudience() {
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {section.id === "standings" && tournament?.format === "single_elimination" ? "Bilans" : section.label}
+                {section.id === "standings" && standingsInformational ? "Bilans" : section.id === "standings" && tournament?.format === "single_elimination" ? "Bilans" : section.label}
               </Link>
             );
           })}
@@ -636,17 +639,26 @@ export default function TournamentAudience() {
 
             {/* ── KLASYFIKACJA ── */}
             {hasStandings && (
-              <Panel title="Klasyfikacja" className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
+              <Panel title={hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : "Klasyfikacja"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
+                {standingsInformational && (
+                  <p className="mb-3 text-xs text-white/55">
+                    {hasMultipleStages ? "To zbiorcze statystyki meczów, nie klasyfikacja etapu. Awans i zwycięzcę wyznaczają wyniki etapów — zobacz Etapy i Drabinka." : "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy."}
+                  </p>
+                )}
                 <div className="space-y-2">
                   {topStandings.map((s) => (
                     <div key={s.playerId} className="flex items-center gap-2.5">
-                      <span className={`font-mono font-black text-sm w-5 text-right shrink-0 ${
-                        s.rank === 1 ? "text-yellow-400" : s.rank === 2 ? "text-slate-400" : s.rank === 3 ? "text-amber-600" : "text-white/25"
-                      }`}>
-                        {s.rank}
-                      </span>
-                      {s.rank <= 3 && (
-                        <span className="text-xs shrink-0">{s.rank === 1 ? "🥇" : s.rank === 2 ? "🥈" : "🥉"}</span>
+                      {!standingsInformational && (
+                        <>
+                          <span className={`font-mono font-black text-sm w-5 text-right shrink-0 ${
+                            s.rank === 1 ? "text-yellow-400" : s.rank === 2 ? "text-slate-400" : s.rank === 3 ? "text-amber-600" : "text-white/25"
+                          }`}>
+                            {s.rank}
+                          </span>
+                          {s.rank <= 3 && (
+                            <span className="text-xs shrink-0">{s.rank === 1 ? "🥇" : s.rank === 2 ? "🥈" : "🥉"}</span>
+                          )}
+                        </>
                       )}
                       <span className="text-sm font-semibold flex-1 truncate">{s.playerName}</span>
                       <div className="flex items-center gap-2 text-xs text-white/40 shrink-0">
@@ -711,7 +723,7 @@ export default function TournamentAudience() {
           />
         )}
         {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów."><PublicMatchesSection matches={matches ?? []} /></ReadQueryState>}
-        {activeSection === "standings" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} /></ReadQueryState>}
+        {activeSection === "standings" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} aggregate={hasMultipleStages} unknownScope={stageScopeUnknown} /></ReadQueryState>}
         {activeSection === "players" && (
           <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
           <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk graczy…" errorMessage="Nie udało się pobrać statystyk graczy." />
@@ -845,11 +857,11 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
   );
 }
 
-function PublicStandingsSection({ standings, format }: { standings: Standing[]; format: string }) {
+function PublicStandingsSection({ standings, format, aggregate, unknownScope }: { standings: Standing[]; format: string; aggregate: boolean; unknownScope: boolean }) {
   return (
     <AudienceSectionShell
-      title={format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
-      description={format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
+      title={aggregate ? "Bilans łączny meczów — wszystkie etapy" : unknownScope ? "Bilans informacyjny — zakres etapów niepotwierdzony" : format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
+      description={aggregate ? "Zbiorczy bilans meczów, nie klasyfikacja etapu. Awans i zwycięzcę wyznaczają wyniki etapów — zobacz Etapy i Drabinka." : unknownScope ? "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy." : format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
     >
       {standings.length === 0 ? (
         <EmptyAudienceSection>Tabela nie jest jeszcze dostępna.</EmptyAudienceSection>
@@ -874,10 +886,10 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/8 bg-card">
-          <table className="w-full min-w-[680px] text-sm" aria-label="Pełna klasyfikacja turnieju">
+          <table className="w-full min-w-[680px] text-sm" aria-label={aggregate ? "Bilans łączny meczów ze wszystkich etapów" : unknownScope ? "Bilans informacyjny przy niepotwierdzonej liczbie etapów" : "Pełna klasyfikacja turnieju"}>
             <thead className="border-b border-white/8 bg-white/3 text-left text-[11px] uppercase tracking-wider text-white/35">
               <tr>
-                <th className="px-4 py-3 text-center">Miejsce</th>
+                {!aggregate && !unknownScope && <th className="px-4 py-3 text-center">Miejsce</th>}
                 <th className="px-4 py-3">Gracz</th>
                 <th className="px-4 py-3">Drużyna</th>
                 <th className="px-3 py-3 text-center">Mecze</th>
@@ -891,7 +903,7 @@ function PublicStandingsSection({ standings, format }: { standings: Standing[]; 
             <tbody className="divide-y divide-white/6">
               {standings.map((standing) => (
                 <tr key={standing.playerId} className="text-white/70">
-                  <td className="px-4 py-3 text-center font-mono font-bold text-cyan-300">{standing.rank}</td>
+                  {!aggregate && !unknownScope && <td className="px-4 py-3 text-center font-mono font-bold text-cyan-300">{standing.rank}</td>}
                   <td className="px-4 py-3 font-semibold text-white">{standing.playerName}</td>
                   <td className="px-4 py-3 text-white/45">{standing.teamName || "—"}</td>
                   <td className="px-3 py-3 text-center font-mono">{standing.matchesPlayed}</td>
