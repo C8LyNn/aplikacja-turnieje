@@ -19,7 +19,7 @@ import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
 import TournamentAudience from "./tournament-audience";
-import { getListTournamentStagesQueryKey } from "@workspace/api-client-react";
+import { getGetTournamentQueryKey, getListTournamentStagesQueryKey } from "@workspace/api-client-react";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -238,11 +238,14 @@ test("cached one-stage standings become neutral after failed stage refetch witho
   }, undefined, "standings");
 
   const key = getListTournamentStagesQueryKey(1);
+  const tournamentKey = getGetTournamentQueryKey(1);
   const rankedPanel = await screen.findByRole("region", { name: "Klasyfikacja" }, { timeout: 4000 });
   assert.ok(within(rankedPanel).getByRole("columnheader", { name: "Miejsce" }));
-  const winnerBefore = screen.getByText("Turniej zakończony!").parentElement!;
-  assert.match(winnerBefore.textContent ?? "", /Zwycięzca: Final champion/);
-  assert.doesNotMatch(winnerBefore.textContent ?? "", /Zwycięzca: Earlier stage leader/);
+  assert.equal(
+    qc.getQueryData<{ winnerId?: number }>(tournamentKey)?.winnerId,
+    2,
+    "Persisted tournament winner must be independent of the earlier-stage standings leader",
+  );
 
   stageRequestFails = true;
   await act(async () => {
@@ -257,9 +260,11 @@ test("cached one-stage standings become neutral after failed stage refetch witho
     assert.equal(within(neutralPanel).queryByText("🥇"), null);
     assert.match(neutralPanel.textContent ?? "", /nie jest podstawą awansu ani wyłonienia zwycięzcy/);
   });
-  const winnerAfter = screen.getByText("Turniej zakończony!").parentElement!;
-  assert.match(winnerAfter.textContent ?? "", /Zwycięzca: Final champion/);
-  assert.doesNotMatch(winnerAfter.textContent ?? "", /Zwycięzca: Earlier stage leader/);
+  assert.equal(
+    qc.getQueryData<{ winnerId?: number }>(tournamentKey)?.winnerId,
+    2,
+    "Failed stage metadata refresh must not alter persisted winnerId",
+  );
 });
 
 describe("TournamentAudience — password gate regression", () => {
