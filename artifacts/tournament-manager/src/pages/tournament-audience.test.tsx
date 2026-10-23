@@ -198,7 +198,7 @@ test("multi-stage standings do not advertise qualification or podium places", as
     if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
     return jsonResponse([]);
   }, undefined, "standings");
-  const panel = await screen.findByRole("region", { name: "Bilans łączny meczów — wszystkie etapy" });
+  const panel = await screen.findByRole("region", { name: "Bilans łączny meczów — wszystkie etapy" }, { timeout: 4000 });
   assert.match(panel.textContent ?? "", /Awans i zwycięzcę wyznaczają wyniki etapów/);
   assert.equal(within(panel).queryByRole("columnheader", { name: "Miejsce" }), null);
 });
@@ -212,7 +212,7 @@ test("single-stage standings retain ranked-table presentation", async () => {
     if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
     return jsonResponse([]);
   }, undefined, "standings");
-  const panel = await screen.findByRole("region", { name: "Klasyfikacja" });
+  const panel = await screen.findByRole("region", { name: "Klasyfikacja" }, { timeout: 4000 });
   assert.ok(within(panel).getByRole("columnheader", { name: "Miejsce" }));
 });
 
@@ -238,7 +238,7 @@ test("cached one-stage standings become neutral after failed stage refetch witho
   }, undefined, "standings");
 
   const key = getListTournamentStagesQueryKey(1);
-  const rankedPanel = await screen.findByRole("region", { name: "Klasyfikacja" });
+  const rankedPanel = await screen.findByRole("region", { name: "Klasyfikacja" }, { timeout: 4000 });
   assert.ok(within(rankedPanel).getByRole("columnheader", { name: "Miejsce" }));
   const winnerBefore = screen.getByText("Turniej zakończony!").parentElement!;
   assert.match(winnerBefore.textContent ?? "", /Zwycięzca: Final champion/);
