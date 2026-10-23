@@ -183,8 +183,9 @@ export default function TournamentAudience() {
     },
   });
   const { data: stages } = stagesQuery;
-  const hasMultipleStages = (stages?.length ?? 0) > 1;
-  const stageScopeUnknown = stages === undefined;
+  // Cached stage data cannot certify scope after a failed refresh.
+  const stageScopeUnknown = stages === undefined || stagesQuery.isError;
+  const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
   const standingsInformational = hasMultipleStages || stageScopeUnknown;
   const publicStage = selectPublicStage(stages, tournament?.activeStageId);
   const bracket = publicStageBracket(tournamentBracket, publicStage);

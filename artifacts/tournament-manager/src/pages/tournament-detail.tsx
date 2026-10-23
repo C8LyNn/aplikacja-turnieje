@@ -173,11 +173,13 @@ export default function TournamentDetail() {
   const { data: history } = useGetResultsHistory(id, {
     query: { enabled: !!id && tournament?.status !== "draft" && readOk, queryKey: getGetResultsHistoryQueryKey(id) },
   });
-  const { data: stages } = useListTournamentStages(id, {
+  const stagesQuery = useListTournamentStages(id, {
     query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
-  const hasMultipleStages = (stages?.length ?? 0) > 1;
-  const stageScopeUnknown = stages === undefined;
+  const { data: stages } = stagesQuery;
+  // Cached stage data cannot certify scope after a failed refresh.
+  const stageScopeUnknown = stages === undefined || stagesQuery.isError;
+  const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
   const standingsInformational = hasMultipleStages || stageScopeUnknown;
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.

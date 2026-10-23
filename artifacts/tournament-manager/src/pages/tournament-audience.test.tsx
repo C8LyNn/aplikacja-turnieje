@@ -19,6 +19,7 @@ import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
 import TournamentAudience from "./tournament-audience";
+import { getListTournamentStagesQueryKey } from "@workspace/api-client-react";
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -213,6 +214,52 @@ test("single-stage standings retain ranked-table presentation", async () => {
   }, undefined, "standings");
   const panel = await screen.findByRole("region", { name: "Klasyfikacja" });
   assert.ok(within(panel).getByRole("columnheader", { name: "Miejsce" }));
+});
+
+test("cached one-stage standings become neutral after failed stage refetch without changing persisted winner", async () => {
+  const stages = [{ id: 1, position: 1, name: "Grupy", status: "completed", format: "round_robin" }];
+  let stageRequestFails = false;
+  const qc = renderAudience(async input => {
+    const url = String(input);
+    if (url.endsWith("/api/tournaments/1")) {
+      return jsonResponse({ ...tournamentPayload(), status: "completed", format: "round_robin", activeStageId: 1, winnerId: 2 });
+    }
+    if (url.endsWith("/stages")) {
+      return stageRequestFails
+        ? jsonResponse({ code: "STAGES_TEMPORARILY_UNAVAILABLE", error: "Stage refresh failed" }, 503)
+        : jsonResponse(stages);
+    }
+    if (url.endsWith("/standings")) return jsonResponse([
+      { playerId: 1, playerName: "Earlier stage leader", rank: 1, matchesPlayed: 5, matchWins: 5, matchLosses: 0, gameWins: 5, gameLosses: 0, gameDiff: 5, status: "active" },
+      { playerId: 2, playerName: "Final champion", rank: 2, matchesPlayed: 3, matchWins: 3, matchLosses: 0, gameWins: 3, gameLosses: 0, gameDiff: 3, status: "active" },
+    ]);
+    if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
+    return jsonResponse([]);
+  }, undefined, "standings");
+
+  const key = getListTournamentStagesQueryKey(1);
+  const rankedPanel = await screen.findByRole("region", { name: "Klasyfikacja" });
+  assert.ok(within(rankedPanel).getByRole("columnheader", { name: "Miejsce" }));
+  const winnerBefore = screen.getByText("Turniej zakończony!").parentElement!;
+  assert.match(winnerBefore.textContent ?? "", /Zwycięzca: Final champion/);
+  assert.doesNotMatch(winnerBefore.textContent ?? "", /Zwycięzca: Earlier stage leader/);
+
+  stageRequestFails = true;
+  await act(async () => {
+    await qc.refetchQueries({ queryKey: key, exact: true, type: "active" });
+  });
+
+  await waitFor(() => {
+    assert.equal(qc.getQueryState(key)?.status, "error");
+    assert.deepEqual(qc.getQueryData(key), stages, "A failed refetch must leave earlier one-stage data cached");
+    const neutralPanel = screen.getByRole("region", { name: "Bilans informacyjny — zakres etapów niepotwierdzony" });
+    assert.equal(within(neutralPanel).queryByRole("columnheader", { name: "Miejsce" }), null);
+    assert.equal(within(neutralPanel).queryByText("🥇"), null);
+    assert.match(neutralPanel.textContent ?? "", /nie jest podstawą awansu ani wyłonienia zwycięzcy/);
+  });
+  const winnerAfter = screen.getByText("Turniej zakończony!").parentElement!;
+  assert.match(winnerAfter.textContent ?? "", /Zwycięzca: Final champion/);
+  assert.doesNotMatch(winnerAfter.textContent ?? "", /Zwycięzca: Earlier stage leader/);
 });
 
 describe("TournamentAudience — password gate regression", () => {
