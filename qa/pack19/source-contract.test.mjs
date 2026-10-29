@@ -9,7 +9,8 @@ const openapi=read('lib/api-spec/openapi.yaml');
 const panel=read('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
 const ci=read('.github/workflows/tournament-correction-ci.yml');
 test('transaction is explicitly read-only and snapshot isolation',()=>{
- assert.match(router,/isolationLevel:"repeatable read",readOnly:true/);
+ assert.match(router,/db\.transaction\s*\(/);
+ assert.match(router,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
  assert.doesNotMatch(router, /(?:tx|db)\.\s*(?:insert|update|delete|execute)\s*\(/);
 });
 test('only organizers can access readiness',()=>assert.match(router,/requireOrganizer\(req,res,tournamentId\)/));

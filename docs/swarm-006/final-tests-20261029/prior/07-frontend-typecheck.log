@@ -1,0 +1,4 @@
+
+> @workspace/tournament-manager@0.0.0 typecheck C:\Users\kubap\AppData\Local\Temp\SWARM006_A00_G1_R3_6eb7bd6ac31a_Drive\checkout\artifacts\tournament-manager
+> tsc -p tsconfig.json --noEmit
+

@@ -11,7 +11,7 @@ const engine=read("artifacts/api-server/src/domain/tournament/se-correction-impa
 test("Pack25 output is generated from consistent existing SE readiness transaction",()=>{
   assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
   assert.match(server,/matchId:match\.id,stage,stages,stageMatches:matches,actionPlan/);
-  assert.match(server,/\{isolationLevel:"repeatable read",readOnly:true\}/);
+  assert.match(server,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
 });
 test("no extra write route; reuses organizer access and read-only endpoint",()=>{
   assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
@@ -20,7 +20,7 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
 });
 test("server returns graph together with prior diagnostic and action plan",()=>{
-  assert.match(server,/return \{ \.\.\.result, actionPlan, diagnostic, impactGraph \}/);
+  assert.match(server,/return \{ \.\.\.result, actionPlan, diagnostic, impactGraph(?:, impactRiskReport)? \}/);
 });
 test("panel includes graph type and field",()=>{
   assert.match(ui,/type SeImpactGraph = \{/);

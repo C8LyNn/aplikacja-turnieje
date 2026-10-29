@@ -1,0 +1,39 @@
+{
+  "id": "execution-guard-01",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "--test-reporter=tap",
+    "C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\guard-selftest.cjs"
+  ],
+  "command": "node --test --test-reporter=tap C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\guard-selftest.cjs",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:25:22.846Z",
+  "finished_utc": "2026-10-29T10:25:23.076Z",
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 3,
+    "suites": 0,
+    "pass": 2,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "execution-guard-01.log",
+  "log_sha256": "ea0a3b193f8c08b383ec7b6201dc9cf664cbe35e4d522be2760c521ff88d6de1",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

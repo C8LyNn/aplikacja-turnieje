@@ -1,0 +1,364 @@
+TAP version 13
+# Subtest: diagnostic workbench uses stable priority queue and does not interrupt active item
+ok 1 - diagnostic workbench uses stable priority queue and does not interrupt active item
+  ---
+  duration_ms: 1.5667
+  type: 'test'
+  ...
+# Subtest: cooldown and monetary threshold decisions are visible without event payloads
+ok 2 - cooldown and monetary threshold decisions are visible without event payloads
+  ---
+  duration_ms: 0.2502
+  type: 'test'
+  ...
+# Subtest: queue overflow admits a more important alert and drops least important one
+ok 3 - queue overflow admits a more important alert and drops least important one
+  ---
+  duration_ms: 0.3367
+  type: 'test'
+  ...
+# Subtest: diagnostic log is bounded to 60 entries and reset is safe
+ok 4 - diagnostic log is bounded to 60 entries and reset is safe
+  ---
+  duration_ms: 0.5603
+  type: 'test'
+  ...
+# Subtest: traffic profiles are stable, timestamp sorted, duration-bounded and contain no viewer data
+ok 5 - traffic profiles are stable, timestamp sorted, duration-bounded and contain no viewer data
+  ---
+  duration_ms: 0.9594
+  type: 'test'
+  ...
+# Subtest: rAF analysis refuses to guess FPS with insufficient samples
+ok 6 - rAF analysis refuses to guess FPS with insufficient samples
+  ---
+  duration_ms: 0.1821
+  type: 'test'
+  ...
+# Subtest: slow rAF cadence and long-tail spikes generate grounded warnings
+ok 7 - slow rAF cadence and long-tail spikes generate grounded warnings
+  ---
+  duration_ms: 0.1708
+  type: 'test'
+  ...
+# Subtest: automatic runner advances local queue in real time and closes timers at completion
+ok 8 - automatic runner advances local queue in real time and closes timers at completion
+  ---
+  duration_ms: 82.6024
+  type: 'test'
+  ...
+# Subtest: a backgrounded browser tab aborts measurements rather than reporting success
+ok 9 - a backgrounded browser tab aborts measurements rather than reporting success
+  ---
+  duration_ms: 46.7468
+  type: 'test'
+  ...
+# Subtest: a synthetic timeline can be exported and replayed with identical scheduling
+ok 10 - a synthetic timeline can be exported and replayed with identical scheduling
+  ---
+  duration_ms: 43.7024
+  type: 'test'
+  ...
+# Subtest: follower, tip and chat captions agree between editor and exported widget
+ok 11 - follower, tip and chat captions agree between editor and exported widget
+  ---
+  duration_ms: 0.834
+  type: 'test'
+  ...
+# Subtest: caption schema clamps untrusted color, template, placement and size
+ok 12 - caption schema clamps untrusted color, template, placement and size
+  ---
+  duration_ms: 0.1962
+  type: 'test'
+  ...
+# Subtest: control characters are stripped, message size is bounded and unknown placeholders remain literal
+ok 13 - control characters are stripped, message size is bounded and unknown placeholders remain literal
+  ---
+  duration_ms: 0.1456
+  type: 'test'
+  ...
+# Subtest: avatar URL validation restricts transport and host without query-based bypasses
+ok 14 - avatar URL validation restricts transport and host without query-based bypasses
+  ---
+  duration_ms: 0.1702
+  type: 'test'
+  ...
+# Subtest: avatar settings default off and clamp imported sizes
+ok 15 - avatar settings default off and clamp imported sizes
+  ---
+  duration_ms: 0.1062
+  type: 'test'
+  ...
+# Subtest: custom caption coordinates clamp to the visible safe band
+ok 16 - custom caption coordinates clamp to the visible safe band
+  ---
+  duration_ms: 0.0771
+  type: 'test'
+  ...
+# Subtest: entry and exit timing is identical in editor and generated widget
+ok 17 - entry and exit timing is identical in editor and generated widget
+  ---
+  duration_ms: 0.3368
+  type: 'test'
+  ...
+# Subtest: trace export/import preserves exact ordering and strips unknown viewer fields
+ok 18 - trace export/import preserves exact ordering and strips unknown viewer fields
+  ---
+  duration_ms: 1.2636
+  type: 'test'
+  ...
+# Subtest: rejects malformed, oversized or unsafe trace imports
+ok 19 - rejects malformed, oversized or unsafe trace imports
+  ---
+  duration_ms: 0.9903
+  type: 'test'
+  ...
+# Subtest: A/B with the same trace shows accurate signed deltas without invented verdict
+ok 20 - A/B with the same trace shows accurate signed deltas without invented verdict
+  ---
+  duration_ms: 0.252
+  type: 'test'
+  ...
+# Subtest: different traces block comparisons and insufficient FPS does not invent deltas
+ok 21 - different traces block comparisons and insufficient FPS does not invent deltas
+  ---
+  duration_ms: 0.1469
+  type: 'test'
+  ...
+# Subtest: legacy and disabled timelines do not create motion
+ok 22 - legacy and disabled timelines do not create motion
+  ---
+  duration_ms: 0.8159
+  type: 'test'
+  ...
+# Subtest: two keyframes generate bounded transform and opacity properties
+ok 23 - two keyframes generate bounded transform and opacity properties
+  ---
+  duration_ms: 0.3004
+  type: 'test'
+  ...
+# Subtest: partial imported frames inherit defaults and invalid poses are clamped
+ok 24 - partial imported frames inherit defaults and invalid poses are clamped
+  ---
+  duration_ms: 0.1192
+  type: 'test'
+  ...
+# Subtest: deduplicates timestamp and limits motion tracks to sixteen frames
+ok 25 - deduplicates timestamp and limits motion tracks to sixteen frames
+  ---
+  duration_ms: 0.2962
+  type: 'test'
+  ...
+# Subtest: keyframe names cannot inject styles and loop easing is included
+ok 26 - keyframe names cannot inject styles and loop easing is included
+  ---
+  duration_ms: 0.1791
+  type: 'test'
+  ...
+# Subtest: round-trips advanced controls, zone settings, disabled layers and metadata
+ok 27 - round-trips advanced controls, zone settings, disabled layers and metadata
+  ---
+  duration_ms: 3.5334
+  type: 'test'
+  ...
+# Subtest: clamps custom values and rejects non-declared control keys
+ok 28 - clamps custom values and rejects non-declared control keys
+  ---
+  duration_ms: 0.4545
+  type: 'test'
+  ...
+# Subtest: rejects null and non-scene data without throwing an unhelpful type error
+ok 29 - rejects null and non-scene data without throwing an unhelpful type error
+  ---
+  duration_ms: 0.3762
+  type: 'test'
+  ...
+# Subtest: skips unknown effects and retains the remaining valid layers
+ok 30 - skips unknown effects and retains the remaining valid layers
+  ---
+  duration_ms: 0.4173
+  type: 'test'
+  ...
+# Subtest: generated widget subscribes to official event entry point and hides event layers until trigger
+ok 31 - generated widget subscribes to official event entry point and hides event layers until trigger
+  ---
+  duration_ms: 3.1441
+  type: 'test'
+  ...
+# Subtest: generated widget rejects small tips without requiring HTML insertion
+ok 32 - generated widget rejects small tips without requiring HTML insertion
+  ---
+  duration_ms: 1.4676
+  type: 'test'
+  ...
+# Subtest: exported widget renders bounded follower captions as text, never HTML
+ok 33 - exported widget renders bounded follower captions as text, never HTML
+  ---
+  duration_ms: 1.7511
+  type: 'test'
+  ...
+# Subtest: chat event.data carries displayName and message for safe placeholder substitution
+ok 34 - chat event.data carries displayName and message for safe placeholder substitution
+  ---
+  duration_ms: 1.4566
+  type: 'test'
+  ...
+# Subtest: disabled captions and unknown placeholders are non-executable
+ok 35 - disabled captions and unknown placeholders are non-executable
+  ---
+  duration_ms: 1.4192
+  type: 'test'
+  ...
+# Subtest: embedded JS escapes malicious template delimiters without changing visible caption
+ok 36 - embedded JS escapes malicious template delimiters without changing visible caption
+  ---
+  duration_ms: 1.4609
+  type: 'test'
+  ...
+# Subtest: queued alerts are serialized even across independent effect layers
+ok 37 - queued alerts are serialized even across independent effect layers
+  ---
+  duration_ms: 1.7874
+  type: 'test'
+  ...
+# Subtest: flood of queued events is bounded to sixteen waiting alerts
+ok 38 - flood of queued events is bounded to sixteen waiting alerts
+  ---
+  duration_ms: 2.1036
+  type: 'test'
+  ...
+# Subtest: caption avatar uses initials fallback or allowlisted HTTPS images
+ok 39 - caption avatar uses initials fallback or allowlisted HTTPS images
+  ---
+  duration_ms: 2.1673
+  type: 'test'
+  ...
+# Subtest: higher priority tip overtakes waiting chat without interrupting active follow
+ok 40 - higher priority tip overtakes waiting chat without interrupting active follow
+  ---
+  duration_ms: 2.1076
+  type: 'test'
+  ...
+# Subtest: full queue admits new higher-priority event by evicting lowest waiting
+ok 41 - full queue admits new higher-priority event by evicting lowest waiting
+  ---
+  duration_ms: 2.0766
+  type: 'test'
+  ...
+# Subtest: custom X/Y placement is preserved in generated caption styles
+ok 42 - custom X/Y placement is preserved in generated caption styles
+  ---
+  duration_ms: 1.3593
+  type: 'test'
+  ...
+# Subtest: caption entrance/exit presets are included in exported CSS and runtime animation
+ok 43 - caption entrance/exit presets are included in exported CSS and runtime animation
+  ---
+  duration_ms: 1.5043
+  type: 'test'
+  ...
+# Subtest: generated StreamElements widget emits anonymized, bounded queue telemetry
+ok 44 - generated StreamElements widget emits anonymized, bounded queue telemetry
+  ---
+  duration_ms: 1.5022
+  type: 'test'
+  ...
+# Subtest: widget reports eviction, queue-full and cleanup with no per-viewer data
+ok 45 - widget reports eviction, queue-full and cleanup with no per-viewer data
+  ---
+  duration_ms: 1.9191
+  type: 'test'
+  ...
+# Subtest: untimed scenes preserve legacy continuous behavior
+ok 46 - untimed scenes preserve legacy continuous behavior
+  ---
+  duration_ms: 0.6011
+  type: 'test'
+  ...
+# Subtest: one-shot opacity envelope includes delay, fade and final invisibility
+ok 47 - one-shot opacity envelope includes delay, fade and final invisibility
+  ---
+  duration_ms: 0.291
+  type: 'test'
+  ...
+# Subtest: loop mode retains delay inside every repeat
+ok 48 - loop mode retains delay inside every repeat
+  ---
+  duration_ms: 0.1257
+  type: 'test'
+  ...
+# Subtest: normalizes malformed imported timing without producing unsafe CSS
+ok 49 - normalizes malformed imported timing without producing unsafe CSS
+  ---
+  duration_ms: 0.1313
+  type: 'test'
+  ...
+# Subtest: independent layers get independent scoped keyframe names
+ok 50 - independent layers get independent scoped keyframe names
+  ---
+  duration_ms: 0.2097
+  type: 'test'
+  ...
+# Subtest: keeps at least ten seconds of preview for untimed scenes
+ok 51 - keeps at least ten seconds of preview for untimed scenes
+  ---
+  duration_ms: 0.6126
+  type: 'test'
+  ...
+# Subtest: computes the longest enabled timeline without counting hidden layers
+ok 52 - computes the longest enabled timeline without counting hidden layers
+  ---
+  duration_ms: 0.1196
+  type: 'test'
+  ...
+# Subtest: pointer mapping is snapped to 100 ms, clamped, and handles invalid geometry
+ok 53 - pointer mapping is snapped to 100 ms, clamped, and handles invalid geometry
+  ---
+  duration_ms: 0.1303
+  type: 'test'
+  ...
+# Subtest: seek clamps non-finite and out-of-bounds values
+ok 54 - seek clamps non-finite and out-of-bounds values
+  ---
+  duration_ms: 0.0592
+  type: 'test'
+  ...
+# Subtest: old scenes remain continuous and unsupported event names fall back safely
+ok 55 - old scenes remain continuous and unsupported event names fall back safely
+  ---
+  duration_ms: 0.6102
+  type: 'test'
+  ...
+# Subtest: event trigger configuration clamps amounts and anti-spam intervals
+ok 56 - event trigger configuration clamps amounts and anti-spam intervals
+  ---
+  duration_ms: 0.1039
+  type: 'test'
+  ...
+# Subtest: match follow, donation/cheer amount and cooldown but ignore unknown listeners
+ok 57 - match follow, donation/cheer amount and cooldown but ignore unknown listeners
+  ---
+  duration_ms: 0.1568
+  type: 'test'
+  ...
+# Subtest: event playback forces one cycle without mutating the saved looping scene
+ok 58 - event playback forces one cycle without mutating the saved looping scene
+  ---
+  duration_ms: 0.2556
+  type: 'test'
+  ...
+# Subtest: priority is optional in old scenes, clamped to 0..10 for new and imported scenes
+ok 59 - priority is optional in old scenes, clamped to 0..10 for new and imported scenes
+  ---
+  duration_ms: 0.0948
+  type: 'test'
+  ...
+1..59
+# tests 59
+# suites 0
+# pass 59
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3226.4641

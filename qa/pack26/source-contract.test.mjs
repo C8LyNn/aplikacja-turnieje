@@ -12,7 +12,7 @@ const tests=read("artifacts/api-server/test/se-correction-impact-risk-report.tes
 test("Pack26 derives risk report only from existing Pack25 consistent snapshot",()=>{
  assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
  assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
- assert.match(server,/\{isolationLevel:"repeatable read",readOnly:true\}/);
+ assert.match(server,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
 });
 test("no new API route, reuses organizer-only readiness",()=>{
  assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);

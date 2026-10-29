@@ -1,0 +1,39 @@
+{
+  "id": "schema-config-unit-02",
+  "source_commit": "c3f640470262064f890774d935c1388408051d5e",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "--test-reporter=tap",
+    "lib/db/test/schema-catalog-comparison.test.mjs"
+  ],
+  "command": "node --test --test-reporter=tap lib/db/test/schema-catalog-comparison.test.mjs",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:33:22.834Z",
+  "finished_utc": "2026-10-29T10:33:23.186Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 3,
+    "suites": 1,
+    "pass": 3,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "schema-config-unit-02.log",
+  "log_sha256": "51f9c7fabda6abc7d171c5d272e6d9a22a0a19fcdeadb33579c8c4e2454d53f1",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

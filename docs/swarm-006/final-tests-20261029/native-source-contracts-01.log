@@ -1,0 +1,912 @@
+▶ source-only canonical manifest
+  ✔ validates R4-derived 0027–0040 manifest (1.5922ms)
+  ✔ rejects duplicate logical_id (0.9757ms)
+  ✔ rejects duplicate canonical number (0.2325ms)
+  ✔ rejects unknown hard dependency (0.1968ms)
+  ✔ rejects canonical ordering cycles (0.288ms)
+  ✔ rejects mismatched source lineage and commit (0.1809ms)
+  ✔ rejects changed blob checksum shape (0.142ms)
+  ✔ rejects false approval status (0.1822ms)
+  ✔ requires only the historic 0030 and 0031 collisions (0.2746ms)
+✔ source-only canonical manifest (5.1522ms)
+▶ fail-closed synthetic historical ledger
+  ✔ empty clean-install candidate still requires approval and PG16 verification (0.5815ms)
+  ✔ release 0031 history is a review candidate (0.2169ms)
+  ✔ editor 0038 history is a review candidate, not a hard-dependency error (1.6546ms)
+  ✔ fully mixed history is review only, never GO (0.196ms)
+  ✔ release R30-only is a valid partial candidate (0.1376ms)
+  ✔ editor E30-only is a partial candidate (0.088ms)
+  ✔ R31 without R30 stops (0.517ms)
+  ✔ E36 without E35 stops (0.1431ms)
+  ✔ editor gap mid-chain stops even without hard dependency (0.16ms)
+  ✔ legacy 0030 without identity stops (0.1848ms)
+  ✔ legacy 0030 with identity still requires independent adoption (0.1191ms)
+  ✔ unknown ledger id stops (0.0958ms)
+  ✔ duplicate ledger receipt stops (0.1056ms)
+  ✔ source checksum mismatch stops (0.1056ms)
+  ✔ unverified catalog-only observation stops (0.1158ms)
+  ✔ adopted receipt stops without 00 attestation (0.1259ms)
+  ✔ missing catalog fingerprint stops (0.1345ms)
+  ✔ claims of real database attestation stop (0.1072ms)
+✔ fail-closed synthetic historical ledger (5.2117ms)
+▶ actual source bytes, synthetic SQL files only
+  ✔ verifies exact file bytes and rejects a changed byte (15.3734ms)
+  ✔ rejects changed R31 transaction wrapper (8.992ms)
+✔ actual source bytes, synthetic SQL files only (24.4994ms)
+▶ versioned synthetic fixture matrix
+  ✔ clean_install → REVIEW_ONLY (0.2884ms)
+  ✔ release_upgrade → REVIEW_ONLY (0.1101ms)
+  ✔ editor_upgrade → REVIEW_ONLY (0.1185ms)
+  ✔ mixed_history → REVIEW_ONLY (0.1088ms)
+  ✔ partial_R30 → REVIEW_ONLY (0.0607ms)
+  ✔ partial_E30 → REVIEW_ONLY (0.0576ms)
+  ✔ invalid_orphan_R31 → STOP (0.5168ms)
+  ✔ invalid_gap_E33 → STOP (0.163ms)
+✔ versioned synthetic fixture matrix (1.5801ms)
+✔ atomic correction delegates both domain mutations the SAME transaction (0.8199ms)
+✔ single-domain mutation entry points also accept an injected transaction (0.2507ms)
+✔ optimistic guard and approval receipt are checked inside revert transaction (0.1853ms)
+✔ auditing requires a unique active completion with matching original match (0.0969ms)
+✔ atomic operation changes to corrected only after new result is committed inside transaction (0.0939ms)
+✔ HTTP endpoint is organizer-protected and uses idempotent receipt recovery (0.0663ms)
+✔ mounted atomic router is reachable (0.056ms)
+✔ approval records persist correction identifiers and receipts (0.0747ms)
+✔ migration 0030 creates journal scoped to tournament and match (0.0713ms)
+✔ migration 0031 adds corrected state AND both receipt fields (0.1435ms)
+✔ PostgreSQL migration files do not drop tournaments or matches (0.1753ms)
+✔ Pack 17 real-db tests are present and require isolated test database config (1.5216ms)
+✔ SE analysis does not mutate any persisted table (0.6898ms)
+✔ Only organizers may call the safety API (0.1036ms)
+✔ Endpoint is mounted in real API and documented in OpenAPI (0.086ms)
+✔ Endpoint never sets executionEnabled to true (0.0559ms)
+✔ SE guard rejects advanced bracket and qualified players (0.1237ms)
+✔ UI presents safety as advisory and does not expose SE execute button (0.0787ms)
+✔ CI uses disposable postgres and full integration gate (0.1078ms)
+✖ transaction is explicitly read-only and snapshot isolation (1.3064ms)
+✔ only organizers can access readiness (0.1743ms)
+✔ strict reconciliation requires history, audit and stage version (0.1586ms)
+✔ query validates input shape and prevents oversized version tokens (0.073ms)
+✔ response is never mutation permission (0.0789ms)
+✔ route mounted in Express and documented (0.0692ms)
+✔ organizer UI shows separate snapshot check, not SE execute (0.091ms)
+✔ CI runs Pack 19 unit and contract tests without deploy (0.1101ms)
+✔ Pack20 action plan never grants permission or performs writes (2.5495ms)
+✖ Readiness endpoint keeps a read-only repeatable-read transaction (1.8576ms)
+✔ Plan is derived inside consistent snapshot and never from independently fetched data (1.4562ms)
+✔ Client renders plan as hypothetical with no SE execute control (0.8668ms)
+✔ OpenAPI advertises advisory-only action plan (1.05ms)
+✔ CI runs the pack20 tests (0.8328ms)
+✔ No unexpected SE mutation route was added (1.1146ms)
+✔ diagnostic never authorizes a SE write (2.1237ms)
+✖ diagnostic generated inside one read-only repeatable-read DB snapshot (1.5992ms)
+✔ assessment is tied to original completion action and proposed score (0.8605ms)
+✔ client displays human readable blockers and assessment ID as advisory (0.9136ms)
+✔ OpenAPI exposes diagnostics without write capability (1.0354ms)
+✔ CI runs the new tests and keeps prior gates (0.7087ms)
+✔ no SE correction write route enabled (1.019ms)
+✔ snapshot compare is in-memory, advisory and never stores auth-like tokens (2.1442ms)
+✔ panel preserves same-score prior analysis through a refreshed preview (1.5925ms)
+✔ panel removes comparison when selected match or score changes (0.8261ms)
+✔ panel labels differences as non-authoritative (0.7837ms)
+✔ ci runs Pack22 unit and source contract gates (0.8253ms)
+✔ no new SE write endpoints have been enabled (1.1778ms)
+✔ Pack23 installed: UI imports bounded history (0.623ms)
+✔ Pack23 installed: success callback validates scope before append (0.1441ms)
+✔ Pack23 installed: score/match changes clear history (0.1052ms)
+✔ Pack23 installed: clear button has working callback (0.0738ms)
+✔ Pack23 remains in-memory advisory only (0.1638ms)
+✔ Pack23 CI includes unit and contract gates (0.0736ms)
+✔ Pack23 adds paths for both triggers (0.0893ms)
+✔ Pack23 detects recurrence after absence (0.0531ms)
+✔ Pack24 UI imports priority engine (0.5838ms)
+✔ Pack24 UI computes priority from bounded history (0.0906ms)
+✔ Pack24 UI shows blockers grouped by step (0.0819ms)
+✔ Pack24 UI displays real dependencies (0.0702ms)
+✔ Pack24 UI shows recurring and persistent separately (0.0818ms)
+✔ Pack24 engine stays non-mutating (0.1402ms)
+✔ Pack24 engine rejects contradictory history (0.0529ms)
+✔ Pack24 CI has new test gate (0.0561ms)
+✔ Pack24 CI watches new QA paths on both triggers (0.1105ms)
+✔ Pack24 retains previous history and compare (0.1197ms)
+✖ Pack25 output is generated from consistent existing SE readiness transaction (1.3393ms)
+✔ no extra write route; reuses organizer access and read-only endpoint (0.2492ms)
+✖ server returns graph together with prior diagnostic and action plan (0.2189ms)
+✔ panel includes graph type and field (0.0928ms)
+✔ panel only renders the same chosen match and requires advisory flags (0.0853ms)
+✔ panel distinguishes actual slot from possible future path (0.0798ms)
+✔ panel visibly warns when graph is incomplete (0.0629ms)
+✔ panel displays later stages as separate assessment (0.0645ms)
+✔ OpenAPI contains advisory-only schema and explicit no-write flags (0.1604ms)
+✔ CI executes domain tests and static contract (0.1807ms)
+✔ CI includes both push and PR path filters (0.1292ms)
+✔ existing safety history and triage remain intact (0.0802ms)
+✖ Pack26 derives risk report only from existing Pack25 consistent snapshot (1.3797ms)
+✔ no new API route, reuses organizer-only readiness (0.1593ms)
+✔ one response includes both graph and report (0.0676ms)
+✔ strictly no DB or browser writes in pure report engine (0.1718ms)
+✔ report enforces fail-closed flag consistency (0.0752ms)
+✔ panel accepts typed report without enabling execution (0.0868ms)
+✔ UI requires risk report to refer to current SE impact graph (0.0937ms)
+✔ UI labels confirmed versus potential versus incomplete (0.1192ms)
+✔ UI shows actual affected match IDs and stage IDs (0.1709ms)
+✔ OpenAPI explicitly states advisory-only with denied write (0.1857ms)
+✔ CI includes Pack26 tests for pushes and pull requests (0.1335ms)
+✔ regression tests cover invalid flags, duplicates, and counter mismatches (0.0571ms)
+ℹ tests 126
+ℹ suites 4
+ℹ pass 120
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1087.8001
+
+✖ failing tests:
+
+test at qa\pack19\source-contract.test.mjs:11:1
+✖ transaction is explicitly read-only and snapshot isolation (1.3064ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /isolationLevel:"repeatable read",readOnly:true/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack19/source-contract.test.mjs:12:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /isolationLevel:"repeatable read",readOnly:true/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at qa\pack20\source-contract.test.mjs:13:1
+✖ Readiness endpoint keeps a read-only repeatable-read transaction (1.8576ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /isolationLevel:"repeatable read",readOnly:true/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack20/source-contract.test.mjs:15:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /isolationLevel:"repeatable read",readOnly:true/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at qa\pack21\source-contract.test.mjs:12:1
+✖ diagnostic generated inside one read-only repeatable-read DB snapshot (1.5992ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /isolationLevel:"repeatable read",readOnly:true/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack21/source-contract.test.mjs:15:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /isolationLevel:"repeatable read",readOnly:true/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at qa\pack25\source-contract.test.mjs:11:1
+✖ Pack25 output is generated from consistent existing SE readiness transaction (1.3393ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\{isolationLevel:"repeatable read",readOnly:true\}/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack25/source-contract.test.mjs:14:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /\{isolationLevel:"repeatable read",readOnly:true\}/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at qa\pack25\source-contract.test.mjs:22:1
+✖ server returns graph together with prior diagnostic and action plan (0.2189ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /return \{ \.\.\.result, actionPlan, diagnostic, impactGraph \}/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack25/source-contract.test.mjs:23:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /return \{ \.\.\.result, actionPlan, diagnostic, impactGraph \}/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at qa\pack26\source-contract.test.mjs:12:1
+✖ Pack26 derives risk report only from existing Pack25 consistent snapshot (1.3797ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\{isolationLevel:"repeatable read",readOnly:true\}/. Input:
+  
+  '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n' +
+    ' * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n' +
+    ' */\r\n' +
+    'import { Router, type IRouter } from "express";\r\n' +
+    'import { and, desc, eq } from "drizzle-orm";\r\n' +
+    'import {\r\n' +
+    '  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n' +
+    '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n' +
+    '} from "@workspace/db";\r\n' +
+    'import { requireOrganizer } from "../access-policy";\r\n' +
+    'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\n' +
+    'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\n' +
+    'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\n' +
+    'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\n' +
+    'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\n' +
+    'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n' +
+    '\r\n' +
+    'const router: IRouter = Router();\r\n' +
+    'const positive = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\n' +
+    'const score = (value: unknown): value is number =>\r\n' +
+    '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n' +
+    '\r\n' +
+    'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n' +
+    '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n' +
+    '  const body: unknown = req.body;\r\n' +
+    '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n' +
+    '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n' +
+    '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n' +
+    '      typeof b.expectedStageVersionVector !== "string" ||\r\n' +
+    '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n' +
+    '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n' +
+    '  }\r\n' +
+    '  const access = await requireOrganizer(req,res,tournamentId);\r\n' +
+    '  if (!access) return;\r\n' +
+    '  res.setHeader("Cache-Control","no-store");\r\n' +
+    '  // A consistent MVCC view without write locks. The later write transaction\r\n' +
+    '  // MUST perform its own independent, locked revalidation.\r\n' +
+    '  const outcome = await db.transaction(async tx => {\r\n' +
+    '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n' +
+    '    const [match] = await tx.select().from(matchesTable).where(and(\r\n' +
+    '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n' +
+    '    if (!tournament || !match) return null;\r\n' +
+    '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n' +
+    '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n' +
+    '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n' +
+    '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n' +
+    '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n' +
+    '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n' +
+    '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n' +
+    '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n' +
+    '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n' +
+    '      tx.select().from(actionLogTable).where(and(\r\n' +
+    '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n' +
+    '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n' +
+    '      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n' +
+    '    ]);\r\n' +
+    '    const stage=stages.find(item=>item.id===match.stageId);\r\n' +
+    '    if(!stage)return null;\r\n' +
+    '    const h=histories[0];\r\n' +
+    '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n' +
+    '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n' +
+    '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n' +
+    '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n' +
+    '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n' +
+    '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n' +
+    '    let completionActionUnambiguous=false;\r\n' +
+    '    if(actions.length===1) {\r\n' +
+    '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n' +
+    '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n' +
+    '          (decoded as {type?:unknown}).type==="revert_match" &&\r\n' +
+    '          (decoded as {matchId?:unknown}).matchId===match.id;\r\n' +
+    '      }catch { /* invalid undo payload => blocker */ }\r\n' +
+    '    }\r\n' +
+    '    const result=deriveSeCorrectionReadiness({\r\n' +
+    '      assessment:{\r\n' +
+    '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n' +
+    '        score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '        historyVerified,completionActionUnambiguous,\r\n' +
+    '      },\r\n' +
+    '      expectedMatchRevision:b.expectedMatchRevision as number,\r\n' +
+    '      actualMatchRevision:match.revision,\r\n' +
+    '      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n' +
+    '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n' +
+    '      allowExecution:false,\r\n' +
+    '    });\r\n' +
+    '    const actionPlan = deriveSeCorrectionActionPlan({\r\n' +
+    '      readiness:result,\r\n' +
+    '      score1:b.score1 as number,score2:b.score2 as number,\r\n' +
+    '      originalScore1:match.score1,originalScore2:match.score2,\r\n' +
+    '    });\r\n' +
+    '    const diagnostic = deriveSeCorrectionDiagnostic({\r\n' +
+    '      readiness:result,plan:actionPlan,\r\n' +
+    '      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n' +
+    '    });\r\n' +
+    '    const impactGraph = deriveSeCorrectionImpactGraph({\r\n' +
+    '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n' +
+    '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n' +
+    '    });\r\n' +
+    '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n' +
+    '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n' +
+    '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n' +
+    '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n' +
+    '  res.json(outcome);\r\n' +
+    '});\r\n' +
+    'export default router;\r\n'
+  
+      at TestContext.<anonymous> (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/qa/pack26/source-contract.test.mjs:15:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\r\n * This endpoint NEVER authorizes a write and NEVER updates the database.\r\n */\r\nimport { Router, type IRouter } from "express";\r\nimport { and, desc, eq } from "drizzle-orm";\r\nimport {\r\n  actionLogTable, db, matchesTable, qualificationProposalsTable,\r\n  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\r\n} from "@workspace/db";\r\nimport { requireOrganizer } from "../access-policy";\r\nimport { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\r\nimport { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\r\nimport { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\r\nimport { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\r\nimport { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\r\nimport { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\r\n\r\nconst router: IRouter = Router();\r\nconst positive = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\r\nconst score = (value: unknown): value is number =>\r\n  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\r\n\r\nrouter.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\r\n  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\r\n  const body: unknown = req.body;\r\n  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\r\n  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\r\n      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\r\n      typeof b.expectedStageVersionVector !== "string" ||\r\n      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\r\n    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\r\n  }\r\n  const access = await requireOrganizer(req,res,tournamentId);\r\n  if (!access) return;\r\n  res.setHeader("Cache-Control","no-store");\r\n  // A consistent MVCC view without write locks. The later write transaction\r\n  // MUST perform its own independent, locked revalidation.\r\n  const outcome = await db.transaction(async tx => {\r\n    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\r\n    const [match] = await tx.select().from(matchesTable).where(and(\r\n      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\r\n    if (!tournament || !match) return null;\r\n    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\r\n      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\r\n      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\r\n      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\r\n        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\r\n        eq(qualificationProposalsTable.status,"approved"))).limit(1),\r\n      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\r\n        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\r\n      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\r\n      tx.select().from(actionLogTable).where(and(\r\n        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\r\n        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\r\n      )).orderBy(desc(actionLogTable.id)).limit(2),\r\n    ]);\r\n    const stage=stages.find(item=>item.id===match.stageId);\r\n    if(!stage)return null;\r\n    const h=histories[0];\r\n    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\r\n      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\r\n      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\r\n      h.bestOf===match.bestOf && h.resultType===match.resultType &&\r\n      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\r\n      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\r\n    let completionActionUnambiguous=false;\r\n    if(actions.length===1) {\r\n      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\r\n        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\r\n          (decoded as {type?:unknown}).type==="revert_match" &&\r\n          (decoded as {matchId?:unknown}).matchId===match.id;\r\n      }catch { /* invalid undo payload => blocker */ }\r\n    }\r\n    const result=deriveSeCorrectionReadiness({\r\n      assessment:{\r\n        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\r\n        score1:b.score1 as number,score2:b.score2 as number,\r\n        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n        historyVerified,completionActionUnambiguous,\r\n      },\r\n      expectedMatchRevision:b.expectedMatchRevision as number,\r\n      actualMatchRevision:match.revision,\r\n      expectedStageVersionVector:b.expectedStageVersionVector as string,\r\n      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\r\n      allowExecution:false,\r\n    });\r\n    const actionPlan = deriveSeCorrectionActionPlan({\r\n      readiness:result,\r\n      score1:b.score1 as number,score2:b.score2 as number,\r\n      originalScore1:match.score1,originalScore2:match.score2,\r\n    });\r\n    const diagnostic = deriveSeCorrectionDiagnostic({\r\n      readiness:result,plan:actionPlan,\r\n      expectedCompletionActionId:b.expectedCompletionActionId as number,\r\n    });\r\n    const impactGraph = deriveSeCorrectionImpactGraph({\r\n      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\r\n      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\r\n    });\r\n    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\r\n    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\r\n  }, {isolationLevel:"repeatable read",accessMode:"read only"});\r\n  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\r\n  res.json(outcome);\r\n});\r\nexport default router;\r\n',
+    expected: /\{isolationLevel:"repeatable read",readOnly:true\}/,
+    operator: 'match',
+    diff: 'simple'
+  }

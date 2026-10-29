@@ -1,0 +1,177 @@
+diff --git a/artifacts/api-server/test/se-readiness-transaction-contract.test.ts b/artifacts/api-server/test/se-readiness-transaction-contract.test.ts
+new file mode 100644
+index 00000000..97eae437
+--- /dev/null
++++ b/artifacts/api-server/test/se-readiness-transaction-contract.test.ts
+@@ -0,0 +1,53 @@
++import assert from "node:assert/strict";
++import { readFileSync } from "node:fs";
++import { createRequire } from "node:module";
++import { test } from "node:test";
++import { drizzle, type NodePgClient } from "drizzle-orm/node-postgres";
++import type { PgTransactionConfig } from "drizzle-orm/pg-core";
++
++const ts = createRequire(import.meta.url)("typescript") as typeof import("typescript");
++
++// Read the production call's literal options without importing its DB singleton.
++// Changing accessMode to the unsupported readOnly flag must fail this contract.
++function readinessTransactionOptions(): PgTransactionConfig {
++  const source = ts.createSourceFile(
++    "readiness.ts",
++    readFileSync(new URL("../src/routes/tournament-se-correction-readiness.ts", import.meta.url), "utf8"),
++    ts.ScriptTarget.Latest,
++    true,
++  );
++  const options: Record<string, string>[] = [];
++  function visit(node: import("typescript").Node): void {
++    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
++      && node.expression.expression.getText(source) === "db"
++      && node.expression.name.text === "transaction") {
++      const config = node.arguments[1];
++      assert.ok(config && ts.isObjectLiteralExpression(config), "Snapshot options must be explicit");
++      const entries = config.properties.map((property) => {
++        assert.ok(ts.isPropertyAssignment(property) && ts.isStringLiteral(property.initializer),
++          "Snapshot options must be literal string properties");
++        return [property.name.getText(source), property.initializer.text];
++      });
++      options.push(Object.fromEntries(entries));
++    }
++    ts.forEachChild(node, visit);
++  }
++  visit(source);
++  assert.equal(options.length, 1, "Readiness must use one explicit snapshot transaction");
++  return options[0] as PgTransactionConfig;
++}
++
++test("production readiness options generate REPEATABLE READ READ ONLY in the installed Drizzle driver", async () => {
++  const statements: string[] = [];
++  // Fake transport only: no Pool, connection, SQL execution or database exists.
++  const client = {
++    async query(query: string | { text: string }) {
++      statements.push(typeof query === "string" ? query : query.text);
++      return { rows: [], rowCount: 0, command: "", fields: [], oid: 0 };
++    },
++  };
++  const database = drizzle(client as unknown as NodePgClient);
++  const result = await database.transaction(async () => "snapshot", readinessTransactionOptions());
++  assert.equal(result, "snapshot");
++  assert.deepEqual(statements, ["begin isolation level repeatable read read only", "commit"]);
++});
+diff --git a/docs/superpowers/plans/2026-10-29-final-test-completion.md b/docs/superpowers/plans/2026-10-29-final-test-completion.md
+new file mode 100644
+index 00000000..938159e1
+--- /dev/null
++++ b/docs/superpowers/plans/2026-10-29-final-test-completion.md
+@@ -0,0 +1,37 @@
++# SWARM-006 Final Test Completion Plan
++
++> Execute inline using superpowers:executing-plans. Independent acceptance belongs to A60.
++
++**Goal:** Execute all available safe local test groups, fix demonstrated defects, preserve immutable prior evidence, and hand off exact-source results to A60 via draft PR and issue #150.
++
++**Architecture:** Separate disposable checkout based on G1 `6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3`; copy already installed dependencies without installation or access to pnpm store. Keep raw new logs, command receipts and SHA-256 manifests in a new evidence directory. Carry reusable evidence with source provenance.
++
++**Tech:** Node 24.18.0, existing tsx/TypeScript/React/jsdom, node:test; no package acquisition.
++
++**Spec:** User's 2026-10-29 FINAL TEST COMPLETION instruction and Issue #150 decisions 6367582998, 6369681108, 6397849194, 6398026292.
++
++## Constraints
++
++- Preserve G1, original evidence, G2 Install and Build roots and pnpm source store.
++- No G2 Install or Build invocation, DB/SQL/migration, staging, Neon/Replit, production server, deployment, Actions, protected merge.
++- Reuse accepted G1 React 11/11, declarations and frontend typecheck until a relevant source change invalidates them.
++- Missing dependencies, real DB or additional authority => BLOCKED; Build without receipt => PENDING.
++- Publish only via a source path with inspected workflow triggers and commit `[skip ci]`; if prevention cannot be established, retain local branch/patch and report BLOCKED.
++
++## Review focus
++
++- Discovery must not silently omit frontend .tsx files or include DB integration tests in safe groups.
++- Typecheck failures must remain visible; no casts/waivers merely to turn results green.
++- API contract tests exercise pure/injected routes only; no persistence claims.
++- Raw failures, cancellations and skips remain in evidence even after repair.
++- Report source commit, dirty patch hash when applicable, command, runtime, exit, counts and log hashes per run.
++
++## Tasks
++
++- [x] Read latest A00/A50/A60 decisions and inspect local artifacts/remote refs.
++- [x] Create isolated branch from G1; native worktree unavailable for non-workspace source, shallow/promisor clone unavailable; copied local Git metadata and working files without changing source.
++- [ ] Inventory installed dependencies, all test groups and reusable evidence. Inspect imports/side effects before execution.
++- [ ] Execute missing API units/contracts, frontend files excluding accepted audience test, pure native/static/regression tests and API typecheck. Save every run including failure.
++- [ ] For each demonstrated defect, reproduce first, apply minimal fix and add meaningful regression; rerun affected scope only.
++- [ ] Review diff, verify source/evidence immutability and hashes, prepare A60 report with BLOCKED/PENDING groups.
++- [ ] Create draft PR by safe API path and post one substantive issue #150 summary; no merge or gate promotion.
+diff --git a/qa/pack19/source-contract.test.mjs b/qa/pack19/source-contract.test.mjs
+index 8d5e8466..2d6fe05f 100644
+--- a/qa/pack19/source-contract.test.mjs
++++ b/qa/pack19/source-contract.test.mjs
+@@ -9,7 +9,8 @@ const openapi=read('lib/api-spec/openapi.yaml');
+ const panel=read('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
+ const ci=read('.github/workflows/tournament-correction-ci.yml');
+ test('transaction is explicitly read-only and snapshot isolation',()=>{
+- assert.match(router,/isolationLevel:"repeatable read",readOnly:true/);
++ assert.match(router,/db\.transaction\s*\(/);
++ assert.match(router,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
+  assert.doesNotMatch(router, /(?:tx|db)\.\s*(?:insert|update|delete|execute)\s*\(/);
+ });
+ test('only organizers can access readiness',()=>assert.match(router,/requireOrganizer\(req,res,tournamentId\)/));
+diff --git a/qa/pack20/source-contract.test.mjs b/qa/pack20/source-contract.test.mjs
+index 81e814f9..2873a5e0 100644
+--- a/qa/pack20/source-contract.test.mjs
++++ b/qa/pack20/source-contract.test.mjs
+@@ -12,7 +12,7 @@ test('Pack20 action plan never grants permission or performs writes',()=>{
+ });
+ test('Readiness endpoint keeps a read-only repeatable-read transaction',()=>{
+   const s=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
+-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
++  assert.match(s,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
+   assert.match(s,/deriveSeCorrectionActionPlan\(/);
+   assert.doesNotMatch(s,/\.insert\(|\.update\(|\.delete\(/);
+ });
+diff --git a/qa/pack21/source-contract.test.mjs b/qa/pack21/source-contract.test.mjs
+index 54eafcc7..8daa4f24 100644
+--- a/qa/pack21/source-contract.test.mjs
++++ b/qa/pack21/source-contract.test.mjs
+@@ -12,7 +12,7 @@ test("diagnostic never authorizes a SE write",()=>{
+ test("diagnostic generated inside one read-only repeatable-read DB snapshot",()=>{
+   const s=get("artifacts/api-server/src/routes/tournament-se-correction-readiness.ts");
+   assert.match(s,/deriveSeCorrectionDiagnostic\(/);
+-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
++  assert.match(s,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
+   assert.doesNotMatch(s,/\btx\.(?:update|insert|delete)\s*\(/);
+ });
+ test("assessment is tied to original completion action and proposed score",()=>{
+diff --git a/qa/pack25/source-contract.test.mjs b/qa/pack25/source-contract.test.mjs
+index c4a7417d..daa8cad3 100644
+--- a/qa/pack25/source-contract.test.mjs
++++ b/qa/pack25/source-contract.test.mjs
+@@ -11,7 +11,7 @@ const engine=read("artifacts/api-server/src/domain/tournament/se-correction-impa
+ test("Pack25 output is generated from consistent existing SE readiness transaction",()=>{
+   assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
+   assert.match(server,/matchId:match\.id,stage,stages,stageMatches:matches,actionPlan/);
+-  assert.match(server,/\{isolationLevel:"repeatable read",readOnly:true\}/);
++  assert.match(server,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
+ });
+ test("no extra write route; reuses organizer access and read-only endpoint",()=>{
+   assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);
+@@ -20,7 +20,7 @@ test("no extra write route; reuses organizer access and read-only endpoint",()=>
+   assert.doesNotMatch(engine,/\b(?:fetch|db|localStorage|sessionStorage)\s*\./);
+ });
+ test("server returns graph together with prior diagnostic and action plan",()=>{
+-  assert.match(server,/return \{ \.\.\.result, actionPlan, diagnostic, impactGraph \}/);
++  assert.match(server,/return \{ \.\.\.result, actionPlan, diagnostic, impactGraph(?:, impactRiskReport)? \}/);
+ });
+ test("panel includes graph type and field",()=>{
+   assert.match(ui,/type SeImpactGraph = \{/);
+diff --git a/qa/pack26/source-contract.test.mjs b/qa/pack26/source-contract.test.mjs
+index 6bd5d457..18417b76 100644
+--- a/qa/pack26/source-contract.test.mjs
++++ b/qa/pack26/source-contract.test.mjs
+@@ -12,7 +12,7 @@ const tests=read("artifacts/api-server/test/se-correction-impact-risk-report.tes
+ test("Pack26 derives risk report only from existing Pack25 consistent snapshot",()=>{
+  assert.match(server,/deriveSeCorrectionImpactGraph\(\{/);
+  assert.match(server,/deriveSeCorrectionImpactRiskReport\(impactGraph\)/);
+- assert.match(server,/\{isolationLevel:"repeatable read",readOnly:true\}/);
++ assert.match(server,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
+ });
+ test("no new API route, reuses organizer-only readiness",()=>{
+  assert.match(server,/requireOrganizer\(req,res,tournamentId\)/);

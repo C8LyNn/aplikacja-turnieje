@@ -1,0 +1,399 @@
+{
+  "source": "C:/Users/kubap/Documents/GitHub/aplikacja-turnieje-live",
+  "method": "copy existing importer links and missing installed packages only",
+  "copied_packages": [
+    "gifenc@1.0.3",
+    "html-to-image@1.11.13"
+  ],
+  "links": 67,
+  "records": [
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/dist/gifenc.esm.js",
+      "sha256": "217761244379253ba5815510d3048a4fb1f4c4dbe9fb51a5cfbfe26f34eec093"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/dist/gifenc.esm.js.map",
+      "sha256": "e38adbb2f7c90725fe9a61bb7ebcaa6917ef1107e6d6bf3df0566ce27743882a"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/dist/gifenc.js",
+      "sha256": "ab1ff6a05a05ddb85f642ae4c3f96d9e69e56fcfc472982172b088344e0fdb59"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/dist/gifenc.js.map",
+      "sha256": "8f68cd681ccc35468de940fe892079b1f064480f5166fba13140d7225f98e650"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/LICENSE.md",
+      "sha256": "47bc590c39d8ccccfc544875a9faebf44bafa828ef20315b396b5d0629f0cfd6"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/package.json",
+      "sha256": "4f2e8d4abc4e3f421211778eb43f915da3a8330cbe607dba8b7004357e08bfc9"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/README.md",
+      "sha256": "9622cf7987e3ff58cfb15353d76ce378828458bebce1cf38a769c7e971d3b31c"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/color.js",
+      "sha256": "41a914e3a2502ea3529414a730d6f9776f9e7f60aa2fba7c0459ccdaa8e5732c"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/constants.js",
+      "sha256": "ebbc17a4b34af7f141285bca39ad533fab33ca40a54f1ed024435421c58a2103"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/index.js",
+      "sha256": "cabba5e290b21e40611f1cb972c1e6fee912139b727a254aacb05605cbd61c5c"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/lzwEncode.js",
+      "sha256": "f25e485eda237d20c7780f1cd456c4b346b6dbff8e3f5215fb4ee5b32793b33a"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/palettize.js",
+      "sha256": "70f8e191d8f6f6e51bc6fc853a51f1b008c0a2fe144c4a3390b6342aaa9857bb"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/pnnquant2.js",
+      "sha256": "267a6034fee19ccf783a6ca6dc32bdb2ffea637e633abb6fd9929f8692ec932a"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/rgb-packing.js",
+      "sha256": "ff33b1c5fee53b07089109b12d828e2c039b38ad50976665b25637ea906d2f53"
+    },
+    {
+      "path": "node_modules/.pnpm/gifenc@1.0.3/node_modules/gifenc/src/stream.js",
+      "sha256": "31f4a64498ff8bcd5d69c04f8c0dc7e07f235e4708bd52472981266201f83f41"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/dist/html-to-image.js",
+      "sha256": "a90b42909d80964269ef6d5f3d1e4a5a7e2a4c263a5d2a76a9e7151901343262"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/dist/html-to-image.js.map",
+      "sha256": "08d578b3ebca8854895c208a101eb9ac088adf6ad766137cb9a4ef260d9c5c8d"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/apply-style.d.ts",
+      "sha256": "0f576b7c34b3f0a8a2fe6a0009d1a3bddc4d340435e80759af56b533ba24305f"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/apply-style.js",
+      "sha256": "4196b6fe5671ab03b215a3c2e2e9bd5679d2277ba5baf34ad35830581d3aa78b"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/apply-style.js.map",
+      "sha256": "ab67da305ef1b372609ef6e959ce247992ca90bc855b8b1262edd5b3dbd9b5b4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-node.d.ts",
+      "sha256": "becd1da882df768825320fa459b9b25293589effda2adfe25bf24369d78e9daf"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-node.js",
+      "sha256": "c7d5a5b734c87856cccd6c7804b33db00ccf2e856e4a2e6289db557c20546f7c"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-node.js.map",
+      "sha256": "eba5aa7adf7ac9f3f536f540c389f06fbdd619ef1d3ef813a6e5b314baba5c04"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-pseudos.d.ts",
+      "sha256": "e4f587248d49d0ce0bed44b809c6ac31575f532cbea324120131e76f87f979a4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-pseudos.js",
+      "sha256": "ecde62e8800870485732d15b5f035ac0f434f81ff671150e86dc61dd21c59f22"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/clone-pseudos.js.map",
+      "sha256": "60280c37a75075ce2e0c9b3a72c909b3a4c5c0baf417db10e8b1254370e54fa1"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/dataurl.d.ts",
+      "sha256": "19a73d33287a726820d5f3f460fcdf53860d9b0df93b5e913e96eaeabe3f9164"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/dataurl.js",
+      "sha256": "56604a681031b5e1be40f9b273bce304bad94ebba3946a20327cdb54fd2cc8f6"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/dataurl.js.map",
+      "sha256": "5339d9b9ddc5f3a2b4b823bc4f414d43c51fc53386d8f358b6a96d14e45512ca"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-images.d.ts",
+      "sha256": "afa0397e4ef2900ea6b8f69cf76eddcf6fd74fab59db8dba9fbebde319e6de83"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-images.js",
+      "sha256": "2cdd7d96b558df8390b167cdf49cb0a5500caa52fdae7340aacb16836da9bb81"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-images.js.map",
+      "sha256": "6990000d7a59f2b418f27344996627ac6b4112c5376218a7d1252d4023424ba2"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-resources.d.ts",
+      "sha256": "53e62c0e29abd92964867847cce09b85a2fa9ea5895446314efe7db9022a3ffc"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-resources.js",
+      "sha256": "ead3747fefac7927d5cf5ae47273c11916cfd0c53dfad8c30dadb6c365121372"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-resources.js.map",
+      "sha256": "b96b9da29e33ba5b874651b94b8be1a52c97af1738cc90a33525042b9e84ac34"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-webfonts.d.ts",
+      "sha256": "ac4b9977202fa2751980890d2e18d39d20fd8018895d5122e13cb438ea0a19ad"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-webfonts.js",
+      "sha256": "e69c955e86d4e9b2d551e58148190e4d2e384a11e6a8b633fdae3b08abe91cc8"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/embed-webfonts.js.map",
+      "sha256": "7b197d4fbd33aa0522ca8824b0602c710c549f96b7d8af7d4abf546a4d771961"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/index.d.ts",
+      "sha256": "bf673997a66d2225f43fe1b51cdddd497d0a8c08a990ee331457f2d017563075"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/index.js",
+      "sha256": "196047f6d85e0c48dcdeb3aa3af73ba82d27a3ef5c6950d569b7fd7ac0807f28"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/index.js.map",
+      "sha256": "31adb25dc75396d58bfad47d9755021508d5ad582cdddc930e3b10fc9a7bbc66"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/mimes.d.ts",
+      "sha256": "c28a887f9e8e81bec306c5fa30354d80631dba3b36297478b8663f4d9bc6ffd8"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/mimes.js",
+      "sha256": "8d6a4a9d628422ff83c661444a27ab7f72de9f2cecc23a330be2289ff2198659"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/mimes.js.map",
+      "sha256": "a6060614d18e7eee547879bc933a30b23c30b2847f5e1118bc49a9b93e64226b"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/types.d.ts",
+      "sha256": "ee09b9348d02aec6cd1cebb94c27896c10d47efa042a3fbc9c90dd6a7f6af752"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/types.js",
+      "sha256": "01ae2a5b120382f9a648ced7ee8507493a134f216d100fc61600c6c9738235d2"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/types.js.map",
+      "sha256": "a7de897b48fe57bf54d6f84169135ff2e89e2fc95ea0a0a815761cc29a41efee"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/util.d.ts",
+      "sha256": "ee4aa401c607115dba4d3794eb6593733e02d9314fb67d218e9dda97c464bcb4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/util.js",
+      "sha256": "dca823d47be217c74cc660184030f78ee1b1f9a790e2c9d073524786f2e5de2a"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/es/util.js.map",
+      "sha256": "f084eef22ecf9f44347e3a7d0500301d4aaf3bda3cb719ccb5def605ce54c13c"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/apply-style.d.ts",
+      "sha256": "0f576b7c34b3f0a8a2fe6a0009d1a3bddc4d340435e80759af56b533ba24305f"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/apply-style.js",
+      "sha256": "0d830386fd8398d92f382f2eb98c62398fc0bca45896b3ce7c0abd6ef075e200"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/apply-style.js.map",
+      "sha256": "7f221d883727897a9f7d7593ebf1140e3d0157333ae9705e81be745f0da861c9"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-node.d.ts",
+      "sha256": "becd1da882df768825320fa459b9b25293589effda2adfe25bf24369d78e9daf"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-node.js",
+      "sha256": "c625c5473371e57664e578d4b574e81ff738d33fd59e361474ea0169f7f2f213"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-node.js.map",
+      "sha256": "1be3605d23207462f948ed3b1db0962d4dd6638a2fd2b69c114a977f27eb4763"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-pseudos.d.ts",
+      "sha256": "e4f587248d49d0ce0bed44b809c6ac31575f532cbea324120131e76f87f979a4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-pseudos.js",
+      "sha256": "2ffefae989994c0d0da364f7f03d8fd01910a8f82f5625c850bf00d8d93eebf4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/clone-pseudos.js.map",
+      "sha256": "8818f5803e51da6271a2fd088239307d4aacce02fa7b6864ef7a85fd3c767d5b"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/dataurl.d.ts",
+      "sha256": "19a73d33287a726820d5f3f460fcdf53860d9b0df93b5e913e96eaeabe3f9164"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/dataurl.js",
+      "sha256": "2dd8efed425ab0dd8fd838ff3b9c2320f6a34fa9de5969edb5a4efdd59384750"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/dataurl.js.map",
+      "sha256": "2815d32cbf73fb403808d92a9461268516dbe466210cfaf76fea0c60d25fa9ec"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-images.d.ts",
+      "sha256": "afa0397e4ef2900ea6b8f69cf76eddcf6fd74fab59db8dba9fbebde319e6de83"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-images.js",
+      "sha256": "f5ff5af7ea09a4b549faed0c2e185cb2add6130442ad0c3c44a88860f4492a1a"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-images.js.map",
+      "sha256": "d609ab2ee42c569f0ec88a46149650a63fabff23f65c34083334ccdc8ce1f880"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-resources.d.ts",
+      "sha256": "53e62c0e29abd92964867847cce09b85a2fa9ea5895446314efe7db9022a3ffc"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-resources.js",
+      "sha256": "e3161702721d2a50b2f6b9f4dae7d7705b9f894a4cd321ab91157e95cb21b761"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-resources.js.map",
+      "sha256": "e7a50cb632d75d88a68734dbe3d62f10de95e398139444224931eb8a98e3b90c"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-webfonts.d.ts",
+      "sha256": "ac4b9977202fa2751980890d2e18d39d20fd8018895d5122e13cb438ea0a19ad"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-webfonts.js",
+      "sha256": "4776072057e1062406d573386fc191a1dfe5c5e0feb9d8afe6b87205204f32bc"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/embed-webfonts.js.map",
+      "sha256": "780785b3766dd6d0ff5802b2a89fb1895c4006db01354aa9854e04eb9c713488"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/index.d.ts",
+      "sha256": "bf673997a66d2225f43fe1b51cdddd497d0a8c08a990ee331457f2d017563075"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/index.js",
+      "sha256": "019ed89ee57ad404192f3493310b7c8a8746c4323df9baee442bbabac0782c60"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/index.js.map",
+      "sha256": "869cdbea687f7d81deb3d79be613b39e5bc8ddc05a3cad023d6b0e5c7a5b8543"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/mimes.d.ts",
+      "sha256": "c28a887f9e8e81bec306c5fa30354d80631dba3b36297478b8663f4d9bc6ffd8"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/mimes.js",
+      "sha256": "d5634d80e2c2e63f45b71047cd3e20b1b09e26361d49fbaeedeb13f786226d28"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/mimes.js.map",
+      "sha256": "d25b90fe20b77ac313645690b1048e60f282055fe89c026df50c5da1c08d986e"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/types.d.ts",
+      "sha256": "ee09b9348d02aec6cd1cebb94c27896c10d47efa042a3fbc9c90dd6a7f6af752"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/types.js",
+      "sha256": "b0d2bc4142d0c62d43f996aaeb64f22c4889ac853f8a3765758b505d972d0149"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/types.js.map",
+      "sha256": "a7de897b48fe57bf54d6f84169135ff2e89e2fc95ea0a0a815761cc29a41efee"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/util.d.ts",
+      "sha256": "ee4aa401c607115dba4d3794eb6593733e02d9314fb67d218e9dda97c464bcb4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/util.js",
+      "sha256": "b864761f735010eb4d3d1d76dd4536255f7ba7ed472c5e3e91f0531e2fee373a"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/lib/util.js.map",
+      "sha256": "25e2a2ce0a294d18984cc593afa1e05ea44b803a7cabbb471f4592bfe4f09286"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/LICENSE",
+      "sha256": "9fe73723f7a9e91057f73aafc9b6a3c3b2174db2b3ddc0a3a6a8ddf2bad68e37"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/package.json",
+      "sha256": "2d2de1eb25d1fdbe1f0745728513c5504d69e840f1300009a9a359c222502873"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/README.md",
+      "sha256": "2b8eda0fe1aee981eb9068fcbc2c3a836beca5bad308508e234b202490c77bf5"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/apply-style.ts",
+      "sha256": "7062ab37833e307e3c7e30293104ed65603e9b97330d00f6cabf30cf3b69441e"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/clone-node.ts",
+      "sha256": "7a6c94168e02dc734c8333c612ca5d9e6e8914aebbc9a2b695098d65f1d19a9c"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/clone-pseudos.ts",
+      "sha256": "2f53d71ef195806076473f3327e19d8cef70ad8425be054eb343342bc87dbdf2"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/dataurl.ts",
+      "sha256": "7b78cbe8c3c86e66a2f4faca8547163acfe9ae3676600957c0b1e5ea8d07bac1"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/embed-images.ts",
+      "sha256": "2d46bf4b532443a2e861844afd0cdeac2bd3d6cc797a1cc261de495ffc1f0a0e"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/embed-resources.ts",
+      "sha256": "516498d1972c92d91644e68ade96b56b212bf9afc710a10af82f0408b8fa21c1"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/embed-webfonts.ts",
+      "sha256": "8f85674abb0574b9b0ae0675ebcb21dc9508d058f34c697559fa0e42b7b7b5f4"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/index.ts",
+      "sha256": "ab6dca85e486161d48f8a840578e68770de8acd58775720fb47f5f01b3baad2f"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/mimes.ts",
+      "sha256": "b4253961b1959b7041f32929072295aa33cac991c6c05652784d790308f63dd9"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/types.ts",
+      "sha256": "c32729bd630b0251e62b0751bb02c68ad7b2a178b36026c631151b3b62cc8fef"
+    },
+    {
+      "path": "node_modules/.pnpm/html-to-image@1.11.13/node_modules/html-to-image/src/util.ts",
+      "sha256": "7764978dfeb6ff817f4816bd68deede39b7b84c469d06c8e5eabbb3d0dfd7607"
+    }
+  ]
+}

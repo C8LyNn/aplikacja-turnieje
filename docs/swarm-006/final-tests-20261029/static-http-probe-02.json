@@ -1,0 +1,38 @@
+{
+  "id": "static-http-probe-02",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "becfdf73c22277f81fc0eeae5b6a9d848ce5d6a5eb93c9c06491b4e99f1eeb51",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "scripts/qa/r23d-static-route-probe.mjs",
+    "--self-test"
+  ],
+  "command": "node scripts/qa/r23d-static-route-probe.mjs --self-test",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:27:30.882Z",
+  "finished_utc": "2026-10-29T10:27:31.189Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": null,
+    "suites": null,
+    "pass": null,
+    "fail": null,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  },
+  "log_file": "static-http-probe-02.log",
+  "log_sha256": "31b00f986c9ee70726b38940573119a7924e876a722ca3c0c48f369df0ccf6d0",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

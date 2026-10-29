@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: read-only Replit schema catalog comparison configuration
+    # Subtest: uses dedicated Development and Production variables without fallback
+    ok 1 - uses dedicated Development and Production variables without fallback
+      ---
+      duration_ms: 0.9536
+      type: 'test'
+      ...
+    # Subtest: rejects a missing dedicated URL even when generic URLs exist
+    ok 2 - rejects a missing dedicated URL even when generic URLs exist
+      ---
+      duration_ms: 0.617
+      type: 'test'
+      ...
+    # Subtest: rejects the same target, database name, and any schema other than public
+    ok 3 - rejects the same target, database name, and any schema other than public
+      ---
+      duration_ms: 0.3274
+      type: 'test'
+      ...
+    1..3
+ok 1 - read-only Replit schema catalog comparison configuration
+  ---
+  duration_ms: 3.0733
+  type: 'suite'
+  ...
+1..1
+# tests 3
+# suites 1
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 233.7441

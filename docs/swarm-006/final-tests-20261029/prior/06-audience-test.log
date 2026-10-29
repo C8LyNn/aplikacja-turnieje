@@ -1,0 +1,83 @@
+TAP version 13
+# Subtest: public match rows stay compact without changing order, scores or statuses
+ok 1 - public match rows stay compact without changing order, scores or statuses
+  ---
+  duration_ms: 184.9389
+  type: 'test'
+  ...
+# Subtest: public header can wrap its actions and keeps all navigation links with a long tournament name
+ok 2 - public header can wrap its actions and keeps all navigation links with a long tournament name
+  ---
+  duration_ms: 42.135
+  type: 'test'
+  ...
+# Subtest: completed Audience names the persisted winner, not the aggregate standings leader
+ok 3 - completed Audience names the persisted winner, not the aggregate standings leader
+  ---
+  duration_ms: 1255.2225
+  type: 'test'
+  ...
+# Subtest: multi-stage standings do not advertise qualification or podium places
+ok 4 - multi-stage standings do not advertise qualification or podium places
+  ---
+  duration_ms: 1258.3821
+  type: 'test'
+  ...
+# Subtest: single-stage standings retain ranked-table presentation
+ok 5 - single-stage standings retain ranked-table presentation
+  ---
+  duration_ms: 1256.0618
+  type: 'test'
+  ...
+# Subtest: cached one-stage standings become neutral after failed stage refetch without changing persisted winner
+ok 6 - cached one-stage standings become neutral after failed stage refetch without changing persisted winner
+  ---
+  duration_ms: 1268.999
+  type: 'test'
+  ...
+# Subtest: TournamentAudience — password gate regression
+    # Subtest: private_online without viewer session shows password gate
+    ok 1 - private_online without viewer session shows password gate
+      ---
+      duration_ms: 18.5447
+      type: 'test'
+      ...
+    # Subtest: password modal opens when the gate button is clicked
+    ok 2 - password modal opens when the gate button is clicked
+      ---
+      duration_ms: 74.6467
+      type: 'test'
+      ...
+    # Subtest: gate and modal stay mounted — typed password survives background refetch
+    ok 3 - gate and modal stay mounted — typed password survives background refetch
+      ---
+      duration_ms: 233.7475
+      type: 'test'
+      ...
+    # Subtest: correct viewer session clears gate and shows normal viewer content
+    ok 4 - correct viewer session clears gate and shows normal viewer content
+      ---
+      duration_ms: 22.7964
+      type: 'test'
+      ...
+    # Subtest: viewer header shows the forced Deadlock hero
+    ok 5 - viewer header shows the forced Deadlock hero
+      ---
+      duration_ms: 15.2667
+      type: 'test'
+      ...
+    1..5
+ok 7 - TournamentAudience — password gate regression
+  ---
+  duration_ms: 365.6042
+  type: 'suite'
+  ...
+1..7
+# tests 11
+# suites 1
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7471.8317

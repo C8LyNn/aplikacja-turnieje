@@ -1,0 +1,7 @@
+{
+  "original_sha256": "6a8d9573f9f31d34a5a60673b9897ed6cb06101770bdd9138c48e94d7a9507d8",
+  "restored_sha256": "6a8d9573f9f31d34a5a60673b9897ed6cb06101770bdd9138c48e94d7a9507d8",
+  "mutation": "accessMode: read only => read write in disposable source only",
+  "expected_exit": 1,
+  "actual_exit": 1
+}

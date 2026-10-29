@@ -1,0 +1,306 @@
+TAP version 13
+# Subtest: Configurable Seeding v2 deployment classification
+    # Subtest: classifies the Patch 02 schema as needed
+    ok 1 - classifies the Patch 02 schema as needed
+      ---
+      duration_ms: 1.0404
+      type: 'test'
+      ...
+    # Subtest: rejects an enum with the right size but a wrong value
+    ok 2 - rejects an enum with the right size but a wrong value
+      ---
+      duration_ms: 0.3868
+      type: 'test'
+      ...
+    # Subtest: classifies a matching marker and configured schema as applied
+    ok 3 - classifies a matching marker and configured schema as applied
+      ---
+      duration_ms: 0.1001
+      type: 'test'
+      ...
+    # Subtest: rejects configured schema without its marker
+    ok 4 - rejects configured schema without its marker
+      ---
+      duration_ms: 0.1837
+      type: 'test'
+      ...
+    # Subtest: requires the Flexible Group Stages prerequisite marker
+    ok 5 - requires the Flexible Group Stages prerequisite marker
+      ---
+      duration_ms: 0.1002
+      type: 'test'
+      ...
+    1..5
+ok 1 - Configurable Seeding v2 deployment classification
+  ---
+  duration_ms: 2.4945
+  type: 'suite'
+  ...
+# Subtest: Development series_v1 reset configuration
+    # Subtest: uses separate Development-only variable names
+    ok 1 - uses separate Development-only variable names
+      ---
+      duration_ms: 1.0283
+      type: 'test'
+      ...
+    # Subtest: rejects a Production environment
+    ok 2 - rejects a Production environment
+      ---
+      duration_ms: 0.9312
+      type: 'test'
+      ...
+    # Subtest: rejects a Development URL for the wrong database before connecting
+    ok 3 - rejects a Development URL for the wrong database before connecting
+      ---
+      duration_ms: 0.1865
+      type: 'test'
+      ...
+    # Subtest: requires the Development-specific destructive confirmation
+    ok 4 - requires the Development-specific destructive confirmation
+      ---
+      duration_ms: 0.0824
+      type: 'test'
+      ...
+    1..4
+ok 2 - Development series_v1 reset configuration
+  ---
+  duration_ms: 2.9473
+  type: 'suite'
+  ...
+# Subtest: Flexible Group Stages v2 deployment classification
+    # Subtest: classifies the guarded legacy Tournament Stages schema as needed
+    ok 1 - classifies the guarded legacy Tournament Stages schema as needed
+      ---
+      duration_ms: 0.9383
+      type: 'test'
+      ...
+    # Subtest: classifies a matching marker and flexible schema as applied
+    ok 2 - classifies a matching marker and flexible schema as applied
+      ---
+      duration_ms: 0.1243
+      type: 'test'
+      ...
+    # Subtest: rejects flexible schema without its migration marker
+    ok 3 - rejects flexible schema without its migration marker
+      ---
+      duration_ms: 0.1801
+      type: 'test'
+      ...
+    # Subtest: rejects execution without the Tournament Stages prerequisite marker
+    ok 4 - rejects execution without the Tournament Stages prerequisite marker
+      ---
+      duration_ms: 0.0969
+      type: 'test'
+      ...
+    # Subtest: rejects a marker created by another application artifact
+    ok 5 - rejects a marker created by another application artifact
+      ---
+      duration_ms: 0.0973
+      type: 'test'
+      ...
+    1..5
+ok 3 - Flexible Group Stages v2 deployment classification
+  ---
+  duration_ms: 2.9322
+  type: 'suite'
+  ...
+# node:internal/modules/package_json_reader:301
+#   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+#         ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'pg' imported from C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\lib\\db\\scripts\\compare-replit-schema-catalogs.mjs
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+#     at packageResolve (node:internal/modules/esm/resolve:768:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:992:11)
+#     at \#cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+#     at \#resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+#     at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+#     at \#resolve (node:internal/modules/esm/loader:683:17)
+#     at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+#     at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v24.18.0
+# Subtest: lib\\db\\test\\schema-catalog-comparison.test.mjs
+not ok 4 - lib\\db\\test\\schema-catalog-comparison.test.mjs
+  ---
+  duration_ms: 92.0486
+  type: 'test'
+  location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\lib\\db\\test\\schema-catalog-comparison.test.mjs:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: role home exposes semantic role hooks only for Experimental
+ok 5 - role home exposes semantic role hooks only for Experimental
+  ---
+  duration_ms: 1.297
+  type: 'test'
+  ...
+# Subtest: support entry gains scoped support surfaces without changing login behavior
+ok 6 - support entry gains scoped support surfaces without changing login behavior
+  ---
+  duration_ms: 0.1404
+  type: 'test'
+  ...
+# Subtest: fan entry marks cards by tournament status
+ok 7 - fan entry marks cards by tournament status
+  ---
+  duration_ms: 0.0883
+  type: 'test'
+  ...
+# Subtest: projector hooks remain Experimental-only and preserve URL/preset behavior
+ok 8 - projector hooks remain Experimental-only and preserve URL/preset behavior
+  ---
+  duration_ms: 0.1109
+  type: 'test'
+  ...
+# Subtest: create chooser exposes a scoped grid hook
+ok 9 - create chooser exposes a scoped grid hook
+  ---
+  duration_ms: 0.0701
+  type: 'test'
+  ...
+# Subtest: player rows expose status without changing status labels
+ok 10 - player rows expose status without changing status labels
+  ---
+  duration_ms: 0.0728
+  type: 'test'
+  ...
+# Subtest: checklist and dashboard dialogs expose dedicated visual surfaces
+ok 11 - checklist and dashboard dialogs expose dedicated visual surfaces
+  ---
+  duration_ms: 0.0993
+  type: 'test'
+  ...
+# Subtest: dashboard and player toolbar publish filter state for visual hierarchy
+ok 12 - dashboard and player toolbar publish filter state for visual hierarchy
+  ---
+  duration_ms: 0.0811
+  type: 'test'
+  ...
+# Subtest: compatibility passes on Pack 02 marker fixtures
+ok 13 - compatibility passes on Pack 02 marker fixtures
+  ---
+  duration_ms: 30.866
+  type: 'test'
+  ...
+# Subtest: install preserves CRLF and creates rollback backup
+ok 14 - install preserves CRLF and creates rollback backup
+  ---
+  duration_ms: 151.0218
+  type: 'test'
+  ...
+# Subtest: install is idempotent
+ok 15 - install is idempotent
+  ---
+  duration_ms: 97.4285
+  type: 'test'
+  ...
+# Subtest: compatibility rejects missing baseline marker before mutation
+ok 16 - compatibility rejects missing baseline marker before mutation
+  ---
+  duration_ms: 27.623
+  type: 'test'
+  ...
+# Subtest: visual audit passes only after semantic contract is installed
+ok 17 - visual audit passes only after semantic contract is installed
+  ---
+  duration_ms: 105.2914
+  type: 'test'
+  ...
+# Subtest: visual audit rejects unscoped Stable organizer selectors
+ok 18 - visual audit rejects unscoped Stable organizer selectors
+  ---
+  duration_ms: 90.1814
+  type: 'test'
+  ...
+# Subtest: visual audit covers entry player projector and dialog polish markers
+ok 19 - visual audit covers entry player projector and dialog polish markers
+  ---
+  duration_ms: 87.968
+  type: 'test'
+  ...
+# Subtest: patchCss adds Pack 03 semantic visual system exactly once
+ok 20 - patchCss adds Pack 03 semantic visual system exactly once
+  ---
+  duration_ms: 3.5865
+  type: 'test'
+  ...
+# Subtest: patchExperimentalUi expands tone API and data markers
+ok 21 - patchExperimentalUi expands tone API and data markers
+  ---
+  duration_ms: 0.237
+  type: 'test'
+  ...
+# Subtest: patchOverview assigns varied tones while preserving textual status
+ok 22 - patchOverview assigns varied tones while preserving textual status
+  ---
+  duration_ms: 0.1822
+  type: 'test'
+  ...
+# Subtest: patchHostCommandCenter differentiates live ready completed and other metrics
+ok 23 - patchHostCommandCenter differentiates live ready completed and other metrics
+  ---
+  duration_ms: 0.124
+  type: 'test'
+  ...
+# Subtest: patchDashboard adds Experimental-only status data without changing stable path
+ok 24 - patchDashboard adds Experimental-only status data without changing stable path
+  ---
+  duration_ms: 0.2616
+  type: 'test'
+  ...
+# Subtest: patchCreate adds visual hooks without touching payload construction
+ok 25 - patchCreate adds visual hooks without touching payload construction
+  ---
+  duration_ms: 0.1335
+  type: 'test'
+  ...
+# Subtest: patchCss upgrades an already-installed Pack 03 with full-surface coverage
+ok 26 - patchCss upgrades an already-installed Pack 03 with full-surface coverage
+  ---
+  duration_ms: 2.7816
+  type: 'test'
+  ...
+# Subtest: audience patch adds semantic hooks without changing match labels
+ok 27 - audience patch adds semantic hooks without changing match labels
+  ---
+  duration_ms: 0.2093
+  type: 'test'
+  ...
+# Subtest: bracket patch adds presentation hooks without touching bracket data
+ok 28 - bracket patch adds presentation hooks without touching bracket data
+  ---
+  duration_ms: 0.1096
+  type: 'test'
+  ...
+# Subtest: stages patch exposes lifecycle and readiness states for styling only
+ok 29 - stages patch exposes lifecycle and readiness states for styling only
+  ---
+  duration_ms: 0.0875
+  type: 'test'
+  ...
+# Subtest: baskets patch distinguishes inputs outputs stage status and locked mode
+ok 30 - baskets patch distinguishes inputs outputs stage status and locked mode
+  ---
+  duration_ms: 0.0942
+  type: 'test'
+  ...
+# Subtest: host surface patch annotates focused and result matches but keeps status source
+ok 31 - host surface patch annotates focused and result matches but keeps status source
+  ---
+  duration_ms: 0.0857
+  type: 'test'
+  ...
+1..31
+# tests 42
+# suites 3
+# pass 41
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1312.8702

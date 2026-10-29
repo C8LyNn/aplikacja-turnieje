@@ -1,0 +1,1238 @@
+{
+  "source_commit": "c3f640470262064f890774d935c1388408051d5e",
+  "source_tree": "bc89fdcde4e2454a31f214da8d88d03a2838143a",
+  "tests": [
+    {
+      "path": "artifacts/animated-effects/test/alertDiagnostics.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "e1601332e3d8492c787a45f2baf484d3f1928066",
+      "working_bytes_sha256": "9e9e3f227a08282934c2c4b79f7411ccc6031d03eb673f3fb68e83fbb7a139fe"
+    },
+    {
+      "path": "artifacts/animated-effects/test/alertStress.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "ccd34228430dc2b6bdc4fb3bcf22df00fb083153",
+      "working_bytes_sha256": "261efb357cca225ec739b59e0f5a0c11331c6b54fc9d40e8e9c82d3f394fcf13"
+    },
+    {
+      "path": "artifacts/animated-effects/test/alertText.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "fd4453ec7aefce9b0dd82909825cc12830d620d0",
+      "working_bytes_sha256": "4bfa3c6d0513d6323dd2250951cd735b8e6a483628bc0d319c53d9e9713fa205"
+    },
+    {
+      "path": "artifacts/animated-effects/test/alertTrace.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "317d938f9b9a36e3668d300003c265c0eefbb61c",
+      "working_bytes_sha256": "6181b72dca5a46b897eebed681562a367c9ac3179cb58293bcfbdc4a1a0f1aca"
+    },
+    {
+      "path": "artifacts/animated-effects/test/motion.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "8f42d62b6eb1f58846ceaff6ed242782ee17532e",
+      "working_bytes_sha256": "86494271a1682ca0ecd48cc7a364061e758be64c443518daf2c74ca2ca2958ed"
+    },
+    {
+      "path": "artifacts/animated-effects/test/scenes.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "6d6047061cb076853455b06143c1644dc9ddf61b",
+      "working_bytes_sha256": "9f3a6bf9e1144cc85bdd8303deb6579a5810002ea9ce299c090ca2ecfc160355"
+    },
+    {
+      "path": "artifacts/animated-effects/test/streamEvents.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "bb14c126a0133bf9980bcff13225b18ef66367c0",
+      "working_bytes_sha256": "47b18401fbde97f097158725c4e3511d8e91924cae0ce7634792b7ceeaf2081c"
+    },
+    {
+      "path": "artifacts/animated-effects/test/timeline.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "745cd9810a22300e289d2090b971d42f3bd79d1e",
+      "working_bytes_sha256": "5b0aa6d5c5b58dfe2bb0b6e8351d459f899bc5a639e0c9e61c919c7bfa9485a3"
+    },
+    {
+      "path": "artifacts/animated-effects/test/transport.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "43b52913db4e28cffcc63ac7a2f7773e952d662f",
+      "working_bytes_sha256": "f56f7883f1240c29b33307787ecafa95a8002cd4757a810cf4919dd7316495da"
+    },
+    {
+      "path": "artifacts/animated-effects/test/triggers.test.mjs",
+      "status": "PASS",
+      "reason": "Native synthetic animation cases",
+      "git_blob": "640a4a72b447d4d1f6847b4fad001b80ca0ea73a",
+      "working_bytes_sha256": "6386d3172f9ad2412774d274550ba850f465bc6b71e73264e75282ce24f8157e"
+    },
+    {
+      "path": "artifacts/api-server/test/access.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "014d9581d1bd105854121fab9107e117c0f966cf",
+      "working_bytes_sha256": "a45a64855efca86447956278603b47424c571f4702aefb219defe8fefc409bdf"
+    },
+    {
+      "path": "artifacts/api-server/test/auth-boundaries.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "be72bfc91400959f7c2e493b7cf8d08443b3d8f3",
+      "working_bytes_sha256": "1ee602a857462d6a2d40bf5464ccdb253d4c0f0383bcdef337387d809700904c"
+    },
+    {
+      "path": "artifacts/api-server/test/auth-config.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "4ca50b25e9af7ec37297261413e196721dc63b33",
+      "working_bytes_sha256": "e9f032c5467982fe0180b6fea6228491195feeaecca7fe3adbc04b58ebb431ac"
+    },
+    {
+      "path": "artifacts/api-server/test/basket-participant-flow.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "4fbe0dd149245311f6a653eef3be1bb8f87d95a5",
+      "working_bytes_sha256": "19a4940b32b84f008f5f4e5b7d64c3e05cf727d21832673e5d8322e2b9a2663d"
+    },
+    {
+      "path": "artifacts/api-server/test/complete-match.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "5b3b8942e792d231639d3cbae88e942de166abd2",
+      "working_bytes_sha256": "05b70a5497776272ab7a6acf6bcfcb487f02838a066ae22fe5fc2230f1ac8db4"
+    },
+    {
+      "path": "artifacts/api-server/test/core-clash-multiplayer.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "9ee3323f8c783439a25e53d6120d4f0bde3a4529",
+      "working_bytes_sha256": "862ff5e4d2098880ee29425d0a9f77b8681cdb75cf138695758ac47de1480f19"
+    },
+    {
+      "path": "artifacts/api-server/test/credential-rate-limit.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "14addcc79b35ff31f6d1bc13cf6d896fc5749042",
+      "working_bytes_sha256": "c155df2c80aec50ba5a2bc4625befbafcd0d8020b9d75fe8661047753692c7e1"
+    },
+    {
+      "path": "artifacts/api-server/test/database-free-imports.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "69eccf65c43a7e00b9734d967abd7615eb419e51",
+      "working_bytes_sha256": "f0a0ec033481a56f3ab8d9ff6c4b227c91802ad945d1ecf17f39bd6d22c3f5d2"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-ban-pool.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "916d267c252a216bec1c408104f91f40a040af32",
+      "working_bytes_sha256": "af4480f36d3f9a4d3b33b485ca3f3569b0dd929758b8ac59748e6c5ca0e58bfc"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-game-catalog.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "62447c6ad199978dae1adf8be0595a02312cc5bc",
+      "working_bytes_sha256": "f93bb1981afb7d24bdb5eb72828daba6af2f4b3bab49c193b750dc606774964d"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-game-config.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "68dbded2474170d9d9266028c12d33c81004435f",
+      "working_bytes_sha256": "02d1d81cad613b7f83403f68a57591dd0cb995150c1c839b694eee75dfdcfc43"
+    },
+    {
+      "path": "artifacts/api-server/test/deadlock-sides.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "ce066f10a888ce16cfac99058228afd52b1f985e",
+      "working_bytes_sha256": "d69f178c63ec77a2ac7e886794d8dd2d4edc83bffae7c48f5b02db4913428ebd"
+    },
+    {
+      "path": "artifacts/api-server/test/deployment-safety.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "6bedb61632c5416a8aead9510b5389269e8798d1",
+      "working_bytes_sha256": "2c17721223b1ef59634d4e668a602b8288df273b58585cd814d2428d82484fdf"
+    },
+    {
+      "path": "artifacts/api-server/test/deployment-task.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "996d1b0c978a1e65ab227219f1c6f687878f2c70",
+      "working_bytes_sha256": "ed6ae0a9291a173a604f62439be436837a87934d649ac00aa158197d06be5bac"
+    },
+    {
+      "path": "artifacts/api-server/test/double-elimination-api.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "314e1c8259d86b02e2e7f0659d0fe18cfb36b70b",
+      "working_bytes_sha256": "bddb3b494236c75e72d9c82dcac130dbd72b2151a943711f782424a8336f5c26"
+    },
+    {
+      "path": "artifacts/api-server/test/double-elimination-persistence.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "420dc92d2cf1ebadbbe2112753411fdd63ab3561",
+      "working_bytes_sha256": "b8705f6304369b33616ca02ed42198fb1a4d9fb76b471d69376bb9c1d871bc90"
+    },
+    {
+      "path": "artifacts/api-server/test/double-elimination-v2.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "61b895f05f18cd1a53111eaa2e84ff705d8e0d5b",
+      "working_bytes_sha256": "6389e81dd5a3decb971012d9f009251b40a93836d5ce4cc8d9256f20fbb20677"
+    },
+    {
+      "path": "artifacts/api-server/test/drizzle-schema-authority.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "3f05b722cd5c16f90dc24bdbd688842d275ba16b",
+      "working_bytes_sha256": "c1d5a74367a060273c9e0b837599292406497aa9cbb7f0147efaa1f7a7869e6c"
+    },
+    {
+      "path": "artifacts/api-server/test/drizzle-schema-diff.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "e008dbd9fe287632252d3fcfda246f60e4cc35d3",
+      "working_bytes_sha256": "853e80cee6f099c94bb6628175c2bd756ff7a7282453a19673ce28fb543f661a"
+    },
+    {
+      "path": "artifacts/api-server/test/group-playoff.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "cc288573f4dac9b8c92d44cff4a8e7340e291eeb",
+      "working_bytes_sha256": "8194f60581838fd812bbbe2f0817620f4672347f039c2588b4e451349c3018a1"
+    },
+    {
+      "path": "artifacts/api-server/test/group-stage.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "322136d92a9285c455df45c87535056b92750383",
+      "working_bytes_sha256": "969b9f24b93d2c176a1a6c123f013d752b24b23a3c308d10ac1c7e253e916019"
+    },
+    {
+      "path": "artifacts/api-server/test/health.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "06209a5e0fb4b34601d35bb317941d69c4a2b657",
+      "working_bytes_sha256": "b4150efafbb064c72627ef117e40d2d76d925d2ca44d7115e153b72ea31942f5"
+    },
+    {
+      "path": "artifacts/api-server/test/legacy-de-routing-plan.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "eeb7bcb702af96e5ca1e245d26d8807c85c8f258",
+      "working_bytes_sha256": "250a6e5aff7f67502c3df06044bd52a0af634a35c5fd8aaa8087a400e914a0f1"
+    },
+    {
+      "path": "artifacts/api-server/test/marvel-backup-v3.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "863da3e382a56055dad59c36eb82eac4ece2092c",
+      "working_bytes_sha256": "ee31d42218529e06e8312cf7ff3f5234d5f6976771d2386bdb40fb935bf17287"
+    },
+    {
+      "path": "artifacts/api-server/test/marvel-elimination-groups.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "b3e2388727dc66f6ff26e5082702eb5577fec6a8",
+      "working_bytes_sha256": "367d9e1b38e1d917b9376e57448ad00f83f35eb75a220ad07723a3cb73cfd65c"
+    },
+    {
+      "path": "artifacts/api-server/test/marvel-elimination-stage.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "16b140cb0908415e746c24255937a4a2f0224ff8",
+      "working_bytes_sha256": "e455b110d85b540d837b29a0d9169ffdc44f3b481d6bdac4ff196115d7a5bde8"
+    },
+    {
+      "path": "artifacts/api-server/test/marvel-game-config.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "c124bd65c12225296f53f566945c09fd4e28e745",
+      "working_bytes_sha256": "b53cca2ae33648191668cc757e1f03cfd6569e558eabb9a59edc022926a4fa84"
+    },
+    {
+      "path": "artifacts/api-server/test/match-revision.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "b787c06d5575ad958a309002f6af733a877b5b7f",
+      "working_bytes_sha256": "d6faa795aace9feef3af1c1ada6e6a49e3955f39519ca0b2bd8d48dfd8d281dd"
+    },
+    {
+      "path": "artifacts/api-server/test/migration.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "5f84cbb783219bbaf55c788f0e9d508cf78e3d13",
+      "working_bytes_sha256": "79392f2605606f0e5051ca38c8584aeb4f6bb721f925f63372f25331380d4741"
+    },
+    {
+      "path": "artifacts/api-server/test/operational-reliability.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "103ce3352c8a3d97296c06b65931a33b0876f029",
+      "working_bytes_sha256": "4dc6da6aab984dabf90653e4928e3ea6a27ade383474b947aff5a3e8523f2545"
+    },
+    {
+      "path": "artifacts/api-server/test/organizer-password.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "694cf26fc1a13539673d8a535589d838f0cd9544",
+      "working_bytes_sha256": "c1f47b22591c3fbaf9b9bd89f4113fb9bdb777a8fb9889b2251f1a03eef32df0"
+    },
+    {
+      "path": "artifacts/api-server/test/replit-schema-catalog-reconciliation.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "6c6bd054e0f6affd5d07e63ee396f5a14b423fc4",
+      "working_bytes_sha256": "0d12f8593205e15367280b99946c89e7974e4db7131073c8eb3607c9c6b41e5f"
+    },
+    {
+      "path": "artifacts/api-server/test/revert-match.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "3528c28bc3b253186e2b1c09426624b779c9a87f",
+      "working_bytes_sha256": "58d8097bada16f8b3ec4ecdb0cbc7124a9408428f6f61e32692dc1f16bf86fb0"
+    },
+    {
+      "path": "artifacts/api-server/test/round-robin.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "9dadb0ae76823009df614b814f25d52ee330871f",
+      "working_bytes_sha256": "be7fb9e91303b5a588e655445bc70056060c0e4c547f4ac9d947012ffab019ec"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-action-plan.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "0b00edcd49786db6f43256e2fb07a967aec3cfb2",
+      "working_bytes_sha256": "c880b92d77da2dc62b164bd7f192b7e39bc8414777824cb368f17a19fbd6f053"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-diagnostic.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "97db1f26b4ce5939712502f62928e89ff33bf719",
+      "working_bytes_sha256": "c493ab1d2a985cde166e4333d1f68bb2d0a1a721844d39a927c5690f7167cac4"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-impact-graph.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "0c956146d644291ba7cb7b75ab1b8b5d7ec91380",
+      "working_bytes_sha256": "09ecc5de285949357fa525f5c3526d1f52e39b71974f857eaf3c55568ae011f7"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-impact-risk-report.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "6e14210ec023fddd5dbb2c47deb859d2d43d3ffe",
+      "working_bytes_sha256": "8efc5e6c9fe3416803c239a8d4a35fc8a2b7dafa71dadb505001f2d4c9571a54"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-readiness.test.ts",
+      "status": "REUSED_PASS",
+      "reason": "Historical 23/26 exact-source CI cases reused; unchanged Git compare",
+      "git_blob": "7a811d35a89b47a7ed4a601f159aa1ddef895e5a",
+      "working_bytes_sha256": "6ab702c4cb50b423cd6c7038d360a34fb05e32f26eece483fe4e29626c0c4421"
+    },
+    {
+      "path": "artifacts/api-server/test/se-correction-safety.test.ts",
+      "status": "REUSED_PASS",
+      "reason": "Historical 23/26 exact-source CI cases reused; unchanged Git compare",
+      "git_blob": "69383b289423ec183a5393e258352cf6510f0b92",
+      "working_bytes_sha256": "129675ec7bc170015097e446d2760e522d57cc0b41b4b6d144771fca0449f580"
+    },
+    {
+      "path": "artifacts/api-server/test/se-readiness-transaction-contract.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "97eae437622f22b2a339341eeaf2cf715968bb1e",
+      "working_bytes_sha256": "af38e92b2b44ac185a8fdcce47ad1604f22bc122e02b34624fb969fde7cfe915"
+    },
+    {
+      "path": "artifacts/api-server/test/security-integrity.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "5c0ccdf9e9598ceea7b14b8f1194104b566807db",
+      "working_bytes_sha256": "e25167e1fadb9f95ba6c7ad8c72fd31d2d8de31cd40abae204232b33da639f83"
+    },
+    {
+      "path": "artifacts/api-server/test/seeding-ceremony.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "ef2c6f168e0d6e3559126a04d8f5366d9ac8b965",
+      "working_bytes_sha256": "6dd3faa1160d2503d995325ff025fd747a547cd5ba33cabfff2512f594d451bb"
+    },
+    {
+      "path": "artifacts/api-server/test/seeding.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "109cc915a7e7d8dda544b15caf6e77b4252dcbd6",
+      "working_bytes_sha256": "2c931feb6dd847521c59ee0b474a4e820817bb83847cb0ea0b2567c7aa4fa6f3"
+    },
+    {
+      "path": "artifacts/api-server/test/series-result.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "b1f1a291af213bfc4f134c338f4070ec2e402125",
+      "working_bytes_sha256": "16124435ddc72f25bb3718caaf84c1963d75b28b117d882f0ff2449830728a75"
+    },
+    {
+      "path": "artifacts/api-server/test/series-v1.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "de72356ef9448caa324869a8ae958ddbfafbacd8",
+      "working_bytes_sha256": "329ffb5fbcd2a53badb44be2e08cb4425ceca60a33cd7a1f9769ed28c44052db"
+    },
+    {
+      "path": "artifacts/api-server/test/single-stage-seeding.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "a2a8ddf2e7b202f3e83f4f1b2b56e28ea9d4795f",
+      "working_bytes_sha256": "3073f2684199470636867d4a6722051624562893b8eb68ceaf2c66692d373de5"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-basket-qualification.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "bc988483ee50e5a8b7256b240220ee121387ac80",
+      "working_bytes_sha256": "c8522cb9fe12cd1d01d3cdb7ac4ce772f3b719ab45021268511939140843886a"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-basket-route-execution.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "f5fc8eb3ec6f534ce74e70dbb90e48f47476e02d",
+      "working_bytes_sha256": "e6c812b52fea83bb9133e109312ecb08770ab4437913b494ebd4fc6af3b6dda3"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-baskets.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "27c101a195d7a33de270b4eed53eb8ff95cac17e",
+      "working_bytes_sha256": "42e41c590a35bf476702ed344ee0a5ab3be521398f04c51d451e184f70374dfc"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-baskets.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "8c3a741f7c5e9c22641681f8b73d534d8a9fbc67",
+      "working_bytes_sha256": "6cf13bac7bedb6aeb9c920dd1076b07e195068c55fb50f37f8f557d6d873c056"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-placement.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "c281441082217d372975569f6f2ed1b7157406ea",
+      "working_bytes_sha256": "50018f5618bdd938b6adcd7213c0f2f4939b476bf70fbacadd27398d899cc583"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-ranking.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "45bc3efced053b004b9ad3208b75e4a61d4340c2",
+      "working_bytes_sha256": "4c6e552b34a2a2d44488bd967a1b465db69074e803c143cbb3f2e813d212e34e"
+    },
+    {
+      "path": "artifacts/api-server/test/stage-start-readiness.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "e41a036f9987e4cc9d1c5a19c200eb6eb220f448",
+      "working_bytes_sha256": "80a64493d1edb5b76ca4a7732be7b7d973611db2d723280fe89592febf50d1cf"
+    },
+    {
+      "path": "artifacts/api-server/test/standings.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "d34dbf18e6e352a934a26d68fbec95179173bb83",
+      "working_bytes_sha256": "b3ae675361589ae930160f1fe4bd95ace74277d4d2b2d8492c9f861610b77f8e"
+    },
+    {
+      "path": "artifacts/api-server/test/swiss.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "f0ebfb25d80cd7ea52a71cb71237677699ba0e7d",
+      "working_bytes_sha256": "fc645a8d166d269a292d2f46d1e2915eaef3f40e6b6c19c2cd80289441675e4a"
+    },
+    {
+      "path": "artifacts/api-server/test/test-discovery.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "27636ae5ba313f691cf8831d70950da03669d98c",
+      "working_bytes_sha256": "9bcbeb0cdcef7fa6599a5dc05d7df04145b0aa5c616abb977fdafe756d52717e"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-atomic-correction-orchestration.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "dfcee7564fdc1d88b9ba436d167e658155f76d55",
+      "working_bytes_sha256": "5620e9107b533632b170330fcb321e041fe72c63118f483bce1bc56fc4886ea8"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-atomic-correction-postgresql.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "92fe7245604458aff815a6a21b2e2e19f757a54a",
+      "working_bytes_sha256": "fc199c96e267b2a9f56b1bb4b4b5679543b1671d8fa2376ec021733a67af02e2"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-atomic-result-correction.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "ae48989b36b3cda1a733fd89ae60640ce8c9d704",
+      "working_bytes_sha256": "1c45ca5026f759637196a881f60257029cb00ae5bc7bdeafa6e84c98a4125cf0"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-blueprint-v2.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "4bc21e865aaf1d2fe0350fc0c2b9662ac8d76071",
+      "working_bytes_sha256": "e6672aac6c688d72980d8eed4e49e64097160e2392dde03313e5d383dcfa00d2"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-bounded-revert-eligibility.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "dc8c2ecfb982ffb4d9165f0333a7335ab7adaac0",
+      "working_bytes_sha256": "280b714110ce098a4f921915aef3833c956e50c40a97f8b9b4daab82f0635036"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-correction-intent.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "46266e82707d70625b853223b85efc3c9360c374",
+      "working_bytes_sha256": "f727072674a9fd20a9bdd7c0f4e2791a490a216dd6dcee90c0f39307a5e7a18d"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-correction-recovery-plan.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "f0e722e484494e8dec4d325b2c7e325acc112802",
+      "working_bytes_sha256": "398ebb1d94cf34dcb0df7b28735a055db92d29cd560a919de4a24527f4a94b60"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-de-routing-impact.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "8cd8c828efae84b6056e09329a59b24e56c9583f",
+      "working_bytes_sha256": "3615aff1a4a2c24e69212bab343f9d697cadc1b092fb40eb5562ca2402cdb7ed"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-elimination-bracket-impact.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "a0145e410fbc8096a009f8dd0335a96f75501c2e",
+      "working_bytes_sha256": "0db3e5b2bc6e9d0847312df8670538980634a3b6f8a2afa449028ad92891ec72"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-format-contract.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "9a46936c7d8491ab59c55968407fee44a875ce38",
+      "working_bytes_sha256": "a84a7f145493214eef2b20dc6d4c185b481ffb7e66d8f42cc1309ae7bb2401b8"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-operations.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "a6d5ba45eec7e199eebd5395918f9bc23334f7b5",
+      "working_bytes_sha256": "579c9ecaa887c517a7ad962d3458c52c9fb1189781f607be795ab3a021899218"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-operations.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "e834f5c47e67ac26124df96ba3bb9d049b12155c",
+      "working_bytes_sha256": "9f40fafc1bcaffd71ab837207043e95ef03a4407b2a6082707b877e93a1af3f2"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-plan-preview-route.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "68dfef15edb18558d1afb2d28ff13ec76694a567",
+      "working_bytes_sha256": "95cee030566e079a3e814eafb417c5793127097335aa2dd04202ac83cb0daeb4"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-plan-templates.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "c66f94288a67a26c706c14fb5394fe3273250f38",
+      "working_bytes_sha256": "92b159541a19e65d277114d7998cc2c8a0bd935972bb10f8656c33f08e02f82c"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-preview-coherence.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "4ad461d7cb2b2dbe8057a4d4fdd009d5ce08e149",
+      "working_bytes_sha256": "b09848b0b5678487989504f6077b34c2c4c7ce8fcb0ec80c114767d36025327c"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-progression-preflight.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "7980e99300e3196cb04b2199c397223eb13ee337",
+      "working_bytes_sha256": "5b5de4862342220fe5d636fae939be4ff671f8b5c1124131ea7b60a5b8a84e62"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-qualification-routing-preflight.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "e49b1b46b0248fbb1842a912d7d8fe9b3f798be6",
+      "working_bytes_sha256": "0b77cadd5b9a42675dbcf08854175953ea452c60546151bbcbb4fe9d42386d56"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-ranking-impact.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "08a7e577309f079f65961883aafdc70b3db02ff4",
+      "working_bytes_sha256": "732d5d931b09ff7de85761cc6c0fc8cc6c34d62faa35f3245341a220299c51ec"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-result-correction-preflight.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "7a90a77803fc1c9632097c29cb2a2c7bd3bfb182",
+      "working_bytes_sha256": "1fd82b0c62c4e56c9756d6760ee44a1cdc8b3d89c3727e18db7e68b8618cda78"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-capacity-selection.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "27f7d1ef9433071ee782bef37261af99cfa89810",
+      "working_bytes_sha256": "c154c461a9b7e353913f23f330463a6b6df905b8582eac51330c4580832163fd"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-compiler-determinism.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "ff7c9686e41ce2c31037613543a0c3b24e7af324",
+      "working_bytes_sha256": "ce30673b967b15bb5f1e5f53a422de8ad10ab4e1d73fcfcf7caec081d430d966"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-format-fixtures.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "aef2c9f6e4e34d072a03eb2760e7e397b4a25f3e",
+      "working_bytes_sha256": "bc772665fdba842fb75b9785ea508c14641e17c64429d2f03a5304b1119c53fd"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-persistence.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "895bc584df055557184f5306211285413a74d32e",
+      "working_bytes_sha256": "af39580f23a24467907f2ad344329dfc676d2b81696f08e8ab3f4ca89a45208d"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-v1-compatibility.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "7d5eb31874f79b850b35dc8dd1984c50af3a0fe3",
+      "working_bytes_sha256": "5152b8fddeecd1772c7ef20a05028af0442f03b6b38699745d3dbf0c71283d7b"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-routing-validation.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "1401adf68eea83df0ba420bea72a2feea0c30639",
+      "working_bytes_sha256": "14eb0a63e3cbdc37a6b69267da10746fbf9e3bfa892a7f8dd4cea5d69636e747"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stage-plan.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "5f2ad332d22f59b047ff2198de5efd361fff3683",
+      "working_bytes_sha256": "09546475633ee56121b5ebbcf09e5a946936d25c7d8fa45139a705162c24b84a"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-api-backup.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "a477b426ed4e39d0685e1e6bce70085b22a35059",
+      "working_bytes_sha256": "38a072917a7cd2f86fd1315fe0fe18651a0f72ec771e607aa467e8f690b15ab5"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-composite-foreign-keys.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "569e288b806d16ac0635a9f89f06a4bfc25844d5",
+      "working_bytes_sha256": "67c1a0194bff92d2665b7529c9cddbe078d049ca14656f868cfd9bdd880c009b"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-deployment.test.ts",
+      "status": "PASS",
+      "reason": "API unit / fake transport / pure contract",
+      "git_blob": "f46aa9c900a150fe7c95e43846374429d4bf9154",
+      "working_bytes_sha256": "f16e095a4280811eb5ef48072ad039c14959d4bc41e663873f136e696ffee2ad"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-full-flow.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "33bc863c5dd0eddc2eb759aa35927c550121481c",
+      "working_bytes_sha256": "69bbfcd5e30f8995652f9e4eba74c3c17f36b395c4665e78cd07f59005dacf68"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-group-stage.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "f370fcdfcd0b9a0dea2505e1409e2fe9faa0acf2",
+      "working_bytes_sha256": "0cd7fa667f3b504c2b5d42f9b44d87a5d84fd1a60f8260fc9f754979f8edacb9"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-initial-start.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "536520bbe5794049932a70efb8724c340fb0be9d",
+      "working_bytes_sha256": "e5c70710ae14702ac4b16f61cd9966dd4fb157f8b72ec65303416295939e8764"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-lifecycle.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "de05f00d21975cbe926dd6c0265e1afce04486cb",
+      "working_bytes_sha256": "cad5b94c0fb3f56f4c524689d5fab8b42d97740d4f21cf481ea9cbc6c94cb67a"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-procedural-recovery.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "959d9b4f168e272e9708aa9afe0f21b6814a1da6",
+      "working_bytes_sha256": "f9bfb75d94314cf3c13d99ffc588018d28cedd99c000cc5bc32f76be67edcf83"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-production-migration.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "409b22640bb1281deef45c133cf24c4488ac7765",
+      "working_bytes_sha256": "76b2794eeac0af19a2d6cbeead4d0db6e4819072e7d7609a09728c05868066f0"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-reconcile-migration.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "7ad29187e31c22a3efac7bd8da55dd1c3234cbde",
+      "working_bytes_sha256": "39552923afba7b73471c0eff1bf392edab08e41101d4113f25d79ec474147b05"
+    },
+    {
+      "path": "artifacts/api-server/test/tournament-stages-schema.integration.test.ts",
+      "status": "BLOCKED",
+      "reason": "Real DB / persistence / authorization required",
+      "git_blob": "ebad25d5f217e7cf6e17bfcf0e349afff3a431a7",
+      "working_bytes_sha256": "75796eeb413368504f737b91e7a1d6c581a237ebdea84cff8432c769b1a1f83a"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/bracket-view.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "3be136fa6b21f559e6c0191a7199ffa35aab1601",
+      "working_bytes_sha256": "4d12c0c43e8a3a5faf8e688511c574f4ea6db8949c0721bb684e59ee6207410d"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/deadlock-game-config.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "6065b99a92ef53318bf9e1b15d2db2eca6310514",
+      "working_bytes_sha256": "3dbfdcd9b555e6a3795e8b7b73df29bedaa62e94ee43efa89c85597d8e35583e"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/double-elimination-bracket.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "5311618ae998edfb71ed598bf142180596ed1a32",
+      "working_bytes_sha256": "cc948ba816a9d8f315bdefa89d3e056d247ea654b5dc8011207abeceeea569f4"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/organizer-login-modal.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "b8a6467ad6f57b8af1f6f92cd887b19be04ce060",
+      "working_bytes_sha256": "28e09aee3a207d84d16d7a2e15bf578edf4a416e68120176759ffafae38ae67f"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/security-panel.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "3e0b58688ae488077c007ff2c26459b9bbf37faf",
+      "working_bytes_sha256": "4493a6a349b239093ad51afcf2a32c2cfccd15efdff6d32897ff4e7beaac98d9"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/stage-baskets-panel.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "124086169170adc37c7c21127b806961871c6348",
+      "working_bytes_sha256": "d5d4f8e64032f547730dae541e718c6b0e84a5c3978089fdc9c3530ad3d0006b"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/tournament-organizer-navigation.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "184e2b4fb3b8dfecf2dc7eca084ba47359b6ead6",
+      "working_bytes_sha256": "9ac23e82561128e8d8df027310736e8a447e5054b0475f57120125c319fad433"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/components/tournament-stages-panel.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "38f62df9f7ecd2238cb85d551095233aa7efbb45",
+      "working_bytes_sha256": "8a362f0a842bf9cb0fe1cee69fb4491eba2461464a50f42e977dbd4bbdee694a"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/experimental-tournaments/experimental-route-containment.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "dcf88760e55b54b36dd2135eb98e4ab87ead4a3e",
+      "working_bytes_sha256": "7a94d736e68298173ff58e75a84ebe4ebbf7a6fed53797317136b796fc90aca8"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/experimental-tournaments/experimental-tournament-routing.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "91ca39286d8a8a1fb64531bab7dbe27c4bc1224b",
+      "working_bytes_sha256": "a77030bdf75cc5cefa01d6b92221d09ed3e2a72a21c83514dc87dc724b5ef6ed"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "1a1002f1877d251c4d3cbf7678a98f9b772c161b",
+      "working_bytes_sha256": "0939369ac12c09d3f6eb56e840fb9bfbbef93ed97d620eb7bacaf700ef4b3901"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/streaming/obs-lab/overlay-integration.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "c702536e8f4d618ccdf750209f9d398456a370d2",
+      "working_bytes_sha256": "cf71fc2a34450b0cfd60d92e3590c8a268bac8ad9c26e281e5642200ed3f2d12"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/streaming/obs-lab/stream-elements-profiles.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "02c4c68eda51a65078090d46b88a6f23fb52a19f",
+      "working_bytes_sha256": "2a5358328171d3740da4ea242e87b417c1d579635833f00ae7672a1f6289b3c0"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/features/streaming/obs-lab/stream-elements-simulator.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "b979a7935ebc903ffff0562c253de209b0063545",
+      "working_bytes_sha256": "94da432828233f4b55e3dd41476d4e9325f89f4ad01a4287f7471eee7feaf55a"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/hooks/use-tournament-auth.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "2b1f7433b478de5dbb60459a9460055079d8b9b1",
+      "working_bytes_sha256": "452c016fddf31396ccae0e462836c15f5d93d15e89d65c234cb9c85cf3502fc7"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/api-response-contract.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "394f4df59a2aca25ca00067a575e894194ea7188",
+      "working_bytes_sha256": "74be4f0559353534e075cf9620466cb5c6708aae6b75d58710cf16da4690b531"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/audience-access-gate.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "d9a95b82216ab185b9993fc0af82b5d33ae24ac5",
+      "working_bytes_sha256": "87ded3a9ed7fd669f24bf0291b2ce7fc8ab415d379bd2ea13e8fcbf0c5d79e21"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/backup-file.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "0e4ee099af06f1436a1f2fffca2bffb2c5e35051",
+      "working_bytes_sha256": "68010fc3df1dbefbb44235a4b1834c8c29288715042fb701e52db08590726e5d"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/organizer-critical-ux.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "be2dd84c9b387312d28b52e993c773203ddeb530",
+      "working_bytes_sha256": "f0a65f5766789d1e5d7e713badd1db3ff3b64d412c42d845c0d13050a595d670"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/organizer-stage-summary.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "b82c011467de04ce2034d60183bdad74067b925a",
+      "working_bytes_sha256": "75acd7a2a4584f8211e6c813b2138fe591751e3f136a3c49a1060f350b1c4e31"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/se-assessment-history.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "5ade5864fe615acc24f489a6b0a755e81f6ecc4a",
+      "working_bytes_sha256": "1c646d276dfde15dedfd62ba3890d908968a535aae4a2972e25d7b0626370904"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/se-diagnostic-comparison.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "932263ee4f5b8c58eff0d8ced05a3b3ee0a77a66",
+      "working_bytes_sha256": "84153c85fb00f25ffe8d545ce23488d3719a28bf2050d000b0a451b2124dae21"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/se-remediation-priority.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "e4ff1def8c56d2cc8d2a529cd7dc28ef0803eb6f",
+      "working_bytes_sha256": "287f83331078e84fa61717d6035ab51e7483e517058ccc494d3e3b4ac7904405"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/seeding-ceremony-view.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "1c53674b2686b1306be3e810897c4066f0f9fb95",
+      "working_bytes_sha256": "0532247aba40dbff6f99d5fb675fa7b7e032a78f7383af27406e9775771f03a1"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/stage-lifecycle-feedback.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "c749a8f70f6830d5f38d4ec5080279934c11ea57",
+      "working_bytes_sha256": "eb3ff91f8466d51824ddc36cd1e083111c75e602d720df4505227ce793b8a564"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/stage-utils.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "a3631ecf346c516a1d2fc1a48ca484d78db1931d",
+      "working_bytes_sha256": "39ac7e2c9c23e224519e32d21ff8cddd85255e3d4e7aa5085d9d602242b32293"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/tournament-query-invalidation.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "b32613bd02fba4c989b1bc42ff2f483bb24b41a6",
+      "working_bytes_sha256": "bdd38f5f7a7c64a7fce0da5bca6ea6a765b77399b191a7433edcb2221dc34a37"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/tournament-roster-cache.test.ts",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "79342b35d332fd2680e5a82e974b107a93c187ac",
+      "working_bytes_sha256": "e21646cd3a3a7bbcc7bae7c2d652d571d40130277a7222d640f1d2f8d9c71e81"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/lib/tournament-stages-ui.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "f3b540e1131f92407810c54b9715935a7006d5d5",
+      "working_bytes_sha256": "310aa1dd3cae77dbf83a2166fc3d318f8082b242c8bc75a21c7d3fcfc9ce56ab"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/create-tournament-ownership.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "06a97eb3f8f407bf36a5d7268623a7f9a07d652a",
+      "working_bytes_sha256": "22ce621294959dcb2f23b04a739acf2c05f477074c4c5800517da3766e67dcdd"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/create-tournament.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "79550978b566ba13902ded32d0219da254c4e1c8",
+      "working_bytes_sha256": "7182a2dae259a616d8149c10e269d0d2df31991dc9a2d92e1ea8b8cd0acf5157"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/dashboard.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "23ab9355c59154d20a44445301ba725581451d04",
+      "working_bytes_sha256": "9041b3415cde1c5960749520226a94a7a355b652595de37ea91c67ec72ca5ae4"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/experimental/tournaments/create-tournament-experimental.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "7a8815d36f33001bb6d8b748849f24256c0c8946",
+      "working_bytes_sha256": "fa7ed81f6799b16c28bf5cc857cfe1ce76e6af1843082b17fd395ad50c7719b0"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/organizer-operation.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "295d17e5c0559c0a9f219873c895dbe33ec73996",
+      "working_bytes_sha256": "b1dcecc2021c70cf2af8d9fe64920746940c1640fc1c5b9fbbdbd2a34b9ee7c8"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/public-stage-views.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "9fb92b51ea6358c1ebf65648dd49093cee17ce9f",
+      "working_bytes_sha256": "0334cec110c175179a244319a85864b6bee9f26d71a96fd67b24a30bdef8621d"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/read-error-recovery.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "05c6f5cb24c7bc780a4a6eba1048a68482b0b6b7",
+      "working_bytes_sha256": "69b19c63c9cb12fc61d33d9e54e46a0008082ef9863174a5c6df38b1815bc41e"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/tournament-audience.test.tsx",
+      "status": "REUSED_PASS",
+      "reason": "Accepted G1 11/11; never rerun",
+      "git_blob": "ad5072f5ede1c04708335b5a0497a16f7be5130c",
+      "working_bytes_sha256": "0f789ed7c6ba38fd0677fdb585a6103fb90c9ed1d8feff976f378c320c88df25"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/tournament-create-choice.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "19eb8c327dd650526dfb298d9a53060679e5edd6",
+      "working_bytes_sha256": "82101004fe6252c202c9131b7c5cf49a83722238697b170344f8d633a2bae63c"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/tournament-host.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "276a6c4611f51c1945b0651646d8c033de0f8a52",
+      "working_bytes_sha256": "f38e864feff54c67dd802f5d12d3d0773bc5cd762439479384deeb22bec66120"
+    },
+    {
+      "path": "artifacts/tournament-manager/src/pages/tournament-recovery.test.tsx",
+      "status": "PASS",
+      "reason": "React/jsdom/pure frontend; dependency retries retained",
+      "git_blob": "15aba517fd1a7de76e55208abfde74afa74884f8",
+      "working_bytes_sha256": "e4b476d4386ff5fe1bc83d33af2246c2ece2644212c9ba049330511b7cee7509"
+    },
+    {
+      "path": "lib/db/migration-ledger-validator/validate.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "96c3d6b5d3f7ff9c10c154de0dc7c04374f61917",
+      "working_bytes_sha256": "a001ce4381f100903f343ab2efca4574f40320fdce566f8b51d3bdcf44083dd6"
+    },
+    {
+      "path": "lib/db/test/configurable-seeding-v2-deployment.test.mjs",
+      "status": "PASS",
+      "reason": "Pure classifiers/configuration only",
+      "git_blob": "223d6bd9681f7152b083b7cf3dd21ea0adc26765",
+      "working_bytes_sha256": "7ebfae3241fdd859005f1f07fcc4bdf9b61507b6c0ef50b133fc6c91ba7a951c"
+    },
+    {
+      "path": "lib/db/test/development-reset-config.test.mjs",
+      "status": "PASS",
+      "reason": "Pure classifiers/configuration only",
+      "git_blob": "e6e0f10fe001c38db315257df8a3542d20f72a13",
+      "working_bytes_sha256": "3a6455cfa093b824e06825b6b6038ac0f3da6db50843a85ed1e9ff89444c8d6b"
+    },
+    {
+      "path": "lib/db/test/flexible-group-stages-v2-deployment.test.mjs",
+      "status": "PASS",
+      "reason": "Pure classifiers/configuration only",
+      "git_blob": "edfce5478ed969a326dd28f8e0493d53d851eaea",
+      "working_bytes_sha256": "34c065b3395c8e094ddfa77da1d88fa7c2c3bb8b0988b639bf03d060ab37999f"
+    },
+    {
+      "path": "lib/db/test/reset-safety.integration.test.mjs",
+      "status": "BLOCKED",
+      "reason": "DB/schema/SQL execution forbidden",
+      "git_blob": "002e86af6a6a88a3974ae880f5591f0ca10d4835",
+      "working_bytes_sha256": "fec073b8652f0ed79c4acf16d7e547cb39dc62d8ff1f5107786fd38265a39857"
+    },
+    {
+      "path": "lib/db/test/schema-catalog-comparison.integration.test.mjs",
+      "status": "BLOCKED",
+      "reason": "DB/schema/SQL execution forbidden",
+      "git_blob": "5b56164e535c361ff0e50532c9c368e7b77b206f",
+      "working_bytes_sha256": "794da0243230f6a4d32cc2140bba3e8bc4e3232a8b58c144f1ed10b9d4701d62"
+    },
+    {
+      "path": "lib/db/test/schema-catalog-comparison.test.mjs",
+      "status": "PASS",
+      "reason": "Pure classifiers/configuration only",
+      "git_blob": "4c2a32c887abd2430465b8c15363b14b2cecb6b3",
+      "working_bytes_sha256": "3f155cefb4ed481c0e60ddda497bd0b7f82b7fd2a1733e75a64cf303b7d6392f"
+    },
+    {
+      "path": "lib/db/test/tournament-engine-v2-preflight.integration.test.mjs",
+      "status": "BLOCKED",
+      "reason": "DB/schema/SQL execution forbidden",
+      "git_blob": "0cb3328c00cc9327d7f4457793cbe2e3308c1382",
+      "working_bytes_sha256": "a4f4df776ce68cbd0f09aa54696c82371244ba3614d631444e9a19763b550dbc"
+    },
+    {
+      "path": "lib/db/test/tournament-routing-persistence-v2-deployment.test.mjs",
+      "status": "PASS_PURE__BLOCKED_DB",
+      "reason": "Only named preflight suite executed; catalog SQL suite excluded",
+      "git_blob": "8adaacd1027148dc8434466c9630835adf9c52df",
+      "working_bytes_sha256": "cec7b116e14ed44977a8c451966426acc9b805d9f4dc286cc72b5f33dc233161"
+    },
+    {
+      "path": "payload/core-clash-multiplayer.test.ts",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "9ee3323f8c783439a25e53d6120d4f0bde3a4529",
+      "working_bytes_sha256": "862ff5e4d2098880ee29425d0a9f77b8681cdb75cf138695758ac47de1480f19"
+    },
+    {
+      "path": "qa/pack17/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "93b131ec847d7ea2937da3bb0339b3073385f3a9",
+      "working_bytes_sha256": "9e2043efbabc83ee9e90383aaa485ba69646058868bcd6e6f7239a42b14f7fc0"
+    },
+    {
+      "path": "qa/pack18/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "392e328632c17c9eaff9f828e8b5c27ca08d2922",
+      "working_bytes_sha256": "a348d8f94ab333936c9ddbc43db8e2c7f95cac3062c919af3e72f3761b76038d"
+    },
+    {
+      "path": "qa/pack19/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "2d6fe05f7d3d9b69769a535dadaea0d96906b4f4",
+      "working_bytes_sha256": "d3514f166f6fa253f3d2623768e949ffe8bc736cce0a69ab94336c46457f5e1e"
+    },
+    {
+      "path": "qa/pack20/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "2873a5e09e40bc92f0afe0a23f16061a9eae752f",
+      "working_bytes_sha256": "b3650c109fad4adaf398e3be8267bce0c18778e416be820f45009d9bfc56af9d"
+    },
+    {
+      "path": "qa/pack21/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "8daa4f24ac48717f521c5af7c875e2131fcbe5e2",
+      "working_bytes_sha256": "55ee2f491c04c27a72e1cea6a771415bb4a913a9cf3ae4fe487e12a769b8c201"
+    },
+    {
+      "path": "qa/pack22/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "9f8191e1e99ce760e8970815fea7e0ae84762a14",
+      "working_bytes_sha256": "f2101279aa618eb2b13eddaf82f2b558ea458464e49f5a094a877ea7fce52ce4"
+    },
+    {
+      "path": "qa/pack23/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "bb74e6a3614828c17b4972514d433181a4a7f1da",
+      "working_bytes_sha256": "69cd0cec9101388430289c33a262a465118d55dd5aca378fc4acd0f458705035"
+    },
+    {
+      "path": "qa/pack24/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "217e20e9556be68feb00333d08419b7162848be6",
+      "working_bytes_sha256": "9d410c3f82db516da78b1369f258ab0e33e898a3e59d4588cd19ab1c71b096cb"
+    },
+    {
+      "path": "qa/pack25/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "daa8cad38e8a2dd1077d8aa0023aeb9a05cb1b28",
+      "working_bytes_sha256": "9c84602bbbcddd99e0c24747e5fcc015255c29a6dd4d3e5cf862073348778ec9"
+    },
+    {
+      "path": "qa/pack26/source-contract.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "18417b7608fbc798d2a92f9882d4705800f4c8c4",
+      "working_bytes_sha256": "96d95e0905c3badebd41371ebd845114cb615bc29469bf8bc036eb0636fb1b2d"
+    },
+    {
+      "path": "test/pack03-experience-polish.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "120dfb2ccdd69addde731815fa04c460534ab9f5",
+      "working_bytes_sha256": "d6eb0a99b66e2bbeecec04a6cd8cfa311cda9eeed75019500d83aee8dff7a33d"
+    },
+    {
+      "path": "test/pack03-installer.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "80cc81bad01cfbbc0f245d8c78da11d12fcd7d9f",
+      "working_bytes_sha256": "a4c1a9a55b0d00bb69e1d7edcb5b7619f54728d45bd99242a8f8cb95e9ef2eed"
+    },
+    {
+      "path": "test/pack03-lib.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "1356a610a8727cef1b159a1b2d5fede9d47f2e83",
+      "working_bytes_sha256": "a53831137c0fd755825d19a60d7238bf8a36c6638159ad05707a2e45ab2e78bb"
+    },
+    {
+      "path": "test/pack03-surface-coverage.test.mjs",
+      "status": "PASS",
+      "reason": "Native static/source/synthetic fixture tests",
+      "git_blob": "3cc53c5d028932e7930c391fb441675226946e53",
+      "working_bytes_sha256": "e8fd61bc6e91c849ae5afa21fb6b806229ba48395dcbcada76c000744647a356"
+    },
+    {
+      "path": "tournament-exp-pack-01-expanded-templates/create-tournament-experimental.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "31c69020a9dd55343936eb922d65b527c726f8f8",
+      "working_bytes_sha256": "6d71c053d408f159fc1a05ef4842c6f49995e3c56c93c7880f8e7555e2d0b28b"
+    },
+    {
+      "path": "tournament-exp-pack-01-stability-templates/create-tournament-experimental.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "7c36bf8585045944b71bbcf693b10bc70b85e708",
+      "working_bytes_sha256": "29097433d27f825483ea3d8330e0e643791b356a1e22e6ee08d482042d36021e"
+    },
+    {
+      "path": "tournament-exp-pack-01-templates/create-tournament-experimental.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "4b7a0392f6f58836bb52d333230d006ea7e4bd69",
+      "working_bytes_sha256": "be4eb8374b4468e64742df282e89f9bc03e7c3a5850bc2499ff70b054fcb617b"
+    },
+    {
+      "path": "tournament-exp-pack-01-templates/tournament-create-choice.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "19eb8c327dd650526dfb298d9a53060679e5edd6",
+      "working_bytes_sha256": "82101004fe6252c202c9131b7c5cf49a83722238697b170344f8d633a2bae63c"
+    },
+    {
+      "path": "tournament-exp-pack-01-test-hotfix-templates/create-tournament-experimental.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "900d3f225c1aee54248748e77386f9120378cab6",
+      "working_bytes_sha256": "dcf681112a04543567ad119ec079ed231a2b7347a570c3fbbcedb7d94243607a"
+    },
+    {
+      "path": "tournament-exp-pack-02-templates/create-tournament-experimental.test.tsx",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "79d65793a0ffcb685e314d16e31d390caa774d77",
+      "working_bytes_sha256": "5ee63cbc73a8e910e10fac22baef7fc3774fb9505733c7febbbce3f37dbbd935"
+    },
+    {
+      "path": "tournament-exp-pack-02-templates/experimental-route-containment.test.ts",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "dcf88760e55b54b36dd2135eb98e4ab87ead4a3e",
+      "working_bytes_sha256": "7a94d736e68298173ff58e75a84ebe4ebbf7a6fed53797317136b796fc90aca8"
+    },
+    {
+      "path": "tournament-exp-pack-02-templates/experimental-tournament-routing.test.ts",
+      "status": "NOT_ACTIVE_TEMPLATE",
+      "reason": "Packaging payload or historical template copy, not active application test discovery",
+      "git_blob": "91ca39286d8a8a1fb64531bab7dbe27c4bc1224b",
+      "working_bytes_sha256": "a77030bdf75cc5cefa01d6b92221d09ed3e2a72a21c83514dc87dc724b5ef6ed"
+    }
+  ]
+}

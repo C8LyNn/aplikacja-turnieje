@@ -1,0 +1,47 @@
+{
+  "id": "pure-native-regressions-01",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "--test-reporter=tap",
+    "--test-concurrency=1",
+    "test/pack03-experience-polish.test.mjs",
+    "test/pack03-installer.test.mjs",
+    "test/pack03-lib.test.mjs",
+    "test/pack03-surface-coverage.test.mjs",
+    "lib/db/test/development-reset-config.test.mjs",
+    "lib/db/test/flexible-group-stages-v2-deployment.test.mjs",
+    "lib/db/test/configurable-seeding-v2-deployment.test.mjs",
+    "lib/db/test/schema-catalog-comparison.test.mjs"
+  ],
+  "command": "node --test --test-reporter=tap --test-concurrency=1 test/pack03-experience-polish.test.mjs test/pack03-installer.test.mjs test/pack03-lib.test.mjs test/pack03-surface-coverage.test.mjs lib/db/test/development-reset-config.test.mjs lib/db/test/flexible-group-stages-v2-deployment.test.mjs lib/db/test/configurable-seeding-v2-deployment.test.mjs lib/db/test/schema-catalog-comparison.test.mjs",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:23:28.956Z",
+  "finished_utc": "2026-10-29T10:23:30.362Z",
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 42,
+    "suites": 3,
+    "pass": 41,
+    "fail": 1,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "pure-native-regressions-01.log",
+  "log_sha256": "4a45367cf80de1a744dee39d48b989e71528c52fdc65c35f2ea47c744d0974dd",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

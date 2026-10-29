@@ -1,0 +1,13 @@
+{
+  "checked_at": "2026-10-29",
+  "source_head": "c3f640470262064f890774d935c1388408051d5e",
+  "source_actions_runs": {
+    "total_count": 0,
+    "workflow_runs": []
+  },
+  "qa_base_commit": "bbf9a1128ab5d1f79690e90030a96a6429b2d34b",
+  "qa_base_tree": "f9ebccd5cf89cb3da8ab959c3a874e26994316c8",
+  "qa_base_branch": "codex/swarm006-frozen-g1-qa-base-20261029",
+  "candidate_branch": "codex/swarm006-final-test-completion-20261029",
+  "policy": "All newly published commits contain [skip ci]. Default main has no .github/workflows. G1 has one workflow only: push/pull_request/workflow_dispatch. No dispatch, rerun, merge or protected-ref write."
+}
