@@ -12,7 +12,7 @@ test('Pack20 action plan never grants permission or performs writes',()=>{
 });
 test('Readiness endpoint keeps a read-only repeatable-read transaction',()=>{
   const s=get('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
+  assert.match(s,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
   assert.match(s,/deriveSeCorrectionActionPlan\(/);
   assert.doesNotMatch(s,/\.insert\(|\.update\(|\.delete\(/);
 });

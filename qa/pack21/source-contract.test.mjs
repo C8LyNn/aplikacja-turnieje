@@ -12,7 +12,7 @@ test("diagnostic never authorizes a SE write",()=>{
 test("diagnostic generated inside one read-only repeatable-read DB snapshot",()=>{
   const s=get("artifacts/api-server/src/routes/tournament-se-correction-readiness.ts");
   assert.match(s,/deriveSeCorrectionDiagnostic\(/);
-  assert.match(s,/isolationLevel:"repeatable read",readOnly:true/);
+  assert.match(s,/isolationLevel:\s*["']repeatable read["']\s*,\s*accessMode:\s*["']read only["']/);
   assert.doesNotMatch(s,/\btx\.(?:update|insert|delete)\s*\(/);
 });
 test("assessment is tied to original completion action and proposed score",()=>{
