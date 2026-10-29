@@ -1,0 +1,630 @@
+src/access-policy.ts(3,60): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/access-policy.ts(78,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/auth/credential-rate-limit.ts(5,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/auth/credential-rate-limit.ts(116,46): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/auth/credential-rate-limit.ts(117,31): error TS2347: Untyped function calls may not accept type arguments.
+src/application/auth/credential-rate-limit.ts(177,10): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/auth/credential-rate-limit.ts(300,25): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/auth/legacy-organizer-credentials.ts(2,55): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/auth/legacy-organizer-credentials.ts(60,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/auth/legacy-organizer-credentials.ts(147,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/backups/backup-credentials.ts(1,39): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/backups/backup-v2.ts(9,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/backups/backup-v2.ts(10,41): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/src/index.ts'.
+src/application/backups/backup-v2.ts(253,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(26,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/schema/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/schema/index.ts'.
+src/application/backups/backup-v3.ts(27,41): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/src/index.ts'.
+src/application/backups/backup-v3.ts(127,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/backups/backup-v3.ts(277,35): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(323,39): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(345,50): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(375,27): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(384,25): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(414,25): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(423,41): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(443,43): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(458,43): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(468,55): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(486,43): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(496,26): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(497,23): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(500,53): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(506,27): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(528,33): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(545,29): error TS7006: Parameter 'action' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(560,46): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(568,40): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(583,53): error TS7006: Parameter 'execution' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(592,52): error TS7006: Parameter 'execution' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(594,16): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(604,37): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(616,63): error TS7006: Parameter 'proposal' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(618,16): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(623,22): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(635,37): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(644,41): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(700,24): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(703,24): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(706,35): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(709,35): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(715,25): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(725,23): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(728,23): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(748,13): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(778,13): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(810,13): error TS2339: Property 'roundBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(811,13): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(812,13): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(826,23): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(827,44): error TS2339: Property 'roundBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(827,60): error TS2339: Property 'roundNumber' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(828,19): error TS2339: Property 'roundNumber' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(837,6): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(840,16): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(841,14): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(841,20): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(849,20): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(849,27): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(851,25): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(854,22): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(860,10): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(863,10): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(871,24): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(891,34): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(896,38): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(897,35): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1016,53): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1022,19): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1023,19): error TS2339: Property 'participantCount' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1030,57): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1046,13): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1059,22): error TS7006: Parameter 'participant' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1059,74): error TS2339: Property 'backupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1060,19): error TS7006: Parameter 'participant' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1063,39): error TS2339: Property 'stageKey' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1068,52): error TS2339: Property 'stageKey' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1109,6): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1126,27): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1133,25): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1174,25): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1179,17): error TS2339: Property 'participantCount' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1180,17): error TS2339: Property 'groupCount' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1184,17): error TS2339: Property 'qualifiersPerGroup' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1215,6): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1219,8): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1256,24): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1262,14): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1264,13): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1270,16): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1277,14): error TS2339: Property 'position' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1283,55): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1286,13): error TS2339: Property 'position' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1288,16): error TS2339: Property 'playerBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1289,22): error TS2339: Property 'position' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1289,41): error TS2339: Property 'position' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1290,16): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1291,17): error TS2339: Property 'entrySeedingPolicy' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1291,76): error TS2339: Property 'nextStageSeed' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1293,23): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1295,23): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1308,8): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1330,13): error TS7006: Parameter 'member' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1331,14): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1331,20): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1332,21): error TS7006: Parameter 'seed' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1332,27): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1339,8): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1347,10): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1358,26): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1362,62): error TS2345: Argument of type '{}' is not assignable to parameter of type 'number'.
+src/application/backups/backup-v3.ts(1395,16): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1404,15): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1405,26): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1406,15): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1428,16): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1429,20): error TS2339: Property 'groupBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1507,15): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1523,22): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1533,13): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1604,46): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1620,48): error TS2339: Property 'stageBackupId' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(1627,38): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1630,43): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1732,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/backups/backup-v3.ts(1735,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1820,10): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1823,10): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1907,35): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1982,70): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(1984,44): error TS7006: Parameter 'playerBackupId' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2007,29): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2010,8): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2036,56): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/backups/backup-v3.ts(2042,10): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2080,43): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2280,35): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2297,14): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2301,16): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2307,19): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2313,22): error TS7006: Parameter 'sp' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2314,19): error TS7006: Parameter 'sp' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2320,22): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2321,19): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2356,34): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2376,10): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/backups/backup-v3.ts(2381,10): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/games/tournament-game-config.ts(2,71): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/games/tournament-game-config.ts(53,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/games/tournament-game-config.ts(93,43): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(11,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/matches/complete-match.ts(256,28): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(381,45): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(470,36): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(487,54): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(495,65): error TS7031: Binding element 'playerId' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(496,59): error TS7006: Parameter 'member' implicitly has an 'any' type.
+src/application/matches/complete-match.ts(498,33): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(14,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/matches/revert-match.ts(244,8): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(247,8): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(314,28): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(335,30): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(336,35): error TS7006: Parameter 'member' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(424,44): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(429,44): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/matches/revert-match.ts(646,56): error TS7031: Binding element 'id' implicitly has an 'any' type.
+src/application/operations/tournament-atomic-correction.ts(6,110): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/operations/tournament-atomic-correction.ts(24,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/operations/tournament-correction-ranking-preview.ts(9,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/operations/tournament-correction-ranking-preview.ts(102,48): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/operations/tournament-correction-ranking-preview.ts(118,31): error TS7006: Parameter 'g' implicitly has an 'any' type.
+src/application/operations/tournament-de-routing-preview.ts(3,91): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/players/tournament-roster.ts(7,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/players/tournament-roster.ts(93,18): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(102,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(135,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(184,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(213,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(388,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/players/tournament-roster.ts(399,21): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/routing/routing-execution-persistence.ts(2,54): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/routing/routing-execution-persistence.ts(42,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/routing/routing-execution-persistence.ts(95,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(24,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/routing/routing-plan-persistence.ts(312,21): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(316,20): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(320,20): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(325,20): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(329,27): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(333,21): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(337,20): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(341,25): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(345,44): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(346,44): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(347,51): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(351,18): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(352,15): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(356,46): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(357,44): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(358,46): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(361,14): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(366,14): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(371,14): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(376,14): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(381,14): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(417,38): error TS2339: Property 'routingStageId' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(474,46): error TS18046: 'entry' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(489,46): error TS18046: 'match' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(506,7): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(507,7): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(511,21): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(515,7): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(515,46): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(516,9): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(518,9): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(523,29): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(530,30): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(531,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(536,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(544,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(549,31): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(556,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(561,30): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(562,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(567,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(568,42): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(572,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(573,23): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(579,39): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(583,36): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(592,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(594,30): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(598,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(599,11): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(599,37): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(600,11): error TS18046: 'output' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(600,37): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(606,33): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(607,30): error TS18046: 'source' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(608,30): error TS18046: 'output' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(615,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(620,22): error TS18046: 'output' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(628,28): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(633,31): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(637,54): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(646,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(649,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(649,56): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(654,22): error TS18046: 'bucket' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(660,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(662,29): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(667,21): error TS18046: 'stage' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(675,25): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(678,48): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(683,34): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(693,25): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(696,48): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(697,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(697,46): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(700,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(707,20): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(711,51): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(720,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(722,48): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(730,48): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(731,35): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(754,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(754,56): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(757,50): error TS18046: 'output' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(763,21): error TS18046: 'stage' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(764,22): error TS18046: 'output' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(768,51): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(792,43): error TS18046: 'lineageRoute' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(807,13): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(817,11): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(819,29): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(824,21): error TS18046: 'match' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(829,54): error TS18046: 'row' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(836,42): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(842,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(901,33): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(907,19): error TS18046: 'stage' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(915,43): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(932,19): error TS18046: 'stage' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(938,30): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(944,19): error TS18046: 'stage' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(951,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(960,39): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(966,19): error TS18046: 'route' is of type 'unknown'.
+src/application/routing/routing-plan-persistence.ts(1089,26): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1103,26): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1167,28): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1172,29): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1204,8): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1224,35): error TS2339: Property 'tournamentId' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1230,21): error TS2339: Property 'participantCount' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1236,34): error TS2339: Property 'participantCount' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1249,21): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1252,23): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1261,34): error TS2339: Property 'format' does not exist on type '{}'.
+src/application/routing/routing-plan-persistence.ts(1300,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1330,27): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1375,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1379,16): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1409,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1413,34): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1451,28): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1455,16): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1479,27): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/routing/routing-plan-persistence.ts(1581,13): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/application/stages/basket-input-roster.ts(5,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/schema/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/schema/index.ts'.
+src/application/stages/basket-input-roster.ts(6,25): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/basket-input-roster.ts(22,34): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(37,66): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(40,40): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(43,37): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(45,65): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(49,22): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(49,46): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(54,71): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(58,40): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(61,40): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(62,46): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(63,44): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(83,37): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(84,119): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/basket-input-roster.ts(86,37): error TS7006: Parameter 'member' implicitly has an 'any' type.
+src/application/stages/create-tournament-with-plan.ts(7,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/create-tournament-with-plan.ts(128,34): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/create-tournament-with-plan.ts(180,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/create-tournament-with-plan.ts(269,26): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/double-elimination-match-runtime.ts(12,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/double-elimination-match-runtime.ts(87,23): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/stages/double-elimination-match-runtime.ts(104,22): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(109,36): error TS2339: Property 'player1Id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(109,72): error TS2339: Property 'player2Id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(110,24): error TS2339: Property 'player1Id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(110,60): error TS2339: Property 'player2Id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(124,47): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(151,31): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(152,25): error TS2339: Property 'winnerId' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(159,30): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(173,45): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/stages/double-elimination-match-runtime.ts(179,3): error TS2322: Type 'Map<unknown, unknown>' is not assignable to type 'Map<string, any>'.
+  Type 'unknown' is not assignable to type 'string'.
+src/application/stages/double-elimination-match-runtime.ts(274,50): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/stages/double-elimination-match-runtime.ts(393,28): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/stages/double-elimination-stage.ts(11,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/double-elimination-stage.ts(85,54): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/double-elimination-stage.ts(86,43): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/double-elimination-stage.ts(87,53): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/double-elimination-stage.ts(90,43): error TS2339: Property 'name' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(97,56): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/application/stages/double-elimination-stage.ts(125,29): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(133,27): error TS2339: Property 'player1Id' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(133,58): error TS2339: Property 'player2Id' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(135,31): error TS2339: Property 'player1Id' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(135,60): error TS2339: Property 'player2Id' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(138,28): error TS2339: Property 'bestOf' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(139,28): error TS2339: Property 'score1' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(140,28): error TS2339: Property 'score2' does not exist on type '{}'.
+src/application/stages/double-elimination-stage.ts(175,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/legacy-de-routing-plan.ts(16,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/legacy-de-routing-plan.ts(138,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/legacy-de-routing-plan.ts(164,34): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/application/stages/legacy-de-routing-plan.ts(166,22): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(14,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/marvel-elimination-stage.ts(105,17): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(119,24): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/stages/marvel-elimination-stage.ts(126,23): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(126,29): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(284,17): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(287,17): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(305,7): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/application/stages/marvel-elimination-stage.ts(306,7): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/application/stages/marvel-elimination-stage.ts(311,7): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/application/stages/marvel-elimination-stage.ts(312,9): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/application/stages/marvel-elimination-stage.ts(375,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(429,38): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(497,10): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(549,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(609,25): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(622,25): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(684,40): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(701,27): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(714,27): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(726,39): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(730,18): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(734,16): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(735,13): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(748,25): error TS7006: Parameter 'round' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(756,18): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(757,15): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(764,22): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/marvel-elimination-stage.ts(765,19): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/seeding-ceremony.ts(11,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/schema/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/schema/index.ts'.
+src/application/stages/seeding-ceremony.ts(12,25): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/seeding-ceremony.ts(513,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/seeding-ceremony.ts(535,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/seeding-ceremony.ts(536,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/seeding-ceremony.ts(586,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/seeding-ceremony.ts(587,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/seeding-ceremony.ts(623,31): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/seeding-ceremony.ts(624,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(12,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-basket-configuration.ts(136,14): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(136,17): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(137,13): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(141,10): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(156,14): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(174,29): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(184,26): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(185,23): error TS7006: Parameter 'assignment' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(192,32): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(192,39): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(200,25): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(206,25): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(211,29): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(297,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(314,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(331,20): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(347,29): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(352,33): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(365,27): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(370,31): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(386,41): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(402,8): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(436,31): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/stages/stage-basket-configuration.ts(520,32): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(23,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-basket-qualification.ts(190,16): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(191,13): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(271,8): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(277,11): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(282,12): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(282,15): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(300,35): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(305,27): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(346,30): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(366,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(510,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(537,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(607,31): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(697,22): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(720,29): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/stages/stage-basket-qualification.ts(754,20): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(32,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-basket-route-execution.ts(158,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(239,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(360,47): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(387,31): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(388,31): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(419,25): error TS7006: Parameter 'row' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(576,39): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(602,59): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(604,16): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(605,13): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(607,16): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(608,13): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(630,52): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(636,46): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/application/stages/stage-basket-route-execution.ts(640,51): error TS2339: Property 'sourceProposalId' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(14,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-lifecycle.ts(518,30): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(526,54): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(537,34): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(539,43): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(539,48): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(593,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(608,32): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(618,56): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(649,36): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(652,45): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(652,50): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(691,40): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(914,32): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(931,37): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(936,58): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(939,38): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(941,35): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(995,27): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(995,39): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1001,57): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1002,29): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1007,18): error TS2339: Property 'playerId' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1008,18): error TS2339: Property 'status' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1009,18): error TS2339: Property 'nextStageSeed' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1018,10): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1023,8): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1028,56): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1029,45): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1030,64): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1034,11): error TS2322: Type '{ type: "registration_order"; locale?: undefined; randomSeed?: undefined; revealOrder?: undefined; } | { type: "alphabetical"; locale: string; randomSeed?: undefined; revealOrder?: undefined; } | { ...; } | { ...; } | { ...; } | undefined' is not assignable to type 'SeedingPolicy'.
+  Type 'undefined' is not assignable to type 'SeedingPolicy'.
+src/application/stages/stage-lifecycle.ts(1034,41): error TS7030: Not all code paths return a value.
+src/application/stages/stage-lifecycle.ts(1048,24): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1052,31): error TS2339: Property 'name' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1053,37): error TS2339: Property 'id' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1055,30): error TS2339: Property 'seed' does not exist on type '{}'.
+src/application/stages/stage-lifecycle.ts(1080,42): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1091,18): error TS2339: Property 'membership' does not exist on type 'SeedableEntry'.
+src/application/stages/stage-lifecycle.ts(1123,83): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1131,43): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1148,26): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1211,28): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1211,34): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1212,54): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1253,53): error TS2345: Argument of type '{ seed: any; }[]' is not assignable to parameter of type 'RoundRobinParticipant[]'.
+  Property 'id' is missing in type '{ seed: any; }' but required in type 'RoundRobinParticipant'.
+src/application/stages/stage-lifecycle.ts(1286,33): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-lifecycle.ts(1301,38): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(8,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-queries.ts(76,32): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(79,43): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(80,43): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(81,40): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(82,41): error TS7006: Parameter 'participant' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(101,8): error TS7006: Parameter 'participant' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(105,8): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(105,14): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(112,25): error TS7006: Parameter 'group' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(119,16): error TS7006: Parameter 'participant' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(121,10): error TS7006: Parameter 'left' implicitly has an 'any' type.
+src/application/stages/stage-queries.ts(121,16): error TS7006: Parameter 'right' implicitly has an 'any' type.
+src/application/stages/stage-start-readiness.ts(292,20): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/application/stages/stage-start-readiness.ts(301,30): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/application/stages/stage-start-readiness.ts(303,33): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/routes/auth.ts(3,79): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/auth.ts(174,46): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/auth.ts(366,26): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/auth.ts(391,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/auth.ts(468,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/auth.ts(519,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/auth.ts(545,31): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/auth.ts(590,22): error TS7006: Parameter 'l' implicitly has an 'any' type.
+src/routes/health.ts(2,37): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/src/index.ts'.
+src/routes/health.ts(43,35): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/steam-game-catalog.ts(8,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/steam-game-catalog.ts(78,20): error TS7006: Parameter 'game' implicitly has an 'any' type.
+src/routes/steam-game-catalog.ts(89,21): error TS7006: Parameter 'game' implicitly has an 'any' type.
+src/routes/steam-game-catalog.ts(92,8): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/routes/steam-game-catalog.ts(92,11): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/steam-game-catalog.ts(289,43): error TS7006: Parameter 'term' implicitly has an 'any' type.
+src/routes/steam-game-catalog.ts(293,18): error TS2339: Property 'facet' does not exist on type '{}'.
+src/routes/steam-game-catalog.ts(295,18): error TS2339: Property 'facet' does not exist on type '{}'.
+src/routes/steam-game-catalog.ts(303,24): error TS2339: Property 'id' does not exist on type '{}'.
+src/routes/steam-game-catalog.ts(319,35): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/tournament-atomic-correction.ts(4,57): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-controlled-correction-revert.ts(7,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-controlled-correction-revert.ts(9,53): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-controlled-correction-revert.ts(72,27): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-controlled-correction-revert.ts(77,37): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-correction-operation-status.ts(4,57): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-qualification-routing-preview.ts(37,56): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/routes/tournament-qualification-routing-preview.ts(39,13): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/routes/tournament-qualification-routing-preview.ts(40,10): error TS7006: Parameter 'basket' implicitly has an 'any' type.
+src/routes/tournament-qualification-routing-preview.ts(42,76): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/routes/tournament-qualification-routing-preview.ts(43,42): error TS7006: Parameter 'route' implicitly has an 'any' type.
+src/routes/tournament-qualification-routing-preview.ts(45,29): error TS2339: Property 'type' does not exist on type '{}'.
+src/routes/tournament-qualification-routing-preview.ts(46,46): error TS2339: Property 'stageId' does not exist on type '{}'.
+src/routes/tournament-qualification-routing-preview.ts(55,34): error TS7006: Parameter 'proposal' implicitly has an 'any' type.
+src/routes/tournament-qualification-routing-preview.ts(56,42): error TS7006: Parameter 'status' implicitly has an 'any' type.
+src/routes/tournament-result-correction-preview.ts(7,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-result-correction-preview.ts(91,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-result-correction-preview.ts(93,19): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(8,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-se-correction-preflight.ts(57,27): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(89,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(89,87): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(89,89): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(90,31): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(90,82): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/routes/tournament-se-correction-preflight.ts(90,84): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/tournament-se-correction-readiness.ts(9,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournament-se-correction-readiness.ts(39,46): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/tournament-se-correction-readiness.ts(58,29): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/routes/tournaments.ts(5,242): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/routes/tournaments.ts(185,8): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/api-zod/src/index.ts'.
+src/routes/tournaments.ts(469,42): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/routes/tournaments.ts(474,7): error TS2345: Argument of type '{} | null' is not assignable to parameter of type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+src/routes/tournaments.ts(606,39): error TS7006: Parameter 'member' implicitly has an 'any' type.
+src/routes/tournaments.ts(668,22): error TS7006: Parameter 'tournament' implicitly has an 'any' type.
+src/routes/tournaments.ts(671,22): error TS7006: Parameter 'tournament' implicitly has an 'any' type.
+src/routes/tournaments.ts(1440,49): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/tournaments.ts(1482,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(1485,27): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/routes/tournaments.ts(1489,29): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/routes/tournaments.ts(1489,41): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/routes/tournaments.ts(1500,45): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/routes/tournaments.ts(1525,43): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/routes/tournaments.ts(1531,22): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/routes/tournaments.ts(1532,20): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/routes/tournaments.ts(1532,23): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/tournaments.ts(1652,49): error TS7006: Parameter 'tx' implicitly has an 'any' type.
+src/routes/tournaments.ts(1688,63): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/routes/tournaments.ts(1715,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(1716,29): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/routes/tournaments.ts(1719,45): error TS7006: Parameter 'membership' implicitly has an 'any' type.
+src/routes/tournaments.ts(1738,47): error TS7006: Parameter 'match' implicitly has an 'any' type.
+src/routes/tournaments.ts(1865,44): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/routes/tournaments.ts(1866,42): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/routes/tournaments.ts(1867,45): error TS7006: Parameter 'm' implicitly has an 'any' type.
+src/routes/tournaments.ts(1932,23): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/routes/tournaments.ts(1933,23): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/routes/tournaments.ts(1934,23): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/routes/tournaments.ts(1944,42): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/routes/tournaments.ts(1947,52): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/routes/tournaments.ts(1964,18): error TS7006: Parameter 'h' implicitly has an 'any' type.
+src/routes/tournaments.ts(2003,35): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/routes/tournaments.ts(2562,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(2728,46): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(2794,46): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(2863,46): error TS7006: Parameter 'player' implicitly has an 'any' type.
+src/routes/tournaments.ts(3145,15): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/routes/tournaments.ts(3227,16): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/routes/tournaments.ts(3301,45): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/routes/tournaments.ts(3305,28): error TS7006: Parameter 'stage' implicitly has an 'any' type.
+src/scripts/preflight-legacy-credentials.ts(7,12): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.
+src/scripts/preflight-legacy-credentials.ts(20,35): error TS7006: Parameter 'tournament' implicitly has an 'any' type.
+src/scripts/recover-legacy-organizer.ts(18,10): error TS6305: Output file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/dist/index.d.ts' has not been built from source file 'C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/lib/db/src/index.ts'.

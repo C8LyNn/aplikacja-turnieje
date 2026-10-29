@@ -1,0 +1,217 @@
+﻿{
+    "schema":  "swarm006.g2.build-only.v7",
+    "stage":  "Install",
+    "status":  "OFFLINE_INSTALL_DEV_AND_PROD_LINKS_PRESENT_BUILD_NOT_RUN",
+    "source_sha":  "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+    "git_tree_sha":  "f9ebccd5cf89cb3da8ab959c3a874e26994316c8",
+    "source_archive_sha256":  "adf50b5158af8bbbc301e03580ff52493a732023b774b07c149446af0fbdb688",
+    "pnpm_lock_sha256":  "7f241968e0f57e11f5c1cbfba80efe79c48971d8ddd95c7454cb7b87fe932fc3",
+    "trusted_root_npmrc_git_blob":  "61e34c2e5dde6b5b6b9d1a478945726c27993d4b",
+    "preserved_source":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_CANONICAL_bfd2c0ba84db47c08d4f66f6185ec94a",
+    "disposable_run_root":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d",
+    "node_version":  "v24.18.0",
+    "pnpm_version":  "10.34.7",
+    "offline_only":  true,
+    "network_isolation_attested":  true,
+    "commands":  [
+                     {
+                         "name":  "offline-install",
+                         "exe":  "pnpm",
+                         "args":  [
+                                      "install",
+                                      "--frozen-lockfile",
+                                      "--offline",
+                                      "--ignore-scripts",
+                                      "--prod=false",
+                                      "--filter",
+                                      "@workspace/api-server...",
+                                      "--filter",
+                                      "@workspace/tournament-manager...",
+                                      "--filter",
+                                      "animated-effects...",
+                                      "--filter",
+                                      "workspace",
+                                      "--store-dir",
+                                      "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store"
+                                  ],
+                         "working_dir":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\work",
+                         "exit_code":  0,
+                         "log_sha256":  "dccf75304535df31aac48c2a548a3b542bb0016b68a05b805ad01cde2c8fac92",
+                         "log":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\evidence\\offline-install.log"
+                     }
+                 ],
+    "outputs":  [
+
+                ],
+    "blockers":  [
+
+                 ],
+    "timestamp_utc":  "2026-10-25T12:24:33.2205420Z",
+    "install_dependency_policy":  "dev_and_prod_explicit_--prod=false",
+    "install_node_env":  "development_FOR_INSTALL_ONLY",
+    "install_npm_config_production":  "false_FOR_INSTALL_ONLY",
+    "dependency_proof":  [
+                             {
+                                 "id":  "api:esbuild",
+                                 "path":  "artifacts/api-server/node_modules/esbuild/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "24655ca1d9c91fe7517a99ec27bf1125b46efae71b54a55125d2a930b6ad61f9"
+                             },
+                             {
+                                 "id":  "api:pino-plugin",
+                                 "path":  "artifacts/api-server/node_modules/esbuild-plugin-pino/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "8a7601b58da77ad321058f8c9600cf2527ab4a30de434ce28de18dc49b5b5426"
+                             },
+                             {
+                                 "id":  "api:pino-transport",
+                                 "path":  "artifacts/api-server/node_modules/pino-pretty/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "cc2e565791408a4ec34b93357ca92ee7a04120ff791a7263b87049d98b9ea2bb"
+                             },
+                             {
+                                 "id":  "frontend:vite",
+                                 "path":  "artifacts/tournament-manager/node_modules/vite/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "c19fc69096d3aa0e4ada605dcbbfea8620b6ad258541d3e151184652203f26e2"
+                             },
+                             {
+                                 "id":  "frontend:react-plugin",
+                                 "path":  "artifacts/tournament-manager/node_modules/@vitejs/plugin-react/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "162dae2eb246170739d7899d2ce1715a3e17f775fcd75a674da6be6f681225d6"
+                             },
+                             {
+                                 "id":  "frontend:tailwind-plugin",
+                                 "path":  "artifacts/tournament-manager/node_modules/@tailwindcss/vite/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "7ca2c58e9f1db9812448c79461e811bca358385d8fb8b0bd41da5be96e0e72b3"
+                             },
+                             {
+                                 "id":  "frontend:overlay-plugin",
+                                 "path":  "artifacts/tournament-manager/node_modules/@replit/vite-plugin-runtime-error-modal/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "212467ac2864aba66a54a979697180f3692271c265f6a988ac1162c1d152421c"
+                             },
+                             {
+                                 "id":  "frontend:react",
+                                 "path":  "artifacts/tournament-manager/node_modules/react/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "8f3eb41d5562d73fd0b367319a8b7f03b36740f2dbd58214581307e0b5aa7a04"
+                             },
+                             {
+                                 "id":  "frontend:react-dom",
+                                 "path":  "artifacts/tournament-manager/node_modules/react-dom/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "adf6bb7b4bf078406a677e0bb0123d002a5b706945c213e7abba2381fa1e991c"
+                             },
+                             {
+                                 "id":  "animation:tsc",
+                                 "path":  "artifacts/animated-effects/node_modules/typescript/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6"
+                             },
+                             {
+                                 "id":  "animation:vite",
+                                 "path":  "artifacts/animated-effects/node_modules/vite/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "c19fc69096d3aa0e4ada605dcbbfea8620b6ad258541d3e151184652203f26e2"
+                             },
+                             {
+                                 "id":  "root:typescript",
+                                 "path":  "node_modules/typescript/package.json",
+                                 "status":  "LINKED",
+                                 "package_json_sha256":  "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6"
+                             },
+                             {
+                                 "id":  "api:esbuild-cli",
+                                 "path":  "artifacts/api-server/node_modules/.bin/esbuild.cmd",
+                                 "status":  "LINKED_UNEXECUTED",
+                                 "sha256":  "8cf8fa81c16af1a72d9b3b51f0bfec133fafaac813d77eaefd8d9878f3f94de2"
+                             },
+                             {
+                                 "id":  "frontend:vite-cli",
+                                 "path":  "artifacts/tournament-manager/node_modules/.bin/vite.cmd",
+                                 "status":  "LINKED_UNEXECUTED",
+                                 "sha256":  "37861a269d1d3904472d7cabc2a303e5d759f3d146746b9a162238e17711467c"
+                             },
+                             {
+                                 "id":  "animation:tsc-cli",
+                                 "path":  "artifacts/animated-effects/node_modules/.bin/tsc.cmd",
+                                 "status":  "LINKED_UNEXECUTED",
+                                 "sha256":  "ca37485e95b8383b7c852b12a20c9401622c546afea06d270a361246f19d3c46"
+                             },
+                             {
+                                 "id":  "animation:vite-cli",
+                                 "path":  "artifacts/animated-effects/node_modules/.bin/vite.cmd",
+                                 "status":  "LINKED_UNEXECUTED",
+                                 "sha256":  "37861a269d1d3904472d7cabc2a303e5d759f3d146746b9a162238e17711467c"
+                             },
+                             {
+                                 "id":  "root:tsc-cli",
+                                 "path":  "node_modules/.bin/tsc.cmd",
+                                 "status":  "LINKED_UNEXECUTED",
+                                 "sha256":  "35734de5cb1b899787e689cef1f1d2ed415eb01009d31b568632374d31e8ea6b"
+                             }
+                         ],
+    "dependency_readiness":  "DIRECT_DEV_AND_PROD_LINKS_PRESENT_NATIVE_FILE_PRESENT_BUILD_NOT_RUN",
+    "native_esbuild_status":  "BINARY_FILE_PRESENT_NOT_EXECUTED",
+    "store_copy_proof":  {
+                             "status":  "ISOLATED_V10_PACKAGE_DATA_ONLY_NO_PROJECTS_VERIFIED_BEFORE_INSTALL",
+                             "source_store_versioned":  "C:\\Users\\kubap\\AppData\\Local\\pnpm\\store\\v10",
+                             "source_layout":  {
+                                                   "file_count":  31522,
+                                                   "directory_count":  514,
+                                                   "content_file_count":  30951,
+                                                   "bytes":  380767665,
+                                                   "structure_sha256":  "b409d4ab5f50d10d0e44d02de02cbca5e92f4e3a8be6d6c4deabf27925592858",
+                                                   "version":  "v10",
+                                                   "files_directory_present":  true,
+                                                   "index_directory_present":  true,
+                                                   "excluded_projects_present":  true,
+                                                   "excluded_projects_policy":  "SKIP_ROOT_v10_projects_ENTIRE_TREE",
+                                                   "excluded_projects_copied":  false
+                                               },
+                             "target_store_base":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store",
+                             "target_store_versioned":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store\\v10",
+                             "effective_store_versioned":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store\\v10",
+                             "pnpm_store_path_exit":  0,
+                             "effective_path_matches_clone":  true,
+                             "cloned_layout":  {
+                                                   "file_count":  31522,
+                                                   "directory_count":  514,
+                                                   "content_file_count":  30951,
+                                                   "bytes":  380767665,
+                                                   "structure_sha256":  "b409d4ab5f50d10d0e44d02de02cbca5e92f4e3a8be6d6c4deabf27925592858",
+                                                   "version":  "v10",
+                                                   "files_directory_present":  true,
+                                                   "index_directory_present":  true,
+                                                   "excluded_projects_present":  false,
+                                                   "excluded_projects_policy":  "SKIP_ROOT_v10_projects_ENTIRE_TREE",
+                                                   "excluded_projects_copied":  false
+                                               },
+                             "disk_volume_root":  "C:\\",
+                             "disk_free_before_bytes":  45155102720,
+                             "disk_required_before_bytes":  3792376970,
+                             "disk_free_after_bytes":  44648251392,
+                             "copy_method":  "MANUAL_NONRECURSIVE_FILE_COPY_SHA256_VERIFY_NO_PROJECTS",
+                             "excluded_projects_policy":  "SKIP_ROOT_v10_projects_ENTIRE_TREE",
+                             "excluded_projects_copied":  false,
+                             "copied_file_count":  31522,
+                             "copied_bytes":  380767665,
+                             "verified_sha256_count":  31522,
+                             "clone_projects_absent":  true,
+                             "structure_matches":  true
+                         },
+    "db":  "NOT_RUN",
+    "sql":  "NOT_RUN",
+    "migrations":  "NOT_RUN",
+    "http_tests":  "NOT_RUN",
+    "github_actions":  "NOT_RUN",
+    "git_ref_writes":  "NOT_RUN",
+    "replit":  "NOT_RUN",
+    "production":  "NOT_RUN",
+    "deployment":  "NOT_RUN",
+    "listener":  "NOT_RUN",
+    "tests":  "NOT_RUN"
+}

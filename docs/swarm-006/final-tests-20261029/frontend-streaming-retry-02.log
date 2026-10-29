@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: trigger settings are bounded, case-normalized, safe and backwards compatible
+ok 1 - trigger settings are bounded, case-normalized, safe and backwards compatible
+  ---
+  duration_ms: 1.2508
+  type: 'test'
+  ...
+# Subtest: always-on export starts on widget load and ignores live events
+ok 2 - always-on export starts on widget load and ignores live events
+  ---
+  duration_ms: 8.927
+  type: 'test'
+  ...
+# Subtest: chat command matches full token, handles nested payload, cooldown and duplicate msgId
+ok 3 - chat command matches full token, handles nested payload, cooldown and duplicate msgId
+  ---
+  duration_ms: 5.6846
+  type: 'test'
+  ...
+# Subtest: follower only activates from its StreamElements event
+ok 4 - follower only activates from its StreamElements event
+  ---
+  duration_ms: 4.8172
+  type: 'test'
+  ...
+# Subtest: subscriber only activates from its StreamElements event
+ok 5 - subscriber only activates from its StreamElements event
+  ---
+  duration_ms: 5.2473
+  type: 'test'
+  ...
+# Subtest: tip only activates from its StreamElements event
+ok 6 - tip only activates from its StreamElements event
+  ---
+  duration_ms: 4.9649
+  type: 'test'
+  ...
+# Subtest: cheer only activates from its StreamElements event
+ok 7 - cheer only activates from its StreamElements event
+  ---
+  duration_ms: 4.7751
+  type: 'test'
+  ...
+# Subtest: raid only activates from its StreamElements event
+ok 8 - raid only activates from its StreamElements event
+  ---
+  duration_ms: 4.693
+  type: 'test'
+  ...
+# Subtest: export dialog updates the generated widget when trigger controls change
+ok 9 - export dialog updates the generated widget when trigger controls change
+  ---
+  duration_ms: 15.4258
+  type: 'test'
+  ...
+# Subtest: multi-route export form maps each enabled effect to a selected rule
+ok 10 - multi-route export form maps each enabled effect to a selected rule
+  ---
+  duration_ms: 32.5439
+  type: 'test'
+  ...
+# Subtest: route normalization rejects malformed IDs, disabled layers, repeats and >8 routes
+ok 11 - route normalization rejects malformed IDs, disabled layers, repeats and >8 routes
+  ---
+  duration_ms: 0.2515
+  type: 'test'
+  ...
+# Subtest: one StreamElements widget routes independent commands and raids to distinct effect layers
+ok 12 - one StreamElements widget routes independent commands and raids to distinct effect layers
+  ---
+  duration_ms: 6.4367
+  type: 'test'
+  ...
+# Subtest: duplicate multi-route triggers use deterministic priority, empty list stays idle
+ok 13 - duplicate multi-route triggers use deterministic priority, empty list stays idle
+  ---
+  duration_ms: 10.5211
+  type: 'test'
+  ...
+# Subtest: event exports do not require an iframe or call back into the editor website
+ok 14 - event exports do not require an iframe or call back into the editor website
+  ---
+  duration_ms: 0.2521
+  type: 'test'
+  ...
+# Subtest: portable profile roundtrip keeps exact layer IDs, effect settings, routes and durations
+ok 15 - portable profile roundtrip keeps exact layer IDs, effect settings, routes and durations
+  ---
+  duration_ms: 2.528
+  type: 'test'
+  ...
+# Subtest: portable profile retains per-layer timeline keyframes, event triggers and alert captions
+ok 16 - portable profile retains per-layer timeline keyframes, event triggers and alert captions
+  ---
+  duration_ms: 0.7305
+  type: 'test'
+  ...
+# Subtest: single-trigger presets preserve always-on legacy mode and empty multiple routes
+ok 17 - single-trigger presets preserve always-on legacy mode and empty multiple routes
+  ---
+  duration_ms: 0.2712
+  type: 'test'
+  ...
+# Subtest: local profile storage saves, reloads, and rejects overflow without mutation
+ok 18 - local profile storage saves, reloads, and rejects overflow without mutation
+  ---
+  duration_ms: 1.2379
+  type: 'test'
+  ...
+# Subtest: import validation rejects incompatible, hostile or broken scene content
+ok 19 - import validation rejects incompatible, hostile or broken scene content
+  ---
+  duration_ms: 0.7344
+  type: 'test'
+  ...
+# Subtest: saving a profile and confirmed loading restores the scene and rule editor
+ok 20 - saving a profile and confirmed loading restores the scene and rule editor
+  ---
+  duration_ms: 36.3732
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1801.751

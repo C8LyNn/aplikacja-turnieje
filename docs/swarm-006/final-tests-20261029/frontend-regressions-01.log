@@ -1,0 +1,3070 @@
+TAP version 13
+# Subtest: a 16-player bracket fits a compact 640px canvas without reserving an absent winner column
+ok 1 - a 16-player bracket fits a compact 640px canvas without reserving an absent winner column
+  ---
+  duration_ms: 1.1763
+  type: 'test'
+  ...
+# Subtest: 2 players: targets are centered on source matches, without extending the first-round height
+ok 2 - 2 players: targets are centered on source matches, without extending the first-round height
+  ---
+  duration_ms: 0.9044
+  type: 'test'
+  ...
+# Subtest: 4 players: targets are centered on source matches, without extending the first-round height
+ok 3 - 4 players: targets are centered on source matches, without extending the first-round height
+  ---
+  duration_ms: 0.2374
+  type: 'test'
+  ...
+# Subtest: 8 players: targets are centered on source matches, without extending the first-round height
+ok 4 - 8 players: targets are centered on source matches, without extending the first-round height
+  ---
+  duration_ms: 0.1506
+  type: 'test'
+  ...
+# Subtest: 16 players: targets are centered on source matches, without extending the first-round height
+ok 5 - 16 players: targets are centered on source matches, without extending the first-round height
+  ---
+  duration_ms: 0.2061
+  type: 'test'
+  ...
+# Subtest: 32 players: targets are centered on source matches, without extending the first-round height
+ok 6 - 32 players: targets are centered on source matches, without extending the first-round height
+  ---
+  duration_ms: 0.2185
+  type: 'test'
+  ...
+# Subtest: partial bracket uses actual source centers and draws no line from a missing match
+ok 7 - partial bracket uses actual source centers and draws no line from a missing match
+  ---
+  duration_ms: 27.1173
+  type: 'test'
+  ...
+# Subtest: 3 participants: BYEs retain their slots and finite geometry in the padded bracket
+ok 8 - 3 participants: BYEs retain their slots and finite geometry in the padded bracket
+  ---
+  duration_ms: 4.2455
+  type: 'test'
+  ...
+# Subtest: 5 participants: BYEs retain their slots and finite geometry in the padded bracket
+ok 9 - 5 participants: BYEs retain their slots and finite geometry in the padded bracket
+  ---
+  duration_ms: 5.9613
+  type: 'test'
+  ...
+# Subtest: 7 participants: BYEs retain their slots and finite geometry in the padded bracket
+ok 10 - 7 participants: BYEs retain their slots and finite geometry in the padded bracket
+  ---
+  duration_ms: 5.036
+  type: 'test'
+  ...
+# Subtest: 14 participants: BYEs retain their slots and finite geometry in the padded bracket
+ok 11 - 14 participants: BYEs retain their slots and finite geometry in the padded bracket
+  ---
+  duration_ms: 9.1602
+  type: 'test'
+  ...
+# Subtest: 24 participants: BYEs retain their slots and finite geometry in the padded bracket
+ok 12 - 24 participants: BYEs retain their slots and finite geometry in the padded bracket
+  ---
+  duration_ms: 20.7861
+  type: 'test'
+  ...
+# Subtest: long champion names stay within the fixed-height winner card and remain available in full
+ok 13 - long champion names stay within the fixed-height winner card and remain available in full
+  ---
+  duration_ms: 6.0936
+  type: 'test'
+  ...
+# Subtest: zoom footprint matches the rendered canvas and winner stays aligned with the final
+ok 14 - zoom footprint matches the rendered canvas and winner stays aligned with the final
+  ---
+  duration_ms: 9.7166
+  type: 'test'
+  ...
+# Subtest: legacy read models without nextMatchId keep the adjacent pair geometry
+ok 15 - legacy read models without nextMatchId keep the adjacent pair geometry
+  ---
+  duration_ms: 0.2703
+  type: 'test'
+  ...
+# Subtest: picker initialises with shared_pool ban mode and 5 bans per player
+ok 16 - picker initialises with shared_pool ban mode and 5 bans per player
+  ---
+  duration_ms: 164.8473
+  type: 'test'
+  ...
+# Subtest: switching ban mode updates persisted config
+ok 17 - switching ban mode updates persisted config
+  ---
+  duration_ms: 198.1644
+  type: 'test'
+  ...
+# Subtest: Marvel picker exposes elimination-group defaults without ban controls
+ok 18 - Marvel picker exposes elimination-group defaults without ban controls
+  ---
+  duration_ms: 126.1509
+  type: 'test'
+  ...
+# Subtest: bans-per-player stepper increments and decrements
+ok 19 - bans-per-player stepper increments and decrements
+  ---
+  duration_ms: 248.5069
+  type: 'test'
+  ...
+# Subtest: read-only label renders hero name and has a graceful missing-icon fallback
+ok 20 - read-only label renders hero name and has a graceful missing-icon fallback
+  ---
+  duration_ms: 2.6817
+  type: 'test'
+  ...
+# Subtest: no game config preserves the empty legacy presentation
+ok 21 - no game config preserves the empty legacy presentation
+  ---
+  duration_ms: 0.4283
+  type: 'test'
+  ...
+# Subtest: game picker is read-only after tournament start
+ok 22 - game picker is read-only after tournament start
+  ---
+  duration_ms: 29.5691
+  type: 'test'
+  ...
+# Subtest: bracket match shows a compact forced-hero icon
+ok 23 - bracket match shows a compact forced-hero icon
+  ---
+  duration_ms: 2.6106
+  type: 'test'
+  ...
+# Subtest: renders all Double Elimination brackets read-only for viewers
+ok 24 - renders all Double Elimination brackets read-only for viewers
+  ---
+  duration_ms: 65.7801
+  type: 'test'
+  ...
+# Subtest: DE freezes canonical revision, rejects stale played without retry, and requires a fresh draft
+ok 25 - DE freezes canonical revision, rejects stale played without retry, and requires a fresh draft
+  ---
+  duration_ms: 405.9734
+  type: 'test'
+  ...
+# Subtest: DE polling cannot rebase a canonical draft after an ABA change
+ok 26 - DE polling cannot rebase a canonical draft after an ABA change
+  ---
+  duration_ms: 111.6992
+  type: 'test'
+  ...
+# Subtest: DE does not transfer a draft to a replacement canonical match with the same bracket key
+ok 27 - DE does not transfer a draft to a replacement canonical match with the same bracket key
+  ---
+  duration_ms: 105.4233
+  type: 'test'
+  ...
+# Subtest: DE score form preserves input on failure, blocks double submit, and shows refreshed success
+ok 28 - DE score form preserves input on failure, blocks double submit, and shows refreshed success
+  ---
+  duration_ms: 364.3367
+  type: 'test'
+  ...
+# Subtest: DE correction confirms participants, saved result and downstream count before reverting
+ok 29 - DE correction confirms participants, saved result and downstream count before reverting
+  ---
+  duration_ms: 102.2936
+  type: 'test'
+  ...
+# Subtest: lost session can log in with saved password from role null
+ok 30 - lost session can log in with saved password from role null
+  ---
+  duration_ms: 359.5557
+  type: 'test'
+  ...
+# Subtest: lost session can log in with saved password from role fan
+ok 31 - lost session can log in with saved password from role fan
+  ---
+  duration_ms: 336.8981
+  type: 'test'
+  ...
+# Subtest: wrong password keeps viewer access and lets the user retry; two submits send once
+ok 32 - wrong password keeps viewer access and lets the user retry; two submits send once
+  ---
+  duration_ms: 729.994
+  type: 'test'
+  ...
+# Subtest: an existing credentialless tournament offers no public takeover
+ok 33 - an existing credentialless tournament offers no public takeover
+  ---
+  duration_ms: 15.7068
+  type: 'test'
+  ...
+# Subtest: a passwordless organizer can establish a password and immediately replaces its token
+ok 34 - a passwordless organizer can establish a password and immediately replaces its token
+  ---
+  duration_ms: 467.976
+  type: 'test'
+  ...
+# Subtest: save exposes API validation details for participant count mismatch and preserves draft
+ok 35 - save exposes API validation details for participant count mismatch and preserves draft
+  ---
+  duration_ms: 210.8887
+  type: 'test'
+  ...
+# Subtest: save exposes API validation details for invalid routing and preserves draft
+ok 36 - save exposes API validation details for invalid routing and preserves draft
+  ---
+  duration_ms: 141.0215
+  type: 'test'
+  ...
+# Subtest: save exposes API validation details for missing participant and preserves draft
+ok 37 - save exposes API validation details for missing participant and preserves draft
+  ---
+  duration_ms: 157.792
+  type: 'test'
+  ...
+# Subtest: save exposes API validation details for quota counts in backend message and preserves draft
+ok 38 - save exposes API validation details for quota counts in backend message and preserves draft
+  ---
+  duration_ms: 154.2595
+  type: 'test'
+  ...
+# Subtest: save uses connection feedback for unexpected server/network error (500)
+ok 39 - save uses connection feedback for unexpected server/network error (500)
+  ---
+  duration_ms: 141.1101
+  type: 'test'
+  ...
+# Subtest: save uses connection feedback for unexpected server/network error (0)
+ok 40 - save uses connection feedback for unexpected server/network error (0)
+  ---
+  duration_ms: 139.4985
+  type: 'test'
+  ...
+# Subtest: readiness participant mismatch includes server counts and stage name without estimating arrivals
+ok 41 - readiness participant mismatch includes server counts and stage name without estimating arrivals
+  ---
+  duration_ms: 0.5874
+  type: 'test'
+  ...
+# Subtest: validation keeps details objects, expected/actual and unknown backend reasons
+ok 42 - validation keeps details objects, expected/actual and unknown backend reasons
+  ---
+  duration_ms: 0.2727
+  type: 'test'
+  ...
+# Subtest: ordinalLabel converts 1-4 to A-D
+ok 43 - ordinalLabel converts 1-4 to A-D
+  ---
+  duration_ms: 0.0775
+  type: 'test'
+  ...
+# Subtest: basketLabel returns Polish label for type and ordinal
+ok 44 - basketLabel returns Polish label for type and ordinal
+  ---
+  duration_ms: 0.0962
+  type: 'test'
+  ...
+# Subtest: getColorStyle returns neutral style for null colorId
+ok 45 - getColorStyle returns neutral style for null colorId
+  ---
+  duration_ms: 0.0761
+  type: 'test'
+  ...
+# Subtest: getColorStyle returns matching color for known colorId
+ok 46 - getColorStyle returns matching color for known colorId
+  ---
+  duration_ms: 0.0656
+  type: 'test'
+  ...
+# Subtest: shows legacy defaulted info banner for legacyDefaulted config
+ok 47 - shows legacy defaulted info banner for legacyDefaulted config
+  ---
+  duration_ms: 13.497
+  type: 'test'
+  ...
+# Subtest: renders stage blocks and basket labels for explicit multi-basket config
+ok 48 - renders stage blocks and basket labels for explicit multi-basket config
+  ---
+  duration_ms: 31.8601
+  type: 'test'
+  ...
+# Subtest: stored pre-authority baskets stay on persisted legacy flow until save
+ok 49 - stored pre-authority baskets stay on persisted legacy flow until save
+  ---
+  duration_ms: 152.6772
+  type: 'test'
+  ...
+# Subtest: renders route connectors between stages
+ok 50 - renders route connectors between stages
+  ---
+  duration_ms: 21.4995
+  type: 'test'
+  ...
+# Subtest: flow map distinguishes 0 routes with source and target stage labels
+ok 51 - flow map distinguishes 0 routes with source and target stage labels
+  ---
+  duration_ms: 25.21
+  type: 'test'
+  ...
+# Subtest: flow map distinguishes 1 routes with source and target stage labels
+ok 52 - flow map distinguishes 1 routes with source and target stage labels
+  ---
+  duration_ms: 36.6523
+  type: 'test'
+  ...
+# Subtest: flow map distinguishes 4 routes with source and target stage labels
+ok 53 - flow map distinguishes 4 routes with source and target stage labels
+  ---
+  duration_ms: 33.1163
+  type: 'test'
+  ...
+# Subtest: editing route cards still removes and adds the original source-target pair
+ok 54 - editing route cards still removes and adds the original source-target pair
+  ---
+  duration_ms: 463.334
+  type: 'test'
+  ...
+# Subtest: shows locked banner and hides edit controls when tournament is not in draft
+ok 55 - shows locked banner and hides edit controls when tournament is not in draft
+  ---
+  duration_ms: 26.6353
+  type: 'test'
+  ...
+# Subtest: shows API validation warning for invalid basket config
+ok 56 - shows API validation warning for invalid basket config
+  ---
+  duration_ms: 8.8787
+  type: 'test'
+  ...
+# Subtest: entering advanced mode shows save and cancel buttons
+ok 57 - entering advanced mode shows save and cancel buttons
+  ---
+  duration_ms: 146.9391
+  type: 'test'
+  ...
+# Subtest: add route button appears in advanced mode for multi-stage tournament
+ok 58 - add route button appears in advanced mode for multi-stage tournament
+  ---
+  duration_ms: 109.2629
+  type: 'test'
+  ...
+# Subtest: firstFreeOrdinal: returns 1 for empty list
+ok 59 - firstFreeOrdinal: returns 1 for empty list
+  ---
+  duration_ms: 0.3413
+  type: 'test'
+  ...
+# Subtest: firstFreeOrdinal: returns first gap after partial delete
+ok 60 - firstFreeOrdinal: returns first gap after partial delete
+  ---
+  duration_ms: 0.143
+  type: 'test'
+  ...
+# Subtest: generateBasketId: does not collide with existing IDs
+ok 61 - generateBasketId: does not collide with existing IDs
+  ---
+  duration_ms: 0.2816
+  type: 'test'
+  ...
+# Subtest: generateBasketId: skips IDs of deleted baskets (ordinal hole scenario)
+ok 62 - generateBasketId: skips IDs of deleted baskets (ordinal hole scenario)
+  ---
+  duration_ms: 0.0929
+  type: 'test'
+  ...
+# Subtest: toggleParticipantInBasket: player assigned to stage 1 remains after being added to stage 2
+ok 63 - toggleParticipantInBasket: player assigned to stage 1 remains after being added to stage 2
+  ---
+  duration_ms: 0.2107
+  type: 'test'
+  ...
+# Subtest: toggleParticipantInBasket: player moved between baskets within same stage
+ok 64 - toggleParticipantInBasket: player moved between baskets within same stage
+  ---
+  duration_ms: 0.215
+  type: 'test'
+  ...
+# Subtest: skip-stage route (Stage 1 → Stage 3) displays target stage name in connector
+ok 65 - skip-stage route (Stage 1 → Stage 3) displays target stage name in connector
+  ---
+  duration_ms: 28.08
+  type: 'test'
+  ...
+# Subtest: organizer with no orgToken sees no edit button
+ok 66 - organizer with no orgToken sees no edit button
+  ---
+  duration_ms: 31.024
+  type: 'test'
+  ...
+# Subtest: quota summary displays Łącznie przechodzi and Odpada for stage with non-null qualifierCounts
+ok 67 - quota summary displays Łącznie przechodzi and Odpada for stage with non-null qualifierCounts
+  ---
+  duration_ms: 16.716
+  type: 'test'
+  ...
+# Subtest: advanced mode shows qualifier-count input for output baskets and quota summary updates
+ok 68 - advanced mode shows qualifier-count input for output baskets and quota summary updates
+  ---
+  duration_ms: 232.9185
+  type: 'test'
+  ...
+# Subtest: save button sends PUT with updated qualifierCount
+ok 69 - save button sends PUT with updated qualifierCount
+  ---
+  duration_ms: 295.8149
+  type: 'test'
+  ...
+# Subtest: query stages -> players changes rendered content without remount
+ok 70 - query stages -> players changes rendered content without remount
+  ---
+  duration_ms: 136.6705
+  type: 'test'
+  ...
+# Subtest: browser Back and Forward update a query-driven tab
+ok 71 - browser Back and Forward update a query-driven tab
+  ---
+  duration_ms: 76.6118
+  type: 'test'
+  ...
+# Subtest: Detail -> Prowadzenie and Host -> Etapy keep canonical query URLs
+ok 72 - Detail -> Prowadzenie and Host -> Etapy keep canonical query URLs
+  ---
+  duration_ms: 93.4792
+  type: 'test'
+  ...
+# Subtest: legacy ?tab=matches normalizes to conducting for an organizer without a loop
+ok 73 - legacy ?tab=matches normalizes to conducting for an organizer without a loop
+  ---
+  duration_ms: 3.5786
+  type: 'test'
+  ...
+# Subtest: legacy ?tab=matches stays read-only for a viewer
+ok 74 - legacy ?tab=matches stays read-only for a viewer
+  ---
+  duration_ms: 3.8539
+  type: 'test'
+  ...
+# Subtest: direct support security query falls back before organizer content renders
+ok 75 - direct support security query falls back before organizer content renders
+  ---
+  duration_ms: 0.1898
+  type: 'test'
+  ...
+# Subtest: active More is current and no hidden menu item duplicates aria-current
+ok 76 - active More is current and no hidden menu item duplicates aria-current
+  ---
+  duration_ms: 15.1039
+  type: 'test'
+  ...
+# Subtest: historical stage has no next-stage instructions when all stages ended (tournamentCompleted=false, baskets=false)
+ok 77 - historical stage has no next-stage instructions when all stages ended (tournamentCompleted=false, baskets=false)
+  ---
+  duration_ms: 151.6042
+  type: 'test'
+  ...
+# Subtest: historical stage has no next-stage instructions when all stages ended (tournamentCompleted=false, baskets=true)
+ok 78 - historical stage has no next-stage instructions when all stages ended (tournamentCompleted=false, baskets=true)
+  ---
+  duration_ms: 38.5765
+  type: 'test'
+  ...
+# Subtest: historical stage has no next-stage instructions when all stages ended (tournamentCompleted=true, baskets=false)
+ok 79 - historical stage has no next-stage instructions when all stages ended (tournamentCompleted=true, baskets=false)
+  ---
+  duration_ms: 45.8089
+  type: 'test'
+  ...
+# Subtest: historical stage has no next-stage instructions when all stages ended (tournamentCompleted=true, baskets=true)
+ok 80 - historical stage has no next-stage instructions when all stages ended (tournamentCompleted=true, baskets=true)
+  ---
+  duration_ms: 46.8783
+  type: 'test'
+  ...
+# Subtest: upper CTA: first start uses the target stage confirmation and locks write plus refetch
+ok 81 - upper CTA: first start uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 318.9871
+  type: 'test'
+  ...
+# Subtest: upper CTA: next start uses the target stage confirmation and locks write plus refetch
+ok 82 - upper CTA: next start uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 342.2564
+  type: 'test'
+  ...
+# Subtest: upper CTA: complete uses the target stage confirmation and locks write plus refetch
+ok 83 - upper CTA: complete uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 249.6033
+  type: 'test'
+  ...
+# Subtest: lower CTA: first start uses the target stage confirmation and locks write plus refetch
+ok 84 - lower CTA: first start uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 326.6656
+  type: 'test'
+  ...
+# Subtest: lower CTA: next start uses the target stage confirmation and locks write plus refetch
+ok 85 - lower CTA: next start uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 437.5585
+  type: 'test'
+  ...
+# Subtest: lower CTA: complete uses the target stage confirmation and locks write plus refetch
+ok 86 - lower CTA: complete uses the target stage confirmation and locks write plus refetch
+  ---
+  duration_ms: 247.1293
+  type: 'test'
+  ...
+# Subtest: upper start CTA can reopen after cancellation with its target already selected
+ok 87 - upper start CTA can reopen after cancellation with its target already selected
+  ---
+  duration_ms: 370.8649
+  type: 'test'
+  ...
+# Subtest: upper completion previews and completes the active stage while another stage stays selected
+ok 88 - upper completion previews and completes the active stage while another stage stays selected
+  ---
+  duration_ms: 219.4317
+  type: 'test'
+  ...
+# Subtest: upper start conflict refreshes its explicit target and blocks retry with stale readiness
+ok 89 - upper start conflict refreshes its explicit target and blocks retry with stale readiness
+  ---
+  duration_ms: 221.4523
+  type: 'test'
+  ...
+# Subtest: upper start reads the target ceremony instead of the selected stage ceremony
+ok 90 - upper start reads the target ceremony instead of the selected stage ceremony
+  ---
+  duration_ms: 127.2039
+  type: 'test'
+  ...
+# Subtest: completed stage can generate, review, approve and route entirely from the panel to backend READY
+ok 91 - completed stage can generate, review, approve and route entirely from the panel to backend READY
+  ---
+  duration_ms: 616.9952
+  type: 'test'
+  ...
+# Subtest: approve prevents double submit through both write and dependent readiness refetch
+ok 92 - approve prevents double submit through both write and dependent readiness refetch
+  ---
+  duration_ms: 289.4104
+  type: 'test'
+  ...
+# Subtest: approve 409 refreshes server state without false success
+ok 93 - approve 409 refreshes server state without false success
+  ---
+  duration_ms: 242.2585
+  type: 'test'
+  ...
+# Subtest: approve 500 refreshes server state without false success
+ok 94 - approve 500 refreshes server state without false success
+  ---
+  duration_ms: 214.4963
+  type: 'test'
+  ...
+# Subtest: route prevents double submit through both write and dependent readiness refetch
+ok 95 - route prevents double submit through both write and dependent readiness refetch
+  ---
+  duration_ms: 185.7781
+  type: 'test'
+  ...
+# Subtest: route 409 refreshes server state without false success
+ok 96 - route 409 refreshes server state without false success
+  ---
+  duration_ms: 156.3653
+  type: 'test'
+  ...
+# Subtest: route 500 refreshes server state without false success
+ok 97 - route 500 refreshes server state without false success
+  ---
+  duration_ms: 154.6443
+  type: 'test'
+  ...
+# Subtest: successful route with failed readiness refresh shows an unverified state and supports read retry
+ok 98 - successful route with failed readiness refresh shows an unverified state and supports read retry
+  ---
+  duration_ms: 200.8662
+  type: 'test'
+  ...
+# Subtest: stale proposal can be regenerated and requires a fresh approval review
+ok 99 - stale proposal can be regenerated and requires a fresh approval review
+  ---
+  duration_ms: 250.5318
+  type: 'test'
+  ...
+# Subtest: a proposal revised while confirmation is open must be reviewed again
+ok 100 - a proposal revised while confirmation is open must be reviewed again
+  ---
+  duration_ms: 318.6895
+  type: 'test'
+  ...
+# Subtest: route conflict reflects an operation completed elsewhere without claiming local success
+ok 101 - route conflict reflects an operation completed elsewhere without claiming local success
+  ---
+  duration_ms: 170.2057
+  type: 'test'
+  ...
+# Subtest: multiple configured routes remain separate and readiness stays controlled by the server
+ok 102 - multiple configured routes remain separate and readiness stays controlled by the server
+  ---
+  duration_ms: 217.6017
+  type: 'test'
+  ...
+# Subtest: legacy does not expose qualification or routing actions
+ok 103 - legacy does not expose qualification or routing actions
+  ---
+  duration_ms: 34.148
+  type: 'test'
+  ...
+# Subtest: empty does not expose qualification or routing actions
+ok 104 - empty does not expose qualification or routing actions
+  ---
+  duration_ms: 45.4693
+  type: 'test'
+  ...
+# Subtest: viewer does not expose qualification or routing actions
+ok 105 - viewer does not expose qualification or routing actions
+  ---
+  duration_ms: 29.3067
+  type: 'test'
+  ...
+# Subtest: qualification without routes does not require a routing step
+ok 106 - qualification without routes does not require a routing step
+  ---
+  duration_ms: 188.4674
+  type: 'test'
+  ...
+# Subtest: missing proposal is a valid read state, while another 404 cannot enable generation
+ok 107 - missing proposal is a valid read state, while another 404 cannot enable generation
+  ---
+  duration_ms: 213.3383
+  type: 'test'
+  ...
+# Subtest: planned stage displays backend blockers, counts and an existing resolution link
+ok 108 - planned stage displays backend blockers, counts and an existing resolution link
+  ---
+  duration_ms: 80.811
+  type: 'test'
+  ...
+# Subtest: readiness separates a short stage summary and actions from complete diagnostics
+ok 109 - readiness separates a short stage summary and actions from complete diagnostics
+  ---
+  duration_ms: 90.4219
+  type: 'test'
+  ...
+# Subtest: basket readiness retains full backend diagnostics below the repair guidance
+ok 110 - basket readiness retains full backend diagnostics below the repair guidance
+  ---
+  duration_ms: 76.0291
+  type: 'test'
+  ...
+# Subtest: start locks double submit through request and refetch, then presents the active stage
+ok 111 - start locks double submit through request and refetch, then presents the active stage
+  ---
+  duration_ms: 297.144
+  type: 'test'
+  ...
+# Subtest: start conflict refreshes readiness and retains an actionable error without success
+ok 112 - start conflict refreshes readiness and retains an actionable error without success
+  ---
+  duration_ms: 290.177
+  type: 'test'
+  ...
+# Subtest: next-step start intent opens the same confirmation for the first ready stage
+ok 113 - next-step start intent opens the same confirmation for the first ready stage
+  ---
+  duration_ms: 139.4195
+  type: 'test'
+  ...
+# Subtest: next-step start intent targets the ready second stage even when the first is selected
+ok 114 - next-step start intent targets the ready second stage even when the first is selected
+  ---
+  duration_ms: 141.8694
+  type: 'test'
+  ...
+# Subtest: completion explains consequences, prevents double submit and reveals pending qualification
+ok 115 - completion explains consequences, prevents double submit and reveals pending qualification
+  ---
+  duration_ms: 368.1179
+  type: 'test'
+  ...
+# Subtest: complete success closes confirmation before refetch and never previews the completed stage
+ok 116 - complete success closes confirmation before refetch and never previews the completed stage
+  ---
+  duration_ms: 210.1693
+  type: 'test'
+  ...
+# Subtest: real complete STAGE_NOT_ACTIVE failure remains visible without claiming success
+ok 117 - real complete STAGE_NOT_ACTIVE failure remains visible without claiming success
+  ---
+  duration_ms: 202.573
+  type: 'test'
+  ...
+# Subtest: active stage confirmation still loads qualification preview on each opening
+ok 118 - active stage confirmation still loads qualification preview on each opening
+  ---
+  duration_ms: 336.409
+  type: 'test'
+  ...
+# Subtest: first stage uses the existing tournament start endpoint
+ok 119 - first stage uses the existing tournament start endpoint
+  ---
+  duration_ms: 155.9767
+  type: 'test'
+  ...
+# Subtest: readiness failure keeps start disabled and allows a fresh readiness check
+ok 120 - readiness failure keeps start disabled and allows a fresh readiness check
+  ---
+  duration_ms: 113.1135
+  type: 'test'
+  ...
+# Subtest: completion preview rejects incomplete results and requires a successful retry
+ok 121 - completion preview rejects incomplete results and requires a successful retry
+  ---
+  duration_ms: 152.0701
+  type: 'test'
+  ...
+# Subtest: ready roster does not bypass an unfinished sequential seeding ceremony
+ok 122 - ready roster does not bypass an unfinished sequential seeding ceremony
+  ---
+  duration_ms: 47.1965
+  type: 'test'
+  ...
+# Subtest: experimental route surface is registered
+ok 123 - experimental route surface is registered
+  ---
+  duration_ms: 2.949
+  type: 'test'
+  ...
+# Subtest: known navigation leaks stay route-aware
+ok 124 - known navigation leaks stay route-aware
+  ---
+  duration_ms: 15.4755
+  type: 'test'
+  ...
+# Subtest: detail restore does not force a Stable tournament URL
+ok 125 - detail restore does not force a Stable tournament URL
+  ---
+  duration_ms: 1.2902
+  type: 'test'
+  ...
+# Subtest: experimental overview and dashboard filters are wired
+ok 126 - experimental overview and dashboard filters are wired
+  ---
+  duration_ms: 2.3391
+  type: 'test'
+  ...
+# Subtest: experimental density control remains presentation-only
+ok 127 - experimental density control remains presentation-only
+  ---
+  duration_ms: 2.6636
+  type: 'test'
+  ...
+# Subtest: experimental overview lifecycle is descriptive, not a second readiness engine
+ok 128 - experimental overview lifecycle is descriptive, not a second readiness engine
+  ---
+  duration_ms: 1.41
+  type: 'test'
+  ...
+# Subtest: organizer Experimental surfaces expose shared context and Host command center
+ok 129 - organizer Experimental surfaces expose shared context and Host command center
+  ---
+  duration_ms: 1.8967
+  type: 'test'
+  ...
+# Subtest: Experimental Host command center is presentation-only
+ok 130 - Experimental Host command center is presentation-only
+  ---
+  duration_ms: 1.57
+  type: 'test'
+  ...
+# Subtest: Experimental dashboard uses Radix-backed dialogs instead of legacy overlays
+ok 131 - Experimental dashboard uses Radix-backed dialogs instead of legacy overlays
+  ---
+  duration_ms: 1.8731
+  type: 'test'
+  ...
+# Subtest: Experimental checklist uses current organizer-password model
+ok 132 - Experimental checklist uses current organizer-password model
+  ---
+  duration_ms: 1.2792
+  type: 'test'
+  ...
+# Subtest: Experimental player workspace stays frontend-only
+ok 133 - Experimental player workspace stays frontend-only
+  ---
+  duration_ms: 2.2967
+  type: 'test'
+  ...
+# Subtest: Experimental Stage and Basket surfaces are presentation wrappers
+ok 134 - Experimental Stage and Basket surfaces are presentation wrappers
+  ---
+  duration_ms: 0.8575
+  type: 'test'
+  ...
+# Subtest: Host Focus mode has a safe keyboard escape and no API dependency
+ok 135 - Host Focus mode has a safe keyboard escape and no API dependency
+  ---
+  duration_ms: 1.6795
+  type: 'test'
+  ...
+# Subtest: shared query states expose semantic styling hooks
+ok 136 - shared query states expose semantic styling hooks
+  ---
+  duration_ms: 0.9557
+  type: 'test'
+  ...
+# Subtest: detects every experimental tournament surface
+ok 137 - detects every experimental tournament surface
+  ---
+  duration_ms: 0.8861
+  type: 'test'
+  ...
+# Subtest: builds stable and experimental tournament links
+ok 138 - builds stable and experimental tournament links
+  ---
+  duration_ms: 0.131
+  type: 'test'
+  ...
+# Subtest: upgrades stable tournament hrefs only in experimental mode
+ok 139 - upgrades stable tournament hrefs only in experimental mode
+  ---
+  duration_ms: 0.1572
+  type: 'test'
+  ...
+# Subtest: provides role homes for the parallel experimental module
+ok 140 - provides role homes for the parallel experimental module
+  ---
+  duration_ms: 0.0671
+  type: 'test'
+  ...
+# node:internal/test_runner/harness:122
+#       throw err;
+#       ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'jszip' imported from C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\animated-effects\\src\\editor\\exportPanel.ts
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+#     at packageResolve (node:internal/modules/esm/resolve:768:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:992:11)
+#     at nextResolve (node:internal/modules/esm/hooks:785:28)
+#     at resolveBase (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270004715:2:3744)
+#     at resolveDirectory (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270004715:2:4243)
+#     at resolveTsPaths (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270004715:2:4984)
+#     at resolve (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270004715:2:5361)
+#     at nextResolve (node:internal/modules/esm/hooks:785:28) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v24.18.0
+# Subtest: src\\features\\streaming\\obs-lab\\animated-effects-trigger.test.ts
+not ok 11 - src\\features\\streaming\\obs-lab\\animated-effects-trigger.test.ts
+  ---
+  duration_ms: 1121.1341
+  type: 'test'
+  location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\src\\features\\streaming\\obs-lab\\animated-effects-trigger.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 7
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: right: URL roundtrip preserves preview settings and bounds invalid input
+ok 142 - right: URL roundtrip preserves preview settings and bounds invalid input
+  ---
+  duration_ms: 44.5355
+  type: 'test'
+  ...
+# Subtest: below: URL roundtrip preserves preview settings and bounds invalid input
+ok 143 - below: URL roundtrip preserves preview settings and bounds invalid input
+  ---
+  duration_ms: 6.643
+  type: 'test'
+  ...
+# Subtest: overlay: URL roundtrip preserves preview settings and bounds invalid input
+ok 144 - overlay: URL roundtrip preserves preview settings and bounds invalid input
+  ---
+  duration_ms: 5.8587
+  type: 'test'
+  ...
+# Subtest: overlay extreme inset keeps a positive chat area inside the camera
+ok 145 - overlay extreme inset keeps a positive chat area inside the camera
+  ---
+  duration_ms: 3.7127
+  type: 'test'
+  ...
+# Subtest: public overlay is transparent, handles parent bridge safely and restores document styles
+ok 146 - public overlay is transparent, handles parent bridge safely and restores document styles
+  ---
+  duration_ms: 22.3145
+  type: 'test'
+  ...
+# Subtest: StreamElements snippets are standalone and do not load the app or embed a frame
+ok 147 - StreamElements snippets are standalone and do not load the app or embed a frame
+  ---
+  duration_ms: 10.6615
+  type: 'test'
+  ...
+# Subtest: native StreamElements widget preserves layout and styling settings
+ok 148 - native StreamElements widget preserves layout and styling settings
+  ---
+  duration_ms: 0.6272
+  type: 'test'
+  ...
+# Subtest: native StreamElements events render safe text and remove moderated messages
+ok 149 - native StreamElements events render safe text and remove moderated messages
+  ---
+  duration_ms: 19.6841
+  type: 'test'
+  ...
+# Subtest: Draw Lab renders participant names as text, not executable HTML
+ok 150 - Draw Lab renders participant names as text, not executable HTML
+  ---
+  duration_ms: 230.737
+  type: 'test'
+  ...
+# Subtest: Draw Lab observers settle instead of perpetually updating each other
+ok 151 - Draw Lab observers settle instead of perpetually updating each other
+  ---
+  duration_ms: 70.6267
+  type: 'test'
+  ...
+# node:internal/test_runner/harness:122
+#       throw err;
+#       ^
+# Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'jszip' imported from C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\animated-effects\\src\\editor\\exportPanel.ts
+#     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+#     at packageResolve (node:internal/modules/esm/resolve:768:81)
+#     at moduleResolve (node:internal/modules/esm/resolve:859:18)
+#     at defaultResolve (node:internal/modules/esm/resolve:992:11)
+#     at nextResolve (node:internal/modules/esm/hooks:785:28)
+#     at resolveBase (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270007526:2:3744)
+#     at resolveDirectory (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270007526:2:4243)
+#     at resolveTsPaths (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270007526:2:4984)
+#     at resolve (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/esm/index.mjs?1793270007526:2:5361)
+#     at nextResolve (node:internal/modules/esm/hooks:785:28) {
+#   code: 'ERR_MODULE_NOT_FOUND'
+# }
+# Node.js v24.18.0
+# Subtest: src\\features\\streaming\\obs-lab\\stream-elements-profiles.test.ts
+not ok 13 - src\\features\\streaming\\obs-lab\\stream-elements-profiles.test.ts
+  ---
+  duration_ms: 1029.3547
+  type: 'test'
+  location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\src\\features\\streaming\\obs-lab\\stream-elements-profiles.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 7
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: simulator cases mirror single and multi-route trigger options
+ok 153 - simulator cases mirror single and multi-route trigger options
+  ---
+  duration_ms: 1.8995
+  type: 'test'
+  ...
+# Subtest: simulation document embeds actual exported code without remote scripts or tokens
+ok 154 - simulation document embeds actual exported code without remote scripts or tokens
+  ---
+  duration_ms: 0.9368
+  type: 'test'
+  ...
+# Subtest: simulator forwards commands into the exact exported widget and shows selected effect layer
+ok 155 - simulator forwards commands into the exact exported widget and shows selected effect layer
+  ---
+  duration_ms: 29.0856
+  type: 'test'
+  ...
+# Subtest: always-on simulator reports ready before its initial active-layer count
+ok 156 - always-on simulator reports ready before its initial active-layer count
+  ---
+  duration_ms: 11.404
+  type: 'test'
+  ...
+# Subtest: editor mounts simulator inside sandbox without allowing same-origin access
+ok 157 - editor mounts simulator inside sandbox without allowing same-origin access
+  ---
+  duration_ms: 14.6486
+  type: 'test'
+  ...
+# Subtest: a stored but invalid support session never grants mutating capabilities
+ok 158 - a stored but invalid support session never grants mutating capabilities
+  ---
+  duration_ms: 97.142
+  type: 'test'
+  ...
+# Subtest: a late support verification cannot authenticate a different tournament
+ok 159 - a late support verification cannot authenticate a different tournament
+  ---
+  duration_ms: 106.1816
+  type: 'test'
+  ...
+# Subtest: generated list client rejects HTML instead of returning a typed string
+ok 160 - generated list client rejects HTML instead of returning a typed string
+  ---
+  duration_ms: 11.6436
+  type: 'test'
+  ...
+# Subtest: API transport preserves no-content deletes and explicit text responses
+ok 161 - API transport preserves no-content deletes and explicit text responses
+  ---
+  duration_ms: 0.5311
+  type: 'test'
+  ...
+# Subtest: audience access-gate latch state machine
+    # Subtest: private_online without viewer session shows password gate on first error
+    ok 1 - private_online without viewer session shows password gate on first error
+      ---
+      duration_ms: 0.8916
+      type: 'test'
+      ...
+    # Subtest: background refetch (error briefly cleared) does NOT remove password gate
+    ok 2 - background refetch (error briefly cleared) does NOT remove password gate
+      ---
+      duration_ms: 0.128
+      type: 'test'
+      ...
+    # Subtest: latch stays stable across multiple refetch cycles
+    ok 3 - latch stays stable across multiple refetch cycles
+      ---
+      duration_ms: 0.0716
+      type: 'test'
+      ...
+    # Subtest: latch clears only when tournament query succeeds (correct viewer session)
+    ok 4 - latch clears only when tournament query succeeds (correct viewer session)
+      ---
+      duration_ms: 0.0653
+      type: 'test'
+      ...
+    # Subtest: non-viewer-password access-denied codes are also latched (e.g. SUPPORT_ONLY)
+    ok 5 - non-viewer-password access-denied codes are also latched (e.g. SUPPORT_ONLY)
+      ---
+      duration_ms: 0.049
+      type: 'test'
+      ...
+    # Subtest: no error and no tournament (initial loading) → latch stays undefined
+    ok 6 - no error and no tournament (initial loading) → latch stays undefined
+      ---
+      duration_ms: 0.0698
+      type: 'test'
+      ...
+    1..6
+ok 162 - audience access-gate latch state machine
+  ---
+  duration_ms: 2.2522
+  type: 'suite'
+  ...
+# Subtest: frontend accepts a series_v1 Backup v2 file
+ok 163 - frontend accepts a series_v1 Backup v2 file
+  ---
+  duration_ms: 0.9045
+  type: 'test'
+  ...
+# Subtest: frontend accepts a series_v1 Backup v3 file
+ok 164 - frontend accepts a series_v1 Backup v3 file
+  ---
+  duration_ms: 0.1496
+  type: 'test'
+  ...
+# Subtest: frontend rejects legacy Backup v1 with a clear message
+ok 165 - frontend rejects legacy Backup v1 with a clear message
+  ---
+  duration_ms: 0.2587
+  type: 'test'
+  ...
+# Subtest: frontend rejects a Backup v2 for a different result model
+ok 166 - frontend rejects a Backup v2 for a different result model
+  ---
+  duration_ms: 0.0803
+  type: 'test'
+  ...
+# Subtest: required organizer password accepts >=8 and rejects 0-7
+ok 167 - required organizer password accepts >=8 and rejects 0-7
+  ---
+  duration_ms: 1.1
+  type: 'test'
+  ...
+# Subtest: invalid name and password focus the first actual invalid field
+ok 168 - invalid name and password focus the first actual invalid field
+  ---
+  duration_ms: 0.1462
+  type: 'test'
+  ...
+# Subtest: minimum password guidance is linked to the input
+ok 169 - minimum password guidance is linked to the input
+  ---
+  duration_ms: 10.5124
+  type: 'test'
+  ...
+# Subtest: capabilities follow the manually recorded backend role matrix
+ok 170 - capabilities follow the manually recorded backend role matrix
+  ---
+  duration_ms: 0.7757
+  type: 'test'
+  ...
+# Subtest: direct organizer-only tabs fall back safely without capability
+ok 171 - direct organizer-only tabs fall back safely without capability
+  ---
+  duration_ms: 0.1989
+  type: 'test'
+  ...
+# Subtest: historical matches URL redirects only an authenticated match operator
+ok 172 - historical matches URL redirects only an authenticated match operator
+  ---
+  duration_ms: 0.0776
+  type: 'test'
+  ...
+# Subtest: More exposes only areas backed by each credential
+ok 173 - More exposes only areas backed by each credential
+  ---
+  duration_ms: 0.1267
+  type: 'test'
+  ...
+# Subtest: planned stage without proven readiness has no start CTA
+ok 174 - planned stage without proven readiness has no start CTA
+  ---
+  duration_ms: 0.3409
+  type: 'test'
+  ...
+# Subtest: planned stage with backend readiness gets one organizer start CTA
+ok 175 - planned stage with backend readiness gets one organizer start CTA
+  ---
+  duration_ms: 0.1017
+  type: 'test'
+  ...
+# Subtest: preparation next-step keeps stage and zero counts visible without repeating diagnostics
+ok 176 - preparation next-step keeps stage and zero counts visible without repeating diagnostics
+  ---
+  duration_ms: 11.5672
+  type: 'test'
+  ...
+# Subtest: ready to roster mutation to pending refetch hides CTA until not-ready arrives
+ok 177 - ready to roster mutation to pending refetch hides CTA until not-ready arrives
+  ---
+  duration_ms: 0.2413
+  type: 'test'
+  ...
+# Subtest: support never receives a lifecycle CTA for a ready planned stage
+ok 178 - support never receives a lifecycle CTA for a ready planned stage
+  ---
+  duration_ms: 0.1302
+  type: 'test'
+  ...
+# Subtest: loading and an active stage without matches never imply completion
+ok 179 - loading and an active stage without matches never imply completion
+  ---
+  duration_ms: 0.0931
+  type: 'test'
+  ...
+# Subtest: a cancelled match is not completed under CompleteStage semantics
+ok 180 - a cancelled match is not completed under CompleteStage semantics
+  ---
+  duration_ms: 0.118
+  type: 'test'
+  ...
+# Subtest: all required round-robin matches completed enable CompleteStage only for organizer
+ok 181 - all required round-robin matches completed enable CompleteStage only for organizer
+  ---
+  duration_ms: 0.2758
+  type: 'test'
+  ...
+# Subtest: Swiss distinguishes a next round from the final round
+ok 182 - Swiss distinguishes a next round from the final round
+  ---
+  duration_ms: 0.107
+  type: 'test'
+  ...
+# Subtest: no stages is neutral and completed tournament is explicitly completed
+ok 183 - no stages is neutral and completed tournament is explicitly completed
+  ---
+  duration_ms: 0.0453
+  type: 'test'
+  ...
+# Subtest: Next Step renders at most one primary CTA
+ok 184 - Next Step renders at most one primary CTA
+  ---
+  duration_ms: 0.724
+  type: 'test'
+  ...
+# Subtest: classic formats advance from current-stage matches despite stale metadata
+ok 185 - classic formats advance from current-stage matches despite stale metadata
+  ---
+  duration_ms: 1.0995
+  type: 'test'
+  ...
+# Subtest: planned and completed stages distinguish future play from the last played round
+ok 186 - planned and completed stages distinguish future play from the last played round
+  ---
+  duration_ms: 0.143
+  type: 'test'
+  ...
+# Subtest: independent DE and group schedules do not invent a single current round
+ok 187 - independent DE and group schedules do not invent a single current round
+  ---
+  duration_ms: 0.0848
+  type: 'test'
+  ...
+# Subtest: missing round data does not expose a stale metadata round or infinity
+ok 188 - missing round data does not expose a stale metadata round or infinity
+  ---
+  duration_ms: 0.0803
+  type: 'test'
+  ...
+# Subtest: Pack 23 history: immutable in-memory audit trail
+    # Subtest: empty state is advisory-only
+    ok 1 - empty state is advisory-only
+      ---
+      duration_ms: 1.0059
+      type: 'test'
+      ...
+    # Subtest: one snapshot establishes baseline, not new issues
+    ok 2 - one snapshot establishes baseline, not new issues
+      ---
+      duration_ms: 0.7717
+      type: 'test'
+      ...
+    # Subtest: new code is introduced after initial baseline
+    ok 3 - new code is introduced after initial baseline
+      ---
+      duration_ms: 0.2851
+      type: 'test'
+      ...
+    # Subtest: resolved code is labelled an observation, not proof of fix
+    ok 4 - resolved code is labelled an observation, not proof of fix
+      ---
+      duration_ms: 0.1473
+      type: 'test'
+      ...
+    # Subtest: A -> absent -> A becomes reappeared
+    ok 5 - A -> absent -> A becomes reappeared
+      ---
+      duration_ms: 0.1077
+      type: 'test'
+      ...
+    # Subtest: A -> A is not regression
+    ok 6 - A -> A is not regression
+      ---
+      duration_ms: 0.1101
+      type: 'test'
+      ...
+    # Subtest: A -> absent -> B never labels B as reappeared
+    ok 7 - A -> absent -> B never labels B as reappeared
+      ---
+      duration_ms: 0.1379
+      type: 'test'
+      ...
+    # Subtest: A -> absent -> A -> absent -> A yields two recurring events
+    ok 8 - A -> absent -> A -> absent -> A yields two recurring events
+      ---
+      duration_ms: 0.0977
+      type: 'test'
+      ...
+    # Subtest: revision changes are counted
+    ok 9 - revision changes are counted
+      ---
+      duration_ms: 0.0874
+      type: 'test'
+      ...
+    # Subtest: version-vector drift is counted
+    ok 10 - version-vector drift is counted
+      ---
+      duration_ms: 0.1146
+      type: 'test'
+      ...
+    # Subtest: completion-action drift is counted
+    ok 11 - completion-action drift is counted
+      ---
+      duration_ms: 0.0818
+      type: 'test'
+      ...
+    # Subtest: duplicate identical assessment does not add another entry
+    ok 12 - duplicate identical assessment does not add another entry
+      ---
+      duration_ms: 0.0934
+      type: 'test'
+      ...
+    # Subtest: same ID with different blocker set clears history and reports conflict
+    ok 13 - same ID with different blocker set clears history and reports conflict
+      ---
+      duration_ms: 0.0588
+      type: 'test'
+      ...
+    # Subtest: same ID with different stage version clears history
+    ok 14 - same ID with different stage version clears history
+      ---
+      duration_ms: 0.0526
+      type: 'test'
+      ...
+    # Subtest: same ID with modified title clears history
+    ok 15 - same ID with modified title clears history
+      ---
+      duration_ms: 0.1379
+      type: 'test'
+      ...
+    # Subtest: changed match resets rather than merging histories
+    ok 16 - changed match resets rather than merging histories
+      ---
+      duration_ms: 0.0595
+      type: 'test'
+      ...
+    # Subtest: changed proposed score resets history
+    ok 17 - changed proposed score resets history
+      ---
+      duration_ms: 0.0417
+      type: 'test'
+      ...
+    # Subtest: changed tournament resets history
+    ok 18 - changed tournament resets history
+      ---
+      duration_ms: 0.0323
+      type: 'test'
+      ...
+    # Subtest: invalid snapshot clears stale evidence
+    ok 19 - invalid snapshot clears stale evidence
+      ---
+      duration_ms: 0.036
+      type: 'test'
+      ...
+    # Subtest: recovers from invalid snapshot by starting new baseline
+    ok 20 - recovers from invalid snapshot by starting new baseline
+      ---
+      duration_ms: 0.034
+      type: 'test'
+      ...
+    # Subtest: limit keeps only 12 newest and reports evicted count
+    ok 21 - limit keeps only 12 newest and reports evicted count
+      ---
+      duration_ms: 0.2402
+      type: 'test'
+      ...
+    # Subtest: older evicted assessment cannot create a fabricated recurrence
+    ok 22 - older evicted assessment cannot create a fabricated recurrence
+      ---
+      duration_ms: 0.1224
+      type: 'test'
+      ...
+    # Subtest: history never mutates original array or blocker objects
+    ok 23 - history never mutates original array or blocker objects
+      ---
+      duration_ms: 0.038
+      type: 'test'
+      ...
+    # Subtest: history is volatile only, and does not use storage APIs
+    ok 24 - history is volatile only, and does not use storage APIs
+      ---
+      duration_ms: 0.0637
+      type: 'test'
+      ...
+    # Subtest: the summary never provides authorization
+    ok 25 - the summary never provides authorization
+      ---
+      duration_ms: 0.2225
+      type: 'test'
+      ...
+    # Subtest: same historical ID repeated out of order cannot invent events
+    ok 26 - same historical ID repeated out of order cannot invent events
+      ---
+      duration_ms: 0.0543
+      type: 'test'
+      ...
+    # Subtest: statuses represent most recent snapshot only
+    ok 27 - statuses represent most recent snapshot only
+      ---
+      duration_ms: 0.0722
+      type: 'test'
+      ...
+    # Subtest: persistent issue disappears when absent in one retained snapshot
+    ok 28 - persistent issue disappears when absent in one retained snapshot
+      ---
+      duration_ms: 0.0555
+      type: 'test'
+      ...
+    1..28
+ok 189 - Pack 23 history: immutable in-memory audit trail
+  ---
+  duration_ms: 5.5115
+  type: 'suite'
+  ...
+# Subtest: Pack22 - SE historical comparisons are advisory only
+    # Subtest: makes an independent capture
+    ok 1 - makes an independent capture
+      ---
+      duration_ms: 0.8605
+      type: 'test'
+      ...
+    # Subtest: rejects wrong assessment id length
+    ok 2 - rejects wrong assessment id length
+      ---
+      duration_ms: 0.162
+      type: 'test'
+      ...
+    # Subtest: rejects invalid signature case
+    ok 3 - rejects invalid signature case
+      ---
+      duration_ms: 0.0912
+      type: 'test'
+      ...
+    # Subtest: rejects inconsistent count
+    ok 4 - rejects inconsistent count
+      ---
+      duration_ms: 0.0571
+      type: 'test'
+      ...
+    # Subtest: rejects repeated blocker codes
+    ok 5 - rejects repeated blocker codes
+      ---
+      duration_ms: 0.0644
+      type: 'test'
+      ...
+    # Subtest: rejects falsely marked candidate
+    ok 6 - rejects falsely marked candidate
+      ---
+      duration_ms: 0.0668
+      type: 'test'
+      ...
+    # Subtest: rejects blocked with no blockers
+    ok 7 - rejects blocked with no blockers
+      ---
+      duration_ms: 0.0914
+      type: 'test'
+      ...
+    # Subtest: rejects write enabled flag
+    ok 8 - rejects write enabled flag
+      ---
+      duration_ms: 0.0698
+      type: 'test'
+      ...
+    # Subtest: rejects mismatched match identity
+    ok 9 - rejects mismatched match identity
+      ---
+      duration_ms: 0.0755
+      type: 'test'
+      ...
+    # Subtest: rejects fractional proposed result
+    ok 10 - rejects fractional proposed result
+      ---
+      duration_ms: 0.0944
+      type: 'test'
+      ...
+    # Subtest: rejects unsafe negative completion action
+    ok 11 - rejects unsafe negative completion action
+      ---
+      duration_ms: 0.079
+      type: 'test'
+      ...
+    # Subtest: rejects empty stage vector
+    ok 12 - rejects empty stage vector
+      ---
+      duration_ms: 0.0651
+      type: 'test'
+      ...
+    # Subtest: has no baseline on initial snapshot
+    ok 13 - has no baseline on initial snapshot
+      ---
+      duration_ms: 0.1367
+      type: 'test'
+      ...
+    # Subtest: reports identical analyses
+    ok 14 - reports identical analyses
+      ---
+      duration_ms: 0.0787
+      type: 'test'
+      ...
+    # Subtest: adds one new blocker
+    ok 15 - adds one new blocker
+      ---
+      duration_ms: 0.4976
+      type: 'test'
+      ...
+    # Subtest: removes one former blocker
+    ok 16 - removes one former blocker
+      ---
+      duration_ms: 0.0728
+      type: 'test'
+      ...
+    # Subtest: retains persistent blockers
+    ok 17 - retains persistent blockers
+      ---
+      duration_ms: 0.048
+      type: 'test'
+      ...
+    # Subtest: detects blocked to candidate
+    ok 18 - detects blocked to candidate
+      ---
+      duration_ms: 0.0504
+      type: 'test'
+      ...
+    # Subtest: detects candidate to blocked
+    ok 19 - detects candidate to blocked
+      ---
+      duration_ms: 0.0513
+      type: 'test'
+      ...
+    # Subtest: rejects cross-tournament mixing
+    ok 20 - rejects cross-tournament mixing
+      ---
+      duration_ms: 0.0411
+      type: 'test'
+      ...
+    # Subtest: rejects cross-match mixing
+    ok 21 - rejects cross-match mixing
+      ---
+      duration_ms: 0.036
+      type: 'test'
+      ...
+    # Subtest: rejects different proposed scores
+    ok 22 - rejects different proposed scores
+      ---
+      duration_ms: 0.0304
+      type: 'test'
+      ...
+    # Subtest: detects changed revision
+    ok 23 - detects changed revision
+      ---
+      duration_ms: 0.0444
+      type: 'test'
+      ...
+    # Subtest: detects new stage vector
+    ok 24 - detects new stage vector
+      ---
+      duration_ms: 0.0472
+      type: 'test'
+      ...
+    # Subtest: detects new completion action
+    ok 25 - detects new completion action
+      ---
+      duration_ms: 0.0496
+      type: 'test'
+      ...
+    # Subtest: fails closed on same assessment ID but new stage vector
+    ok 26 - fails closed on same assessment ID but new stage vector
+      ---
+      duration_ms: 0.0467
+      type: 'test'
+      ...
+    # Subtest: fails closed on same assessment ID but new blockers
+    ok 27 - fails closed on same assessment ID but new blockers
+      ---
+      duration_ms: 0.0362
+      type: 'test'
+      ...
+    # Subtest: fails closed on malformed previous snapshot
+    ok 28 - fails closed on malformed previous snapshot
+      ---
+      duration_ms: 0.0397
+      type: 'test'
+      ...
+    # Subtest: fails closed on malformed current snapshot
+    ok 29 - fails closed on malformed current snapshot
+      ---
+      duration_ms: 0.0268
+      type: 'test'
+      ...
+    # Subtest: never grants write authority
+    ok 30 - never grants write authority
+      ---
+      duration_ms: 0.0366
+      type: 'test'
+      ...
+    # Subtest: does not modify the original snapshots
+    ok 31 - does not modify the original snapshots
+      ---
+      duration_ms: 0.1705
+      type: 'test'
+      ...
+    1..31
+ok 190 - Pack22 - SE historical comparisons are advisory only
+  ---
+  duration_ms: 4.352
+  type: 'suite'
+  ...
+# Subtest: one blocker HISTORY_NOT_VERIFIED produces inspect_audit
+ok 191 - one blocker HISTORY_NOT_VERIFIED produces inspect_audit
+  ---
+  duration_ms: 1.8588
+  type: 'test'
+  ...
+# Subtest: one blocker EXPECTED_MATCH_REVISION_STALE produces refresh_snapshot
+ok 192 - one blocker EXPECTED_MATCH_REVISION_STALE produces refresh_snapshot
+  ---
+  duration_ms: 0.156
+  type: 'test'
+  ...
+# Subtest: one blocker INVALID_PROPOSED_SCORE produces adjust_score
+ok 193 - one blocker INVALID_PROPOSED_SCORE produces adjust_score
+  ---
+  duration_ms: 0.1086
+  type: 'test'
+  ...
+# Subtest: one blocker NEXT_MATCH_NOT_PRISTINE produces review_bracket
+ok 194 - one blocker NEXT_MATCH_NOT_PRISTINE produces review_bracket
+  ---
+  duration_ms: 0.0869
+  type: 'test'
+  ...
+# Subtest: one blocker STAGE_ADVANCED produces review_progression
+ok 195 - one blocker STAGE_ADVANCED produces review_progression
+  ---
+  duration_ms: 0.0835
+  type: 'test'
+  ...
+# Subtest: one blocker EXTERNAL_EXECUTION_DISABLED produces manual_review
+ok 196 - one blocker EXTERNAL_EXECUTION_DISABLED produces manual_review
+  ---
+  duration_ms: 0.0754
+  type: 'test'
+  ...
+# Subtest: candidate with no blockers is informational, never executable
+ok 197 - candidate with no blockers is informational, never executable
+  ---
+  duration_ms: 0.0979
+  type: 'test'
+  ...
+# Subtest: priority grouping deduplicates resolution steps
+ok 198 - priority grouping deduplicates resolution steps
+  ---
+  duration_ms: 0.1496
+  type: 'test'
+  ...
+# Subtest: bracket step depends on audit, refreshing and score correction if all present
+ok 199 - bracket step depends on audit, refreshing and score correction if all present
+  ---
+  duration_ms: 0.189
+  type: 'test'
+  ...
+# Subtest: progression depends on bracket and manual review depends on other steps
+ok 200 - progression depends on bracket and manual review depends on other steps
+  ---
+  duration_ms: 0.2306
+  type: 'test'
+  ...
+# Subtest: standalone bracket has no invented dependencies
+ok 201 - standalone bracket has no invented dependencies
+  ---
+  duration_ms: 0.1008
+  type: 'test'
+  ...
+# Subtest: recurring issue must be present in CURRENT assessment
+ok 202 - recurring issue must be present in CURRENT assessment
+  ---
+  duration_ms: 0.2202
+  type: 'test'
+  ...
+# Subtest: persistent blockers get special marker
+ok 203 - persistent blockers get special marker
+  ---
+  duration_ms: 0.0944
+  type: 'test'
+  ...
+# Subtest: independent steps sort by priority and stable order
+ok 204 - independent steps sort by priority and stable order
+  ---
+  duration_ms: 0.0772
+  type: 'test'
+  ...
+# Subtest: invalid snapshot -> fail closed
+ok 205 - invalid snapshot -> fail closed
+  ---
+  duration_ms: 0.0605
+  type: 'test'
+  ...
+# Subtest: unknown resolution -> fail closed
+ok 206 - unknown resolution -> fail closed
+  ---
+  duration_ms: 0.0581
+  type: 'test'
+  ...
+# Subtest: different current assessment than newest history -> fail closed
+ok 207 - different current assessment than newest history -> fail closed
+  ---
+  duration_ms: 0.0331
+  type: 'test'
+  ...
+# Subtest: no history -> fail closed, not a ready state
+ok 208 - no history -> fail closed, not a ready state
+  ---
+  duration_ms: 0.0267
+  type: 'test'
+  ...
+# Subtest: conflicting history -> fail closed
+ok 209 - conflicting history -> fail closed
+  ---
+  duration_ms: 0.0294
+  type: 'test'
+  ...
+# Subtest: other match -> fail closed
+ok 210 - other match -> fail closed
+  ---
+  duration_ms: 0.0302
+  type: 'test'
+  ...
+# Subtest: other proposed score -> fail closed
+ok 211 - other proposed score -> fail closed
+  ---
+  duration_ms: 0.0295
+  type: 'test'
+  ...
+# Subtest: changed action/revision or version vector -> fail closed
+ok 212 - changed action/revision or version vector -> fail closed
+  ---
+  duration_ms: 0.0633
+  type: 'test'
+  ...
+# Subtest: malformed status -> fail closed
+ok 213 - malformed status -> fail closed
+  ---
+  duration_ms: 0.0356
+  type: 'test'
+  ...
+# Subtest: malformed history content -> fail closed
+ok 214 - malformed history content -> fail closed
+  ---
+  duration_ms: 0.0335
+  type: 'test'
+  ...
+# Subtest: history limited to 12 assessments still gives bounded output
+ok 215 - history limited to 12 assessments still gives bounded output
+  ---
+  duration_ms: 0.2202
+  type: 'test'
+  ...
+# Subtest: note explicitly disclaims permission, mutation flags are immutable false
+ok 216 - note explicitly disclaims permission, mutation flags are immutable false
+  ---
+  duration_ms: 0.1319
+  type: 'test'
+  ...
+# Subtest: null snapshot inside history does not throw and fails closed
+ok 217 - null snapshot inside history does not throw and fails closed
+  ---
+  duration_ms: 0.0423
+  type: 'test'
+  ...
+# Subtest: null current assessment does not throw and fails closed
+ok 218 - null current assessment does not throw and fails closed
+  ---
+  duration_ms: 0.0268
+  type: 'test'
+  ...
+# Subtest: duplicate assessment ids in input history are rejected
+ok 219 - duplicate assessment ids in input history are rejected
+  ---
+  duration_ms: 0.0303
+  type: 'test'
+  ...
+# Subtest: seeding ceremony view helpers
+    # Subtest: detects every random ceremony variant
+    ok 1 - detects every random ceremony variant
+      ---
+      duration_ms: 0.4569
+      type: 'test'
+      ...
+    # Subtest: blocks only incomplete sequential ceremonies
+    ok 2 - blocks only incomplete sequential ceremonies
+      ---
+      duration_ms: 0.1224
+      type: 'test'
+      ...
+    # Subtest: sorts only unrevealed wheel outcomes without mutating the audit
+    ok 3 - sorts only unrevealed wheel outcomes without mutating the audit
+      ---
+      duration_ms: 0.5744
+      type: 'test'
+      ...
+    # Subtest: returns only persisted revealed results without mutating the audit
+    ok 4 - returns only persisted revealed results without mutating the audit
+      ---
+      duration_ms: 0.1198
+      type: 'test'
+      ...
+    # Subtest: keeps the pending result visible on wheels larger than 32 entries
+    ok 5 - keeps the pending result visible on wheels larger than 32 entries
+      ---
+      duration_ms: 0.1987
+      type: 'test'
+      ...
+    1..5
+ok 220 - seeding ceremony view helpers
+  ---
+  duration_ms: 2.2011
+  type: 'suite'
+  ...
+# Subtest: readiness presentation preserves unknown reasons and never turns equal counts into a shortage
+ok 221 - readiness presentation preserves unknown reasons and never turns equal counts into a shortage
+  ---
+  duration_ms: 0.9189
+  type: 'test'
+  ...
+# Subtest: diagnostics retain the raw basket explanation as well as formatted counts and stage
+ok 222 - diagnostics retain the raw basket explanation as well as formatted counts and stage
+  ---
+  duration_ms: 0.3009
+  type: 'test'
+  ...
+# Subtest: maps qualification and routing source-stage conflicts to operator actions
+ok 223 - maps qualification and routing source-stage conflicts to operator actions
+  ---
+  duration_ms: 0.2026
+  type: 'test'
+  ...
+# Subtest: filterMatchesForStage: zwraca tylko mecze należące do podanego etapu
+ok 224 - filterMatchesForStage: zwraca tylko mecze należące do podanego etapu
+  ---
+  duration_ms: 0.7359
+  type: 'test'
+  ...
+# Subtest: filterMatchesForStage: zwraca pustą tablicę gdy brak dopasowania
+ok 225 - filterMatchesForStage: zwraca pustą tablicę gdy brak dopasowania
+  ---
+  duration_ms: 0.5316
+  type: 'test'
+  ...
+# Subtest: filterMatchesForStage: nie modyfikuje oryginalnej tablicy
+ok 226 - filterMatchesForStage: nie modyfikuje oryginalnej tablicy
+  ---
+  duration_ms: 0.1522
+  type: 'test'
+  ...
+# Subtest: filterMatchesForStage: stageId jest wymagany przez typ Match (kompilacja z TS)
+ok 227 - filterMatchesForStage: stageId jest wymagany przez typ Match (kompilacja z TS)
+  ---
+  duration_ms: 0.0696
+  type: 'test'
+  ...
+# Subtest: buildBracketFromMatches: grupuje mecze po rundach w kolejności rosnącej
+ok 228 - buildBracketFromMatches: grupuje mecze po rundach w kolejności rosnącej
+  ---
+  duration_ms: 0.3395
+  type: 'test'
+  ...
+# Subtest: buildBracketFromMatches: sortuje mecze w rundzie według matchNumber
+ok 229 - buildBracketFromMatches: sortuje mecze w rundzie według matchNumber
+  ---
+  duration_ms: 0.2396
+  type: 'test'
+  ...
+# Subtest: buildBracketFromMatches: zwraca pustą listę rund dla braku meczów
+ok 230 - buildBracketFromMatches: zwraca pustą listę rund dla braku meczów
+  ---
+  duration_ms: 0.0862
+  type: 'test'
+  ...
+# Subtest: buildBracketFromMatches: jedna runda z jednym meczem
+ok 231 - buildBracketFromMatches: jedna runda z jednym meczem
+  ---
+  duration_ms: 0.1058
+  type: 'test'
+  ...
+# Subtest: deriveCurrentRound: zwraca rundę meczu in_progress
+ok 232 - deriveCurrentRound: zwraca rundę meczu in_progress
+  ---
+  duration_ms: 0.2568
+  type: 'test'
+  ...
+# Subtest: deriveCurrentRound: brak in_progress — zwraca najwyższą ukończoną rundę
+ok 233 - deriveCurrentRound: brak in_progress — zwraca najwyższą ukończoną rundę
+  ---
+  duration_ms: 0.3557
+  type: 'test'
+  ...
+# Subtest: deriveCurrentRound: wszystkie pending — zwraca null
+ok 234 - deriveCurrentRound: wszystkie pending — zwraca null
+  ---
+  duration_ms: 0.163
+  type: 'test'
+  ...
+# Subtest: deriveCurrentRound: pusta lista — zwraca null
+ok 235 - deriveCurrentRound: pusta lista — zwraca null
+  ---
+  duration_ms: 0.0671
+  type: 'test'
+  ...
+# Subtest: STAGE_FORMAT_LABELS: pokrywa wszystkie formaty etapów
+ok 236 - STAGE_FORMAT_LABELS: pokrywa wszystkie formaty etapów
+  ---
+  duration_ms: 0.1665
+  type: 'test'
+  ...
+# Subtest: recognizes every list/detail/qualification stage key for one tournament
+ok 237 - recognizes every list/detail/qualification stage key for one tournament
+  ---
+  duration_ms: 1.0377
+  type: 'test'
+  ...
+# Subtest: invalidates stage and tournament-dependent caches without touching another tournament
+ok 238 - invalidates stage and tournament-dependent caches without touching another tournament
+  ---
+  duration_ms: 2.4006
+  type: 'test'
+  ...
+# Subtest: add roster mutation invalidates tournament, roster, matches and every stage cache
+ok 239 - add roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.9395
+  type: 'test'
+  ...
+# Subtest: edit roster mutation invalidates tournament, roster, matches and every stage cache
+ok 240 - edit roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.5362
+  type: 'test'
+  ...
+# Subtest: delete roster mutation invalidates tournament, roster, matches and every stage cache
+ok 241 - delete roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.4252
+  type: 'test'
+  ...
+# Subtest: merge roster mutation invalidates tournament, roster, matches and every stage cache
+ok 242 - merge roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.3772
+  type: 'test'
+  ...
+# Subtest: replace roster mutation invalidates tournament, roster, matches and every stage cache
+ok 243 - replace roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.3334
+  type: 'test'
+  ...
+# Subtest: undo roster mutation invalidates tournament, roster, matches and every stage cache
+ok 244 - undo roster mutation invalidates tournament, roster, matches and every stage cache
+  ---
+  duration_ms: 0.2333
+  type: 'test'
+  ...
+# Subtest: roster cache keys include participants, stage data and readiness for every stage
+ok 245 - roster cache keys include participants, stage data and readiness for every stage
+  ---
+  duration_ms: 1.4486
+  type: 'test'
+  ...
+# Subtest: add, delete, import and seeding mutations can invalidate the same precise roster dependencies
+ok 246 - add, delete, import and seeding mutations can invalidate the same precise roster dependencies
+  ---
+  duration_ms: 0.5354
+  type: 'test'
+  ...
+# Subtest: uses operator-facing labels for tournament statuses
+ok 247 - uses operator-facing labels for tournament statuses
+  ---
+  duration_ms: 1.0527
+  type: 'test'
+  ...
+# Subtest: wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu
+ok 248 - wybiera bezpieczny ekran logowania organizatora na podstawie neutralnego bootstrapu
+  ---
+  duration_ms: 0.182
+  type: 'test'
+  ...
+# Subtest: supports ten stages, rejects eleven, and copies authoring configuration only
+ok 249 - supports ten stages, rejects eleven, and copies authoring configuration only
+  ---
+  duration_ms: 3.085
+  type: 'test'
+  ...
+# Subtest: derives cumulative stage bans without copying inherited bans
+ok 250 - derives cumulative stage bans without copying inherited bans
+  ---
+  duration_ms: 0.5915
+  type: 'test'
+  ...
+# Subtest: etykietuje grupy także powyżej Z
+ok 251 - etykietuje grupy także powyżej Z
+  ---
+  duration_ms: 0.1541
+  type: 'test'
+  ...
+# Subtest: buduje payload planu jednoetapowego
+ok 252 - buduje payload planu jednoetapowego
+  ---
+  duration_ms: 0.3404
+  type: 'test'
+  ...
+# Subtest: buduje payload planu trzech etapów
+ok 253 - buduje payload planu trzech etapów
+  ---
+  duration_ms: 0.2615
+  type: 'test'
+  ...
+# Subtest: buduje elastyczną fazę grupową, w której wszyscy przechodzą dalej
+ok 254 - buduje elastyczną fazę grupową, w której wszyscy przechodzą dalej
+  ---
+  duration_ms: 0.294
+  type: 'test'
+  ...
+# Subtest: wylicza liczbę uczestników następnego etapu z bieżących zasad awansu
+ok 255 - wylicza liczbę uczestników następnego etapu z bieżących zasad awansu
+  ---
+  duration_ms: 0.1463
+  type: 'test'
+  ...
+# Subtest: odrzuca liczbę grup, która utworzyłaby grupę jednoosobową
+ok 256 - odrzuca liczbę grup, która utworzyłaby grupę jednoosobową
+  ---
+  duration_ms: 0.4248
+  type: 'test'
+  ...
+# Subtest: obsługuje pośrednią drabinkę wyłącznie na granicy pełnej rundy
+ok 257 - obsługuje pośrednią drabinkę wyłącznie na granicy pełnej rundy
+  ---
+  duration_ms: 0.3012
+  type: 'test'
+  ...
+# Subtest: przelicza wszystkie dalsze etapy i blokuje ich ręczną liczbę uczestników
+ok 258 - przelicza wszystkie dalsze etapy i blokuje ich ręczną liczbę uczestników
+  ---
+  duration_ms: 37.6307
+  type: 'test'
+  ...
+# Subtest: renderuje listę etapów i statusy planned, active, completed
+ok 259 - renderuje listę etapów i statusy planned, active, completed
+  ---
+  duration_ms: 2.1429
+  type: 'test'
+  ...
+# Subtest: opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy
+ok 260 - opisuje uczestników planowanego pierwszego etapu zgodnie z listą graczy
+  ---
+  duration_ms: 0.8877
+  type: 'test'
+  ...
+# Subtest: zachowuje komunikat kwalifikacyjny dla późniejszego planowanego etapu
+ok 261 - zachowuje komunikat kwalifikacyjny dla późniejszego planowanego etapu
+  ---
+  duration_ms: 0.1847
+  type: 'test'
+  ...
+# Subtest: filtruje mecze po wymaganym stageId bez lokalnego fallbacku
+ok 262 - filtruje mecze po wymaganym stageId bez lokalnego fallbacku
+  ---
+  duration_ms: 0.1232
+  type: 'test'
+  ...
+# Subtest: renderuje widok 1 grup
+ok 263 - renderuje widok 1 grup
+  ---
+  duration_ms: 28.4488
+  type: 'test'
+  ...
+# Subtest: renderuje widok 2 grup
+ok 264 - renderuje widok 2 grup
+  ---
+  duration_ms: 14.5605
+  type: 'test'
+  ...
+# Subtest: renderuje widok 5 grup
+ok 265 - renderuje widok 5 grup
+  ---
+  duration_ms: 22.5575
+  type: 'test'
+  ...
+# Subtest: pokazuje CompleteStage i StartStage tylko organizatorowi z tokenem
+ok 266 - pokazuje CompleteStage i StartStage tylko organizatorowi z tokenem
+  ---
+  duration_ms: 2.2841
+  type: 'test'
+  ...
+# Subtest: zachowuje payload historycznego kreatora jednoetapowego
+ok 267 - zachowuje payload historycznego kreatora jednoetapowego
+  ---
+  duration_ms: 0.2545
+  type: 'test'
+  ...
+# Subtest: rejects a group stage that would pass only one participant to another stage
+ok 268 - rejects a group stage that would pass only one participant to another stage
+  ---
+  duration_ms: 0.1536
+  type: 'test'
+  ...
+# Subtest: zapisuje konfigurowalne seedowanie i rozmieszczenie w payloadzie
+ok 269 - zapisuje konfigurowalne seedowanie i rozmieszczenie w payloadzie
+  ---
+  duration_ms: 0.1348
+  type: 'test'
+  ...
+# Subtest: podgląd losowego rozmieszczenia jest deterministyczny
+ok 270 - podgląd losowego rozmieszczenia jest deterministyczny
+  ---
+  duration_ms: 0.4505
+  type: 'test'
+  ...
+# Subtest: wymaga klucza dla losowego seedowania lub rozmieszczenia
+ok 271 - wymaga klucza dla losowego seedowania lub rozmieszczenia
+  ---
+  duration_ms: 0.33
+  type: 'test'
+  ...
+# Subtest: domyślnie zachowuje dotychczasowe seedy uczestników
+ok 272 - domyślnie zachowuje dotychczasowe seedy uczestników
+  ---
+  duration_ms: 0.1192
+  type: 'test'
+  ...
+# Subtest: odĹ›wieĹĽenie hydratyzuje token organizatora przed pierwszym requestem i czyĹ›ci go po wylogowaniu
+ok 273 - odĹ›wieĹĽenie hydratyzuje token organizatora przed pierwszym requestem i czyĹ›ci go po wylogowaniu
+  ---
+  duration_ms: 15.6811
+  type: 'test'
+  ...
+# Subtest: viewer UI does not offer create-tournament
+    # Subtest: FanView has no 'Utwórz turniej' or 'Nowy turniej' link
+    ok 1 - FanView has no 'Utwórz turniej' or 'Nowy turniej' link
+      ---
+      duration_ms: 64.1279
+      type: 'test'
+      ...
+    # Subtest: Dashboard hides 'Utwórz turniej' for fan role
+    ok 2 - Dashboard hides 'Utwórz turniej' for fan role
+      ---
+      duration_ms: 45.5051
+      type: 'test'
+      ...
+    # Subtest: Dashboard hides 'Utwórz turniej' for support role
+    ok 3 - Dashboard hides 'Utwórz turniej' for support role
+      ---
+      duration_ms: 24.7975
+      type: 'test'
+      ...
+    # Subtest: Dashboard shows 'Utwórz turniej' for organizer role
+    ok 4 - Dashboard shows 'Utwórz turniej' for organizer role
+      ---
+      duration_ms: 18.1492
+      type: 'test'
+      ...
+    1..4
+ok 274 - viewer UI does not offer create-tournament
+  ---
+  duration_ms: 154.8912
+  type: 'suite'
+  ...
+# Subtest: route guard blocks non-organizer roles from /tournaments/new
+    # Subtest: fan is redirected to /fan and no form renders
+    ok 1 - fan is redirected to /fan and no form renders
+      ---
+      duration_ms: 5.0313
+      type: 'test'
+      ...
+    # Subtest: support is redirected to /support and no form renders
+    ok 2 - support is redirected to /support and no form renders
+      ---
+      duration_ms: 9.9248
+      type: 'test'
+      ...
+    # Subtest: developer is redirected to / and no form renders
+    ok 3 - developer is redirected to / and no form renders
+      ---
+      duration_ms: 14.5447
+      type: 'test'
+      ...
+    # Subtest: anonymous (no role) is redirected to / and no form renders
+    ok 4 - anonymous (no role) is redirected to / and no form renders
+      ---
+      duration_ms: 2.4341
+      type: 'test'
+      ...
+    # Subtest: organizer can open the form
+    ok 5 - organizer can open the form
+      ---
+      duration_ms: 130.2719
+      type: 'test'
+      ...
+    1..5
+ok 275 - route guard blocks non-organizer roles from /tournaments/new
+  ---
+  duration_ms: 162.9873
+  type: 'suite'
+  ...
+# Subtest: hook ordering: role change during CreateTournament lifecycle
+    # Subtest: organizer → fan role change triggers redirect without hook ordering error
+    ok 1 - organizer → fan role change triggers redirect without hook ordering error
+      ---
+      duration_ms: 31.5272
+      type: 'test'
+      ...
+    1..1
+ok 276 - hook ordering: role change during CreateTournament lifecycle
+  ---
+  duration_ms: 31.8362
+  type: 'suite'
+  ...
+# Subtest: password-protected create: organizerToken ownership
+    # Subtest: stores organizerToken in sessionStorage and navigates to management UI (role stays organizer)
+    ok 1 - stores organizerToken in sessionStorage and navigates to management UI (role stays organizer)
+      ---
+      duration_ms: 1454.5847
+      type: 'test'
+      ...
+    1..1
+ok 277 - password-protected create: organizerToken ownership
+  ---
+  duration_ms: 1454.9481
+  type: 'suite'
+  ...
+# Subtest: clicking submit focuses the empty name and does not send a request
+ok 278 - clicking submit focuses the empty name and does not send a request
+  ---
+  duration_ms: 318.9436
+  type: 'test'
+  ...
+# Subtest: password length 0 is rejected by the actual form
+ok 279 - password length 0 is rejected by the actual form
+  ---
+  duration_ms: 471.0883
+  type: 'test'
+  ...
+# Subtest: password length 1 is rejected by the actual form
+ok 280 - password length 1 is rejected by the actual form
+  ---
+  duration_ms: 480.0562
+  type: 'test'
+  ...
+# Subtest: password length 7 is rejected by the actual form
+ok 281 - password length 7 is rejected by the actual form
+  ---
+  duration_ms: 716.4258
+  type: 'test'
+  ...
+# Subtest: an eight-character password submits with Enter
+ok 282 - an eight-character password submits with Enter
+  ---
+  duration_ms: 715.6155
+  type: 'test'
+  ...
+# Subtest: two submit events in the same frame call the mutation once
+ok 283 - two submit events in the same frame call the mutation once
+  ---
+  duration_ms: 874.1816
+  type: 'test'
+  ...
+# Subtest: the synchronous submit lock is released after an error
+ok 284 - the synchronous submit lock is released after an error
+  ---
+  duration_ms: 853.0795
+  type: 'test'
+  ...
+# Subtest: Deadlock and its forced hero are included in the create payload
+ok 285 - Deadlock and its forced hero are included in the create payload
+  ---
+  duration_ms: 1310.9222
+  type: 'test'
+  ...
+# Subtest: single-stage selector includes double elimination and excludes group stage
+ok 286 - single-stage selector includes double elimination and excludes group stage
+  ---
+  duration_ms: 178.2599
+  type: 'test'
+  ...
+# Subtest: Marvel creates one internal group stage with the documented 32-player defaults
+ok 287 - Marvel creates one internal group stage with the documented 32-player defaults
+  ---
+  duration_ms: 1128.3777
+  type: 'test'
+  ...
+# Subtest: single-stage submit sends format=double_elimination
+ok 288 - single-stage submit sends format=double_elimination
+  ---
+  duration_ms: 1012.1277
+  type: 'test'
+  ...
+# Subtest: Dashboard reads the API array and selects the requested deletion target
+ok 289 - Dashboard reads the API array and selects the requested deletion target
+  ---
+  duration_ms: 292.405
+  type: 'test'
+  ...
+# Subtest: Dashboard renders an empty API array as an empty list
+ok 290 - Dashboard renders an empty API array as an empty list
+  ---
+  duration_ms: 37.5008
+  type: 'test'
+  ...
+# Subtest: Dashboard waits for the list without rendering empty or deletion state
+ok 291 - Dashboard waits for the list without rendering empty or deletion state
+  ---
+  duration_ms: 25.6415
+  type: 'test'
+  ...
+# Subtest: Dashboard treats Vite HTML fallback (200) as a query error and recovers through retry
+ok 292 - Dashboard treats Vite HTML fallback (200) as a query error and recovers through retry
+  ---
+  duration_ms: 129.7475
+  type: 'test'
+  ...
+# Subtest: Dashboard treats API error (503) as a query error and recovers through retry
+ok 293 - Dashboard treats API error (503) as a query error and recovers through retry
+  ---
+  duration_ms: 123.0074
+  type: 'test'
+  ...
+# Subtest: organizer sees a functional Experimental create form
+ok 294 - organizer sees a functional Experimental create form
+  ---
+  duration_ms: 305.6043
+  type: 'test'
+  ...
+# Subtest: validation blocks empty name and short organizer password
+ok 295 - validation blocks empty name and short organizer password
+  ---
+  duration_ms: 726.3724
+  type: 'test'
+  ...
+# Subtest: default registration-order create reuses the existing endpoint without a stage plan
+ok 296 - default registration-order create reuses the existing endpoint without a stage plan
+  ---
+  duration_ms: 971.9455
+  type: 'test'
+  ...
+# Subtest: non-default seeding creates a stage plan through the existing helper contract
+ok 297 - non-default seeding creates a stage plan through the existing helper contract
+  ---
+  duration_ms: 1037.6105
+  type: 'test'
+  ...
+# Subtest: private online mode requires viewer password
+ok 298 - private online mode requires viewer password
+  ---
+  duration_ms: 770.7187
+  type: 'test'
+  ...
+# Subtest: draft persistence stores non-sensitive fields but not passwords
+ok 299 - draft persistence stores non-sensitive fields but not passwords
+  ---
+  duration_ms: 818.7017
+  type: 'test'
+  ...
+# Subtest: clear resets the non-sensitive draft
+ok 300 - clear resets the non-sensitive draft
+  ---
+  duration_ms: 349.3167
+  type: 'test'
+  ...
+# Subtest: API health failure disables create and offers retry
+ok 301 - API health failure disables create and offers retry
+  ---
+  duration_ms: 58.1235
+  type: 'test'
+  ...
+# Subtest: optional support password shorter than eight characters is rejected locally
+ok 302 - optional support password shorter than eight characters is rejected locally
+  ---
+  duration_ms: 813.3097
+  type: 'test'
+  ...
+# Subtest: fractional maxPlayers is rejected instead of being truncated
+ok 303 - fractional maxPlayers is rejected instead of being truncated
+  ---
+  duration_ms: 666.3908
+  type: 'test'
+  ...
+# Subtest: double submit in the same frame sends only one request
+ok 304 - double submit in the same frame sends only one request
+  ---
+  duration_ms: 568.934
+  type: 'test'
+  ...
+# Subtest: fan cannot open Experimental creation directly
+ok 305 - fan cannot open Experimental creation directly
+  ---
+  duration_ms: 14.5878
+  type: 'test'
+  ...
+# Subtest: support cannot open Experimental creation directly
+ok 306 - support cannot open Experimental creation directly
+  ---
+  duration_ms: 1.2142
+  type: 'test'
+  ...
+# Subtest: anonymous cannot open Experimental creation directly
+ok 307 - anonymous cannot open Experimental creation directly
+  ---
+  duration_ms: 14.1514
+  type: 'test'
+  ...
+# Subtest: Host: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+ok 308 - Host: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+  ---
+  duration_ms: 402.8152
+  type: 'test'
+  ...
+# Subtest: Detail: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+ok 309 - Detail: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+  ---
+  duration_ms: 291.8666
+  type: 'test'
+  ...
+# Subtest: Etapy: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+ok 310 - Etapy: consistent ready, play, round refetch, complete, qualification, routing and next-ready flow
+  ---
+  duration_ms: 201.8882
+  type: 'test'
+  ...
+# Subtest: readiness request error is presented as an unconfirmed state with recovery guidance
+ok 311 - readiness request error is presented as an unconfirmed state with recovery guidance
+  ---
+  duration_ms: 53.376
+  type: 'test'
+  ...
+# Subtest: public bracket keeps readable scale across refetch and fit never magnifies a small bracket
+ok 312 - public bracket keeps readable scale across refetch and fit never magnifies a small bracket
+  ---
+  duration_ms: 175.0155
+  type: 'test'
+  ...
+# Subtest: bracket: completed RR history is excluded from the active final
+ok 313 - bracket: completed RR history is excluded from the active final
+  ---
+  duration_ms: 42.8217
+  type: 'test'
+  ...
+# Subtest: bracket: transition follows refreshed stages even before tournament metadata catches up
+ok 314 - bracket: transition follows refreshed stages even before tournament metadata catches up
+  ---
+  duration_ms: 53.6494
+  type: 'test'
+  ...
+# Subtest: bracket: only planned stages do not expose preloaded matches
+ok 315 - bracket: only planned stages do not expose preloaded matches
+  ---
+  duration_ms: 23.2699
+  type: 'test'
+  ...
+# Subtest: bracket: completed stages choose the final by position, not response order
+ok 316 - bracket: completed stages choose the final by position, not response order
+  ---
+  duration_ms: 36.7405
+  type: 'test'
+  ...
+# Subtest: bracket: single-stage elimination still renders its own matches
+ok 317 - bracket: single-stage elimination still renders its own matches
+  ---
+  duration_ms: 38.6521
+  type: 'test'
+  ...
+# Subtest: bracket: active DE uses its own endpoint and preserves upper/lower/final structure
+ok 318 - bracket: active DE uses its own endpoint and preserves upper/lower/final structure
+  ---
+  duration_ms: 101.4336
+  type: 'test'
+  ...
+# Subtest: bracket: leaving DE removes its cached canvas when the next elimination stage starts
+ok 319 - bracket: leaving DE removes its cached canvas when the next elimination stage starts
+  ---
+  duration_ms: 63.3194
+  type: 'test'
+  ...
+# Subtest: projector: completed RR history is excluded from the active final
+ok 320 - projector: completed RR history is excluded from the active final
+  ---
+  duration_ms: 60.3541
+  type: 'test'
+  ...
+# Subtest: projector: transition follows refreshed stages even before tournament metadata catches up
+ok 321 - projector: transition follows refreshed stages even before tournament metadata catches up
+  ---
+  duration_ms: 66.8835
+  type: 'test'
+  ...
+# Subtest: projector: only planned stages do not expose preloaded matches
+ok 322 - projector: only planned stages do not expose preloaded matches
+  ---
+  duration_ms: 40.7009
+  type: 'test'
+  ...
+# Subtest: projector: completed stages choose the final by position, not response order
+ok 323 - projector: completed stages choose the final by position, not response order
+  ---
+  duration_ms: 45.8937
+  type: 'test'
+  ...
+# Subtest: projector: single-stage elimination still renders its own matches
+ok 324 - projector: single-stage elimination still renders its own matches
+  ---
+  duration_ms: 47.5769
+  type: 'test'
+  ...
+# Subtest: projector: active DE uses its own endpoint and preserves upper/lower/final structure
+ok 325 - projector: active DE uses its own endpoint and preserves upper/lower/final structure
+  ---
+  duration_ms: 92.2855
+  type: 'test'
+  ...
+# Subtest: projector: leaving DE removes its cached canvas when the next elimination stage starts
+ok 326 - projector: leaving DE removes its cached canvas when the next elimination stage starts
+  ---
+  duration_ms: 77.3472
+  type: 'test'
+  ...
+# Subtest: audience: completed RR history is excluded from the active final
+ok 327 - audience: completed RR history is excluded from the active final
+  ---
+  duration_ms: 688.0163
+  type: 'test'
+  ...
+# Subtest: audience: transition follows refreshed stages even before tournament metadata catches up
+ok 328 - audience: transition follows refreshed stages even before tournament metadata catches up
+  ---
+  duration_ms: 673.6144
+  type: 'test'
+  ...
+# Subtest: audience: only planned stages do not expose preloaded matches
+ok 329 - audience: only planned stages do not expose preloaded matches
+  ---
+  duration_ms: 29.4761
+  type: 'test'
+  ...
+# Subtest: audience: completed stages choose the final by position, not response order
+ok 330 - audience: completed stages choose the final by position, not response order
+  ---
+  duration_ms: 653.5194
+  type: 'test'
+  ...
+# Subtest: audience: single-stage elimination still renders its own matches
+ok 331 - audience: single-stage elimination still renders its own matches
+  ---
+  duration_ms: 650.0508
+  type: 'test'
+  ...
+# Subtest: audience: active DE uses its own endpoint and preserves upper/lower/final structure
+ok 332 - audience: active DE uses its own endpoint and preserves upper/lower/final structure
+  ---
+  duration_ms: 108.6274
+  type: 'test'
+  ...
+# Subtest: audience: leaving DE removes its cached canvas when the next elimination stage starts
+ok 333 - audience: leaving DE removes its cached canvas when the next elimination stage starts
+  ---
+  duration_ms: 654.3526
+  type: 'test'
+  ...
+# Subtest: players: loading, read error, retry, successful empty and data are distinct
+ok 334 - players: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 254.0835
+  type: 'test'
+  ...
+# Subtest: players: background error retains data, retry recovers
+ok 335 - players: background error retains data, retry recovers
+  ---
+  duration_ms: 105.5058
+  type: 'test'
+  ...
+# Subtest: matches: loading, read error, retry, successful empty and data are distinct
+ok 336 - matches: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 155.3816
+  type: 'test'
+  ...
+# Subtest: matches: background error retains data, retry recovers
+ok 337 - matches: background error retains data, retry recovers
+  ---
+  duration_ms: 78.8812
+  type: 'test'
+  ...
+# Subtest: standings: loading, read error, retry, successful empty and data are distinct
+ok 338 - standings: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 1371.7125
+  type: 'test'
+  ...
+# Subtest: standings: background error retains data, retry recovers
+ok 339 - standings: background error retains data, retry recovers
+  ---
+  duration_ms: 1281.9085
+  type: 'test'
+  ...
+# Subtest: audience-players: loading, read error, retry, successful empty and data are distinct
+ok 340 - audience-players: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 1917.3725
+  type: 'test'
+  ...
+# Subtest: audience-players: background error retains data, retry recovers
+ok 341 - audience-players: background error retains data, retry recovers
+  ---
+  duration_ms: 1884.4013
+  type: 'test'
+  ...
+# Subtest: security: loading, read error, retry, successful empty and data are distinct
+ok 342 - security: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 78.082
+  type: 'test'
+  ...
+# Subtest: security: background error retains data, retry recovers
+ok 343 - security: background error retains data, retry recovers
+  ---
+  duration_ms: 46.2607
+  type: 'test'
+  ...
+# Subtest: security-log: loading, read error, retry, successful empty and data are distinct
+ok 344 - security-log: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 78.1798
+  type: 'test'
+  ...
+# Subtest: security-log: background error retains data, retry recovers
+ok 345 - security-log: background error retains data, retry recovers
+  ---
+  duration_ms: 46.8327
+  type: 'test'
+  ...
+# Subtest: live: loading, read error, retry, successful empty and data are distinct
+ok 346 - live: loading, read error, retry, successful empty and data are distinct
+  ---
+  duration_ms: 109.0732
+  type: 'test'
+  ...
+# Subtest: live: background error retains data, retry recovers
+ok 347 - live: background error retains data, retry recovers
+  ---
+  duration_ms: 62.4127
+  type: 'test'
+  ...
+# Subtest: bracket /tournament: initial failure stops loading; retry and background recovery preserve bracket
+ok 348 - bracket /tournament: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 94.3625
+  type: 'test'
+  ...
+# Subtest: bracket /stages: initial failure stops loading; retry and background recovery preserve bracket
+ok 349 - bracket /stages: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 124.4683
+  type: 'test'
+  ...
+# Subtest: bracket /bracket: initial failure stops loading; retry and background recovery preserve bracket
+ok 350 - bracket /bracket: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 92.4594
+  type: 'test'
+  ...
+# Subtest: projector /tournament: initial failure stops loading; retry and background recovery preserve bracket
+ok 351 - projector /tournament: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 123.5853
+  type: 'test'
+  ...
+# Subtest: projector /stages: initial failure stops loading; retry and background recovery preserve bracket
+ok 352 - projector /stages: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 124.3896
+  type: 'test'
+  ...
+# Subtest: projector /bracket: initial failure stops loading; retry and background recovery preserve bracket
+ok 353 - projector /bracket: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 125.0609
+  type: 'test'
+  ...
+# Subtest: audience-bracket /tournament: initial failure stops loading; retry and background recovery preserve bracket
+ok 354 - audience-bracket /tournament: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 712.1285
+  type: 'test'
+  ...
+# Subtest: audience-bracket /stages: initial failure stops loading; retry and background recovery preserve bracket
+ok 355 - audience-bracket /stages: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 686.4505
+  type: 'test'
+  ...
+# Subtest: audience-bracket /bracket: initial failure stops loading; retry and background recovery preserve bracket
+ok 356 - audience-bracket /bracket: initial failure stops loading; retry and background recovery preserve bracket
+  ---
+  duration_ms: 765.7741
+  type: 'test'
+  ...
+# Subtest: baskets: read failure offers retry without rendering an empty configuration
+ok 357 - baskets: read failure offers retry without rendering an empty configuration
+  ---
+  duration_ms: 46.4456
+  type: 'test'
+  ...
+# Subtest: baskets: /stages failure is not an empty map or roster
+ok 358 - baskets: /stages failure is not an empty map or roster
+  ---
+  duration_ms: 62.5285
+  type: 'test'
+  ...
+# Subtest: baskets: /players failure is not an empty map or roster
+ok 359 - baskets: /players failure is not an empty map or roster
+  ---
+  duration_ms: 46.2347
+  type: 'test'
+  ...
+# Subtest: bracket: 404 has a completed error state, not loading or a private tournament gate
+ok 360 - bracket: 404 has a completed error state, not loading or a private tournament gate
+  ---
+  duration_ms: 30.6229
+  type: 'test'
+  ...
+# Subtest: projector: 404 has a completed error state, not loading or a private tournament gate
+ok 361 - projector: 404 has a completed error state, not loading or a private tournament gate
+  ---
+  duration_ms: 15.3896
+  type: 'test'
+  ...
+# Subtest: audience-bracket: 404 has a completed error state, not loading or a private tournament gate
+ok 362 - audience-bracket: 404 has a completed error state, not loading or a private tournament gate
+  ---
+  duration_ms: 30.5972
+  type: 'test'
+  ...
+# Subtest: public matches: pending background refresh keeps rows and does not announce every poll
+ok 363 - public matches: pending background refresh keeps rows and does not announce every poll
+  ---
+  duration_ms: 79.7753
+  type: 'test'
+  ...
+# Subtest: baskets: background failure and retry preserve the changed draft
+ok 364 - baskets: background failure and retry preserve the changed draft
+  ---
+  duration_ms: 79.4698
+  type: 'test'
+  ...
+# Subtest: organizer sees Stable and Experimental creation choices
+ok 365 - organizer sees Stable and Experimental creation choices
+  ---
+  duration_ms: 62.6507
+  type: 'test'
+  ...
+# Subtest: fan cannot open the version-choice page
+ok 366 - fan cannot open the version-choice page
+  ---
+  duration_ms: 4.5519
+  type: 'test'
+  ...
+# Subtest: support cannot open the version-choice page
+ok 367 - support cannot open the version-choice page
+  ---
+  duration_ms: 1.5838
+  type: 'test'
+  ...
+# Subtest: anonymous cannot open the version-choice page
+ok 368 - anonymous cannot open the version-choice page
+  ---
+  duration_ms: 5.013
+  type: 'test'
+  ...
+# Subtest: Host adapts a 24-match queue to 0 recent results without changing selection or order
+ok 369 - Host adapts a 24-match queue to 0 recent results without changing selection or order
+  ---
+  duration_ms: 458.4138
+  type: 'test'
+  ...
+# Subtest: Host adapts a 24-match queue to 1 recent results without changing selection or order
+ok 370 - Host adapts a 24-match queue to 1 recent results without changing selection or order
+  ---
+  duration_ms: 323.0428
+  type: 'test'
+  ...
+# Subtest: Host adapts a 24-match queue to 2 recent results without changing selection or order
+ok 371 - Host adapts a 24-match queue to 2 recent results without changing selection or order
+  ---
+  duration_ms: 253.0198
+  type: 'test'
+  ...
+# Subtest: Host adapts a 24-match queue to 3 recent results without changing selection or order
+ok 372 - Host adapts a 24-match queue to 3 recent results without changing selection or order
+  ---
+  duration_ms: 400.2745
+  type: 'test'
+  ...
+# Subtest: Host adapts a 24-match queue to 8 recent results without changing selection or order
+ok 373 - Host adapts a 24-match queue to 8 recent results without changing selection or order
+  ---
+  duration_ms: 415.5672
+  type: 'test'
+  ...
+# Subtest: Host preserves the selected match when refreshed results enable the sidebar
+ok 374 - Host preserves the selected match when refreshed results enable the sidebar
+  ---
+  duration_ms: 350.0132
+  type: 'test'
+  ...
+# Subtest: Host completed tournament has one summary and secondary correction (winner=2)
+ok 375 - Host completed tournament has one summary and secondary correction (winner=2)
+  ---
+  duration_ms: 251.5312
+  type: 'test'
+  ...
+# Subtest: Host completed tournament has one summary and secondary correction (winner=null)
+ok 376 - Host completed tournament has one summary and secondary correction (winner=null)
+  ---
+  duration_ms: 220.1611
+  type: 'test'
+  ...
+# Subtest: Host prioritizes start before editing and save once the operator edits the result
+ok 377 - Host prioritizes start before editing and save once the operator edits the result
+  ---
+  duration_ms: 172.846
+  type: 'test'
+  ...
+# Subtest: Host LIVE match prioritizes saving; completed match shows its result and secondary correction
+ok 378 - Host LIVE match prioritizes saving; completed match shows its result and secondary correction
+  ---
+  duration_ms: 131.5815
+  type: 'test'
+  ...
+# Subtest: Host groups rare actions in a menu and preserves destructive cancellation confirmation
+ok 379 - Host groups rare actions in a menu and preserves destructive cancellation confirmation
+  ---
+  duration_ms: 318.244
+  type: 'test'
+  ...
+# Subtest: Host no-contest visibility follows the focused round_robin stage, not the tournament format
+ok 380 - Host no-contest visibility follows the focused round_robin stage, not the tournament format
+  ---
+  duration_ms: 158.8857
+  type: 'test'
+  ...
+# Subtest: Host no-contest visibility follows the focused swiss stage, not the tournament format
+ok 381 - Host no-contest visibility follows the focused swiss stage, not the tournament format
+  ---
+  duration_ms: 157.2326
+  type: 'test'
+  ...
+# Subtest: Host no-contest visibility follows the focused group_stage stage, not the tournament format
+ok 382 - Host no-contest visibility follows the focused group_stage stage, not the tournament format
+  ---
+  duration_ms: 153.5856
+  type: 'test'
+  ...
+# Subtest: Host no-contest visibility follows the focused single_elimination stage, not the tournament format
+ok 383 - Host no-contest visibility follows the focused single_elimination stage, not the tournament format
+  ---
+  duration_ms: 109.41
+  type: 'test'
+  ...
+# Subtest: Host no-contest visibility follows the focused double_elimination stage, not the tournament format
+ok 384 - Host no-contest visibility follows the focused double_elimination stage, not the tournament format
+  ---
+  duration_ms: 94.6226
+  type: 'test'
+  ...
+# Subtest: Host played: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+ok 385 - Host played: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+  ---
+  duration_ms: 685.2227
+  type: 'test'
+  ...
+# Subtest: Host walkover: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+ok 386 - Host walkover: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+  ---
+  duration_ms: 668.6548
+  type: 'test'
+  ...
+# Subtest: Host no_contest: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+ok 387 - Host no_contest: stale draft sends its revision, refreshes without retry, then explicitly starts a fresh draft
+  ---
+  duration_ms: 670.3265
+  type: 'test'
+  ...
+# Subtest: Host recovery captures the current revision immediately, before the next score interaction
+ok 388 - Host recovery captures the current revision immediately, before the next score interaction
+  ---
+  duration_ms: 442.9388
+  type: 'test'
+  ...
+# Subtest: Host polling of a revision-only change cannot rebase an open draft, including ABA
+ok 389 - Host polling of a revision-only change cannot rebase an open draft, including ABA
+  ---
+  duration_ms: 155.5071
+  type: 'test'
+  ...
+# Subtest: Host revert retires the previous revision and correction submits the refetched revision
+ok 390 - Host revert retires the previous revision and correction submits the refetched revision
+  ---
+  duration_ms: 429.737
+  type: 'test'
+  ...
+# Subtest: editing the suggested match pins its draft when another match becomes LIVE
+ok 391 - editing the suggested match pins its draft when another match becomes LIVE
+  ---
+  duration_ms: 170.1399
+  type: 'test'
+  ...
+# Subtest: explicit selection keeps its 1:0 draft when another match finishes and the recommendation changes
+ok 392 - explicit selection keeps its 1:0 draft when another match finishes and the recommendation changes
+  ---
+  duration_ms: 509.1883
+  type: 'test'
+  ...
+# Subtest: an untouched automatic suggestion follows the refreshed LIVE match
+ok 393 - an untouched automatic suggestion follows the refreshed LIVE match
+  ---
+  duration_ms: 96.64
+  type: 'test'
+  ...
+# Subtest: remote completion keeps the edited match and its stale draft in context
+ok 394 - remote completion keeps the edited match and its stale draft in context
+  ---
+  duration_ms: 149.2424
+  type: 'test'
+  ...
+# Subtest: correction remains attached to A while another match changes
+ok 395 - correction remains attached to A while another match changes
+  ---
+  duration_ms: 130.4658
+  type: 'test'
+  ...
+# Subtest: a removed selected match clears its draft with an explanation before suggesting another
+ok 396 - a removed selected match clears its draft with an explanation before suggesting another
+  ---
+  duration_ms: 201.5272
+  type: 'test'
+  ...
+# Subtest: failed refetch keeps selection and draft instead of treating a match as removed
+ok 397 - failed refetch keeps selection and draft instead of treating a match as removed
+  ---
+  duration_ms: 279.6742
+  type: 'test'
+  ...
+# Subtest: keyboard focus pins the form before the first score change
+ok 398 - keyboard focus pins the form before the first score change
+  ---
+  duration_ms: 132.7049
+  type: 'test'
+  ...
+# Subtest: a conflict refreshes the same match without switching to the next available match
+ok 399 - a conflict refreshes the same match without switching to the next available match
+  ---
+  duration_ms: 253.4259
+  type: 'test'
+  ...
+# Subtest: correction closes with an explanation if its match is actually removed
+ok 400 - correction closes with an explanation if its match is actually removed
+  ---
+  duration_ms: 130.6477
+  type: 'test'
+  ...
+# Subtest: host header shows the forced Deadlock hero
+ok 401 - host header shows the forced Deadlock hero
+  ---
+  duration_ms: 30.2638
+  type: 'test'
+  ...
+# Subtest: Host does not mistake an initial network failure for missing organizer access
+ok 402 - Host does not mistake an initial network failure for missing organizer access
+  ---
+  duration_ms: 124.9208
+  type: 'test'
+  ...
+# Subtest: Host retains a partial score on failure and retries the same complete result
+ok 403 - Host retains a partial score on failure and retries the same complete result
+  ---
+  duration_ms: 357.3051
+  type: 'test'
+  ...
+# Subtest: Host refreshes a concurrent completion without reporting success or replacing it with the draft
+ok 404 - Host refreshes a concurrent completion without reporting success or replacing it with the draft
+  ---
+  duration_ms: 327.4758
+  type: 'test'
+  ...
+# Subtest: Host correction identifies the saved result and returns to score entry after reverting
+ok 405 - Host correction identifies the saved result and returns to score entry after reverting
+  ---
+  duration_ms: 219.2456
+  type: 'test'
+  ...
+# Subtest: Host match list separates identical round numbers across stages and puts LIVE first
+ok 406 - Host match list separates identical round numbers across stages and puts LIVE first
+  ---
+  duration_ms: 28.2238
+  type: 'test'
+  ...
+# Subtest: Host protects draft scores against reload and releases the guard after discarding
+ok 407 - Host protects draft scores against reload and releases the guard after discarding
+  ---
+  duration_ms: 250.5754
+  type: 'test'
+  ...
+# Subtest: Host keeps a draft but requires review if a refetch changes the players
+ok 408 - Host keeps a draft but requires review if a refetch changes the players
+  ---
+  duration_ms: 258.2533
+  type: 'test'
+  ...
+# Subtest: Host keeps a blocked correction open with an operational explanation and allows cancellation
+ok 409 - Host keeps a blocked correction open with an operational explanation and allows cancellation
+  ---
+  duration_ms: 293.7788
+  type: 'test'
+  ...
+# Subtest: Host keeps all results reachable after stages finish
+ok 410 - Host keeps all results reachable after stages finish
+  ---
+  duration_ms: 103.5211
+  type: 'test'
+  ...
+# Subtest: Host all-match list retains legacy matches without stage assignment
+ok 411 - Host all-match list retains legacy matches without stage assignment
+  ---
+  duration_ms: 27.2037
+  type: 'test'
+  ...
+# Subtest: Host correction shows the downstream count supplied for the selected DE stage
+ok 412 - Host correction shows the downstream count supplied for the selected DE stage
+  ---
+  duration_ms: 95.2988
+  type: 'test'
+  ...
+# Subtest: Host focuses the active stage and exposes the entire queue including live matches
+ok 413 - Host focuses the active stage and exposes the entire queue including live matches
+  ---
+  duration_ms: 151.5579
+  type: 'test'
+  ...
+# Subtest: Host next-match action follows the displayed queue order
+ok 414 - Host next-match action follows the displayed queue order
+  ---
+  duration_ms: 169.8583
+  type: 'test'
+  ...
+# Subtest: Host advances from a completed no-contest match after the refreshed state
+ok 415 - Host advances from a completed no-contest match after the refreshed state
+  ---
+  duration_ms: 305.07
+  type: 'test'
+  ...
+# Subtest: Host distinguishes a failed match load from an empty queue and can retry
+ok 416 - Host distinguishes a failed match load from an empty queue and can retry
+  ---
+  duration_ms: 121.5852
+  type: 'test'
+  ...
+# Subtest: Host blocks repeated actions while saving and keeps an operational error on failure
+ok 417 - Host blocks repeated actions while saving and keeps an operational error on failure
+  ---
+  duration_ms: 156.214
+  type: 'test'
+  ...
+# Subtest: Host waits for refreshed data after saving a score before enabling further actions
+ok 418 - Host waits for refreshed data after saving a score before enabling further actions
+  ---
+  duration_ms: 344.1517
+  type: 'test'
+  ...
+# Subtest: direct tournament link offers organizer login after all storage is lost (private=false)
+ok 419 - direct tournament link offers organizer login after all storage is lost (private=false)
+  ---
+  duration_ms: 169.319
+  type: 'test'
+  ...
+# Subtest: direct tournament link offers organizer login after all storage is lost (private=true)
+ok 420 - direct tournament link offers organizer login after all storage is lost (private=true)
+  ---
+  duration_ms: 89.5871
+  type: 'test'
+  ...
+1..420
+# tests 493
+# suites 8
+# pass 491
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 124036.4242

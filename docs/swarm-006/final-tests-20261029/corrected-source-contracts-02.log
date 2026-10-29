@@ -1,0 +1,286 @@
+TAP version 13
+# Subtest: transaction is explicitly read-only and snapshot isolation
+ok 1 - transaction is explicitly read-only and snapshot isolation
+  ---
+  duration_ms: 0.7751
+  type: 'test'
+  ...
+# Subtest: only organizers can access readiness
+ok 2 - only organizers can access readiness
+  ---
+  duration_ms: 0.3021
+  type: 'test'
+  ...
+# Subtest: strict reconciliation requires history, audit and stage version
+ok 3 - strict reconciliation requires history, audit and stage version
+  ---
+  duration_ms: 0.1833
+  type: 'test'
+  ...
+# Subtest: query validates input shape and prevents oversized version tokens
+ok 4 - query validates input shape and prevents oversized version tokens
+  ---
+  duration_ms: 0.0777
+  type: 'test'
+  ...
+# Subtest: response is never mutation permission
+ok 5 - response is never mutation permission
+  ---
+  duration_ms: 0.1078
+  type: 'test'
+  ...
+# Subtest: route mounted in Express and documented
+ok 6 - route mounted in Express and documented
+  ---
+  duration_ms: 0.1603
+  type: 'test'
+  ...
+# Subtest: organizer UI shows separate snapshot check, not SE execute
+ok 7 - organizer UI shows separate snapshot check, not SE execute
+  ---
+  duration_ms: 0.1278
+  type: 'test'
+  ...
+# Subtest: CI runs Pack 19 unit and contract tests without deploy
+ok 8 - CI runs Pack 19 unit and contract tests without deploy
+  ---
+  duration_ms: 0.2068
+  type: 'test'
+  ...
+# Subtest: Pack20 action plan never grants permission or performs writes
+ok 9 - Pack20 action plan never grants permission or performs writes
+  ---
+  duration_ms: 2.0015
+  type: 'test'
+  ...
+# Subtest: Readiness endpoint keeps a read-only repeatable-read transaction
+ok 10 - Readiness endpoint keeps a read-only repeatable-read transaction
+  ---
+  duration_ms: 0.8291
+  type: 'test'
+  ...
+# Subtest: Plan is derived inside consistent snapshot and never from independently fetched data
+ok 11 - Plan is derived inside consistent snapshot and never from independently fetched data
+  ---
+  duration_ms: 0.5806
+  type: 'test'
+  ...
+# Subtest: Client renders plan as hypothetical with no SE execute control
+ok 12 - Client renders plan as hypothetical with no SE execute control
+  ---
+  duration_ms: 1.8256
+  type: 'test'
+  ...
+# Subtest: OpenAPI advertises advisory-only action plan
+ok 13 - OpenAPI advertises advisory-only action plan
+  ---
+  duration_ms: 1.4214
+  type: 'test'
+  ...
+# Subtest: CI runs the pack20 tests
+ok 14 - CI runs the pack20 tests
+  ---
+  duration_ms: 0.9423
+  type: 'test'
+  ...
+# Subtest: No unexpected SE mutation route was added
+ok 15 - No unexpected SE mutation route was added
+  ---
+  duration_ms: 1.3089
+  type: 'test'
+  ...
+# Subtest: diagnostic never authorizes a SE write
+ok 16 - diagnostic never authorizes a SE write
+  ---
+  duration_ms: 1.4879
+  type: 'test'
+  ...
+# Subtest: diagnostic generated inside one read-only repeatable-read DB snapshot
+ok 17 - diagnostic generated inside one read-only repeatable-read DB snapshot
+  ---
+  duration_ms: 0.4246
+  type: 'test'
+  ...
+# Subtest: assessment is tied to original completion action and proposed score
+ok 18 - assessment is tied to original completion action and proposed score
+  ---
+  duration_ms: 1.4231
+  type: 'test'
+  ...
+# Subtest: client displays human readable blockers and assessment ID as advisory
+ok 19 - client displays human readable blockers and assessment ID as advisory
+  ---
+  duration_ms: 0.9085
+  type: 'test'
+  ...
+# Subtest: OpenAPI exposes diagnostics without write capability
+ok 20 - OpenAPI exposes diagnostics without write capability
+  ---
+  duration_ms: 1.0502
+  type: 'test'
+  ...
+# Subtest: CI runs the new tests and keeps prior gates
+ok 21 - CI runs the new tests and keeps prior gates
+  ---
+  duration_ms: 0.7766
+  type: 'test'
+  ...
+# Subtest: no SE correction write route enabled
+ok 22 - no SE correction write route enabled
+  ---
+  duration_ms: 1.1089
+  type: 'test'
+  ...
+# Subtest: Pack25 output is generated from consistent existing SE readiness transaction
+ok 23 - Pack25 output is generated from consistent existing SE readiness transaction
+  ---
+  duration_ms: 0.7134
+  type: 'test'
+  ...
+# Subtest: no extra write route; reuses organizer access and read-only endpoint
+ok 24 - no extra write route; reuses organizer access and read-only endpoint
+  ---
+  duration_ms: 0.2252
+  type: 'test'
+  ...
+# Subtest: server returns graph together with prior diagnostic and action plan
+ok 25 - server returns graph together with prior diagnostic and action plan
+  ---
+  duration_ms: 0.0879
+  type: 'test'
+  ...
+# Subtest: panel includes graph type and field
+ok 26 - panel includes graph type and field
+  ---
+  duration_ms: 0.0794
+  type: 'test'
+  ...
+# Subtest: panel only renders the same chosen match and requires advisory flags
+ok 27 - panel only renders the same chosen match and requires advisory flags
+  ---
+  duration_ms: 0.0913
+  type: 'test'
+  ...
+# Subtest: panel distinguishes actual slot from possible future path
+ok 28 - panel distinguishes actual slot from possible future path
+  ---
+  duration_ms: 0.0791
+  type: 'test'
+  ...
+# Subtest: panel visibly warns when graph is incomplete
+ok 29 - panel visibly warns when graph is incomplete
+  ---
+  duration_ms: 0.0669
+  type: 'test'
+  ...
+# Subtest: panel displays later stages as separate assessment
+ok 30 - panel displays later stages as separate assessment
+  ---
+  duration_ms: 0.0702
+  type: 'test'
+  ...
+# Subtest: OpenAPI contains advisory-only schema and explicit no-write flags
+ok 31 - OpenAPI contains advisory-only schema and explicit no-write flags
+  ---
+  duration_ms: 0.1801
+  type: 'test'
+  ...
+# Subtest: CI executes domain tests and static contract
+ok 32 - CI executes domain tests and static contract
+  ---
+  duration_ms: 0.1353
+  type: 'test'
+  ...
+# Subtest: CI includes both push and PR path filters
+ok 33 - CI includes both push and PR path filters
+  ---
+  duration_ms: 0.1033
+  type: 'test'
+  ...
+# Subtest: existing safety history and triage remain intact
+ok 34 - existing safety history and triage remain intact
+  ---
+  duration_ms: 0.0717
+  type: 'test'
+  ...
+# Subtest: Pack26 derives risk report only from existing Pack25 consistent snapshot
+ok 35 - Pack26 derives risk report only from existing Pack25 consistent snapshot
+  ---
+  duration_ms: 1.9815
+  type: 'test'
+  ...
+# Subtest: no new API route, reuses organizer-only readiness
+ok 36 - no new API route, reuses organizer-only readiness
+  ---
+  duration_ms: 0.1974
+  type: 'test'
+  ...
+# Subtest: one response includes both graph and report
+ok 37 - one response includes both graph and report
+  ---
+  duration_ms: 0.1001
+  type: 'test'
+  ...
+# Subtest: strictly no DB or browser writes in pure report engine
+ok 38 - strictly no DB or browser writes in pure report engine
+  ---
+  duration_ms: 0.421
+  type: 'test'
+  ...
+# Subtest: report enforces fail-closed flag consistency
+ok 39 - report enforces fail-closed flag consistency
+  ---
+  duration_ms: 0.3427
+  type: 'test'
+  ...
+# Subtest: panel accepts typed report without enabling execution
+ok 40 - panel accepts typed report without enabling execution
+  ---
+  duration_ms: 0.3026
+  type: 'test'
+  ...
+# Subtest: UI requires risk report to refer to current SE impact graph
+ok 41 - UI requires risk report to refer to current SE impact graph
+  ---
+  duration_ms: 0.2614
+  type: 'test'
+  ...
+# Subtest: UI labels confirmed versus potential versus incomplete
+ok 42 - UI labels confirmed versus potential versus incomplete
+  ---
+  duration_ms: 0.2462
+  type: 'test'
+  ...
+# Subtest: UI shows actual affected match IDs and stage IDs
+ok 43 - UI shows actual affected match IDs and stage IDs
+  ---
+  duration_ms: 0.3647
+  type: 'test'
+  ...
+# Subtest: OpenAPI explicitly states advisory-only with denied write
+ok 44 - OpenAPI explicitly states advisory-only with denied write
+  ---
+  duration_ms: 0.3486
+  type: 'test'
+  ...
+# Subtest: CI includes Pack26 tests for pushes and pull requests
+ok 45 - CI includes Pack26 tests for pushes and pull requests
+  ---
+  duration_ms: 0.1843
+  type: 'test'
+  ...
+# Subtest: regression tests cover invalid flags, duplicates, and counter mismatches
+ok 46 - regression tests cover invalid flags, duplicates, and counter mismatches
+  ---
+  duration_ms: 0.0726
+  type: 'test'
+  ...
+1..46
+# tests 46
+# suites 0
+# pass 46
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 535.8117

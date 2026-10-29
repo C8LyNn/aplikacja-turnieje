@@ -1,0 +1,23 @@
+﻿{
+    "state":  "INSTALLED_OFFLINE",
+    "source_sha":  "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+    "tree_sha":  "f9ebccd5cf89cb3da8ab959c3a874e26994316c8",
+    "zip_sha256":  "adf50b5158af8bbbc301e03580ff52493a732023b774b07c149446af0fbdb688",
+    "lock_sha256":  "7f241968e0f57e11f5c1cbfba80efe79c48971d8ddd95c7454cb7b87fe932fc3",
+    "operator_approval_id":  "A00-G2-V7-INSTALL-e73a2c18ae744dc5b1a0c64835e547a0",
+    "node":  "v24.18.0",
+    "pnpm":  "10.34.7",
+    "store":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store",
+    "store_versioned":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store\\v10",
+    "store_layout_policy":  "isolated-pnpm-v10-data-only-exclude-root-projects-v7",
+    "store_effective_path":  "C:\\Users\\kubap\\AppData\\Local\\Temp\\SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d\\offline-store\\v10",
+    "store_projects_excluded":  true,
+    "store_structure_sha256":  "b409d4ab5f50d10d0e44d02de02cbca5e92f4e3a8be6d6c4deabf27925592858",
+    "store_clone_structure_sha256":  "b409d4ab5f50d10d0e44d02de02cbca5e92f4e3a8be6d6c4deabf27925592858",
+    "store_file_count":  31522,
+    "store_directory_count":  514,
+    "store_file_bytes":  380767665,
+    "dependency_policy":  "dev_and_prod_explicit_--prod=false",
+    "dependency_readiness":  "DIRECT_DEV_AND_PROD_LINKS_PRESENT_NATIVE_FILE_PRESENT_BUILD_NOT_RUN",
+    "native_esbuild_status":  "BINARY_FILE_PRESENT_NOT_EXECUTED"
+}

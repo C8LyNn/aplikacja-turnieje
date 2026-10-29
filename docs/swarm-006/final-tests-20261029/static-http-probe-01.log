@@ -1,0 +1,20 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: [{"id":"missing-ttf","path":"/__r23d_probe_absent__/missing-font.ttf","verdict":"FAIL","reason":"fetch failed"},{"id":"missing-wasm","path":"/__r23d_probe_absent__/missing-engine.wasm","verdict":"FAIL","reason":"fetch failed"},{"id":"missing-js","path":"/__r23d_probe_absent__/missing-module.js","verdict":"FAIL","reason":"fetch failed"},{"id":"portfolio-root","path":"/portfolio/","verdict":"FAIL","reason":"fetch failed"},{"id":"portfolio-projects","path":"/portfolio/projects/","verdict":"FAIL","reason":"fetch failed"},{"id":"animated-effects-stream","path":"/stream/animated-effects/","verdict":"FAIL","reason":"fetch failed"},{"id":"tournament-deep-link","path":"/tournaments/101/bracket","verdict":"FAIL","reason":"fetch failed"},{"id":"minigames-route","path":"/minigames","verdict":"FAIL","reason":"fetch failed"},{"id":"stream-route","path":"/stream","verdict":"FAIL","reason":"fetch failed"},{"id":"obs-overlay-route","path":"/stream/overlay/camera-chat","verdict":"FAIL","reason":"fetch failed"},{"id":"unity-index","path":"/prototypes/minigames/core-clash-unity/index.html","verdict":"FAIL","reason":"fetch failed"},{"id":"unity-wasm-asset","path":"/prototypes/minigames/core-clash-unity/Build/WebGL.wasm","verdict":"FAIL","reason":"fetch failed"},{"id":"unity-loader-js","path":"/prototypes/minigames/core-clash-unity/Build/WebGL.loader.js","verdict":"FAIL","reason":"fetch failed"}]
+
+0 !== 13
+
+    at selfTest (file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/scripts/qa/r23d-static-route-probe.mjs:93:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029/scripts/qa/r23d-static-route-probe.mjs:102:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 13,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

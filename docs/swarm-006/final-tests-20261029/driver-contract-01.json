@@ -1,0 +1,41 @@
+{
+  "id": "driver-contract-01",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "47743b12266097ce63a01e58a8e273eed416b613d279b9d1be3536bea3f79e92",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\api-server",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--import",
+    "tsx",
+    "--test",
+    "--test-reporter=tap",
+    "test/se-readiness-transaction-contract.test.ts"
+  ],
+  "command": "node --import tsx --test --test-reporter=tap test/se-readiness-transaction-contract.test.ts",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:31:18.404Z",
+  "finished_utc": "2026-10-29T10:31:19.535Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 1,
+    "suites": 0,
+    "pass": 1,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "driver-contract-01.log",
+  "log_sha256": "a6ae3f1079ce9fc4bae3aa25d4b133ff84fdc8e6721410c1e4e0ce05d9b05a89",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

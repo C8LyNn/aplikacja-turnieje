@@ -1,0 +1,10 @@
+{
+  "source": "C:/Users/kubap/Documents/GitHub/aplikacja-turnieje",
+  "destination": "C:/Users/kubap/Desktop/SWARM006-Final-Tests-20261029",
+  "method": "copy installed files and relocate internal junctions; no package manager, no source pnpm store",
+  "linksOnlyFinalization": true,
+  "files": 40246,
+  "bytes": 391772592,
+  "links": 1882,
+  "digests": []
+}

@@ -1,0 +1,49 @@
+{
+  "id": "native-source-contracts-01",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "--test-concurrency=1",
+    "qa/pack17/source-contract.test.mjs",
+    "qa/pack18/source-contract.test.mjs",
+    "qa/pack19/source-contract.test.mjs",
+    "qa/pack20/source-contract.test.mjs",
+    "qa/pack21/source-contract.test.mjs",
+    "qa/pack22/source-contract.test.mjs",
+    "qa/pack23/source-contract.test.mjs",
+    "qa/pack24/source-contract.test.mjs",
+    "qa/pack25/source-contract.test.mjs",
+    "qa/pack26/source-contract.test.mjs",
+    "lib/db/migration-ledger-validator/validate.test.mjs"
+  ],
+  "command": "node --test --test-concurrency=1 qa/pack17/source-contract.test.mjs qa/pack18/source-contract.test.mjs qa/pack19/source-contract.test.mjs qa/pack20/source-contract.test.mjs qa/pack21/source-contract.test.mjs qa/pack22/source-contract.test.mjs qa/pack23/source-contract.test.mjs qa/pack24/source-contract.test.mjs qa/pack25/source-contract.test.mjs qa/pack26/source-contract.test.mjs lib/db/migration-ledger-validator/validate.test.mjs",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:22:42.567Z",
+  "finished_utc": "2026-10-29T10:22:43.825Z",
+  "status": 1,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": null,
+    "suites": null,
+    "pass": null,
+    "fail": null,
+    "cancelled": null,
+    "skipped": null,
+    "todo": null
+  },
+  "log_file": "native-source-contracts-01.log",
+  "log_sha256": "679a3107d39951dd1aa39e905d5a48886c2b6cdf627b22b279898e2e65c017aa",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

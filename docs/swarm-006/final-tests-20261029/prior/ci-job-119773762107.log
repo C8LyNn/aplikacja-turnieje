@@ -1,0 +1,1014 @@
+2026-10-22T10:31:04.3004485Z Current runner version: '2.338.0'
+2026-10-22T10:31:04.3090630Z ##[group]Runner Image Provisioner
+2026-10-22T10:31:04.3092523Z Hosted Compute Agent
+2026-10-22T10:31:04.3093579Z Version: 20261015.610
+2026-10-22T10:31:04.3095556Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+2026-10-22T10:31:04.3097513Z Build Date: 2026-10-14T17:06:54Z
+2026-10-22T10:31:04.3098793Z Worker ID: {42885733-b84e-44ce-9d5b-6ad8dc2df2ed}
+2026-10-22T10:31:04.3100099Z Region: westus2
+2026-10-22T10:31:04.3101157Z Cloud: Azure
+2026-10-22T10:31:04.3102272Z ##[endgroup]
+2026-10-22T10:31:04.3105181Z ##[group]Operating System
+2026-10-22T10:31:04.3106677Z Ubuntu
+2026-10-22T10:31:04.3107631Z 26.04.1
+2026-10-22T10:31:04.3108554Z LTS
+2026-10-22T10:31:04.3109604Z ##[endgroup]
+2026-10-22T10:31:04.3110609Z ##[group]Runner Image
+2026-10-22T10:31:04.3111656Z Image: ubuntu-26.04
+2026-10-22T10:31:04.3112839Z Version: 20261018.168.1
+2026-10-22T10:31:04.3115242Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261018.168/images/ubuntu/Ubuntu2604-Readme.md
+2026-10-22T10:31:04.3138902Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261018.168
+2026-10-22T10:31:04.3140727Z ##[endgroup]
+2026-10-22T10:31:04.3142925Z ##[group]GITHUB_TOKEN Permissions
+2026-10-22T10:31:04.3146989Z Contents: read
+2026-10-22T10:31:04.3148280Z Metadata: read
+2026-10-22T10:31:04.3149320Z ##[endgroup]
+2026-10-22T10:31:04.3153107Z Secret source: Actions
+2026-10-22T10:31:04.3154691Z Cache mode: write
+2026-10-22T10:31:04.3156813Z Prepare workflow directory
+2026-10-22T10:31:04.4035191Z Prepare all required actions
+2026-10-22T10:31:04.4111320Z Getting action download info
+2026-10-22T10:31:04.7684828Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-22T10:31:04.8861022Z Download action repository 'pnpm/action-setup@v4' (SHA:b906affcce14559ad1aafd4ab0e942779e9f58b1)
+2026-10-22T10:31:05.2242405Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-22T10:31:05.4878417Z Complete job name: correction-qa
+2026-10-22T10:31:05.5693422Z ##[group]Checking docker version
+2026-10-22T10:31:05.5711482Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-10-22T10:31:05.7331237Z '1.54'
+2026-10-22T10:31:05.7349507Z Docker daemon API version: '1.54'
+2026-10-22T10:31:05.7350909Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-10-22T10:31:05.7707917Z '1.54'
+2026-10-22T10:31:05.7715511Z Docker client API version: '1.54'
+2026-10-22T10:31:05.7726869Z ##[endgroup]
+2026-10-22T10:31:05.7732808Z ##[group]Clean up resources from previous jobs
+2026-10-22T10:31:05.7742103Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=e2be72"
+2026-10-22T10:31:05.8149911Z ##[command]/usr/bin/docker network prune --force --filter "label=e2be72"
+2026-10-22T10:31:05.8375559Z ##[endgroup]
+2026-10-22T10:31:05.8376788Z ##[group]Create local container network
+2026-10-22T10:31:05.8391712Z ##[command]/usr/bin/docker network create --label e2be72 github_network_037a756dedd64124957d4731fc7a4bd6
+2026-10-22T10:31:05.9208713Z 6aa486b3df7dfdd42aa3b816b28595a7b9377416e41cb7ff82501674dabb94e1
+2026-10-22T10:31:05.9247416Z ##[endgroup]
+2026-10-22T10:31:05.9282076Z ##[group]Starting postgres service container
+2026-10-22T10:31:05.9309594Z ##[command]/usr/bin/docker pull postgres:16
+2026-10-22T10:31:06.7589522Z 16: Pulling from library/postgres
+2026-10-22T10:31:07.0512489Z f2010d5c8971: Pulling fs layer
+2026-10-22T10:31:07.0514854Z 46109ed24d00: Pulling fs layer
+2026-10-22T10:31:07.0518589Z b1c4822f4553: Pulling fs layer
+2026-10-22T10:31:07.0520412Z 9fbbdc3bcbff: Pulling fs layer
+2026-10-22T10:31:07.0522086Z 48eee0ea92d8: Pulling fs layer
+2026-10-22T10:31:07.0523728Z c79a7210985e: Pulling fs layer
+2026-10-22T10:31:07.0525400Z ef42abb17c7a: Pulling fs layer
+2026-10-22T10:31:07.0562938Z e9da7c9f979b: Pulling fs layer
+2026-10-22T10:31:07.0577612Z c85ce0e29e80: Pulling fs layer
+2026-10-22T10:31:07.0579805Z f2be67225471: Pulling fs layer
+2026-10-22T10:31:07.0582550Z 852f46917486: Pulling fs layer
+2026-10-22T10:31:07.0584705Z d9b4aee93490: Pulling fs layer
+2026-10-22T10:31:07.0587197Z 25140b6d6501: Pulling fs layer
+2026-10-22T10:31:07.0589530Z 393ce45a5829: Pulling fs layer
+2026-10-22T10:31:07.2692073Z 393ce45a5829: Download complete
+2026-10-22T10:31:07.3721748Z f2010d5c8971: Download complete
+2026-10-22T10:31:07.3787899Z d9b4aee93490: Download complete
+2026-10-22T10:31:07.3812465Z 9fbbdc3bcbff: Download complete
+2026-10-22T10:31:07.3819554Z ef42abb17c7a: Download complete
+2026-10-22T10:31:07.3835422Z e9da7c9f979b: Download complete
+2026-10-22T10:31:07.3874221Z 25140b6d6501: Download complete
+2026-10-22T10:31:07.3895453Z 852f46917486: Download complete
+2026-10-22T10:31:07.3909259Z c85ce0e29e80: Download complete
+2026-10-22T10:31:07.4576614Z 22f39cf62ad6: Download complete
+2026-10-22T10:31:07.4595069Z b1c4822f4553: Download complete
+2026-10-22T10:31:07.5601260Z 46109ed24d00: Download complete
+2026-10-22T10:31:07.5695875Z 48eee0ea92d8: Download complete
+2026-10-22T10:31:07.6566671Z 29e2244f39ca: Download complete
+2026-10-22T10:31:07.6593828Z f2be67225471: Download complete
+2026-10-22T10:31:08.5567246Z c79a7210985e: Download complete
+2026-10-22T10:31:09.0597971Z d9b4aee93490: Pull complete
+2026-10-22T10:31:09.0821403Z f2be67225471: Pull complete
+2026-10-22T10:31:09.2721035Z b1c4822f4553: Pull complete
+2026-10-22T10:31:09.2758918Z 46109ed24d00: Pull complete
+2026-10-22T10:31:09.5665091Z 9fbbdc3bcbff: Pull complete
+2026-10-22T10:31:09.5680921Z ef42abb17c7a: Pull complete
+2026-10-22T10:31:09.5807461Z c85ce0e29e80: Pull complete
+2026-10-22T10:31:09.5846946Z 48eee0ea92d8: Pull complete
+2026-10-22T10:31:12.0443488Z 393ce45a5829: Pull complete
+2026-10-22T10:31:12.0514000Z f2010d5c8971: Pull complete
+2026-10-22T10:31:12.0515326Z e9da7c9f979b: Pull complete
+2026-10-22T10:31:12.0515833Z 25140b6d6501: Pull complete
+2026-10-22T10:31:12.0533052Z 852f46917486: Pull complete
+2026-10-22T10:31:12.0562161Z c79a7210985e: Pull complete
+2026-10-22T10:31:12.0564080Z Digest: sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+2026-10-22T10:31:12.0565193Z Status: Downloaded newer image for postgres:16
+2026-10-22T10:31:12.0580935Z docker.io/library/postgres:16
+2026-10-22T10:31:12.0682054Z ##[command]/usr/bin/docker create --name 8b3f857058ad45de9d218cbb54a308a7_postgres16_cc6db7 --label e2be72 --network github_network_037a756dedd64124957d4731fc7a4bd6 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U tournament_test -d tournament_test" --health-interval 5s --health-timeout 5s --health-retries 15 -e "POSTGRES_DB=tournament_test" -e "POSTGRES_USER=tournament_test" -e "POSTGRES_PASSWORD=local_ci_only" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+2026-10-22T10:31:14.2727562Z 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:14.2756751Z ##[command]/usr/bin/docker start 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:14.5567547Z 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:14.5586421Z ##[command]/usr/bin/docker ps --all --filter id=7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-10-22T10:31:14.6047036Z 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0 Up Less than a second (health: starting)
+2026-10-22T10:31:14.6059908Z ##[command]/usr/bin/docker port 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:14.6313014Z 5432/tcp -> 0.0.0.0:5432
+2026-10-22T10:31:14.6337376Z 5432/tcp -> [::]:5432
+2026-10-22T10:31:14.6390031Z ##[endgroup]
+2026-10-22T10:31:14.6404140Z ##[group]Waiting for all services to be ready
+2026-10-22T10:31:14.6423367Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:14.6658667Z starting
+2026-10-22T10:31:14.6730248Z postgres service is starting, waiting 2 seconds before checking again.
+2026-10-22T10:31:16.6739331Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:16.6901906Z starting
+2026-10-22T10:31:16.6919266Z postgres service is starting, waiting 4 seconds before checking again.
+2026-10-22T10:31:20.8565092Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:20.8742090Z healthy
+2026-10-22T10:31:20.8765037Z postgres service is healthy.
+2026-10-22T10:31:20.8765490Z ##[endgroup]
+2026-10-22T10:31:20.9156308Z ##[group]Run actions/checkout@v4
+2026-10-22T10:31:20.9157021Z with:
+2026-10-22T10:31:20.9157259Z   repository: C8LyNn/aplikacja-turnieje
+2026-10-22T10:31:20.9161555Z   token: ***
+2026-10-22T10:31:20.9161913Z   ssh-strict: true
+2026-10-22T10:31:20.9162151Z   ssh-user: git
+2026-10-22T10:31:20.9162384Z   persist-credentials: true
+2026-10-22T10:31:20.9162624Z   clean: true
+2026-10-22T10:31:20.9162850Z   sparse-checkout-cone-mode: true
+2026-10-22T10:31:20.9163112Z   fetch-depth: 1
+2026-10-22T10:31:20.9163323Z   fetch-tags: false
+2026-10-22T10:31:20.9163531Z   show-progress: true
+2026-10-22T10:31:20.9163733Z   lfs: false
+2026-10-22T10:31:20.9163919Z   submodules: false
+2026-10-22T10:31:20.9164127Z   set-safe-directory: true
+2026-10-22T10:31:20.9164375Z   allow-unsafe-pr-checkout: false
+2026-10-22T10:31:20.9164937Z env:
+2026-10-22T10:31:20.9165122Z   NODE_ENV: test
+2026-10-22T10:31:20.9165657Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:20.9166042Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:20.9166638Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:20.9166991Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:20.9167326Z ##[endgroup]
+2026-10-22T10:31:21.0309469Z Syncing repository: C8LyNn/aplikacja-turnieje
+2026-10-22T10:31:21.0311576Z ##[group]Getting Git version info
+2026-10-22T10:31:21.0312357Z Working directory is '/home/runner/work/aplikacja-turnieje/aplikacja-turnieje'
+2026-10-22T10:31:21.0370500Z [command]/usr/bin/git version
+2026-10-22T10:31:21.0450683Z git version 2.55.0
+2026-10-22T10:31:21.0521893Z ##[endgroup]
+2026-10-22T10:31:21.0529788Z Temporarily overriding HOME='/home/runner/work/_temp/e106e699-bd05-4241-8536-2710c3b992ab' before making global git config changes
+2026-10-22T10:31:21.0531163Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T10:31:21.0532581Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aplikacja-turnieje/aplikacja-turnieje
+2026-10-22T10:31:21.0605933Z Deleting the contents of '/home/runner/work/aplikacja-turnieje/aplikacja-turnieje'
+2026-10-22T10:31:21.0619168Z ##[group]Initializing the repository
+2026-10-22T10:31:21.0627517Z [command]/usr/bin/git init /home/runner/work/aplikacja-turnieje/aplikacja-turnieje
+2026-10-22T10:31:21.0817697Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-22T10:31:21.0834594Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-22T10:31:21.0835827Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-22T10:31:21.0836978Z hint: call:
+2026-10-22T10:31:21.0837507Z hint:
+2026-10-22T10:31:21.0838124Z hint: 	git config --global init.defaultBranch <name>
+2026-10-22T10:31:21.0838864Z hint:
+2026-10-22T10:31:21.0839531Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-22T10:31:21.0857080Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-22T10:31:21.0866920Z hint:
+2026-10-22T10:31:21.0867513Z hint: 	git branch -m <name>
+2026-10-22T10:31:21.0868139Z hint:
+2026-10-22T10:31:21.0868845Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-22T10:31:21.0870160Z Initialized empty Git repository in /home/runner/work/aplikacja-turnieje/aplikacja-turnieje/.git/
+2026-10-22T10:31:21.0874758Z [command]/usr/bin/git remote add origin https://github.com/C8LyNn/aplikacja-turnieje
+2026-10-22T10:31:21.0918371Z ##[endgroup]
+2026-10-22T10:31:21.0919292Z ##[group]Disabling automatic garbage collection
+2026-10-22T10:31:21.0920085Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-22T10:31:21.0996591Z ##[endgroup]
+2026-10-22T10:31:21.0997601Z ##[group]Setting up auth
+2026-10-22T10:31:21.0999550Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T10:31:21.1083735Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T10:31:21.1743408Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T10:31:21.1793102Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T10:31:21.2090563Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T10:31:21.2134440Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T10:31:21.2437614Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-22T10:31:21.2485508Z ##[endgroup]
+2026-10-22T10:31:21.2486793Z ##[group]Fetching the repository
+2026-10-22T10:31:21.2498913Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +886d1127c4231974f2cf7a679546d23c5417f172:refs/remotes/origin/integration/swarm-006/wave1-source-intake-20261022
+2026-10-22T10:31:29.0180868Z From https://github.com/C8LyNn/aplikacja-turnieje
+2026-10-22T10:31:29.0196772Z  * [new ref]         886d1127c4231974f2cf7a679546d23c5417f172 -> origin/integration/swarm-006/wave1-source-intake-20261022
+2026-10-22T10:31:29.0207950Z ##[endgroup]
+2026-10-22T10:31:29.0209301Z ##[group]Determining the checkout info
+2026-10-22T10:31:29.0210239Z ##[endgroup]
+2026-10-22T10:31:29.0210888Z [command]/usr/bin/git sparse-checkout disable
+2026-10-22T10:31:29.0281735Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-22T10:31:29.0337485Z ##[group]Checking out the ref
+2026-10-22T10:31:29.0352159Z [command]/usr/bin/git checkout --progress --force -B integration/swarm-006/wave1-source-intake-20261022 refs/remotes/origin/integration/swarm-006/wave1-source-intake-20261022
+2026-10-22T10:31:29.4425525Z Switched to a new branch 'integration/swarm-006/wave1-source-intake-20261022'
+2026-10-22T10:31:29.4430105Z branch 'integration/swarm-006/wave1-source-intake-20261022' set up to track 'origin/integration/swarm-006/wave1-source-intake-20261022'.
+2026-10-22T10:31:29.4477921Z ##[endgroup]
+2026-10-22T10:31:29.4538457Z [command]/usr/bin/git log -1 --format=%H
+2026-10-22T10:31:29.4572304Z 886d1127c4231974f2cf7a679546d23c5417f172
+2026-10-22T10:31:29.4822599Z ##[group]Run pnpm/action-setup@v4
+2026-10-22T10:31:29.4823043Z with:
+2026-10-22T10:31:29.4823330Z   version: 10
+2026-10-22T10:31:29.4823637Z   dest: ~/setup-pnpm
+2026-10-22T10:31:29.4824006Z   run_install: null
+2026-10-22T10:31:29.4824350Z   cache: false
+2026-10-22T10:31:29.4824711Z   cache_dependency_path: pnpm-lock.yaml
+2026-10-22T10:31:29.4825166Z   package_json_file: package.json
+2026-10-22T10:31:29.4825585Z   standalone: false
+2026-10-22T10:31:29.4825927Z env:
+2026-10-22T10:31:29.4826489Z   NODE_ENV: test
+2026-10-22T10:31:29.4827330Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:29.4827831Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:29.4828308Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:29.4828918Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:29.4829485Z ##[endgroup]
+2026-10-22T10:31:29.6459396Z ##[group]Running self-installer...
+2026-10-22T10:31:30.2842301Z (node:2836) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-22T10:31:30.2844506Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T10:31:30.4514033Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-22T10:31:30.4648108Z Packages: +1
+2026-10-22T10:31:30.4666818Z +
+2026-10-22T10:31:31.0017630Z Progress: resolved 1, reused 0, downloaded 1, added 1, done
+2026-10-22T10:31:31.0320672Z 
+2026-10-22T10:31:31.0325079Z dependencies:
+2026-10-22T10:31:31.0330149Z + pnpm 10.34.7 (12.14.0 is available)
+2026-10-22T10:31:31.0332182Z 
+2026-10-22T10:31:31.0348821Z Done in 1.1s
+2026-10-22T10:31:31.0552481Z ##[endgroup]
+2026-10-22T10:31:31.0577221Z Installation Completed!
+2026-10-22T10:31:31.0741782Z ##[group]Run actions/setup-node@v4
+2026-10-22T10:31:31.0742089Z with:
+2026-10-22T10:31:31.0742282Z   node-version: 22
+2026-10-22T10:31:31.0742489Z   cache: pnpm
+2026-10-22T10:31:31.0742686Z   always-auth: false
+2026-10-22T10:31:31.0742896Z   check-latest: false
+2026-10-22T10:31:31.0745202Z   token: ***
+2026-10-22T10:31:31.0745396Z env:
+2026-10-22T10:31:31.0745573Z   NODE_ENV: test
+2026-10-22T10:31:31.0746029Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:31.0746745Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:31.0747040Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:31.0747388Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:31.0747796Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-10-22T10:31:31.0748100Z ##[endgroup]
+2026-10-22T10:31:31.2383628Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-22T10:31:31.2386725Z (node:2868) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-22T10:31:31.2388296Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-22T10:31:31.2390566Z ##[group]Environment details
+2026-10-22T10:31:31.7888812Z node: v22.23.3
+2026-10-22T10:31:31.7889446Z npm: 10.9.9
+2026-10-22T10:31:31.7903797Z yarn: 1.22.22
+2026-10-22T10:31:31.7905811Z ##[endgroup]
+2026-10-22T10:31:31.7923029Z [command]/home/runner/setup-pnpm/node_modules/.bin/pnpm store path --silent
+2026-10-22T10:31:32.3103475Z /home/runner/setup-pnpm/node_modules/.bin/store/v10
+2026-10-22T10:31:32.5968779Z pnpm cache is not found
+2026-10-22T10:31:32.6132241Z ##[group]Run pnpm install --frozen-lockfile
+2026-10-22T10:31:32.6132671Z [36;1mpnpm install --frozen-lockfile[0m
+2026-10-22T10:31:32.6319861Z shell: /usr/bin/bash -e {0}
+2026-10-22T10:31:32.6320219Z env:
+2026-10-22T10:31:32.6320474Z   NODE_ENV: test
+2026-10-22T10:31:32.6379162Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:32.6379721Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:32.6380154Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:32.6380544Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:32.6380951Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-10-22T10:31:32.6381266Z ##[endgroup]
+2026-10-22T10:31:33.1176373Z Scope: all 12 workspace projects
+2026-10-22T10:31:33.2759716Z Lockfile is up to date, resolution step is skipped
+2026-10-22T10:31:33.3347676Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-22T10:31:33.4291629Z Packages: +571
+2026-10-22T10:31:33.4307176Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-10-22T10:31:34.3356741Z Progress: resolved 571, reused 0, downloaded 35, added 8
+2026-10-22T10:31:35.3360707Z Progress: resolved 571, reused 0, downloaded 178, added 80
+2026-10-22T10:31:36.3384048Z Progress: resolved 571, reused 0, downloaded 311, added 165
+2026-10-22T10:31:37.3417818Z Progress: resolved 571, reused 0, downloaded 336, added 177
+2026-10-22T10:31:38.3412039Z Progress: resolved 571, reused 0, downloaded 344, added 180
+2026-10-22T10:31:39.3427881Z Progress: resolved 571, reused 0, downloaded 402, added 198
+2026-10-22T10:31:40.3428166Z Progress: resolved 571, reused 0, downloaded 500, added 234
+2026-10-22T10:31:41.3432545Z Progress: resolved 571, reused 0, downloaded 540, added 247
+2026-10-22T10:31:42.3440203Z Progress: resolved 571, reused 0, downloaded 571, added 415
+2026-10-22T10:31:42.4948124Z Progress: resolved 571, reused 0, downloaded 571, added 571, done
+2026-10-22T10:31:42.7282308Z .../esbuild@0.27.3/node_modules/esbuild postinstall$ node install.js
+2026-10-22T10:31:42.7903757Z .../esbuild@0.27.3/node_modules/esbuild postinstall: Done
+2026-10-22T10:31:43.1112186Z 
+2026-10-22T10:31:43.1113109Z devDependencies:
+2026-10-22T10:31:43.1114057Z + prettier 3.8.3
+2026-10-22T10:31:43.1114755Z + typescript 5.9.3
+2026-10-22T10:31:43.1115308Z 
+2026-10-22T10:31:43.1538542Z . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+2026-10-22T10:31:43.1661729Z . preinstall: Done
+2026-10-22T10:31:43.3392703Z Done in 10.6s using pnpm v10.34.7
+2026-10-22T10:31:43.3744682Z ##[group]Run pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-safety.test.ts
+2026-10-22T10:31:43.3745546Z [36;1mpnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-safety.test.ts[0m
+2026-10-22T10:31:43.3808523Z shell: /usr/bin/bash -e {0}
+2026-10-22T10:31:43.3808803Z env:
+2026-10-22T10:31:43.3809008Z   NODE_ENV: test
+2026-10-22T10:31:43.3809617Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:43.3809952Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:43.3810250Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:43.3810609Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:43.3811016Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-10-22T10:31:43.3811324Z ##[endgroup]
+2026-10-22T10:31:43.9115651Z TAP version 13
+2026-10-22T10:31:44.2013126Z # Subtest: Pack 18: read-only Single Elimination correction safety
+2026-10-22T10:31:44.2040904Z     # Subtest: identifies a structurally safe first-round change without authorizing writes
+2026-10-22T10:31:44.2042479Z     ok 1 - identifies a structurally safe first-round change without authorizing writes
+2026-10-22T10:31:44.2086767Z       ---
+2026-10-22T10:31:44.2096742Z       duration_ms: 2.903594
+2026-10-22T10:31:44.2118761Z       type: 'test'
+2026-10-22T10:31:44.2136907Z       ...
+2026-10-22T10:31:44.2158062Z     # Subtest: accepts valid score change preserving winner
+2026-10-22T10:31:44.2174479Z     ok 2 - accepts valid score change preserving winner
+2026-10-22T10:31:44.2177076Z       ---
+2026-10-22T10:31:44.2199672Z       duration_ms: 0.257911
+2026-10-22T10:31:44.2200327Z       type: 'test'
+2026-10-22T10:31:44.2200881Z       ...
+2026-10-22T10:31:44.2201629Z     # Subtest: reports other bracket slot for second sibling
+2026-10-22T10:31:44.2202726Z     ok 3 - reports other bracket slot for second sibling
+2026-10-22T10:31:44.2203472Z       ---
+2026-10-22T10:31:44.2204079Z       duration_ms: 0.320668
+2026-10-22T10:31:44.2204748Z       type: 'test'
+2026-10-22T10:31:44.2205335Z       ...
+2026-10-22T10:31:44.2205962Z     # Subtest: blocks malformed score
+2026-10-22T10:31:44.2207246Z     ok 4 - blocks malformed score
+2026-10-22T10:31:44.2207700Z       ---
+2026-10-22T10:31:44.2208314Z       duration_ms: 0.512355
+2026-10-22T10:31:44.2208903Z       type: 'test'
+2026-10-22T10:31:44.2209420Z       ...
+2026-10-22T10:31:44.2210032Z     # Subtest: blocks same score
+2026-10-22T10:31:44.2210657Z     ok 5 - blocks same score
+2026-10-22T10:31:44.2211226Z       ---
+2026-10-22T10:31:44.2211735Z       duration_ms: 0.260525
+2026-10-22T10:31:44.2212301Z       type: 'test'
+2026-10-22T10:31:44.2212961Z       ...
+2026-10-22T10:31:44.2213739Z     # Subtest: blocks stale later round
+2026-10-22T10:31:44.2214575Z     ok 6 - blocks stale later round
+2026-10-22T10:31:44.2215739Z       ---
+2026-10-22T10:31:44.2216783Z       duration_ms: 0.303906
+2026-10-22T10:31:44.2217431Z       type: 'test'
+2026-10-22T10:31:44.2217964Z       ...
+2026-10-22T10:31:44.2218528Z     # Subtest: blocks final round
+2026-10-22T10:31:44.2219198Z     ok 7 - blocks final round
+2026-10-22T10:31:44.2219862Z       ---
+2026-10-22T10:31:44.2220445Z       duration_ms: 0.363829
+2026-10-22T10:31:44.2221110Z       type: 'test'
+2026-10-22T10:31:44.2221701Z       ...
+2026-10-22T10:31:44.2222361Z     # Subtest: blocks missing next match
+2026-10-22T10:31:44.2223164Z     ok 8 - blocks missing next match
+2026-10-22T10:31:44.2223859Z       ---
+2026-10-22T10:31:44.2224418Z       duration_ms: 0.403432
+2026-10-22T10:31:44.2225018Z       type: 'test'
+2026-10-22T10:31:44.2225541Z       ...
+2026-10-22T10:31:44.2226500Z     # Subtest: blocks completed dependent match
+2026-10-22T10:31:44.2227479Z     ok 9 - blocks completed dependent match
+2026-10-22T10:31:44.2228243Z       ---
+2026-10-22T10:31:44.2228833Z       duration_ms: 0.475617
+2026-10-22T10:31:44.2229540Z       type: 'test'
+2026-10-22T10:31:44.2230138Z       ...
+2026-10-22T10:31:44.2231259Z     # Subtest: blocks occupied downstream slot mismatch
+2026-10-22T10:31:44.2232319Z     ok 10 - blocks occupied downstream slot mismatch
+2026-10-22T10:31:44.2233145Z       ---
+2026-10-22T10:31:44.2233751Z       duration_ms: 0.54159
+2026-10-22T10:31:44.2234452Z       type: 'test'
+2026-10-22T10:31:44.2235069Z       ...
+2026-10-22T10:31:44.2235757Z     # Subtest: blocks started later stage
+2026-10-22T10:31:44.2238090Z     ok 11 - blocks started later stage
+2026-10-22T10:31:44.2238748Z       ---
+2026-10-22T10:31:44.2239265Z       duration_ms: 0.242292
+2026-10-22T10:31:44.2239972Z       type: 'test'
+2026-10-22T10:31:44.2240496Z       ...
+2026-10-22T10:31:44.2241088Z     # Subtest: blocks approved qualification
+2026-10-22T10:31:44.2241886Z     ok 12 - blocks approved qualification
+2026-10-22T10:31:44.2242532Z       ---
+2026-10-22T10:31:44.2243048Z       duration_ms: 0.186538
+2026-10-22T10:31:44.2243634Z       type: 'test'
+2026-10-22T10:31:44.2244161Z       ...
+2026-10-22T10:31:44.2256693Z     # Subtest: blocks routed participants
+2026-10-22T10:31:44.2257971Z     ok 13 - blocks routed participants
+2026-10-22T10:31:44.2258760Z       ---
+2026-10-22T10:31:44.2259625Z       duration_ms: 0.169265
+2026-10-22T10:31:44.2260284Z       type: 'test'
+2026-10-22T10:31:44.2260886Z       ...
+2026-10-22T10:31:44.2261632Z     # Subtest: blocks mismatched result history
+2026-10-22T10:31:44.2262527Z     ok 14 - blocks mismatched result history
+2026-10-22T10:31:44.2263325Z       ---
+2026-10-22T10:31:44.2263920Z       duration_ms: 0.157304
+2026-10-22T10:31:44.2264623Z       type: 'test'
+2026-10-22T10:31:44.2265194Z       ...
+2026-10-22T10:31:44.2265968Z     # Subtest: blocks ambiguous active completion actions
+2026-10-22T10:31:44.2267315Z     ok 15 - blocks ambiguous active completion actions
+2026-10-22T10:31:44.2268148Z       ---
+2026-10-22T10:31:44.2268782Z       duration_ms: 0.172913
+2026-10-22T10:31:44.2269481Z       type: 'test'
+2026-10-22T10:31:44.2270062Z       ...
+2026-10-22T10:31:44.2270822Z     # Subtest: blocks duplicate bracket coordinates
+2026-10-22T10:31:44.2271802Z     ok 16 - blocks duplicate bracket coordinates
+2026-10-22T10:31:44.2272591Z       ---
+2026-10-22T10:31:44.2273172Z       duration_ms: 0.201355
+2026-10-22T10:31:44.2273849Z       type: 'test'
+2026-10-22T10:31:44.2274458Z       ...
+2026-10-22T10:31:44.2275164Z     # Subtest: blocks later non-pending match
+2026-10-22T10:31:44.2276068Z     ok 17 - blocks later non-pending match
+2026-10-22T10:31:44.2277869Z       ---
+2026-10-22T10:31:44.2278422Z       duration_ms: 0.255867
+2026-10-22T10:31:44.2279026Z       type: 'test'
+2026-10-22T10:31:44.2279557Z       ...
+2026-10-22T10:31:44.2280255Z     # Subtest: blocks winner inconsistent with recorded score
+2026-10-22T10:31:44.2281214Z     ok 18 - blocks winner inconsistent with recorded score
+2026-10-22T10:31:44.2282009Z       ---
+2026-10-22T10:31:44.2282544Z       duration_ms: 0.21958
+2026-10-22T10:31:44.2284462Z       type: 'test'
+2026-10-22T10:31:44.2285063Z       ...
+2026-10-22T10:31:44.2309116Z     # Subtest: blocks non-SE formats
+2026-10-22T10:31:44.2327107Z     ok 19 - blocks non-SE formats
+2026-10-22T10:31:44.2358997Z       ---
+2026-10-22T10:31:44.2375537Z       duration_ms: 0.213378
+2026-10-22T10:31:44.2376442Z       type: 'test'
+2026-10-22T10:31:44.2377203Z       ...
+2026-10-22T10:31:44.2389226Z     # Subtest: blocks inactive tournament
+2026-10-22T10:31:44.2390204Z     ok 20 - blocks inactive tournament
+2026-10-22T10:31:44.2392533Z       ---
+2026-10-22T10:31:44.2393092Z       duration_ms: 0.202267
+2026-10-22T10:31:44.2393707Z       type: 'test'
+2026-10-22T10:31:44.2394229Z       ...
+2026-10-22T10:31:44.2394794Z     # Subtest: blocks inactive stage
+2026-10-22T10:31:44.2395460Z     ok 21 - blocks inactive stage
+2026-10-22T10:31:44.2396027Z       ---
+2026-10-22T10:31:44.2396914Z       duration_ms: 0.255426
+2026-10-22T10:31:44.2397625Z       type: 'test'
+2026-10-22T10:31:44.2398160Z       ...
+2026-10-22T10:31:44.2398819Z     # Subtest: blocks malformed stage assignment
+2026-10-22T10:31:44.2399685Z     ok 22 - blocks malformed stage assignment
+2026-10-22T10:31:44.2400799Z       ---
+2026-10-22T10:31:44.2401372Z       duration_ms: 0.212387
+2026-10-22T10:31:44.2401942Z       type: 'test'
+2026-10-22T10:31:44.2402451Z       ...
+2026-10-22T10:31:44.2403121Z     # Subtest: blocks inconsistent match snapshots during read
+2026-10-22T10:31:44.2404018Z     ok 23 - blocks inconsistent match snapshots during read
+2026-10-22T10:31:44.2404700Z       ---
+2026-10-22T10:31:44.2405183Z       duration_ms: 0.238255
+2026-10-22T10:31:44.2405725Z       type: 'test'
+2026-10-22T10:31:44.2406707Z       ...
+2026-10-22T10:31:44.2407204Z     1..23
+2026-10-22T10:31:44.2407989Z ok 1 - Pack 18: read-only Single Elimination correction safety
+2026-10-22T10:31:44.2408762Z   ---
+2026-10-22T10:31:44.2409258Z   duration_ms: 11.530914
+2026-10-22T10:31:44.2409818Z   type: 'suite'
+2026-10-22T10:31:44.2410383Z   ...
+2026-10-22T10:31:44.2538304Z 1..1
+2026-10-22T10:31:44.2539499Z # tests 23
+2026-10-22T10:31:44.2540668Z # suites 1
+2026-10-22T10:31:44.2541529Z # pass 23
+2026-10-22T10:31:44.2542379Z # fail 0
+2026-10-22T10:31:44.2543229Z # cancelled 0
+2026-10-22T10:31:44.2544014Z # skipped 0
+2026-10-22T10:31:44.2544682Z # todo 0
+2026-10-22T10:31:44.2545442Z # duration_ms 365.880238
+2026-10-22T10:31:44.2752218Z ##[group]Run pnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-readiness.test.ts
+2026-10-22T10:31:44.2753654Z [36;1mpnpm --filter @workspace/api-server exec node --import tsx --test test/se-correction-readiness.test.ts[0m
+2026-10-22T10:31:44.2754712Z [36;1mnode --test qa/pack19/source-contract.test.mjs[0m
+2026-10-22T10:31:44.2845568Z shell: /usr/bin/bash -e {0}
+2026-10-22T10:31:44.2846045Z env:
+2026-10-22T10:31:44.2846665Z   NODE_ENV: test
+2026-10-22T10:31:44.2847621Z   TEST_DATABASE_URL: ***127.0.0.1:5432/tournament_test
+2026-10-22T10:31:44.2848237Z   TEST_DATABASE_SCHEMA: tm_test_pack18
+2026-10-22T10:31:44.2848793Z   TEST_DATABASE_RESET: DROP_TM_TEST_SCHEMA
+2026-10-22T10:31:44.2849431Z   SESSION_SECRET: pack18-ci-test-secret-not-for-production
+2026-10-22T10:31:44.2850134Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+2026-10-22T10:31:44.2850731Z ##[endgroup]
+2026-10-22T10:31:44.7617498Z TAP version 13
+2026-10-22T10:31:45.0400864Z # Subtest: pristine first round creates an advisory candidate, not execution permission
+2026-10-22T10:31:45.0429645Z ok 1 - pristine first round creates an advisory candidate, not execution permission
+2026-10-22T10:31:45.0436908Z   ---
+2026-10-22T10:31:45.0467814Z   duration_ms: 3.452338
+2026-10-22T10:31:45.0486795Z   type: 'test'
+2026-10-22T10:31:45.0506670Z   ...
+2026-10-22T10:31:45.0507459Z # Subtest: blocks match revision changed
+2026-10-22T10:31:45.0526922Z ok 2 - blocks match revision changed
+2026-10-22T10:31:45.0546727Z   ---
+2026-10-22T10:31:45.0577000Z   duration_ms: 0.447113
+2026-10-22T10:31:45.0577764Z   type: 'test'
+2026-10-22T10:31:45.0596736Z   ...
+2026-10-22T10:31:45.0616965Z # Subtest: blocks invalid expected match revision
+2026-10-22T10:31:45.0626881Z ok 3 - blocks invalid expected match revision
+2026-10-22T10:31:45.0636798Z   ---
+2026-10-22T10:31:45.0656940Z   duration_ms: 0.35375
+2026-10-22T10:31:45.0676789Z   type: 'test'
+2026-10-22T10:31:45.0679702Z   ...
+2026-10-22T10:31:45.0696847Z # Subtest: blocks stage version changed
+2026-10-22T10:31:45.0697861Z ok 4 - blocks stage version changed
+2026-10-22T10:31:45.0716643Z   ---
+2026-10-22T10:31:45.0736845Z   duration_ms: 0.223186
+2026-10-22T10:31:45.0740109Z   type: 'test'
+2026-10-22T10:31:45.0740828Z   ...
+2026-10-22T10:31:45.0741541Z # Subtest: blocks empty expected version
+2026-10-22T10:31:45.0742408Z ok 5 - blocks empty expected version
+2026-10-22T10:31:45.0743104Z   ---
+2026-10-22T10:31:45.0743679Z   duration_ms: 0.356425
+2026-10-22T10:31:45.0744292Z   type: 'test'
+2026-10-22T10:31:45.0744853Z   ...
+2026-10-22T10:31:45.0745452Z # Subtest: blocks wrong action
+2026-10-22T10:31:45.0746314Z ok 6 - blocks wrong action
+2026-10-22T10:31:45.0746984Z   ---
+2026-10-22T10:31:45.0747569Z   duration_ms: 0.26291
+2026-10-22T10:31:45.0748330Z   type: 'test'
+2026-10-22T10:31:45.0748938Z   ...
+2026-10-22T10:31:45.0749663Z # Subtest: blocks missing action
+2026-10-22T10:31:45.0750518Z ok 7 - blocks missing action
+2026-10-22T10:31:45.0751248Z   ---
+2026-10-22T10:31:45.0751994Z   duration_ms: 0.359661
+2026-10-22T10:31:45.0752740Z   type: 'test'
+2026-10-22T10:31:45.0753413Z   ...
+2026-10-22T10:31:45.0754187Z # Subtest: blocks invalid action ID
+2026-10-22T10:31:45.0755170Z ok 8 - blocks invalid action ID
+2026-10-22T10:31:45.0755927Z   ---
+2026-10-22T10:31:45.0756872Z   duration_ms: 0.313455
+2026-10-22T10:31:45.0757696Z   type: 'test'
+2026-10-22T10:31:45.0758352Z   ...
+2026-10-22T10:31:45.0759097Z # Subtest: blocks later match started
+2026-10-22T10:31:45.0760124Z ok 9 - blocks later match started
+2026-10-22T10:31:45.0760895Z   ---
+2026-10-22T10:31:45.0761547Z   duration_ms: 0.539827
+2026-10-22T10:31:45.0762256Z   type: 'test'
+2026-10-22T10:31:45.0762926Z   ...
+2026-10-22T10:31:45.0763715Z # Subtest: blocks downstream wrong slot
+2026-10-22T10:31:45.0764628Z ok 10 - blocks downstream wrong slot
+2026-10-22T10:31:45.0765372Z   ---
+2026-10-22T10:31:45.0766027Z   duration_ms: 0.733558
+2026-10-22T10:31:45.0766879Z   type: 'test'
+2026-10-22T10:31:45.0785554Z   ...
+2026-10-22T10:31:45.0787241Z # Subtest: blocks downstream completed
+2026-10-22T10:31:45.0788256Z ok 11 - blocks downstream completed
+2026-10-22T10:31:45.0788930Z   ---
+2026-10-22T10:31:45.0789497Z   duration_ms: 0.254585
+2026-10-22T10:31:45.0790127Z   type: 'test'
+2026-10-22T10:31:45.0790679Z   ...
+2026-10-22T10:31:45.0791293Z # Subtest: blocks no successor
+2026-10-22T10:31:45.0791948Z ok 12 - blocks no successor
+2026-10-22T10:31:45.0792594Z   ---
+2026-10-22T10:31:45.0793290Z   duration_ms: 0.193371
+2026-10-22T10:31:45.0793902Z   type: 'test'
+2026-10-22T10:31:45.0794441Z   ...
+2026-10-22T10:31:45.0795077Z # Subtest: blocks advanced round
+2026-10-22T10:31:45.0795745Z ok 13 - blocks advanced round
+2026-10-22T10:31:45.0796602Z   ---
+2026-10-22T10:31:45.0797128Z   duration_ms: 0.192278
+2026-10-22T10:31:45.0797776Z   type: 'test'
+2026-10-22T10:31:45.0798263Z   ...
+2026-10-22T10:31:45.0798775Z # Subtest: blocks final
+2026-10-22T10:31:45.0799341Z ok 14 - blocks final
+2026-10-22T10:31:45.0799893Z   ---
+2026-10-22T10:31:45.0800600Z   duration_ms: 0.19859
+2026-10-22T10:31:45.0801273Z   type: 'test'
+2026-10-22T10:31:45.0801854Z   ...
+2026-10-22T10:31:45.0935235Z # Subtest: blocks missing history
+2026-10-22T10:31:45.0963443Z ok 15 - blocks missing history
+2026-10-22T10:31:45.0994846Z   ---
+2026-10-22T10:31:45.1028478Z   duration_ms: 0.271557
+2026-10-22T10:31:45.1062673Z   type: 'test'
+2026-10-22T10:31:45.1087987Z   ...
+2026-10-22T10:31:45.1144468Z # Subtest: blocks multiple completions
+2026-10-22T10:31:45.1169055Z ok 16 - blocks multiple completions
+2026-10-22T10:31:45.1206667Z   ---
+2026-10-22T10:31:45.1235496Z   duration_ms: 0.186879
+2026-10-22T10:31:45.1283778Z   type: 'test'
+2026-10-22T10:31:45.1305601Z   ...
+2026-10-22T10:31:45.1336970Z # Subtest: blocks approved qualification
+2026-10-22T10:31:45.1361249Z ok 17 - blocks approved qualification
+2026-10-22T10:31:45.1379374Z   ---
+2026-10-22T10:31:45.1411609Z   duration_ms: 0.18768
+2026-10-22T10:31:45.1412481Z   type: 'test'
+2026-10-22T10:31:45.1436956Z   ...
+2026-10-22T10:31:45.1450581Z # Subtest: blocks committed route
+2026-10-22T10:31:45.1466702Z ok 18 - blocks committed route
+2026-10-22T10:31:45.1486825Z   ---
+2026-10-22T10:31:45.1487586Z   duration_ms: 0.186518
+2026-10-22T10:31:45.1488281Z   type: 'test'
+2026-10-22T10:31:45.1488930Z   ...
+2026-10-22T10:31:45.1489756Z # Subtest: blocks stage completed
+2026-10-22T10:31:45.1501094Z ok 19 - blocks stage completed
+2026-10-22T10:31:45.1516886Z   ---
+2026-10-22T10:31:45.1537021Z   duration_ms: 0.204301
+2026-10-22T10:31:45.1537711Z   type: 'test'
+2026-10-22T10:31:45.1557419Z   ...
+2026-10-22T10:31:45.1577037Z # Subtest: blocks tournament completed
+2026-10-22T10:31:45.1596955Z ok 20 - blocks tournament completed
+2026-10-22T10:31:45.1616768Z   ---
+2026-10-22T10:31:45.1617454Z   duration_ms: 0.188281
+2026-10-22T10:31:45.1636857Z   type: 'test'
+2026-10-22T10:31:45.1645668Z   ...
+2026-10-22T10:31:45.1676807Z # Subtest: blocks same scores
+2026-10-22T10:31:45.1677587Z ok 21 - blocks same scores
+2026-10-22T10:31:45.1682788Z   ---
+2026-10-22T10:31:45.1707023Z   duration_ms: 0.171811
+2026-10-22T10:31:45.1717424Z   type: 'test'
+2026-10-22T10:31:45.1717995Z   ...
+2026-10-22T10:31:45.1718598Z # Subtest: blocks invalid score
+2026-10-22T10:31:45.1719272Z ok 22 - blocks invalid score
+2026-10-22T10:31:45.1719872Z   ---
+2026-10-22T10:31:45.1720388Z   duration_ms: 0.215913
+2026-10-22T10:31:45.1720960Z   type: 'test'
+2026-10-22T10:31:45.1721476Z   ...
+2026-10-22T10:31:45.1722217Z # Subtest: blocks other stage progressed
+2026-10-22T10:31:45.1722996Z ok 23 - blocks other stage progressed
+2026-10-22T10:31:45.1723620Z   ---
+2026-10-22T10:31:45.1724133Z   duration_ms: 0.276756
+2026-10-22T10:31:45.1724697Z   type: 'test'
+2026-10-22T10:31:45.1725245Z   ...
+2026-10-22T10:31:45.1725845Z # Subtest: blocks wrong format
+2026-10-22T10:31:45.1726844Z ok 24 - blocks wrong format
+2026-10-22T10:31:45.1727424Z   ---
+2026-10-22T10:31:45.1727934Z   duration_ms: 0.213509
+2026-10-22T10:31:45.1728658Z   type: 'test'
+2026-10-22T10:31:45.1729154Z   ...
+2026-10-22T10:31:45.1730165Z # Subtest: blocks duplicate coordinates
+2026-10-22T10:31:45.1731025Z ok 25 - blocks duplicate coordinates
+2026-10-22T10:31:45.1731675Z   ---
+2026-10-22T10:31:45.1732196Z   duration_ms: 0.213237
+2026-10-22T10:31:45.1732784Z   type: 'test'
+2026-10-22T10:31:45.1733303Z   ...
+2026-10-22T10:31:45.1734048Z # Subtest: does not mutate source rows or version tokens
+2026-10-22T10:31:45.1735016Z ok 26 - does not mutate source rows or version tokens
+2026-10-22T10:31:45.1735729Z   ---
+2026-10-22T10:31:45.1736553Z   duration_ms: 0.445341
+2026-10-22T10:31:45.1737198Z   type: 'test'
+2026-10-22T10:31:45.1737846Z   ...
+2026-10-22T10:31:45.1738321Z 1..26
+2026-10-22T10:31:45.1738802Z # tests 26
+2026-10-22T10:31:45.1749297Z # suites 0
+2026-10-22T10:31:45.1750084Z # pass 26
+2026-10-22T10:31:45.1750609Z # fail 0
+2026-10-22T10:31:45.1751103Z # cancelled 0
+2026-10-22T10:31:45.1751611Z # skipped 0
+2026-10-22T10:31:45.1752136Z # todo 0
+2026-10-22T10:31:45.1752996Z # duration_ms 412.068962
+2026-10-22T10:31:45.2327375Z TAP version 13
+2026-10-22T10:31:45.2837864Z # Subtest: transaction is explicitly read-only and snapshot isolation
+2026-10-22T10:31:45.2865355Z not ok 1 - transaction is explicitly read-only and snapshot isolation
+2026-10-22T10:31:45.2876713Z   ---
+2026-10-22T10:31:45.2896887Z   duration_ms: 2.800953
+2026-10-22T10:31:45.2897894Z   type: 'test'
+2026-10-22T10:31:45.2898586Z   location: '/home/runner/work/aplikacja-turnieje/aplikacja-turnieje/qa/pack19/source-contract.test.mjs:11:1'
+2026-10-22T10:31:45.2899194Z   failureType: 'testCodeFailure'
+2026-10-22T10:31:45.2899493Z   error: |-
+2026-10-22T10:31:45.2899996Z     The input did not match the regular expression /isolationLevel:"repeatable read",readOnly:true/. Input:
+2026-10-22T10:31:45.2900853Z     
+2026-10-22T10:31:45.2901247Z     '/** Pack 19: a consistent, read-only transaction for SE correction eligibility.\n' +
+2026-10-22T10:31:45.2901853Z       ' * This endpoint NEVER authorizes a write and NEVER updates the database.\n' +
+2026-10-22T10:31:45.2902260Z       ' */\n' +
+2026-10-22T10:31:45.2902586Z       'import { Router, type IRouter } from "express";\n' +
+2026-10-22T10:31:45.2903004Z       'import { and, desc, eq } from "drizzle-orm";\n' +
+2026-10-22T10:31:45.2903319Z       'import {\n' +
+2026-10-22T10:31:45.2903708Z       '  actionLogTable, db, matchesTable, qualificationProposalsTable,\n' +
+2026-10-22T10:31:45.2904411Z       '  resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,\n' +
+2026-10-22T10:31:45.2905045Z       '} from "@workspace/db";\n' +
+2026-10-22T10:31:45.2905420Z       'import { requireOrganizer } from "../access-policy";\n' +
+2026-10-22T10:31:45.2906070Z       'import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";\n' +
+2026-10-22T10:31:45.2907669Z       'import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";\n' +
+2026-10-22T10:31:45.2909355Z       'import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";\n' +
+2026-10-22T10:31:45.2935314Z       'import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";\n' +
+2026-10-22T10:31:45.2937067Z       'import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";\n' +
+2026-10-22T10:31:45.2957492Z       'import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";\n' +
+2026-10-22T10:31:45.2980638Z       '\n' +
+2026-10-22T10:31:45.2981232Z       'const router: IRouter = Router();\n' +
+2026-10-22T10:31:45.2981992Z       'const positive = (value: unknown): value is number =>\n' +
+2026-10-22T10:31:45.2982897Z       '  typeof value === "number" && Number.isSafeInteger(value) && value > 0;\n' +
+2026-10-22T10:31:45.2983638Z       'const score = (value: unknown): value is number =>\n' +
+2026-10-22T10:31:45.2984238Z       '  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;\n' +
+2026-10-22T10:31:45.2984695Z       '\n' +
+2026-10-22T10:31:45.2985518Z       'router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {\n' +
+2026-10-22T10:31:45.2986792Z       '  const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);\n' +
+2026-10-22T10:31:45.2987701Z       '  const body: unknown = req.body;\n' +
+2026-10-22T10:31:45.2988704Z       '  const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};\n' +
+2026-10-22T10:31:45.2989996Z       '  if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||\n' +
+2026-10-22T10:31:45.2991224Z       '      !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||\n' +
+2026-10-22T10:31:45.2992249Z       '      typeof b.expectedStageVersionVector !== "string" ||\n' +
+2026-10-22T10:31:45.2993375Z       '      b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {\n' +
+2026-10-22T10:31:45.2994606Z       '    res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;\n' +
+2026-10-22T10:31:45.2995320Z       '  }\n' +
+2026-10-22T10:31:45.2995963Z       '  const access = await requireOrganizer(req,res,tournamentId);\n' +
+2026-10-22T10:31:45.3008140Z       '  if (!access) return;\n' +
+2026-10-22T10:31:45.3008815Z       '  res.setHeader("Cache-Control","no-store");\n' +
+2026-10-22T10:31:45.3009733Z       '  // A consistent MVCC view without write locks. The later write transaction\n' +
+2026-10-22T10:31:45.3010701Z       '  // MUST perform its own independent, locked revalidation.\n' +
+2026-10-22T10:31:45.3011538Z       '  const outcome = await db.transaction(async tx => {\n' +
+2026-10-22T10:31:45.3013061Z       '    const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));\n' +
+2026-10-22T10:31:45.3014283Z       '    const [match] = await tx.select().from(matchesTable).where(and(\n' +
+2026-10-22T10:31:45.3015351Z       '      eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));\n' +
+2026-10-22T10:31:45.3016525Z       '    if (!tournament || !match) return null;\n' +
+2026-10-22T10:31:45.3045418Z       '    const [stages,matches,approvals,routes,histories,actions] = await Promise.all([\n' +
+2026-10-22T10:31:45.3047574Z       '      tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),\n' +
+2026-10-22T10:31:45.3048801Z       '      tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),\n' +
+2026-10-22T10:31:45.3050048Z       '      tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(\n' +
+2026-10-22T10:31:45.3051718Z       '        eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),\n' +
+2026-10-22T10:31:45.3053181Z       '        eq(qualificationProposalsTable.status,"approved"))).limit(1),\n' +
+2026-10-22T10:31:45.3054553Z       '      tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(\n' +
+2026-10-22T10:31:45.3067041Z       '        eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),\n' +
+2026-10-22T10:31:45.3069322Z       '      tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),\n' +
+2026-10-22T10:31:45.3070721Z       '      tx.select().from(actionLogTable).where(and(\n' +
+2026-10-22T10:31:45.3071847Z       '        eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),\n' +
+2026-10-22T10:31:45.3073240Z       '        eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),\n' +
+2026-10-22T10:31:45.3074363Z       '      )).orderBy(desc(actionLogTable.id)).limit(2),\n' +
+2026-10-22T10:31:45.3074987Z       '    ]);\n' +
+2026-10-22T10:31:45.3075981Z       '    const stage=stages.find(item=>item.id===match.stageId);\n' +
+2026-10-22T10:31:45.3077100Z       '    if(!stage)return null;\n' +
+2026-10-22T10:31:45.3077687Z       '    const h=histories[0];\n' +
+2026-10-22T10:31:45.3078683Z       '    const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&\n' +
+2026-10-22T10:31:45.3079998Z       '      h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&\n' +
+2026-10-22T10:31:45.3081180Z       '      h.player1Id===match.player1Id && h.player2Id===match.player2Id &&\n' +
+2026-10-22T10:31:45.3082211Z       '      h.bestOf===match.bestOf && h.resultType===match.resultType &&\n' +
+2026-10-22T10:31:45.3083361Z       '      h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&\n' +
+2026-10-22T10:31:45.3084718Z       '      h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();\n' +
+2026-10-22T10:31:45.3085829Z       '    let completionActionUnambiguous=false;\n' +
+2026-10-22T10:31:45.3106912Z       '    if(actions.length===1) {\n' +
+2026-10-22T10:31:45.3107784Z       '      try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");\n' +
+2026-10-22T10:31:45.3108947Z       '        completionActionUnambiguous=!!decoded && typeof decoded==="object" &&\n' +
+2026-10-22T10:31:45.3110008Z       '          (decoded as {type?:unknown}).type==="revert_match" &&\n' +
+2026-10-22T10:31:45.3110905Z       '          (decoded as {matchId?:unknown}).matchId===match.id;\n' +
+2026-10-22T10:31:45.3111754Z       '      }catch { /* invalid undo payload => blocker */ }\n' +
+2026-10-22T10:31:45.3112380Z       '    }\n' +
+2026-10-22T10:31:45.3112949Z       '    const result=deriveSeCorrectionReadiness({\n' +
+2026-10-22T10:31:45.3114005Z       '      assessment:{\n' +
+2026-10-22T10:31:45.3114970Z       '        tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,\n' +
+2026-10-22T10:31:45.3115959Z       '        score1:b.score1 as number,score2:b.score2 as number,\n' +
+2026-10-22T10:31:45.3117228Z       '        qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\n' +
+2026-10-22T10:31:45.3118160Z       '        historyVerified,completionActionUnambiguous,\n' +
+2026-10-22T10:31:45.3118816Z       '      },\n' +
+2026-10-22T10:31:45.3119465Z       '      expectedMatchRevision:b.expectedMatchRevision as number,\n' +
+2026-10-22T10:31:45.3120278Z       '      actualMatchRevision:match.revision,\n' +
+2026-10-22T10:31:45.3121183Z       '      expectedStageVersionVector:b.expectedStageVersionVector as string,\n' +
+2026-10-22T10:31:45.3122281Z       '      actualStageVersionVector:stageMatchVersionVector(matches,stage.id),\n' +
+2026-10-22T10:31:45.3123416Z       '      expectedCompletionActionId:b.expectedCompletionActionId as number,\n' +
+2026-10-22T10:31:45.3124558Z       '      activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,\n' +
+2026-10-22T10:31:45.3125469Z       '      allowExecution:false,\n' +
+2026-10-22T10:31:45.3125966Z       '    });\n' +
+2026-10-22T10:31:45.3129682Z       '    const actionPlan = deriveSeCorrectionActionPlan({\n' +
+2026-10-22T10:31:45.3130452Z       '      readiness:result,\n' +
+2026-10-22T10:31:45.3131154Z       '      score1:b.score1 as number,score2:b.score2 as number,\n' +
+2026-10-22T10:31:45.3132109Z       '      originalScore1:match.score1,originalScore2:match.score2,\n' +
+2026-10-22T10:31:45.3132792Z       '    });\n' +
+2026-10-22T10:31:45.3133426Z       '    const diagnostic = deriveSeCorrectionDiagnostic({\n' +
+2026-10-22T10:31:45.3134211Z       '      readiness:result,plan:actionPlan,\n' +
+2026-10-22T10:31:45.3135158Z       '      expectedCompletionActionId:b.expectedCompletionActionId as number,\n' +
+2026-10-22T10:31:45.3135916Z       '    });\n' +
+2026-10-22T10:31:45.3147176Z       '    const impactGraph = deriveSeCorrectionImpactGraph({\n' +
+2026-10-22T10:31:45.3148098Z       '      matchId:match.id,stage,stages,stageMatches:matches,actionPlan,\n' +
+2026-10-22T10:31:45.3149409Z       '      qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,\n' +
+2026-10-22T10:31:45.3150176Z       '    });\n' +
+2026-10-22T10:31:45.3150910Z       '    const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);\n' +
+2026-10-22T10:31:45.3152005Z       '    return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };\n' +
+2026-10-22T10:31:45.3152978Z       '  }, {isolationLevel:"repeatable read",accessMode:"read only"});\n' +
+2026-10-22T10:31:45.3153951Z       '  if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}\n' +
+2026-10-22T10:31:45.3154688Z       '  res.json(outcome);\n' +
+2026-10-22T10:31:45.3155095Z       '});\n' +
+2026-10-22T10:31:45.3155475Z       'export default router;\n'
+2026-10-22T10:31:45.3155879Z     
+2026-10-22T10:31:45.3176547Z   code: 'ERR_ASSERTION'
+2026-10-22T10:31:45.3177215Z   name: 'AssertionError'
+2026-10-22T10:31:45.3177897Z   expected:
+2026-10-22T10:31:45.3178433Z   actual: |-
+2026-10-22T10:31:45.3179487Z     /** Pack 19: a consistent, read-only transaction for SE correction eligibility.
+2026-10-22T10:31:45.3180686Z      * This endpoint NEVER authorizes a write and NEVER updates the database.
+2026-10-22T10:31:45.3181364Z      */
+2026-10-22T10:31:45.3181823Z     import { Router, type IRouter } from "express";
+2026-10-22T10:31:45.3182433Z     import { and, desc, eq } from "drizzle-orm";
+2026-10-22T10:31:45.3182928Z     import {
+2026-10-22T10:31:45.3183512Z       actionLogTable, db, matchesTable, qualificationProposalsTable,
+2026-10-22T10:31:45.3184614Z       resultHistoryTable, stageBasketRouteExecutionsTable, tournamentStagesTable, tournamentsTable,
+2026-10-22T10:31:45.3185463Z     } from "@workspace/db";
+2026-10-22T10:31:45.3277846Z     import { requireOrganizer } from "../access-policy";
+2026-10-22T10:31:45.3279613Z     import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";
+2026-10-22T10:31:45.3281147Z     import { deriveSeCorrectionReadiness } from "../domain/tournament/se-correction-readiness";
+2026-10-22T10:31:45.3282424Z     import { deriveSeCorrectionActionPlan } from "../domain/tournament/se-correction-action-plan";
+2026-10-22T10:31:45.3283642Z     import { deriveSeCorrectionDiagnostic } from "../domain/tournament/se-correction-diagnostic";
+2026-10-22T10:31:45.3284862Z     import { deriveSeCorrectionImpactGraph } from "../domain/tournament/se-correction-impact-graph";
+2026-10-22T10:31:45.3286461Z     import { deriveSeCorrectionImpactRiskReport } from "../domain/tournament/se-correction-impact-risk-report";
+2026-10-22T10:31:45.3287400Z     
+2026-10-22T10:31:45.3287805Z     const router: IRouter = Router();
+2026-10-22T10:31:45.3288468Z     const positive = (value: unknown): value is number =>
+2026-10-22T10:31:45.3289354Z       typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+2026-10-22T10:31:45.3290207Z     const score = (value: unknown): value is number =>
+2026-10-22T10:31:45.3291137Z       typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 999999;
+2026-10-22T10:31:45.3291917Z     
+2026-10-22T10:31:45.3292824Z     router.post("/tournaments/:id/matches/:matchId/se-correction-readiness", async (req,res):Promise<void> => {
+2026-10-22T10:31:45.3294116Z       const tournamentId = Number(req.params.id), matchId = Number(req.params.matchId);
+2026-10-22T10:31:45.3294990Z       const body: unknown = req.body;
+2026-10-22T10:31:45.3295923Z       const b = body && typeof body === "object" && !Array.isArray(body) ? body as Record<string,unknown> : {};
+2026-10-22T10:31:45.3342756Z       if (!positive(tournamentId) || !positive(matchId) || !score(b.score1) || !score(b.score2) ||
+2026-10-22T10:31:45.3344153Z           !positive(b.expectedMatchRevision) || !positive(b.expectedCompletionActionId) ||
+2026-10-22T10:31:45.3345264Z           typeof b.expectedStageVersionVector !== "string" ||
+2026-10-22T10:31:45.3346649Z           b.expectedStageVersionVector.length < 2 || b.expectedStageVersionVector.length > 80000) {
+2026-10-22T10:31:45.3349128Z         res.status(400).json({code:"INVALID_SE_READINESS_INPUT"});return;
+2026-10-22T10:31:45.3349790Z       }
+2026-10-22T10:31:45.3350554Z       const access = await requireOrganizer(req,res,tournamentId);
+2026-10-22T10:31:45.3351371Z       if (!access) return;
+2026-10-22T10:31:45.3351914Z       res.setHeader("Cache-Control","no-store");
+2026-10-22T10:31:45.3352944Z       // A consistent MVCC view without write locks. The later write transaction
+2026-10-22T10:31:45.3353984Z       // MUST perform its own independent, locked revalidation.
+2026-10-22T10:31:45.3354734Z       const outcome = await db.transaction(async tx => {
+2026-10-22T10:31:45.3355956Z         const [tournament] = await tx.select().from(tournamentsTable).where(eq(tournamentsTable.id,tournamentId));
+2026-10-22T10:31:45.3357491Z         const [match] = await tx.select().from(matchesTable).where(and(
+2026-10-22T10:31:45.3358833Z           eq(matchesTable.id,matchId),eq(matchesTable.tournamentId,tournamentId)));
+2026-10-22T10:31:45.3359656Z         if (!tournament || !match) return null;
+2026-10-22T10:31:45.3360521Z         const [stages,matches,approvals,routes,histories,actions] = await Promise.all([
+2026-10-22T10:31:45.3362163Z           tx.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId,tournamentId)),
+2026-10-22T10:31:45.3363368Z           tx.select().from(matchesTable).where(eq(matchesTable.stageId,match.stageId)),
+2026-10-22T10:31:45.3364544Z           tx.select({id:qualificationProposalsTable.id}).from(qualificationProposalsTable).where(and(
+2026-10-22T10:31:45.3366464Z             eq(qualificationProposalsTable.tournamentId,tournamentId),eq(qualificationProposalsTable.stageId,match.stageId),
+2026-10-22T10:31:45.3368203Z             eq(qualificationProposalsTable.status,"approved"))).limit(1),
+2026-10-22T10:31:45.3369408Z           tx.select({id:stageBasketRouteExecutionsTable.id}).from(stageBasketRouteExecutionsTable).where(and(
+2026-10-22T10:31:45.3371229Z             eq(stageBasketRouteExecutionsTable.tournamentId,tournamentId),eq(stageBasketRouteExecutionsTable.sourceStageId,match.stageId))).limit(1),
+2026-10-22T10:31:45.3373238Z           tx.select().from(resultHistoryTable).where(eq(resultHistoryTable.matchId,match.id)).orderBy(desc(resultHistoryTable.revision)).limit(1),
+2026-10-22T10:31:45.3374468Z           tx.select().from(actionLogTable).where(and(
+2026-10-22T10:31:45.3375678Z             eq(actionLogTable.tournamentId,tournamentId),eq(actionLogTable.matchId,match.id),
+2026-10-22T10:31:45.3377113Z             eq(actionLogTable.actionType,"match_result_submitted"),eq(actionLogTable.isUndone,false),
+2026-10-22T10:31:45.3378089Z           )).orderBy(desc(actionLogTable.id)).limit(2),
+2026-10-22T10:31:45.3378632Z         ]);
+2026-10-22T10:31:45.3379173Z         const stage=stages.find(item=>item.id===match.stageId);
+2026-10-22T10:31:45.3379813Z         if(!stage)return null;
+2026-10-22T10:31:45.3380255Z         const h=histories[0];
+2026-10-22T10:31:45.3381088Z         const historyVerified=!!h && !!match.completedAt && h.tournamentId===match.tournamentId &&
+2026-10-22T10:31:45.3382258Z           h.stageId===match.stageId && h.round===match.round && h.matchNumber===match.matchNumber &&
+2026-10-22T10:31:45.3383285Z           h.player1Id===match.player1Id && h.player2Id===match.player2Id &&
+2026-10-22T10:31:45.3384151Z           h.bestOf===match.bestOf && h.resultType===match.resultType &&
+2026-10-22T10:31:45.3385120Z           h.score1===match.score1 && h.score2===match.score2 && h.winnerId===match.winnerId &&
+2026-10-22T10:31:45.3388900Z           h.resultReason===match.resultReason && h.completedAt.getTime()===match.completedAt.getTime();
+2026-10-22T10:31:45.3389906Z         let completionActionUnambiguous=false;
+2026-10-22T10:31:45.3390534Z         if(actions.length===1) {
+2026-10-22T10:31:45.3391250Z           try { const decoded:unknown=JSON.parse(actions[0].undoPayload??"");
+2026-10-22T10:31:45.3392220Z             completionActionUnambiguous=!!decoded && typeof decoded==="object" &&
+2026-10-22T10:31:45.3393337Z               (decoded as {type?:unknown}).type==="revert_match" &&
+2026-10-22T10:31:45.3394115Z               (decoded as {matchId?:unknown}).matchId===match.id;
+2026-10-22T10:31:45.3394822Z           }catch { /* invalid undo payload => blocker */ }
+2026-10-22T10:31:45.3395336Z         }
+2026-10-22T10:31:45.3395795Z         const result=deriveSeCorrectionReadiness({
+2026-10-22T10:31:45.3396707Z           assessment:{
+2026-10-22T10:31:45.3397446Z             tournamentStatus:tournament.status,stage,stages,match,stageMatches:matches,
+2026-10-22T10:31:45.3398495Z             score1:b.score1 as number,score2:b.score2 as number,
+2026-10-22T10:31:45.3399405Z             qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,
+2026-10-22T10:31:45.3400426Z             historyVerified,completionActionUnambiguous,
+2026-10-22T10:31:45.3400990Z           },
+2026-10-22T10:31:45.3401567Z           expectedMatchRevision:b.expectedMatchRevision as number,
+2026-10-22T10:31:45.3403077Z           actualMatchRevision:match.revision,
+2026-10-22T10:31:45.3403912Z           expectedStageVersionVector:b.expectedStageVersionVector as string,
+2026-10-22T10:31:45.3404945Z           actualStageVersionVector:stageMatchVersionVector(matches,stage.id),
+2026-10-22T10:31:45.3405953Z           expectedCompletionActionId:b.expectedCompletionActionId as number,
+2026-10-22T10:31:45.3407367Z           activeCompletionActionId:completionActionUnambiguous?actions[0].id:null,
+2026-10-22T10:31:45.3408148Z           allowExecution:false,
+2026-10-22T10:31:45.3408581Z         });
+2026-10-22T10:31:45.3409080Z         const actionPlan = deriveSeCorrectionActionPlan({
+2026-10-22T10:31:45.3409656Z           readiness:result,
+2026-10-22T10:31:45.3410475Z           score1:b.score1 as number,score2:b.score2 as number,
+2026-10-22T10:31:45.3411235Z           originalScore1:match.score1,originalScore2:match.score2,
+2026-10-22T10:31:45.3411819Z         });
+2026-10-22T10:31:45.3412306Z         const diagnostic = deriveSeCorrectionDiagnostic({
+2026-10-22T10:31:45.3412942Z           readiness:result,plan:actionPlan,
+2026-10-22T10:31:45.3413718Z           expectedCompletionActionId:b.expectedCompletionActionId as number,
+2026-10-22T10:31:45.3414388Z         });
+2026-10-22T10:31:45.3414890Z         const impactGraph = deriveSeCorrectionImpactGraph({
+2026-10-22T10:31:45.3415740Z           matchId:match.id,stage,stages,stageMatches:matches,actionPlan,
+2026-10-22T10:31:45.3416959Z           qualificationCommitted:approvals.length>0,routingCommitted:routes.length>0,
+2026-10-22T10:31:45.3417711Z         });
+2026-10-22T10:31:45.3418417Z         const impactRiskReport = deriveSeCorrectionImpactRiskReport(impactGraph);
+2026-10-22T10:31:45.3419490Z         return { ...result, actionPlan, diagnostic, impactGraph, impactRiskReport };
+2026-10-22T10:31:45.3420508Z       }, {isolationLevel:"repeatable read",accessMode:"read only"});
+2026-10-22T10:31:45.3421433Z       if (!outcome) {res.status(404).json({code:"SE_READINESS_NOT_FOUND"});return;}
+2026-10-22T10:31:45.3422145Z       res.json(outcome);
+2026-10-22T10:31:45.3422541Z     });
+2026-10-22T10:31:45.3422888Z     export default router;
+2026-10-22T10:31:45.3423291Z     
+2026-10-22T10:31:45.3423630Z   operator: 'match'
+2026-10-22T10:31:45.3424007Z   stack: |-
+2026-10-22T10:31:45.3425091Z     TestContext.<anonymous> (file:///home/runner/work/aplikacja-turnieje/aplikacja-turnieje/qa/pack19/source-contract.test.mjs:12:9)
+2026-10-22T10:31:45.3426999Z     Test.runInAsyncScope (node:async_hooks:214:14)
+2026-10-22T10:31:45.3427685Z     Test.run (node:internal/test_runner/test:1047:25)
+2026-10-22T10:31:45.3428435Z     Test.start (node:internal/test_runner/test:944:17)
+2026-10-22T10:31:45.3429266Z     startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+2026-10-22T10:31:45.3429960Z   ...
+2026-10-22T10:31:45.3430459Z # Subtest: only organizers can access readiness
+2026-10-22T10:31:45.3431127Z ok 2 - only organizers can access readiness
+2026-10-22T10:31:45.3431610Z   ---
+2026-10-22T10:31:45.3432005Z   duration_ms: 0.258131
+2026-10-22T10:31:45.3432593Z   type: 'test'
+2026-10-22T10:31:45.3432957Z   ...
+2026-10-22T10:31:45.3433638Z # Subtest: strict reconciliation requires history, audit and stage version
+2026-10-22T10:31:45.3435010Z ok 3 - strict reconciliation requires history, audit and stage version
+2026-10-22T10:31:45.3435658Z   ---
+2026-10-22T10:31:45.3436001Z   duration_ms: 0.278529
+2026-10-22T10:31:45.3436593Z   type: 'test'
+2026-10-22T10:31:45.3436930Z   ...
+2026-10-22T10:31:45.3437632Z # Subtest: query validates input shape and prevents oversized version tokens
+2026-10-22T10:31:45.3438641Z ok 4 - query validates input shape and prevents oversized version tokens
+2026-10-22T10:31:45.3439286Z   ---
+2026-10-22T10:31:45.3439627Z   duration_ms: 0.204181
+2026-10-22T10:31:45.3440003Z   type: 'test'
+2026-10-22T10:31:45.3440339Z   ...
+2026-10-22T10:31:45.3440810Z # Subtest: response is never mutation permission
+2026-10-22T10:31:45.3441444Z ok 5 - response is never mutation permission
+2026-10-22T10:31:45.3441928Z   ---
+2026-10-22T10:31:45.3442260Z   duration_ms: 0.215121
+2026-10-22T10:31:45.3442608Z   type: 'test'
+2026-10-22T10:31:45.3442882Z   ...
+2026-10-22T10:31:45.3443289Z # Subtest: route mounted in Express and documented
+2026-10-22T10:31:45.3443847Z ok 6 - route mounted in Express and documented
+2026-10-22T10:31:45.3444253Z   ---
+2026-10-22T10:31:45.3444528Z   duration_ms: 0.173333
+2026-10-22T10:31:45.3444914Z   type: 'test'
+2026-10-22T10:31:45.3445241Z   ...
+2026-10-22T10:31:45.3445869Z # Subtest: organizer UI shows separate snapshot check, not SE execute
+2026-10-22T10:31:45.3447066Z ok 7 - organizer UI shows separate snapshot check, not SE execute
+2026-10-22T10:31:45.3447660Z   ---
+2026-10-22T10:31:45.3447989Z   duration_ms: 0.325677
+2026-10-22T10:31:45.3448598Z   type: 'test'
+2026-10-22T10:31:45.3448932Z   ...
+2026-10-22T10:31:45.3449520Z # Subtest: CI runs Pack 19 unit and contract tests without deploy
+2026-10-22T10:31:45.3450353Z ok 8 - CI runs Pack 19 unit and contract tests without deploy
+2026-10-22T10:31:45.3450901Z   ---
+2026-10-22T10:31:45.3451239Z   duration_ms: 0.199752
+2026-10-22T10:31:45.3451642Z   type: 'test'
+2026-10-22T10:31:45.3452047Z   ...
+2026-10-22T10:31:45.3452341Z 1..8
+2026-10-22T10:31:45.3452647Z # tests 8
+2026-10-22T10:31:45.3452955Z # suites 0
+2026-10-22T10:31:45.3453266Z # pass 7
+2026-10-22T10:31:45.3453567Z # fail 1
+2026-10-22T10:31:45.3453885Z # cancelled 0
+2026-10-22T10:31:45.3454223Z # skipped 0
+2026-10-22T10:31:45.3454534Z # todo 0
+2026-10-22T10:31:45.3454878Z # duration_ms 91.566003
+2026-10-22T10:31:45.3468440Z ##[error]Process completed with exit code 1.
+2026-10-22T10:31:45.4474454Z Post job cleanup.
+2026-10-22T10:31:45.6128724Z Pruning is unnecessary.
+2026-10-22T10:31:45.6383113Z Post job cleanup.
+2026-10-22T10:31:45.8177297Z [command]/usr/bin/git version
+2026-10-22T10:31:45.8257930Z git version 2.55.0
+2026-10-22T10:31:45.8367661Z Temporarily overriding HOME='/home/runner/work/_temp/f4f4cff2-f868-4de7-a98b-159ce45cd52a' before making global git config changes
+2026-10-22T10:31:45.8371517Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-22T10:31:45.8411030Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/aplikacja-turnieje/aplikacja-turnieje
+2026-10-22T10:31:45.8497220Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-22T10:31:45.8548880Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-22T10:31:45.8977514Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-22T10:31:45.9020558Z http.https://github.com/.extraheader
+2026-10-22T10:31:45.9088203Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-22T10:31:45.9091563Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-22T10:31:45.9565502Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-22T10:31:45.9638617Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-22T10:31:46.0167619Z Print service container logs: 8b3f857058ad45de9d218cbb54a308a7_postgres16_cc6db7
+2026-10-22T10:31:46.0172656Z ##[command]/usr/bin/docker logs --details 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:46.0341030Z  The files belonging to this database system will be owned by user "postgres".
+2026-10-22T10:31:46.0346590Z  initdb: warning: enabling "trust" authentication for local connections
+2026-10-22T10:31:46.0347383Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-22T10:31:46.0348373Z  2026-10-22 10:31:15.675 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-22T10:31:46.0349128Z  2026-10-22 10:31:15.675 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-22T10:31:46.0349692Z  2026-10-22 10:31:15.675 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-22T10:31:46.0350228Z  2026-10-22 10:31:15.676 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-22T10:31:46.0350805Z  2026-10-22 10:31:15.681 UTC [63] LOG:  database system was shut down at 2026-10-22 10:31:15 UTC
+2026-10-22T10:31:46.0351321Z  2026-10-22 10:31:15.689 UTC [1] LOG:  database system is ready to accept connections
+2026-10-22T10:31:46.0352378Z  This user must also own the server process.
+2026-10-22T10:31:46.0352964Z  
+2026-10-22T10:31:46.0353531Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-10-22T10:31:46.0354247Z  The default database encoding has accordingly been set to "UTF8".
+2026-10-22T10:31:46.0354926Z  The default text search configuration will be set to "english".
+2026-10-22T10:31:46.0355456Z  
+2026-10-22T10:31:46.0355914Z  Data page checksums are disabled.
+2026-10-22T10:31:46.0356723Z  
+2026-10-22T10:31:46.0357304Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-22T10:31:46.0357964Z  creating subdirectories ... ok
+2026-10-22T10:31:46.0358573Z  selecting dynamic shared memory implementation ... posix
+2026-10-22T10:31:46.0359140Z  selecting default max_connections ... 100
+2026-10-22T10:31:46.0359693Z  selecting default shared_buffers ... 128MB
+2026-10-22T10:31:46.0360227Z  selecting default time zone ... Etc/UTC
+2026-10-22T10:31:46.0360774Z  creating configuration files ... ok
+2026-10-22T10:31:46.0361324Z  running bootstrap script ... ok
+2026-10-22T10:31:46.0361883Z  performing post-bootstrap initialization ... ok
+2026-10-22T10:31:46.0362420Z  syncing data to disk ... ok
+2026-10-22T10:31:46.0362883Z  
+2026-10-22T10:31:46.0387919Z  
+2026-10-22T10:31:46.0389590Z  Success. You can now start the database server using:
+2026-10-22T10:31:46.0390927Z  
+2026-10-22T10:31:46.0391368Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-22T10:31:46.0391918Z  
+2026-10-22T10:31:46.0392738Z  waiting for server to start....2026-10-22 10:31:15.355 UTC [47] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-22T10:31:46.0393803Z  2026-10-22 10:31:15.355 UTC [47] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-22T10:31:46.0394533Z  2026-10-22 10:31:15.358 UTC [50] LOG:  database system was shut down at 2026-10-22 10:31:15 UTC
+2026-10-22T10:31:46.0395230Z  2026-10-22 10:31:15.362 UTC [47] LOG:  database system is ready to accept connections
+2026-10-22T10:31:46.0395757Z   done
+2026-10-22T10:31:46.0396384Z  server started
+2026-10-22T10:31:46.0396981Z  CREATE DATABASE
+2026-10-22T10:31:46.0397361Z  
+2026-10-22T10:31:46.0397668Z  
+2026-10-22T10:31:46.0398223Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-22T10:31:46.0398911Z  
+2026-10-22T10:31:46.0399539Z  waiting for server to shut down...2026-10-22 10:31:15.549 UTC [47] LOG:  received fast shutdown request
+2026-10-22T10:31:46.0400800Z  .2026-10-22 10:31:15.549 UTC [47] LOG:  aborting any active transactions
+2026-10-22T10:31:46.0401508Z  2026-10-22 10:31:15.552 UTC [47] LOG:  background worker "logical replication launcher" (PID 53) exited with exit code 1
+2026-10-22T10:31:46.0402074Z  2026-10-22 10:31:15.553 UTC [48] LOG:  shutting down
+2026-10-22T10:31:46.0402476Z  2026-10-22 10:31:15.553 UTC [48] LOG:  checkpoint starting: shutdown immediate
+2026-10-22T10:31:46.0403614Z  2026-10-22 10:31:15.570 UTC [48] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.003 s, total=0.018 s; sync files=301, longest=0.002 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0F0, redo lsn=0/191F0F0
+2026-10-22T10:31:46.0404700Z  2026-10-22 10:31:15.578 UTC [47] LOG:  database system is shut down
+2026-10-22T10:31:46.0405037Z   done
+2026-10-22T10:31:46.0405230Z  server stopped
+2026-10-22T10:31:46.0405427Z  
+2026-10-22T10:31:46.0405667Z  PostgreSQL init process complete; ready for start up.
+2026-10-22T10:31:46.0405972Z  
+2026-10-22T10:31:46.0413287Z Stop and remove container: 8b3f857058ad45de9d218cbb54a308a7_postgres16_cc6db7
+2026-10-22T10:31:46.0418791Z ##[command]/usr/bin/docker rm --force 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:48.6107132Z 7403b375ae3a98950f44589bf54866d8544beb81dc99d5b7e1ecce7fbc55d7c0
+2026-10-22T10:31:48.6140507Z Remove container network: github_network_037a756dedd64124957d4731fc7a4bd6
+2026-10-22T10:31:48.6145434Z ##[command]/usr/bin/docker network rm github_network_037a756dedd64124957d4731fc7a4bd6
+2026-10-22T10:31:48.6745455Z github_network_037a756dedd64124957d4731fc7a4bd6
+2026-10-22T10:31:48.6825934Z Cleaning up orphan processes
+2026-10-22T10:31:48.7124571Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, pnpm/action-setup@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+

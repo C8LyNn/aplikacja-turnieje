@@ -1,0 +1,45 @@
+{
+  "id": "frontend-streaming-retry-02",
+  "source_commit": "c3f640470262064f890774d935c1388408051d5e",
+  "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--import",
+    "tsx",
+    "--import",
+    "./test/setup-dom.mjs",
+    "--test",
+    "--test-reporter=tap",
+    "--test-concurrency=1",
+    "src/features/streaming/obs-lab/animated-effects-trigger.test.ts",
+    "src/features/streaming/obs-lab/stream-elements-profiles.test.ts"
+  ],
+  "command": "node --import tsx --import ./test/setup-dom.mjs --test --test-reporter=tap --test-concurrency=1 src/features/streaming/obs-lab/animated-effects-trigger.test.ts src/features/streaming/obs-lab/stream-elements-profiles.test.ts",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:39:15.543Z",
+  "finished_utc": "2026-10-29T10:39:17.419Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 20,
+    "suites": 0,
+    "pass": 20,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "frontend-streaming-retry-02.log",
+  "log_sha256": "62d665408796eaa36b6e18043242f06f860ba551367d34025115519a34cd42dd",
+  "guard_sha256": "470046c2a90644982bb238e05f4f2dd5820a5fe4ad9029ad20bfc27a6ba98607",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

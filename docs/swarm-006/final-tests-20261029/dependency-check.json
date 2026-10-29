@@ -1,0 +1,1320 @@
+{
+  "lock_lf_sha256": "7f241968e0f57e11f5c1cbfba80efe79c48971d8ddd95c7454cb7b87fe932fc3",
+  "entries": [
+    {
+      "importer": ".",
+      "group": "devDependencies",
+      "name": "prettier",
+      "expected": "3.8.3",
+      "actual": "3.8.3",
+      "match": true
+    },
+    {
+      "importer": ".",
+      "group": "devDependencies",
+      "name": "typescript",
+      "expected": "5.9.3",
+      "actual": "5.9.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/animated-effects",
+      "group": "dependencies",
+      "name": "gifenc",
+      "expected": "1.0.3",
+      "actual": "1.0.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/animated-effects",
+      "group": "dependencies",
+      "name": "html-to-image",
+      "expected": "1.11.13",
+      "actual": "1.11.13",
+      "match": true
+    },
+    {
+      "importer": "artifacts/animated-effects",
+      "group": "dependencies",
+      "name": "jszip",
+      "expected": "3.10.2",
+      "actual": "3.10.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/animated-effects",
+      "group": "devDependencies",
+      "name": "typescript",
+      "expected": "5.9.3",
+      "actual": "5.9.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/animated-effects",
+      "group": "devDependencies",
+      "name": "vite",
+      "expected": "7.3.3",
+      "actual": "7.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "cookie-parser",
+      "expected": "1.4.7",
+      "actual": "1.4.7",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "cors",
+      "expected": "2.8.6",
+      "actual": "2.8.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "drizzle-orm",
+      "expected": "0.45.2",
+      "actual": "0.45.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "express",
+      "expected": "5.2.1",
+      "actual": "5.2.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "pino",
+      "expected": "9.14.0",
+      "actual": "9.14.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "dependencies",
+      "name": "pino-http",
+      "expected": "10.5.0",
+      "actual": "10.5.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "@types/cookie-parser",
+      "expected": "1.4.10",
+      "actual": "1.4.10",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "@types/cors",
+      "expected": "2.8.19",
+      "actual": "2.8.19",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "@types/express",
+      "expected": "5.0.6",
+      "actual": "5.0.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "@types/node",
+      "expected": "25.6.2",
+      "actual": "25.6.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "@types/supertest",
+      "expected": "7.2.0",
+      "actual": "7.2.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "esbuild",
+      "expected": "0.27.3",
+      "actual": "0.27.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "esbuild-plugin-pino",
+      "expected": "2.3.3",
+      "actual": "2.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "pino-pretty",
+      "expected": "13.1.3",
+      "actual": "13.1.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "supertest",
+      "expected": "7.2.2",
+      "actual": "7.2.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "thread-stream",
+      "expected": "3.1.0",
+      "actual": "3.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/api-server",
+      "group": "devDependencies",
+      "name": "tsx",
+      "expected": "4.21.0",
+      "actual": "4.21.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@hookform/resolvers",
+      "expected": "3.10.0",
+      "actual": "3.10.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-accordion",
+      "expected": "1.2.12",
+      "actual": "1.2.12",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-alert-dialog",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-aspect-ratio",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-avatar",
+      "expected": "1.1.11",
+      "actual": "1.1.11",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-checkbox",
+      "expected": "1.3.3",
+      "actual": "1.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-collapsible",
+      "expected": "1.1.12",
+      "actual": "1.1.12",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-context-menu",
+      "expected": "2.2.16",
+      "actual": "2.2.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-dialog",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-dropdown-menu",
+      "expected": "2.1.16",
+      "actual": "2.1.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-hover-card",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-label",
+      "expected": "2.1.8",
+      "actual": "2.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-menubar",
+      "expected": "1.1.16",
+      "actual": "1.1.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-navigation-menu",
+      "expected": "1.2.14",
+      "actual": "1.2.14",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-popover",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-progress",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-radio-group",
+      "expected": "1.3.8",
+      "actual": "1.3.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-scroll-area",
+      "expected": "1.2.10",
+      "actual": "1.2.10",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-select",
+      "expected": "2.2.6",
+      "actual": "2.2.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-separator",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-slider",
+      "expected": "1.3.6",
+      "actual": "1.3.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-slot",
+      "expected": "1.2.4",
+      "actual": "1.2.4",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-switch",
+      "expected": "1.2.6",
+      "actual": "1.2.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-tabs",
+      "expected": "1.1.13",
+      "actual": "1.1.13",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toast",
+      "expected": "1.2.15",
+      "actual": "1.2.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toggle",
+      "expected": "1.1.10",
+      "actual": "1.1.10",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toggle-group",
+      "expected": "1.1.11",
+      "actual": "1.1.11",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-tooltip",
+      "expected": "1.2.8",
+      "actual": "1.2.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@replit/vite-plugin-cartographer",
+      "expected": "0.5.21",
+      "actual": "0.5.21",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@replit/vite-plugin-runtime-error-modal",
+      "expected": "0.0.6",
+      "actual": "0.0.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@tailwindcss/vite",
+      "expected": "4.3.0",
+      "actual": "4.3.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@types/node",
+      "expected": "25.6.2",
+      "actual": "25.6.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@types/react",
+      "expected": "19.2.14",
+      "actual": "19.2.14",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@types/react-dom",
+      "expected": "19.2.3",
+      "actual": "19.2.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "@vitejs/plugin-react",
+      "expected": "5.2.0",
+      "actual": "5.2.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "chokidar",
+      "expected": "4.0.3",
+      "actual": "4.0.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "class-variance-authority",
+      "expected": "0.7.1",
+      "actual": "0.7.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "clsx",
+      "expected": "2.1.1",
+      "actual": "2.1.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "cmdk",
+      "expected": "1.1.1",
+      "actual": "1.1.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "date-fns",
+      "expected": "3.6.0",
+      "actual": "3.6.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "embla-carousel-react",
+      "expected": "8.6.0",
+      "actual": "8.6.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "fast-glob",
+      "expected": "3.3.3",
+      "actual": "3.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "framer-motion",
+      "expected": "12.38.0",
+      "actual": "12.38.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "input-otp",
+      "expected": "1.4.2",
+      "actual": "1.4.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "lucide-react",
+      "expected": "0.545.0",
+      "actual": "0.545.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "next-themes",
+      "expected": "0.4.6",
+      "actual": "0.4.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "react",
+      "expected": "19.1.0",
+      "actual": "19.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "react-day-picker",
+      "expected": "9.14.0",
+      "actual": "9.14.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "react-dom",
+      "expected": "19.1.0",
+      "actual": "19.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "react-hook-form",
+      "expected": "7.75.0",
+      "actual": "7.75.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "react-resizable-panels",
+      "expected": "2.1.9",
+      "actual": "2.1.9",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "recharts",
+      "expected": "2.15.4",
+      "actual": "2.15.4",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "sonner",
+      "expected": "2.0.7",
+      "actual": "2.0.7",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "tailwind-merge",
+      "expected": "3.5.0",
+      "actual": "3.5.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "tailwindcss",
+      "expected": "4.3.0",
+      "actual": "4.3.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "tailwindcss-animate",
+      "expected": "1.0.7",
+      "actual": "1.0.7",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "tw-animate-css",
+      "expected": "1.4.0",
+      "actual": "1.4.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "vaul",
+      "expected": "1.1.2",
+      "actual": "1.1.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "vite",
+      "expected": "7.3.3",
+      "actual": "7.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/mockup-sandbox",
+      "group": "devDependencies",
+      "name": "zod",
+      "expected": "3.25.76",
+      "actual": "3.25.76",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@hookform/resolvers",
+      "expected": "3.10.0",
+      "actual": "3.10.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-accordion",
+      "expected": "1.2.12",
+      "actual": "1.2.12",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-alert-dialog",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-aspect-ratio",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-avatar",
+      "expected": "1.1.11",
+      "actual": "1.1.11",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-checkbox",
+      "expected": "1.3.3",
+      "actual": "1.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-collapsible",
+      "expected": "1.1.12",
+      "actual": "1.1.12",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-context-menu",
+      "expected": "2.2.16",
+      "actual": "2.2.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-dialog",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-dropdown-menu",
+      "expected": "2.1.16",
+      "actual": "2.1.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-hover-card",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-label",
+      "expected": "2.1.8",
+      "actual": "2.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-menubar",
+      "expected": "1.1.16",
+      "actual": "1.1.16",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-navigation-menu",
+      "expected": "1.2.14",
+      "actual": "1.2.14",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-popover",
+      "expected": "1.1.15",
+      "actual": "1.1.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-progress",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-radio-group",
+      "expected": "1.3.8",
+      "actual": "1.3.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-scroll-area",
+      "expected": "1.2.10",
+      "actual": "1.2.10",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-select",
+      "expected": "2.2.6",
+      "actual": "2.2.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-separator",
+      "expected": "1.1.8",
+      "actual": "1.1.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-slider",
+      "expected": "1.3.6",
+      "actual": "1.3.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-slot",
+      "expected": "1.2.4",
+      "actual": "1.2.4",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-switch",
+      "expected": "1.2.6",
+      "actual": "1.2.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-tabs",
+      "expected": "1.1.13",
+      "actual": "1.1.13",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toast",
+      "expected": "1.2.15",
+      "actual": "1.2.15",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toggle",
+      "expected": "1.1.10",
+      "actual": "1.1.10",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-toggle-group",
+      "expected": "1.1.11",
+      "actual": "1.1.11",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@radix-ui/react-tooltip",
+      "expected": "1.2.8",
+      "actual": "1.2.8",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@replit/vite-plugin-cartographer",
+      "expected": "0.5.21",
+      "actual": "0.5.21",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@replit/vite-plugin-dev-banner",
+      "expected": "0.1.2",
+      "actual": "0.1.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@replit/vite-plugin-runtime-error-modal",
+      "expected": "0.0.6",
+      "actual": "0.0.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@tailwindcss/typography",
+      "expected": "0.5.20",
+      "actual": "0.5.20",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@tailwindcss/vite",
+      "expected": "4.3.0",
+      "actual": "4.3.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@tanstack/react-query",
+      "expected": "5.100.9",
+      "actual": "5.100.9",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@testing-library/dom",
+      "expected": "10.4.1",
+      "actual": "10.4.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@testing-library/react",
+      "expected": "16.3.2",
+      "actual": "16.3.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@testing-library/user-event",
+      "expected": "14.6.1",
+      "actual": "14.6.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@types/jsdom",
+      "expected": "21.1.7",
+      "actual": "21.1.7",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@types/node",
+      "expected": "25.6.2",
+      "actual": "25.6.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@types/react",
+      "expected": "19.2.14",
+      "actual": "19.2.14",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@types/react-dom",
+      "expected": "19.2.3",
+      "actual": "19.2.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "@vitejs/plugin-react",
+      "expected": "5.2.0",
+      "actual": "5.2.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "class-variance-authority",
+      "expected": "0.7.1",
+      "actual": "0.7.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "clsx",
+      "expected": "2.1.1",
+      "actual": "2.1.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "cmdk",
+      "expected": "1.1.1",
+      "actual": "1.1.1",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "date-fns",
+      "expected": "3.6.0",
+      "actual": "3.6.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "embla-carousel-react",
+      "expected": "8.6.0",
+      "actual": "8.6.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "framer-motion",
+      "expected": "12.38.0",
+      "actual": "12.38.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "input-otp",
+      "expected": "1.4.2",
+      "actual": "1.4.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "jsdom",
+      "expected": "26.1.0",
+      "actual": "26.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "lucide-react",
+      "expected": "0.545.0",
+      "actual": "0.545.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "next-themes",
+      "expected": "0.4.6",
+      "actual": "0.4.6",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react",
+      "expected": "19.1.0",
+      "actual": "19.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react-day-picker",
+      "expected": "9.14.0",
+      "actual": "9.14.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react-dom",
+      "expected": "19.1.0",
+      "actual": "19.1.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react-hook-form",
+      "expected": "7.75.0",
+      "actual": "7.75.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react-icons",
+      "expected": "5.6.0",
+      "actual": "5.6.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "react-resizable-panels",
+      "expected": "2.1.9",
+      "actual": "2.1.9",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "recharts",
+      "expected": "2.15.4",
+      "actual": "2.15.4",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "sonner",
+      "expected": "2.0.7",
+      "actual": "2.0.7",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "tailwind-merge",
+      "expected": "3.5.0",
+      "actual": "3.5.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "tailwindcss",
+      "expected": "4.3.0",
+      "actual": "4.3.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "tsx",
+      "expected": "4.21.0",
+      "actual": "4.21.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "tw-animate-css",
+      "expected": "1.4.0",
+      "actual": "1.4.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "vaul",
+      "expected": "1.1.2",
+      "actual": "1.1.2",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "vite",
+      "expected": "7.3.3",
+      "actual": "7.3.3",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "wouter",
+      "expected": "3.10.0",
+      "actual": "3.10.0",
+      "match": true
+    },
+    {
+      "importer": "artifacts/tournament-manager",
+      "group": "devDependencies",
+      "name": "zod",
+      "expected": "3.25.76",
+      "actual": "3.25.76",
+      "match": true
+    },
+    {
+      "importer": "lib/api-client-react",
+      "group": "dependencies",
+      "name": "@tanstack/react-query",
+      "expected": "5.100.9",
+      "actual": "5.100.9",
+      "match": true
+    },
+    {
+      "importer": "lib/api-spec",
+      "group": "devDependencies",
+      "name": "orval",
+      "expected": "8.9.1",
+      "actual": "8.9.1",
+      "match": true
+    },
+    {
+      "importer": "lib/api-zod",
+      "group": "dependencies",
+      "name": "zod",
+      "expected": "3.25.76",
+      "actual": "3.25.76",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "dependencies",
+      "name": "drizzle-orm",
+      "expected": "0.45.2",
+      "actual": "0.45.2",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "dependencies",
+      "name": "drizzle-zod",
+      "expected": "0.8.3",
+      "actual": "0.8.3",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "dependencies",
+      "name": "pg",
+      "expected": "8.20.0",
+      "actual": "8.20.0",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "dependencies",
+      "name": "zod",
+      "expected": "3.25.76",
+      "actual": "3.25.76",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "devDependencies",
+      "name": "@types/node",
+      "expected": "25.6.2",
+      "actual": "25.6.2",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "devDependencies",
+      "name": "@types/pg",
+      "expected": "8.20.0",
+      "actual": "8.20.0",
+      "match": true
+    },
+    {
+      "importer": "lib/db",
+      "group": "devDependencies",
+      "name": "drizzle-kit",
+      "expected": "0.31.10",
+      "actual": "0.31.10",
+      "match": true
+    },
+    {
+      "importer": "scripts",
+      "group": "devDependencies",
+      "name": "@types/node",
+      "expected": "25.6.2",
+      "actual": "25.6.2",
+      "match": true
+    },
+    {
+      "importer": "scripts",
+      "group": "devDependencies",
+      "name": "tsx",
+      "expected": "4.21.0",
+      "actual": "4.21.0",
+      "match": true
+    }
+  ],
+  "total": 164,
+  "match": 164,
+  "mismatches": []
+}

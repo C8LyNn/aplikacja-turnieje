@@ -1,0 +1,110 @@
+TAP version 13
+# Subtest: strict authentication route parameters
+    # Subtest: accepts only a complete positive PostgreSQL integer id
+    ok 1 - accepts only a complete positive PostgreSQL integer id
+      ---
+      duration_ms: 0.4801
+      type: 'test'
+      ...
+    1..1
+ok 1 - strict authentication route parameters
+  ---
+  duration_ms: 1.1181
+  type: 'suite'
+  ...
+# Subtest: host-view authorization hydration
+    # Subtest: gates the first private query until stored support credentials are verified
+    ok 1 - gates the first private query until stored support credentials are verified
+      ---
+      duration_ms: 4.9719
+      type: 'test'
+      ...
+    1..1
+ok 2 - host-view authorization hydration
+  ---
+  duration_ms: 5.7658
+  type: 'suite'
+  ...
+# Subtest: request source behind explicitly trusted proxies
+    # Subtest: ignores a forged X-Forwarded-For value by default
+    not ok 1 - ignores a forged X-Forwarded-For value by default
+      ---
+      duration_ms: 2.5597
+      type: 'test'
+      location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\api-server\\test\\auth-boundaries.test.ts:1:1944'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'port')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        Test.serverAddress (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:67:31)
+        new Test (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:49:14)
+        obj.<computed> [as get] (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\index.js:40:18)
+        TestContext.<anonymous> (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\artifacts\api-server\test\auth-boundaries.test.ts:79:8)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1325:25)
+        Test.start (node:internal/test_runner/test:1191:17)
+        node:internal/test_runner/test:1792:71
+        node:internal/per_context/primordials:466:82
+        new Promise (<anonymous>)
+      ...
+    # Subtest: uses the client address forwarded by an explicitly trusted loopback proxy
+    not ok 2 - uses the client address forwarded by an explicitly trusted loopback proxy
+      ---
+      duration_ms: 1.1345
+      type: 'test'
+      location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\api-server\\test\\auth-boundaries.test.ts:1:2240'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'port')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        Test.serverAddress (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:67:31)
+        new Test (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:49:14)
+        obj.<computed> [as get] (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\index.js:40:18)
+        TestContext.<anonymous> (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\artifacts\api-server\test\auth-boundaries.test.ts:90:8)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1325:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:911:18)
+        Test.postRun (node:internal/test_runner/test:1465:19)
+        Test.run (node:internal/test_runner/test:1390:12)
+        async Promise.all (index 0)
+      ...
+    # Subtest: stops at the first untrusted hop in a forwarded chain
+    not ok 3 - stops at the first untrusted hop in a forwarded chain
+      ---
+      duration_ms: 0.3723
+      type: 'test'
+      location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\api-server\\test\\auth-boundaries.test.ts:1:2548'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of null (reading 'port')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        Test.serverAddress (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:67:31)
+        new Test (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\lib\test.js:49:14)
+        obj.<computed> [as get] (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\node_modules\.pnpm\supertest@7.2.2\node_modules\supertest\index.js:40:18)
+        TestContext.<anonymous> (C:\Users\kubap\Desktop\SWARM006-Final-Tests-20261029\artifacts\api-server\test\auth-boundaries.test.ts:100:8)
+        Test.runInAsyncScope (node:async_hooks:227:14)
+        Test.run (node:internal/test_runner/test:1325:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:911:18)
+        Test.postRun (node:internal/test_runner/test:1465:19)
+        Test.run (node:internal/test_runner/test:1390:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:911:7)
+      ...
+    # Subtest: rejects broad or malformed proxy trust configuration
+    ok 4 - rejects broad or malformed proxy trust configuration
+      ---
+      duration_ms: 3.5654
+      type: 'test'
+      ...
+    1..4
+not ok 3 - request source behind explicitly trusted proxies
+  ---
+  duration_ms: 7.8928
+  type: 'suite'
+  location: 'C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\api-server\\test\\auth-boundaries.test.ts:1:1879'
+  failureType: 'subtestsFailed'
+  error: '3 subtests failed'
+  code: 'ERR_TEST_FAILURE'
+  ...

@@ -1,0 +1,44 @@
+{
+  "id": "corrected-source-contracts-02",
+  "source_commit": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "tracked_diff_sha256": "becfdf73c22277f81fc0eeae5b6a9d848ce5d6a5eb93c9c06491b4e99f1eeb51",
+  "cwd": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029",
+  "executable": "C:\\Program Files\\nodejs\\node.exe",
+  "args": [
+    "--test",
+    "--test-reporter=tap",
+    "--test-concurrency=1",
+    "qa/pack19/source-contract.test.mjs",
+    "qa/pack20/source-contract.test.mjs",
+    "qa/pack21/source-contract.test.mjs",
+    "qa/pack25/source-contract.test.mjs",
+    "qa/pack26/source-contract.test.mjs"
+  ],
+  "command": "node --test --test-reporter=tap --test-concurrency=1 qa/pack19/source-contract.test.mjs qa/pack20/source-contract.test.mjs qa/pack21/source-contract.test.mjs qa/pack25/source-contract.test.mjs qa/pack26/source-contract.test.mjs",
+  "platform": "win32",
+  "arch": "x64",
+  "node": "v24.18.0",
+  "started_utc": "2026-10-29T10:26:55.776Z",
+  "finished_utc": "2026-10-29T10:26:56.415Z",
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "counts": {
+    "tests": 46,
+    "suites": 0,
+    "pass": 46,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "log_file": "corrected-source-contracts-02.log",
+  "log_sha256": "e2673877db7b13a54162f71911ce9ebe5e4633046349b46d58c44792606d8238",
+  "guard_sha256": "83ebaeecad5334907c4d97b273798b9df2987d241924d34c59f039c5fa56ec27",
+  "environment": {
+    "NODE_ENV": "test",
+    "TSX_TSCONFIG_PATH": "C:\\Users\\kubap\\Desktop\\SWARM006-Final-Tests-20261029\\artifacts\\tournament-manager\\test\\tsconfig.json",
+    "NODE_OPTIONS": "--require=C:\\Users\\kubap\\Desktop\\SWARM006-Final-QA-Evidence-20261029\\network-guard.cjs",
+    "removed_variable_names": []
+  }
+}

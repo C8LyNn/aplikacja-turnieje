@@ -1,0 +1,42 @@
+{
+  "originals": [
+    {
+      "path": "C:/Users/kubap/AppData/Local/Temp/SWARM006_A00_G1_R3_6eb7bd6ac31a_Drive/logs/06-audience-test.log",
+      "expected_sha256": "de135c00f8c26ddb130d53aa02e0804474e10128e7cd27bd4536d232f3d00580",
+      "observed_sha256": "de135c00f8c26ddb130d53aa02e0804474e10128e7cd27bd4536d232f3d00580",
+      "match": true
+    },
+    {
+      "path": "C:/Users/kubap/AppData/Local/Temp/SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d/evidence/G2_INSTALL_RECEIPT.json",
+      "expected_sha256": "1e09c7493195f31ef9c81ac7007b10b30d8265969cdbffb752a51f17b398f37e",
+      "observed_sha256": "1e09c7493195f31ef9c81ac7007b10b30d8265969cdbffb752a51f17b398f37e",
+      "match": true
+    },
+    {
+      "path": "C:/Users/kubap/AppData/Local/Temp/SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d/evidence/offline-install.log",
+      "expected_sha256": "dccf75304535df31aac48c2a548a3b542bb0016b68a05b805ad01cde2c8fac92",
+      "observed_sha256": "dccf75304535df31aac48c2a548a3b542bb0016b68a05b805ad01cde2c8fac92",
+      "match": true
+    },
+    {
+      "path": "C:/Users/kubap/AppData/Local/Temp/SWARM006_G2_NODE24_BUILD_ONLY_c4d32391325d/G2_A50_STAGE_MARKER.json",
+      "expected_sha256": "189498740f2d436262a153e118e5a96db49e8885eb6da6095ac855c1e215e536",
+      "observed_sha256": "189498740f2d436262a153e118e5a96db49e8885eb6da6095ac855c1e215e536",
+      "match": true
+    }
+  ],
+  "marker_pin_discrepancy": {
+    "reported_literal_in_A00": "189498740f2d436262a153e118e5a96db49e8885eb6da6095ac855c1e215e536b",
+    "reported_length": 65,
+    "observed_sha256": "189498740f2d436262a153e118e5a96db49e8885eb6da6095ac855c1e215e536",
+    "observation": "Matches initial session read-only hash and retained original-byte copy. A00 literal is not a valid SHA-256. A00/A60 to correct textual record; no gate reopening or install retry inferred."
+  },
+  "original_g1_head": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "g2_marker_state": "INSTALLED_OFFLINE",
+  "g2_evidence_files": [
+    "G2_INSTALL_RECEIPT.json",
+    "offline-install.log"
+  ],
+  "pnpm_source_store": "NOT_TRAVERSED_NOT_WRITTEN",
+  "build": "NOT_INVOKED_PENDING"
+}

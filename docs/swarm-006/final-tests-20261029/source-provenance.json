@@ -1,0 +1,75 @@
+{
+  "retrieved_at": "2026-10-29",
+  "repository": "C8LyNn/aplikacja-turnieje",
+  "main_sha": "c50cc48e6fa508592bda3f4838111e9cff5af80c",
+  "g1_sha": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+  "g1_tree": "f9ebccd5cf89cb3da8ab959c3a874e26994316c8",
+  "historical_ci_to_g1_compare": {
+    "repository_full_name": "C8LyNn/aplikacja-turnieje",
+    "base": "886d1127c4231974f2cf7a679546d23c5417f172",
+    "head": "6eb7bd6ac31a8851d08c3f50c7fed74d6b2c57f3",
+    "status": "ahead",
+    "ahead_by": 5,
+    "behind_by": 0,
+    "total_commits": 5,
+    "too_large": null,
+    "base_commit": {
+      "sha": "886d1127c4231974f2cf7a679546d23c5417f172",
+      "url": "https://api.github.com/repos/C8LyNn/aplikacja-turnieje/commits/886d1127c4231974f2cf7a679546d23c5417f172",
+      "html_url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/886d1127c4231974f2cf7a679546d23c5417f172"
+    },
+    "merge_base_commit": {
+      "sha": "886d1127c4231974f2cf7a679546d23c5417f172",
+      "url": "https://api.github.com/repos/C8LyNn/aplikacja-turnieje/commits/886d1127c4231974f2cf7a679546d23c5417f172",
+      "html_url": "https://github.com/C8LyNn/aplikacja-turnieje/commit/886d1127c4231974f2cf7a679546d23c5417f172"
+    },
+    "files": [
+      {
+        "filename": "artifacts/tournament-manager/src/pages/tournament-audience.test.tsx",
+        "status": "modified",
+        "additions": 83,
+        "deletions": 0,
+        "changes": 83,
+        "previous_filename": null
+      },
+      {
+        "filename": "artifacts/tournament-manager/src/pages/tournament-audience.tsx",
+        "status": "modified",
+        "additions": 29,
+        "deletions": 16,
+        "changes": 45,
+        "previous_filename": null
+      },
+      {
+        "filename": "artifacts/tournament-manager/src/pages/tournament-detail.tsx",
+        "status": "modified",
+        "additions": 23,
+        "deletions": 9,
+        "changes": 32,
+        "previous_filename": null
+      },
+      {
+        "filename": "docs/swarm-006/WAVE1_INTAKE_DISPATCH.md",
+        "status": "added",
+        "additions": 75,
+        "deletions": 0,
+        "changes": 75,
+        "previous_filename": null
+      }
+    ]
+  },
+  "workflow_inventory": [
+    {
+      "path": ".github/workflows/tournament-correction-ci.yml",
+      "blob": "e8b70393d311cd80c32ef78b2c16ac7b87d5ec63",
+      "events": [
+        "push",
+        "pull_request",
+        "workflow_dispatch"
+      ],
+      "postgres": "unconditionally initialized by correction-qa if a run starts"
+    }
+  ],
+  "publication_guard": "New commits must contain [skip ci]; no workflow_dispatch. Dedicated QA base must preserve G1 tree and contain [skip ci] to avoid reusing an unskippable original commit as a new ref.",
+  "skip_ci_docs": "https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs"
+}

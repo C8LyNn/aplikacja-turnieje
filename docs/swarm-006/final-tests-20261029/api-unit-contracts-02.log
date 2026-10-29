@@ -1,0 +1,5024 @@
+TAP version 13
+# Subtest: strict authentication route parameters
+    # Subtest: accepts only a complete positive PostgreSQL integer id
+    ok 1 - accepts only a complete positive PostgreSQL integer id
+      ---
+      duration_ms: 0.5094
+      type: 'test'
+      ...
+    1..1
+ok 1 - strict authentication route parameters
+  ---
+  duration_ms: 2.159
+  type: 'suite'
+  ...
+# Subtest: host-view authorization hydration
+    # Subtest: gates the first private query until stored support credentials are verified
+    ok 1 - gates the first private query until stored support credentials are verified
+      ---
+      duration_ms: 1.6223
+      type: 'test'
+      ...
+    1..1
+ok 2 - host-view authorization hydration
+  ---
+  duration_ms: 1.6963
+  type: 'suite'
+  ...
+# Subtest: request source behind explicitly trusted proxies
+    # Subtest: ignores a forged X-Forwarded-For value by default
+    ok 1 - ignores a forged X-Forwarded-For value by default
+      ---
+      duration_ms: 25.4518
+      type: 'test'
+      ...
+    # Subtest: uses the client address forwarded by an explicitly trusted loopback proxy
+    ok 2 - uses the client address forwarded by an explicitly trusted loopback proxy
+      ---
+      duration_ms: 4.3526
+      type: 'test'
+      ...
+    # Subtest: stops at the first untrusted hop in a forwarded chain
+    ok 3 - stops at the first untrusted hop in a forwarded chain
+      ---
+      duration_ms: 2.5383
+      type: 'test'
+      ...
+    # Subtest: rejects broad or malformed proxy trust configuration
+    ok 4 - rejects broad or malformed proxy trust configuration
+      ---
+      duration_ms: 3.4893
+      type: 'test'
+      ...
+    1..4
+ok 3 - request source behind explicitly trusted proxies
+  ---
+  duration_ms: 36.0675
+  type: 'suite'
+  ...
+# Subtest: SESSION_SECRET production guard
+    # Subtest: rejects production startup without SESSION_SECRET
+    ok 1 - rejects production startup without SESSION_SECRET
+      ---
+      duration_ms: 0.6012
+      type: 'test'
+      ...
+    # Subtest: rejects the known development fallback in production
+    ok 2 - rejects the known development fallback in production
+      ---
+      duration_ms: 0.0954
+      type: 'test'
+      ...
+    # Subtest: rejects a production secret shorter than 32 characters
+    ok 3 - rejects a production secret shorter than 32 characters
+      ---
+      duration_ms: 0.0629
+      type: 'test'
+      ...
+    # Subtest: accepts a sufficiently long production secret
+    ok 4 - accepts a sufficiently long production secret
+      ---
+      duration_ms: 0.0806
+      type: 'test'
+      ...
+    # Subtest: keeps the local fallback in development
+    ok 5 - keeps the local fallback in development
+      ---
+      duration_ms: 0.0537
+      type: 'test'
+      ...
+    1..5
+ok 4 - SESSION_SECRET production guard
+  ---
+  duration_ms: 1.5252
+  type: 'suite'
+  ...
+# Subtest: signed tournament tokens
+    # Subtest: frontend client has no legacy host-code authorization channel
+    ok 1 - frontend client has no legacy host-code authorization channel
+      ---
+      duration_ms: 0.8243
+      type: 'test'
+      ...
+    # Subtest: malformed persisted password hashes are rejected without throwing
+    ok 2 - malformed persisted password hashes are rejected without throwing
+      ---
+      duration_ms: 0.2552
+      type: 'test'
+      ...
+    # Subtest: malformed tokens are rejected without throwing
+    ok 3 - malformed tokens are rejected without throwing
+      ---
+      duration_ms: 11.6571
+      type: 'test'
+      ...
+    # Subtest: tokens are scoped to one tournament
+    ok 4 - tokens are scoped to one tournament
+      ---
+      duration_ms: 0.4853
+      type: 'test'
+      ...
+    # Subtest: passwordless owner tokens are scoped and invalidated when a password is set
+    ok 5 - passwordless owner tokens are scoped and invalidated when a password is set
+      ---
+      duration_ms: 0.1706
+      type: 'test'
+      ...
+    # Subtest: unversioned organizer tokens never authorize persisted tournaments
+    ok 6 - unversioned organizer tokens never authorize persisted tournaments
+      ---
+      duration_ms: 0.0882
+      type: 'test'
+      ...
+    # Subtest: changing the organizer password hash invalidates older tokens
+    ok 7 - changing the organizer password hash invalidates older tokens
+      ---
+      duration_ms: 0.0862
+      type: 'test'
+      ...
+    # Subtest: viewer password version invalidates older tokens
+    ok 8 - viewer password version invalidates older tokens
+      ---
+      duration_ms: 0.0634
+      type: 'test'
+      ...
+    1..8
+ok 5 - signed tournament tokens
+  ---
+  duration_ms: 13.8796
+  type: 'suite'
+  ...
+# Subtest: legacy credential administration safety
+    # Subtest: classifies all four persisted credential states without exposing values
+    ok 1 - classifies all four persisted credential states without exposing values
+      ---
+      duration_ms: 0.0925
+      type: 'test'
+      ...
+    # Subtest: administrative scripts accept only explicit local PostgreSQL URLs
+    ok 2 - administrative scripts accept only explicit local PostgreSQL URLs
+      ---
+      duration_ms: 0.1891
+      type: 'test'
+      ...
+    # Subtest: administrative recovery requires an explicit positive tournament id
+    ok 3 - administrative recovery requires an explicit positive tournament id
+      ---
+      duration_ms: 0.1046
+      type: 'test'
+      ...
+    1..3
+ok 6 - legacy credential administration safety
+  ---
+  duration_ms: 0.455
+  type: 'suite'
+  ...
+# Subtest: room browser + decks + authority handoff still work
+ok 7 - room browser + decks + authority handoff still work
+  ---
+  duration_ms: 42.1927
+  type: 'test'
+  ...
+# Subtest: delayed replay preserves ordered chunks across authority handoff
+ok 8 - delayed replay preserves ordered chunks across authority handoff
+  ---
+  duration_ms: 18.5001
+  type: 'test'
+  ...
+# Subtest: replay chunks require contiguous sequence
+ok 9 - replay chunks require contiguous sequence
+  ---
+  duration_ms: 10.7973
+  type: 'test'
+  ...
+# Subtest: quick matchmaking pairs two active browsers
+ok 10 - quick matchmaking pairs two active browsers
+  ---
+  duration_ms: 3.8889
+  type: 'test'
+  ...
+# Subtest: one browser cannot host many public servers at once
+ok 11 - one browser cannot host many public servers at once
+  ---
+  duration_ms: 7.1182
+  type: 'test'
+  ...
+# Subtest: same-deck rematch needs both votes, swaps sides and keeps decks
+ok 12 - same-deck rematch needs both votes, swaps sides and keeps decks
+  ---
+  duration_ms: 14.883
+  type: 'test'
+  ...
+# Subtest: if either player requests a deck change, the next agreed round swaps sides and returns both to draft
+ok 13 - if either player requests a deck change, the next agreed round swaps sides and returns both to draft
+  ---
+  duration_ms: 12.8877
+  type: 'test'
+  ...
+# Subtest: leaving a finished public server keeps the remaining player in a reusable waiting room
+ok 14 - leaving a finished public server keeps the remaining player in a reusable waiting room
+  ---
+  duration_ms: 13.2706
+  type: 'test'
+  ...
+# Subtest: pure helpers in stages/stage-start-readiness import without database configuration
+ok 15 - pure helpers in stages/stage-start-readiness import without database configuration
+  ---
+  duration_ms: 449.4785
+  type: 'test'
+  ...
+# Subtest: pure helpers in stages/seeding-ceremony import without database configuration
+ok 16 - pure helpers in stages/seeding-ceremony import without database configuration
+  ---
+  duration_ms: 769.0245
+  type: 'test'
+  ...
+# Subtest: pure helpers in backups/backup-v3 import without database configuration
+ok 17 - pure helpers in backups/backup-v3 import without database configuration
+  ---
+  duration_ms: 841.838
+  type: 'test'
+  ...
+# Subtest: Deadlock catalog exposes 38 stable, unique heroes and assets
+ok 18 - Deadlock catalog exposes 38 stable, unique heroes and assets
+  ---
+  duration_ms: 1.086
+  type: 'test'
+  ...
+# Subtest: every exact-cased catalog asset is a 128x128 PNG
+ok 19 - every exact-cased catalog asset is a 128x128 PNG
+  ---
+  duration_ms: 38.8706
+  type: 'test'
+  ...
+# Subtest: Deadlock config accepts no forced hero or a catalog hero
+ok 20 - Deadlock config accepts no forced hero or a catalog hero
+  ---
+  duration_ms: 0.4227
+  type: 'test'
+  ...
+# Subtest: game catalog rejects unknown games, versions, heroes and fields
+ok 21 - game catalog rejects unknown games, versions, heroes and fields
+  ---
+  duration_ms: 0.4218
+  type: 'test'
+  ...
+# Subtest: Replit deployment safety controls
+    # Subtest: post-merge performs no database operation
+    ok 1 - post-merge performs no database operation
+      ---
+      duration_ms: 3.6993
+      type: 'test'
+      ...
+    # Subtest: ordinary development and production service commands do not reset the database
+    ok 2 - ordinary development and production service commands do not reset the database
+      ---
+      duration_ms: 2.092
+      type: 'test'
+      ...
+    # Subtest: the versioned cutover migration uses qualified targets and no DROP CASCADE
+    ok 3 - the versioned cutover migration uses qualified targets and no DROP CASCADE
+      ---
+      duration_ms: 1.2975
+      type: 'test'
+      ...
+    1..3
+ok 22 - Replit deployment safety controls
+  ---
+  duration_ms: 7.8387
+  type: 'suite'
+  ...
+# Subtest: Replit production deployment task runner
+    # Subtest: starts the API normally when DEPLOYMENT_TASK is absent
+    ok 1 - starts the API normally when DEPLOYMENT_TASK is absent
+      ---
+      duration_ms: 1.0525
+      type: 'test'
+      ...
+    # Subtest: runs the read-only preflight and exits without starting the API
+    ok 2 - runs the read-only preflight and exits without starting the API
+      ---
+      duration_ms: 0.1158
+      type: 'test'
+      ...
+    # Subtest: runs the guarded reset before starting the API
+    ok 3 - runs the guarded reset before starting the API
+      ---
+      duration_ms: 0.1092
+      type: 'test'
+      ...
+    # Subtest: does not start the API when the guarded reset fails
+    ok 4 - does not start the API when the guarded reset fails
+      ---
+      duration_ms: 0.319
+      type: 'test'
+      ...
+    # Subtest: runs the read-only Tournament Stages preflight without starting the API
+    ok 5 - runs the read-only Tournament Stages preflight without starting the API
+      ---
+      duration_ms: 0.1212
+      type: 'test'
+      ...
+    # Subtest: preserves a nonzero Tournament Stages preflight result and keeps the API stopped
+    ok 6 - preserves a nonzero Tournament Stages preflight result and keeps the API stopped
+      ---
+      duration_ms: 0.0938
+      type: 'test'
+      ...
+    # Subtest: runs the guarded Tournament Stages migration before starting the API
+    ok 7 - runs the guarded Tournament Stages migration before starting the API
+      ---
+      duration_ms: 0.1096
+      type: 'test'
+      ...
+    # Subtest: does not start the API when the Tournament Stages migration fails
+    ok 8 - does not start the API when the Tournament Stages migration fails
+      ---
+      duration_ms: 0.0927
+      type: 'test'
+      ...
+    # Subtest: runs the Development Tournament Stages preflight without starting the API
+    ok 9 - runs the Development Tournament Stages preflight without starting the API
+      ---
+      duration_ms: 0.0976
+      type: 'test'
+      ...
+    # Subtest: runs the guarded Development Tournament Stages migration before starting the API
+    ok 10 - runs the guarded Development Tournament Stages migration before starting the API
+      ---
+      duration_ms: 0.1555
+      type: 'test'
+      ...
+    # Subtest: keeps the API stopped when the Development Tournament Stages migration fails
+    ok 11 - keeps the API stopped when the Development Tournament Stages migration fails
+      ---
+      duration_ms: 0.1139
+      type: 'test'
+      ...
+    # Subtest: runs the read-only Flexible Group Stages preflight without starting the API
+    ok 12 - runs the read-only Flexible Group Stages preflight without starting the API
+      ---
+      duration_ms: 0.0835
+      type: 'test'
+      ...
+    # Subtest: runs the guarded Flexible Group Stages migration before starting the API
+    ok 13 - runs the guarded Flexible Group Stages migration before starting the API
+      ---
+      duration_ms: 0.0855
+      type: 'test'
+      ...
+    # Subtest: keeps the API stopped when the Flexible Group Stages migration fails
+    ok 14 - keeps the API stopped when the Flexible Group Stages migration fails
+      ---
+      duration_ms: 0.0726
+      type: 'test'
+      ...
+    # Subtest: runs the Development Flexible Group Stages preflight without starting the API
+    ok 15 - runs the Development Flexible Group Stages preflight without starting the API
+      ---
+      duration_ms: 0.0641
+      type: 'test'
+      ...
+    # Subtest: runs the Development Flexible Group Stages migration before starting the API
+    ok 16 - runs the Development Flexible Group Stages migration before starting the API
+      ---
+      duration_ms: 0.0686
+      type: 'test'
+      ...
+    # Subtest: runs the read-only Configurable Seeding preflight without starting the API
+    ok 17 - runs the read-only Configurable Seeding preflight without starting the API
+      ---
+      duration_ms: 0.0523
+      type: 'test'
+      ...
+    # Subtest: runs the guarded Configurable Seeding migration before starting the API
+    ok 18 - runs the guarded Configurable Seeding migration before starting the API
+      ---
+      duration_ms: 0.0515
+      type: 'test'
+      ...
+    # Subtest: keeps the API stopped when the Configurable Seeding migration fails
+    ok 19 - keeps the API stopped when the Configurable Seeding migration fails
+      ---
+      duration_ms: 0.0615
+      type: 'test'
+      ...
+    # Subtest: supports Development Configurable Seeding tasks
+    ok 20 - supports Development Configurable Seeding tasks
+      ---
+      duration_ms: 0.0725
+      type: 'test'
+      ...
+    # Subtest: runs the orchestrated Tournament Engine V2 preflight read-only and keeps the API stopped
+    ok 21 - runs the orchestrated Tournament Engine V2 preflight read-only and keeps the API stopped
+      ---
+      duration_ms: 0.0467
+      type: 'test'
+      ...
+    # Subtest: preserves a Tournament Engine V2 STOP result and keeps the API stopped
+    ok 22 - preserves a Tournament Engine V2 STOP result and keeps the API stopped
+      ---
+      duration_ms: 0.0435
+      type: 'test'
+      ...
+    1..22
+ok 23 - Replit production deployment task runner
+  ---
+  duration_ms: 3.9531
+  type: 'suite'
+  ...
+# Subtest: Double Elimination V2
+    # Subtest: compiles and completes a deterministic 2-participant bracket
+    ok 1 - compiles and completes a deterministic 2-participant bracket
+      ---
+      duration_ms: 11.6318
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 3-participant bracket
+    ok 2 - compiles and completes a deterministic 3-participant bracket
+      ---
+      duration_ms: 2.3616
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 4-participant bracket
+    ok 3 - compiles and completes a deterministic 4-participant bracket
+      ---
+      duration_ms: 2.7144
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 5-participant bracket
+    ok 4 - compiles and completes a deterministic 5-participant bracket
+      ---
+      duration_ms: 3.8747
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 6-participant bracket
+    ok 5 - compiles and completes a deterministic 6-participant bracket
+      ---
+      duration_ms: 3.4166
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 7-participant bracket
+    ok 6 - compiles and completes a deterministic 7-participant bracket
+      ---
+      duration_ms: 4.3579
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 8-participant bracket
+    ok 7 - compiles and completes a deterministic 8-participant bracket
+      ---
+      duration_ms: 4.3896
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 9-participant bracket
+    ok 8 - compiles and completes a deterministic 9-participant bracket
+      ---
+      duration_ms: 8.2065
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 12-participant bracket
+    ok 9 - compiles and completes a deterministic 12-participant bracket
+      ---
+      duration_ms: 11.2382
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 16-participant bracket
+    ok 10 - compiles and completes a deterministic 16-participant bracket
+      ---
+      duration_ms: 13.7361
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 17-participant bracket
+    ok 11 - compiles and completes a deterministic 17-participant bracket
+      ---
+      duration_ms: 24.679
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 24-participant bracket
+    ok 12 - compiles and completes a deterministic 24-participant bracket
+      ---
+      duration_ms: 30.2608
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 31-participant bracket
+    ok 13 - compiles and completes a deterministic 31-participant bracket
+      ---
+      duration_ms: 41.6863
+      type: 'test'
+      ...
+    # Subtest: compiles and completes a deterministic 32-participant bracket
+    ok 14 - compiles and completes a deterministic 32-participant bracket
+      ---
+      duration_ms: 47.083
+      type: 'test'
+      ...
+    # Subtest: completes deterministically with the first winner strategy
+    ok 15 - completes deterministically with the first winner strategy
+      ---
+      duration_ms: 8.9479
+      type: 'test'
+      ...
+    # Subtest: completes deterministically with the second winner strategy
+    ok 16 - completes deterministically with the second winner strategy
+      ---
+      duration_ms: 9.1135
+      type: 'test'
+      ...
+    # Subtest: completes deterministically with the alternating winner strategy
+    ok 17 - completes deterministically with the alternating winner strategy
+      ---
+      duration_ms: 8.708
+      type: 'test'
+      ...
+    # Subtest: completes deterministically with the lower-seed upset winner strategy
+    ok 18 - completes deterministically with the lower-seed upset winner strategy
+      ---
+      duration_ms: 9.3192
+      type: 'test'
+      ...
+    # Subtest: routes Upper winners, Upper losers and Lower winners without ghost participants
+    ok 19 - routes Upper winners, Upper losers and Lower winners without ghost participants
+      ---
+      duration_ms: 2.2533
+      type: 'test'
+      ...
+    # Subtest: gives 17 participants fifteen Upper BYEs and one played first-round match
+    ok 20 - gives 17 participants fifteen Upper BYEs and one played first-round match
+      ---
+      duration_ms: 5.0006
+      type: 'test'
+      ...
+    # Subtest: plays a Grand Final Reset only when the Lower winner wins Grand Final
+    ok 21 - plays a Grand Final Reset only when the Lower winner wins Grand Final
+      ---
+      duration_ms: 10.0276
+      type: 'test'
+      ...
+    # Subtest: Upper winner closes Grand Final without a second played final
+    ok 22 - Upper winner closes Grand Final without a second played final
+      ---
+      duration_ms: 1.5303
+      type: 'test'
+      ...
+    # Subtest: correcting an Upper result changes the Lower entrant and invalidates downstream results
+    ok 23 - correcting an Upper result changes the Lower entrant and invalidates downstream results
+      ---
+      duration_ms: 1.3207
+      type: 'test'
+      ...
+    # Subtest: correcting Lower and Grand Final results cascades safely, reset clears everything
+    ok 24 - correcting Lower and Grand Final results cascades safely, reset clears everything
+      ---
+      duration_ms: 1.5087
+      type: 'test'
+      ...
+    # Subtest: snapshot round-trip is deterministic and contains no duplicate or ghost participant
+    ok 25 - snapshot round-trip is deterministic and contains no duplicate or ghost participant
+      ---
+      duration_ms: 1.7585
+      type: 'test'
+      ...
+    1..25
+ok 24 - Double Elimination V2
+  ---
+  duration_ms: 270.5918
+  type: 'suite'
+  ...
+# Subtest: authoritative Drizzle schema
+    # Subtest: declares the persisted Marvel round, group, and entry runtime
+    ok 1 - declares the persisted Marvel round, group, and entry runtime
+      ---
+      duration_ms: 4.0433
+      type: 'test'
+      ...
+    # Subtest: persists basket-flow authority as an explicit compatibility-safe version
+    ok 2 - persists basket-flow authority as an explicit compatibility-safe version
+      ---
+      duration_ms: 1.1921
+      type: 'test'
+      ...
+    # Subtest: declares stage baskets with stable identities and relational routing guards
+    ok 3 - declares stage baskets with stable identities and relational routing guards
+      ---
+      duration_ms: 0.4854
+      type: 'test'
+      ...
+    # Subtest: declares the routing execution snapshot table
+    ok 4 - declares the routing execution snapshot table
+      ---
+      duration_ms: 0.2321
+      type: 'test'
+      ...
+    # Subtest: keeps Replit push outside the application-owned public schema
+    ok 5 - keeps Replit push outside the application-owned public schema
+      ---
+      duration_ms: 1.7669
+      type: 'test'
+      ...
+    # Subtest: declares migration infrastructure and the required composite foreign keys
+    ok 6 - declares migration infrastructure and the required composite foreign keys
+      ---
+      duration_ms: 0.8648
+      type: 'test'
+      ...
+    # Subtest: declares only the canonical matches id/stage unique constraint
+    ok 7 - declares only the canonical matches id/stage unique constraint
+      ---
+      duration_ms: 0.1694
+      type: 'test'
+      ...
+    # Subtest: declares reconciled catalog invariants as UNIQUE constraints
+    ok 8 - declares reconciled catalog invariants as UNIQUE constraints
+      ---
+      duration_ms: 0.2878
+      type: 'test'
+      ...
+    # Subtest: declares the compiled routing catalog with plan-scoped relational integrity
+    ok 9 - declares the compiled routing catalog with plan-scoped relational integrity
+      ---
+      duration_ms: 0.6937
+      type: 'test'
+      ...
+    1..9
+ok 25 - authoritative Drizzle schema
+  ---
+  duration_ms: 10.5039
+  type: 'suite'
+  ...
+# Subtest: buildGroupPlayoffSlots
+    # Subtest: builds exact deterministic slots for 2 groups with 1 qualifier
+    ok 1 - builds exact deterministic slots for 2 groups with 1 qualifier
+      ---
+      duration_ms: 1.192
+      type: 'test'
+      ...
+    # Subtest: builds exact deterministic slots for 2 groups with 2 qualifiers
+    ok 2 - builds exact deterministic slots for 2 groups with 2 qualifiers
+      ---
+      duration_ms: 0.1589
+      type: 'test'
+      ...
+    # Subtest: builds exact deterministic slots for 4 groups with 1 qualifier
+    ok 3 - builds exact deterministic slots for 4 groups with 1 qualifier
+      ---
+      duration_ms: 0.095
+      type: 'test'
+      ...
+    # Subtest: builds exact deterministic slots for 4 groups with 2 qualifiers
+    ok 4 - builds exact deterministic slots for 4 groups with 2 qualifiers
+      ---
+      duration_ms: 0.6244
+      type: 'test'
+      ...
+    # Subtest: rejects a fifth unsupported variant
+    ok 5 - rejects a fifth unsupported variant
+      ---
+      duration_ms: 0.1023
+      type: 'test'
+      ...
+    1..5
+ok 26 - buildGroupPlayoffSlots
+  ---
+  duration_ms: 2.9312
+  type: 'suite'
+  ...
+# Subtest: flexible group sizes
+    # Subtest: balances arbitrary participant and group counts with at most one player of difference
+    ok 1 - balances arbitrary participant and group counts with at most one player of difference
+      ---
+      duration_ms: 0.8675
+      type: 'test'
+      ...
+    # Subtest: rejects group counts that would create a one-player group
+    ok 2 - rejects group counts that would create a one-player group
+      ---
+      duration_ms: 0.273
+      type: 'test'
+      ...
+    # Subtest: caps qualifiers at the real size of each group
+    ok 3 - caps qualifiers at the real size of each group
+      ---
+      duration_ms: 0.2673
+      type: 'test'
+      ...
+    1..3
+ok 27 - flexible group sizes
+  ---
+  duration_ms: 1.9772
+  type: 'suite'
+  ...
+# Subtest: group assignment and labels
+    # Subtest: assigns uneven groups with capacity-aware snake seeding
+    ok 1 - assigns uneven groups with capacity-aware snake seeding
+      ---
+      duration_ms: 0.3323
+      type: 'test'
+      ...
+    # Subtest: creates labels beyond group Z
+    ok 2 - creates labels beyond group Z
+      ---
+      duration_ms: 0.0766
+      type: 'test'
+      ...
+    1..2
+ok 28 - group assignment and labels
+  ---
+  duration_ms: 0.5024
+  type: 'suite'
+  ...
+# Subtest: rank-band reseeding
+    # Subtest: puts all group winners before all runners-up and resolves ties deterministically
+    ok 1 - puts all group winners before all runners-up and resolves ties deterministically
+      ---
+      duration_ms: 0.6299
+      type: 'test'
+      ...
+    1..1
+ok 29 - rank-band reseeding
+  ---
+  duration_ms: 0.719
+  type: 'suite'
+  ...
+# Subtest: global group reseeding
+    # Subtest: compares uneven groups by normalized performance instead of raw totals
+    ok 1 - compares uneven groups by normalized performance instead of raw totals
+      ---
+      duration_ms: 0.2161
+      type: 'test'
+      ...
+    1..1
+ok 30 - global group reseeding
+  ---
+  duration_ms: 0.3004
+  type: 'suite'
+  ...
+# Subtest: database-aware healthcheck
+    # Subtest: returns 200 when the database query succeeds
+    ok 1 - returns 200 when the database query succeeds
+      ---
+      duration_ms: 14.6988
+      type: 'test'
+      ...
+    # Subtest: returns a redacted 503 when the database query fails
+    ok 2 - returns a redacted 503 when the database query fails
+      ---
+      duration_ms: 3.7448
+      type: 'test'
+      ...
+    # Subtest: returns 503 when the database check exceeds the timeout
+    ok 3 - returns 503 when the database check exceeds the timeout
+      ---
+      duration_ms: 15.4297
+      type: 'test'
+      ...
+    1..3
+ok 31 - database-aware healthcheck
+  ---
+  duration_ms: 34.646
+  type: 'suite'
+  ...
+# Subtest: Backup V3 accepts a complete active Marvel runtime
+ok 32 - Backup V3 accepts a complete active Marvel runtime
+  ---
+  duration_ms: 2.3652
+  type: 'test'
+  ...
+# Subtest: Backup V3 rejects an active Marvel stage without its runtime
+ok 33 - Backup V3 rejects an active Marvel stage without its runtime
+  ---
+  duration_ms: 0.4991
+  type: 'test'
+  ...
+# Subtest: 32-player Marvel flow is 4x8, 2x8, then one final group
+ok 34 - 32-player Marvel flow is 4x8, 2x8, then one final group
+  ---
+  duration_ms: 1.3585
+  type: 'test'
+  ...
+# Subtest: 64-player Marvel flow is 8x8, 4x8, 2x8, then one final group
+ok 35 - 64-player Marvel flow is 8x8, 4x8, 2x8, then one final group
+  ---
+  duration_ms: 0.2751
+  type: 'test'
+  ...
+# Subtest: TOP 4 qualifies, places 5-8 are eliminated, and kills never reorder the result
+ok 36 - TOP 4 qualifies, places 5-8 are eliminated, and kills never reorder the result
+  ---
+  duration_ms: 0.1907
+  type: 'test'
+  ...
+# Subtest: the final produces no qualifiers and keeps place one as the winner
+ok 37 - the final produces no qualifiers and keeps place one as the winner
+  ---
+  duration_ms: 0.1282
+  type: 'test'
+  ...
+# Subtest: random grouping is deterministic and preserves every qualifier
+ok 38 - random grouping is deterministic and preserves every qualifier
+  ---
+  duration_ms: 0.2549
+  type: 'test'
+  ...
+# Subtest: manual grouping accepts a complete assignment and rejects duplicates
+ok 39 - manual grouping accepts a complete assignment and rejects duplicates
+  ---
+  duration_ms: 0.2536
+  type: 'test'
+  ...
+# Subtest: Marvel game config applies the documented defaults
+ok 40 - Marvel game config applies the documented defaults
+  ---
+  duration_ms: 1.5195
+  type: 'test'
+  ...
+# Subtest: Marvel game config accepts custom elimination group rules
+ok 41 - Marvel game config accepts custom elimination group rules
+  ---
+  duration_ms: 0.117
+  type: 'test'
+  ...
+# Subtest: Marvel game config enforces advancing and kill limits
+ok 42 - Marvel game config enforces advancing and kill limits
+  ---
+  duration_ms: 0.5621
+  type: 'test'
+  ...
+# Subtest: CreateTournamentBody requires a durable organizer password
+ok 43 - CreateTournamentBody requires a durable organizer password
+  ---
+  duration_ms: 1.4491
+  type: 'test'
+  ...
+# Subtest: CreateTournamentBody rejects organizer password lengths 1-7
+ok 44 - CreateTournamentBody rejects organizer password lengths 1-7
+  ---
+  duration_ms: 0.2913
+  type: 'test'
+  ...
+# Subtest: HTTP validation rejects absent, empty and non-string credentials
+ok 45 - HTTP validation rejects absent, empty and non-string credentials
+  ---
+  duration_ms: 0.0762
+  type: 'test'
+  ...
+# Subtest: round-robin circle schedule
+    # Subtest: creates one conflict-free meeting per pair for 3 players
+    ok 1 - creates one conflict-free meeting per pair for 3 players
+      ---
+      duration_ms: 0.6016
+      type: 'test'
+      ...
+    # Subtest: creates one conflict-free meeting per pair for 4 players
+    ok 2 - creates one conflict-free meeting per pair for 4 players
+      ---
+      duration_ms: 0.1242
+      type: 'test'
+      ...
+    # Subtest: creates one conflict-free meeting per pair for 5 players
+    ok 3 - creates one conflict-free meeting per pair for 5 players
+      ---
+      duration_ms: 0.0813
+      type: 'test'
+      ...
+    # Subtest: creates one conflict-free meeting per pair for 6 players
+    ok 4 - creates one conflict-free meeting per pair for 6 players
+      ---
+      duration_ms: 0.0584
+      type: 'test'
+      ...
+    1..4
+ok 46 - round-robin circle schedule
+  ---
+  duration_ms: 1.5364
+  type: 'suite'
+  ...
+# Subtest: Pack 20: immutable SE advisory change plan
+    # Subtest: describes a reversible winner-change and successor slot
+    ok 1 - describes a reversible winner-change and successor slot
+      ---
+      duration_ms: 1.0653
+      type: 'test'
+      ...
+    # Subtest: produces no slot write for an unchanged winner
+    ok 2 - produces no slot write for an unchanged winner
+      ---
+      duration_ms: 0.5806
+      type: 'test'
+      ...
+    # Subtest: does not treat the same score as candidate
+    ok 3 - does not treat the same score as candidate
+      ---
+      duration_ms: 0.0957
+      type: 'test'
+      ...
+    # Subtest: blocks readiness with issues despite a candidate status
+    ok 4 - blocks readiness with issues despite a candidate status
+      ---
+      duration_ms: 0.0637
+      type: 'test'
+      ...
+    # Subtest: blocks a missing successor
+    ok 5 - blocks a missing successor
+      ---
+      duration_ms: 0.0558
+      type: 'test'
+      ...
+    # Subtest: blocks unknown original winner
+    ok 6 - blocks unknown original winner
+      ---
+      duration_ms: 0.0557
+      type: 'test'
+      ...
+    # Subtest: blocks unknown hypothetical winner
+    ok 7 - blocks unknown hypothetical winner
+      ---
+      duration_ms: 0.0667
+      type: 'test'
+      ...
+    # Subtest: blocks negative score
+    ok 8 - blocks negative score
+      ---
+      duration_ms: 0.0621
+      type: 'test'
+      ...
+    # Subtest: blocks decimal score
+    ok 9 - blocks decimal score
+      ---
+      duration_ms: 0.0949
+      type: 'test'
+      ...
+    # Subtest: blocks unsafe score
+    ok 10 - blocks unsafe score
+      ---
+      duration_ms: 0.1157
+      type: 'test'
+      ...
+    # Subtest: never enables execution even when candidate
+    ok 11 - never enables execution even when candidate
+      ---
+      duration_ms: 0.1094
+      type: 'test'
+      ...
+    # Subtest: preserves the revision/vector as evidence
+    ok 12 - preserves the revision/vector as evidence
+      ---
+      duration_ms: 0.0598
+      type: 'test'
+      ...
+    # Subtest: deduplicates blocker codes
+    ok 13 - deduplicates blocker codes
+      ---
+      duration_ms: 0.0531
+      type: 'test'
+      ...
+    # Subtest: does not mutate input
+    ok 14 - does not mutate input
+      ---
+      duration_ms: 0.0973
+      type: 'test'
+      ...
+    # Subtest: reports source score and proposed score
+    ok 15 - reports source score and proposed score
+      ---
+      duration_ms: 0.0983
+      type: 'test'
+      ...
+    1..15
+ok 47 - Pack 20: immutable SE advisory change plan
+  ---
+  duration_ms: 3.5599
+  type: 'suite'
+  ...
+# Subtest: Pack21: snapshot-only Single Elimination diagnostics
+    # Subtest: marks consistent candidate as advisory only
+    ok 1 - marks consistent candidate as advisory only
+      ---
+      duration_ms: 0.8519
+      type: 'test'
+      ...
+    # Subtest: hash is deterministic and independent of issue order
+    ok 2 - hash is deterministic and independent of issue order
+      ---
+      duration_ms: 0.1791
+      type: 'test'
+      ...
+    # Subtest: different revision changes identifier
+    ok 3 - different revision changes identifier
+      ---
+      duration_ms: 0.1109
+      type: 'test'
+      ...
+    # Subtest: different stage vector changes identifier
+    ok 4 - different stage vector changes identifier
+      ---
+      duration_ms: 0.0724
+      type: 'test'
+      ...
+    # Subtest: different completion action changes identifier
+    ok 5 - different completion action changes identifier
+      ---
+      duration_ms: 0.093
+      type: 'test'
+      ...
+    # Subtest: different proposed scores change identifier
+    ok 6 - different proposed scores change identifier
+      ---
+      duration_ms: 0.1003
+      type: 'test'
+      ...
+    # Subtest: different dependent slot changes identifier
+    ok 7 - different dependent slot changes identifier
+      ---
+      duration_ms: 0.0795
+      type: 'test'
+      ...
+    # Subtest: groups identical blocker codes once
+    ok 8 - groups identical blocker codes once
+      ---
+      duration_ms: 0.0833
+      type: 'test'
+      ...
+    # Subtest: explains stale revision with refresh action
+    ok 9 - explains stale revision with refresh action
+      ---
+      duration_ms: 0.0769
+      type: 'test'
+      ...
+    # Subtest: explains missing audit history
+    ok 10 - explains missing audit history
+      ---
+      duration_ms: 0.1209
+      type: 'test'
+      ...
+    # Subtest: identifies committed qualification
+    ok 11 - identifies committed qualification
+      ---
+      duration_ms: 0.0641
+      type: 'test'
+      ...
+    # Subtest: identifies later bracket match in use
+    ok 12 - identifies later bracket match in use
+      ---
+      duration_ms: 0.0892
+      type: 'test'
+      ...
+    # Subtest: ranks integrity higher than staleness and score
+    ok 13 - ranks integrity higher than staleness and score
+      ---
+      duration_ms: 0.5063
+      type: 'test'
+      ...
+    # Subtest: deduplicates recommendations across multiple related blockers
+    ok 14 - deduplicates recommendations across multiple related blockers
+      ---
+      duration_ms: 6.0227
+      type: 'test'
+      ...
+    # Subtest: unavailable plan without issues remains blocked
+    ok 15 - unavailable plan without issues remains blocked
+      ---
+      duration_ms: 0.0769
+      type: 'test'
+      ...
+    # Subtest: inconsistent stage evidence always blocks
+    ok 16 - inconsistent stage evidence always blocks
+      ---
+      duration_ms: 0.0962
+      type: 'test'
+      ...
+    # Subtest: inconsistent match id always blocks
+    ok 17 - inconsistent match id always blocks
+      ---
+      duration_ms: 0.0501
+      type: 'test'
+      ...
+    # Subtest: inconsistent revision always blocks
+    ok 18 - inconsistent revision always blocks
+      ---
+      duration_ms: 0.0399
+      type: 'test'
+      ...
+    # Subtest: unsafe readiness advisory flags fail closed
+    ok 19 - unsafe readiness advisory flags fail closed
+      ---
+      duration_ms: 0.0488
+      type: 'test'
+      ...
+    # Subtest: unsafe plan advisory flags fail closed
+    ok 20 - unsafe plan advisory flags fail closed
+      ---
+      duration_ms: 0.044
+      type: 'test'
+      ...
+    # Subtest: unknown issues fall back to manual review
+    ok 21 - unknown issues fall back to manual review
+      ---
+      duration_ms: 0.0391
+      type: 'test'
+      ...
+    # Subtest: does not mutate inputs
+    ok 22 - does not mutate inputs
+      ---
+      duration_ms: 0.185
+      type: 'test'
+      ...
+    # Subtest: makes all issue messages user-facing
+    ok 23 - makes all issue messages user-facing
+      ---
+      duration_ms: 0.1011
+      type: 'test'
+      ...
+    # Subtest: candidate always explains execution remains disabled
+    ok 24 - candidate always explains execution remains disabled
+      ---
+      duration_ms: 0.1254
+      type: 'test'
+      ...
+    1..24
+ok 48 - Pack21: snapshot-only Single Elimination diagnostics
+  ---
+  duration_ms: 10.1973
+  type: 'suite'
+  ...
+# Subtest: winner-change walks three rounds without predicting future winners
+ok 49 - winner-change walks three rounds without predicting future winners
+  ---
+  duration_ms: 1.435
+  type: 'test'
+  ...
+# Subtest: right-side source maps to player2 in next match
+ok 50 - right-side source maps to player2 in next match
+  ---
+  duration_ms: 0.1733
+  type: 'test'
+  ...
+# Subtest: nontrivial number progresses 5->3->2->1
+ok 51 - nontrivial number progresses 5->3->2->1
+  ---
+  duration_ms: 0.1495
+  type: 'test'
+  ...
+# Subtest: score-only does not invent winner path
+ok 52 - score-only does not invent winner path
+  ---
+  duration_ms: 0.1884
+  type: 'test'
+  ...
+# Subtest: unknown blocked plan describes hypothetical path but requires review
+ok 53 - unknown blocked plan describes hypothetical path but requires review
+  ---
+  duration_ms: 0.1231
+  type: 'test'
+  ...
+# Subtest: started immediate descendant warns, remains nonexecutable
+ok 54 - started immediate descendant warns, remains nonexecutable
+  ---
+  duration_ms: 0.0969
+  type: 'test'
+  ...
+# Subtest: completed grandchild also warned
+ok 55 - completed grandchild also warned
+  ---
+  duration_ms: 0.1264
+  type: 'test'
+  ...
+# Subtest: qualification committed warns
+ok 56 - qualification committed warns
+  ---
+  duration_ms: 0.0937
+  type: 'test'
+  ...
+# Subtest: routing committed warns
+ok 57 - routing committed warns
+  ---
+  duration_ms: 0.0745
+  type: 'test'
+  ...
+# Subtest: already active later stage warns
+ok 58 - already active later stage warns
+  ---
+  duration_ms: 0.1522
+  type: 'test'
+  ...
+# Subtest: later stages are sorted by position
+ok 59 - later stages are sorted by position
+  ---
+  duration_ms: 0.1294
+  type: 'test'
+  ...
+# Subtest: source in final round no successors
+ok 60 - source in final round no successors
+  ---
+  duration_ms: 0.0724
+  type: 'test'
+  ...
+# Subtest: missing next match fails closed with bounded partial chain
+ok 61 - missing next match fails closed with bounded partial chain
+  ---
+  duration_ms: 0.1451
+  type: 'test'
+  ...
+# Subtest: missing source fails closed
+ok 62 - missing source fails closed
+  ---
+  duration_ms: 0.0663
+  type: 'test'
+  ...
+# Subtest: duplicate coordinate fails closed
+ok 63 - duplicate coordinate fails closed
+  ---
+  duration_ms: 0.0501
+  type: 'test'
+  ...
+# Subtest: duplicate match id fails closed
+ok 64 - duplicate match id fails closed
+  ---
+  duration_ms: 0.0841
+  type: 'test'
+  ...
+# Subtest: other stage id in list fails closed
+ok 65 - other stage id in list fails closed
+  ---
+  duration_ms: 0.0499
+  type: 'test'
+  ...
+# Subtest: invalid bracket number fails closed
+ok 66 - invalid bracket number fails closed
+  ---
+  duration_ms: 0.0416
+  type: 'test'
+  ...
+# Subtest: round bigger than total rounds fails closed
+ok 67 - round bigger than total rounds fails closed
+  ---
+  duration_ms: 0.0355
+  type: 'test'
+  ...
+# Subtest: same stage position two stages fails closed
+ok 68 - same stage position two stages fails closed
+  ---
+  duration_ms: 0.0527
+  type: 'test'
+  ...
+# Subtest: changed snapshot stage row fails closed
+ok 69 - changed snapshot stage row fails closed
+  ---
+  duration_ms: 0.0347
+  type: 'test'
+  ...
+# Subtest: non-SE format fails closed
+ok 70 - non-SE format fails closed
+  ---
+  duration_ms: 0.0529
+  type: 'test'
+  ...
+# Subtest: broken action plan flags fail closed
+ok 71 - broken action plan flags fail closed
+  ---
+  duration_ms: 0.0834
+  type: 'test'
+  ...
+# Subtest: candidate with unknown change fails closed
+ok 72 - candidate with unknown change fails closed
+  ---
+  duration_ms: 0.0445
+  type: 'test'
+  ...
+# Subtest: blocked plan claiming winner change fails closed
+ok 73 - blocked plan claiming winner change fails closed
+  ---
+  duration_ms: 0.0403
+  type: 'test'
+  ...
+# Subtest: plan different match fails closed
+ok 74 - plan different match fails closed
+  ---
+  duration_ms: 0.0401
+  type: 'test'
+  ...
+# Subtest: invalid type for routing flags fails closed
+ok 75 - invalid type for routing flags fails closed
+  ---
+  duration_ms: 0.0385
+  type: 'test'
+  ...
+# Subtest: malformed date fails closed
+ok 76 - malformed date fails closed
+  ---
+  duration_ms: 0.0445
+  type: 'test'
+  ...
+# Subtest: null current analysis fails closed without throwing
+ok 77 - null current analysis fails closed without throwing
+  ---
+  duration_ms: 0.0276
+  type: 'test'
+  ...
+# Subtest: bounded match count (2049) fails closed
+ok 78 - bounded match count (2049) fails closed
+  ---
+  duration_ms: 0.7049
+  type: 'test'
+  ...
+# Subtest: bounded stage count (129) fails closed
+ok 79 - bounded stage count (129) fails closed
+  ---
+  duration_ms: 0.1534
+  type: 'test'
+  ...
+# Subtest: final-stage scenarios don't claim automatic route updates
+ok 80 - final-stage scenarios don't claim automatic route updates
+  ---
+  duration_ms: 0.0879
+  type: 'test'
+  ...
+# Subtest: winner path is potential, not an authorized execution
+ok 81 - winner path is potential, not an authorized execution
+  ---
+  duration_ms: 7.3597
+  type: 'test'
+  ...
+# Subtest: distinguishes immediate and hypothetical downstream nodes
+ok 82 - distinguishes immediate and hypothetical downstream nodes
+  ---
+  duration_ms: 0.1378
+  type: 'test'
+  ...
+# Subtest: started dependent match becomes critical
+ok 83 - started dependent match becomes critical
+  ---
+  duration_ms: 0.1131
+  type: 'test'
+  ...
+# Subtest: two started dependent matches are both identified
+ok 84 - two started dependent matches are both identified
+  ---
+  duration_ms: 0.086
+  type: 'test'
+  ...
+# Subtest: advanced later stage is reported as confirmed snapshot
+ok 85 - advanced later stage is reported as confirmed snapshot
+  ---
+  duration_ms: 0.1036
+  type: 'test'
+  ...
+# Subtest: completed later stage also triggers high risk
+ok 86 - completed later stage also triggers high risk
+  ---
+  duration_ms: 0.0879
+  type: 'test'
+  ...
+# Subtest: review_required is never reported as clean
+ok 87 - review_required is never reported as clean
+  ---
+  duration_ms: 0.1524
+  type: 'test'
+  ...
+# Subtest: score-only carries reporting risk but no participant path
+ok 88 - score-only carries reporting risk but no participant path
+  ---
+  duration_ms: 0.1
+  type: 'test'
+  ...
+# Subtest: blocked and unknown change is critical
+ok 89 - blocked and unknown change is critical
+  ---
+  duration_ms: 0.0799
+  type: 'test'
+  ...
+# Subtest: incomplete graph gives one fail-closed item
+ok 90 - incomplete graph gives one fail-closed item
+  ---
+  duration_ms: 0.1531
+  type: 'test'
+  ...
+# Subtest: no affected matches and no later stages still warns about limited coverage
+ok 91 - no affected matches and no later stages still warns about limited coverage
+  ---
+  duration_ms: 0.0772
+  type: 'test'
+  ...
+# Subtest: malformed flags fail closed
+ok 92 - malformed flags fail closed
+  ---
+  duration_ms: 0.0847
+  type: 'test'
+  ...
+# Subtest: null input fails closed
+ok 93 - null input fails closed
+  ---
+  duration_ms: 0.0323
+  type: 'test'
+  ...
+# Subtest: negative and fractional match IDs fail closed
+ok 94 - negative and fractional match IDs fail closed
+  ---
+  duration_ms: 0.064
+  type: 'test'
+  ...
+# Subtest: counter mismatch fails closed
+ok 95 - counter mismatch fails closed
+  ---
+  duration_ms: 0.0811
+  type: 'test'
+  ...
+# Subtest: duplicates in descendant IDs fail closed
+ok 96 - duplicates in descendant IDs fail closed
+  ---
+  duration_ms: 0.0699
+  type: 'test'
+  ...
+# Subtest: source ID repeated as successor fails closed
+ok 97 - source ID repeated as successor fails closed
+  ---
+  duration_ms: 0.0366
+  type: 'test'
+  ...
+# Subtest: missing direct successor despite later descendants fails closed
+ok 98 - missing direct successor despite later descendants fails closed
+  ---
+  duration_ms: 0.0329
+  type: 'test'
+  ...
+# Subtest: more than one direct successor fails closed
+ok 99 - more than one direct successor fails closed
+  ---
+  duration_ms: 0.0378
+  type: 'test'
+  ...
+# Subtest: score-only carrying participant path fails closed
+ok 100 - score-only carrying participant path fails closed
+  ---
+  duration_ms: 0.0249
+  type: 'test'
+  ...
+# Subtest: outlined graph claiming started match fails closed
+ok 101 - outlined graph claiming started match fails closed
+  ---
+  duration_ms: 0.0388
+  type: 'test'
+  ...
+# Subtest: duplicate later stage IDs fail closed
+ok 102 - duplicate later stage IDs fail closed
+  ---
+  duration_ms: 0.0336
+  type: 'test'
+  ...
+# Subtest: stage pointing back to current stage fails closed
+ok 103 - stage pointing back to current stage fails closed
+  ---
+  duration_ms: 0.0303
+  type: 'test'
+  ...
+# Subtest: malformed later stage relationship fails closed
+ok 104 - malformed later stage relationship fails closed
+  ---
+  duration_ms: 0.0305
+  type: 'test'
+  ...
+# Subtest: malformed descendant slot fails closed
+ok 105 - malformed descendant slot fails closed
+  ---
+  duration_ms: 0.0301
+  type: 'test'
+  ...
+# Subtest: malformed warning list fails closed
+ok 106 - malformed warning list fails closed
+  ---
+  duration_ms: 0.0239
+  type: 'test'
+  ...
+# Subtest: too many graph paths fail closed
+ok 107 - too many graph paths fail closed
+  ---
+  duration_ms: 0.0667
+  type: 'test'
+  ...
+# Subtest: too many stages fail closed
+ok 108 - too many stages fail closed
+  ---
+  duration_ms: 0.0759
+  type: 'test'
+  ...
+# Subtest: input is not mutated
+ok 109 - input is not mutated
+  ---
+  duration_ms: 0.0521
+  type: 'test'
+  ...
+# Subtest: output has stable order for equal severity
+ok 110 - output has stable order for equal severity
+  ---
+  duration_ms: 0.0598
+  type: 'test'
+  ...
+# Subtest: does not use backend mutation APIs
+ok 111 - does not use backend mutation APIs
+  ---
+  duration_ms: 0.1207
+  type: 'test'
+  ...
+# Subtest: duplicate positions in different stages are rejected
+ok 112 - duplicate positions in different stages are rejected
+  ---
+  duration_ms: 0.0508
+  type: 'test'
+  ...
+# Subtest: future path missing a round is rejected
+ok 113 - future path missing a round is rejected
+  ---
+  duration_ms: 0.0359
+  type: 'test'
+  ...
+# Subtest: duplicated coordinates with distinct IDs are rejected
+ok 114 - duplicated coordinates with distinct IDs are rejected
+  ---
+  duration_ms: 0.0536
+  type: 'test'
+  ...
+# Subtest: later path cannot appear before direct successor
+ok 115 - later path cannot appear before direct successor
+  ---
+  duration_ms: 0.0359
+  type: 'test'
+  ...
+# Subtest: seeding ceremony
+    # Subtest: basket signatures survive materialization but still detect roster changes
+    ok 1 - basket signatures survive materialization but still detect roster changes
+      ---
+      duration_ms: 19.3125
+      type: 'test'
+      ...
+    # Subtest: prepares 24 unique deterministic sequential draws without mutating participants
+    ok 2 - prepares 24 unique deterministic sequential draws without mutating participants
+      ---
+      duration_ms: 0.5591
+      type: 'test'
+      ...
+    # Subtest: records bracket destinations and survives strict parsing
+    ok 3 - records bracket destinations and survives strict parsing
+      ---
+      duration_ms: 0.3263
+      type: 'test'
+      ...
+    # Subtest: detects participant and configuration changes
+    ok 4 - detects participant and configuration changes
+      ---
+      duration_ms: 0.2694
+      type: 'test'
+      ...
+    # Subtest: marks the revealed result as immutable applied audit
+    ok 5 - marks the revealed result as immutable applied audit
+      ---
+      duration_ms: 0.218
+      type: 'test'
+      ...
+    1..5
+ok 116 - seeding ceremony
+  ---
+  duration_ms: 21.4216
+  type: 'suite'
+  ...
+# Subtest: assignSeeds
+    # Subtest: supports registration, alphabetical, preserved and manual seed orders
+    ok 1 - supports registration, alphabetical, preserved and manual seed orders
+      ---
+      duration_ms: 12.6556
+      type: 'test'
+      ...
+    # Subtest: random seeding is reproducible and stores an audit order
+    ok 2 - random seeding is reproducible and stores an audit order
+      ---
+      duration_ms: 0.3656
+      type: 'test'
+      ...
+    # Subtest: sequential random draw assigns one remaining seed to each participant in list order
+    ok 3 - sequential random draw assigns one remaining seed to each participant in list order
+      ---
+      duration_ms: 0.2015
+      type: 'test'
+      ...
+    # Subtest: rank bands cannot be crossed by a lower place even with better metrics
+    ok 4 - rank bands cannot be crossed by a lower place even with better metrics
+      ---
+      duration_ms: 0.3025
+      type: 'test'
+      ...
+    # Subtest: ordered criteria support missing values and deterministic random final ties
+    ok 5 - ordered criteria support missing values and deterministic random final ties
+      ---
+      duration_ms: 0.1557
+      type: 'test'
+      ...
+    # Subtest: rejects incomplete or duplicate manual seed assignments
+    ok 6 - rejects incomplete or duplicate manual seed assignments
+      ---
+      duration_ms: 0.0907
+      type: 'test'
+      ...
+    1..6
+ok 117 - assignSeeds
+  ---
+  duration_ms: 14.5034
+  type: 'suite'
+  ...
+# Subtest: deterministicShuffle
+    # Subtest: does not mutate input and is portable for a fixed seed
+    ok 1 - does not mutate input and is portable for a fixed seed
+      ---
+      duration_ms: 0.1093
+      type: 'test'
+      ...
+    1..1
+ok 118 - deterministicShuffle
+  ---
+  duration_ms: 0.2021
+  type: 'suite'
+  ...
+# Subtest: validatePlayedSeriesResult
+    # Subtest: accepts BO1 1:0
+    ok 1 - accepts BO1 1:0
+      ---
+      duration_ms: 1.0497
+      type: 'test'
+      ...
+    # Subtest: accepts BO1 0:1
+    ok 2 - accepts BO1 0:1
+      ---
+      duration_ms: 0.0773
+      type: 'test'
+      ...
+    # Subtest: accepts BO3 2:0
+    ok 3 - accepts BO3 2:0
+      ---
+      duration_ms: 0.0502
+      type: 'test'
+      ...
+    # Subtest: accepts BO3 2:1
+    ok 4 - accepts BO3 2:1
+      ---
+      duration_ms: 0.0819
+      type: 'test'
+      ...
+    # Subtest: accepts BO3 0:2
+    ok 5 - accepts BO3 0:2
+      ---
+      duration_ms: 0.0642
+      type: 'test'
+      ...
+    # Subtest: accepts BO3 1:2
+    ok 6 - accepts BO3 1:2
+      ---
+      duration_ms: 0.0475
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 3:0
+    ok 7 - accepts BO5 3:0
+      ---
+      duration_ms: 0.0443
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 3:1
+    ok 8 - accepts BO5 3:1
+      ---
+      duration_ms: 0.0427
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 3:2
+    ok 9 - accepts BO5 3:2
+      ---
+      duration_ms: 0.0919
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 0:3
+    ok 10 - accepts BO5 0:3
+      ---
+      duration_ms: 0.1031
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 1:3
+    ok 11 - accepts BO5 1:3
+      ---
+      duration_ms: 0.0616
+      type: 'test'
+      ...
+    # Subtest: accepts BO5 2:3
+    ok 12 - accepts BO5 2:3
+      ---
+      duration_ms: 0.0352
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 4:0
+    ok 13 - accepts BO7 4:0
+      ---
+      duration_ms: 0.0358
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 4:1
+    ok 14 - accepts BO7 4:1
+      ---
+      duration_ms: 0.0544
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 4:2
+    ok 15 - accepts BO7 4:2
+      ---
+      duration_ms: 0.0331
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 4:3
+    ok 16 - accepts BO7 4:3
+      ---
+      duration_ms: 0.0319
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 0:4
+    ok 17 - accepts BO7 0:4
+      ---
+      duration_ms: 0.027
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 1:4
+    ok 18 - accepts BO7 1:4
+      ---
+      duration_ms: 0.0173
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 2:4
+    ok 19 - accepts BO7 2:4
+      ---
+      duration_ms: 0.0185
+      type: 'test'
+      ...
+    # Subtest: accepts BO7 3:4
+    ok 20 - accepts BO7 3:4
+      ---
+      duration_ms: 0.0165
+      type: 'test'
+      ...
+    # Subtest: rejects BO3 1:0
+    ok 21 - rejects BO3 1:0
+      ---
+      duration_ms: 0.1172
+      type: 'test'
+      ...
+    # Subtest: rejects BO5 2:1
+    ok 22 - rejects BO5 2:1
+      ---
+      duration_ms: 0.0273
+      type: 'test'
+      ...
+    # Subtest: rejects BO3 3:0
+    ok 23 - rejects BO3 3:0
+      ---
+      duration_ms: 0.0206
+      type: 'test'
+      ...
+    # Subtest: rejects BO3 2:2
+    ok 24 - rejects BO3 2:2
+      ---
+      duration_ms: 0.0178
+      type: 'test'
+      ...
+    # Subtest: rejects BO3 1:1
+    ok 25 - rejects BO3 1:1
+      ---
+      duration_ms: 0.0181
+      type: 'test'
+      ...
+    # Subtest: rejects BO3 0:0
+    ok 26 - rejects BO3 0:0
+      ---
+      duration_ms: 0.0291
+      type: 'test'
+      ...
+    # Subtest: rejects negative score
+    ok 27 - rejects negative score
+      ---
+      duration_ms: 0.0187
+      type: 'test'
+      ...
+    # Subtest: rejects fractional score
+    ok 28 - rejects fractional score
+      ---
+      duration_ms: 0.0231
+      type: 'test'
+      ...
+    # Subtest: rejects bestOf zero
+    ok 29 - rejects bestOf zero
+      ---
+      duration_ms: 0.0264
+      type: 'test'
+      ...
+    # Subtest: rejects negative bestOf
+    ok 30 - rejects negative bestOf
+      ---
+      duration_ms: 0.0211
+      type: 'test'
+      ...
+    # Subtest: rejects fractional bestOf
+    ok 31 - rejects fractional bestOf
+      ---
+      duration_ms: 0.0207
+      type: 'test'
+      ...
+    # Subtest: rejects even bestOf
+    ok 32 - rejects even bestOf
+      ---
+      duration_ms: 0.0171
+      type: 'test'
+      ...
+    # Subtest: rejects both sides exceed threshold
+    ok 33 - rejects both sides exceed threshold
+      ---
+      duration_ms: 0.0249
+      type: 'test'
+      ...
+    1..33
+ok 119 - validatePlayedSeriesResult
+  ---
+  duration_ms: 3.3336
+  type: 'suite'
+  ...
+# Subtest: stage basket domain validation
+    # Subtest: basket authority permits routed qualifiers plus direct entrants while legacy remains linear
+    ok 1 - basket authority permits routed qualifiers plus direct entrants while legacy remains linear
+      ---
+      duration_ms: 0.5855
+      type: 'test'
+      ...
+    # Subtest: shared flow projection covers direct, routed, mixed, fan-in, skip-stage and multiple baskets
+    ok 2 - shared flow projection covers direct, routed, mixed, fan-in, skip-stage and multiple baskets
+      ---
+      duration_ms: 0.6424
+      type: 'test'
+      ...
+    # Subtest: accepts a forward one-input/one-output graph
+    ok 3 - accepts a forward one-input/one-output graph
+      ---
+      duration_ms: 0.664
+      type: 'test'
+      ...
+    # Subtest: accepts four input and four output baskets
+    ok 4 - accepts four input and four output baskets
+      ---
+      duration_ms: 0.2577
+      type: 'test'
+      ...
+    # Subtest: rejects a fifth input basket
+    ok 5 - rejects a fifth input basket
+      ---
+      duration_ms: 0.2837
+      type: 'test'
+      ...
+    # Subtest: rejects same-stage and backward routes
+    ok 6 - rejects same-stage and backward routes
+      ---
+      duration_ms: 0.1529
+      type: 'test'
+      ...
+    # Subtest: rejects a reused output and duplicate participant
+    ok 7 - rejects a reused output and duplicate participant
+      ---
+      duration_ms: 0.1307
+      type: 'test'
+      ...
+    # Subtest: rejects a participant assigned to input baskets in different stages
+    ok 8 - rejects a participant assigned to input baskets in different stages
+      ---
+      duration_ms: 0.1109
+      type: 'test'
+      ...
+    # Subtest: legacy flow permits the same participant in successive stage inputs
+    ok 9 - legacy flow permits the same participant in successive stage inputs
+      ---
+      duration_ms: 0.0878
+      type: 'test'
+      ...
+    # Subtest: rejects missing baskets, duplicate ordinals and invalid participant references
+    ok 10 - rejects missing baskets, duplicate ordinals and invalid participant references
+      ---
+      duration_ms: 0.1691
+      type: 'test'
+      ...
+    # Subtest: rejects non-null qualifierCount on an input basket
+    ok 11 - rejects non-null qualifierCount on an input basket
+      ---
+      duration_ms: 0.1717
+      type: 'test'
+      ...
+    # Subtest: rejects zero or negative qualifierCount on an output basket
+    ok 12 - rejects zero or negative qualifierCount on an output basket
+      ---
+      duration_ms: 0.1596
+      type: 'test'
+      ...
+    # Subtest: rejects non-integer qualifierCount on an output basket
+    ok 13 - rejects non-integer qualifierCount on an output basket
+      ---
+      duration_ms: 0.0943
+      type: 'test'
+      ...
+    # Subtest: accepts null qualifierCount on output baskets (legacy implicit case)
+    ok 14 - accepts null qualifierCount on output baskets (legacy implicit case)
+      ---
+      duration_ms: 0.0575
+      type: 'test'
+      ...
+    # Subtest: accepts when sum of output qualifierCounts equals participantCount
+    ok 15 - accepts when sum of output qualifierCounts equals participantCount
+      ---
+      duration_ms: 0.0625
+      type: 'test'
+      ...
+    # Subtest: accepts when sum of output qualifierCounts is less than participantCount (remainder eliminated)
+    ok 16 - accepts when sum of output qualifierCounts is less than participantCount (remainder eliminated)
+      ---
+      duration_ms: 0.0543
+      type: 'test'
+      ...
+    # Subtest: rejects when sum of output qualifierCounts exceeds participantCount
+    ok 17 - rejects when sum of output qualifierCounts exceeds participantCount
+      ---
+      duration_ms: 0.0754
+      type: 'test'
+      ...
+    # Subtest: sum constraint counts only non-null qualifierCounts
+    ok 18 - sum constraint counts only non-null qualifierCounts
+      ---
+      duration_ms: 0.0476
+      type: 'test'
+      ...
+    # Subtest: explicit mode rejects output basket with null qualifierCount
+    ok 19 - explicit mode rejects output basket with null qualifierCount
+      ---
+      duration_ms: 0.0417
+      type: 'test'
+      ...
+    # Subtest: explicit mode accepts configuration where all output baskets have positive qualifierCount
+    ok 20 - explicit mode accepts configuration where all output baskets have positive qualifierCount
+      ---
+      duration_ms: 0.0648
+      type: 'test'
+      ...
+    # Subtest: explicit authority derives the 24-player split as 16 direct then 8 routed plus 8 direct
+    ok 21 - explicit authority derives the 24-player split as 16 direct then 8 routed plus 8 direct
+      ---
+      duration_ms: 8.5491
+      type: 'test'
+      ...
+    # Subtest: explicit authority accepts fan-in, skip-stage routes and direct target entrants
+    ok 22 - explicit authority accepts fan-in, skip-stage routes and direct target entrants
+      ---
+      duration_ms: 0.1931
+      type: 'test'
+      ...
+    # Subtest: explicit authority accepts a routed-only target and rejects quota above source capacity
+    ok 23 - explicit authority accepts a routed-only target and rejects quota above source capacity
+      ---
+      duration_ms: 0.1111
+      type: 'test'
+      ...
+    # Subtest: legacy mode accepts null qualifierCount on output baskets
+    ok 24 - legacy mode accepts null qualifierCount on output baskets
+      ---
+      duration_ms: 0.0759
+      type: 'test'
+      ...
+    # Subtest: legacy terminal stage implicit output with null qualifierCount is valid in legacy mode
+    ok 25 - legacy terminal stage implicit output with null qualifierCount is valid in legacy mode
+      ---
+      duration_ms: 0.0561
+      type: 'test'
+      ...
+    # Subtest: legacy group-stage implicit output with null qualifierCount remains valid in legacy mode and invalid in explicit mode
+    ok 26 - legacy group-stage implicit output with null qualifierCount remains valid in legacy mode and invalid in explicit mode
+      ---
+      duration_ms: 0.1165
+      type: 'test'
+      ...
+    1..26
+ok 120 - stage basket domain validation
+  ---
+  duration_ms: 14.0638
+  type: 'suite'
+  ...
+# Subtest: standard seeded bracket
+    # Subtest: places top seeds so 1 and 2 can only meet in the final
+    ok 1 - places top seeds so 1 and 2 can only meet in the final
+      ---
+      duration_ms: 1.0619
+      type: 'test'
+      ...
+    # Subtest: supports arbitrary participant counts and awards byes to the highest seeds
+    ok 2 - supports arbitrary participant counts and awards byes to the highest seeds
+      ---
+      duration_ms: 0.2362
+      type: 'test'
+      ...
+    # Subtest: random bracket placement is deterministic without changing participant seed data
+    ok 3 - random bracket placement is deterministic without changing participant seed data
+      ---
+      duration_ms: 0.3966
+      type: 'test'
+      ...
+    1..3
+ok 121 - standard seeded bracket
+  ---
+  duration_ms: 2.2796
+  type: 'suite'
+  ...
+# Subtest: reseeded rounds
+    # Subtest: pairs strongest remaining seed with weakest remaining seed
+    ok 1 - pairs strongest remaining seed with weakest remaining seed
+      ---
+      duration_ms: 0.1271
+      type: 'test'
+      ...
+    1..1
+ok 122 - reseeded rounds
+  ---
+  duration_ms: 0.1989
+  type: 'suite'
+  ...
+# Subtest: group placement
+    # Subtest: snake placement supports unequal balanced groups
+    ok 1 - snake placement supports unequal balanced groups
+      ---
+      duration_ms: 0.289
+      type: 'test'
+      ...
+    # Subtest: random placement is deterministic and keeps exact capacities
+    ok 2 - random placement is deterministic and keeps exact capacities
+      ---
+      duration_ms: 0.1949
+      type: 'test'
+      ...
+    1..2
+ok 123 - group placement
+  ---
+  duration_ms: 0.58
+  type: 'suite'
+  ...
+# Subtest: capacity helpers
+    # Subtest: calculates the next valid bracket size
+    ok 1 - calculates the next valid bracket size
+      ---
+      duration_ms: 0.0848
+      type: 'test'
+      ...
+    # Subtest: calculates only complete elimination-round boundaries
+    ok 2 - calculates only complete elimination-round boundaries
+      ---
+      duration_ms: 0.3646
+      type: 'test'
+      ...
+    1..2
+ok 124 - capacity helpers
+  ---
+  duration_ms: 0.5717
+  type: 'suite'
+  ...
+# Subtest: rankSwissStage
+    # Subtest: orders by matchWins before every other value
+    ok 1 - orders by matchWins before every other value
+      ---
+      duration_ms: 0.979
+      type: 'test'
+      ...
+    # Subtest: orders by Buchholz after matchWins
+    ok 2 - orders by Buchholz after matchWins
+      ---
+      duration_ms: 0.0813
+      type: 'test'
+      ...
+    # Subtest: orders by gameDiff after Buchholz
+    ok 3 - orders by gameDiff after Buchholz
+      ---
+      duration_ms: 0.0621
+      type: 'test'
+      ...
+    # Subtest: orders by gameWins after gameDiff
+    ok 4 - orders by gameWins after gameDiff
+      ---
+      duration_ms: 0.0556
+      type: 'test'
+      ...
+    # Subtest: orders by stageSeed as the final tie-break
+    ok 5 - orders by stageSeed as the final tie-break
+      ---
+      duration_ms: 0.0669
+      type: 'test'
+      ...
+    # Subtest: does not mutate its input
+    ok 6 - does not mutate its input
+      ---
+      duration_ms: 0.145
+      type: 'test'
+      ...
+    # Subtest: rejects a missing stageSeed
+    ok 7 - rejects a missing stageSeed
+      ---
+      duration_ms: 0.0741
+      type: 'test'
+      ...
+    # Subtest: rejects a duplicate stageSeed
+    ok 8 - rejects a duplicate stageSeed
+      ---
+      duration_ms: 0.0585
+      type: 'test'
+      ...
+    # Subtest: is deterministic independently of input order
+    ok 9 - is deterministic independently of input order
+      ---
+      duration_ms: 0.087
+      type: 'test'
+      ...
+    1..9
+ok 125 - rankSwissStage
+  ---
+  duration_ms: 2.3145
+  type: 'suite'
+  ...
+# Subtest: rankRoundRobinOrGroup
+    # Subtest: orders by matchWins first
+    ok 1 - orders by matchWins first
+      ---
+      duration_ms: 0.3138
+      type: 'test'
+      ...
+    # Subtest: uses a decisive head-to-head for exactly two players tied on matchWins
+    ok 2 - uses a decisive head-to-head for exactly two players tied on matchWins
+      ---
+      duration_ms: 0.1835
+      type: 'test'
+      ...
+    # Subtest: does not use head-to-head for three players tied on matchWins
+    ok 3 - does not use head-to-head for three players tied on matchWins
+      ---
+      duration_ms: 0.0774
+      type: 'test'
+      ...
+    # Subtest: no contest does not decide head-to-head
+    ok 4 - no contest does not decide head-to-head
+      ---
+      duration_ms: 0.0537
+      type: 'test'
+      ...
+    # Subtest: uses gameDiff when head-to-head is unavailable
+    ok 5 - uses gameDiff when head-to-head is unavailable
+      ---
+      duration_ms: 0.0519
+      type: 'test'
+      ...
+    # Subtest: uses gameWins after gameDiff
+    ok 6 - uses gameWins after gameDiff
+      ---
+      duration_ms: 0.0514
+      type: 'test'
+      ...
+    # Subtest: uses stageSeed as the final tie-break
+    ok 7 - uses stageSeed as the final tie-break
+      ---
+      duration_ms: 0.05
+      type: 'test'
+      ...
+    # Subtest: accepts a walkover as a decisive head-to-head result
+    ok 8 - accepts a walkover as a decisive head-to-head result
+      ---
+      duration_ms: 0.041
+      type: 'test'
+      ...
+    # Subtest: does not reapply head-to-head after gameDiff narrows a three-player tie
+    ok 9 - does not reapply head-to-head after gameDiff narrows a three-player tie
+      ---
+      duration_ms: 0.0328
+      type: 'test'
+      ...
+    # Subtest: ranks two groups independently
+    ok 10 - ranks two groups independently
+      ---
+      duration_ms: 0.0393
+      type: 'test'
+      ...
+    # Subtest: does not mutate entries or head-to-head results
+    ok 11 - does not mutate entries or head-to-head results
+      ---
+      duration_ms: 0.0665
+      type: 'test'
+      ...
+    # Subtest: rejects duplicate seeds before sorting
+    ok 12 - rejects duplicate seeds before sorting
+      ---
+      duration_ms: 0.0406
+      type: 'test'
+      ...
+    # Subtest: assigns unique consecutive ranks
+    ok 13 - assigns unique consecutive ranks
+      ---
+      duration_ms: 0.047
+      type: 'test'
+      ...
+    1..13
+ok 126 - rankRoundRobinOrGroup
+  ---
+  duration_ms: 1.2507
+  type: 'suite'
+  ...
+# Subtest: Swiss output assigns unique consecutive ranks
+ok 127 - Swiss output assigns unique consecutive ranks
+  ---
+  duration_ms: 0.0514
+  type: 'test'
+  ...
+# Subtest: legacy start delegates standalone group stage only for Marvel
+ok 128 - legacy start delegates standalone group stage only for Marvel
+  ---
+  duration_ms: 0.6286
+  type: 'test'
+  ...
+# Subtest: legacy start routes configured seeding (non-preserve, non-registration_order) through lifecycle
+ok 129 - legacy start routes configured seeding (non-preserve, non-registration_order) through lifecycle
+  ---
+  duration_ms: 0.1366
+  type: 'test'
+  ...
+# Subtest: reports a valid planned stage as ready
+ok 130 - reports a valid planned stage as ready
+  ---
+  duration_ms: 0.7663
+  type: 'test'
+  ...
+# Subtest: explicit basket authority delegates default single-stage starts to the lifecycle
+ok 131 - explicit basket authority delegates default single-stage starts to the lifecycle
+  ---
+  duration_ms: 0.0772
+  type: 'test'
+  ...
+# Subtest: blocks start with the stable basket validation reason
+ok 132 - blocks start with the stable basket validation reason
+  ---
+  duration_ms: 0.1966
+  type: 'test'
+  ...
+# Subtest: reports missing participants and seeds without changing the snapshot
+ok 133 - reports missing participants and seeds without changing the snapshot
+  ---
+  duration_ms: 0.177
+  type: 'test'
+  ...
+# Subtest: reports a non-contiguous seed assignment
+ok 134 - reports a non-contiguous seed assignment
+  ---
+  duration_ms: 0.116
+  type: 'test'
+  ...
+# Subtest: reports existing matches and groups with stable reason codes
+ok 135 - reports existing matches and groups with stable reason codes
+  ---
+  duration_ms: 0.139
+  type: 'test'
+  ...
+# Subtest: rejects a participant record owned by another tournament
+ok 136 - rejects a participant record owned by another tournament
+  ---
+  duration_ms: 0.0972
+  type: 'test'
+  ...
+# Subtest: rejects inconsistent qualification provenance
+ok 137 - rejects inconsistent qualification provenance
+  ---
+  duration_ms: 0.2409
+  type: 'test'
+  ...
+# Subtest: rejects a group qualification that references a group outside the source stage
+ok 138 - rejects a group qualification that references a group outside the source stage
+  ---
+  duration_ms: 0.2918
+  type: 'test'
+  ...
+# Subtest: reports non-planned and non-next stages
+ok 139 - reports non-planned and non-next stages
+  ---
+  duration_ms: 0.1578
+  type: 'test'
+  ...
+# Subtest: accepts a final Marvel elimination-group stage without legacy qualification
+ok 140 - accepts a final Marvel elimination-group stage without legacy qualification
+  ---
+  duration_ms: 0.0933
+  type: 'test'
+  ...
+# Subtest: match-derived standings
+    # Subtest: played updates match and game records
+    ok 1 - played updates match and game records
+      ---
+      duration_ms: 1.1493
+      type: 'test'
+      ...
+    # Subtest: walkover updates only match record
+    ok 2 - walkover updates only match record
+      ---
+      duration_ms: 0.6006
+      type: 'test'
+      ...
+    # Subtest: Swiss bye is one match win without games or opponent Buchholz
+    ok 3 - Swiss bye is one match win without games or opponent Buchholz
+      ---
+      duration_ms: 0.1276
+      type: 'test'
+      ...
+    # Subtest: single-elimination bye changes no record
+    ok 4 - single-elimination bye changes no record
+      ---
+      duration_ms: 0.0842
+      type: 'test'
+      ...
+    # Subtest: no contest changes no record
+    ok 5 - no contest changes no record
+      ---
+      duration_ms: 0.0808
+      type: 'test'
+      ...
+    # Subtest: round robin uses head-to-head for exactly two players tied on match wins
+    ok 6 - round robin uses head-to-head for exactly two players tied on match wins
+      ---
+      duration_ms: 0.0889
+      type: 'test'
+      ...
+    # Subtest: round robin uses gameDiff after match wins when more than two are tied
+    ok 7 - round robin uses gameDiff after match wins when more than two are tied
+      ---
+      duration_ms: 0.0896
+      type: 'test'
+      ...
+    # Subtest: Swiss Buchholz sums opponents' match wins and keeps walkover opponents
+    ok 8 - Swiss Buchholz sums opponents' match wins and keeps walkover opponents
+      ---
+      duration_ms: 0.0732
+      type: 'test'
+      ...
+    # Subtest: projection exposes no points or draws
+    ok 9 - projection exposes no points or draws
+      ---
+      duration_ms: 0.0997
+      type: 'test'
+      ...
+    1..9
+ok 141 - match-derived standings
+  ---
+  duration_ms: 3.137
+  type: 'suite'
+  ...
+# Subtest: Swiss pairing
+    # Subtest: pairs in standings order and gives first bye to the lowest ranked eligible player
+    ok 1 - pairs in standings order and gives first bye to the lowest ranked eligible player
+      ---
+      duration_ms: 0.99
+      type: 'test'
+      ...
+    # Subtest: avoids an immediate rematch when an alternative exists
+    ok 2 - avoids an immediate rematch when an alternative exists
+      ---
+      duration_ms: 0.1398
+      type: 'test'
+      ...
+    # Subtest: does not repeat a bye while another eligible player has none
+    ok 3 - does not repeat a bye while another eligible player has none
+      ---
+      duration_ms: 0.1368
+      type: 'test'
+      ...
+    # Subtest: may repeat a bye only after every eligible player already received one
+    ok 4 - may repeat a bye only after every eligible player already received one
+      ---
+      duration_ms: 0.1017
+      type: 'test'
+      ...
+    1..4
+ok 142 - Swiss pairing
+  ---
+  duration_ms: 1.9884
+  type: 'suite'
+  ...
+# Subtest: discovers new and nested regressions without mixing database tests into units
+ok 143 - discovers new and nested regressions without mixing database tests into units
+  ---
+  duration_ms: 8.2821
+  type: 'test'
+  ...
+# Subtest: includes previously omitted lifecycle, seeding and DE regressions
+ok 144 - includes previously omitted lifecycle, seeding and DE regressions
+  ---
+  duration_ms: 1.6397
+  type: 'test'
+  ...
+# Subtest: commit: corrected match, receipt, and audit actions written by a single transaction
+ok 145 - commit: corrected match, receipt, and audit actions written by a single transaction
+  ---
+  duration_ms: 3.5391
+  type: 'test'
+  ...
+# Subtest: rollback: an injected exception immediately after reverting does not publish partial changes
+ok 146 - rollback: an injected exception immediately after reverting does not publish partial changes
+  ---
+  duration_ms: 1.0658
+  type: 'test'
+  ...
+# Subtest: rollback: an injected exception immediately after new result does not publish partial changes
+ok 147 - rollback: an injected exception immediately after new result does not publish partial changes
+  ---
+  duration_ms: 0.7406
+  type: 'test'
+  ...
+# Subtest: rollback: completeMatch failure after its own mutation leaves original approved result
+ok 148 - rollback: completeMatch failure after its own mutation leaves original approved result
+  ---
+  duration_ms: 0.6766
+  type: 'test'
+  ...
+# Subtest: audit ambiguity: two active submissions force full transaction rollback
+ok 149 - audit ambiguity: two active submissions force full transaction rollback
+  ---
+  duration_ms: 0.6901
+  type: 'test'
+  ...
+# Subtest: audit corruption: malformed undo payload forces full transaction rollback
+ok 150 - audit corruption: malformed undo payload forces full transaction rollback
+  ---
+  duration_ms: 0.6973
+  type: 'test'
+  ...
+# Subtest: stale operation is rejected without persisting changes
+ok 151 - stale operation is rejected without persisting changes
+  ---
+  duration_ms: 0.6907
+  type: 'test'
+  ...
+# Subtest: unsupported format is refused before reverting
+ok 152 - unsupported format is refused before reverting
+  ---
+  duration_ms: 0.6225
+  type: 'test'
+  ...
+# Subtest: unchanged score is refused before reverting
+ok 153 - unchanged score is refused before reverting
+  ---
+  duration_ms: 0.6444
+  type: 'test'
+  ...
+# Subtest: previously consumed approval is rejected, never executed twice
+ok 154 - previously consumed approval is rejected, never executed twice
+  ---
+  duration_ms: 0.6539
+  type: 'test'
+  ...
+# Subtest: Pack 15 atomic correction pure contract
+    # Subtest: predicts new winner without mutation
+    ok 1 - predicts new winner without mutation
+      ---
+      duration_ms: 1.1187
+      type: 'test'
+      ...
+    # Subtest: preserves winner if corrected score does not change winner
+    ok 2 - preserves winner if corrected score does not change winner
+      ---
+      duration_ms: 0.668
+      type: 'test'
+      ...
+    # Subtest: no change
+    ok 3 - no change
+      ---
+      duration_ms: 0.1539
+      type: 'test'
+      ...
+    # Subtest: no p1
+    ok 4 - no p1
+      ---
+      duration_ms: 0.0507
+      type: 'test'
+      ...
+    # Subtest: no p2
+    ok 5 - no p2
+      ---
+      duration_ms: 0.0401
+      type: 'test'
+      ...
+    # Subtest: same player
+    ok 6 - same player
+      ---
+      duration_ms: 0.0387
+      type: 'test'
+      ...
+    # Subtest: tie
+    ok 7 - tie
+      ---
+      duration_ms: 0.0823
+      type: 'test'
+      ...
+    # Subtest: negative
+    ok 8 - negative
+      ---
+      duration_ms: 0.0393
+      type: 'test'
+      ...
+    # Subtest: fraction
+    ok 9 - fraction
+      ---
+      duration_ms: 0.0583
+      type: 'test'
+      ...
+    # Subtest: excess win threshold
+    ok 10 - excess win threshold
+      ---
+      duration_ms: 0.0882
+      type: 'test'
+      ...
+    # Subtest: both reach wins
+    ok 11 - both reach wins
+      ---
+      duration_ms: 0.0493
+      type: 'test'
+      ...
+    # Subtest: odd series
+    ok 12 - odd series
+      ---
+      duration_ms: 0.0335
+      type: 'test'
+      ...
+    # Subtest: zero best-of
+    ok 13 - zero best-of
+      ---
+      duration_ms: 0.084
+      type: 'test'
+      ...
+    # Subtest: allows BO1 correction
+    ok 14 - allows BO1 correction
+      ---
+      duration_ms: 0.0833
+      type: 'test'
+      ...
+    # Subtest: terminal=approved
+    ok 15 - terminal=approved
+      ---
+      duration_ms: 0.067
+      type: 'test'
+      ...
+    # Subtest: terminal=corrected
+    ok 16 - terminal=corrected
+      ---
+      duration_ms: 0.0296
+      type: 'test'
+      ...
+    # Subtest: terminal=reverted_requires_resubmission
+    ok 17 - terminal=reverted_requires_resubmission
+      ---
+      duration_ms: 0.0174
+      type: 'test'
+      ...
+    # Subtest: terminal=expired
+    ok 18 - terminal=expired
+      ---
+      duration_ms: 0.0209
+      type: 'test'
+      ...
+    # Subtest: terminal=pending
+    ok 19 - terminal=pending
+      ---
+      duration_ms: 0.0166
+      type: 'test'
+      ...
+    1..19
+ok 155 - Pack 15 atomic correction pure contract
+  ---
+  duration_ms: 3.6548
+  type: 'suite'
+  ...
+# Subtest: validateTournamentBlueprintV2
+    # Subtest: accepts the simple default: one bucket, one stage and one registration route
+    ok 1 - accepts the simple default: one bucket, one stage and one registration route
+      ---
+      duration_ms: 1.6211
+      type: 'test'
+      ...
+    # Subtest: supports multiple incoming routes with reserved target slots
+    ok 2 - supports multiple incoming routes with reserved target slots
+      ---
+      duration_ms: 0.1931
+      type: 'test'
+      ...
+    # Subtest: rejects an unknown route target
+    ok 3 - rejects an unknown route target
+      ---
+      duration_ms: 0.1871
+      type: 'test'
+      ...
+    # Subtest: rejects overbooking an exact target capacity
+    ok 4 - rejects overbooking an exact target capacity
+      ---
+      duration_ms: 0.0891
+      type: 'test'
+      ...
+    # Subtest: requires explicit sources to reserve exactly every target slot
+    ok 5 - requires explicit sources to reserve exactly every target slot
+      ---
+      duration_ms: 0.0972
+      type: 'test'
+      ...
+    # Subtest: rejects overbooking a flexible target capacity
+    ok 6 - rejects overbooking a flexible target capacity
+      ---
+      duration_ms: 0.1005
+      type: 'test'
+      ...
+    # Subtest: rejects unreachable stages and cycles
+    ok 7 - rejects unreachable stages and cycles
+      ---
+      duration_ms: 0.1588
+      type: 'test'
+      ...
+    1..7
+ok 156 - validateTournamentBlueprintV2
+  ---
+  duration_ms: 3.1041
+  type: 'suite'
+  ...
+# Subtest: adaptV1StagePlanToV2
+    # Subtest: preserves a valid one-stage v1 plan without changing runtime code
+    ok 1 - preserves a valid one-stage v1 plan without changing runtime code
+      ---
+      duration_ms: 0.7725
+      type: 'test'
+      ...
+    # Subtest: maps group qualification, rank-band reseeding and standard bracket placement to separate policies
+    ok 2 - maps group qualification, rank-band reseeding and standard bracket placement to separate policies
+      ---
+      duration_ms: 0.4774
+      type: 'test'
+      ...
+    # Subtest: keeps all-participant advancement representable
+    ok 3 - keeps all-participant advancement representable
+      ---
+      duration_ms: 0.2447
+      type: 'test'
+      ...
+    # Subtest: returns v1 validation problems instead of adapting an invalid plan
+    ok 4 - returns v1 validation problems instead of adapting an invalid plan
+      ---
+      duration_ms: 0.1101
+      type: 'test'
+      ...
+    1..4
+ok 157 - adaptV1StagePlanToV2
+  ---
+  duration_ms: 1.7524
+  type: 'suite'
+  ...
+# Subtest: allows only an authorized candidate, never actual execution
+ok 158 - allows only an authorized candidate, never actual execution
+  ---
+  duration_ms: 1.5749
+  type: 'test'
+  ...
+# Subtest: denies: Swiss
+ok 159 - denies: Swiss
+  ---
+  duration_ms: 0.1174
+  type: 'test'
+  ...
+# Subtest: denies: single elimination
+ok 160 - denies: single elimination
+  ---
+  duration_ms: 0.0481
+  type: 'test'
+  ...
+# Subtest: denies: double elimination
+ok 161 - denies: double elimination
+  ---
+  duration_ms: 0.0402
+  type: 'test'
+  ...
+# Subtest: denies: group stage
+ok 162 - denies: group stage
+  ---
+  duration_ms: 0.0437
+  type: 'test'
+  ...
+# Subtest: denies: no format
+ok 163 - denies: no format
+  ---
+  duration_ms: 0.0621
+  type: 'test'
+  ...
+# Subtest: denies: completed stage
+ok 164 - denies: completed stage
+  ---
+  duration_ms: 0.0474
+  type: 'test'
+  ...
+# Subtest: denies: planned stage
+ok 165 - denies: planned stage
+  ---
+  duration_ms: 0.0338
+  type: 'test'
+  ...
+# Subtest: denies: completed tournament
+ok 166 - denies: completed tournament
+  ---
+  duration_ms: 0.0442
+  type: 'test'
+  ...
+# Subtest: denies: stale guard
+ok 167 - denies: stale guard
+  ---
+  duration_ms: 0.1104
+  type: 'test'
+  ...
+# Subtest: denies: absent guard
+ok 168 - denies: absent guard
+  ---
+  duration_ms: 0.0596
+  type: 'test'
+  ...
+# Subtest: denies: stale playbook
+ok 169 - denies: stale playbook
+  ---
+  duration_ms: 0.0512
+  type: 'test'
+  ...
+# Subtest: denies: blocked preview
+ok 170 - denies: blocked preview
+  ---
+  duration_ms: 0.037
+  type: 'test'
+  ...
+# Subtest: denies: blocked playbook
+ok 171 - denies: blocked playbook
+  ---
+  duration_ms: 0.0344
+  type: 'test'
+  ...
+# Subtest: denies: no change status
+ok 172 - denies: no change status
+  ---
+  duration_ms: 0.0212
+  type: 'test'
+  ...
+# Subtest: denies: review issue
+ok 173 - denies: review issue
+  ---
+  duration_ms: 0.034
+  type: 'test'
+  ...
+# Subtest: denies: block issue
+ok 174 - denies: block issue
+  ---
+  duration_ms: 0.0196
+  type: 'test'
+  ...
+# Subtest: denies: unverified history
+ok 175 - denies: unverified history
+  ---
+  duration_ms: 0.0312
+  type: 'test'
+  ...
+# Subtest: denies: missing action
+ok 176 - denies: missing action
+  ---
+  duration_ms: 0.0435
+  type: 'test'
+  ...
+# Subtest: denies: invalid action
+ok 177 - denies: invalid action
+  ---
+  duration_ms: 0.0226
+  type: 'test'
+  ...
+# Subtest: denies: no correction
+ok 178 - denies: no correction
+  ---
+  duration_ms: 0.0238
+  type: 'test'
+  ...
+# Subtest: parses a complete, explicitly approved request
+ok 179 - parses a complete, explicitly approved request
+  ---
+  duration_ms: 1.7014
+  type: 'test'
+  ...
+# Subtest: normalizes UUID to lowercase
+ok 180 - normalizes UUID to lowercase
+  ---
+  duration_ms: 0.1943
+  type: 'test'
+  ...
+# Subtest: rejects unknown/non-object input
+ok 181 - rejects unknown/non-object input
+  ---
+  duration_ms: 0.0737
+  type: 'test'
+  ...
+# Subtest: rejects missing uuid
+ok 182 - rejects missing uuid
+  ---
+  duration_ms: 0.0677
+  type: 'test'
+  ...
+# Subtest: rejects v1 uuid
+ok 183 - rejects v1 uuid
+  ---
+  duration_ms: 0.0526
+  type: 'test'
+  ...
+# Subtest: rejects unsafe uuid
+ok 184 - rejects unsafe uuid
+  ---
+  duration_ms: 0.0403
+  type: 'test'
+  ...
+# Subtest: rejects missing match
+ok 185 - rejects missing match
+  ---
+  duration_ms: 0.042
+  type: 'test'
+  ...
+# Subtest: rejects fractional match
+ok 186 - rejects fractional match
+  ---
+  duration_ms: 0.0498
+  type: 'test'
+  ...
+# Subtest: rejects negative match
+ok 187 - rejects negative match
+  ---
+  duration_ms: 0.0492
+  type: 'test'
+  ...
+# Subtest: rejects zero revision
+ok 188 - rejects zero revision
+  ---
+  duration_ms: 0.0902
+  type: 'test'
+  ...
+# Subtest: rejects nonpositive action
+ok 189 - rejects nonpositive action
+  ---
+  duration_ms: 0.0656
+  type: 'test'
+  ...
+# Subtest: rejects missing stage fingerprint
+ok 190 - rejects missing stage fingerprint
+  ---
+  duration_ms: 0.037
+  type: 'test'
+  ...
+# Subtest: rejects too long stage fingerprint
+ok 191 - rejects too long stage fingerprint
+  ---
+  duration_ms: 0.0734
+  type: 'test'
+  ...
+# Subtest: rejects negative result
+ok 192 - rejects negative result
+  ---
+  duration_ms: 0.0319
+  type: 'test'
+  ...
+# Subtest: rejects fractional score
+ok 193 - rejects fractional score
+  ---
+  duration_ms: 0.0272
+  type: 'test'
+  ...
+# Subtest: rejects non numeric score
+ok 194 - rejects non numeric score
+  ---
+  duration_ms: 0.0328
+  type: 'test'
+  ...
+# Subtest: rejects missing approval
+ok 195 - rejects missing approval
+  ---
+  duration_ms: 0.036
+  type: 'test'
+  ...
+# Subtest: rejects missing resubmission confirmation
+ok 196 - rejects missing resubmission confirmation
+  ---
+  duration_ms: 0.0187
+  type: 'test'
+  ...
+# Subtest: fingerprint stable for retries
+ok 197 - fingerprint stable for retries
+  ---
+  duration_ms: 0.292
+  type: 'test'
+  ...
+# Subtest: fingerprint isolates tournament
+ok 198 - fingerprint isolates tournament
+  ---
+  duration_ms: 0.0637
+  type: 'test'
+  ...
+# Subtest: fingerprint changes with different proposed result
+ok 199 - fingerprint changes with different proposed result
+  ---
+  duration_ms: 0.0455
+  type: 'test'
+  ...
+# Subtest: fingerprint changes with expected action
+ok 200 - fingerprint changes with expected action
+  ---
+  duration_ms: 0.0338
+  type: 'test'
+  ...
+# Subtest: fingerprint changes with match version
+ok 201 - fingerprint changes with match version
+  ---
+  duration_ms: 0.0557
+  type: 'test'
+  ...
+# Subtest: fingerprint changes with stage vector
+ok 202 - fingerprint changes with stage vector
+  ---
+  duration_ms: 0.0417
+  type: 'test'
+  ...
+# Subtest: fingerprint is SHA256
+ok 203 - fingerprint is SHA256
+  ---
+  duration_ms: 0.1244
+  type: 'test'
+  ...
+# Subtest: approval remains live before expiry
+ok 204 - approval remains live before expiry
+  ---
+  duration_ms: 0.0463
+  type: 'test'
+  ...
+# Subtest: approval expires at exact boundary
+ok 205 - approval expires at exact boundary
+  ---
+  duration_ms: 0.0357
+  type: 'test'
+  ...
+# Subtest: completed operation never expires
+ok 206 - completed operation never expires
+  ---
+  duration_ms: 0.0338
+  type: 'test'
+  ...
+# Subtest: fresh receipt has no mutation
+ok 207 - fresh receipt has no mutation
+  ---
+  duration_ms: 0.7479
+  type: 'test'
+  ...
+# Subtest: expired receipt is still readable and remains non-mutating
+ok 208 - expired receipt is still readable and remains non-mutating
+  ---
+  duration_ms: 0.0701
+  type: 'test'
+  ...
+# Subtest: completed receipt can be recovered after network loss
+ok 209 - completed receipt can be recovered after network loss
+  ---
+  duration_ms: 0.0588
+  type: 'test'
+  ...
+# Subtest: proposes a manual-only sequence for a changed score
+ok 210 - proposes a manual-only sequence for a changed score
+  ---
+  duration_ms: 1.2698
+  type: 'test'
+  ...
+# Subtest: returns no-op for an unchanged score and no blockers
+ok 211 - returns no-op for an unchanged score and no blockers
+  ---
+  duration_ms: 0.1216
+  type: 'test'
+  ...
+# Subtest: fails closed on a stale guard
+ok 212 - fails closed on a stale guard
+  ---
+  duration_ms: 0.0883
+  type: 'test'
+  ...
+# Subtest: fails closed on absent guard
+ok 213 - fails closed on absent guard
+  ---
+  duration_ms: 0.0705
+  type: 'test'
+  ...
+# Subtest: fails closed on empty version vector
+ok 214 - fails closed on empty version vector
+  ---
+  duration_ms: 0.0835
+  type: 'test'
+  ...
+# Subtest: preserves source blocking codes
+ok 215 - preserves source blocking codes
+  ---
+  duration_ms: 0.0971
+  type: 'test'
+  ...
+# Subtest: does not convert a review issue into a blocker
+ok 216 - does not convert a review issue into a blocker
+  ---
+  duration_ms: 0.0728
+  type: 'test'
+  ...
+# Subtest: DE unavailable always blocks standard playbook
+ok 217 - DE unavailable always blocks standard playbook
+  ---
+  duration_ms: 0.068
+  type: 'test'
+  ...
+# Subtest: DE available includes routing revisions
+ok 218 - DE available includes routing revisions
+  ---
+  duration_ms: 0.1271
+  type: 'test'
+  ...
+# Subtest: DE downstream completed decisions trigger critical blocker
+ok 219 - DE downstream completed decisions trigger critical blocker
+  ---
+  duration_ms: 0.2254
+  type: 'test'
+  ...
+# Subtest: DE source decision does not count as downstream invalidation
+ok 220 - DE source decision does not count as downstream invalidation
+  ---
+  duration_ms: 0.0978
+  type: 'test'
+  ...
+# Subtest: DE warnings cause fail-closed inspection
+ok 221 - DE warnings cause fail-closed inspection
+  ---
+  duration_ms: 0.0612
+  type: 'test'
+  ...
+# Subtest: SE missing impact fails closed when winner changes
+ok 222 - SE missing impact fails closed when winner changes
+  ---
+  duration_ms: 0.0514
+  type: 'test'
+  ...
+# Subtest: SE explicitly unavailable impact blocks changed winner
+ok 223 - SE explicitly unavailable impact blocks changed winner
+  ---
+  duration_ms: 0.077
+  type: 'test'
+  ...
+# Subtest: SE stable score-only change ignores unavailable structural impact
+ok 224 - SE stable score-only change ignores unavailable structural impact
+  ---
+  duration_ms: 0.0577
+  type: 'test'
+  ...
+# Subtest: SE ambiguous structural chain blocks changing winner
+ok 225 - SE ambiguous structural chain blocks changing winner
+  ---
+  duration_ms: 0.0869
+  type: 'test'
+  ...
+# Subtest: deduplicates and sorts affected match ids
+ok 226 - deduplicates and sorts affected match ids
+  ---
+  duration_ms: 0.0559
+  type: 'test'
+  ...
+# Subtest: winner change adds explicit approval question
+ok 227 - winner change adds explicit approval question
+  ---
+  duration_ms: 0.0664
+  type: 'test'
+  ...
+# Subtest: retains requested score and expected revision
+ok 228 - retains requested score and expected revision
+  ---
+  duration_ms: 0.2363
+  type: 'test'
+  ...
+# Subtest: output never claims to perform mutation in any state
+ok 229 - output never claims to perform mutation in any state
+  ---
+  duration_ms: 0.1486
+  type: 'test'
+  ...
+# Subtest: detects invalidated decisions and changed DE routing slots
+ok 230 - detects invalidated decisions and changed DE routing slots
+  ---
+  duration_ms: 1.8927
+  type: 'test'
+  ...
+# Subtest: shows both winner and loser route evidence
+ok 231 - shows both winner and loser route evidence
+  ---
+  duration_ms: 0.152
+  type: 'test'
+  ...
+# Subtest: compares champion without asserting new champion
+ok 232 - compares champion without asserting new champion
+  ---
+  duration_ms: 0.095
+  type: 'test'
+  ...
+# Subtest: same-winner correction leaves graph unchanged when evaluation equal
+ok 233 - same-winner correction leaves graph unchanged when evaluation equal
+  ---
+  duration_ms: 0.086
+  type: 'test'
+  ...
+# Subtest: rejects stale revision
+ok 234 - rejects stale revision
+  ---
+  duration_ms: 0.0916
+  type: 'test'
+  ...
+# Subtest: rejects invalid preflight scores
+ok 235 - rejects invalid preflight scores
+  ---
+  duration_ms: 0.0883
+  type: 'test'
+  ...
+# Subtest: rejects absent routing match key
+ok 236 - rejects absent routing match key
+  ---
+  duration_ms: 0.0862
+  type: 'test'
+  ...
+# Subtest: rejects stage-key mismatch
+ok 237 - rejects stage-key mismatch
+  ---
+  duration_ms: 0.0677
+  type: 'test'
+  ...
+# Subtest: rejects missing logical match
+ok 238 - rejects missing logical match
+  ---
+  duration_ms: 0.076
+  type: 'test'
+  ...
+# Subtest: rejects wrong routing winner
+ok 239 - rejects wrong routing winner
+  ---
+  duration_ms: 0.1207
+  type: 'test'
+  ...
+# Subtest: rejects missing source decision
+ok 240 - rejects missing source decision
+  ---
+  duration_ms: 0.077
+  type: 'test'
+  ...
+# Subtest: rejects canonical winner mismatch
+ok 241 - rejects canonical winner mismatch
+  ---
+  duration_ms: 0.0695
+  type: 'test'
+  ...
+# Subtest: rejects duplicate canonical routing key
+ok 242 - rejects duplicate canonical routing key
+  ---
+  duration_ms: 0.0521
+  type: 'test'
+  ...
+# Subtest: rejects graph changes
+ok 243 - rejects graph changes
+  ---
+  duration_ms: 0.048
+  type: 'test'
+  ...
+# Subtest: rejects incorrect simulated winner
+ok 244 - rejects incorrect simulated winner
+  ---
+  duration_ms: 0.0548
+  type: 'test'
+  ...
+# Subtest: notes lack of immediate route evidence rather than inventing it
+ok 245 - notes lack of immediate route evidence rather than inventing it
+  ---
+  duration_ms: 0.0808
+  type: 'test'
+  ...
+# Subtest: does not mutate caller-owned inputs
+ok 246 - does not mutate caller-owned inputs
+  ---
+  duration_ms: 0.1095
+  type: 'test'
+  ...
+# Subtest: Pack 10 — structural elimination bracket impact
+    # Subtest: finds direct slot and traces only structural ancestors
+    ok 1 - finds direct slot and traces only structural ancestors
+      ---
+      duration_ms: 1.6079
+      type: 'test'
+      ...
+    # Subtest: maps even match number to second slot in next bracket match
+    ok 2 - maps even match number to second slot in next bracket match
+      ---
+      duration_ms: 0.2018
+      type: 'test'
+      ...
+    # Subtest: fourth first-round match feeds second semi-final
+    ok 3 - fourth first-round match feeds second semi-final
+      ---
+      duration_ms: 0.1245
+      type: 'test'
+      ...
+    # Subtest: score-only correction never invents changed participants
+    ok 4 - score-only correction never invents changed participants
+      ---
+      duration_ms: 0.0996
+      type: 'test'
+      ...
+    # Subtest: direct match already started is a dependency warning, not green approval
+    ok 5 - direct match already started is a dependency warning, not green approval
+      ---
+      duration_ms: 0.2216
+      type: 'test'
+      ...
+    # Subtest: direct match with finalized result is marked blocking
+    ok 6 - direct match with finalized result is marked blocking
+      ---
+      duration_ms: 0.1269
+      type: 'test'
+      ...
+    # Subtest: wrong original winner in downstream slot is identified
+    ok 7 - wrong original winner in downstream slot is identified
+      ---
+      duration_ms: 0.1172
+      type: 'test'
+      ...
+    # Subtest: proposed winner cannot occur twice in downstream match
+    ok 8 - proposed winner cannot occur twice in downstream match
+      ---
+      duration_ms: 0.1092
+      type: 'test'
+      ...
+    # Subtest: missing parent round yields partial chain instead of fabricated descendant
+    ok 9 - missing parent round yields partial chain instead of fabricated descendant
+      ---
+      duration_ms: 0.1143
+      type: 'test'
+      ...
+    # Subtest: duplicate match numbers yield partial chain
+    ok 10 - duplicate match numbers yield partial chain
+      ---
+      duration_ms: 0.1645
+      type: 'test'
+      ...
+    # Subtest: noncontiguous match numbers do not infer parent from sorted index
+    ok 11 - noncontiguous match numbers do not infer parent from sorted index
+      ---
+      duration_ms: 0.1365
+      type: 'test'
+      ...
+    # Subtest: mismatch between stage and match is unavailable
+    ok 12 - mismatch between stage and match is unavailable
+      ---
+      duration_ms: 0.0902
+      type: 'test'
+      ...
+    # Subtest: double elimination never pretends standard SE links are valid
+    ok 13 - double elimination never pretends standard SE links are valid
+      ---
+      duration_ms: 0.0697
+      type: 'test'
+      ...
+    # Subtest: Swiss and round robin are not elimination bracket projections
+    ok 14 - Swiss and round robin are not elimination bracket projections
+      ---
+      duration_ms: 0.0886
+      type: 'test'
+      ...
+    # Subtest: duplicate source match from separate reads is rejected
+    ok 15 - duplicate source match from separate reads is rejected
+      ---
+      duration_ms: 0.071
+      type: 'test'
+      ...
+    # Subtest: changed source revision between queries is rejected
+    ok 16 - changed source revision between queries is rejected
+      ---
+      duration_ms: 0.0622
+      type: 'test'
+      ...
+    # Subtest: duplicate match numbers in source round stop structural guessing
+    ok 17 - duplicate match numbers in source round stop structural guessing
+      ---
+      duration_ms: 0.0665
+      type: 'test'
+      ...
+    # Subtest: missing totalRounds marks analysis incomplete
+    ok 18 - missing totalRounds marks analysis incomplete
+      ---
+      duration_ms: 0.0708
+      type: 'test'
+      ...
+    # Subtest: round after declared final round is unavailable
+    ok 19 - round after declared final round is unavailable
+      ---
+      duration_ms: 0.0434
+      type: 'test'
+      ...
+    # Subtest: stale revision blocks exact bracket projection
+    ok 20 - stale revision blocks exact bracket projection
+      ---
+      duration_ms: 0.0393
+      type: 'test'
+      ...
+    # Subtest: invalid result blocks projection
+    ok 21 - invalid result blocks projection
+      ---
+      duration_ms: 0.036
+      type: 'test'
+      ...
+    # Subtest: a final-round match has champion impact but no guessed parent
+    ok 22 - a final-round match has champion impact but no guessed parent
+      ---
+      duration_ms: 0.0812
+      type: 'test'
+      ...
+    # Subtest: approved qualification still blocks real correction even if bracket structurally resolvable
+    ok 23 - approved qualification still blocks real correction even if bracket structurally resolvable
+      ---
+      duration_ms: 0.0561
+      type: 'test'
+      ...
+    # Subtest: analysis is deterministic and never mutates any input
+    ok 24 - analysis is deterministic and never mutates any input
+      ---
+      duration_ms: 0.2341
+      type: 'test'
+      ...
+    # Subtest: does not accept another match's preflight result
+    ok 25 - does not accept another match's preflight result
+      ---
+      duration_ms: 0.0614
+      type: 'test'
+      ...
+    # Subtest: structural result is never an operation authorization
+    ok 26 - structural result is never an operation authorization
+      ---
+      duration_ms: 0.0696
+      type: 'test'
+      ...
+    1..26
+ok 247 - Pack 10 — structural elimination bracket impact
+  ---
+  duration_ms: 5.1194
+  type: 'suite'
+  ...
+# Subtest: generated tournament format contract
+    # Subtest: Tournament and TournamentInput expose exactly all five current formats
+    ok 1 - Tournament and TournamentInput expose exactly all five current formats
+      ---
+      duration_ms: 0.881
+      type: 'test'
+      ...
+    # Subtest: TournamentUpdate exposes only the three legacy mutation formats
+    ok 2 - TournamentUpdate exposes only the three legacy mutation formats
+      ---
+      duration_ms: 0.0975
+      type: 'test'
+      ...
+    # Subtest: Backup V2 exposes only the three legacy tournament formats
+    ok 3 - Backup V2 exposes only the three legacy tournament formats
+      ---
+      duration_ms: 0.0607
+      type: 'test'
+      ...
+    # Subtest: Backup V3 retains current formats and full stage model fields
+    ok 4 - Backup V3 retains current formats and full stage model fields
+      ---
+      duration_ms: 0.0823
+      type: 'test'
+      ...
+    # Subtest: CreateTournamentBody accepts single_elimination
+    ok 5 - CreateTournamentBody accepts single_elimination
+      ---
+      duration_ms: 0.6973
+      type: 'test'
+      ...
+    # Subtest: CreateTournamentBody accepts round_robin
+    ok 6 - CreateTournamentBody accepts round_robin
+      ---
+      duration_ms: 0.1148
+      type: 'test'
+      ...
+    # Subtest: CreateTournamentBody accepts swiss
+    ok 7 - CreateTournamentBody accepts swiss
+      ---
+      duration_ms: 0.092
+      type: 'test'
+      ...
+    # Subtest: CreateTournamentBody accepts group_stage
+    ok 8 - CreateTournamentBody accepts group_stage
+      ---
+      duration_ms: 0.073
+      type: 'test'
+      ...
+    # Subtest: CreateTournamentBody accepts double_elimination
+    ok 9 - CreateTournamentBody accepts double_elimination
+      ---
+      duration_ms: 0.0959
+      type: 'test'
+      ...
+    1..9
+ok 248 - generated tournament format contract
+  ---
+  duration_ms: 2.9172
+  type: 'suite'
+  ...
+# Subtest: Tournament Operations Engine — read-only organizer guidance
+    # Subtest: draft requires at least two participants
+    ok 1 - draft requires at least two participants
+      ---
+      duration_ms: 0.9673
+      type: 'test'
+      ...
+    # Subtest: draft never claims ready when authoritative readiness is missing
+    ok 2 - draft never claims ready when authoritative readiness is missing
+      ---
+      duration_ms: 0.1468
+      type: 'test'
+      ...
+    # Subtest: draft blocked by stage readiness
+    ok 3 - draft blocked by stage readiness
+      ---
+      duration_ms: 0.0939
+      type: 'test'
+      ...
+    # Subtest: draft ready prompts confirmation, never auto-starts
+    ok 4 - draft ready prompts confirmation, never auto-starts
+      ---
+      duration_ms: 0.079
+      type: 'test'
+      ...
+    # Subtest: active stage counts only its own matches
+    ok 5 - active stage counts only its own matches
+      ---
+      duration_ms: 0.4984
+      type: 'test'
+      ...
+    # Subtest: all completed Swiss round proposes next round, not stage completion
+    ok 6 - all completed Swiss round proposes next round, not stage completion
+      ---
+      duration_ms: 0.0897
+      type: 'test'
+      ...
+    # Subtest: incomplete earlier Swiss round blocks progression
+    ok 7 - incomplete earlier Swiss round blocks progression
+      ---
+      duration_ms: 0.1437
+      type: 'test'
+      ...
+    # Subtest: cancelled matches block unsafe completion
+    ok 8 - cancelled matches block unsafe completion
+      ---
+      duration_ms: 0.0789
+      type: 'test'
+      ...
+    # Subtest: postponed matches need review
+    ok 9 - postponed matches need review
+      ---
+      duration_ms: 0.077
+      type: 'test'
+      ...
+    # Subtest: missing match materialization never implies stage completion
+    ok 10 - missing match materialization never implies stage completion
+      ---
+      duration_ms: 0.1273
+      type: 'test'
+      ...
+    # Subtest: complete non-Swiss stage requires confirmation
+    ok 11 - complete non-Swiss stage requires confirmation
+      ---
+      duration_ms: 0.0977
+      type: 'test'
+      ...
+    # Subtest: transition waits for authoritative readiness
+    ok 12 - transition waits for authoritative readiness
+      ---
+      duration_ms: 0.0905
+      type: 'test'
+      ...
+    # Subtest: ready next stage is a confirmation, not an automatic transition
+    ok 13 - ready next stage is a confirmation, not an automatic transition
+      ---
+      duration_ms: 0.0515
+      type: 'test'
+      ...
+    # Subtest: completed tournament never exposes mutations
+    ok 14 - completed tournament never exposes mutations
+      ---
+      duration_ms: 0.0403
+      type: 'test'
+      ...
+    # Subtest: invalid double-active state is blocked
+    ok 15 - invalid double-active state is blocked
+      ---
+      duration_ms: 0.0676
+      type: 'test'
+      ...
+    1..15
+ok 249 - Tournament Operations Engine — read-only organizer guidance
+  ---
+  duration_ms: 3.5652
+  type: 'suite'
+  ...
+# Subtest: public plan preview returns a validated plan without writing to DB
+ok 250 - public plan preview returns a validated plan without writing to DB
+  ---
+  duration_ms: 25.057
+  type: 'test'
+  ...
+# Subtest: bad template returns structured 422, no side effects
+ok 251 - bad template returns structured 422, no side effects
+  ---
+  duration_ms: 3.3974
+  type: 'test'
+  ...
+# Subtest: rejects undeclared properties
+ok 252 - rejects undeclared properties
+  ---
+  duration_ms: 2.5203
+  type: 'test'
+  ...
+# Subtest: PACK 05 / planner templates are pure and authority-validated
+    # Subtest: quick_elimination: 2 participants produce a valid stage plan
+    ok 1 - quick_elimination: 2 participants produce a valid stage plan
+      ---
+      duration_ms: 1.4304
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 3 participants produce a valid stage plan
+    ok 2 - quick_elimination: 3 participants produce a valid stage plan
+      ---
+      duration_ms: 0.115
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 4 participants produce a valid stage plan
+    ok 3 - quick_elimination: 4 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0919
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 8 participants produce a valid stage plan
+    ok 4 - quick_elimination: 8 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0809
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 16 participants produce a valid stage plan
+    ok 5 - quick_elimination: 16 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0851
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 32 participants produce a valid stage plan
+    ok 6 - quick_elimination: 32 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0653
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 64 participants produce a valid stage plan
+    ok 7 - quick_elimination: 64 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0591
+      type: 'test'
+      ...
+    # Subtest: quick_elimination: 128 participants produce a valid stage plan
+    ok 8 - quick_elimination: 128 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0605
+      type: 'test'
+      ...
+    # Subtest: double_chance: 4 participants produce a valid stage plan
+    ok 9 - double_chance: 4 participants produce a valid stage plan
+      ---
+      duration_ms: 4.8599
+      type: 'test'
+      ...
+    # Subtest: double_chance: 8 participants produce a valid stage plan
+    ok 10 - double_chance: 8 participants produce a valid stage plan
+      ---
+      duration_ms: 2.3346
+      type: 'test'
+      ...
+    # Subtest: double_chance: 16 participants produce a valid stage plan
+    ok 11 - double_chance: 16 participants produce a valid stage plan
+      ---
+      duration_ms: 3.1193
+      type: 'test'
+      ...
+    # Subtest: double_chance: 32 participants produce a valid stage plan
+    ok 12 - double_chance: 32 participants produce a valid stage plan
+      ---
+      duration_ms: 4.4307
+      type: 'test'
+      ...
+    # Subtest: double_chance: 64 participants produce a valid stage plan
+    ok 13 - double_chance: 64 participants produce a valid stage plan
+      ---
+      duration_ms: 10.0024
+      type: 'test'
+      ...
+    # Subtest: everyone_plays: 2 participants produce a valid stage plan
+    ok 14 - everyone_plays: 2 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0979
+      type: 'test'
+      ...
+    # Subtest: everyone_plays: 3 participants produce a valid stage plan
+    ok 15 - everyone_plays: 3 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0397
+      type: 'test'
+      ...
+    # Subtest: everyone_plays: 4 participants produce a valid stage plan
+    ok 16 - everyone_plays: 4 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0267
+      type: 'test'
+      ...
+    # Subtest: everyone_plays: 12 participants produce a valid stage plan
+    ok 17 - everyone_plays: 12 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0238
+      type: 'test'
+      ...
+    # Subtest: everyone_plays: 32 participants produce a valid stage plan
+    ok 18 - everyone_plays: 32 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0247
+      type: 'test'
+      ...
+    # Subtest: swiss: 2 participants produce a valid stage plan
+    ok 19 - swiss: 2 participants produce a valid stage plan
+      ---
+      duration_ms: 0.1134
+      type: 'test'
+      ...
+    # Subtest: swiss: 3 participants produce a valid stage plan
+    ok 20 - swiss: 3 participants produce a valid stage plan
+      ---
+      duration_ms: 0.049
+      type: 'test'
+      ...
+    # Subtest: swiss: 5 participants produce a valid stage plan
+    ok 21 - swiss: 5 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0432
+      type: 'test'
+      ...
+    # Subtest: swiss: 8 participants produce a valid stage plan
+    ok 22 - swiss: 8 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0373
+      type: 'test'
+      ...
+    # Subtest: swiss: 16 participants produce a valid stage plan
+    ok 23 - swiss: 16 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0298
+      type: 'test'
+      ...
+    # Subtest: swiss: 33 participants produce a valid stage plan
+    ok 24 - swiss: 33 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0242
+      type: 'test'
+      ...
+    # Subtest: swiss: 128 participants produce a valid stage plan
+    ok 25 - swiss: 128 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0221
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 8 participants produce a valid stage plan
+    ok 26 - groups_to_playoffs: 8 participants produce a valid stage plan
+      ---
+      duration_ms: 0.2858
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 12 participants produce a valid stage plan
+    ok 27 - groups_to_playoffs: 12 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0616
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 16 participants produce a valid stage plan
+    ok 28 - groups_to_playoffs: 16 participants produce a valid stage plan
+      ---
+      duration_ms: 0.04
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 24 participants produce a valid stage plan
+    ok 29 - groups_to_playoffs: 24 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0351
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 32 participants produce a valid stage plan
+    ok 30 - groups_to_playoffs: 32 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0467
+      type: 'test'
+      ...
+    # Subtest: groups_to_playoffs: 64 participants produce a valid stage plan
+    ok 31 - groups_to_playoffs: 64 participants produce a valid stage plan
+      ---
+      duration_ms: 0.1274
+      type: 'test'
+      ...
+    # Subtest: swiss_to_playoffs: 8 participants produce a valid stage plan
+    ok 32 - swiss_to_playoffs: 8 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0806
+      type: 'test'
+      ...
+    # Subtest: swiss_to_playoffs: 16 participants produce a valid stage plan
+    ok 33 - swiss_to_playoffs: 16 participants produce a valid stage plan
+      ---
+      duration_ms: 0.0556
+      type: 'test'
+      ...
+    # Subtest: swiss_to_playoffs: 32 participants produce a valid stage plan
+    ok 34 - swiss_to_playoffs: 32 participants produce a valid stage plan
+      ---
+      duration_ms: 0.033
+      type: 'test'
+      ...
+    # Subtest: swiss_to_playoffs: 64 participants produce a valid stage plan
+    ok 35 - swiss_to_playoffs: 64 participants produce a valid stage plan
+      ---
+      duration_ms: 0.036
+      type: 'test'
+      ...
+    # Subtest: group stage qualifies exactly two teams per group
+    ok 36 - group stage qualifies exactly two teams per group
+      ---
+      duration_ms: 0.0843
+      type: 'test'
+      ...
+    # Subtest: 12-team groups warn about play-off BYEs
+    ok 37 - 12-team groups warn about play-off BYEs
+      ---
+      duration_ms: 0.076
+      type: 'test'
+      ...
+    # Subtest: DE includes possible final reset in maximum
+    ok 38 - DE includes possible final reset in maximum
+      ---
+      duration_ms: 1.4975
+      type: 'test'
+      ...
+    # Subtest: planning is deterministic and does not mutate source options
+    ok 39 - planning is deterministic and does not mutate source options
+      ---
+      duration_ms: 0.6603
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"groups_to_playoffs","participantCount":14,"bestOf":3}
+    ok 40 - rejects {"templateId":"groups_to_playoffs","participantCount":14,"bestOf":3}
+      ---
+      duration_ms: 0.2789
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"double_chance","participantCount":12,"bestOf":3}
+    ok 41 - rejects {"templateId":"double_chance","participantCount":12,"bestOf":3}
+      ---
+      duration_ms: 0.0382
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"swiss_to_playoffs","participantCount":10,"bestOf":3}
+    ok 42 - rejects {"templateId":"swiss_to_playoffs","participantCount":10,"bestOf":3}
+      ---
+      duration_ms: 0.0297
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"everyone_plays","participantCount":64,"bestOf":3}
+    ok 43 - rejects {"templateId":"everyone_plays","participantCount":64,"bestOf":3}
+      ---
+      duration_ms: 0.0246
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"quick_elimination","participantCount":129,"bestOf":3}
+    ok 44 - rejects {"templateId":"quick_elimination","participantCount":129,"bestOf":3}
+      ---
+      duration_ms: 0.027
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"quick_elimination","participantCount":8.5,"bestOf":3}
+    ok 45 - rejects {"templateId":"quick_elimination","participantCount":8.5,"bestOf":3}
+      ---
+      duration_ms: 0.0228
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"quick_elimination","participantCount":8,"bestOf":2}
+    ok 46 - rejects {"templateId":"quick_elimination","participantCount":8,"bestOf":2}
+      ---
+      duration_ms: 0.0249
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"unknown","participantCount":8,"bestOf":3}
+    ok 47 - rejects {"templateId":"unknown","participantCount":8,"bestOf":3}
+      ---
+      duration_ms: 0.0239
+      type: 'test'
+      ...
+    # Subtest: rejects {"templateId":"quick_elimination","participantCount":8,"bestOf":3,"unexpected":true}
+    ok 48 - rejects {"templateId":"quick_elimination","participantCount":8,"bestOf":3,"unexpected":true}
+      ---
+      duration_ms: 0.0302
+      type: 'test'
+      ...
+    # Subtest: rejects null
+    ok 49 - rejects null
+      ---
+      duration_ms: 0.0485
+      type: 'test'
+      ...
+    # Subtest: does not disclose sensitive or mutation parameters in the plan
+    ok 50 - does not disclose sensitive or mutation parameters in the plan
+      ---
+      duration_ms: 0.0991
+      type: 'test'
+      ...
+    1..50
+ok 253 - PACK 05 / planner templates are pure and authority-validated
+  ---
+  duration_ms: 32.2884
+  type: 'suite'
+  ...
+# Subtest: order independent and excludes unrelated stages
+ok 254 - order independent and excludes unrelated stages
+  ---
+  duration_ms: 0.632
+  type: 'test'
+  ...
+# Subtest: detects revision, winner, scores and key changes
+ok 255 - detects revision, winner, scores and key changes
+  ---
+  duration_ms: 0.1797
+  type: 'test'
+  ...
+# Subtest: detects added and removed matches
+ok 256 - detects added and removed matches
+  ---
+  duration_ms: 0.0686
+  type: 'test'
+  ...
+# Subtest: completed stage proposes review, never direct execution
+ok 257 - completed stage proposes review, never direct execution
+  ---
+  duration_ms: 1.4389
+  type: 'test'
+  ...
+# Subtest: draft planned stage requires authoritative readiness
+ok 258 - draft planned stage requires authoritative readiness
+  ---
+  duration_ms: 0.2258
+  type: 'test'
+  ...
+# Subtest: not enough participants block draft stage
+ok 259 - not enough participants block draft stage
+  ---
+  duration_ms: 0.1133
+  type: 'test'
+  ...
+# Subtest: planned next stage displays prior completion and conditional effects
+ok 260 - planned next stage displays prior completion and conditional effects
+  ---
+  duration_ms: 0.1255
+  type: 'test'
+  ...
+# Subtest: open, live, postponed and cancelled matches each block closing
+ok 261 - open, live, postponed and cancelled matches each block closing
+  ---
+  duration_ms: 0.1995
+  type: 'test'
+  ...
+# Subtest: no matches never authorizes stage completion
+ok 262 - no matches never authorizes stage completion
+  ---
+  duration_ms: 0.0891
+  type: 'test'
+  ...
+# Subtest: other stages matches are excluded from stage result
+ok 263 - other stages matches are excluded from stage result
+  ---
+  duration_ms: 0.0996
+  type: 'test'
+  ...
+# Subtest: swiss next round only when current round exists and is complete
+ok 264 - swiss next round only when current round exists and is complete
+  ---
+  duration_ms: 0.1777
+  type: 'test'
+  ...
+# Subtest: swiss unknown round metadata always blocks
+ok 265 - swiss unknown round metadata always blocks
+  ---
+  duration_ms: 0.0897
+  type: 'test'
+  ...
+# Subtest: downstream stages are conditional, never auto-start
+ok 266 - downstream stages are conditional, never auto-start
+  ---
+  duration_ms: 0.1781
+  type: 'test'
+  ...
+# Subtest: inconsistent active stages stop progression
+ok 267 - inconsistent active stages stop progression
+  ---
+  duration_ms: 0.0836
+  type: 'test'
+  ...
+# Subtest: completed tournament has no mutable progression
+ok 268 - completed tournament has no mutable progression
+  ---
+  duration_ms: 0.0529
+  type: 'test'
+  ...
+# Subtest: pure deterministic input remains unchanged
+ok 269 - pure deterministic input remains unchanged
+  ---
+  duration_ms: 0.7189
+  type: 'test'
+  ...
+# Subtest: legacy flow is never represented as broken or executable
+ok 270 - legacy flow is never represented as broken or executable
+  ---
+  duration_ms: 0.9526
+  type: 'test'
+  ...
+# Subtest: invalid basket graph prevents proposal and routing guidance
+ok 271 - invalid basket graph prevents proposal and routing guidance
+  ---
+  duration_ms: 0.1169
+  type: 'test'
+  ...
+# Subtest: finished source stage without proposal recommends preparing it
+ok 272 - finished source stage without proposal recommends preparing it
+  ---
+  duration_ms: 0.15
+  type: 'test'
+  ...
+# Subtest: active source stage waits instead of recommending approval
+ok 273 - active source stage waits instead of recommending approval
+  ---
+  duration_ms: 0.1256
+  type: 'test'
+  ...
+# Subtest: draft source stage also waits
+ok 274 - draft source stage also waits
+  ---
+  duration_ms: 0.1188
+  type: 'test'
+  ...
+# Subtest: pending proposal recommends explicit human approval
+ok 275 - pending proposal recommends explicit human approval
+  ---
+  duration_ms: 0.1033
+  type: 'test'
+  ...
+# Subtest: approved proposal and unmaterialized route are advisory only
+ok 276 - approved proposal and unmaterialized route are advisory only
+  ---
+  duration_ms: 0.1438
+  type: 'test'
+  ...
+# Subtest: materialized route is counted as completed
+ok 277 - materialized route is counted as completed
+  ---
+  duration_ms: 0.0842
+  type: 'test'
+  ...
+# Subtest: target stage started before route blocks next operation
+ok 278 - target stage started before route blocks next operation
+  ---
+  duration_ms: 0.1539
+  type: 'test'
+  ...
+# Subtest: wrong proposal quota blocks instead of silently allocating
+ok 279 - wrong proposal quota blocks instead of silently allocating
+  ---
+  duration_ms: 0.1495
+  type: 'test'
+  ...
+# Subtest: approved proposal with route denying approval blocks
+ok 280 - approved proposal with route denying approval blocks
+  ---
+  duration_ms: 0.0931
+  type: 'test'
+  ...
+# Subtest: missing route status blocks, cannot imply readiness
+ok 281 - missing route status blocks, cannot imply readiness
+  ---
+  duration_ms: 0.061
+  type: 'test'
+  ...
+# Subtest: wrong route status binding blocks
+ok 282 - wrong route status binding blocks
+  ---
+  duration_ms: 0.0464
+  type: 'test'
+  ...
+# Subtest: missing configured outgoing route blocks
+ok 283 - missing configured outgoing route blocks
+  ---
+  duration_ms: 0.0831
+  type: 'test'
+  ...
+# Subtest: materialized route with wrong count is an inconsistency, not success
+ok 284 - materialized route with wrong count is an inconsistency, not success
+  ---
+  duration_ms: 0.0828
+  type: 'test'
+  ...
+# Subtest: unknown proposal statuses never auto approve
+ok 285 - unknown proposal statuses never auto approve
+  ---
+  duration_ms: 0.0517
+  type: 'test'
+  ...
+# Subtest: does not leak player names; output only counts and IDs of stages and routes
+ok 286 - does not leak player names; output only counts and IDs of stages and routes
+  ---
+  duration_ms: 0.0616
+  type: 'test'
+  ...
+# Subtest: input is immutable and repeatable
+ok 287 - input is immutable and repeatable
+  ---
+  duration_ms: 0.5995
+  type: 'test'
+  ...
+# Subtest: multiple sources are ordered deterministically
+ok 288 - multiple sources are ordered deterministically
+  ---
+  duration_ms: 0.1346
+  type: 'test'
+  ...
+# Subtest: mismatch by basket is detected even when overall proposal count matches
+ok 289 - mismatch by basket is detected even when overall proposal count matches
+  ---
+  duration_ms: 0.0946
+  type: 'test'
+  ...
+# Subtest: materialized without confirmed approval is an inconsistency
+ok 290 - materialized without confirmed approval is an inconsistency
+  ---
+  duration_ms: 0.0505
+  type: 'test'
+  ...
+# Subtest: wrong target stage ID from source route record is blocked
+ok 291 - wrong target stage ID from source route record is blocked
+  ---
+  duration_ms: 0.0465
+  type: 'test'
+  ...
+# Subtest: no qualifying output baskets is not applicable
+ok 292 - no qualifying output baskets is not applicable
+  ---
+  duration_ms: 0.0341
+  type: 'test'
+  ...
+# Subtest: rank changes and qualification delta are exact
+ok 293 - rank changes and qualification delta are exact
+  ---
+  duration_ms: 1.3419
+  type: 'test'
+  ...
+# Subtest: same winner with different game score still flags stats
+ok 294 - same winner with different game score still flags stats
+  ---
+  duration_ms: 0.1825
+  type: 'test'
+  ...
+# Subtest: buchholz change without rank change is shown
+ok 295 - buchholz change without rank change is shown
+  ---
+  duration_ms: 0.1132
+  type: 'test'
+  ...
+# Subtest: renames without sport changes do not count as sporting changes
+ok 296 - renames without sport changes do not count as sporting changes
+  ---
+  duration_ms: 0.8346
+  type: 'test'
+  ...
+# Subtest: no cutoff means no automatic advancement prediction
+ok 297 - no cutoff means no automatic advancement prediction
+  ---
+  duration_ms: 0.1464
+  type: 'test'
+  ...
+# Subtest: qualifier cutoff must fit participant set
+ok 298 - qualifier cutoff must fit participant set
+  ---
+  duration_ms: 0.3711
+  type: 'test'
+  ...
+# Subtest: invalid participant change is rejected
+ok 299 - invalid participant change is rejected
+  ---
+  duration_ms: 0.1234
+  type: 'test'
+  ...
+# Subtest: duplicate player IDs are rejected
+ok 300 - duplicate player IDs are rejected
+  ---
+  duration_ms: 0.1167
+  type: 'test'
+  ...
+# Subtest: duplicate rank is rejected
+ok 301 - duplicate rank is rejected
+  ---
+  duration_ms: 0.1023
+  type: 'test'
+  ...
+# Subtest: empty ranking is rejected
+ok 302 - empty ranking is rejected
+  ---
+  duration_ms: 0.1216
+  type: 'test'
+  ...
+# Subtest: does not mutate original arrays
+ok 303 - does not mutate original arrays
+  ---
+  duration_ms: 0.2089
+  type: 'test'
+  ...
+# Subtest: ordering is deterministic even when supplied after array is permuted
+ok 304 - ordering is deterministic even when supplied after array is permuted
+  ---
+  duration_ms: 0.092
+  type: 'test'
+  ...
+# Subtest: Pack 08 — conservative result correction preflight
+    # Subtest: read-only output; never authorization
+    ok 1 - read-only output; never authorization
+      ---
+      duration_ms: 0.8375
+      type: 'test'
+      ...
+    # Subtest: input objects remain unchanged
+    ok 2 - input objects remain unchanged
+      ---
+      duration_ms: 0.6221
+      type: 'test'
+      ...
+    # Subtest: detects a different winner
+    ok 3 - detects a different winner
+      ---
+      duration_ms: 0.1449
+      type: 'test'
+      ...
+    # Subtest: detects same winner, still requires review
+    ok 4 - detects same winner, still requires review
+      ---
+      duration_ms: 0.0902
+      type: 'test'
+      ...
+    # Subtest: invalid score BO3 is blocked
+    ok 5 - invalid score BO3 is blocked
+      ---
+      duration_ms: 0.101
+      type: 'test'
+      ...
+    # Subtest: both winners and fractional score blocked
+    ok 6 - both winners and fractional score blocked
+      ---
+      duration_ms: 0.102
+      type: 'test'
+      ...
+    # Subtest: stale match revision is blocked
+    ok 7 - stale match revision is blocked
+      ---
+      duration_ms: 0.0829
+      type: 'test'
+      ...
+    # Subtest: missing history or completion action blocks
+    ok 8 - missing history or completion action blocks
+      ---
+      duration_ms: 0.1227
+      type: 'test'
+      ...
+    # Subtest: pending and BYE matches cannot be corrected here
+    ok 9 - pending and BYE matches cannot be corrected here
+      ---
+      duration_ms: 0.11
+      type: 'test'
+      ...
+    # Subtest: later started stage blocks
+    ok 10 - later started stage blocks
+      ---
+      duration_ms: 0.1503
+      type: 'test'
+      ...
+    # Subtest: approved qualification and executed route block
+    ok 11 - approved qualification and executed route block
+      ---
+      duration_ms: 0.0939
+      type: 'test'
+      ...
+    # Subtest: later Swiss pairing blocks even if still pending
+    ok 12 - later Swiss pairing blocks even if still pending
+      ---
+      duration_ms: 0.1027
+      type: 'test'
+      ...
+    # Subtest: single elimination pristine downstream slot is detected
+    ok 13 - single elimination pristine downstream slot is detected
+      ---
+      duration_ms: 0.1416
+      type: 'test'
+      ...
+    # Subtest: single elimination started downstream blocks
+    ok 14 - single elimination started downstream blocks
+      ---
+      duration_ms: 0.074
+      type: 'test'
+      ...
+    # Subtest: missing next-round match blocks
+    ok 15 - missing next-round match blocks
+      ---
+      duration_ms: 0.0624
+      type: 'test'
+      ...
+    # Subtest: completed stage with generated next-stage matches blocks
+    ok 16 - completed stage with generated next-stage matches blocks
+      ---
+      duration_ms: 0.0639
+      type: 'test'
+      ...
+    # Subtest: DE remains manual review; not falsely approved
+    ok 17 - DE remains manual review; not falsely approved
+      ---
+      duration_ms: 0.0508
+      type: 'test'
+      ...
+    # Subtest: completed tournament warns about possible reopening
+    ok 18 - completed tournament warns about possible reopening
+      ---
+      duration_ms: 0.0724
+      type: 'test'
+      ...
+    # Subtest: never mutates data or authorizes even without issues
+    ok 19 - never mutates data or authorizes even without issues
+      ---
+      duration_ms: 0.0432
+      type: 'test'
+      ...
+    1..19
+ok 305 - Pack 08 — conservative result correction preflight
+  ---
+  duration_ms: 4.0408
+  type: 'suite'
+  ...
+# Subtest: compiled selection cardinality
+    # Subtest: accepts named entry points only when their exact capacities are filled
+    ok 1 - accepts named entry points only when their exact capacities are filled
+      ---
+      duration_ms: 3.908
+      type: 'test'
+      ...
+    # Subtest: accepts eight direct entrants plus eight qualifiers into an exact 16-player stage
+    ok 2 - accepts eight direct entrants plus eight qualifiers into an exact 16-player stage
+      ---
+      duration_ms: 0.4935
+      type: 'test'
+      ...
+    # Subtest: rejects range capacity in compiled plan version one
+    ok 3 - rejects range capacity in compiled plan version one
+      ---
+      duration_ms: 0.2834
+      type: 'test'
+      ...
+    # Subtest: rejects top_n 8 with seven reserved slots
+    ok 4 - rejects top_n 8 with seven reserved slots
+      ---
+      duration_ms: 0.2678
+      type: 'test'
+      ...
+    # Subtest: rejects top_n beyond the authoritative source capacity
+    ok 5 - rejects top_n beyond the authoritative source capacity
+      ---
+      duration_ms: 0.213
+      type: 'test'
+      ...
+    # Subtest: accepts top_n equal to the authoritative source capacity
+    ok 6 - accepts top_n equal to the authoritative source capacity
+      ---
+      duration_ms: 0.339
+      type: 'test'
+      ...
+    # Subtest: rejects a four-rank range with three reserved slots
+    ok 7 - rejects a four-rank range with three reserved slots
+      ---
+      duration_ms: 0.2072
+      type: 'test'
+      ...
+    # Subtest: rejects a rank range beyond the authoritative source capacity
+    ok 8 - rejects a rank range beyond the authoritative source capacity
+      ---
+      duration_ms: 0.1607
+      type: 'test'
+      ...
+    # Subtest: accepts a rank range within the authoritative source capacity
+    ok 9 - accepts a rank range within the authoritative source capacity
+      ---
+      duration_ms: 0.2901
+      type: 'test'
+      ...
+    # Subtest: rejects registration all when reserved slots differ from bucket capacity
+    ok 10 - rejects registration all when reserved slots differ from bucket capacity
+      ---
+      duration_ms: 0.2431
+      type: 'test'
+      ...
+    # Subtest: accepts registration all at exact bucket capacity
+    ok 11 - accepts registration all at exact bucket capacity
+      ---
+      duration_ms: 0.2356
+      type: 'test'
+      ...
+    # Subtest: resolves top_n_per_group from group count
+    ok 12 - resolves top_n_per_group from group count
+      ---
+      duration_ms: 0.3406
+      type: 'test'
+      ...
+    # Subtest: rejects unresolved top_n_per_group and policy_ref
+    ok 13 - rejects unresolved top_n_per_group and policy_ref
+      ---
+      duration_ms: 0.2331
+      type: 'test'
+      ...
+    # Subtest: rejects qualifiers exceeding exact participants per group
+    ok 14 - rejects qualifiers exceeding exact participants per group
+      ---
+      duration_ms: 0.1779
+      type: 'test'
+      ...
+    # Subtest: accepts top_n_per_group from validated group capabilities
+    ok 15 - accepts top_n_per_group from validated group capabilities
+      ---
+      duration_ms: 0.3159
+      type: 'test'
+      ...
+    # Subtest: resolves named_output from its exact capacity
+    ok 16 - resolves named_output from its exact capacity
+      ---
+      duration_ms: 1.0271
+      type: 'test'
+      ...
+    1..16
+ok 306 - compiled selection cardinality
+  ---
+  duration_ms: 9.7799
+  type: 'suite'
+  ...
+# Subtest: exact output capacity
+    # Subtest: accepts two independent unconditional routes for exact capacity two
+    ok 1 - accepts two independent unconditional routes for exact capacity two
+      ---
+      duration_ms: 0.7605
+      type: 'test'
+      ...
+    # Subtest: rejects exact capacity two with one reachable route
+    ok 2 - rejects exact capacity two with one reachable route
+      ---
+      duration_ms: 0.4085
+      type: 'test'
+      ...
+    # Subtest: rejects two independent routes for exact capacity one
+    ok 3 - rejects two independent routes for exact capacity one
+      ---
+      duration_ms: 0.4706
+      type: 'test'
+      ...
+    # Subtest: rejects independent conditional routes with unprovable capacity
+    ok 4 - rejects independent conditional routes with unprovable capacity
+      ---
+      duration_ms: 0.9218
+      type: 'test'
+      ...
+    1..4
+ok 307 - exact output capacity
+  ---
+  duration_ms: 2.7019
+  type: 'suite'
+  ...
+# Subtest: deterministic tournament routing compiler v2
+    # Subtest: returns byte-identical plans without mutating input
+    ok 1 - returns byte-identical plans without mutating input
+      ---
+      duration_ms: 5.5091
+      type: 'test'
+      ...
+    # Subtest: canonicalizes set-like engine arrays before comparison
+    ok 2 - canonicalizes set-like engine arrays before comparison
+      ---
+      duration_ms: 0.7953
+      type: 'test'
+      ...
+    # Subtest: canonical JSON sorts object keys recursively but preserves array order
+    ok 3 - canonical JSON sorts object keys recursively but preserves array order
+      ---
+      duration_ms: 0.1389
+      type: 'test'
+      ...
+    # Subtest: canonicalizes independent authoring collection order
+    ok 4 - canonicalizes independent authoring collection order
+      ---
+      duration_ms: 0.9168
+      type: 'test'
+      ...
+    # Subtest: still detects a real target difference
+    ok 5 - still detects a real target difference
+      ---
+      duration_ms: 0.4497
+      type: 'test'
+      ...
+    # Subtest: snapshots the first result before an engine mutates shared arrays
+    ok 6 - snapshots the first result before an engine mutates shared arrays
+      ---
+      duration_ms: 0.4356
+      type: 'test'
+      ...
+    # Subtest: still detects a real output-capacity difference
+    ok 7 - still detects a real output-capacity difference
+      ---
+      duration_ms: 0.4632
+      type: 'test'
+      ...
+    # Subtest: preserves semantically meaningful nested array order
+    ok 8 - preserves semantically meaningful nested array order
+      ---
+      duration_ms: 0.7872
+      type: 'test'
+      ...
+    # Subtest: rejects non-serializable authoring settings
+    ok 9 - rejects non-serializable authoring settings
+      ---
+      duration_ms: 0.2505
+      type: 'test'
+      ...
+    1..9
+ok 308 - deterministic tournament routing compiler v2
+  ---
+  duration_ms: 10.5606
+  type: 'suite'
+  ...
+# Subtest: stage format engine boundary
+    # Subtest: rejects a match emitted for another stage
+    ok 1 - rejects a match emitted for another stage
+      ---
+      duration_ms: 2.1254
+      type: 'test'
+      ...
+    # Subtest: rejects an output emitted for another stage
+    ok 2 - rejects an output emitted for another stage
+      ---
+      duration_ms: 0.2596
+      type: 'test'
+      ...
+    # Subtest: rejects a route crossing the stage boundary
+    ok 3 - rejects a route crossing the stage boundary
+      ---
+      duration_ms: 0.2644
+      type: 'test'
+      ...
+    # Subtest: rejects a condition crossing the stage boundary before merge
+    ok 4 - rejects a condition crossing the stage boundary before merge
+      ---
+      duration_ms: 0.3586
+      type: 'test'
+      ...
+    # Subtest: continues to accept a purely local format fragment
+    ok 5 - continues to accept a purely local format fragment
+      ---
+      duration_ms: 2.6555
+      type: 'test'
+      ...
+    1..5
+ok 309 - stage format engine boundary
+  ---
+  duration_ms: 6.3381
+  type: 'suite'
+  ...
+# Subtest: representative format routing fixtures
+    # Subtest: compiles registration, stage-result, entry, winner, loser and output routing
+    ok 1 - compiles registration, stage-result, entry, winner, loser and output routing
+      ---
+      duration_ms: 1.3014
+      type: 'test'
+      ...
+    # Subtest: represents the standard four-player, five-match GSL flow
+    ok 2 - represents the standard four-player, five-match GSL flow
+      ---
+      duration_ms: 1.7878
+      type: 'test'
+      ...
+    # Subtest: converges partial double-elimination routing before one terminal output
+    ok 3 - converges partial double-elimination routing before one terminal output
+      ---
+      duration_ms: 1.9269
+      type: 'test'
+      ...
+    # Subtest: compiles the partial double-elimination fixture in two consecutive stages
+    ok 4 - compiles the partial double-elimination fixture in two consecutive stages
+      ---
+      duration_ms: 1.6393
+      type: 'test'
+      ...
+    1..4
+ok 310 - representative format routing fixtures
+  ---
+  duration_ms: 6.8653
+  type: 'suite'
+  ...
+# Subtest: v1 stage plan compilation compatibility
+    # Subtest: compiles a single stage without generating runtime matches
+    ok 1 - compiles a single stage without generating runtime matches
+      ---
+      duration_ms: 3.5117
+      type: 'test'
+      ...
+    # Subtest: preserves Swiss top_n flow into single elimination
+    ok 2 - preserves Swiss top_n flow into single elimination
+      ---
+      duration_ms: 1.0952
+      type: 'test'
+      ...
+    # Subtest: preserves group top_n_per_group flow into single elimination
+    ok 3 - preserves group top_n_per_group flow into single elimination
+      ---
+      duration_ms: 0.6994
+      type: 'test'
+      ...
+    # Subtest: compiles three stages deterministically with exact participant flow
+    ok 4 - compiles three stages deterministically with exact participant flow
+      ---
+      duration_ms: 1.2855
+      type: 'test'
+      ...
+    # Subtest: rejects an invalid v1 participant flow before compilation
+    ok 5 - rejects an invalid v1 participant flow before compilation
+      ---
+      duration_ms: 0.138
+      type: 'test'
+      ...
+    1..5
+ok 311 - v1 stage plan compilation compatibility
+  ---
+  duration_ms: 7.4004
+  type: 'suite'
+  ...
+# Subtest: compiled routing structure and references
+    # Subtest: detects duplicate route and logical match keys
+    ok 1 - detects duplicate route and logical match keys
+      ---
+      duration_ms: 4.5354
+      type: 'test'
+      ...
+    # Subtest: detects missing source and target references
+    ok 2 - detects missing source and target references
+      ---
+      duration_ms: 0.9766
+      type: 'test'
+      ...
+    # Subtest: detects occupied slots and match-outcome fan-out
+    ok 3 - detects occupied slots and match-outcome fan-out
+      ---
+      duration_ms: 0.7376
+      type: 'test'
+      ...
+    # Subtest: validates all nested source, target and condition discriminants
+    ok 4 - validates all nested source, target and condition discriminants
+      ---
+      duration_ms: 0.8679
+      type: 'test'
+      ...
+    # Subtest: rejects unknown match outcome after deserialization
+    ok 5 - rejects unknown match outcome after deserialization
+      ---
+      duration_ms: 0.7179
+      type: 'test'
+      ...
+    # Subtest: rejects malformed compiled selections instead of trusting TypeScript
+    ok 6 - rejects malformed compiled selections instead of trusting TypeScript
+      ---
+      duration_ms: 1.1997
+      type: 'test'
+      ...
+    # Subtest: rejects a forged registration all cardinality
+    ok 7 - rejects a forged registration all cardinality
+      ---
+      duration_ms: 0.7277
+      type: 'test'
+      ...
+    # Subtest: rejects the removed exclusiveGroup field in deserialized plans
+    ok 8 - rejects the removed exclusiveGroup field in deserialized plans
+      ---
+      duration_ms: 0.5721
+      type: 'test'
+      ...
+    # Subtest: rejects a conditional route directly into an exact entry
+    ok 9 - rejects a conditional route directly into an exact entry
+      ---
+      duration_ms: 0.578
+      type: 'test'
+      ...
+    1..9
+ok 312 - compiled routing structure and references
+  ---
+  duration_ms: 11.703
+  type: 'suite'
+  ...
+# Subtest: compiled routing graph semantics
+    # Subtest: rejects a condition referencing its own route
+    ok 1 - rejects a condition referencing its own route
+      ---
+      duration_ms: 0.9822
+      type: 'test'
+      ...
+    # Subtest: rejects a condition referencing a downstream route
+    ok 2 - rejects a condition referencing a downstream route
+      ---
+      duration_ms: 0.6844
+      type: 'test'
+      ...
+    # Subtest: rejects a condition referencing an unrelated route
+    ok 3 - rejects a condition referencing an unrelated route
+      ---
+      duration_ms: 0.7052
+      type: 'test'
+      ...
+    # Subtest: rejects a condition referencing a future stage entry
+    ok 4 - rejects a condition referencing a future stage entry
+      ---
+      duration_ms: 0.4166
+      type: 'test'
+      ...
+    # Subtest: rejects a cycle formed only by condition route references
+    ok 5 - rejects a cycle formed only by condition route references
+      ---
+      duration_ms: 0.6756
+      type: 'test'
+      ...
+    # Subtest: displayOrder remains presentation-only
+    ok 6 - displayOrder remains presentation-only
+      ---
+      duration_ms: 0.5096
+      type: 'test'
+      ...
+    # Subtest: rejects a real cyclic stage transition graph
+    ok 7 - rejects a real cyclic stage transition graph
+      ---
+      duration_ms: 0.4909
+      type: 'test'
+      ...
+    # Subtest: rejects an actual cycle independently of displayOrder
+    ok 8 - rejects an actual cycle independently of displayOrder
+      ---
+      duration_ms: 0.5648
+      type: 'test'
+      ...
+    # Subtest: rejects a forged dependency that points back to a predecessor
+    ok 9 - rejects a forged dependency that points back to a predecessor
+      ---
+      duration_ms: 0.5173
+      type: 'test'
+      ...
+    # Subtest: does not accept dependencies detached from their route
+    ok 10 - does not accept dependencies detached from their route
+      ---
+      duration_ms: 0.4492
+      type: 'test'
+      ...
+    1..10
+ok 313 - compiled routing graph semantics
+  ---
+  duration_ms: 6.2601
+  type: 'suite'
+  ...
+# Subtest: validateTournamentStagePlan valid plans
+    # Subtest: accepts single-stage tournament
+    ok 1 - accepts single-stage tournament
+      ---
+      duration_ms: 1.379
+      type: 'test'
+      ...
+    # Subtest: accepts Swiss BO1 to Single Elimination BO3
+    ok 2 - accepts Swiss BO1 to Single Elimination BO3
+      ---
+      duration_ms: 0.1732
+      type: 'test'
+      ...
+    # Subtest: accepts Group stage BO3 to Single Elimination BO5
+    ok 3 - accepts Group stage BO3 to Single Elimination BO5
+      ---
+      duration_ms: 0.2384
+      type: 'test'
+      ...
+    # Subtest: accepts Swiss to Group stage to Single Elimination
+    ok 4 - accepts Swiss to Group stage to Single Elimination
+      ---
+      duration_ms: 0.2206
+      type: 'test'
+      ...
+    # Subtest: normalizes valid stages by position without mutating input
+    ok 5 - normalizes valid stages by position without mutating input
+      ---
+      duration_ms: 0.1488
+      type: 'test'
+      ...
+    # Subtest: allows all Round Robin participants to advance as permitted by the ADR
+    ok 6 - allows all Round Robin participants to advance as permitted by the ADR
+      ---
+      duration_ms: 0.0976
+      type: 'test'
+      ...
+    # Subtest: accepts uneven balanced groups and lets everyone advance
+    ok 7 - accepts uneven balanced groups and lets everyone advance
+      ---
+      duration_ms: 0.1103
+      type: 'test'
+      ...
+    # Subtest: accepts an arbitrary valid group count
+    ok 8 - accepts an arbitrary valid group count
+      ---
+      duration_ms: 0.0807
+      type: 'test'
+      ...
+    1..8
+ok 314 - validateTournamentStagePlan valid plans
+  ---
+  duration_ms: 3.1232
+  type: 'suite'
+  ...
+# Subtest: validateTournamentStagePlan invalid plans
+    # Subtest: rejects zero stages
+    ok 1 - rejects zero stages
+      ---
+      duration_ms: 0.7819
+      type: 'test'
+      ...
+    # Subtest: rejects eleven stages
+    ok 2 - rejects eleven stages
+      ---
+      duration_ms: 0.2341
+      type: 'test'
+      ...
+    # Subtest: rejects invalid initial participant count
+    ok 3 - rejects invalid initial participant count
+      ---
+      duration_ms: 0.1182
+      type: 'test'
+      ...
+    # Subtest: rejects even bestOf
+    ok 4 - rejects even bestOf
+      ---
+      duration_ms: 0.0541
+      type: 'test'
+      ...
+    # Subtest: rejects unsupported odd bestOf
+    ok 5 - rejects unsupported odd bestOf
+      ---
+      duration_ms: 0.0348
+      type: 'test'
+      ...
+    # Subtest: rejects participant flow mismatch
+    ok 6 - rejects participant flow mismatch
+      ---
+      duration_ms: 0.0463
+      type: 'test'
+      ...
+    # Subtest: rejects single elimination with a non-round boundary qualifier count
+    ok 7 - rejects single elimination with a non-round boundary qualifier count
+      ---
+      duration_ms: 0.1497
+      type: 'test'
+      ...
+    # Subtest: rejects group stage as the final stage
+    ok 8 - rejects group stage as the final stage
+      ---
+      duration_ms: 0.0829
+      type: 'test'
+      ...
+    # Subtest: rejects empty stage name
+    ok 9 - rejects empty stage name
+      ---
+      duration_ms: 0.0521
+      type: 'test'
+      ...
+    # Subtest: rejects duplicate stage key
+    ok 10 - rejects duplicate stage key
+      ---
+      duration_ms: 0.0525
+      type: 'test'
+      ...
+    # Subtest: rejects non-contiguous positions
+    ok 11 - rejects non-contiguous positions
+      ---
+      duration_ms: 0.0328
+      type: 'test'
+      ...
+    # Subtest: rejects invalid group count
+    ok 12 - rejects invalid group count
+      ---
+      duration_ms: 0.0322
+      type: 'test'
+      ...
+    # Subtest: rejects invalid group size
+    ok 13 - rejects invalid group size
+      ---
+      duration_ms: 0.0346
+      type: 'test'
+      ...
+    # Subtest: rejects too many group qualifiers
+    ok 14 - rejects too many group qualifiers
+      ---
+      duration_ms: 0.0473
+      type: 'test'
+      ...
+    # Subtest: rejects invalid Swiss rounds
+    ok 15 - rejects invalid Swiss rounds
+      ---
+      duration_ms: 0.031
+      type: 'test'
+      ...
+    # Subtest: rejects invalid advancing count
+    ok 16 - rejects invalid advancing count
+      ---
+      duration_ms: 0.1002
+      type: 'test'
+      ...
+    # Subtest: rejects advancement on the final stage
+    ok 17 - rejects advancement on the final stage
+      ---
+      duration_ms: 0.0496
+      type: 'test'
+      ...
+    # Subtest: rejects unsupported stage format
+    ok 18 - rejects unsupported stage format
+      ---
+      duration_ms: 0.029
+      type: 'test'
+      ...
+    # Subtest: rejects incomplete Swiss configuration
+    ok 19 - rejects incomplete Swiss configuration
+      ---
+      duration_ms: 0.0416
+      type: 'test'
+      ...
+    # Subtest: rejects unsupported group placement method
+    ok 20 - rejects unsupported group placement method
+      ---
+      duration_ms: 0.0394
+      type: 'test'
+      ...
+    # Subtest: returns an ordered problem list with code, path and message
+    ok 21 - returns an ordered problem list with code, path and message
+      ---
+      duration_ms: 0.0876
+      type: 'test'
+      ...
+    # Subtest: rejects a non-final group stage that advances only one participant in total
+    ok 22 - rejects a non-final group stage that advances only one participant in total
+      ---
+      duration_ms: 0.0581
+      type: 'test'
+      ...
+    # Subtest: accepts groups 32 to 16 and rejects every mismatched downstream capacity
+    ok 23 - accepts groups 32 to 16 and rejects every mismatched downstream capacity
+      ---
+      duration_ms: 0.1447
+      type: 'test'
+      ...
+    # Subtest: supports qualifying elimination rounds and rejects arbitrary cut lines
+    ok 24 - supports qualifying elimination rounds and rejects arbitrary cut lines
+      ---
+      duration_ms: 0.2499
+      type: 'test'
+      ...
+    # Subtest: accepts three consecutive stages with an intermediate elimination qualifier
+    ok 25 - accepts three consecutive stages with an intermediate elimination qualifier
+      ---
+      duration_ms: 0.079
+      type: 'test'
+      ...
+    # Subtest: basket authority skips only the legacy linear participant-flow equality
+    ok 26 - basket authority skips only the legacy linear participant-flow equality
+      ---
+      duration_ms: 0.0835
+      type: 'test'
+      ...
+    1..26
+ok 315 - validateTournamentStagePlan invalid plans
+  ---
+  duration_ms: 3.6847
+  type: 'suite'
+  ...
+# Subtest: configurable seeding and placement
+    # Subtest: accepts deterministic random entry seeding and group placement
+    ok 1 - accepts deterministic random entry seeding and group placement
+      ---
+      duration_ms: 0.1196
+      type: 'test'
+      ...
+    # Subtest: rejects random configuration without a deterministic key
+    ok 2 - rejects random configuration without a deterministic key
+      ---
+      duration_ms: 0.0435
+      type: 'test'
+      ...
+    # Subtest: keeps Patch 02 defaults for old plans
+    ok 3 - keeps Patch 02 defaults for old plans
+      ---
+      duration_ms: 0.0636
+      type: 'test'
+      ...
+    1..3
+ok 316 - configurable seeding and placement
+  ---
+  duration_ms: 0.2771
+  type: 'suite'
+  ...
+# Subtest: permits a final group stage only for an explicit special-format caller
+ok 317 - permits a final group stage only for an explicit special-format caller
+  ---
+  duration_ms: 0.0903
+  type: 'test'
+  ...
+# Subtest: Tournament Stages v1 deployment safety
+    # Subtest: requires every deployment guard and the full deployed artifact commit
+    ok 1 - requires every deployment guard and the full deployed artifact commit
+      ---
+      duration_ms: 0.9207
+      type: 'test'
+      ...
+    # Subtest: loads Development guards from a separate Development database URL
+    ok 2 - loads Development guards from a separate Development database URL
+      ---
+      duration_ms: 0.1335
+      type: 'test'
+      ...
+    # Subtest: rejects Production and neondb in the Development path before connecting
+    ok 3 - rejects Production and neondb in the Development path before connecting
+      ---
+      duration_ms: 0.1246
+      type: 'test'
+      ...
+    # Subtest: classifies an untouched series_v1 schema as needing migration 0002
+    ok 4 - classifies an untouched series_v1 schema as needing migration 0002
+      ---
+      duration_ms: 0.5499
+      type: 'test'
+      ...
+    # Subtest: classifies a matching marker and complete stage schema as applied
+    ok 5 - classifies a matching marker and complete stage schema as applied
+      ---
+      duration_ms: 0.0844
+      type: 'test'
+      ...
+    # Subtest: rejects partial schema, marker drift, and a non-series_v1 base
+    ok 6 - rejects partial schema, marker drift, and a non-series_v1 base
+      ---
+      duration_ms: 0.1411
+      type: 'test'
+      ...
+    # Subtest: runs the Development preflight to completion without issuing writes
+    ok 7 - runs the Development preflight to completion without issuing writes
+      ---
+      duration_ms: 0.7176
+      type: 'test'
+      ...
+    # Subtest: treats a second matching Development migration as idempotently applied
+    ok 8 - treats a second matching Development migration as idempotently applied
+      ---
+      duration_ms: 0.1591
+      type: 'test'
+      ...
+    1..8
+ok 318 - Tournament Stages v1 deployment safety
+  ---
+  duration_ms: 3.568
+  type: 'suite'
+  ...
+1..318
+# tests 775
+# suites 52
+# pass 775
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20542.5048
