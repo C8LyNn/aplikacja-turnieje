@@ -105,6 +105,24 @@ public static partial class Program
             foreach(var p in points)True(p.x>=24.3f&&p.x<=515.7f&&p.y>=16f&&p.y<=884f);
         });
 
+        // R17-W10 / A20: A10-approved no-meter aim interaction contract.
+        Test("NET-UX-09 invalid aim drag below 18 has no release cue",()=>{
+            Eq("DRAG FROM LAUNCHER",AimUiStatus.Hint(false,0,0));
+            False(AimUiStatus.Ready(true,17.99f,0));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,17.99f,0));
+        });
+        Test("NET-UX-10 threshold 18 and longer aim show release with same core rules",()=>{
+            True(AimUiStatus.Ready(true,18,0));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,18,0));
+            True(AimUiStatus.Ready(true,0,-120));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,0,-120));
+        });
+        Test("NET-UX-11 invalid aim floats cannot show release",()=>{
+            False(AimUiStatus.Ready(true,float.NaN,20));
+            False(AimUiStatus.Ready(true,float.PositiveInfinity,20));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,float.NaN,40));
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
