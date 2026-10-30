@@ -192,7 +192,7 @@ namespace CoreClash.Networking
                 if(!assembler.Add(revision,index,count,payload,out var json))return;
                 var packet=JsonUtility.FromJson<SessionSnapshot>(json);
                 if(packet==null||packet.revision!=revision||!adapter.Apply(packet,JsonUtility.FromJson<GameState>,out var reason)){SetStatus("Host state rejected by adapter.");return;}
-                ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State);
+                ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State,revision);
                 if(ReceivedSnapshots==1){SetStatus("P2 · authoritative state received · your deck is chosen by host");Debug.Log("CC_NET_STATE_APPLIED revision="+revision+" owner=1");}
             }catch(Exception e){FailConnection("The host sent unusable game state. Try joining again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
