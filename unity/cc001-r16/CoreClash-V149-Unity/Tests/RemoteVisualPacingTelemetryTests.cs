@@ -52,15 +52,13 @@ public static partial class Program
             var p=new RemoteVisualPacingTelemetry();
             p.AcceptSnapshot(0f,.05f);
             for(int i=0;i<650;i++){
-                float now=i*.009f;
-                if(i<649)False(p.SampleFrame(now,.009f,true,out _));
-                else{
-                    True(p.SampleFrame(now,.009f,true,out var line));
-                    True(line.Contains("frames=650"));
-                    True(line.Contains("frameSamples=512"));
-                    True(line.Contains("frameP95ms=9"));
-                }
+                float now=i*.007f;
+                False(p.SampleFrame(now,.007f,true,out _));
             }
+            True(p.SampleFrame(5.10f,.007f,true,out var line));
+            True(line.Contains("frames=651"));
+            True(line.Contains("frameSamples=512"));
+            True(line.Contains("frameP95ms=7"));
         });
         Test("A34 W12 end-moving and session reset clear stale timing",()=>{
             var p=new RemoteVisualPacingTelemetry();
