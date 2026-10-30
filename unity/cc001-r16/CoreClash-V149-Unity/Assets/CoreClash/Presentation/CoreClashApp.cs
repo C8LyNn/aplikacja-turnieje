@@ -144,7 +144,7 @@ namespace CoreClash.Presentation
                 remoteLastEventId=latestEventId;
                 remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
                 if(state.phase==MatchPhase.Moving)
-                    remoteVisualPacing.AcceptSnapshot(Time.unscaledTime,remoteBallSmoother.LastBlendSeconds);
+                    remoteVisualPacing.AcceptSnapshot(Time.unscaledTime,remoteBallSmoother.LastBlendSeconds,state.actionSerial);
                 else remoteVisualPacing.EndMoving();
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
