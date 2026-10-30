@@ -11,8 +11,9 @@ const ngo=fs.readFileSync(path.join(unity,'Networking/NgoGameSession.cs'),'utf8'
 const checks=[
  ['local seat explicitly separate from active seat',/LOCAL SEAT:.*ACTIVE SEAT:/.test(ui)],
  ['host and client roles explicit',/authority\?"HOST":"CLIENT"/.test(ui)],
+ ['moving or finished turn blocks aim hint',/!aiming\?"NO AIM INPUT/.test(ui)],
  ['unready connection explicit',/WAITING FOR PEER \/ SNAPSHOT/.test(ui)],
- ['active-local turn says YOUR TURN',/localOwner==activeOwner\?"YOUR TURN":"OPPONENT TURN"/.test(ui)],
+ ['active-local turn says YOUR TURN',/localOwner==activeOwner\?"YOUR TURN \/ AIMING":"OPPONENT TURN"/.test(ui)],
  ['host uses authoritative revision',/AUTHORITY STATE REVISION/.test(ui)],
  ['client uses received and applied revision',/RECEIVED SNAPSHOTS/.test(ui)&&/APPLIED REVISION/.test(ui)],
  ['read-only counters available in NGO', ['ReceivedSnapshots','LastAppliedRevision','AcceptedLocalIntents','RejectedLocalIntents','AcceptedRemoteIntents','RejectedRemoteIntents'].every(k=>new RegExp('\\b'+k+'\\b').test(ngo))],
