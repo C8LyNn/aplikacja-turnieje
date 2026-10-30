@@ -30,7 +30,7 @@ function inspect(source){
 }
 if(require.main===module){
   if(process.argv.includes('--self-test')){
-    const fixture=\`static string W12QaClipboardText(string networkDiagnostics,int turn,int revision,int frame,int actionSerial,DateTime capturedUtc){return "CC001_W12_F1_QA_CAPTURE"+"SOURCE_SHA=UNVERIFIED"+"CLOCK_SYNC=UNVERIFIED"+"G3_STATUS=NOT_ATTESTED"+"TURN="+turn+"REVISION="+revision+"FRAME="+frame+"ACTION_SERIAL="+actionSerial+capturedUtc.ToUniversalTime().ToString("O")+(networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE");}void RenderDeveloper(){Draw.Text(new Rect(1,2,Mathf.Max(80,w-188),26),"F1");if(Draw.Button(new Rect(x+w-60,y+8,44,44),"X")){} if(Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11))GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,s.frame,s.actionSerial,DateTime.UtcNow);w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,view);GUI.EndScrollView();}\`;
+    const fixture=`static string W12QaClipboardText(string networkDiagnostics,int turn,int revision,int frame,int actionSerial,DateTime capturedUtc){return "CC001_W12_F1_QA_CAPTURE"+"SOURCE_SHA=UNVERIFIED"+"CLOCK_SYNC=UNVERIFIED"+"G3_STATUS=NOT_ATTESTED"+"TURN="+turn+"REVISION="+revision+"FRAME="+frame+"ACTION_SERIAL="+actionSerial+capturedUtc.ToUniversalTime().ToString("O")+(networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE");}void RenderDeveloper(){Draw.Text(new Rect(1,2,Mathf.Max(80,w-188),26),"F1");if(Draw.Button(new Rect(x+w-60,y+8,44,44),"X")){} if(Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11))GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,s.frame,s.actionSerial,DateTime.UtcNow);w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,view);GUI.EndScrollView();}`;
     const mutations=[
       ['positive',fixture,true],
       ['removed button',fixture.replace('"COPY QA"','"COPY"'),false],
@@ -46,8 +46,8 @@ if(require.main===module){
       ['missing source helper',fixture.replace('W12QaClipboardText(string','W12Clipboard(string'),false],
       ['unauthorized submit',fixture+'NetworkLink.Submit(command,out reason);',false]
     ];
-    let passed=0;for(const [name,input,expected] of mutations){const errs=inspect(input);const actual=errs.length===0;assert.equal(actual,expected,\`\${name}: \${errs.join(',')}\`);passed++;}
-    console.log(\`W12_A33_F1_STATIC_SELFTEST PASS \${passed}/\${mutations.length} (synthetic fixtures only)\`);
+    let passed=0;for(const [name,input,expected] of mutations){const errs=inspect(input);const actual=errs.length===0;assert.equal(actual,expected,`${name}: ${errs.join(',')}`);passed++;}
+    console.log(`W12_A33_F1_STATIC_SELFTEST PASS ${passed}/${mutations.length} (synthetic fixtures only)`);
   }else{
     const file=process.argv[2];if(!file){console.error('Usage: node check-f1-clipboard.cjs <DetailsView.cs> OR --self-test');process.exit(64);}
     const result=inspect(fs.readFileSync(path.resolve(file),'utf8'));
