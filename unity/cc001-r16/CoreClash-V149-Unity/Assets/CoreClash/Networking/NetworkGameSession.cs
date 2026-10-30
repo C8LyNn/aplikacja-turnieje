@@ -48,6 +48,21 @@ namespace CoreClash.Networking
                 now>=previous&&now-previous>=1f;
         }
     }
+    // Observability only: compare exact wire stateJson bytes for the SAME revision
+    // on host and client. This does not replace authoritative snapshot admission,
+    // prove rendered pose parity, or authenticate a remote player.
+    public static class NetworkStateDigest
+    {
+        public static bool ShouldSample(int revision)=>revision>0&&(revision==1||revision%16==0);
+        public static string Compute(string stateJson)
+        {
+            if(string.IsNullOrEmpty(stateJson))return null;
+            using(var sha=System.Security.Cryptography.SHA256.Create()){
+                byte[] raw=System.Text.Encoding.UTF8.GetBytes(stateJson);
+                return BitConverter.ToString(sha.ComputeHash(raw)).Replace("-","").ToLowerInvariant();
+            }
+        }
+    }
     // An old or duplicated result must never clear a newer P2 pending intent.
     public static class NetworkIntentReceipt
     {

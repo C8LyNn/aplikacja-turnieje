@@ -196,6 +196,12 @@ namespace CoreClash.Networking
                 if(LastAppliedRevision>0&&revision>LastAppliedRevision+1)
                     skippedSnapshotRevisions+=(long)revision-LastAppliedRevision-1;
                 ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State,revision);
+                // Exact accepted wire payload; never hash resynthesized or smoothed poses.
+                if(NetworkStateDigest.ShouldSample(revision)){
+                    Debug.Log("CC_W11_STATE_RX revision="+revision+
+                        " sha256="+NetworkStateDigest.Compute(packet.stateJson)+
+                        " action="+adapter.State.actionSerial+" turn="+adapter.State.turn);
+                }
                 if(NetworkSnapshotTrace.Due(Time.unscaledTime,lastClientTraceAt)){
                     lastClientTraceAt=Time.unscaledTime;
                     Debug.Log("CC_W10_NET_CLIENT revision="+revision+" action="+adapter.State.actionSerial+
@@ -217,6 +223,14 @@ namespace CoreClash.Networking
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
                 var chunks=NgoWireProtocol.Split(packed);
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);
+                // Same serialized state and revision that were sent to the client.
+                // No raw JSON, session identifier, IP address or room code in logs.
+                if(NetworkStateDigest.ShouldSample(packet.revision)){
+                    var sentState=app.Simulation.State;
+                    Debug.Log("CC_W11_STATE_TX revision="+packet.revision+
+                        " sha256="+NetworkStateDigest.Compute(packet.stateJson)+
+                        " action="+sentState.actionSerial+" turn="+sentState.turn);
+                }
                 // 20/12/8/4 Hz when moving, chosen by the ACTUAL compressed size;
                 // at rest 4 Hz. Host state is the sole gameplay source of truth.
                 float interval=NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);
