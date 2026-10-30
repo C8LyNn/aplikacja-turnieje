@@ -43,11 +43,21 @@ function evaluate(pc1, pc2) {
   const hostByRev = new Map();
   for (const f of a) if (!hostByRev.has(f.revision)) hostByRev.set(f.revision, f);
   const paired = b.filter(f => hostByRev.has(f.revision));
+  // Two absent ball arrays must never count as equal authoritative states.
+  const incomplete = paired.find(f => {
+    const host=hostByRev.get(f.revision);
+    return [host,f].some(frame => !Array.isArray(frame.balls) ||
+      frame.balls.some(ball => ball==null || !Number.isSafeInteger(ball.id) ||
+        !Number.isSafeInteger(ball.owner) || ball.owner<0 || ball.owner>1 ||
+        ![ball.x,ball.y,ball.hp].every(finite) || ball.hp<0) ||
+      new Set(frame.balls.map(ball=>ball.id)).size!==frame.balls.length);
+  });
   const mismatched = paired.find(f => {
     const x = hostByRev.get(f.revision);
     return f.turn !== x.turn || f.phase !== x.phase || f.actionSerial !== x.actionSerial || !same(normalizeBalls(f.balls), normalizeBalls(x.balls));
   });
-  if (mismatched) fail('AUTHORITATIVE_PARITY', 'Same revision diverges at '+mismatched.revision);
+  if (incomplete) hold('AUTHORITATIVE_PARITY', 'Missing or invalid ball telemetry at revision '+incomplete.revision);
+  else if (mismatched) fail('AUTHORITATIVE_PARITY', 'Same revision diverges at '+mismatched.revision);
   else if (!paired.length) hold('AUTHORITATIVE_PARITY', 'No common revision to compare');
   else pass('AUTHORITATIVE_PARITY', paired.length+' client frames match same-revision host state');
 
@@ -64,8 +74,10 @@ function evaluate(pc1, pc2) {
   const keys = p2.map(i => i.sequence);
   if (!sent.length || !p2.length) hold('P2_ACCEPTED_ONCE', 'No confirmed P2 intent and host acceptance');
   else if (p2.some(i => !Number.isSafeInteger(i.sequence) || !Number.isSafeInteger(i.actionSerial)) ||
-           new Set(keys).size !== keys.length || p2.some(i => !sent.some(s => s.owner === 1 && s.sequence === i.sequence)))
-    fail('P2_ACCEPTED_ONCE', 'Duplicate accepted P2 sequence, malformed sequence or no matching client intent');
+           new Set(keys).size !== keys.length ||
+           p2.some((i,index) => index>0 && i.actionSerial<=p2[index-1].actionSerial) ||
+           p2.some(i => !sent.some(s => s.owner === 1 && s.sequence === i.sequence)))
+    fail('P2_ACCEPTED_ONCE', 'Duplicate sequence, non-monotonic host actionSerial or missing client intent');
   else pass('P2_ACCEPTED_ONCE', p2.length+' unique P2 accepted commands with matching client intents');
 
   const aimSamples = b.flatMap(f => f.aim ? [{...f.aim, revision:f.revision}] : []);
@@ -125,7 +137,14 @@ function selfTest(){
   {const c=cloned(client);c.frames[1].aim={board:{x:0,y:0,width:540,height:900},from:{x:270,y:850},to:{x:600,y:930}};assert.equal(evaluate(host,c).gates.P2_AIM_BOUNDS.status,'FAIL');}
   {const c=cloned(client);c.frames.pop();assert.equal(evaluate(host,c).gates.FINAL_CONVERGENCE.status,'HOLD');}
   {const c=cloned(client);c.renderSamples=[{id:7,atMs:0,x:30,y:300,speed:3},{id:7,atMs:16,x:180,y:310,speed:3},{id:7,atMs:32,x:181,y:310,speed:3}];assert.equal(evaluate(host,c).gates.P2_MOTION_SMOOTHNESS.status,'HOLD');}
-  console.log('A60 W9 self-test PASS: 12 assertions; no Unity/net execution');
+  {const h=cloned(host),c=cloned(client);delete h.frames[1].balls;delete c.frames[1].balls;
+   assert.equal(evaluate(h,c).gates.AUTHORITATIVE_PARITY.status,'HOLD');}
+  {const c=cloned(client);c.frames[1].balls[0].x=Number.NaN;
+   assert.equal(evaluate(host,c).gates.AUTHORITATIVE_PARITY.status,'HOLD');}
+  {const h=cloned(host),c=cloned(client);h.acceptedIntents.push({owner:1,sequence:2,actionSerial:2,accepted:true});
+   c.sentIntents.push({owner:1,sequence:2});
+   assert.equal(evaluate(h,c).gates.P2_ACCEPTED_ONCE.status,'FAIL');}
+  console.log('A60 W10 self-test PASS: 15 assertions; no Unity/net execution');
 }
 if (require.main === module) {
   if (process.argv[2] === '--self-test') selfTest();
