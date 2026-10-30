@@ -24,14 +24,28 @@ namespace CoreClash.Networking
     // Keep expensive full-state snapshots slower as compressed payloads grow.
     public static class NetworkSnapshotRate
     {
-        public const float IdleSeconds=0.5f;
-        public const float MovingSeconds=1f/12f;
+        // 20-Hz NGO simulation tick is the maximum broadcast rate. Large reliable
+        // full-state packets throttle before their queue competes with shot intents.
+        public const float IdleSeconds=0.25f;
+        public const float MovingSeconds=0.05f;
         public static float Interval(MatchPhase phase,int compressedBytes)
         {
             if(phase!=MatchPhase.Moving)return IdleSeconds;
-            if(compressedBytes>=64*1024)return 0.25f;
-            if(compressedBytes>=16*1024)return 0.125f;
-            return MovingSeconds;
+            if(compressedBytes<0)return 0.25f; // invalid size: fail to slow cadence
+            if(compressedBytes>=64*1024)return 0.25f; // 4 Hz
+            if(compressedBytes>=16*1024)return 0.125f; // 8 Hz
+            if(compressedBytes>=8*1024)return 1f/12f; // 12 Hz
+            return MovingSeconds; // 20 Hz when compressed packet is small
+        }
+    }
+    // Deterministic 1-Hz privacy-safe log rate-limit for host/client state traces.
+    public static class NetworkSnapshotTrace
+    {
+        public static bool Due(float now,float previous)
+        {
+            return !float.IsNaN(now)&&!float.IsInfinity(now)&&now>=0f&&
+                !float.IsNaN(previous)&&!float.IsInfinity(previous)&&
+                now>=previous&&now-previous>=1f;
         }
     }
     // An old or duplicated result must never clear a newer P2 pending intent.
