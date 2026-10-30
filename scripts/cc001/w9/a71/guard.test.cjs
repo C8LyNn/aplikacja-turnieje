@@ -39,3 +39,38 @@ t('duplicate Unity GUID rejected across old and new',()=>a.match(g.check(baselin
 t('malformed new GUID rejected',()=>a.match(g.check(baseline,paired,[newAsset,newMeta],contents('bad')).errors.join(' '),/Malformed or missing/));
 t('editing old meta still rejected even on explicit allowlist',()=>a.throws(()=>g.check(baseline,change(originalMeta),[originalMeta],contents()),/protected/));
 t('new .meta for unrelated file is protected',()=>a.throws(()=>g.check(baseline,[...baseline,item(U+'Assets/Example.png.meta')],[U+'Assets/Example.png.meta'],contents()),/protected/));
+
+
+// W11 exact-author-blob provenance must be bound, not merely path-authorized.
+t('W11 exact expected Git blob admits approved network patch',()=>{
+ const result=g.checkPinned(baseline,change(net),{[net]:o},()=> 'class Allowed {}');
+ a.equal(result.ok,true);a.equal(result.expectedBlobs,1);
+});
+t('W11 alternate implementation under same path and wrong SHA is denied',()=>{
+ const result=g.checkPinned(baseline,change(net),{[net]:'2'.repeat(40)},()=> 'class Unapproved {}');
+ a.equal(result.ok,false);a.match(result.errors.join(' '),/Unexpected blob SHA/);
+});
+t('W11 expected blob path missing or unchanged is denied',()=>{
+ const result=g.checkPinned(baseline,baseline,{[net]:o},()=> 'class Good {}');
+ a.equal(result.ok,false);a.match(result.errors.join(' '),/not changed/);
+});
+t('W11 empty manifest is denied',()=>a.throws(()=>g.checkPinned(baseline,change(net),{},()=> ''),/Empty expected/));
+t('W11 malformed hashes rejected (uppercase/truncated)',()=>{
+ for(const sha of ['a'.repeat(39),'A'.repeat(40)])a.throws(()=>g.checkPinned(baseline,change(net),{[net]:sha},()=> ''),/Invalid expected/);
+});
+t('W11 unexpected second changed file fails even when authorized first matches',()=>{
+ const candidate=change(net).map(x=>x.path===ui?{...x,sha:o}:x);
+ const out=g.checkPinned(baseline,candidate,{[net]:o},()=> 'class Code {}');
+ a.equal(out.ok,false);a.match(out.errors.join(' '),/Unapproved/);
+});
+t('W11 paired asset + GUID metadata require two exact blob pins',()=>{
+ const manifest={[newAsset]:z,[newMeta]:z};
+ const good=g.checkPinned(baseline,paired,manifest,contents());
+ a.equal(good.ok,true);
+ const wrong=g.checkPinned(baseline,paired,{...manifest,[newMeta]:'3'.repeat(40)},contents());
+ a.equal(wrong.ok,false);a.match(wrong.errors.join(' '),/Unexpected blob SHA/);
+});
+t('W11 protected Protocol149 cannot be admitted even with matching hash',()=>{
+ const p=U+'Assets/CoreClash/Networking/NgoWireProtocol.cs';
+ a.throws(()=>g.checkPinned(baseline,change(p),{[p]:o},()=> ''),/protected/);
+});
