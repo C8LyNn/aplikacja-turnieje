@@ -3,16 +3,17 @@
 // Never implies native gameplay, physical QA or release approval.
 const fs=require('node:fs'),crypto=require('node:crypto'),cp=require('node:child_process'),path=require('node:path');
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
-const REF='integration/cc001-r17-w10-multiplayer-dev-candidate-20261030';
+const REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
+const PINNED='173273122c11cbf738e8b954e32506a6196fe8ec';
 const valid=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x)&&x!==RC1;
 const count=x=>Number.isSafeInteger(x)&&x>50;
 function evaluate(input) {
  const fail=[],source=input.sourceGate||{},build=input.build||{},receipt=input.receipt||{},pcs=[input.pc1||{},input.pc2||{}],
  selected=input.selectedSHA,remote=input.a70RefSHA;
  const bad=(condition,code)=>{if(condition)fail.push(code)};
- bad(!valid(selected),'UNPINNED_OR_RC1_CANDIDATE');
+ bad(!valid(selected)||selected!==PINNED,'UNPINNED_OR_RC1_CANDIDATE');
  bad(remote!==selected,'A70_REF_CHANGED_OR_NOT_ADMITTED');
- bad(source.schema!=='CC001-W11-A42-SOURCE-1'||source.status!=='SOURCE_CONTRACT_READY_FOR_A70_A72_REVIEW'||source.candidateSHA!==selected,'SOURCE_GATE_NOT_APPROVED');
+ bad(source.schema!=='CC001-W11-A42-SOURCE-1'||source.status!=='SOURCE_CONTRACT_READY_FOR_A70_A72_REVIEW'||source.candidateSHA!==selected||source.ownerRef!==REF||source.frozenRC1!==RC1||!Array.isArray(source.failures)||source.failures.length>0||!Array.isArray(source.sourceFaults)||source.sourceFaults.length>0,'SOURCE_GATE_NOT_APPROVED');
  bad(build.schema!=='CC001-W10-A72-WINDOWS-1','WRONG_BUILD_SCHEMA');
  bad(build.ref!==REF,'WRONG_A70_SOURCE_REF');
  bad(build.candidateSHA!==selected,'BUILD_SHA_NOT_SELECTED_SHA');
@@ -21,10 +22,19 @@ function evaluate(input) {
  bad(build.unity?.exitCode!==0,'UNITY_EXIT_NOT_ZERO');
  bad(build.buildReport?.result!=='Succeeded'||build.buildReport?.errors!==0,'BUILD_REPORT_NOT_SUCCEEDED');
  bad(!count(build.playerCount)||!Array.isArray(build.playerInventory)||build.playerInventory.length!==build.playerCount,'INCOMPLETE_PLAYER_INVENTORY');
+ const seen=new Set();
+ for(const item of build.playerInventory||[]){
+  const safe=typeof item.path==='string'&&item.path.length>0&&!item.path.startsWith('/')&&!item.path.includes('\\')&&!item.path.includes(':')&&item.path.split('/').every(p=>p&&p!=='.'&&p!=='..');
+  if(!safe||seen.has(item.path)||!Number.isSafeInteger(item.bytes)||item.bytes<0||!/^[0-9a-fA-F]{64}$/.test(item.sha256||'')){
+   fail.push('INVALID_OR_DUPLICATE_PLAYER_INVENTORY');break;
+  }
+  seen.add(item.path);
+ }
  bad(!build.playerInventory?.some(x=>x.path==='CoreClash.exe')||
      !build.playerInventory?.some(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),'EXE_OR_DLL_MISSING');
- bad(!build.gates||Object.values(build.gates).some(v=>v!==true),'A72_PROVENANCE_GATE_NOT_PASSED');
- bad(build.blockers?.length>0,'A72_BLOCKERS_NONEMPTY');
+ const requiredGates=['sourcePreExact','sourceAfterMaterialized','sourceNotMutated','unityExitZero','buildSucceeded','playerComplete','compilerResponseCaptured','playerDefineCorrect','noDiagnostic','buildMarker'];
+ bad(!build.gates||requiredGates.some(k=>build.gates[k]!==true)||Object.values(build.gates||{}).some(v=>v!==true),'A72_PROVENANCE_GATE_NOT_PASSED');
+ bad(!Array.isArray(build.blockers)||build.blockers.length>0,'A72_BLOCKERS_NONEMPTY');
  bad(receipt.schema!=='CC001-W10-A72-RECEIPT-1','BAD_RECEIPT_SCHEMA');
  bad(receipt.candidateSHA!==selected||receipt.rc1!==RC1||receipt.status!=='PASS_BUILD_EVIDENCE_ONLY','RECEIPT_SHA_OR_STATUS_MISMATCH');
  for(const [i,x] of pcs.entries()){
@@ -71,4 +81,4 @@ if(require.main===module) {
  try{process.exitCode=main(process.argv.slice(2))}
  catch(e){process.stderr.write('A42_W11_CHAIN_HOLD '+e.message+'\n');process.exitCode=3}
 }
-module.exports={evaluate,main,RC1,REF};
+module.exports={evaluate,main,RC1,REF,PINNED};
