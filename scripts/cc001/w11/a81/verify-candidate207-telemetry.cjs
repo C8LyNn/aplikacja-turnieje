@@ -7,6 +7,7 @@ const QA_FREEZE='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const SCHEMA='CC001_A81_W11_CANDIDATE207_SAMPLED_V1';
 const specs={HOST:['revision','action','turn','phase','balls','packedBytes','chunks','periodMs'],CLIENT:['revision','action','turn','phase','balls','received','skippedRevisions']};
 const numeric=new Set(['revision','action','turn','balls','packedBytes','chunks','periodMs','received','skippedRevisions']);
+const FROZEN_MATCH_PHASES=new Set(['Aiming','Moving','Over']); // GameState.cs MatchPhase at W11 QA SHA
 const validNumber=x=>/^(?:0|[1-9][0-9]*)$/.test(x)&&Number.isSafeInteger(Number(x))?Number(x):null;
 function parse(text,side){
   if(!specs[side])throw Error('Invalid role');
@@ -28,7 +29,7 @@ function parse(text,side){
       record[k]=numeric.has(k)?validNumber(fields[k]):fields[k];
       if(record[k]===null)bad=true;
     }}
-    if(!bad&&(record.turn>1||!(/^[A-Za-z][A-Za-z0-9_]*$/).test(record.phase)||
+    if(!bad&&(record.turn>1||!FROZEN_MATCH_PHASES.has(record.phase)||
       record.balls<1||(side==='HOST'&&(record.packedBytes<1||record.chunks<1))||
       (side==='CLIENT'&&record.received<1)))bad=true;
     if(bad)errors.push({code:'MALFORMED_'+side,line:index+1});else records.push(record);
@@ -79,11 +80,20 @@ function run(argv){
   const args={};if(argv.length%2)throw Error('Usage: --host PC1.log --client PC2.log [--out report.json]');
   for(let i=0;i<argv.length;i+=2){if(!['--host','--client','--out'].includes(argv[i])||Object.hasOwn(args,argv[i]))throw Error('Invalid argument');args[argv[i]]=argv[i+1];}
   if(!args['--host']||!args['--client']||args['--host']===args['--client'])throw Error('Two distinct logs required');
-  const buffers=[args['--host'],args['--client']].map(p=>{const stat=fs.statSync(p);if(!stat.isFile()||stat.size>32*1024*1024)throw Error('Invalid log size');return fs.readFileSync(p);});
+  // Distinct path strings are not proof of independent files: reject hardlink/symlink alias.
+  const identities=[args['--host'],args['--client']].map(p=>{const stat=fs.lstatSync(p);
+    if(!stat.isFile()||stat.size>32*1024*1024)throw Error('Input must be a regular non-link log <=32MiB');
+    return {dev:stat.dev,ino:stat.ino};
+  });
+  if(identities[0].dev===identities[1].dev&&identities[0].ino===identities[1].ino)
+    throw Error('Two independent log files are required');
+  const buffers=[args['--host'],args['--client']].map(p=>fs.readFileSync(p));
   const report=analyze(...buffers.map(b=>b.toString('utf8')));
   report.inputReceipts={PC1:{sha256:crypto.createHash('sha256').update(buffers[0]).digest('hex'),bytes:buffers[0].length},PC2:{sha256:crypto.createHash('sha256').update(buffers[1]).digest('hex'),bytes:buffers[1].length}};
   const out=JSON.stringify(report,null,2)+'\n';if(args['--out'])fs.writeFileSync(args['--out'],out,{flag:'wx'});else process.stdout.write(out);
   return report.verdict==='ANOMALY_IN_SUPPLIED_LOGS'?1:report.verdict==='INSUFFICIENT_SELECTED_LOGS'?2:0;
 }
 module.exports={parse,expectedMs,analyze,run,PIN,QA_FREEZE};
-if(require.main===module){try{process.exitCode=run(process.argv.slice(2));}catch(e){process.stderr.write('A81_INPUT_ERROR '+e.message+'\n');process.exitCode=3;}}
+if(require.main===module){try{process.exitCode=run(process.argv.slice(2));}catch(e){
+  // OS filesystem errors include absolute paths; print only the stable error code.
+  process.stderr.write('A81_INPUT_ERROR '+(e.code?'FILE_IO_'+e.code:e.message)+'\n');process.exitCode=3;}}
