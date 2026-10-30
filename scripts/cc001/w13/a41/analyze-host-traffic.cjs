@@ -6,6 +6,7 @@ const integers=required.filter(k=>k!=='phase');
 const marker='CC_W10_NET_HOST';
 const hostMarkerPattern=/(?:^|\s)CC_W10_NET_HOST(?=\s)/;
 const maxBytes=256*1024,chunkBytes=900,budget=256*1024;
+const maxChunks=Math.ceil(maxBytes/chunkBytes);
 function lineFields(line){
   const match=hostMarkerPattern.exec(line);
   if(!match)throw Error('INVALID_HOST_MARKER');
@@ -33,7 +34,10 @@ function lineFields(line){
   if(data.submitBytesTotal<data.packedBytes||
      data.submitChunksTotal<data.chunks||data.submitSnapshotsTotal<1||
      data.submitSnapshotsTotal>data.submitChunksTotal||
-     data.submitChunksTotal>data.submitBytesTotal)throw Error('INVALID_LEDGER_ROW');
+     data.submitChunksTotal>data.submitBytesTotal||
+     data.submitBytesTotal>data.submitSnapshotsTotal*maxBytes||
+     data.submitChunksTotal>data.submitSnapshotsTotal*maxChunks)
+    throw Error('INVALID_LEDGER_ROW');
   return data;
 }
 function analyze(raw){
@@ -54,7 +58,11 @@ function analyze(raw){
     const sends=b.submitSnapshotsTotal-a.submitSnapshotsTotal;
     if(ms<=0||b.revision<=a.revision||bytes<=0||chunks<=0||sends<=0||
        bytes<chunks||bytes>chunks*chunkBytes||sends>chunks||
-       sends>b.revision-a.revision)throw Error('NON_MONOTONIC_OR_INCONSISTENT_TRAFFIC');
+       sends>b.revision-a.revision||
+       bytes>sends*maxBytes||chunks>sends*maxChunks||
+       chunks<Math.ceil(bytes/chunkBytes)||
+       chunks>Math.ceil(bytes/chunkBytes)+sends-1)
+      throw Error('NON_MONOTONIC_OR_INCONSISTENT_TRAFFIC');
     const rate=bytes*1000/ms;
     totalBytes+=bytes;totalMs+=ms;
     peak=Math.max(peak,rate);
