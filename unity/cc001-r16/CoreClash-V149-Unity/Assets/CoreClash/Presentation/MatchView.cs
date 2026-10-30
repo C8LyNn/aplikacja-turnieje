@@ -47,7 +47,8 @@ namespace CoreClash.Presentation
             else Draw.Text(new Rect(0,y+27,w,38),SecondaryMatchHelp.Text(state,
                 NetworkLink==null?-1:NetworkLink.LocalOwner,NetworkLink!=null,
                 NetworkLink==null||NetworkLink.IsConnected,
-                CanChoose&&SecondaryMatchHelp.ReplayReady(Simulation)),12,Draw.Muted);
+                CanChoose&&SecondaryMatchHelp.ReplayReady(Simulation),
+                CanChoose?SecondaryMatchHelp.ReplayBlockedReason(Simulation):null),12,Draw.Muted);
             GUI.EndScrollView();
         }
         // Compact phone landscape does not use the 810-unit desktop scroll view.
