@@ -7,6 +7,66 @@ public static partial class Program
     {
         Test("new active player cannot inherit a ball outside their deck",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);s.State.turn=1;Eq("normal",BallSelection.ForTurn(s,"agony"));});
         Test("exhausted selection falls back to unlimited Standard",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);Eq("agony",BallSelection.ForTurn(s,"agony"));s.State.players[0].stock.First(x=>x.id=="agony").remaining=0;Eq("normal",BallSelection.ForTurn(s,"agony"));});
+        // A83 W12: a client may keep a card highlighted while spectating,
+        // but cannot play it unless the active-seat authority check passes.
+        Test("A83 W12 P1 selection is preserved during connected P2 aiming",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("normal",BallSelection.ForTurn(s,"agony"));
+            Eq("agony",BallSelection.ForLocalView(s,"agony",false));
+        });
+        Test("A83 W12 local active P1 selection is validated against P1 stock",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("agony",BallSelection.ForLocalView(s,"agony",true));
+        });
+        Test("A83 W12 return to P1 turn preserves legally held local card",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            string selected="agony";
+            s.State.turn=1;
+            selected=BallSelection.ForLocalView(s,selected,false);
+            s.State.turn=0;
+            selected=BallSelection.ForLocalView(s,selected,true);
+            Eq("agony",selected);
+        });
+        Test("A83 W12 exhausted active card falls back to Standard",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.turn=0;
+            s.State.players[0].stock.First(x=>x.id=="agony").remaining=0;
+            Eq("normal",BallSelection.ForLocalView(s,"agony",true));
+            Eq("agony",BallSelection.ForLocalView(s,"agony",false));
+        });
+        Test("A83 W12 resolving shot does not silently change pending local selection",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            Eq("agony",BallSelection.ForLocalView(s,"agony",false));
+        });
+        Test("A83 W12 invalid, empty or missing local card fails safely",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            foreach(string invalid in new[]{(string)null,"","invalid-ball-type"})
+            {
+                Eq("normal",BallSelection.ForLocalView(s,invalid,false));
+                Eq("normal",BallSelection.ForLocalView(s,invalid,true));
+            }
+            Eq("normal",BallSelection.ForLocalView(null,"agony",false));
+        });
+        Test("A83 W12 hotseat turn switch still invalidates opponent-only card",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.turn=1;
+            Eq("normal",BallSelection.ForLocalView(s,"agony",true));
+        });
+        Test("A83 W12 local display policy cannot mutate turn stock or revision",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            int turn=s.State.turn,revision=s.State.revision,serial=s.State.actionSerial;
+            var p0=s.State.players[0].stock.Select(x=>x.remaining).ToArray();
+            var p1=s.State.players[1].stock.Select(x=>x.remaining).ToArray();
+            foreach(var canChoose in new[]{true,false})
+                foreach(var type in new[]{"agony","normal","missing"})
+                    BallSelection.ForLocalView(s,type,canChoose);
+            Eq(turn,s.State.turn);Eq(revision,s.State.revision);Eq(serial,s.State.actionSerial);
+            True(p0.SequenceEqual(s.State.players[0].stock.Select(x=>x.remaining)));
+            True(p1.SequenceEqual(s.State.players[1].stock.Select(x=>x.remaining)));
+        });
         foreach(var size in new[]{(1280,900),(960,600),(1920,1080),(390,844),(844,390)}){
             Test("presentation arena and controls remain usable at "+size.Item1+"x"+size.Item2,()=>{
                 var layout=MatchLayout.For(size.Item1,size.Item2);var board=layout.Board;var panel=layout.Panel;
