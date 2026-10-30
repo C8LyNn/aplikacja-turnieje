@@ -1,17 +1,18 @@
 'use strict';
 // CC-001 W11 A42: independently link A72 source/build receipts and two PC byte-verifier reports.
 // Never implies native gameplay, physical QA or release approval.
-const fs=require('node:fs'),crypto=require('node:crypto');
+const fs=require('node:fs'),crypto=require('node:crypto'),cp=require('node:child_process'),path=require('node:path');
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const REF='integration/cc001-r17-w10-multiplayer-dev-candidate-20261030';
 const valid=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x)&&x!==RC1;
 const count=x=>Number.isSafeInteger(x)&&x>50;
 function evaluate(input) {
- const fail=[],build=input.build||{},receipt=input.receipt||{},pcs=[input.pc1||{},input.pc2||{}],
+ const fail=[],source=input.sourceGate||{},build=input.build||{},receipt=input.receipt||{},pcs=[input.pc1||{},input.pc2||{}],
  selected=input.selectedSHA,remote=input.a70RefSHA;
  const bad=(condition,code)=>{if(condition)fail.push(code)};
  bad(!valid(selected),'UNPINNED_OR_RC1_CANDIDATE');
  bad(remote!==selected,'A70_REF_CHANGED_OR_NOT_ADMITTED');
+ bad(source.schema!=='CC001-W11-A42-SOURCE-1'||source.status!=='SOURCE_CONTRACT_READY_FOR_A70_A72_REVIEW'||source.candidateSHA!==selected,'SOURCE_GATE_NOT_APPROVED');
  bad(build.schema!=='CC001-W10-A72-WINDOWS-1','WRONG_BUILD_SCHEMA');
  bad(build.ref!==REF,'WRONG_A70_SOURCE_REF');
  bad(build.candidateSHA!==selected,'BUILD_SHA_NOT_SELECTED_SHA');
@@ -43,21 +44,25 @@ function evaluate(input) {
   warning:'Checks the consistency of supplied files, not their independent authenticity. A60 must verify original raw evidence before any runtime QA decision.'};
 }
 function opts(argv) {
- const allowed=new Set(['--selected-sha','--a70-head','--build','--receipt','--pc1','--pc2','--out']),x={};
+ const allowed=new Set(['--selected-sha','--repo','--source-gate','--build','--receipt','--pc1','--pc2','--out']),x={};
  for(let i=0;i<argv.length;i+=2){if(!allowed.has(argv[i])||!argv[i+1]||x[argv[i]])throw Error('Invalid arguments');x[argv[i]]=argv[i+1]}
- for(const key of ['--selected-sha','--a70-head','--build','--receipt','--pc1','--pc2'])
+ for(const key of ['--selected-sha','--repo','--source-gate','--build','--receipt','--pc1','--pc2'])
   if(!x[key])throw Error('Missing '+key);
  return x;
 }
 function main(argv) {
  const a=opts(argv),read=f=>JSON.parse(fs.readFileSync(f,'utf8')),bytes={};
- for(const key of ['--build','--receipt','--pc1','--pc2']) {
+ const query=cp.spawnSync('git',['-C',path.resolve(a['--repo']),'ls-remote','--exit-code','origin','refs/heads/'+REF],{encoding:'utf8'});
+ if(query.error||query.status!==0)throw Error('A70_REMOTE_REF_NOT_VERIFIED');
+ const remoteSha=query.stdout.trim().split(/\s+/)[0];
+ if(!/^[a-f0-9]{40}$/.test(remoteSha))throw Error('A70_REMOTE_SHA_INVALID');
+ for(const key of ['--source-gate','--build','--receipt','--pc1','--pc2']) {
   const value=fs.readFileSync(a[key]);bytes[key.slice(2)]={
    sha256:crypto.createHash('sha256').update(value).digest('hex'),
    bytes:value.length};
  }
- const result=evaluate({selectedSHA:a['--selected-sha'],a70RefSHA:a['--a70-head'],
-  build:read(a['--build']),receipt:read(a['--receipt']),pc1:read(a['--pc1']),pc2:read(a['--pc2'])});
+ const result=evaluate({selectedSHA:a['--selected-sha'],a70RefSHA:remoteSha,
+  sourceGate:read(a['--source-gate']),build:read(a['--build']),receipt:read(a['--receipt']),pc1:read(a['--pc1']),pc2:read(a['--pc2'])});
  result.inputs=bytes;const content=JSON.stringify(result,null,2)+'\n';
  if(a['--out'])fs.writeFileSync(a['--out'],content,{flag:'wx'});else process.stdout.write(content);
  return result.status==='HOLD'?2:0;
