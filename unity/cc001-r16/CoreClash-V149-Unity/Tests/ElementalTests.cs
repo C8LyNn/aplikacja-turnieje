@@ -286,6 +286,14 @@ public static partial class Program
             Eq(50f,b.balls[0].x);Eq(100f,b.balls[0].vx);Eq(20,b.balls[0].hp);
             Eq(1,b.balls[0].owner);Eq(MatchPhase.Aiming,b.phase);
         });
+        Test("R17 W10 A30 fresh portal event snaps once and old event expires", () => {
+            var state=new GameState();
+            state.events.Add(new GameEvent{id=5,ballId=9,kind="PORTAL"});
+            var instant=CoreClash.Physics.RemoteSnapshotEvents.InstantBallIds(state,0,out int latest);
+            Eq(5,latest);True(instant.Contains(9));
+            var old=CoreClash.Physics.RemoteSnapshotEvents.InstantBallIds(state,latest,out int same);
+            Eq(5,same);False(old.Contains(9));
+        });
         Test("R17 W9 A50 explicit short-range teleport event is never interpolated", () => {
             var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
             var a=new GameState();a.balls.Add(new BallRuntime{id=9,owner=1,type="warp",x=10});
