@@ -141,9 +141,11 @@ namespace CoreClash.Presentation
             if(shortTray){matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,inner.width-20,180));inner=new Rect(0,0,inner.width-20,180);}
             float w=inner.width,y=inner.y;int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int tintOwner=owner>=0?owner:Simulation.State.turn;
-            Draw.Text(new Rect(inner.x,y,w-128,44),Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(inner.x,y,w-128,44),owner<0?"DECK UNAVAILABLE":Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(inner.xMax-120,y,120,44),"STANDARD",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
-            y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.StockIds(Simulation.State,owner);float viewW=w-arrow*2-12,fullW=ids.Length*(cardW+8)-8,max=Math.Max(0,fullW-viewW);
+            y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.StockIds(Simulation.State,owner);
+            float viewW=Math.Max(1f,w-arrow*2-12),fullW=LocalDeckContent.TrayContentWidth(ids.Length,cardW,8,viewW),max=Math.Max(0f,fullW-viewW);
+            trayScroll.x=LocalDeckContent.ClampTrayScroll(trayScroll.x,fullW,viewW);
             if(Draw.Button(new Rect(inner.x,y,arrow,cardH),"<",enabled:trayScroll.x>0,size:25))trayScroll.x=Math.Max(0,trayScroll.x-(cardW+8)*2);
             if(Draw.Button(new Rect(inner.xMax-arrow,y,arrow,cardH),">",enabled:trayScroll.x<max,size:25))trayScroll.x=Math.Min(max,trayScroll.x+(cardW+8)*2);
             trayScroll=Draw.ScrollView(new Rect(inner.x+arrow+6,y,viewW,cardH),trayScroll,new Rect(0,0,fullW,cardH),true);
