@@ -4,12 +4,12 @@ const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_pro
 const {inspect,inspectDirectory}=require('./w11-source-readiness.cjs');
 const ROOT='unity/cc001-r16/CoreClash-V149-Unity';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
-const SELECTED_REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
-const SELECTED_SHA='173273122c11cbf738e8b954e32506a6196fe8ec';
+const W11='173273122c11cbf738e8b954e32506a6196fe8ec';
+const W11_REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
 const UNITY_VERSION='6000.4.0f1';
 const DIAG='CC001_PHOENIX_DIAGNOSTIC';
 const PROTECTED=[`${ROOT}/.gitattributes`,`${ROOT}/Packages/manifest.json`,`${ROOT}/ProjectSettings/ProjectSettings.asset`,`${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`,`${ROOT}/Assets/CoreClash/Editor/BuildTools.cs`];
-const safeRef=s=>s===SELECTED_REF;
+const safeRef=s=>s===W11_REF;
 const goodSha=s=>/^[a-f0-9]{40}$/.test(s);
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
 const ensure=(v,m)=>{if(!v)throw new Error(m)};
@@ -123,8 +123,8 @@ async function spawnLog(cmd,args,cwd,logPath){
 }
 async function build(a){
  ensure(process.platform==='win32','Windows 11 operator only. No Unity build on this host.');
- ensure(safeRef(a.ref||''),'Exact A70 W11 integration ref required: '+SELECTED_REF);
- ensure(goodSha(a.sha||'')&&a.sha===SELECTED_SHA,'Exact selected W11 candidate SHA required: '+SELECTED_SHA);
+ ensure(safeRef(a.ref||''),'Exact A70-approved W11 PR207 integration ref required');
+ ensure(goodSha(a.sha||'')&&a.sha===W11,'Exact frozen A70 W11 PR207 SHA required; do not use moved or alternate ref');
  ensure(a.unity&&path.isAbsolute(a.unity)&&fs.existsSync(a.unity),'Installed Unity.exe absolute path required');
  ensure(/[/\\]6000\.4\.0f1[/\\]Editor[/\\]Unity\.exe$/i.test(a.unity),'Editor must be Unity 6000.4.0f1');
  ensure(a.out&&path.isAbsolute(a.out)&&!fs.existsSync(a.out),'Fresh unused absolute output directory required');
@@ -193,11 +193,10 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(allowedEOL(utf8('A\r\nB'),utf8('A\nB'),'unspecified'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(allowedEOL(utf8('A\r\nB'),utf8('A\nB\n'),'lf'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(allowedEOL(Buffer.from([0,13,10]),Buffer.from([0,10]),'lf'),'DIFFERENT_BYTES'));
- test(()=>assert.equal(safeRef(SELECTED_REF),true));
- test(()=>assert.equal(safeRef('integration/cc001-r17-w10-multiplayer-candidate'),false));
- test(()=>assert.equal(goodSha(SELECTED_SHA)&&SELECTED_SHA!==RC1,true));
+ test(()=>assert.equal(safeRef(W11_REF),true));
  test(()=>assert.equal(safeRef('feat/cc001-r17-w9-a30-multiplayer-repair'),false));
  test(()=>assert.equal(safeRef('integration/cc001-r17-w8-phoenix-rc1'),false));
+ test(()=>assert.equal(safeRef('integration/cc001-r17-w10-multiplayer-dev-candidate-20261030'),false));
  test(()=>assert.equal(goodSha(RC1),true));
  test(()=>assert.equal(goodSha('A'.repeat(40)),false));
  test(()=>assert.equal(fileLegal(`${ROOT}/Assets/CoreClash/Presentation/MatchView.cs`),true));
@@ -209,7 +208,7 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'A',classification:'IDENTICAL_BYTES'}]}).length,0));
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'B',classification:'CRLF_TO_LF_ONLY'}]}).length,1));
  test(()=>assert.deepEqual(boolGates({a:true,b:false}),['b']));
- const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision;',app:'RemoteBallSmoother x; remoteBallSmoother.Observe(state,now); Simulation.State=state;',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");'};
+ const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
  console.log(JSON.stringify({suite:'CC001-W11-A72-offline',pass:passed,fail:0}));
