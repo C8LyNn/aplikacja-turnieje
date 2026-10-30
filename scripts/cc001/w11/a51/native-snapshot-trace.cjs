@@ -31,7 +31,19 @@ function parseLogBuffer(bytes, peer) {
   if (!['PC1','PC2'].includes(peer)) throw Error('peer must be PC1 or PC2');
   if (!Buffer.isBuffer(bytes)) throw Error('input must be a Buffer');
   const rows = [], errors = [], lines = bytes.toString('utf8').split(/\r?\n/);
+  // A41 owns W11 digest validation/parity. Count only markers here, without
+  // duplicating its comparator or exposing digest/IP/session data in summaries.
+  const digestMarkers={TX:0,RX:0,unknown:0};
   for (const [index, line] of lines.entries()) {
+    if(line.includes('CC_W11_STATE_')){
+      const markers=[...line.matchAll(/\bCC_W11_STATE_(TX|RX)\b/g)];
+      if(markers.length!==1){digestMarkers.unknown++;errors.push({code:'UNRECOGNIZED_OR_AMBIGUOUS_W11_DIGEST_MARKER',peer,line:index+1});}
+      else{
+        const side=markers[0][1];digestMarkers[side]++;
+        if(side!==(peer==='PC1'?'TX':'RX'))
+          errors.push({code:'WRONG_W11_DIGEST_TRACE_SIDE',peer,line:index+1});
+      }
+    }
     const matched = TAGS.filter(([tag]) => new RegExp('\\b'+tag+'\\b').test(line));
     if (!matched.length) continue;
     if (matched.length!==1) { errors.push({code:'AMBIGUOUS_TRACE_TAG',peer,line:index+1}); continue; }
@@ -64,7 +76,7 @@ function parseLogBuffer(bytes, peer) {
       balls:fields.balls??null,periodMs:fields.periodMs??null,
       received:fields.received??null,skippedRevisions:fields.skippedRevisions??null});
   }
-  return {source:{sha256:sha256(bytes),bytes:bytes.length},peer,rows,errors};
+  return {source:{sha256:sha256(bytes),bytes:bytes.length},peer,rows,errors,auxiliary:{digestMarkers}};
 }
 function readLog(filename,peer){return parseLogBuffer(fs.readFileSync(filename),peer);}
 function analyze(pc1,pc2){
@@ -76,6 +88,11 @@ function analyze(pc1,pc2){
   if(pc1?.peer!=='PC1' && pc1)throw Error('PC1 input is mislabeled');
   if(pc2?.peer!=='PC2' && pc2)throw Error('PC2 input is mislabeled');
   const all=sources.flatMap(s=>s.rows),errors=sources.flatMap(s=>s.errors),findings=[],warnings=[];
+  const digestMarkers={pc1Tx:pc1?.auxiliary?.digestMarkers?.TX??0,
+    pc2Rx:pc2?.auxiliary?.digestMarkers?.RX??0,
+    wrongSideOrUnknown:(pc1?.auxiliary?.digestMarkers?.RX??0)+(pc2?.auxiliary?.digestMarkers?.TX??0)+
+      (pc1?.auxiliary?.digestMarkers?.unknown??0)+(pc2?.auxiliary?.digestMarkers?.unknown??0)};
+  const hasW11DigestMarkers=Object.values(digestMarkers).some(n=>n>0);
   const flag=(code,severity,fields={})=>findings.push({code,severity,...fields});
   for(const e of errors)flag(e.code,'ERROR',e);
   const producers=[...new Set(all.map(r=>r.producer))];
@@ -136,21 +153,26 @@ function analyze(pc1,pc2){
     for(const rev of clientMap.keys())if(!hostMap.has(rev))unpairedClient++;
   }
   if(unpairedHost||unpairedClient)warnings.push('Unpaired sampled/opt-in log rows do NOT prove packet loss, since capture can omit revisions.');
-  warnings.push('No per-snapshot payload hash or runId in either native producer: even matching revision fields do NOT prove authoritative state-byte parity or same-run identity.');
+  if(hasW11DigestMarkers){
+    warnings.push('W11 A41 digest markers detected but NOT parsed or compared by A51. Run scripts/cc001/w11/a41/state-parity.cjs on the SAME two original PC1/PC2 logs; A51 metadata cannot certify wire-state parity.');
+    if(!digestMarkers.pc1Tx||!digestMarkers.pc2Rx)
+      warnings.push('W11 digest capture is one-sided or incomplete; no paired-state conclusion can be drawn.');
+  }else warnings.push('A31/W10 metadata lacks state-payload digests; A41 W11 digest samples, if present in the built Player, require separate same-revision verification and are NOT assumed here.');
+  warnings.push('No native marker contains an authenticated runId; even a digest match must be associated with a verified same-binary two-PC run.');
   warnings.push('Local monotonic tms values are process-specific; do NOT subtract PC1 and PC2 tms to calculate one-way latency.');
   warnings.push('No frame coordinates/timestamps in these sources; neither smooth rendering nor genuine teleports can be certified.');
   warnings.push('Candidate source SHA is a parser policy pin, not a proof of the Unity Player binary SHA or session identity.');
   const hardErrors=findings.filter(f=>f.severity==='ERROR').length;
-  const traceCoverage=producer==='NONE'?'NO_TRACE_ROWS':mixed?'MIXED_HOLD':!pc1||!pc2?'ONE_SIDED_HOLD':producer==='A31'?'OPT_IN_A31_PER_SNAPSHOT':'SPARSE_A41_SAMPLED';
+  const traceCoverage=producer==='NONE'?(hasW11DigestMarkers?'W11_DIGEST_ONLY_HOLD':'NO_TRACE_ROWS'):mixed?'MIXED_HOLD':!pc1||!pc2?'ONE_SIDED_HOLD':producer==='A31'?'OPT_IN_A31_PER_SNAPSHOT':'SPARSE_A41_SAMPLED';
   return {schema:'CC001_R17_W11_A51_NATIVE_TRACE_V2',candidateSourceSha:CANDIDATE_SHA,evidence:'NATIVE_LOG_FORMAT_PARSER',traceCoverage,
     sources:{pc1:pc1?.source??null,pc2:pc2?.source??null},producer,
     observations:{hostRows:host.length,clientRows:client.length,pairedRevisionRows:paired,unpairedHostRows:unpairedHost,unpairedClientRows:unpairedClient,
       hostIntervalSamples:host.map(e=>e.periodMs).filter(x=>x!==null),
-      hostCadencePolicyChecks,hostCadencePolicyViolations,
+      hostCadencePolicyChecks,hostCadencePolicyViolations,w11DigestMarkers:digestMarkers,
       maxReportedSkippedClientRevisions:client.map(e=>e.skippedRevisions).filter(x=>x!==null).reduce((a,b)=>Math.max(a,b),0),
       localOneWayLatencyMs:null,payloadHashPairs:0,frameCoordinates:0},
     findings,warnings,
-    qualification:{parser:hardErrors?'TRACE_FIELDS_INVALID':!all.length?'NO_TRACE':'TRACE_FIELDS_OBSERVED',sameRevisionMetadata:hardErrors?'HOLD_ERRORS':paired?'MATCHED_METADATA_ONLY':'NOT_PROVEN',authoritativeStateParity:'NOT_PROVEN_NO_PAYLOAD_HASH',visualSmoothness:'NOT_PROVEN_NO_FRAMES',G3:'NOT_CERTIFIED_BY_ANALYZER',G4:'NOT_CERTIFIED_BY_ANALYZER'}};
+    qualification:{parser:hardErrors?'TRACE_FIELDS_INVALID':!all.length?(hasW11DigestMarkers?'W11_DIGEST_ONLY_NOT_COMPARED':'NO_TRACE'):'TRACE_FIELDS_OBSERVED',sameRevisionMetadata:hardErrors?'HOLD_ERRORS':paired?'MATCHED_METADATA_ONLY':'NOT_PROVEN',authoritativeStateParity:hasW11DigestMarkers?'NOT_PROVEN_A41_COMPARATOR_REQUIRED':'NOT_PROVEN_NO_PAYLOAD_HASH',visualSmoothness:'NOT_PROVEN_NO_FRAMES',G3:'NOT_CERTIFIED_BY_ANALYZER',G4:'NOT_CERTIFIED_BY_ANALYZER'}};
 }
 function argsParse(argv){const a={};for(let i=0;i<argv.length;i++){const key=argv[i];if(!['--pc1','--pc2','--out'].includes(key))throw Error('Unknown argument '+key);if(key in a)throw Error('Duplicate argument '+key);const val=argv[++i];if(!val)throw Error('Missing '+key);a[key.slice(2)]=val;}if(!a.pc1&&!a.pc2)throw Error('Supply --pc1 and/or --pc2');return a;}
 function cli(argv){const args=argsParse(argv);const result=analyze(args.pc1?readLog(args.pc1,'PC1'):null,args.pc2?readLog(args.pc2,'PC2'):null);const body=JSON.stringify(result,null,2)+'\n';if(args.out)fs.writeFileSync(args.out,body,{flag:'wx'});else process.stdout.write(body);}
