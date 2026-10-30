@@ -211,6 +211,69 @@ public static partial class Program
             Eq(BallSelectionSource.Hand,LocalDeckContent.ActiveSource(s,1,"phoenix"));
             True(LocalDeckContent.CanActivate(s,1,"phoenix",true));
         });
+
+        Test("A32 W14 valid nine-special deck still renders original order",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            for(int owner=0;owner<=1;owner++){
+                var ids=LocalDeckContent.RenderableStockIds(s,owner);
+                Eq(9,ids.Length);
+                True(ids.SequenceEqual(catalog.Featured[owner].balls));
+                True(ids.SequenceEqual(s.State.players[owner].stock.Select(x=>x.id)));
+            }
+        });
+        Test("A32 W14 unknown catalog type cannot reach any card renderer",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            int revision=s.State.revision,turn=s.State.turn;
+            var stock=s.State.players[1].stock;
+            stock[0].id="unregistered_not_a_ball";
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            s.State.turn=1;
+            False(LocalDeckContent.CanActivate(s,1,"unregistered_not_a_ball",true));
+            Eq(revision,s.State.revision);
+            Eq(1,s.State.turn);
+            Eq("unregistered_not_a_ball",stock[0].id);
+        });
+        Test("A32 W14 repeated catalog IDs fail closed rather than double-render",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            s.State.players[1].stock[1].id=s.State.players[1].stock[0].id;
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            Eq(9,LocalDeckContent.RenderableStockIds(s,0).Length);
+        });
+        Test("A32 W14 null stock entry cannot crash display nor active source",()=>{
+            foreach(int turn in new[]{0,1}){
+                var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+                s.State.turn=turn;
+                s.State.players[1].stock[0]=null;
+                Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+                Eq(0,LocalDeckContent.Remaining(s,1,"phoenix"));
+                Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+                Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+                False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+                Eq("EMPTY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            }
+        });
+        Test("A32 W14 negative stock count rejects all local card activation",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            string id=s.State.players[1].stock[0].id;
+            s.State.players[1].stock[0].remaining=-1;
+            s.State.turn=1;
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            Eq(0,LocalDeckContent.Remaining(s,1,id));
+            False(LocalDeckContent.VisibleAsAvailable(s,1,id));
+            False(LocalDeckContent.CanActivate(s,1,id,true));
+        });
+        Test("A32 W14 missing or extra special deck slot rejects malformed view",()=>{
+            var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            var entries=s.State.players[1].stock;
+            var extra=entries[0];
+            entries.RemoveAt(entries.Count-1);
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            entries.Add(extra);
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            entries.Add(new StockEntry{id="normal",remaining=1});
+            Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
+            Eq(9,LocalDeckContent.RenderableStockIds(s,0).Length);
+        });
     }
     static GameSimulation A32ReadyPhoenixDeck()
     {

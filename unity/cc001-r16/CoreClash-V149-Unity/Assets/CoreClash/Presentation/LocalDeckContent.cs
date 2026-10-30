@@ -26,7 +26,33 @@ namespace CoreClash.Presentation
             return simulation!=null&&simulation.State!=null&&
                 simulation.State.players!=null&&owner>=0&&owner<=1&&
                 owner<simulation.State.players.Length&&simulation.State.players[owner]!=null&&
-                simulation.State.players[owner].stock!=null;
+                simulation.State.players[owner].stock!=null&&
+                simulation.State.players[owner].stock.All(entry=>
+                    entry!=null&&!string.IsNullOrEmpty(entry.id)&&entry.remaining>=0);
+        }
+
+
+        // Only IDs that are safe to dereference in Catalog.Ball may reach
+        // MatchView's desktop, compact or phone card renderers.
+        // Protocol149 accepts any nonempty stock ID structurally; this visual
+        // filter never modifies the snapshot or invents a legal command.
+        public static string[] RenderableStockIds(GameSimulation simulation,int owner)
+        {
+            if(!HasOwnerStock(simulation,owner)||simulation.Catalog==null)
+                return System.Array.Empty<string>();
+            var stock=simulation.State.players[owner].stock;
+            // The source deck contract is exactly nine unique specials.
+            if(stock.Count!=9)return System.Array.Empty<string>();
+            var ids=new string[stock.Count];
+            var seen=new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+            for(int i=0;i<stock.Count;i++)
+            {
+                string id=stock[i].id;
+                if(!seen.Add(id)||simulation.Catalog.Ball(id)==null)
+                    return System.Array.Empty<string>();
+                ids[i]=id;
+            }
+            return ids;
         }
 
         public static int Remaining(GameSimulation simulation,int owner,string id)
@@ -66,7 +92,8 @@ namespace CoreClash.Presentation
         public static bool CanActivate(GameSimulation simulation,int owner,string id,bool localInputEnabled)
         {
             return localInputEnabled&&HasOwnerStock(simulation,owner)&&
-                !string.IsNullOrEmpty(id)&&simulation.State.turn==owner&&
+                !string.IsNullOrEmpty(id)&&simulation.Catalog!=null&&
+                simulation.Catalog.Ball(id)!=null&&simulation.State.turn==owner&&
                 BallSelection.CanSelect(simulation,owner,id);
         }
 
