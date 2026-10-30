@@ -31,7 +31,8 @@ function audit(s, sources = Object.keys(names)){
   const has=(k,re)=>typeof s[k]==='string' && (re instanceof RegExp?re.test(s[k]):s[k].includes(re));
   const gate=(name,ok,detail)=>checks[name]={status:ok?'PASS':'FAIL',detail};
   gate('ALL_REQUIRED_SOURCE_FILES',Object.keys(names).every(k=>typeof s[k]==='string'), 'All source and C# test/meta files must be present');
-  gate('PROTOCOL149_NO_CHANGED_AUTHORITY',has('net',/SessionSnapshot\s*\{[^}]*protocol=149/) &&
+  gate('PROTOCOL149_NO_CHANGED_AUTHORITY',has('net',/\[Serializable\]\s*public\s+sealed\s+class\s+SessionSnapshot\s*\{[^}]*protocol=149/) &&
+    !has('net',/\bprotocol\s*=\s*(?!149\b)\d+/) &&
     has('ngo',/command\.owner\s*!=\s*LocalOwner/) && has('ngo',/seat\.Owns\(sender\)/),
     'Protocol149 and authoritative identity admission');
   gate('SINGLE_ADAPTIVE_NETWORK_POLICY',has('net','class NetworkSnapshotRate') &&
@@ -133,7 +134,9 @@ if(require.main===module){
       else{
         const s={};
         for(const [k,p] of Object.entries(names))s[k]=fs.readFileSync(path.join(worktree,root,p),'utf8');
-        const result=audit(s,Object.values(names));
+        const available=Object.values(names).concat('Assets/CoreClash/Physics/RemoteBallPoseSmoother.cs')
+          .filter(p=>fs.existsSync(path.join(worktree,root,p)));
+        const result=audit(s,available);
         console.log(JSON.stringify({expectedSha:expected,...result},null,2));
         process.exitCode=result.counts.fail?1:0;
       }
