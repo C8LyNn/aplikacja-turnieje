@@ -24,7 +24,7 @@ test('two valid samples are diagnostics, never runtime or G3 PASS',()=>{
 });
 test('above nominal budget is surfaced without implying transport failure',()=>{
   const r=analyze(pair(row(16),row(32,{
-    submitBytesTotal:316000,submitChunksTotal:432
+    submitBytesTotal:316000,submitChunksTotal:380
   })));
   assert.equal(r.status,'OBSERVED_ONLY');
   assert.equal(r.overNominalBudgetWindows,1);
@@ -113,4 +113,25 @@ test('real CLI corrupted W13 counters exits 1',()=>{
     const r=spawnSync(process.execPath,[require.resolve('./analyze-host-traffic.cjs'),'--host',file],{encoding:'utf8'});
     assert.equal(r.status,1);assert.match(r.stderr,/NON_MONOTONIC/);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('impossible 800000-byte delta from one submitted snapshot is rejected',()=>{
+  assert.throws(()=>analyze(pair(row(16),row(17,{
+    submitBytesTotal:816000,submitChunksTotal:932,hostMs:2000
+  }))),/NON_MONOTONIC/);
+});
+test('a single snapshot cannot submit 300 chunks despite plausible aggregate bytes',()=>{
+  assert.throws(()=>analyze(pair(row(16),row(17,{
+    submitBytesTotal:216000,submitChunksTotal:332,hostMs:2000
+  }))),/NON_MONOTONIC/);
+});
+test('initial sampled cumulative totals must respect per-snapshot codec capacity',()=>{
+  assert.throws(()=>lineFields(row(16,{
+    submitBytesTotal:1000000,submitChunksTotal:1200,submitSnapshotsTotal:2
+  })),/INVALID_LEDGER_ROW/);
+});
+test('aggregate per-window chunk geometry cannot claim excess chunk overhead',()=>{
+  assert.throws(()=>analyze(pair(row(16),row(32,{
+    submitBytesTotal:32000,submitChunksTotal:72
+  }))),/NON_MONOTONIC/);
 });
