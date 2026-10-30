@@ -76,3 +76,41 @@ test('argument parser rejects unknown and repeated flags', () => {
   assert.throws(() => parseArgs(['--host', 'a', '--host', 'b']), /DUPLICATE_ARGUMENT/);
   assert.throws(() => parseArgs(['--unknown', 'x']), /INVALID_ARGUMENT/);
 });
+
+// A74 W13: actual A44 persisted output must not leak websocket endpoints or Windows UNC shares.
+test('W14: saved PC1 and PC2 evidence redacts ws/wss and UNC without destroying diagnostic markers',()=>withInputs(o=>{
+ const network = String.raw`CC_NET_TRACE_RX rev=7 owner=1 seq=3 action=6 endpoint=wss://private-lan.example/ws?key=123 share=\\LAN-HOST\private-share\sensitive\asset.db`;
+ const other = String.raw`CC_NET_TRACE_TX rev=7 owner=0 seq=4 action=8 ws://legacy-host.internal/ws \\NAS-PRIVATE\secret-bucket\player.log`;
+ fs.appendFileSync(o.host,network+'\n');
+ fs.appendFileSync(o.client,other+'\n');
+ const sourcePC1=fs.readFileSync(o.host),sourcePC2=fs.readFileSync(o.client);
+ const m=capture(o);
+ const saved1=fs.readFileSync(path.join(o.out,'PC1_Player.redacted.log'),'utf8');
+ const saved2=fs.readFileSync(path.join(o.out,'PC2_Player.redacted.log'),'utf8');
+ for(const secret of ['private-lan.example','LAN-HOST','private-share','sensitive','legacy-host.internal','NAS-PRIVATE','secret-bucket']){
+  assert.equal((saved1+'\n'+saved2).includes(secret),false,secret);
+ }
+ assert.match(saved1,/CC_NET_TRACE_RX rev=7 owner=1 seq=3 action=6/);
+ assert.match(saved2,/CC_NET_TRACE_TX rev=7 owner=0 seq=4 action=8/);
+ assert.match(saved1,/\[UNC_REDACTED\]/);
+ assert.match(saved2,/\[UNC_REDACTED\]/);
+ assert.equal(m.pc1.log.originalSha256,sha(sourcePC1));
+ assert.equal(m.pc2.log.originalSha256,sha(sourcePC2));
+ assert.equal(m.pc1.log.sanitizedSha256,sha(Buffer.from(saved1)));
+ assert.equal(m.pc2.log.sanitizedSha256,sha(Buffer.from(saved2)));
+ assert.equal(fs.readFileSync(o.host).equals(sourcePC1),true);
+ assert.equal(fs.readFileSync(o.client).equals(sourcePC2),true);
+}));
+
+test('W14: websocket and UNC path variants are individually scrubbed',()=>{
+ for(const [leak,safe] of [
+  ['ws://relay.internal:7777/snapshot','[URL_REDACTED]'],
+  ['wss://host.internal/token=abcd','[URL_REDACTED]'],
+  [String.raw`\\PC1-PRIVATE\media\entry.txt`,'[UNC_REDACTED]'],
+ ]){
+  const output=redact('CC_NET_HOST_READY owner=0 '+leak);
+  assert.ok(!output.includes(leak));
+  assert.ok(output.includes(safe));
+  assert.match(output,/CC_NET_HOST_READY owner=0/);
+ }
+});
