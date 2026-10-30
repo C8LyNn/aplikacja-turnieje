@@ -1,0 +1,74 @@
+{
+  "schema": "CC001_A32_W15_MANIFEST_V1",
+  "package": "CC-001/R17-W15/A32/PHOENIX_HAND_VISIBLE",
+  "role": "A32 Content/Decks",
+  "source_commit": "cb5f3c5394da8a050b9563457bc1df1c33126255",
+  "source_base": "6d6530092c0ac8b89f7ed22bd6b21d1ba4328eab",
+  "source_qa_freeze": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "qa_freeze_ref": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "files": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs",
+      "git_blob_sha": "ec9fecd6567596d8128efd531697dae518dedb06"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs",
+      "git_blob_sha": "26d70b6b140cda67828458f04c31299b495c108c"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/LocalDeckContentTests.cs",
+      "git_blob_sha": "91eceabb980eb3b0a3c5403ded6b68bd72c36633"
+    }
+  ],
+  "dependencies": [
+    {
+      "pr": 226,
+      "role": "A32 W12 Phoenix Hand display",
+      "status": "OPEN_DRAFT"
+    },
+    {
+      "pr": 245,
+      "role": "A32 W13 malformed stock guard",
+      "status": "OPEN_DRAFT"
+    },
+    {
+      "pr": 254,
+      "role": "A32 W14 catalog deck render guard",
+      "status": "OPEN_DRAFT"
+    },
+    {
+      "pr": 266,
+      "role": "A70/A31/A41 independent Phoenix network admission",
+      "status": "DEV_ONLY_NO_DUPLICATE"
+    }
+  ],
+  "native_tests": {
+    "framework": ".NET9 C# managed",
+    "total_a32_definitions": 33,
+    "new_w15_definitions": 7,
+    "run_status": "NOT_RUN",
+    "windows_unity_player": "NOT_BUILT",
+    "physical_pc1_pc2": "NOT_RUN"
+  },
+  "source_checks": {
+    "git_and_structure": {
+      "passed": 13,
+      "total": 13
+    },
+    "semantic": {
+      "passed": 8,
+      "total": 8
+    },
+    "scope": "SOURCE_ONLY_NOT_RUNTIME_QA"
+  },
+  "protected": {
+    "mitosis": "V148 EXACT",
+    "furnace": "FIRE ZONE+PERIODIC ONLY",
+    "hp": "R16 UNCHANGED",
+    "protocol149": "UNCHANGED",
+    "qa_freeze": "UNCHANGED",
+    "main_release": "NO_MERGE"
+  },
+  "status": "IMPLEMENTED_DEV_HOLD",
+  "operator_gate": "A72 Windows 11 Unity6000.4.0f1 Win64 Build Support/license + .NET SDK9 + Node22 exact frozen W11 binary and managed evidence; A60/A31 same-binary physical 2PC QA; A70 gate selection"
+}
