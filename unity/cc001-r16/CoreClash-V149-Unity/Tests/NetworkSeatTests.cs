@@ -289,5 +289,43 @@ public static partial class Program
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,16*1024)-.25f)<.00001f);
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Over,256*1024)-1f)<.00001f);
         });
+        Test("R17 W13 host traffic ledger accumulates valid completed RPC batches",()=>{
+            var t=new NetworkSnapshotTraffic();
+            True(t.Record(900,1));
+            True(t.Record(901,2));
+            Eq(1801L,t.SubmittedBytes);Eq(3L,t.SubmittedChunks);Eq(2L,t.SubmittedSnapshots);
+        });
+        Test("R17 W13 host traffic ledger rejects impossible chunk counts and invalid bytes",()=>{
+            var t=new NetworkSnapshotTraffic();
+            False(t.Record(0,0));False(t.Record(-1,1));False(t.Record(900,2));
+            False(t.Record(901,1));False(t.Record(NgoWireProtocol.MaxCompressedBytes+1,NgoWireProtocol.MaxChunks));
+            False(t.Record(1,NgoWireProtocol.MaxChunks+1));
+            Eq(0L,t.SubmittedBytes);Eq(0L,t.SubmittedChunks);Eq(0L,t.SubmittedSnapshots);
+        });
+        Test("R17 W13 host traffic ledger counts a fully chunked maximum payload",()=>{
+            var t=new NetworkSnapshotTraffic();
+            True(t.Record(NgoWireProtocol.MaxCompressedBytes,NgoWireProtocol.MaxChunks));
+            Eq((long)NgoWireProtocol.MaxCompressedBytes,t.SubmittedBytes);
+            Eq((long)NgoWireProtocol.MaxChunks,t.SubmittedChunks);
+            Eq(1L,t.SubmittedSnapshots);
+        });
+        Test("R17 W13 host traffic ledger resets for new host or relay sessions",()=>{
+            var t=new NetworkSnapshotTraffic();
+            True(t.Record(1,1));
+            t.Reset();
+            Eq(0L,t.SubmittedBytes);Eq(0L,t.SubmittedChunks);Eq(0L,t.SubmittedSnapshots);
+            True(t.Record(1800,2));
+            Eq(1800L,t.SubmittedBytes);Eq(2L,t.SubmittedChunks);Eq(1L,t.SubmittedSnapshots);
+        });
+        Test("R17 W13 host traffic ledger counts actual gzip chunk geometry",()=>{
+            var t=new NetworkSnapshotTraffic();
+            int[] lengths={1,899,900,901,4096,8*1024,16*1024,64*1024,256*1024};
+            long bytes=0,chunks=0;
+            foreach(int size in lengths){
+                int count=(size+NgoWireProtocol.ChunkBytes-1)/NgoWireProtocol.ChunkBytes;
+                True(t.Record(size,count));bytes+=size;chunks+=count;
+            }
+            Eq(bytes,t.SubmittedBytes);Eq(chunks,t.SubmittedChunks);Eq((long)lengths.Length,t.SubmittedSnapshots);
+        });
     }
 }

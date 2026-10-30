@@ -19,6 +19,7 @@ namespace CoreClash.Networking
         NetworkGameStateAdapter adapter=new NetworkGameStateAdapter();
         NgoSnapshotAssembler assembler=new NgoSnapshotAssembler();
         readonly LanSeat seat=new LanSeat();
+        readonly NetworkSnapshotTraffic submittedTraffic=new NetworkSnapshotTraffic();
         bool hostRole,pendingIntent,failed,intentionalDisconnect=true,recoveryPending,internetMode;
         float nextSnapshot,connectDeadline,lastHostTraceAt=-1f,lastClientTraceAt=-1f;
         int pendingSequence;
@@ -99,7 +100,7 @@ namespace CoreClash.Networking
         {
             hostRole=hosting;internetMode=false;seat.Reset();pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
             adapter=new NetworkGameStateAdapter();assembler=new NgoSnapshotAssembler();ReceivedSnapshots=AcceptedRemoteIntents=RejectedRemoteIntents=AcceptedLocalIntents=RejectedLocalIntents=LastAppliedRevision=LastReceivedEvents=0;
-            nextSnapshot=0;lastHostTraceAt=lastClientTraceAt=-1f;skippedSnapshotRevisions=0;lastError="";
+            nextSnapshot=0;lastHostTraceAt=lastClientTraceAt=-1f;skippedSnapshotRevisions=0;submittedTraffic.Reset();lastError="";
         }
         internal void InternetPending(bool hosting)
         {
@@ -217,6 +218,8 @@ namespace CoreClash.Networking
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
                 var chunks=NgoWireProtocol.Split(packed);
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);
+                // Account for a complete sequence of RPC submissions, not UTP delivery.
+                if(!submittedTraffic.Record(packed.Length,chunks.Length))throw new InvalidOperationException("Snapshot traffic ledger rejected a completed RPC batch.");
                 // 20/12/8/4 Hz when moving, chosen by the ACTUAL compressed size;
                 // at rest 4 Hz. Host state is the sole gameplay source of truth.
                 float interval=NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);
@@ -227,7 +230,11 @@ namespace CoreClash.Networking
                     Debug.Log("CC_W10_NET_HOST revision="+packet.revision+" action="+s.actionSerial+
                         " turn="+s.turn+" phase="+s.phase+" balls="+s.balls.Count+
                         " packedBytes="+packed.Length+" chunks="+chunks.Length+
-                        " periodMs="+(int)(interval*1000));
+                        " periodMs="+(int)(interval*1000)+
+                        " submitBytesTotal="+submittedTraffic.SubmittedBytes+
+                        " submitChunksTotal="+submittedTraffic.SubmittedChunks+
+                        " submitSnapshotsTotal="+submittedTraffic.SubmittedSnapshots+
+                        " hostMs="+(long)(Time.unscaledTime*1000f));
                 }
             }catch(Exception e){FailConnection("The game could not send its state. Create a new game and try again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
