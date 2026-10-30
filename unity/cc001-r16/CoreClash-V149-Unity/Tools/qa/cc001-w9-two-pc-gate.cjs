@@ -109,8 +109,31 @@ function evaluate(pc1, pc2) {
     else if (spikes) hold('P2_MOTION_SMOOTHNESS', spikes+' unexplained large jumps / '+comparable+' pairs; requires collision/event video corroboration');
     else pass('P2_MOTION_SMOOTHNESS', comparable+' consecutive measured frame pairs within diagnostic velocity envelope');
   }
-  hold('P2_PERSPECTIVE', 'A10 orientation acceptance required; device-relative local-bottom contract not yet approved');
-  hold('POWER_BAR_SIMPLIFICATION', 'P2 scope: wait for explicit A10 design acceptance');
+  // W10: evaluate recorded on-screen P2 launcher position, not global world Y.
+  const perspectiveFrames=b.filter(f => f.perspective!==undefined);
+  if (!perspectiveFrames.length) hold('P2_PERSPECTIVE','No measured PC2 local launcher/board geometry');
+  else {
+    const bad=perspectiveFrames.find(f=>{
+      const p=f.perspective,board=p?.board,local=p?.localLauncher;
+      return !board || !local ||
+        ![board.x,board.y,board.width,board.height,local.x,local.y].every(finite) ||
+        board.width<=0 || board.height<=0 ||
+        local.x<board.x || local.x>board.x+board.width ||
+        local.y<board.y+board.height*0.6 || local.y>board.y+board.height+2;
+    });
+    if(bad)fail('P2_PERSPECTIVE','P2 local launcher not in bottom area of rendered board at revision '+bad.revision);
+    else pass('P2_PERSPECTIVE',perspectiveFrames.length+' PC2 samples show local launcher at bottom');
+  }
+
+  const aimingFrames=b.filter(f=>f.aim && f.powerUi!==undefined);
+  if(!aimingFrames.length)hold('POWER_BAR_SIMPLIFICATION','No P2 active aim frame with bar/arrow visibility observations');
+  else {
+    const bad=aimingFrames.find(f=>typeof f.powerUi?.barVisible!=='boolean' ||
+      typeof f.powerUi?.arrowVisible!=='boolean' ||
+      f.powerUi.barVisible || !f.powerUi.arrowVisible);
+    if(bad)fail('POWER_BAR_SIMPLIFICATION','Redundant strength meter or missing arrow at revision '+bad.revision);
+    else pass('POWER_BAR_SIMPLIFICATION',aimingFrames.length+' P2 aim frames show arrow without strength bar');
+  }
   const values = Object.values(gates).map(x => x.status);
   return { decision: values.includes('FAIL') ? 'FAIL' : values.includes('HOLD') ? 'HOLD' : 'PASS', gates };
 }
@@ -144,7 +167,20 @@ function selfTest(){
   {const h=cloned(host),c=cloned(client);h.acceptedIntents.push({owner:1,sequence:2,actionSerial:2,accepted:true});
    c.sentIntents.push({owner:1,sequence:2});
    assert.equal(evaluate(h,c).gates.P2_ACCEPTED_ONCE.status,'FAIL');}
-  console.log('A60 W10 self-test PASS: 15 assertions; no Unity/net execution');
+  {const c=cloned(client);c.frames[1].perspective={board:{x:0,y:0,width:540,height:900},localLauncher:{x:270,y:853}};
+   assert.equal(evaluate(host,c).gates.P2_PERSPECTIVE.status,'PASS');}
+  {const c=cloned(client);c.frames[1].perspective={board:{x:0,y:0,width:540,height:900},localLauncher:{x:270,y:47}};
+   assert.equal(evaluate(host,c).gates.P2_PERSPECTIVE.status,'FAIL');}
+  {const c=cloned(client);c.frames[1].aim={board:{x:0,y:0,width:540,height:900},from:{x:270,y:853},to:{x:260,y:800}};
+   c.frames[1].powerUi={barVisible:false,arrowVisible:true};
+   assert.equal(evaluate(host,c).gates.POWER_BAR_SIMPLIFICATION.status,'PASS');}
+  {const c=cloned(client);c.frames[1].aim={board:{x:0,y:0,width:540,height:900},from:{x:270,y:853},to:{x:260,y:800}};
+   c.frames[1].powerUi={barVisible:true,arrowVisible:true};
+   assert.equal(evaluate(host,c).gates.POWER_BAR_SIMPLIFICATION.status,'FAIL');}
+  {const c=cloned(client);c.frames[1].aim={board:{x:0,y:0,width:540,height:900},from:{x:270,y:853},to:{x:260,y:800}};
+   c.frames[1].powerUi={barVisible:false};
+   assert.equal(evaluate(host,c).gates.POWER_BAR_SIMPLIFICATION.status,'FAIL');}
+  console.log('A60 W10 self-test PASS: 20 assertions; no Unity/net execution');
 }
 if (require.main === module) {
   if (process.argv[2] === '--self-test') selfTest();
