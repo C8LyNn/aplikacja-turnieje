@@ -31,7 +31,9 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(0,y,actionW,actionH),"BALL DETAILS",size:touch?12:10))ShowBallDetails(selected);
             if(Draw.Button(new Rect(actionW+10,y,actionW,actionH),boardInspection?"CANCEL INSPECT":"INSPECT BOARD",selected:boardInspection,size:touch?12:10))SetBoardInspection(!boardInspection);
             if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))ReturnToSetup();y+=actionH+11;
-            string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):state.phase==MatchPhase.Moving?"SHOT RELEASED  /  RESOLVING":gesture.Active?AimUiStatus.Hint(true,gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY):"DRAG FROM YOUR LAUNCHER TO AIM";
+            string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
+                gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM YOUR LAUNCHER TO AIM");
             Draw.Text(new Rect(0,y,w,24),hint,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);
             if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
             else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
@@ -72,7 +74,9 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(choice.x+8,choice.y+2,choice.width-138,22),name,14,Color.white,TextAnchor.MiddleLeft,true);
             string hint=state.phase==MatchPhase.Over?state.resultReason:
                 notice.Length>0?notice:boardInspection?"TAP BALL TO INSPECT":
-                state.phase==MatchPhase.Moving?"SHOT RESOLVING":AimUiStatus.Hint(gesture.Active,gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY);
+                LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                    NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
+                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM LAUNCHER");
             Draw.Text(new Rect(choice.x+8,choice.y+23,choice.width-138,20),hint,11,Draw.Muted,TextAnchor.MiddleLeft);
             if(Draw.Button(new Rect(choice.xMax-124,choice.y,124,44),"STANDARD",Draw.Owner(owner),selected=="normal",CanChoose,12))SelectBall("normal");
 
@@ -100,7 +104,9 @@ namespace CoreClash.Presentation
             if(feedbackRow.height>=20){
                 string message=state.phase==MatchPhase.Over?TurnText():
                     notice.Length>0?notice:boardInspection?"CANCEL INSPECT TO AIM":
-                    state.phase==MatchPhase.Moving?"SHOT RELEASED / RESOLVING":gesture.Active?AimUiStatus.Hint(true,gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY):"SELECT A BALL AND DRAG TO AIM";
+                    LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                        NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
+                        gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"SELECT A BALL AND DRAG TO AIM");
                 Draw.Text(feedbackRow,message,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(owner),TextAnchor.MiddleLeft,true);
             }
         }
