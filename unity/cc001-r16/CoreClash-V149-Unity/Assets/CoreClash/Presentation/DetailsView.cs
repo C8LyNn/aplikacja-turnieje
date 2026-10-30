@@ -50,7 +50,7 @@ namespace CoreClash.Presentation
         }
         // R17-W9 A33: developer-only instrumentation. Read-only data from the existing session.
         Vector2 w9DeveloperScroll;
-        static string W9NetworkDiagnostics(bool networked,bool authority,bool connected,int localOwner,
+        static string W9NetworkDiagnostics(bool networked,bool authority,bool connected,bool aiming,int localOwner,
             int activeOwner,int stateRevision,int snapshots,int appliedRevision,
             int acceptedLocal,int rejectedLocal,int acceptedRemote,int rejectedRemote)
         {
@@ -59,7 +59,8 @@ namespace CoreClash.Presentation
             string local=localOwner==0?"P1 / CYAN":localOwner==1?"P2 / RED":"UNASSIGNED";
             string active=activeOwner==0?"P1 / CYAN":activeOwner==1?"P2 / RED":"UNKNOWN";
             string control=!connected?"WAITING FOR PEER / SNAPSHOT":
-                localOwner==activeOwner?"YOUR TURN":"OPPONENT TURN";
+                !aiming?"NO AIM INPUT / SHOT RESOLVING OR MATCH ENDED":
+                localOwner==activeOwner?"YOUR TURN / AIMING":"OPPONENT TURN";
             string snapshot=authority?"AUTHORITY STATE REVISION "+stateRevision:
                 "RECEIVED SNAPSHOTS "+snapshots+" / APPLIED REVISION "+appliedRevision+
                 " / CURRENT STATE REVISION "+stateRevision;
@@ -79,7 +80,7 @@ namespace CoreClash.Presentation
             string id=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId)?.Type??inspect:inspect.Length>0?inspect:selected;var d=Catalog.Ball(id);var a=Catalog.Ability(d.abilityId);var s=Simulation.State;
             var ngo=NetworkLink==null?null:GetComponent<CoreClash.Networking.NgoGameSession>();
             string networkDebug=W9NetworkDiagnostics(NetworkLink!=null,NetworkLink!=null&&NetworkLink.IsAuthority,
-                NetworkLink==null||NetworkLink.IsConnected,NetworkLink==null?s.turn:NetworkLink.LocalOwner,
+                NetworkLink==null||NetworkLink.IsConnected,s.phase==CoreClash.Core.MatchPhase.Aiming,NetworkLink==null?s.turn:NetworkLink.LocalOwner,
                 s.turn,s.revision,ngo==null?0:ngo.ReceivedSnapshots,ngo==null?0:ngo.LastAppliedRevision,
                 ngo==null?0:ngo.AcceptedLocalIntents,ngo==null?0:ngo.RejectedLocalIntents,
                 ngo==null?0:ngo.AcceptedRemoteIntents,ngo==null?0:ngo.RejectedRemoteIntents);
