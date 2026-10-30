@@ -242,16 +242,16 @@ namespace CoreClash.Presentation
                 if(path.Length<2)return;
                 for(int i=1;i<path.Length;i++){
                     var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
-                    DashedLine(from,to,Alpha(team,i==1?.13f:.07f),Mathf.Max(2,7*scale),7*scale,1*scale);
-                    DashedLine(from,to,i==1?vector:Alpha(vector,.5f),Mathf.Max(1,2*scale),i==1?7*scale:4*scale,7*scale);
+                    AimStroke(from,to,Alpha(team,i==1?.13f:.07f),Mathf.Max(2,7*scale),7*scale,1*scale);
+                    AimStroke(from,to,i==1?vector:Alpha(vector,.5f),Mathf.Max(1,2*scale),i==1?7*scale:4*scale,7*scale);
                     if(i==1&&path.Length>2)Ring(to,6*scale,Alpha(vector,.8f),Mathf.Max(1,scale));
                 }
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);direction=(tip-last).normalized;
                 Vector2 wing = new Vector2(-direction.y, direction.x);
-                Draw.Line(tip - direction * 11 * scale + wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
-                Draw.Line(tip - direction * 11 * scale - wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
+                AimStroke(tip - direction * 11 * scale + wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
+                AimStroke(tip - direction * 11 * scale - wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
                 Draw.Circle(new Rect(tip.x - 2.5f * scale, tip.y - 2.5f * scale, 5 * scale, 5 * scale), vector);
-                Draw.Line(origin, finger, Alpha(team, .14f), Mathf.Max(.7f, scale));
+                AimStroke(origin, finger, Alpha(team, .14f), Mathf.Max(.7f, scale));
             }
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
@@ -317,6 +317,21 @@ namespace CoreClash.Presentation
             GUI.color = color;
             GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2, radius * 2), sprite);
             GUI.color = old;
+        }
+
+        static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
+        {
+            Vector2 delta=end-start;
+            float length=delta.magnitude;
+            if(!GameSimulation.Finite(length)||length<.01f||width<=0)return;
+            int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(2f,width*.8f)),1,256);
+            float period=dash+gap;
+            for(int i=0;i<=samples;i++){
+                float t=i/(float)samples,along=length*t;
+                if(dash>0&&period>0&&along%period>dash)continue;
+                Vector2 p=start+delta*t;
+                Draw.Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
+            }
         }
 
         static void DashedLine(Vector2 start, Vector2 end, Color color, float width, float dash, float gap)
