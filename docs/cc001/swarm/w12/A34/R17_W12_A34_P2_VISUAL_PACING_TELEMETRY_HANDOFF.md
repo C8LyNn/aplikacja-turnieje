@@ -62,13 +62,13 @@ The producer uses two additional preallocated 256-float arrays (~2KiB), one O(1)
 
 ### Regression suite and actual evidence boundary
 
-**C# source:** existing seven W12 telemetry definitions extended by **five** W13 cases → **12 telemetry test definitions**. Existing 23 smoother cases extended by **three** W13 cases → **26 smoother test definitions**. Total eight new W13 managed test cases **AUTHORED / NOT_EXECUTED**.
+**C# source:** existing seven W12 telemetry definitions extended by **six** W13 cases → **13 telemetry test definitions**. Existing 23 smoother cases extended by **three** W13 cases → **26 smoother test definitions**. Total nine new W13 managed test cases **AUTHORED / NOT_EXECUTED**.
 
 **Actually executed:** **51/51** source-backed V8 predicates and numerical policy fixtures on exact readback GitHub blobs for new telemetry, app wiring, smoother, registered tests and .csproj. These are not .NET9 C# compiled tests or Unity PC1↔PC2 results.
 
 **Selected source Git blob identities:**
-- `RemoteVisualPacingTelemetry.cs`: `605f0ac1b3e9cfacf57cf3f8c06d22a139cd31dc`;
-- `RemoteVisualPacingTelemetryTests.cs`: `05160597c93aa35f71fc459a1d56178b50b276b6`;
+- `RemoteVisualPacingTelemetry.cs`: `d9d275ae5115837c43c9cb009cfdd6e13573907a`;
+- `RemoteVisualPacingTelemetryTests.cs`: `846e554c76b96251e22365cfbb67bd9cdac83b62`;
 - `RemoteBallSmoother.cs`: `a2dbaee6c4562b1efd1c8308766c56660dc09949`;
 - `RemoteBallSmootherTests.cs`: `856d2f823fcb473fc8f05f1e4c33d81252f31a03`.
 Those are exact GitHub-content SHA-1 Git blobs, **not** Windows EXE/DLL SHA256.
@@ -77,4 +77,10 @@ Those are exact GitHub-content SHA-1 Git blobs, **not** Windows EXE/DLL SHA256.
 
 **Required routing:** A70 keeps freeze immutable; A72 must build frozen W11 exact SHA before physical QA; A60/A31 test W11 freeze independently (which does NOT include this W12/W13 telemetry). Only after formal W11 close may A70 select W12/W13 PR #233 into an isolated new exact-source candidate for a fresh native build/QA run.
 
-**W13 state:** IMPLEMENTED IN OWN ISOLATED BRANCH / 51/51 SOURCE+NUMERIC / 8 NEW C# TESTS WRITTEN / MANAGED NOT_RUN / WINDOWS NOT_RUN / NATIVE 2PC NOT_RUN / INTEGRATION HOLD / RELEASE STOP.
+**W13 state:** IMPLEMENTED IN OWN ISOLATED BRANCH / 51/51 SOURCE+NUMERIC / 9 NEW C# TESTS WRITTEN / MANAGED NOT_RUN / WINDOWS NOT_RUN / NATIVE 2PC NOT_RUN / INTEGRATION HOLD / RELEASE STOP.
+
+### W13 action-boundary gap correction
+
+The accepted host may start another Moving action without a visible intervening non-Moving snapshot at P2. Without a read-only action boundary guard, a large pause **between distinct actions** would pollute `maxRxGapMs`, `rxGapP95ms` and `rxGapsOver300ms`. The W13 producer now accepts the already-admitted `state.actionSerial` (optional argument, preserving old test call sites), clears the **interarrival baseline only** when the action changes, and clears it on `EndMoving`/new match. No GameState write or network packet alteration. One additional C# regression covers 250ms within-action plus a long cross-action pause, expecting just one 250ms RX gap rather than a fictitious stall.
+
+**Updated W13 case counts:** 13 telemetry and 26 smoother authored tests; **9 W13 additions**; native .NET9/Unity execution remains NOT_RUN. After the action-boundary source edit, rerun/read back all source checks for the **new exact Git blobs**; the earlier 51/51 refers to the pre-action-boundary iteration and must not be transferred automatically.
