@@ -76,7 +76,13 @@ function contracts(s) {
  return [...new Set(faults)];
 }
 const sha=x=>typeof x==='string'&&/^[0-9a-f]{40}$/.test(x);
-const safeChanged=x=>typeof x==='string'&&x.startsWith(UNITY)&&!x.includes('\\')&&!x.includes('..');
+const safeChanged=x=>{
+ if(typeof x!=='string'||!x.startsWith(UNITY)||x.includes('\\')||x.includes('..'))return false;
+ const local=x.slice(UNITY.length);
+ return (/^Assets\/CoreClash\/Networking\/[^/]+\.cs$/.test(local)||
+  /^Assets\/CoreClash\/Presentation\/[^/]+\.cs(?:\.meta)?$/.test(local)||
+  /^Tests\/[^/]+\.(?:cs|csproj)$/.test(local));
+};
 function assess(input) {
  const failures=[];
  if(input.ref!==A70_REF) failures.push('UNAPPROVED_A70_BRANCH');
