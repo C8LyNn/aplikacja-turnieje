@@ -15,7 +15,7 @@ All refs were independently compared to frozen RC1; recent PRs may keep moving, 
 - **PR #174 / A34**: overlaps A30 on `BallView.cs`, `BoardView.cs`, `CoreClashApp.cs`, `MatchView.cs`; introduces a different display interpolation path with test registration and Unity .meta. Cannot import its whole PR unchanged; not tested with A30 P2 180° viewpoint.
 - **PR #170 / A21**, **#173 / A32**, **#160 / A83**: all touch `MatchView.cs` and/or related test wiring, competing P2 local-turn/deck copy. Do not merge whole branches.
 - **PR #169 / A50**: three disjoint files, but the new smoother helper is *not wired to presentation*. Including it without a single selected renderer integration adds unused complexity and cannot repair visual stutter alone.
-- **P1 strength/power bar**: A10 acceptance not confirmed in current HQ evidence; do not remove UI in A73.
+- **P1 strength/power bar:** W10 user directive explicitly references A10 acceptance; A21 now implements the cleanup in stacked PR #179 based on A30. This is NOT included in the standalone PR #175 blob manifest and remains uncompiled.
 
 Other tooling/test PRs can be admitted later by separate owners and only if scope, source hashes and independent test gates allow it. **RC1, original R16/V148, Protocol149, main untouched.**
 
@@ -27,3 +27,13 @@ node docs/cc001/swarm/w9/A73/guard-short.cjs --manifest docs/cc001/swarm/w10/A73
 The manifest is a **provisional exact-SHA candidate selector**, NOT proof of HQ source ownership approval. The second command requires a disposable FULL Git clone containing RC1 and the A30 author ref. On approved matching Git objects, the gate compares SHA, ancestry, changed test sources, **every changed Git blob**, forbidden/protected paths and conflicts. Exit0 means `PASS_SOURCE_SCOPE_ONLY` (not compilation/gameplay); exit1 `HOLD`; exit2 `HOLD` invalid manifest/tool. Pairwise merge-tree writes only unreachable objects into the disposable clone, never protected refs.
 
 **Actual synthetic checks:** Node v22.16.0 / Git v2.47.3, 11/11 PASS exit0; includes wrong/missing/extra blob SHA pins, duplicate owners, modified protected file and unchanged refs. **NOT_RUN:** C#/.NET9, Unity Windows rebuild, paired physical PC1/PC2 run, network packet jitter, A60 independent QA, A70 integration and release.
+
+## W10 subsequent stacked source updates — preserve this boundary
+
+New direct GitHub compare of **PR #178 (A32)**: base A30 `e6470dce9ff02fc294c4df15bde82952350b42b2`, stacked exact head `e12b81540dbc42cfeeb1b48431323fec1d93e9a2`, ahead2 behind0, 7 files. New local-seat deck code, Unity .meta, MatchView, .csproj, Tests/Program.cs and tests.
+
+New direct compare of **PR #179 (A21)**: same A30 base, stacked exact head `da9936b07f7e1673b00eac6711c4b027cfb13701`, ahead7 behind0, 7 files. Adds A10-approved power-strip removal, local-seat cues and tests; new Unity .meta plus changes to MatchView, BoardView, .csproj and Tests/Program.cs. **#178 and #179 are SIBLING STACKS** on the same A30 commit; both change `MatchView.cs`, `Tests/CoreClash.Tests.csproj` and `Tests/Program.cs`. Do not claim either includes the other or auto-merge them both. A70 must resolve these three files explicitly and retain both test registrations if accepted, on a new isolated integration SHA. A71 must independently examine newly authored .meta GUIDs; no broad existing .meta overwrite.
+
+New W10 network alternative **PR #180 (A41)** is stacked on A41 W9 #163, head `58fac359a0bd027d8e148f66c5cca090d92035bb`, A41 W9 parent `caa7d9c3b8e619533096b4d5d0feb0d71dd2b3f4`. Its compressed-payload-aware 20/12/8/4 Hz cadence, stale intent ACK matching and bounded telemetry compete with A30's fixed 20Hz network implementation. **Do not silently combine those algorithms**. Obtain A30/A41 owner decision and real bandwidth/sync evidence.
+
+**Critical guard scope:** A73 source tool is deliberately fail-closed on `.meta` and `Tests/Program.cs`; its bundled provisional exact blob manifest selects only bare A30 #175's nine-file first-stage candidate. It is NOT a sufficient final admission manifest for #178, #179 or #180; the later stacks require explicitly approved additional path/GUID/test-registration policy (e.g. independent A71) and refreshed pinned blob IDs. A73 has neither merged those stacks nor claimed integrated build, native PC1–PC2, G3 or G4 PASS.
