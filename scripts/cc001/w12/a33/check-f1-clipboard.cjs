@@ -59,7 +59,7 @@ function selfTest(src){
     ['no_copy_feedback',s=>replaceOne(s,'?"COPIED":"COPY QA"','?"COPY QA":"COPY QA"')],
     ['no_feedback_timeout',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','w13QaCopiedUntil=float.MaxValue;')],
     ['wrong_feedback_order',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','GUIUtility.systemCopyBuffer="copied";')],
-    ['no_scroll',s=>replaceOne(s,'GUI.EndScrollView();','')],
+    ['no_scroll',s=>replaceOne(s,'w9DeveloperScroll=Draw.ScrollView','w9DeveloperScroll=DISABLED_SCROLL')],
     ['unauthorized_submit',s=>s+'NetworkLink.Submit(command,out reason);'],
     ['duplicate_w13_helper',s=>replaceOne(s,'int w13QaCaptureSequence;','int w13QaCaptureSequenceX;')]
   ];
