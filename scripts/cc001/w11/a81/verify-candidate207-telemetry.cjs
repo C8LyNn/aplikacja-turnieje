@@ -61,7 +61,7 @@ function analyze(hostText,clientText){
   notices.push('UNPAIRED_1HZ_SAMPLES_DO_NOT_PROVE_PACKET_LOSS');
   notices.push('NO_FULL_GAMESTATE_DIGEST_OR_PER_FRAME_BALL_POSE');
   const verdict=errors.length?'ANOMALY_IN_SUPPLIED_LOGS':(!host.records.length||!client.records.length?'INSUFFICIENT_SELECTED_LOGS':'SAMPLED_DIAGNOSTIC_ONLY');
-  return {schema:SCHEMA,candidateSha:PIN,verdict,gameplayGate:'NOT_ATTESTED',physicalPc1Pc2Qa:'NOT_ATTESTED',
+  return {schema:SCHEMA,schemaAnchorSha:PIN,runtimeBinarySourceSha:'NOT_VERIFIED',verdict,gameplayGate:'NOT_ATTESTED',physicalPc1Pc2Qa:'NOT_ATTESTED',
     telemetryMode:'W10_1HZ_SAMPLED',hostMarkers:host.found,clientMarkers:client.found,
     validHost:host.records.length,validClient:client.records.length,matchingRevisionSamples:overlapping,errors,notices};
 }
