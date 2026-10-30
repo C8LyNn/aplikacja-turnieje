@@ -113,6 +113,23 @@ public static partial class Program
             var old=RemoteSnapshotEvents.InstantBallIds(next,latest,out int same);
             Eq(7,same);False(old.Contains(12));
         });
+        Test("A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
+            p.Observe(A34Snapshot(1,20,160,100),1.1f,null,11);
+            p.Observe(A34Snapshot(1,21,470,100),1.11f,null,11);
+            p.Observe(A34Snapshot(1,22,510,100),1.12f,null,9);
+            True(p.TryGetPosition(12,1.3f,out var x,out _));Near(160f,x,.01f);
+            p.Observe(A34Snapshot(1,30,175,100),1.31f,null,12);
+            True(p.TryGetPosition(12,1.6f,out x,out _));Near(175f,x,.01f);
+        });
+        Test("A70 W11 new session reset allows low snapshot revision again",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,90);
+            p.Reset();
+            p.Observe(A34Snapshot(1,10,55,100),2f,null,1);
+            True(p.TryGetPosition(12,2.2f,out var x,out _));Near(55f,x,.01f);
+        });
 
     }
 }

@@ -127,12 +127,12 @@ namespace CoreClash.Presentation
         public void SetExternalModal(bool value){externalModal=value;if(value)gesture.Active=false;}
         public void ReturnToSetup(){remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
-        public void ReceiveNetworkState(GameState state)
+        public void ReceiveNetworkState(GameState state,int snapshotRevision=-1)
         {
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
                 var instantBallIds=RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,out var latestEventId);
                 remoteLastEventId=latestEventId;
-                remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds);
+                remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }

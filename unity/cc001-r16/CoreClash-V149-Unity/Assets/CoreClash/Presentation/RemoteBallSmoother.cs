@@ -34,7 +34,7 @@ namespace CoreClash.Presentation
         readonly Dictionary<int,Pose> poses=new Dictionary<int,Pose>();
         readonly HashSet<int> active=new HashSet<int>();
         readonly List<int> stale=new List<int>();
-        int action,lastFrame;
+        int action,lastFrame,lastSnapshotRevision=-1;
         float lastPacket;
         bool hasPacket;
         public int TrackedCount=>poses.Count;
@@ -42,7 +42,7 @@ namespace CoreClash.Presentation
         public void Reset()
         {
             poses.Clear();active.Clear();stale.Clear();
-            hasPacket=false;action=lastFrame=0;lastPacket=0;
+            hasPacket=false;action=lastFrame=0;lastPacket=0;lastSnapshotRevision=-1;
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
         static void Position(Pose p,float now,out float x,out float y)
@@ -53,8 +53,11 @@ namespace CoreClash.Presentation
             y=p.fromY+(p.toY-p.fromY)*t;
         }
         // Invoke only after Protocol149 snapshot admission. No extrapolation, simulation, or velocity writes.
-        public void Observe(GameState state,float now,ISet<int> instantBallIds=null)
+        public void Observe(GameState state,float now,ISet<int> instantBallIds=null,int snapshotRevision=-1)
         {
+            // Accepted NGO revision is explicit; reject duplicate/reordered visual samples.
+            // This does NOT change host authority, GameState, or Protocol149.
+            if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return;
             if(state==null||state.balls==null||state.phase!=MatchPhase.Moving||!Finite(now)){Reset();return;}
             bool snap=!hasPacket||state.actionSerial!=action||state.frame<lastFrame||
                 now<=lastPacket||now-lastPacket>MaxGap;
@@ -101,6 +104,7 @@ namespace CoreClash.Presentation
             foreach(var id in stale)poses.Remove(id);
             action=state.actionSerial;lastFrame=state.frame;
             lastPacket=now;hasPacket=true;
+            if(snapshotRevision>=0)lastSnapshotRevision=snapshotRevision;
         }
         public bool TryGetPosition(int id,float now,out float x,out float y)
         {
