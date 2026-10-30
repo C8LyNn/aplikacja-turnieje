@@ -122,6 +122,25 @@ async function spawnLog(cmd,args,cwd,logPath){
  try{return await new Promise((resolve,reject)=>{const p=cp.spawn(cmd,args,{cwd,stdio:['ignore',fd,fd],windowsHide:true});p.once('error',reject);p.once('exit',(code,signal)=>resolve({exitCode:code,signal}));});}
  finally{fs.closeSync(fd)}
 }
+function prepareManagedEvidence(file,evidence){
+ if(!fs.existsSync(file))return {preexisting:false};
+ const stat=fs.lstatSync(file);ensure(stat.isFile()&&!stat.isSymbolicLink(),'Unsafe existing managed test evidence');
+ const content=fs.readFileSync(file);
+ const archived=path.join(evidence,'managed-preexisting-test-results.json');
+ fs.writeFileSync(archived,content,{flag:'wx'});
+ fs.unlinkSync(file);
+ return {preexisting:true,bytes:content.length,sha256:hash(content),archive:'managed-preexisting-test-results.json'};
+}
+function requireFreshManagedEvidence(file,started,finished){
+ ensure(fs.existsSync(file),'Managed run did not create a NEW result JSON');
+ const stat=fs.lstatSync(file);ensure(stat.isFile()&&!stat.isSymbolicLink(),'Unsafe managed result file');
+ const report=JSON.parse(fs.readFileSync(file,'utf8'));
+ ensure(report&&report.spec==='V149 UNITY'&&Number.isSafeInteger(report.passed)&&report.passed>0&&report.failed===0,'Managed result spec/counts invalid');
+ ensure(Array.isArray(report.results)&&report.results.length===report.passed&&report.results.every(x=>x&&x.pass===true&&typeof x.name==='string'&&x.name.length>0),'Managed per-case proof missing or failing');
+ const when=Date.parse(report.testedAt);
+ ensure(Number.isFinite(when)&&when>=started-5000&&when<=finished+5000,'Managed report timestamp is not from this run');
+ return report;
+}
 async function build(a){
  ensure(process.platform==='win32','Windows 11 operator only. No Unity build on this host.');
  ensure(safeRef(a.ref||''),'Exact A70-approved W11 QA-freeze ref required');
@@ -158,15 +177,17 @@ async function build(a){
   const managedCheckout=path.join(root,'managed-checkout');
   git(repo,['worktree','add','--detach',managedCheckout,a.sha]);
   const managedProject=path.join(managedCheckout,...ROOT.split('/'));
-  managed=await spawnLog('dotnet',['run','--project',path.join(managedProject,'Tests','CoreClash.Tests.csproj'),'--configuration','Release','--',managedProject],managedProject,path.join(evidence,'logs','managed-dotnet9.log'));
   const managedResultFile=path.join(managedProject,'Evidence','unity-tests.json');
-  if(fs.existsSync(managedResultFile)){
-   fs.copyFileSync(managedResultFile,path.join(evidence,'managed-test-results.json'));
-   managedReport=JSON.parse(fs.readFileSync(managedResultFile,'utf8'));
-  }
-  json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport?.passed??null,failed:managedReport?.failed??null});
-  ensure(managed.exitCode===0&&managedReport&&managedReport.failed===0&&managedReport.passed>0,
-   'Managed .NET9 compile/tests failed or result missing. See original managed-dotnet9.log');
+  const priorManaged=prepareManagedEvidence(managedResultFile,evidence);
+  const managedStartMs=Date.now();
+  managed=await spawnLog('dotnet',['run','--project',path.join(managedProject,'Tests','CoreClash.Tests.csproj'),'--configuration','Release','--',managedProject],managedProject,path.join(evidence,'logs','managed-dotnet9.log'));
+  const managedEndMs=Date.now();
+  ensure(managed.exitCode===0,'Managed .NET9 exited nonzero. See original managed-dotnet9.log');
+  managedReport=requireFreshManagedEvidence(managedResultFile,managedStartMs,managedEndMs);
+  fs.copyFileSync(managedResultFile,path.join(evidence,'managed-test-results.json'));
+  json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport.passed,failed:managedReport.failed,
+   preexisting:priorManaged,runStartedAt:new Date(managedStartMs).toISOString(),runFinishedAt:new Date(managedEndMs).toISOString(),resultSHA256:shaFile(managedResultFile)});
+
 
   // Exactly ONE original Windows build from selected A70 SHA; Unity may normalize scene EOL.
   unity=await spawnLog(a.unity,['-batchmode','-nographics','-quit','-buildTarget','StandaloneWindows64','-projectPath',project,'-executeMethod','CoreClash.Editor.BuildTools.BuildWindows','-logFile',path.join(evidence,'logs','unity-editor.log')],project,path.join(evidence,'logs','unity-console.log'));
@@ -232,6 +253,24 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
+ const os=require('node:os');
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'cc001-w14-managed-'));
+ try{
+  const old=path.join(tmp,'unity-tests.json');
+  fs.writeFileSync(old,JSON.stringify({spec:'V149 UNITY',testedAt:'2026-10-16T23:53:45Z',passed:180,failed:0}));
+  const prior=prepareManagedEvidence(old,tmp);
+  test(()=>assert.equal(prior.preexisting,true));
+  test(()=>assert.equal(fs.existsSync(old),false));
+  test(()=>assert.equal(fs.existsSync(path.join(tmp,'managed-preexisting-test-results.json')),true));
+  const now=Date.now(),fresh={spec:'V149 UNITY',testedAt:new Date(now).toISOString(),passed:1,failed:0,results:[{name:'real execution',pass:true}]};
+  fs.writeFileSync(old,JSON.stringify(fresh));
+  test(()=>assert.equal(requireFreshManagedEvidence(old,now-1000,now+1000).passed,1));
+  test(()=>assert.throws(()=>requireFreshManagedEvidence(old,now+120000,now+121000),/timestamp/));
+  fs.writeFileSync(old,JSON.stringify({...fresh,results:[{name:'failed',pass:false}]}));
+  test(()=>assert.throws(()=>requireFreshManagedEvidence(old,now-1000,now+1000),/per-case/));
+  fs.unlinkSync(old);
+  test(()=>assert.throws(()=>requireFreshManagedEvidence(old,now-1000,now+1000),/NEW result/));
+ }finally{fs.rmSync(tmp,{recursive:true,force:true})}
  console.log(JSON.stringify({suite:'CC001-W11-A72-offline',pass:passed,fail:0}));
 }
 if(require.main===module){const argv=process.argv.slice(2);if(argv.length===1&&argv[0]==='--self-test'){selfTest();}else{try{build(argsParse(argv)).catch(e=>{console.error(e);process.exitCode=2})}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}}
