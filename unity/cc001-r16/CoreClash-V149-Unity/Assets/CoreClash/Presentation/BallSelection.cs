@@ -42,14 +42,26 @@ namespace CoreClash.Presentation
     // never from whichever owner currently owns the authoritative turn.
     public static class LocalTurnPresentation
     {
+        // A21/W11: a connected transport without a valid player seat is not an owned turn.
+        public static bool HasPlayableSeat(int localOwner,bool multiplayer,bool connected) =>
+            !multiplayer || (connected && (localOwner==0 || localOwner==1));
+
+        // Pure display rule; never confers an input or network authority.
+        public static string PlayerLabel(int owner,int localOwner,bool multiplayer,bool connected,bool compact)
+        {
+            string label=compact?"P"+(owner+1):"PLAYER "+(owner+1);
+            return multiplayer && HasPlayableSeat(localOwner,true,connected) && owner==localOwner
+                ?label+(compact?" YOU":" (YOU)"):label;
+        }
+
         public static string Status(GameState state,int localOwner,bool multiplayer,bool connected)
         {
             if(state==null)return "WAITING FOR MATCH";
             if(state.phase==MatchPhase.Over)
                 return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
             string turn="TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1);
+            if(!HasPlayableSeat(localOwner,multiplayer,connected))return turn+" / WAITING FOR CONNECTION";
             if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
-            if(multiplayer&&!connected)return turn+" / WAITING FOR CONNECTION";
             if(multiplayer&&state.turn!=localOwner)return turn+" / WAITING FOR PLAYER "+(state.turn+1);
             if(multiplayer)return turn+(state.bonusPending?" / YOUR BONUS SHOT":" / YOUR SHOT");
             return turn+(state.bonusPending?" / BONUS SHOT":" / AIMING");
@@ -60,8 +72,8 @@ namespace CoreClash.Presentation
         {
             if(state==null)return "WAITING FOR MATCH";
             if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
+            if(!HasPlayableSeat(localOwner,multiplayer,connected))return "WAITING FOR CONNECTION";
             if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
-            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
             if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
             return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
         }
@@ -70,8 +82,8 @@ namespace CoreClash.Presentation
         {
             if(state==null)return "WAIT";
             if(state.phase==MatchPhase.Over)return state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS";
+            if(!HasPlayableSeat(localOwner,multiplayer,connected))return "OFFLINE";
             if(state.phase==MatchPhase.Moving)return "MOVING";
-            if(multiplayer&&!connected)return "OFFLINE";
             if(multiplayer&&state.turn!=localOwner)return "WAIT P"+(state.turn+1);
             if(multiplayer)return state.bonusPending?"YOUR BONUS":"YOUR SHOT";
             return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
