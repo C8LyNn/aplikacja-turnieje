@@ -222,5 +222,87 @@ public static partial class Program
             Eq(s.State.turnNumber,adapter.State.balls.Single(x=>x.id==furnace.id).lastElementalTurn);
             Eq(1,adapter.State.zones.Count(z=>!z.dead&&z.kind=="furnaceFire"));
         });
+        // A50 W11: exercise the actual 120Hz GameSimulation physics -> captured
+        // Protocol149 host snapshot -> admitted client state -> visual-only pose.
+        // No Unity renderer, NGO transport or two-device runtime is claimed.
+        Test("W11 A50 moving host physics survives two 20Hz snapshot visual samples", () => {
+            var s=Sim();var ball=s.Spawn(0,"normal",200,450,180,10);
+            s.State.phase=MatchPhase.Moving;s.State.actionSerial=1;
+            var net=new NetworkGameSession(s);var adapter=new NetworkGameStateAdapter();
+            var visual=new RemoteBallSmoother();
+            var json=new JsonSerializerOptions{IncludeFields=true};
+            var first=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(first,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            visual.Observe(adapter.State,1f);
+            float startX=ball.x;
+            for(int i=0;i<6;i++)s.Step(1f/120f);
+            Eq(6,s.State.frame);Eq(MatchPhase.Moving,s.State.phase);
+            var packet=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(packet,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            var remote=adapter.State.balls.Single(x=>x.id==ball.id);
+            Near(ball.x,remote.x);Near(ball.vx,remote.vx);Eq(ball.hp,remote.hp);
+            visual.Observe(adapter.State,1.05f);
+            True(visual.TryGetPosition(ball.id,1.075f,out float drawnX,out _));
+            True(drawnX>=Math.Min(startX,ball.x)&&drawnX<=Math.Max(startX,ball.x));
+            True(visual.TryGetPosition(ball.id,1.11f,out drawnX,out _));
+            Near(remote.x,drawnX);
+            Near(remote.x,ball.x);Near(remote.vx,ball.vx);Eq(remote.hp,ball.hp);
+            False(adapter.Apply(first,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+        });
+        Test("W11 A50 kinetic collision authoritative HP and impulse remain unchanged by P2 drawing", () => {
+            var s=Sim();var a=s.Spawn(0,"normal",220,450);
+            var b=s.Spawn(1,"normal",260,450);a.vx=200;
+            s.State.phase=MatchPhase.Moving;s.State.actionSerial=2;
+            var net=new NetworkGameSession(s);var adapter=new NetworkGameStateAdapter();
+            var smooth=new RemoteBallSmoother();var json=new JsonSerializerOptions{IncludeFields=true};
+            var beforeHit=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(beforeHit,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            smooth.Observe(adapter.State,2f);
+            s.Collisions.Resolve(a,b);
+            Eq(25,a.hp);Eq(25,b.hp);True(b.vx>0);
+            var afterHit=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(afterHit,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            smooth.Observe(adapter.State,2.05f);
+            var ra=adapter.State.balls.Single(x=>x.id==a.id);
+            var rb=adapter.State.balls.Single(x=>x.id==b.id);
+            for(int i=0;i<10;i++){
+                float time=2.05f+i*.01f;
+                True(smooth.TryGetPosition(a.id,time,out float ax,out float ay));
+                True(smooth.TryGetPosition(b.id,time,out float bx,out float by));
+                True(GameSimulation.Finite(ax)&&GameSimulation.Finite(ay));
+                True(GameSimulation.Finite(bx)&&GameSimulation.Finite(by));
+            }
+            Near(ra.x,a.x);Near(rb.x,b.x);Near(ra.vx,a.vx);Near(rb.vx,b.vx);
+            Eq(ra.hp,a.hp);Eq(rb.hp,b.hp);
+            Eq(25,a.hp);Eq(25,b.hp);
+        });
+        Test("W11 A50 defensive Frostguard collision state is preserved after visual sampling", () => {
+            var s=Sim();var guard=s.Spawn(0,"frostguard",220,450);
+            var hostile=s.Spawn(1,"normal",260,450);
+            s.Abilities.OnStop(guard);True(guard.frostguardAnchored);
+            Eq(0,guard.anchorStacks);
+            Near(.30f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+            Near(2f*guard.mass,CoreClash.Physics.CollisionResolver.Mass(guard));
+            s.State.phase=MatchPhase.Moving;s.State.actionSerial=3;
+            var net=new NetworkGameSession(s);var adapter=new NetworkGameStateAdapter();
+            var smooth=new RemoteBallSmoother();var json=new JsonSerializerOptions{IncludeFields=true};
+            var first=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(first,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            smooth.Observe(adapter.State,3f);
+            hostile.vx=-220;s.Collisions.Resolve(guard,hostile);
+            var second=net.Capture(state=>JsonSerializer.Serialize(state,json));
+            True(adapter.Apply(second,p=>JsonSerializer.Deserialize<GameState>(p,json),out _));
+            var rg=adapter.State.balls.Single(x=>x.id==guard.id);
+            var rh=adapter.State.balls.Single(x=>x.id==hostile.id);
+            smooth.Observe(adapter.State,3.05f);
+            True(smooth.TryGetPosition(guard.id,3.075f,out _,out _));
+            True(smooth.TryGetPosition(hostile.id,3.075f,out _,out _));
+            Eq(0,rg.anchorStacks);True(rg.frostguardAnchored);
+            Eq(rg.hp,guard.hp);Eq(rg.shield,guard.shield);
+            Eq(rh.hp,hostile.hp);Eq(rh.iceStacks,hostile.iceStacks);
+            Near(rg.vx,guard.vx);Near(rh.vx,hostile.vx);
+            Near(.30f,CoreClash.Physics.CollisionResolver.ForceScale(guard));
+        });
+
     }
 }
