@@ -49,6 +49,28 @@ namespace CoreClash.Networking
             return interval;
         }
     }
+    // Host-side accounting of completed SnapshotChunkRpc submissions only.
+    // These numbers describe RPC calls made; they do NOT prove UTP delivery,
+    // queue occupancy, peer receipt or application-level motion smoothness.
+    public sealed class NetworkSnapshotTraffic
+    {
+        public long SubmittedBytes {get;private set;}
+        public long SubmittedChunks {get;private set;}
+        public long SubmittedSnapshots {get;private set;}
+        public void Reset(){SubmittedBytes=SubmittedChunks=SubmittedSnapshots=0;}
+        public bool Record(int packedBytes,int chunkCount)
+        {
+            if(packedBytes<1||packedBytes>NgoWireProtocol.MaxCompressedBytes||
+                chunkCount<1||chunkCount>NgoWireProtocol.MaxChunks||
+                chunkCount!=(packedBytes+NgoWireProtocol.ChunkBytes-1)/NgoWireProtocol.ChunkBytes)
+                return false;
+            if(SubmittedBytes>long.MaxValue-packedBytes||
+                SubmittedChunks>long.MaxValue-chunkCount||
+                SubmittedSnapshots==long.MaxValue)return false;
+            SubmittedBytes+=packedBytes;SubmittedChunks+=chunkCount;SubmittedSnapshots++;
+            return true;
+        }
+    }
     // Deterministic 1-Hz privacy-safe log rate-limit for host/client state traces.
     public static class NetworkSnapshotTrace
     {
