@@ -18,7 +18,15 @@ namespace CoreClash.Presentation
             foreach(var e in state.events){
                 if(e==null||e.id<=afterEventId)continue;
                 latestEventId=Math.Max(latestEventId,e.id);
-                if(e.kind=="PORTAL"&&e.ballId>0)ids.Add(e.ballId);
+                // Genuine host-authoritative instant relocations must not render a fake path.
+                // SWAP changes two entities and requires both visual poses to snap.
+                if(e.kind=="PORTAL"||e.kind=="TELEPORT"){
+                    if(e.ballId>0)ids.Add(e.ballId);
+                }
+                else if(e.kind=="SWAP"){
+                    if(e.ballId>0)ids.Add(e.ballId);
+                    if(e.otherId>0)ids.Add(e.otherId);
+                }
             }
             return ids;
         }
