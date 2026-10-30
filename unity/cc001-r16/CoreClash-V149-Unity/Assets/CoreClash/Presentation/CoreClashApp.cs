@@ -35,6 +35,7 @@ namespace CoreClash.Presentation
         bool setup=true,builder,library,initialized,externalModal,boardInspection;
         int builderOwner,replayId,sequence,pointerReadyFrame,inspectBallId,remoteLastEventId,remoteLastRevision;
         int noticeOriginOwner=-1,noticeOriginTurn=-1;
+        int aimOriginOwner=-1,aimOriginTurn=-1,aimOriginActionSerial=-1;
         float accumulator;
         string selected="normal",notice="",search="",inspect="",fatal="",networkNotice="";
         Vector2 setupScroll,presetScroll,rosterScroll,infoScroll,matchScroll,trayScroll;
@@ -62,7 +63,7 @@ namespace CoreClash.Presentation
         }
         static Rect RectOf(UiBox r)=>new Rect(r.x,r.y,r.width,r.height);
         void Layout(){UiViewport.Refresh();layout=MatchLayout.For(UiWidth,UiHeight,UiViewport.Profile);board=RectOf(layout.Board);side=RectOf(layout.Panel);}
-        void CancelPointer(){gesture.Active=false;TouchInput.Reset();pointerReadyFrame=Time.frameCount+1;}
+        void CancelPointer(){gesture.Active=false;aimOriginOwner=aimOriginTurn=aimOriginActionSerial=-1;TouchInput.Reset();pointerReadyFrame=Time.frameCount+1;}
         public void CancelPresentationInput(){CancelPointer();}
         void OnApplicationFocus(bool focused){if(!focused)CancelPointer();}
         void OnApplicationPause(bool paused){if(paused)CancelPointer();}
@@ -103,8 +104,8 @@ namespace CoreClash.Presentation
             Vector2 world=new Vector2(MatchPerspective.SimulationX(viewX,ViewOwner),MatchPerspective.SimulationY(viewY,ViewOwner));
             if(p.down&&board.Contains(screen)){
                 var near=Simulation.State.balls.Where(b=>!b.dead&&!b.banished).OrderBy(b=>(b.x-world.x)*(b.x-world.x)+(b.y-world.y)*(b.y-world.y)).FirstOrDefault();replayId=0;
-                if(near!=null&&Vector2.Distance(world,new Vector2(near.x,near.y))<=near.radius+10){if(Simulation.CanReplay(near)){replayId=near.id;gesture.Begin(p.id,near.x,near.y);}else ShowRuntimeBallDetails(near.id);}
-                else{float py=Simulation.State.turn==0?853:47;if(Vector2.Distance(world,new Vector2(270,py))<=85)gesture.Begin(p.id,270,py);}
+                if(near!=null&&Vector2.Distance(world,new Vector2(near.x,near.y))<=near.radius+10){if(Simulation.CanReplay(near)){replayId=near.id;BeginOwnedAim(p.id,near.x,near.y);}else ShowRuntimeBallDetails(near.id);}
+                else{float py=Simulation.State.turn==0?853:47;if(Vector2.Distance(world,new Vector2(270,py))<=85)BeginOwnedAim(p.id,270,py);}
             }
             if(p.held||p.up)gesture.Move(p.id,world.x,world.y);
             if(p.up&&gesture.Release(p.id,Simulation.State.turn,Simulation.State.turnNumber,selected,replayId,out var command)){
@@ -113,11 +114,22 @@ namespace CoreClash.Presentation
                 else{notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }
         }
+        void BeginOwnedAim(int pointer,float x,float y)
+        {
+            if(gesture.Active)return;
+            gesture.Begin(pointer,x,y);
+            if(gesture.Active){
+                aimOriginOwner=Simulation.State.turn;
+                aimOriginTurn=Simulation.State.turnNumber;
+                aimOriginActionSerial=Simulation.State.actionSerial;
+            }
+        }
         void RevokeStaleAim()
         {
             LocalAimOwnership.Revoke(gesture,Simulation?.State,
                 NetworkLink==null?(int?)null:NetworkLink.LocalOwner,
-                NetworkLink==null||NetworkLink.IsConnected);
+                NetworkLink==null||NetworkLink.IsConnected,
+                aimOriginOwner,aimOriginTurn,aimOriginActionSerial);
         }
         void ClearStaleActionNotice()
         {

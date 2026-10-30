@@ -163,6 +163,73 @@ public static partial class Program
             LocalAimOwnership.Revoke(g,s.State,0,true);False(g.Active);
             LocalAimOwnership.Revoke(g,s.State,1,true);False(g.Active);
         });
+
+        // A20 W15: a remote snapshot can skip intermediate Moving frames.
+        // Even if Aiming and seat ownership look unchanged, a different turn
+        // or accepted action must not inherit a previous pointer drag.
+        Test("A20-W15-01 active P1 same-turn same-action gesture remains valid",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=4;s.State.actionSerial=12;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(201,270,853);g.Move(201,300,700);
+            LocalAimOwnership.Revoke(g,s.State,0,true,0,4,12);True(g.Active);
+            True(g.Release(201,0,4,"normal",0,out _));
+        });
+        Test("A20-W15-02 active P2 same-turn same-action gesture remains valid",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=5;s.State.actionSerial=18;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(202,270,47);g.Move(202,300,200);
+            LocalAimOwnership.Revoke(g,s.State,1,true,1,5,18);True(g.Active);
+        });
+        Test("A20-W15-03 skipped authoritative turn cancels same-owner stale drag",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=5;s.State.actionSerial=18;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(203,270,47);g.Move(203,270,200);
+            s.State.turnNumber=7;
+            LocalAimOwnership.Revoke(g,s.State,1,true,1,5,18);
+            False(g.Active);False(g.Release(203,1,7,"normal",0,out _));
+        });
+        Test("A20-W15-04 accepted actionSerial change cancels same-turn P1 drag",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=2;s.State.actionSerial=9;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(204,270,853);g.Move(204,270,600);
+            s.State.actionSerial=10;
+            LocalAimOwnership.Revoke(g,s.State,0,true,0,2,9);
+            False(g.Active);False(g.Release(204,0,2,"normal",0,out _));
+        });
+        Test("A20-W15-05 a new drag after revocation uses the new snapshot token",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=5;s.State.actionSerial=18;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(205,270,47);g.Move(205,270,200);
+            s.State.actionSerial=19;
+            LocalAimOwnership.Revoke(g,s.State,1,true,1,5,18);False(g.Active);
+            g.Begin(206,270,47);g.Move(206,270,200);
+            LocalAimOwnership.Revoke(g,s.State,1,true,1,5,19);True(g.Active);
+            True(g.Release(206,1,5,"normal",0,out _));
+        });
+        Test("A20-W15-06 invalid origin identities fail closed",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=5;s.State.actionSerial=18;s.State.phase=MatchPhase.Aiming;
+            foreach(var origin in new[]{(-1,5,18),(2,5,18),(1,0,18),(1,5,-1),(0,5,18)}){
+                var g=new LaunchGesture();g.Begin(207,270,47);
+                LocalAimOwnership.Revoke(g,s.State,1,true,origin.Item1,origin.Item2,origin.Item3);
+                False(g.Active);
+            }
+        });
+        Test("A20-W15-07 hotseat also revokes drag that spans an actionSerial jump",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=1;s.State.actionSerial=0;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(208,270,853);
+            LocalAimOwnership.Revoke(g,s.State,null,false,0,1,0);True(g.Active);
+            s.State.actionSerial=1;
+            LocalAimOwnership.Revoke(g,s.State,null,false,0,1,0);False(g.Active);
+        });
+        Test("A20-W15-08 disconnected and missing-state snapshots still fail closed",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=3;s.State.actionSerial=4;s.State.phase=MatchPhase.Aiming;
+            var offline=new LaunchGesture();offline.Begin(209,270,47);
+            LocalAimOwnership.Revoke(offline,s.State,1,false,1,3,4);False(offline.Active);
+            var missing=new LaunchGesture();missing.Begin(210,270,47);
+            LocalAimOwnership.Revoke(missing,null,1,true,1,3,4);False(missing.Active);
+            LocalAimOwnership.Revoke(null,null,1,false,1,3,4);
+        });
+        Test("A20-W15-09 turn scope checker never mutates canonical state",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=6;s.State.actionSerial=20;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(211,270,853);
+            LocalAimOwnership.Revoke(g,s.State,0,true,0,6,20);True(g.Active);
+            Eq(0,s.State.turn);Eq(6,s.State.turnNumber);Eq(20,s.State.actionSerial);
+        });
     }
     static TouchContact Contact(int id,ContactPhase phase)=>new TouchContact{id=id,x=100,y=200,phase=phase};
 }

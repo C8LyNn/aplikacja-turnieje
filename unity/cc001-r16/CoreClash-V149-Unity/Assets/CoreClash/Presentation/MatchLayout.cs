@@ -39,6 +39,20 @@ namespace CoreClash.Presentation
             if(gesture!=null&&gesture.Active&&!CanAim(state,networkOwner,connected))
                 gesture.Active=false;
         }
+
+        // W15: an accepted remote snapshot can skip directly from one Aiming
+        // state to another with the same owner. Never let an old drag acquire
+        // the new turnNumber/actionSerial when HandlePointer.Release runs.
+        public static void Revoke(LaunchGesture gesture,GameState state,int? networkOwner,bool connected,
+            int startedOwner,int startedTurnNumber,int startedActionSerial)
+        {
+            if(gesture==null||!gesture.Active)return;
+            if(!CanAim(state,networkOwner,connected)||startedOwner<0||startedOwner>1||
+                startedTurnNumber<=0||startedActionSerial<0||
+                state.turn!=startedOwner||state.turnNumber!=startedTurnNumber||
+                state.actionSerial!=startedActionSerial)
+                gesture.Active=false;
+        }
     }
 
     public sealed class MatchLayout
