@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "baseSha": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "candidates": [
+    {
+      "owner": "A30",
+      "ref": "fix/cc001-r17-w9-a30-multiplayer-repair",
+      "expectedSha": "e6470dce9ff02fc294c4df15bde82952350b42b2",
+      "allowedPaths": [
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs"
+      ],
+      "requiredTests": [
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs",
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs"
+      ],
+      "expectedBlobs": {
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs": "6a38aef55cd674bd323adacc81bfa04a7cc22cef",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs": "5c86226c874e222c5abe4e59aeb50eff509bd456",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs": "c47f4f94fd26e54754ae9ad6410219aeed3c7bbb",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs": "002137aea4bf9821cc9dfc771a14bc3f8de3831d",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs": "0ec7a4b1cce206dcd25b366dc64c37c3d0becad3",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs": "397a172110980ca5e79159953a33d9677fc65cba",
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs": "1a86b06809304d136c626b97094255b801bb663e",
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs": "3d9e2494295b55f946e61e17657240ec725ce7e3",
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs": "acec214bd452d1a7ac56b9ec1694c2563beea29d"
+      }
+    }
+  ]
+}

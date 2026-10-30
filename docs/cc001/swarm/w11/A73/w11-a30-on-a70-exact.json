@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 2,
+  "immutableRc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "baseRef": "integration/cc001-r17-w10-multiplayer-dev-candidate-20261030",
+  "baseSha": "3d377767e72473cebd90e49293a0cd5dada70464",
+  "addonRef": "fix/cc001-r17-w10-a30-on-a70-candidate",
+  "addonSha": "3a6fb11f70cbdd354ca319b6c48e5c080a1ae193",
+  "expectedChanges": {
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs": {
+      "status": "M",
+      "blob": "5a833e1821218d820e8f6e92b08ccbcd6cebfed0"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs": {
+      "status": "M",
+      "blob": "83e814e8cbdd6045f2c4161ae1dba4fc93341257"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs": {
+      "status": "M",
+      "blob": "5363430e06c3056a5b330a29348b7e2a150377f3"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs": {
+      "status": "M",
+      "blob": "db05d1053c5f2d8869eba44314fdccdaf1f9ee79"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs": {
+      "status": "M",
+      "blob": "48927f49b541db51bf5ff2df0ef73fdbb5377433"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs": {
+      "status": "M",
+      "blob": "602b87116f9ef5555e7e21c598c64dd49af914fb"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs": {
+      "status": "A",
+      "blob": "9885040650803d14888f31d8d94033e4d7e07fc1"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs.meta": {
+      "status": "A",
+      "blob": "ea471fd92648ba7b05ffdc11e51136b04c348094"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs": {
+      "status": "M",
+      "blob": "c17c24bc23bda08a08bef6877d390a497882bc30"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs": {
+      "status": "M",
+      "blob": "dd7114ca444bda78d82e01f646f743820940bae2"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs": {
+      "status": "A",
+      "blob": "875dc6fbc4fa5f8d123023e5def888bd16d76b21"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs.meta": {
+      "status": "A",
+      "blob": "ce9f5ecfea9d53b84fa709586b08d6643a848587"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj": {
+      "status": "M",
+      "blob": "54c37db09a9cf543b17d49d641929b39e0b3d69d"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/LocalDeckContentTests.cs": {
+      "status": "A",
+      "blob": "1090930942cae76621151ee425f80232d923aec3"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs": {
+      "status": "M",
+      "blob": "5263c696fd8fa65a202fb885311af20792bf0e34"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs": {
+      "status": "M",
+      "blob": "b07d64ea620e84dd4cb30264f649791e268d7f15"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/Program.cs": {
+      "status": "M",
+      "blob": "49d9860cec074e7d1612babacf01f8d63ed238b4"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/RemoteBallSmootherTests.cs": {
+      "status": "A",
+      "blob": "e13bf47b300756ab97cc6463adc76a1f808f4528"
+    }
+  },
+  "retainedBlobs": {
+    "unity/cc001-r16/Reference/V148_reference_original.html": "657a423dc4e8fe87598e664d67e124d24b483343",
+    "docs/cc001/swarm/R17_A70_SOURCE_MANIFEST.json": "99cf0b5666f9cd6648943e9b54342e6546c5d3b1",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoWireProtocol.cs": "4a611ee8bdcd929b577f515768fa10dcef8410fc",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs": "ee6683ec3ae4ae10ce194a7c8bd9691d5a90754e",
+    "scripts/cc001/w9/a33/verify-network-overlay.cjs": "43765cc5252f15c4138b6f88b5ee09b1cb3c3365",
+    "docs/cc001/swarm/w9/A33/R17_W9_A33_NETWORK_PRESENTATION_OVERLAY_HANDOFF.md": "ec61ba70c949124de9ec72c1d786508b0f7a3440",
+    "unity/cc001-r16/CoreClash-V149-Unity/ProjectSettings/ProjectVersion.txt": "8a87982496ed3239376379e331cd8bda920ee735"
+  }
+}
