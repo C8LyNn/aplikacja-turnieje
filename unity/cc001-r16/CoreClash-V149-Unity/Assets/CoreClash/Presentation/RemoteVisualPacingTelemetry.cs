@@ -12,13 +12,13 @@ namespace CoreClash.Presentation
         readonly float[] frameSeconds=new float[Capacity];
         readonly float[] sortBuffer=new float[Capacity];
         int cursor,samples,frames,snapshots;
-        float windowStart=-1f,lastSnapshot=-1f,blendSeconds,waitSeconds,maxGap;
+        float windowStart=-1f,lastSnapshot=-1f,blendSeconds,waitSeconds,maxGap,movingSeconds;
 
         public int SnapshotCount=>snapshots;
         public void Reset()
         {
             cursor=samples=frames=snapshots=0;windowStart=lastSnapshot=-1f;
-            blendSeconds=waitSeconds=maxGap=0f;
+            blendSeconds=waitSeconds=maxGap=movingSeconds=0f;
         }
         static bool Finite(float f)=>!float.IsNaN(f)&&!float.IsInfinity(f);
         public void EndMoving()
@@ -50,6 +50,7 @@ namespace CoreClash.Presentation
                 cursor=(cursor+1)%Capacity;
                 if(samples<Capacity)samples++;
                 frames++;
+                movingSeconds+=deltaSeconds;
                 if(lastSnapshot>=0)
                 {
                     float age=now-lastSnapshot;
@@ -67,7 +68,7 @@ namespace CoreClash.Presentation
                 Array.Sort(sortBuffer,0,samples);
                 int index=Math.Max(0,(int)Math.Ceiling(samples*0.95f)-1);
                 float p95=sortBuffer[index]*1000f;
-                float fps=frames/elapsed;
+                float fps=movingSeconds>0?frames/movingSeconds:0f;
                 // P95 is based on the most recent <=512 frames in the window.
                 // No peer ID, IP, payload contents, deck or ball identity.
                 evidence="CC_W12_VISUAL_P2 elapsed="+F(elapsed)+
@@ -77,7 +78,7 @@ namespace CoreClash.Presentation
                     " postBlendWaitMs="+F(waitSeconds*1000f);
             }
             windowStart=now;cursor=samples=frames=snapshots=0;
-            waitSeconds=maxGap=0f;
+            waitSeconds=maxGap=movingSeconds=0f;
             return evidence!=null;
         }
         static string F(float number)=>number.ToString("0.###",CultureInfo.InvariantCulture);
