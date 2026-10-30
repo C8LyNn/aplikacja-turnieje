@@ -18,23 +18,28 @@ namespace CoreClash.Presentation
         int cursor,samples,frames,snapshots;
         int gapCursor,gapSamples,gapCount,longRxGaps,postBlendWaitFrames;
         float windowStart=-1f,lastSnapshot=-1f,blendSeconds,waitSeconds,maxGap,movingSeconds;
+        int lastActionSerial=int.MinValue;
 
         public int SnapshotCount=>snapshots;
         public void Reset()
         {
             cursor=samples=frames=snapshots=0;gapCursor=gapSamples=gapCount=longRxGaps=postBlendWaitFrames=0;
-            windowStart=lastSnapshot=-1f;
+            windowStart=lastSnapshot=-1f;lastActionSerial=int.MinValue;
             blendSeconds=waitSeconds=maxGap=movingSeconds=0f;
         }
         static bool Finite(float f)=>!float.IsNaN(f)&&!float.IsInfinity(f);
         public void EndMoving()
         {
-            lastSnapshot=-1f;blendSeconds=0f;
+            lastSnapshot=-1f;blendSeconds=0f;lastActionSerial=int.MinValue;
         }
         // Caller must first admit a monotonic Protocol149 revision.
-        public void AcceptSnapshot(float now,float chosenBlendSeconds)
+        public void AcceptSnapshot(float now,float chosenBlendSeconds,int actionSerial=int.MinValue)
         {
             if(!Finite(now)||now<0||!Finite(chosenBlendSeconds)||chosenBlendSeconds<0)return;
+            // A rapid action transition may not carry a non-Moving packet.
+            // Never count time between separate actions as client RX jitter.
+            if(actionSerial!=int.MinValue&&lastActionSerial!=int.MinValue&&actionSerial!=lastActionSerial)
+                lastSnapshot=-1f;
             if(lastSnapshot>=0)
             {
                 float interval=now-lastSnapshot;
@@ -47,6 +52,7 @@ namespace CoreClash.Presentation
                 if(interval>LongRxGapSeconds)longRxGaps++;
             }
             lastSnapshot=now;blendSeconds=chosenBlendSeconds;
+            if(actionSerial!=int.MinValue)lastActionSerial=actionSerial;
             snapshots++;
         }
         public bool SampleFrame(float now,float deltaSeconds,bool moving,out string evidence)
