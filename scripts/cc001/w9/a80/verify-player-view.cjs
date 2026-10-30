@@ -15,6 +15,8 @@ function isOwner(n) { return Number.isInteger(n) && (n === 0 || n === 1); }
 function isRev(n) { return Number.isSafeInteger(n) && n >= 0; }
 function nonempty(s) { return typeof s === 'string' && s.trim().length > 0; }
 function digest(s) { return crypto.createHash('sha256').update(s).digest('hex'); }
+function sha1(s) { return typeof s==='string' && /^[0-9a-f]{40}$/i.test(s); }
+function sha256(s) { return typeof s==='string' && /^[0-9a-f]{64}$/i.test(s); }
 
 function assess(input) {
   const errors = [], gaps = [], notes = [], checks = [];
@@ -26,6 +28,10 @@ function assess(input) {
   if (input?.policy?.perspective !== 'local-player-bottom' && input?.policy?.perspective !== 'unconstrained') gap('PERSPECTIVE_POLICY_UNDECLARED');
   if (observations.length !== 2) gap('TWO_DEVICE_OBSERVATIONS_REQUIRED');
   const byDevice = new Map();
+  const policy=input?.policy||{};
+  const sourceShas=[];
+  const binaryShas=[];
+  if (policy.requireSameBuild===true && (!sha1(policy.targetSourceSha))) gap('TARGET_SOURCE_SHA_REQUIRED');
   for (const o of observations) {
     if (!o || !['PC1','PC2'].includes(o.device) || byDevice.has(o.device)) {
       gap('INVALID_OR_DUPLICATE_DEVICE'); continue;
@@ -39,16 +45,33 @@ function assess(input) {
     if (!nonempty(o.evidence?.screenshotPath)) gap('SCREENSHOT_PATH_MISSING', device);
     if (!nonempty(o.evidence?.logPath)) gap('PLAYER_LOG_PATH_MISSING', device);
     if (!nonempty(o.evidence?.captureUtc)) gap('CAPTURE_UTC_MISSING', device);
+    if (policy.requireSameBuild===true) {
+      if (!sha1(o.evidence?.sourceSha)) gap('SOURCE_SHA_UNVERIFIED',device);
+      else {sourceShas.push(o.evidence.sourceSha.toLowerCase());
+        if(sha1(policy.targetSourceSha)) check('SOURCE_NOT_TARGET_SHA',o.evidence.sourceSha.toLowerCase()===policy.targetSourceSha.toLowerCase(),device);}
+      if (!sha256(o.evidence?.playerAssemblySha256)) gap('PLAYER_ASSEMBLY_SHA256_UNVERIFIED',device);
+      else binaryShas.push(o.evidence.playerAssemblySha256.toLowerCase());
+    }
     if (!isOwner(o.localOwner)) { gap('LOCAL_OWNER_UNVERIFIED',device); continue; }
     if (!isOwner(o.authoritative?.turn) || !PHASES.has(o.authoritative?.phase) || !isRev(o.authoritative?.revision)) {
       gap('AUTHORITATIVE_STATE_UNVERIFIED',device); continue;
     }
     const ui=o.ui||{}, a=o.authoritative;
+    if (policy.requireConnectionState===true && typeof o.networkConnected!=='boolean') gap('NETWORK_CONNECTION_UNVERIFIED',device);
+    const canAct=a.phase==='Aiming' && a.turn===o.localOwner && o.networkConnected!==false;
+    if (policy.requireInputParity===true) {
+      if(typeof ui.inputEnabled!=='boolean') gap('INPUT_ENABLED_UNVERIFIED',device);
+      else check('INPUT_ENABLED_OUTSIDE_LOCAL_TURN',ui.inputEnabled===canAct,device);
+    }
+    if (policy.powerIndicator==='arrow-only') {
+      if(typeof ui.powerBarVisible!=='boolean'||typeof ui.powerPercentVisible!=='boolean')
+        gap('POWER_HUD_ABSENCE_UNVERIFIED',device);
+      else check('REDUNDANT_POWER_HUD_VISIBLE',!ui.powerBarVisible&&!ui.powerPercentVisible,device);
+    }
     if (isOwner(ui.turnBannerOwner)) check('TURN_BANNER_OWNER_MISMATCH',ui.turnBannerOwner===a.turn,device);
     else gap('TURN_BANNER_OWNER_UNVERIFIED',device);
     if (typeof ui.yourTurnShown === 'boolean') {
-      const actualCanAct = a.phase==='Aiming' && a.turn===o.localOwner;
-      check('YOUR_TURN_LABEL_MISMATCH', ui.yourTurnShown===actualCanAct,device);
+      check('YOUR_TURN_LABEL_MISMATCH', ui.yourTurnShown===canAct,device);
     } else gap('YOUR_TURN_LABEL_UNVERIFIED',device);
     if (isOwner(ui.deckOwner)) check('DECK_OWNER_MISMATCH',ui.deckOwner===o.localOwner,device);
     else gap('DECK_OWNER_UNVERIFIED',device);
@@ -57,6 +80,7 @@ function assess(input) {
       else gap('PERSPECTIVE_UNVERIFIED',device);
     }
     if (ui.aim && typeof ui.aim.dragActive === 'boolean') {
+      if (ui.aim.dragActive && !canAct) error('AIM_DRAG_OUTSIDE_LOCAL_TURN',device);
       if (ui.aim.dragActive && a.phase==='Aiming' && a.turn===o.localOwner) {
         if (typeof ui.aim.arrowVisible!=='boolean') gap('AIM_ARROW_VISIBILITY_UNVERIFIED',device);
         else check('AIM_ARROW_ABSENT',ui.aim.arrowVisible,device);
@@ -74,6 +98,10 @@ function assess(input) {
       // RC1 trusted LAN convention: host P1 owner=0, client P2 owner=1.
       check('PC1_PC2_SEAT_MAPPING_MISMATCH',p1.localOwner===0 && p2.localOwner===1);
     }
+    if(policy.requireSameBuild===true) {
+      if(sourceShas.length===2) check('PC_BUILD_SOURCE_MISMATCH',sourceShas[0]===sourceShas[1]);
+      if(binaryShas.length===2) check('PC_PLAYER_ASSEMBLY_MISMATCH',binaryShas[0]===binaryShas[1]);
+    }
     const a=p1.authoritative,b=p2.authoritative;
     if (isRev(a?.revision) && isRev(b?.revision)) {
       if (a.revision===b.revision) {
@@ -89,7 +117,7 @@ function assess(input) {
   }
   const verdict=errors.length?'OBSERVED_CONTRACT_FAIL':gaps.length?'INSUFFICIENT_EVIDENCE':'OBSERVATION_CONTRACT_CONSISTENT';
   return {schema:SCHEMA,verdict,physicalG3Status:'NOT_ASSESSED',
-    source:'operator annotations; screenshot/log contents NOT independently verified',
+    source:'operator annotations; screenshot/log contents NOT independently verified; provided SHA values not rehashed',
     summary:{checks:checks.length,passed:checks.filter(x=>x.pass).length,errors:errors.length,gaps:gaps.length},
     errors,gaps,notes,checks};
 }
