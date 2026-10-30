@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "freezeRef": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "freezeSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "relations": [
+    {
+      "id": "A41_W13_241_250",
+      "kind": "stack",
+      "left": {"pr": 241, "ref": "feat/cc001-r17-w13-a41-host-byte-ledger", "sha": "a4f1bcdef958dcbc5e00700010002e5c249ebde2"},
+      "right": {"pr": 250, "ref": "feat/cc001-r17-w13-a41-ledger-capacity-20261030", "sha": "d4875397d99ffd99a704865d61db212c59d8ced9"}
+    },
+    {
+      "id": "A83_A20_229_246",
+      "kind": "independent",
+      "left": {"pr": 229, "ref": "feat/cc001-r17-w12-a83-local-selection-stability", "sha": "cce672566b57e22402ba6793e038b076c178f3aa"},
+      "right": {"pr": 246, "ref": "feat/cc001-r17-w13-a20-notice-lifecycle-20261030", "sha": "ad710ad4d3cd97fc4f92bae5527f164c4e302f62"}
+    }
+  ]
+}
