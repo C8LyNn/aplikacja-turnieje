@@ -84,3 +84,17 @@ Those are exact GitHub-content SHA-1 Git blobs, **not** Windows EXE/DLL SHA256.
 The accepted host may start another Moving action without a visible intervening non-Moving snapshot at P2. Without a read-only action boundary guard, a large pause **between distinct actions** would pollute `maxRxGapMs`, `rxGapP95ms` and `rxGapsOver300ms`. The W13 producer now accepts the already-admitted `state.actionSerial` (optional argument, preserving old test call sites), clears the **interarrival baseline only** when the action changes, and clears it on `EndMoving`/new match. No GameState write or network packet alteration. One additional C# regression covers 250ms within-action plus a long cross-action pause, expecting just one 250ms RX gap rather than a fictitious stall.
 
 **Updated W13 case counts:** 13 telemetry and 26 smoother authored tests; **9 W13 additions**; native .NET9/Unity execution remains NOT_RUN. After the action-boundary source edit, rerun/read back all source checks for the **new exact Git blobs**; the earlier 51/51 refers to the pre-action-boundary iteration and must not be transferred automatically.
+
+
+### R17-W13 final exact source verification
+
+After the additional rapid-action transition guard, independently re-fetched source/test blobs and **executed 50/50 new source-bound V8 predicates and numeric policy cases PASS** on the *current*, updated code; these supersede the previous 51/51 from an earlier W13 code revision. Tested areas: both 512-frame and 256-snapshot RX bounded rings, 5s report, regular legal 4Hz vs 380ms jitter, `NA` when there are no intervals, forward action-serial reset, expiry after 300ms threshold, actual app admission/wiring, no GameState/physics/protocol mutation, and all 39 C# test definitions (13 telemetry + 26 smoother) registered/integrated.
+
+**Fresh exact Git blob identities**:
+- `RemoteVisualPacingTelemetry.cs` = `d9d275ae5115837c43c9cb009cfdd6e13573907a`;
+- `RemoteVisualPacingTelemetryTests.cs` = `846e554c76b96251e22365cfbb67bd9cdac83b62`;
+- `RemoteBallSmoother.cs` = `a2dbaee6c4562b1efd1c8308766c56660dc09949`;
+- `RemoteBallSmootherTests.cs` = `856d2f823fcb473fc8f05f1e4c33d81252f31a03`;
+- `CoreClashApp.cs` = `431d36ca44bbecbdfdd9ce4b6b35f7c06e34c8d7`.
+
+**Native status unchanged:** `.NET9` managed tests NOT_RUN, Unity 6000.4.0f1 Windows64 Player NOT_BUILT, 2-PC native frame profile NOT_RUN, independent G3/G4 HOLD. GitHub source V8 checks do **not** certify managed tests or actual network performance.
