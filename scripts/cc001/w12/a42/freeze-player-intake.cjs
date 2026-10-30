@@ -4,11 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const cp = require('node:child_process');
+const {validateLedger} = require('../../w15/a42/generated-unity-ledger.cjs');
 const FREEZE = '3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const RC1 = '10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const REF = 'integration/cc001-r17-w11-qa-freeze-20261030';
 const HEX = /^[0-9a-f]{64}$/i;
-const REQUIRED_GATES = ['sourcePreExact','sourceAfterMaterialized','sourceNotMutated','unityExitZero','buildSucceeded','playerComplete','compilerResponseCaptured','playerDefineCorrect','noDiagnostic','buildMarker'];
+const REQUIRED_GATES = ['sourcePreExact','sourceAfterMaterialized','sourceNotMutated','freshUnityReports','unityExitZero','buildSucceeded','playerComplete','compilerResponseCaptured','playerDefineCorrect','noDiagnostic','buildMarker'];
 const err = message => { throw new Error(message); };
 function safeName(n) {
   return typeof n === 'string' && n.length > 0 && !n.startsWith('/') && !n.includes('\\') && !n.includes(':') &&
@@ -20,7 +21,8 @@ function playerManifest(build) {
   if (build?.ref !== REF || build?.candidateSHA !== FREEZE || build?.rc1Base !== RC1) failures.push('WRONG_A72_SOURCE_REF_OR_SHA');
   if (build?.unity?.exitCode !== 0 || build?.buildReport?.result !== 'Succeeded' || build?.buildReport?.errors !== 0) failures.push('UNITY_BUILD_UNVERIFIED');
   if (!build?.gates || REQUIRED_GATES.some(k => build.gates[k] !== true) || Object.values(build.gates).some(v => v !== true)) failures.push('BUILD_PROVENANCE_GATES_MISSING');
-  if (!Array.isArray(build?.blockers) || build.blockers.length || !Array.isArray(build?.sourceChanges) || build.sourceChanges.length) failures.push('A72_SOURCE_OR_BLOCKER_LEDGER_INVALID');
+  if (!Array.isArray(build?.blockers) || build.blockers.length) failures.push('A72_SOURCE_OR_BLOCKER_LEDGER_INVALID');
+  failures.push(...validateLedger(build).reasonCodes);
   const entries = build?.playerInventory;
   const expected = new Map();
   if (!Array.isArray(entries) || !Number.isSafeInteger(build.playerCount) || build.playerCount < 50 || entries.length !== build.playerCount) failures.push('PLAYER_MANIFEST_INCOMPLETE');
