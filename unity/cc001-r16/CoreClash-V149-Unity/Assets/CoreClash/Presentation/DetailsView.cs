@@ -109,7 +109,7 @@ namespace CoreClash.Presentation
                 w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;
                 GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,
                     s.frame,s.actionSerial,DateTime.UtcNow,w13QaCaptureSequence)+
-                    "\n"+QaPoseEvidence.Capture(s,remoteBallSmoother,Time.unscaledTime);
+                    "\n"+QaPoseEvidence.Capture(s,NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null,Time.unscaledTime);
                 w13QaCopiedUntil=Time.unscaledTime+2.5f;
             }
             string technical="BALL: "+id+"\nUNITY STATUS: "+AbilitySupport.Status(id)+"\n\nV148 DESIGN REFERENCE\n"+string.Join(" + ",a.events)+"\n"+a.role+"\n"+string.Join(" / ",a.conditions)+"\n\n"+"TURN "+s.turnNumber+" / REVISION "+s.revision+" / FRAME "+s.frame+"\n"+"BALLS "+s.balls.Count+" / ZONES "+s.zones.Count(z=>!z.dead)+"\n"+"CANONICAL DECKS "+Catalog.Data.decks.Length+" / ROSTER "+Catalog.Data.balls.Length+"\n\n"+"R17-W9 / PC1-PC2 NETWORK DIAGNOSTICS\n"+networkDebug+"\n\n"+networkNotice+"\n\nNative primary support is separate from the imported reference metadata. Full roster abilities are not all implemented.";
