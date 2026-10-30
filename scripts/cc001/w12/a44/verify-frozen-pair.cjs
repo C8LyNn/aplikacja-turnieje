@@ -6,9 +6,12 @@ const path=require('node:path');
 const crypto=require('node:crypto');
 const cp=require('node:child_process');
 const FROZEN='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
+// Immutable author-authenticated A72-owned Git blob at PR #188, not an operator-supplied digest.
+const A72_VERIFIER_BLOB='7b704b969c40abe84aaefdbf62cc82c81860ae72';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const HEX64=/^[a-f0-9]{64}$/i;
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const gitBlobSha=b=>crypto.createHash('sha1').update(Buffer.from('blob '+b.length+'\0')).update(b).digest('hex');
 const need=(yes,why)=>{if(!yes)throw Error(why);};
 function readJson(filename){
  const st=fs.lstatSync(filename);
@@ -68,17 +71,20 @@ function run(o){
  need(vstat.isFile()&&!vstat.isSymbolicLink()&&vstat.size>0&&vstat.size<256*1024,'VERIFIER_FILE_INVALID');
  const verifierBytes=fs.readFileSync(o.verifier);
  need(sha(verifierBytes)===o.verifierSha.toLowerCase(),'A72_VERIFIER_SHA_MISMATCH');
+ // A caller-controlled SHA256 can match a malicious replacement; independently pin actual A72 source.
+ need(gitBlobSha(verifierBytes)===A72_VERIFIER_BLOB,'A72_VERIFIER_UNTRUSTED_BLOB');
  const p1=resolvedPlayerRoot(o.pc1),p2=resolvedPlayerRoot(o.pc2);
  need(p1!==p2&&!p1.startsWith(p2+path.sep)&&!p2.startsWith(p1+path.sep),'DUPLICATE_OR_NESTED_PLAYER_ROOTS');
- const summaryFile=fs.realpathSync(o.summary),sessionFile=fs.realpathSync(o.session);
- const s=readJson(summaryFile),q=readJson(sessionFile);
+ // Validate the ORIGINAL input path before realpath resolution, otherwise symlinks bypass lstat.
+ const s=readJson(o.summary),q=readJson(o.session);
+ const summaryFile=fs.realpathSync(o.summary);
  const inv=inventoryCheck(s.data),session=sessionCheck(q.data,inv.exe);
  // A72 owns the full-folder verifier. This wrapper never rewrites or emulates it.
  const pc1=verifyNative(fs.realpathSync(o.verifier),summaryFile,p1,inv.count);
  const pc2=verifyNative(fs.realpathSync(o.verifier),summaryFile,p2,inv.count);
  const result={schema:'CC001-W12-A44-FROZEN-PAIR-INTEGRITY-1',frozenCandidate:FROZEN,protectedRc1:RC1,
   originalPr207HeadExcludedFromThisGate:true,sessionId:session.sessionId,
-  a72OriginalSourceEvidence:{summarySha256:s.hash,verifierSha256:sha(verifierBytes),fullPlayerFileCount:inv.count,exeSha256:inv.exe,assemblyCSharpSha256:inv.dll},
+  a72OriginalSourceEvidence:{summarySha256:s.hash,verifierSha256:sha(verifierBytes),verifierGitBlob:A72_VERIFIER_BLOB,fullPlayerFileCount:inv.count,exeSha256:inv.exe,assemblyCSharpSha256:inv.dll},
   a44Evidence:{sessionRecordSha256:q.hash,pc1SanitizedLogSha256:session.pc1LogSha,pc2SanitizedLogSha256:session.pc2LogSha},
   pc1,pc2,operatorScopedResult:'TWO_LOCAL_PLAYER_DIRECTORIES_PASS_A72_INTEGRITY_ONLY',
   isTwoPhysicalPCsProven:false,isNetworkSynchronizationProven:false,isSmoothnessProven:false,
@@ -93,5 +99,5 @@ function flags(argv){
  const o={};for(let i=0;i<argv.length;i+=2){need(names[argv[i]]&&argv[i+1]&&!argv[i+1].startsWith('--'),'BAD_ARGUMENT');need(!Object.hasOwn(o,names[argv[i]]),'DUPLICATE_ARGUMENT');o[names[argv[i]]]=argv[i+1];}
  for(const k of Object.values(names))need(o[k],'MISSING_'+k);return o;
 }
-module.exports={run,flags,inventoryCheck,sessionCheck,FROZEN,RC1};
+module.exports={run,flags,inventoryCheck,sessionCheck,FROZEN,RC1,A72_VERIFIER_BLOB,gitBlobSha};
 if(require.main===module){try{const r=run(flags(process.argv.slice(2)));console.log('A44_FROZEN_PLAYER_INTEGRITY_ONLY '+r.frozenCandidate+' '+r.sessionId);}catch(e){console.error('A44_FROZEN_HOLD '+e.message);process.exitCode=2;}}
