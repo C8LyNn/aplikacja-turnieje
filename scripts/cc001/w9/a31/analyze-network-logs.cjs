@@ -59,7 +59,7 @@ function analyze(hostText,clientText) {
   if(h.tx.length<2||c.rx.length<2) blockers.push('NO_PER_SNAPSHOT_TIMING_MARKERS_IN_RC1');
   blockers.push('NO_INDEPENDENT_FINAL_STATE_PARITY');
   return {
-    identity:'CC-001/A31/R17-W9',gate:'INSUFFICIENT_FOR_G3_PASS',
+    identity:'CC-001/A31/R17-W10',gate:'INSUFFICIENT_FOR_G3_PASS',
     note:'RC1 CC_NET_STATE_APPLIED is logged for the FIRST snapshot only. tms is local per-device; never infer one-way network latency by subtracting unsynchronized clocks.',
     host:{peerConnected:h.peerConnected,seatReleased:h.seatReleased,
       acceptedP2:h.accept,rejectedLines:h.reject,txCount:h.tx.length,txIntervals:intervals(h.tx)},
