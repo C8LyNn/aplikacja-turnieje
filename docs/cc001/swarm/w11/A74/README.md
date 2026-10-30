@@ -4,7 +4,7 @@
 
 ## The source-confirmed A44 problem
 
-As of A44 PR #164 SHA `e068171092d9c7e2f4c84f3a2796e8bf3398f23a`, `pack-multiplayer-evidence.cjs` redacts `access_token`, `password`, `secret` etc. but **not bare `token=`**. Its own synthetic host log contains `token=secret123`. A74 independently reproduced the leakage and reported the required A44-owner fix in [PR #164 comment 6529841409](https://github.com/C8LyNn/aplikacja-turnieje/pull/164#issuecomment-6529841409). **This downstream gate is defense in depth; it does NOT remove the need for A44 to fix its producer.**
+As of A44 PR #164 SHA `e068171092d9c7e2f4c84f3a2796e8bf3398f23a`, `pack-multiplayer-evidence.cjs` redacts `access_token`, `password`, `secret` etc. but **not bare `token=`**. Its own synthetic host log contains `token=secret123`. A74 independently reproduced the leakage and reported the required A44-owner fix in [PR #164 comment 6529841409](https://github.com/C8LyNn/aplikacja-turnieje/pull/164#issuecomment-6529841409). **W11 update:** A44 subsequently fixed its own producer on PR #164 at exact `fc52e61ccb34629f6f56b9535da49fb46e199e01`; independently inspected source/test blobs now include bare `token`, `session_token`, `refresh_token`, bearer handling and a saved-output canary assertion. A44 reports 26/26 local synthetic tests; those tests have NOT been independently re-executed by A74. The A74 checker remains useful defense in depth and is NOT a substitute for A60 independent QA or manual review.
 
 ## Run (Node 22; all data stays on the operator's trusted workstation)
 
@@ -23,7 +23,7 @@ Requires exactly the THREE A44 outputs: `evidence-manifest.json`, `PC1_Player.re
 
 The machine-readable stdout includes **only** manifest/log hashes, byte counts, line counts, safe pattern category and line number, never actual matched secret text, raw network addresses, usernames or log lines. Uses deterministic file names to prevent path-traversal injection; rejects symlinks, extras, malformed UTF-8, duplicate peer bytes and size >32MiB per redacted log.
 
-**Synthetic tests actually executed on Node v22.16.0:** `node --check` both source/test **exit 0**, `node --test` **22/22 PASS, exit 0**, including A44 `token=` canary (required exit 3), valid placeholder (exit 0), SHA tampering (exit 2), email/IP/token/URL/user path scanning, path-traversal, symlinks, duplicate payloads, and read-only invariants. The committed source/test Git blobs must match those locally tested before any integration.
+**Synthetic tests actually executed on Node v22.16.0:** `node --check` both source/test **exit 0**, `node --test` **23/23 PASS, exit 0**, including A44 `token=` canary (required exit 3), valid placeholder (exit 0), SHA tampering (exit 2), email/IP/token/Bearer/URL/user path scanning, path-traversal, symlinks, duplicate payloads, and read-only invariants. The committed source/test Git blobs must match those locally tested before any integration.
 
 **NOT_RUN:** actual operator original A44 CLI output; real two-PC logs; native Windows run; Unity, .NET, complete privacy audit, gameplay interpolation, authoritative snapshot validation, or A60 QA.
 
