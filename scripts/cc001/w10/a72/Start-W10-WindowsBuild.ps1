@@ -23,6 +23,13 @@ try {
  if(Test-Path -LiteralPath $root){throw 'Operator output folder already exists'}
  $builder=Join-Path $PSScriptRoot 'build-w10-rc1.cjs'
  if(-not (Test-Path -LiteralPath $builder -PathType Leaf)){throw 'Missing main builder'}
+ $kitVerifier=Join-Path $PSScriptRoot 'verify-kit-source.cjs'
+ if(-not (Test-Path -LiteralPath $kitVerifier -PathType Leaf)){throw 'Missing A72 frozen kit SHA256 verifier'}
+ $kitSelftest=(& $node $kitVerifier --self-test)
+ if($LASTEXITCODE -ne 0){throw ('A72 kit verifier self-test FAILED: '+($kitSelftest|Out-String))}
+ $kitResult=(& $node $kitVerifier --check)
+ if($LASTEXITCODE -ne 0){throw ('A72 kit SHA256 or frozen-source manifest mismatch: '+($kitResult|Out-String))}
+ Write-Host ('OPERATOR KIT BYTE INTEGRITY: '+($kitResult|Out-String)) -ForegroundColor Green
  $test=(& $node $builder --self-test)
  if($LASTEXITCODE -ne 0){throw ('Builder self-test FAILED: '+($test|Out-String))}
  Write-Host ('SELF-TEST: '+($test|Out-String)) -ForegroundColor Green
