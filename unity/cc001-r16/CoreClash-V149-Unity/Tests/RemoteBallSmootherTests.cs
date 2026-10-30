@@ -113,6 +113,32 @@ public static partial class Program
             var old=RemoteSnapshotEvents.InstantBallIds(next,latest,out int same);
             Eq(7,same);False(old.Contains(12));
         });
+        Test("A30 W11 application rejects duplicate, zero and reversed revisions",()=>{
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1));
+            True(RemoteSnapshotEvents.IsFreshRevision(1,2));
+            True(RemoteSnapshotEvents.IsFreshRevision(2,4)); // gaps allowed
+            False(RemoteSnapshotEvents.IsFreshRevision(4,4));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,3));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,0));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,-1));
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1)); // fresh session
+        });
+        Test("A34 W11 4Hz dense snapshot still moves before the next packet",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f);
+            p.Observe(A34Snapshot(1,40,200,100),1.25f);
+            True(p.TryGetPosition(12,1.45f,out var x,out _));
+            Near(189.6f,x,.15f);
+            True(x<200,"dense 4Hz smoothing plateaued 50ms early");
+            True(p.TryGetPosition(12,1.50f,out x,out _));Near(200,x,.01f);
+        });
+        Test("A34 W11 8Hz moving cadence preserves midpoint and canonical endpoint",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f);
+            p.Observe(A34Snapshot(1,25,200,100),1.125f);
+            True(p.TryGetPosition(12,1.1875f,out var x,out _));Near(150,x,.1f);
+            True(p.TryGetPosition(12,1.25f,out x,out _));Near(200,x,.01f);
+        });
         Test("A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f,null,10);

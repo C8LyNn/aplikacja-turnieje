@@ -7,6 +7,9 @@ namespace CoreClash.Presentation
     // W10 A30 integration: only fresh displacement events bypass interpolation.
     public static class RemoteSnapshotEvents
     {
+        // A30 W11: Protocol149 transport revisions are positive and strictly monotonic.
+        public static bool IsFreshRevision(int previous,int incoming)
+            => incoming>0&&incoming>previous;
         public static ISet<int> InstantBallIds(GameState state,int afterEventId,out int latestEventId)
         {
             latestEventId=afterEventId;
@@ -24,7 +27,8 @@ namespace CoreClash.Presentation
     // R17-W9 A34: presentation-only smoothing; the authoritative GameState is never mutated.
     public sealed class RemoteBallSmoother
     {
-        const float MaxGap=0.6f,MaxDuration=0.2f,MaxDistance=220f;
+        // A34 W11: 4-Hz A41 fallback requires a 250ms visual span; no extrapolation.
+        const float MaxGap=0.6f,MaxDuration=0.25f,MaxDistance=220f;
         sealed class Pose
         {
             public float fromX,fromY,toX,toY,start,duration;
