@@ -23,7 +23,9 @@ function recordJson(file) {
 function clean(text, max = 1200) {
   assert(typeof text === 'string' && text.length <= max, 'BAD_TEXT_LENGTH');
   return text
-    .replace(/https?:\/\/[^\s"'<>]+/gi, '[URL_REDACTED]')
+    .replace(/(?:https?|wss?):\/\/[^\s"'<>]+/gi, '[URL_REDACTED]')
+    // Windows UNC hostname, share and optional nested path are private LAN evidence.
+    .replace(/\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\[^\s"'<>]+/gi, '[UNC_REDACTED]')
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]')
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[IP_REDACTED]')
     .replace(/\b(authorization\s*:\s*bearer\s+)([^\s,;]+)/gi, 'Authorization: [REDACTED]')
