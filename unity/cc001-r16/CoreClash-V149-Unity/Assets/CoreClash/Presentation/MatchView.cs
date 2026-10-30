@@ -21,7 +21,7 @@ namespace CoreClash.Presentation
             Draw.Surface(new Rect(0,y,w,stripH),Draw.PanelLight);BallView.Preview(new Rect(12,y+(stripH-orb)/2,orb,orb),d,state.turn,true);
             Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
             if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
-            Draw.Text(new Rect(0,y,w,18),"YOUR DECK  /  NINE SPECIALS",10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
+            Draw.Text(new Rect(0,y,w,18),"PLAYER "+(state.turn+1)+" DECK  /  NINE SPECIALS",10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
             var ids=state.players[state.turn].stock.Select(s=>s.id).ToArray();float cw=(w-16)/3;
             for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
             y+=3*(cardH+8)+4;
@@ -63,8 +63,8 @@ namespace CoreClash.Presentation
             }
             float turnX=hud.x+2*(cellW+4);
             Draw.Surface(new Rect(turnX,hud.y,cellW,44),Draw.PanelLight,Draw.Owner(owner));
-            string phase=state.phase==MatchPhase.Over?(state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS"):
-                state.phase==MatchPhase.Moving?"MOVING":state.bonusPending?"BONUS":"AIM";
+            string phase=LocalTurnPresentation.CompactStatus(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
             Draw.Text(new Rect(turnX+3,hud.y+3,cellW-6,18),state.phase==MatchPhase.Over?"RESULT":"TURN "+state.turnNumber+"/50",13,Draw.Owner(owner),TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(turnX+3,hud.y+22,cellW-6,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
 
@@ -141,8 +141,8 @@ namespace CoreClash.Presentation
         }
         string TurnText()
         {
-            var s=Simulation.State;if(s.phase==MatchPhase.Over)return s.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(s.winner+1)+" WINS";
-            return "TURN "+s.turnNumber+" / 50     PLAYER "+(s.turn+1)+(s.phase==MatchPhase.Moving?"  /  MOVING":s.bonusPending?"  /  BONUS SHOT":"  /  YOUR SHOT");
+            return LocalTurnPresentation.Status(Simulation.State,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
         }
         void Hud(Rect r,bool compact)
         {
@@ -151,7 +151,8 @@ namespace CoreClash.Presentation
                 var cell=new Rect(r.x+owner*(w+gap),r.y,w,r.height);Color team=Draw.Owner(owner);int hp=Simulation.State.players[owner].hp;
                 Draw.Surface(cell,Draw.PanelLight,Simulation.State.turn==owner?Color.Lerp(Draw.Edge,team,.65f):Draw.Edge);
                 bool stacked=!compact&&w<175;
-                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1),compact?10:12,team,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1)+
+                    (NetworkLink!=null&&NetworkLink.LocalOwner==owner?" (YOU)":""),compact?10:12,team,TextAnchor.MiddleLeft,true);
                 if(stacked)Draw.Text(new Rect(cell.x+12,cell.y+25,w-24,25),hp+" / 20",21,Color.white,TextAnchor.MiddleLeft,true);
                 else Draw.Text(new Rect(cell.x+w*.43f,cell.y+5,w*.57f-12,compact?20:30),hp+" / 20",compact?16:w<205?19:24,Color.white,TextAnchor.MiddleRight,true);
                 Draw.Round(new Rect(cell.x+12,cell.yMax-16,w-24,8),new Color(.035f,.06f,.09f));if(hp>0)Draw.Round(new Rect(cell.x+12,cell.yMax-16,(w-24)*Mathf.Clamp01(hp/20f),8),team);
