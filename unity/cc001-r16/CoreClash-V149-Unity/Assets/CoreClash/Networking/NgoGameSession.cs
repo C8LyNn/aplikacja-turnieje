@@ -20,8 +20,9 @@ namespace CoreClash.Networking
         NgoSnapshotAssembler assembler=new NgoSnapshotAssembler();
         readonly LanSeat seat=new LanSeat();
         bool hostRole,pendingIntent,failed,intentionalDisconnect=true,recoveryPending,internetMode;
-        float nextSnapshot,connectDeadline;
+        float nextSnapshot,connectDeadline,lastHostTraceAt=-1f,lastClientTraceAt=-1f;
         int pendingSequence;
+        long skippedSnapshotRevisions;
         string status="Choose Create Game or Join Game",lastError="";
         public bool IsAuthority=>hostRole&&manager!=null&&manager.IsServer;
         public bool IsConnected=>!failed&&manager!=null&&manager.IsListening&&bridge!=null&&bridge.IsSpawned&&(IsAuthority?seat.Connected.HasValue:manager.IsConnectedClient&&ReceivedSnapshots>0);
@@ -98,7 +99,7 @@ namespace CoreClash.Networking
         {
             hostRole=hosting;internetMode=false;seat.Reset();pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
             adapter=new NetworkGameStateAdapter();assembler=new NgoSnapshotAssembler();ReceivedSnapshots=AcceptedRemoteIntents=RejectedRemoteIntents=AcceptedLocalIntents=RejectedLocalIntents=LastAppliedRevision=LastReceivedEvents=0;
-            nextSnapshot=0;lastError="";
+            nextSnapshot=0;lastHostTraceAt=lastClientTraceAt=-1f;skippedSnapshotRevisions=0;lastError="";
         }
         internal void InternetPending(bool hosting)
         {
@@ -192,7 +193,16 @@ namespace CoreClash.Networking
                 if(!assembler.Add(revision,index,count,payload,out var json))return;
                 var packet=JsonUtility.FromJson<SessionSnapshot>(json);
                 if(packet==null||packet.revision!=revision||!adapter.Apply(packet,JsonUtility.FromJson<GameState>,out var reason)){SetStatus("Host state rejected by adapter.");return;}
+                if(LastAppliedRevision>0&&revision>LastAppliedRevision+1)
+                    skippedSnapshotRevisions+=(long)revision-LastAppliedRevision-1;
                 ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State);
+                if(NetworkSnapshotTrace.Due(Time.unscaledTime,lastClientTraceAt)){
+                    lastClientTraceAt=Time.unscaledTime;
+                    Debug.Log("CC_W10_NET_CLIENT revision="+revision+" action="+adapter.State.actionSerial+
+                        " turn="+adapter.State.turn+" phase="+adapter.State.phase+
+                        " balls="+adapter.State.balls.Count+" received="+ReceivedSnapshots+
+                        " skippedRevisions="+skippedSnapshotRevisions);
+                }
                 if(ReceivedSnapshots==1){SetStatus("P2 · authoritative state received · your deck is chosen by host");Debug.Log("CC_NET_STATE_APPLIED revision="+revision+" owner=1");}
             }catch(Exception e){FailConnection("The host sent unusable game state. Try joining again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
@@ -207,10 +217,18 @@ namespace CoreClash.Networking
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
                 var chunks=NgoWireProtocol.Split(packed);
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);
-                // Aimed/idle state refreshes twice per second; moving uses 12/8/4 Hz
-                // based on compressed bytes, instead of the former fixed 5 Hz.
-                // Never move the client simulation: the server stays authoritative.
-                nextSnapshot=Time.unscaledTime+NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);
+                // 20/12/8/4 Hz when moving, chosen by the ACTUAL compressed size;
+                // at rest 4 Hz. Host state is the sole gameplay source of truth.
+                float interval=NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);
+                nextSnapshot=Time.unscaledTime+interval;
+                if(NetworkSnapshotTrace.Due(Time.unscaledTime,lastHostTraceAt)){
+                    lastHostTraceAt=Time.unscaledTime;
+                    var s=app.Simulation.State;
+                    Debug.Log("CC_W10_NET_HOST revision="+packet.revision+" action="+s.actionSerial+
+                        " turn="+s.turn+" phase="+s.phase+" balls="+s.balls.Count+
+                        " packedBytes="+packed.Length+" chunks="+chunks.Length+
+                        " periodMs="+(int)(interval*1000));
+                }
             }catch(Exception e){FailConnection("The game could not send its state. Create a new game and try again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
         void ExpirePendingSeat()
