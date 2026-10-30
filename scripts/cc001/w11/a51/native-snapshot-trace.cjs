@@ -7,6 +7,7 @@
  */
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const {sharedFieldMismatches} = require('../../w12/a51/native-metadata-shared-fields.cjs');
 const TAGS = [
   ['CC_NET_TRACE_TX', 'A31', 'TX', 'PC1', ['rev','serial','tms','turn','phase','bytes','chunks']],
   ['CC_NET_TRACE_RX', 'A31', 'RX', 'PC2', ['rev','serial','tms','turn','phase','chunks']],
@@ -145,10 +146,9 @@ function analyze(pc1,pc2){
       const c=clientMap.get(rev);
       if(!c){unpairedHost++;continue;}
       paired++;
-      for(const key of ['actionSerial','turn','phase','chunks']){
-        if(s[key]!==c[key])flag('SAME_REVISION_FIELD_MISMATCH','ERROR',{revision:rev,field:key,host:s[key],client:c[key]});
-      }
-      if(s.balls!==null&&c.balls!==null&&s.balls!==c.balls)flag('SAME_REVISION_FIELD_MISMATCH','ERROR',{revision:rev,field:'balls',host:s.balls,client:c.balls});
+      // A41 CLIENT_SAMPLE has no chunks field; unobserved is not a mismatch.
+      for(const mismatch of sharedFieldMismatches(s,c))
+        flag('SAME_REVISION_FIELD_MISMATCH','ERROR',{revision:rev,...mismatch});
     }
     for(const rev of clientMap.keys())if(!hostMap.has(rev))unpairedClient++;
   }
