@@ -75,6 +75,26 @@ public static partial class Program
             True(p.TryGetPosition(12,1.105f,out x,out _));Near(110,x);
             True(p.TryGetPosition(12,999,out x,out _));Near(110,x);
         });
+        Test("A34 malformed remote ball entries never corrupt the visual cache",()=>{
+            var p=new RemoteBallSmoother();
+            var state=A34Snapshot(1,10,100,100);
+            state.balls.Insert(0,null);
+            state.balls.Add(new BallRuntime{id=0,x=500,y=500});
+            p.Observe(state,1);
+            Eq(1,p.TrackedCount);
+            state.balls=null;
+            p.Observe(state,1.1f);
+            Eq(0,p.TrackedCount);
+        });
+        Test("A34 duplicate transport ball IDs cannot override first visual track",()=>{
+            var p=new RemoteBallSmoother();
+            var state=A34Snapshot(1,10,100,100);
+            state.balls.Add(new BallRuntime{id=12,x=440,y=440});
+            p.Observe(state,1);
+            Eq(1,p.TrackedCount);
+            True(p.TryGetPosition(12,1.1f,out var x,out var y));
+            Near(100,x);Near(100,y);
+        });
         Test("A34 stale frame and clock rewind cannot interpolate",()=>{
             var p=new RemoteBallSmoother();p.Observe(A34Snapshot(1,100,100,100),1);
             p.Observe(A34Snapshot(1,99,200,100),1.2f);
