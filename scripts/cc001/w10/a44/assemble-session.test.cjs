@@ -27,6 +27,17 @@ test('no build hash gives UNVERIFIED',()=>fixture(o=>{o.info.pc1.exe={status:'NO
 test('mismatched binary hash gives MISMATCHED',()=>fixture(o=>{o.info.pc2.exe.sha256=sha(Buffer.from('OTHER'));fs.writeFileSync(path.join(o.pack,'evidence-manifest.json'),JSON.stringify(o.info));assert.equal(create(o).buildIdentity.pairExeByteIdentity,'MISMATCHED');}));
 test('cannot overwrite existing output',()=>fixture(o=>{create(o);assert.throws(()=>create(o),/OUTPUT_EXISTS/);}));
 test('privacy redaction covers common leaks',()=>{const s=clean('192.168.1.5 user@example.org token=abcdef https://example.org/test');assert(!s.includes('192.168.1.5'));assert(!s.includes('abcdef'));assert(!s.includes('example.org'));});
+test('W11: session notes and issue records never export bearer and session-token canaries',()=>fixture(o=>{
+  o.obs.scenarios[1].note='Network failure Authorization: Bearer SENSITIVE_HEADER session_token=SENSITIVE_SESSION';
+  o.obs.issues[0].actual='Unexpected error refresh_token=SECRET_REFRESH bearer=SECRET_BEARER';
+  fs.writeFileSync(o.observations,JSON.stringify(o.obs));
+  const d=create(o);const output=fs.readFileSync(o.out,'utf8');
+  for(const canary of ['SENSITIVE_HEADER','SENSITIVE_SESSION','SECRET_REFRESH','SECRET_BEARER']){
+    assert.equal(output.includes(canary),false);
+  }
+  assert.match(d.scenarios[1].note,/Authorization: \[REDACTED\]/);
+  assert.match(d.issues[0].actual,/refresh_token=\[REDACTED\]/);
+}));
 test('CLI parser rejects duplicate and invalid flags',()=>{assert.deepEqual(cli(['--pack','p','--observations','o','--out','x']),{packDir:'p',observations:'o',out:'x'});assert.throws(()=>cli(['--pack','p','--pack','q']),/DUPLICATE_FLAG/);assert.throws(()=>cli(['--wat','a']),/INVALID_FLAG/);});
 test('missing scenarios rejected',()=>fixture(o=>{o.obs.scenarios=[];fs.writeFileSync(o.observations,JSON.stringify(o.obs));assert.throws(()=>create(o),/SCENARIOS_REQUIRED/);}));
 
