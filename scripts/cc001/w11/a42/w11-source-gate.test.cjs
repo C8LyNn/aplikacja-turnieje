@@ -8,13 +8,13 @@ function sources(){
  return {
   network:'public class NetworkSnapshotRate { const float MovingSeconds=.05f; if(compressedBytes>=8*1024){} if(compressedBytes>=16*1024){} if(compressedBytes>=64*1024){} } class NetworkIntentReceipt {}',
   ngo:'NetworkIntentReceipt.MatchesPending(pendingIntent,pendingSequence,sequence);NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);adapter.Apply(packet,parse,out reason);app.ReceiveNetworkState(adapter.State,revision);',
-  smoother:'class RemoteSnapshotEvents {} class RemoteBallSmoother { int lastSnapshotRevision=-1; void Reset(){lastSnapshotRevision=-1;} void Observe(GameState state,float now,ISet<int> instantBallIds=null,int snapshotRevision=-1){if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return;lastSnapshotRevision=snapshotRevision;} bool TryGetPosition(int id){} }',
-  app:'void ReceiveNetworkState(GameState state,int snapshotRevision=-1){remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);Simulation.State=state; RemoteSnapshotEvents.InstantBallIds(state);remoteBallSmoother.Reset();}',
+  smoother:'class RemoteSnapshotEvents {} class RemoteBallSmoother { const float MaxDuration=0.25f; int lastSnapshotRevision=-1; void Reset(){lastSnapshotRevision=-1;} void Observe(GameState state,float now,ISet<int> instantBallIds=null,int snapshotRevision=-1){if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return;lastSnapshotRevision=snapshotRevision;} bool TryGetPosition(int id){} }',
+  app:'remoteLastEventId=remoteLastRevision=0; void ReceiveNetworkState(GameState state,int snapshotRevision=-1){if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;remoteLastRevision=snapshotRevision; remoteLastEventId=latestEventId; remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);Simulation.State=state; RemoteSnapshotEvents.InstantBallIds(state);remoteBallSmoother.Reset();}',
   board:'remoteVisual.TryGetPosition(ball.id);BallView.Render(foo); AimStroke(x,y); viewOwner=localOwner==1?1:0;',
   match:'LocalTurnPresentation.ActionHint(state); LocalDeckContent.DisplayOwner(turn,localOwner);',
   selection:'public class LocalTurnPresentation{}',
   ball:'BallView',
-  revisionTests:'A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose; A70 W11 new session reset allows low snapshot revision again',
+  revisionTests:'A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose; A70 W11 new session reset allows low snapshot revision again; A30 W11 application rejects duplicate, zero and reversed revisions',
   authorityTests:'W10 A40 P2 authoritative snapshot preserves moving ball owner position and action; W10 A40 P2 ready Phoenix hand is consumed exactly once by authoritative remote intent',
   testsProgram:'RemoteBallSmootherTests();'
  };
@@ -74,3 +74,13 @@ test('missing revision regression test blocks',()=>{let s=sources();s.revisionTe
 test('owner V148 Mitosis source cannot be edited in W11 networking candidate',()=>expected('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE',valid({changes:[...valid().changes,{path:UNITY+'Assets/CoreClash/Core/AbilitySystem.cs',status:'M'}]})));
 test('owner Furnace FIRE zone/tick implementation cannot be edited in W11 networking candidate',()=>expected('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE',valid({changes:[...valid().changes,{path:UNITY+'Assets/CoreClash/Core/AbilityRuntime.cs',status:'M'}]})));
 test('owner R16 HP catalog cannot be changed by W11 source candidate',()=>expected('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE',valid({changes:[...valid().changes,{path:UNITY+'Assets/CoreClash/Data/BallCatalog.cs',status:'M'}]})));
+test('A70 stale revision cannot overwrite authoritative applied client state',()=>{let s=sources();s.app=s.app.replace('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;','');expected('REVISION_GUARD/applicationGuard',valid({sources:s}));});
+test('A70 source rejects app guard placed after State write',()=>{let s=sources();s.app=s.app.replace('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;remoteLastRevision=snapshotRevision; remoteLastEventId=latestEventId; remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);Simulation.State=state;',
+ 'Simulation.State=state; if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;remoteLastRevision=snapshotRevision; remoteLastEventId=latestEventId; remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);');
+ expected('REVISION_GUARD/BEFORE_STATE_AND_EVENT_CURSOR',valid({sources:s}));});
+test('A70 source rejects cursor advance before stale revision guard',()=>{let s=sources();s.app=s.app.replace('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;remoteLastRevision=snapshotRevision; remoteLastEventId=latestEventId;',
+ 'remoteLastEventId=latestEventId; if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;remoteLastRevision=snapshotRevision;');
+ expected('REVISION_GUARD/BEFORE_STATE_AND_EVENT_CURSOR',valid({sources:s}));});
+test('200ms visual smoothing plateau at 4Hz is rejected',()=>{let s=sources();s.smoother=s.smoother.replace('MaxDuration=0.25f','MaxDuration=0.2f');expected('REVISION_GUARD/4HzDuration',valid({sources:s}));});
+test('missing application cursor reset on new session is rejected',()=>{let s=sources();s.app=s.app.replace('remoteLastEventId=remoteLastRevision=0;','');expected('REVISION_GUARD/sessionCursorReset',valid({sources:s}));});
+test('missing A30 stale state regression test is rejected',()=>{let s=sources();s.revisionTests=s.revisionTests.replace('A30 W11 application rejects duplicate, zero and reversed revisions','old test');expected('REVISION_GUARD/clientGuardRegressionTest',valid({sources:s}));});
