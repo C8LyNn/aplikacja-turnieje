@@ -25,6 +25,7 @@ namespace CoreClash.Presentation
         NetworkGameSession session;
         FeedbackTimeline feedback=new FeedbackTimeline();
         readonly RemoteBallSmoother remoteBallSmoother=new RemoteBallSmoother();
+        readonly RemoteVisualPacingTelemetry remoteVisualPacing=new RemoteVisualPacingTelemetry();
         bool receivedRemoteState;
         readonly LaunchGesture gesture=new LaunchGesture();
         readonly DeckDefinition[] chosen=new DeckDefinition[2];
@@ -75,6 +76,11 @@ namespace CoreClash.Presentation
             if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
             if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)ReturnToSetup();}
             if(setup)return;
+            // P2 only, once per frame; five-second bounded summary, no state mutation.
+            if(NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected&&
+                remoteVisualPacing.SampleFrame(Time.unscaledTime,Time.unscaledDeltaTime,
+                    Simulation.State.phase==MatchPhase.Moving,out var pacingEvidence))
+                Debug.Log(pacingEvidence);
             if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
@@ -110,7 +116,7 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallSmoother.Reset();remoteVisualPacing.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -125,7 +131,7 @@ namespace CoreClash.Presentation
         }
         public void SetDeveloperOverlay(bool value){DeveloperOverlay=value;gesture.Active=false;Debug.Log("CORE_CLASH_DEVELOPER_OVERLAY "+value);}
         public void SetExternalModal(bool value){externalModal=value;if(value)gesture.Active=false;}
-        public void ReturnToSetup(){remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
+        public void ReturnToSetup(){remoteBallSmoother.Reset();remoteVisualPacing.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {
@@ -137,6 +143,9 @@ namespace CoreClash.Presentation
                 var instantBallIds=RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,out var latestEventId);
                 remoteLastEventId=latestEventId;
                 remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
+                if(state.phase==MatchPhase.Moving)
+                    remoteVisualPacing.AcceptSnapshot(Time.unscaledTime,remoteBallSmoother.LastBlendSeconds);
+                else remoteVisualPacing.EndMoving();
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }
