@@ -48,3 +48,17 @@ Return **0** for enough well-formed W13 submitted-byte samples, status `OBSERVED
 **Status:** IMPLEMENTED=YES (source+5 C# tests+native analyzer/19 tests); TESTED=NATIVE_NODE19/19 + GITHUB_STATIC18/18; C#_UNITY_PC1_PC2=NOT_RUN; INTEGRATED=NO; RELEASED=NO; W13=ALT_HOLD; W11_G3/G4=HOLD; RC1/main/protected untouched.
 
 *New PR and final exact SHA to be recorded in HQ immediately after this report commit.*
+
+## 4. W13 marker hardening and real native regression run (2026-10-30)
+
+Follow-up **A41-owned** hardening of the *same* Draft PR #241, not a duplicate feature/branch: the original analyzer looked for `CC_W10_NET_HOST` anywhere in a log line and sliced the marker substring. Thus `prefixCC_W10_NET_HOST` and `CC_W10_NET_HOST_SUFFIX` could be mistaken for the genuine host marker. This was a **synthetic source-level evidence parsing defect**, not a demonstrated Windows multiplayer failure. A strict whitespace/token-boundary match now gates both discovery and direct parsing; 3 new native Node regressions cover suffix, prefix and direct parser rejection while preserving a genuine Unity host row.
+
+**Actual execution on exact committed file bytes (local Linux, Node v22.16.0):**
+- `node --check` source and test: **both exit 0**.
+- `node --test scripts/cc001/w13/a41/analyze-host-traffic.test.cjs`: **22/22 PASS, 0 FAIL, exit 0**, including spawned real CLI child-process outcomes.
+- Executed source Git blob **`f6cb371bf80dae3ff02e3f99599c5585d8c450a5`**, raw SHA256 **`23517ad6f30ae07d64bd72794e25bf07f7d780911014a4c2f8f803c240c0a836`**.
+- Executed test Git blob **`dbd6591da39831a63cdb2f150a9cf52de5e0e2c5`**, raw SHA256 **`4fc796f9f6a3cfe4616bbb2aacb1605fa7a18ea023a42b8c9a7527b5e6d4b7bc`**.
+- Local stdout TAP transcript SHA256 **`275a57fe514fc03951ac329b4a84f922b01ed9d4eae286b1c4cd9e8f04dd59a9`** (non-deterministic duration metadata means this is a provenance fingerprint of this execution, not a reproducible expected artifact).
+- 8/8 *additional* source-behavior V8 assertions passed before the commit; **native 22/22 supersedes earlier 19/19** for unchanged+new analyzer logic.
+
+**No change** to C# network transport, actual Unity or .NET9 test status, owner-approved Mitosis V148/Furnace FIRE-only DoT/R16 HP, W11 freeze, A70 source, main/release. **W11 G3/G4 HOLD**, **W13 ALT_HOLD**; independent A72 Windows build and A60/A31 real dual-PC QA remain required. Marker hardening improves diagnostic correctness, not packet delivery or game smoothness.
