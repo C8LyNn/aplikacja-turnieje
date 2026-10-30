@@ -259,5 +259,28 @@ public static partial class Program
             False(NetworkSnapshotTrace.Due(1f,float.NaN));
             False(NetworkSnapshotTrace.Due(1f,float.PositiveInfinity));
         });
+        Test("R17 W11 state digest uses standard SHA256 UTF8 byte vector",()=>{
+            Eq("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+               NetworkStateDigest.Compute("abc"));
+            Eq<string>(null,NetworkStateDigest.Compute(null));
+            Eq<string>(null,NetworkStateDigest.Compute(""));
+        });
+        Test("R17 W11 state digest is deterministic and detects modified serialized state",()=>{
+            const string state="{\"turn\":1,\"balls\":[1,2,3]}";
+            string original=NetworkStateDigest.Compute(state);
+            Eq(original,NetworkStateDigest.Compute(state));
+            False(original==NetworkStateDigest.Compute("{\"turn\":0,\"balls\":[1,2,3]}"));
+            Eq(64,original.Length);
+        });
+        Test("R17 W11 state digest revision sampler is shared between TX and RX",()=>{
+            False(NetworkStateDigest.ShouldSample(-16));
+            False(NetworkStateDigest.ShouldSample(0));
+            True(NetworkStateDigest.ShouldSample(1));
+            False(NetworkStateDigest.ShouldSample(2));
+            False(NetworkStateDigest.ShouldSample(15));
+            True(NetworkStateDigest.ShouldSample(16));
+            False(NetworkStateDigest.ShouldSample(17));
+            True(NetworkStateDigest.ShouldSample(32));
+        });
     }
 }
