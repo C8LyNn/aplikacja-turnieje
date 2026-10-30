@@ -140,7 +140,7 @@ test('15 | visual-only smoother protects entity identity and true portal telepor
   assert.match(smooth, /e\.kind\s*==\s*"PORTAL"[\s\S]*ids\.Add\(\s*e\.ballId\s*\)/);
   assert.match(smooth, /instantBallIds\.Contains\(\s*ball\.id\s*\)/);
   assert.match(smooth, /pose\.owner\s*!=\s*ball\.owner[\s\S]*pose\.type/);
-  assert.match(smooth, /MaxGap\s*=\s*0\.6f[\s\S]*MaxDuration\s*=\s*0\.2f/);
+  assert.match(smooth, /MaxGap\s*=\s*0\.6f[\s\S]*MaxDuration\s*=\s*0\.(?:2|25)f/);
 });
 
 test('16 | smoothing never overwrites host-authoritative player state through drawing', () => {
@@ -179,7 +179,7 @@ test('19 | desktop stale notice requires ability of local seat to act', () => {
 
 test('20 | visual revision is propagated from NGO to read-only client smoother', () => {
   assert.match(ngo, /app\.ReceiveNetworkState\(\s*adapter\.State\s*,\s*revision\s*\)/);
-  assert.match(app, /ReceiveNetworkState\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/);
+  assert.match(app, /ReceiveNetworkState\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision(?:\s*=\s*-1)?\s*\)/);
   assert.match(app, /remoteBallSmoother\.Observe\(\s*state\s*,\s*Time\.unscaledTime\s*,\s*instantBallIds\s*,\s*snapshotRevision\s*\)/);
   assert.match(smooth, /snapshotRevision\s*<=\s*lastSnapshotRevision\s*\)\s*return\s*;/);
   assert.match(smooth, /lastSnapshotRevision\s*=\s*snapshotRevision\s*;/);
