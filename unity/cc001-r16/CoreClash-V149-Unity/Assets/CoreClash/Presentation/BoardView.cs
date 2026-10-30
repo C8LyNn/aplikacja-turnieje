@@ -16,7 +16,7 @@ namespace CoreClash.Presentation
         static Vector2 Point(Rect board, float x, float y) => new Vector2(board.x + x * board.width / 540, board.y + y * board.width / 540);
         static Rect Box(Rect board, float x, float y, float width, float height) => new Rect(board.x + x * board.width / 540, board.y + y * board.width / 540, width * board.width / 540, height * board.width / 540);
 
-        public static void Render(Rect rect, GameSimulation simulation, LaunchGesture aim, BallDefinition selected = null,FeedbackTimeline feedback=null)
+        public static void Render(Rect rect, GameSimulation simulation, LaunchGesture aim, BallDefinition selected = null,FeedbackTimeline feedback=null,RemoteBallSmoother remoteVisual=null)
         {
             var state = simulation.State;
             GUI.BeginGroup(rect);
@@ -34,9 +34,11 @@ namespace CoreClash.Presentation
             foreach (var ball in state.balls)
                 if (!ball.dead && !ball.banished)
                 {
-                    if(ball.mineArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
-                    if(ball.timeBombArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
-                    BallView.Render(clippedBoard, ball, simulation.Catalog.Ball(ball.type), state.phase == MatchPhase.Aiming && simulation.CanReplay(ball));
+                    float renderX=ball.x,renderY=ball.y;
+                    if(remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
+                    if(ball.mineArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
+                    if(ball.timeBombArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
+                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),state.phase==MatchPhase.Aiming&&simulation.CanReplay(ball),renderX,renderY);
                 }
             RenderEvents(clippedBoard,feedback);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected);
