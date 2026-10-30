@@ -104,5 +104,72 @@ public static partial class Program
             Eq(320f,emptyWidth);
             Eq(0f,LocalDeckContent.ClampTrayScroll(450f,emptyWidth,320f));
         });
+
+        Test("A32 W12 P2 waiting retains ready Phoenix hand as deck content, not input",()=>{
+            var s=A32ReadyPhoenixDeck();
+            Eq(0,s.State.turn);
+            Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+            Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            True(LocalDeckContent.VisibleAsAvailable(s,1,"phoenix"));
+            Eq("HAND READY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+        });
+        Test("A32 W12 Phoenix hand becomes selectable only with authoritative owner turn",()=>{
+            var s=A32ReadyPhoenixDeck();
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            s.State.turn=1;
+            Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq(BallSelectionSource.Hand,BallSelection.Source(s,1,"phoenix"));
+            True(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",false));
+        });
+        Test("A32 W12 stale, unready or opponent-owned Phoenix hand never appears",()=>{
+            var s=A32ReadyPhoenixDeck();
+            var hand=s.State.phoenixHand[0];
+            hand.ready=false;Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            hand.ready=true;hand.createdOwnerTurns=s.State.players[1].ownerTurns;
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            hand.createdOwnerTurns=1;hand.lastProcessedOwnerTurns=1;
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            hand.lastProcessedOwnerTurns=3;hand.owner=0;
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq("EMPTY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+        });
+        Test("A32 W12 P2 ordinary Phoenix stock is displayed before hand on P1 turn",()=>{
+            var s=A32ReadyPhoenixDeck();
+            s.State.players[1].stock.First(x=>x.id=="phoenix").remaining=2;
+            Eq(BallSelectionSource.Stock,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq("x2",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,-1,"phoenix"));
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,3,"phoenix"));
+        });
+        Test("A32 W12 deck-display Phoenix queries cannot alter authoritative state or hand",()=>{
+            var s=A32ReadyPhoenixDeck();
+            int revision=s.State.revision,serial=s.State.actionSerial,turn=s.State.turn;
+            int count=s.State.phoenixHand.Count,stock=s.State.players[1].stock.Last().remaining;
+            var hand=s.State.phoenixHand[0];
+            int handOwner=hand.owner,handTurn=hand.lastProcessedOwnerTurns;
+            for(int i=0;i<4;i++){
+                Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+                True(LocalDeckContent.VisibleAsAvailable(s,1,"phoenix"));
+                Eq("HAND READY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            }
+            Eq(revision,s.State.revision);Eq(serial,s.State.actionSerial);Eq(turn,s.State.turn);
+            Eq(count,s.State.phoenixHand.Count);Eq(stock,s.State.players[1].stock.Last().remaining);
+            Eq(handOwner,hand.owner);Eq(handTurn,hand.lastProcessedOwnerTurns);
+        });
     }
+    static GameSimulation A32ReadyPhoenixDeck()
+    {
+        var s=Sim(); // Existing nine-special test deck; local read-only Phoenix is an extra fixture entry.
+        s.State.players[1].stock.Add(new StockEntry{id="phoenix",remaining=0});
+        s.State.players[1].ownerTurns=3;
+        s.State.phoenixHand.Add(new PhoenixHandEntry{
+            owner=1,ready=true,createdOwnerTurns=2,lastProcessedOwnerTurns=3,
+            hp=10,maxHp=25
+        });
+        return s;
+    }
+
 }
