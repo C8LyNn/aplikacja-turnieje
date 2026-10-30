@@ -5,6 +5,7 @@ const path = require('node:path');
 const cp = require('node:child_process');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
+const { archiveAndRemoveStaleResult, validateNewResult } = require('./fresh-test-evidence.cjs');
 
 const FROZEN = '3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const REF = 'refs/heads/integration/cc001-r17-w11-qa-freeze-20261030';
@@ -90,6 +91,9 @@ function execute(args) {
     const ancestor = command('git',['-C',o.repo,'merge-base','--is-ancestor',RC1,current],o.repo).code === 0;
     const changed = git(o.repo,['diff','--name-only',RC1,current,'--',...PROTECTED]);
     checkIdentity(current,remote,ancestor,changed);
+    // Reject poisoned checkout bytes; the immutable Git commit alone is insufficient.
+    if (git(o.repo,['status','--porcelain=v1','--untracked-files=all']))
+      throw Error('DIRTY_FROZEN_SOURCE_CHECKOUT');
     const projectRoot=path.join(o.repo,PROJECT);
     const csproj=path.join(projectRoot,'Tests','CoreClash.Tests.csproj');
     const runner=path.join(projectRoot,'Tests','Program.cs');
@@ -102,22 +106,23 @@ function execute(args) {
     const build=command('dotnet',['build',csproj,'-c','Release','--nologo'],o.repo,path.join(o.out,'managed-build.log'));
     summary.buildExit=build.code;
     if(build.code!==0) throw Error('MANAGED_BUILD_FAILED');
-    const run=command('dotnet',['run','--no-build','-c','Release','--project',csproj,'--',projectRoot],o.repo,path.join(o.out,'managed-tests.log'));
-    summary.runExit=run.code;
+    // Frozen source tracks R16 Evidence/unity-tests.json (historical 180/0 PASS).
+    // Archive and remove it BEFORE execution; never accept it as current test proof.
     const evidencePath=path.join(projectRoot,'Evidence','unity-tests.json');
-    if(fs.existsSync(evidencePath)){
-      const raw=fs.readFileSync(evidencePath);
-      fs.writeFileSync(path.join(o.out,'unity-tests.json'),raw);
-      summary.evidence.testJsonSHA256=hash(raw);
-      const parsed=JSON.parse(raw.toString('utf8'));
-      summary.testsPassed=parsed.passed;
-      summary.testsFailed=parsed.failed;
-    }
-    if(run.code!==0 || !Number.isSafeInteger(summary.testsPassed) || summary.testsPassed<1 || summary.testsFailed!==0)
-      throw Error('MANAGED_TESTS_NOT_GREEN');
+    summary.evidence.staleResult=archiveAndRemoveStaleResult(evidencePath,o.out);
+    const start=Date.now();
+    const run=command('dotnet',['run','--no-build','-c','Release','--project',csproj,'--',projectRoot],o.repo,path.join(o.out,'managed-tests.log'));
+    const finish=Date.now();
+    summary.runExit=run.code;
+    if(run.code!==0) throw Error('MANAGED_TEST_PROCESS_FAILED');
+    const fresh=validateNewResult(evidencePath,start,finish);
+    fs.writeFileSync(path.join(o.out,'unity-tests.json'),fresh.body,{flag:'wx'});
+    summary.evidence.testJsonSHA256=fresh.sha256;
+    summary.testsPassed=fresh.parsed.passed;
+    summary.testsFailed=fresh.parsed.failed;
     summary.status='PASS_MANAGED_ONLY';
   } catch(e) {error=e.message;summary.blocker=error;}
-  for (const name of ['dotnet-version.log','managed-build.log','managed-tests.log','unity-tests.json']) {
+  for (const name of ['dotnet-version.log','managed-build.log','managed-tests.log','unity-tests.json','preexisting-unity-tests.json']) {
     const file=path.join(o.out,name);
     if(fs.existsSync(file)) summary.evidence[name]={bytes:fs.statSync(file).size,sha256:hash(fs.readFileSync(file))};
   }
