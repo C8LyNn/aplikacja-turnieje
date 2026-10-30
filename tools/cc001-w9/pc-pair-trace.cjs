@@ -13,7 +13,7 @@ function finiteInt(n) { return Number.isSafeInteger(n) && n >= 0; }
 function parseLog(input, side) {
   const events = [], legacy = { host_ready:0, peer_connected:0, accepted_local:0,
     accepted_p2:0, rejected:0, first_snapshot_applied:0, snapshot_error:0, connection_failed:0 };
-  let malformed = 0, ignored = 0;
+  let malformed = 0, ignored = 0, wrongSide = 0;
   const a31Snapshots = [];
   const acceptedP2 = [];
   const w10Samples = [];
@@ -36,6 +36,7 @@ function parseLog(input, side) {
     // Never assume these markers exist in the pinned RC1 Windows Player build.
     const native = /CC_NET_TRACE_(TX|RX)\s+/.exec(line);
     if (native) {
+      if ((side==='host'&&native[1]!=='TX')||(side==='client'&&native[1]!=='RX')){wrongSide++;continue;}
       const tail=line.slice(native.index+native[0].length);
       const get=k=>{const m=new RegExp('(?:^|\\s)'+k+'=(-?\\d+)(?=\\s|$)').exec(tail);return m?Number(m[1]):null;};
       const revision=get('rev'),actionSerial=get('serial'),monotonicMs=get('tms'),turn=get('turn');
@@ -47,6 +48,7 @@ function parseLog(input, side) {
     // Strict named tokens avoid interpreting quoted or similarly-prefixed messages.
     const w10 = /(?:^|\s)CC_W10_NET_(HOST|CLIENT)\s+/.exec(line);
     if (w10) {
+      if ((side==='host'&&w10[1]!=='HOST')||(side==='client'&&w10[1]!=='CLIENT')){wrongSide++;continue;}
       const tail=line.slice(w10.index+w10[0].length);
       const fields=Object.create(null); let valid=true;
       for (const token of tail.trim().split(/\s+/)) {
@@ -78,6 +80,8 @@ function parseLog(input, side) {
     try {
       const e = JSON.parse(line.slice(i + PREFIX.length));
       if (!e || Array.isArray(e) || typeof e !== 'object' || !TYPES.has(e.type)) { ignored++; continue; }
+      if ((side==='host'&&e.type==='snapshot_applied')||(side==='client'&&e.type==='snapshot_sent')||
+          (side==='client'&&e.type==='intent_accepted')){wrongSide++;continue;}
       if (e.revision !== undefined && !finiteInt(e.revision)) { malformed++; continue; }
       if (e.actionSerial !== undefined && !finiteInt(e.actionSerial)) { malformed++; continue; }
       if (e.monotonicMs !== undefined && (!Number.isFinite(e.monotonicMs) || e.monotonicMs < 0)) { malformed++; continue; }
@@ -92,7 +96,7 @@ function parseLog(input, side) {
       events.push({ ...e, side });
     } catch (_) { malformed++; }
   }
-  return { events, legacy, malformed, ignored, a31Snapshots, acceptedP2, w10Samples };
+  return { events, legacy, malformed, ignored, wrongSide, a31Snapshots, acceptedP2, w10Samples };
 }
 
 function summarize(hostText, clientText, opts = {}) {
@@ -128,6 +132,8 @@ function summarize(hostText, clientText, opts = {}) {
   }
   const multipleSessions=host.legacy.host_ready>1 || host.legacy.peer_connected>1 || client.legacy.first_snapshot_applied>1;
   // In a multi-session logfile, revision reset is expected; never join the sessions.
+  // An existing W8/RC1 log can append multiple matches. Even a matching revision
+  // is ambiguous in that case, so ALL cross-PC comparators must be gated.
   const hostOpRegressions=multipleSessions?null:regressionsInSamples(hostOps,'revision');
   const clientOpRegressions=multipleSessions?null:regressionsInSamples(clientOps,'revision');
   const clientSkippedRegressions=multipleSessions?null:regressionsInSamples(clientOps,'skippedRevisions');
@@ -147,8 +153,9 @@ function summarize(hostText, clientText, opts = {}) {
         client:{action:rx.action,turn:rx.turn,phase:rx.phase,balls:rx.balls}});
   }
   if(w10Mismatches.length)anomalies.push({code:'W10_SAMPLED_AUTHORITATIVE_CONTENT_MISMATCH',count:w10Mismatches.length});
-  const hostSends = chooseSnapshots(host,'snapshot_sent');
-  const clientApplies = chooseSnapshots(client,'snapshot_applied');
+  const rawHostSends=chooseSnapshots(host,'snapshot_sent'),rawClientApplies=chooseSnapshots(client,'snapshot_applied');
+  const hostSends=multipleSessions?[]:rawHostSends;
+  const clientApplies=multipleSessions?[]:rawClientApplies;
   const regressions = []; let last = -1;
   for (const e of clientApplies) { if (e.revision <= last) regressions.push(e.revision); last = e.revision; }
   if (regressions.length) anomalies.push({ code:'CLIENT_REVISION_NONMONOTONIC', count:regressions.length });
@@ -171,7 +178,7 @@ function summarize(hostText, clientText, opts = {}) {
   const sentRevs = new Set(hostSends.map(e => e.revision));
   const appliedRevs = new Set(clientApplies.map(e => e.revision));
   const turnMismatches = [];
-  for (const e of by(all, 'turn_state')) {
+  for (const e of multipleSessions?[]:by(all, 'turn_state')) {
     if (e.side === 'host' && e.localOwner !== 0 || e.side === 'client' && e.localOwner !== 1) {
       turnMismatches.push({ side:e.side, revision:e.revision, code:'LOCAL_OWNER_MISMATCH' }); continue;
     }
@@ -182,11 +189,11 @@ function summarize(hostText, clientText, opts = {}) {
   // Only same authoritative revision/serial may be compared. Different revisions are unknown, not desync.
   // The local owner is intentionally NOT part of the canonical turn key: host=0, client=1.
   const hostTurns=new Map();
-  for (const e of by(host.events,'turn_state')) {
+  for (const e of multipleSessions?[]:by(host.events,'turn_state')) {
     if (finiteInt(e.actionSerial)) hostTurns.set(`${e.revision}:${e.actionSerial}`,e);
   }
   let alignedTurns=0, turnContradictions=0;
-  for (const e of by(client.events,'turn_state')) {
+  for (const e of multipleSessions?[]:by(client.events,'turn_state')) {
     const h=finiteInt(e.actionSerial)?hostTurns.get(`${e.revision}:${e.actionSerial}`):null;
     if (!h) continue;
     alignedTurns++;
@@ -196,10 +203,10 @@ function summarize(hostText, clientText, opts = {}) {
   // Render-layer poses can differ legitimately across PCs at the same snapshot revision:
   // remote smoothing and frame sampling use independent clocks. Never compare them as authoritative state.
   const hostBalls = new Map();
-  for (const e of by(host.events, 'ball_state').filter(e=>e.layer==='simulation'))
+  for (const e of (multipleSessions?[]:by(host.events, 'ball_state')).filter(e=>e.layer==='simulation'))
     hostBalls.set(`${e.revision}:${e.actionSerial}:${e.ballId}`,e);
   const drift = []; let paired = 0;
-  for (const e of by(client.events, 'ball_state').filter(e=>e.layer==='simulation')) {
+  for (const e of (multipleSessions?[]:by(client.events, 'ball_state')).filter(e=>e.layer==='simulation')) {
     const h = hostBalls.get(`${e.revision}:${e.actionSerial}:${e.ballId}`);
     if (!h) continue;
     const distance = Math.hypot(e.x-h.x,e.y-h.y);
@@ -225,18 +232,18 @@ function summarize(hostText, clientText, opts = {}) {
   if(snapshotDifferences.length)anomalies.push({code:'SNAPSHOT_AUTHORITY_MISMATCH',count:snapshotDifferences.length});
   const hostP2 = by(host.events, 'intent_accepted').filter(e=>e.owner===1);
   const p2AcceptCount = Math.max(hostP2.length,host.legacy.accepted_p2);
-  const hostP2Sequences=hostP2.map(e=>e.sequence);
+  const hostP2Sequences=multipleSessions?[]:hostP2.map(e=>e.sequence);
   const duplicateP2Sequences=hostP2Sequences.length-new Set(hostP2Sequences).size;
   // Repeated ACK lines or resets after reconnect are NOT proof that the game applied twice.
   // Report only an evidence anomaly; do not infer exactly-once from uncorrelated log counters.
   if (duplicateP2Sequences) anomalies.push({code:'DUPLICATE_P2_ACCEPT_TRACE_SEQUENCE',count:duplicateP2Sequences});
   const acceptedSequenceErrors=[];
-  for(let i=1;i<host.acceptedP2.length;i++){
+  for(let i=multipleSessions?host.acceptedP2.length:1;i<host.acceptedP2.length;i++){
     const a=host.acceptedP2[i-1],b=host.acceptedP2[i];
     if(b.sequence<=a.sequence||b.actionSerial<=a.actionSerial)acceptedSequenceErrors.push(i);
   }
   if(acceptedSequenceErrors.length)anomalies.push({code:'P2_ACCEPT_SEQUENCE_OR_ACTION_NONMONOTONIC',count:acceptedSequenceErrors.length});
-  const lastAcceptedAction=host.acceptedP2.at(-1)?.actionSerial??null;
+  const lastAcceptedAction=multipleSessions?null:(host.acceptedP2.at(-1)?.actionSerial??null);
   const p2ActionObserved=lastAcceptedAction===null?null:clientApplies.some(e=>finiteInt(e.actionSerial)&&e.actionSerial>=lastAcceptedAction&&
     hostByRev.has(e.revision)&&hostByRev.get(e.revision).actionSerial===e.actionSerial&&hostByRev.get(e.revision).turn===e.turn);
   const gaps = [];
@@ -247,6 +254,7 @@ function summarize(hostText, clientText, opts = {}) {
   }
   const missing = [];
   if(multipleSessions)missing.push('multiple_sessions_require_separate_input_files');
+  if(host.wrongSide||client.wrongSide)missing.push('wrong_side_telemetry_markers');
   if (hostSends.length<2 || clientApplies.length<2 || [...appliedRevs].filter(x=>sentRevs.has(x)).length<2) missing.push('continuous_snapshot_trace');
   if (!by(host.events,'turn_state').length || !by(client.events,'turn_state').length) missing.push('authoritative_turn_and_local_banner_both_peers');
   if (!paired) missing.push('revision_aligned_simulation_ball_samples');
@@ -271,8 +279,8 @@ function summarize(hostText, clientText, opts = {}) {
   return {
     schema:'CC001_R17_W11_A43_DIAGNOSTIC_REPORT_003',
     verdict:anomalies.length?'OBSERVED_CONTRADICTION':missing.length?'INSUFFICIENT_EVIDENCE':'OBSERVATIONS_AVAILABLE_NOT_QA_PASS',
-    host:{ legacy:host.legacy, trace_events:host.events.length, native_trace_events:host.a31Snapshots.length, malformed:host.malformed, ignored:host.ignored, snapshot_sent:hostSends.length },
-    client:{ legacy:client.legacy, trace_events:client.events.length, native_trace_events:client.a31Snapshots.length, malformed:client.malformed, ignored:client.ignored, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
+    host:{ legacy:host.legacy, trace_events:host.events.length, native_trace_events:host.a31Snapshots.length, malformed:host.malformed, ignored:host.ignored, wrong_side:host.wrongSide, snapshot_sent:hostSends.length },
+    client:{ legacy:client.legacy, trace_events:client.events.length, native_trace_events:client.a31Snapshots.length, malformed:client.malformed, ignored:client.ignored, wrong_side:client.wrongSide, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
     w10_operational_samples:{
       host_count:hostOps.length,client_count:clientOps.length,
       same_revision_pairs:w10Aligned,content_mismatches:w10Mismatches,
@@ -282,6 +290,7 @@ function summarize(hostText, clientText, opts = {}) {
       host_revision_regressions:hostOpRegressions,client_revision_regressions:clientOpRegressions,
       client_skipped_counter_regressions:clientSkippedRegressions,
       multiple_sessions_detected:multipleSessions,
+      cross_session_snapshot_samples_withheld:multipleSessions?rawHostSends.length+rawClientApplies.length:0,
       note:'W10 rate-limited ~1Hz operational observations; NOT a per-packet stream, packet-loss proof, measured network latency, client FPS or physical QA.'
     },
     p2_intent_host_accepted_count:p2AcceptCount,
@@ -297,6 +306,8 @@ function summarize(hostText, clientText, opts = {}) {
     distance_threshold_world_units:threshold,
     anomalies,missing_observations:missing,
     caveats:['No real two-PC verification is implied by parsing logs.',
+      'RC1/W11 multi-session logs are not correlated across runs without a trusted run ID; snapshot/turn/ball comparisons are suppressed.',
+      'Wrong-side host/client producer markers are excluded and reported as missing evidence, never accepted as a valid peer trace.',
       'CC_W10_NET_HOST/CLIENT entries are approximately 1Hz samples; reported periodMs is a configured interval, not measured throughput.',
       'Host/client W10 entries may sample different revisions; unmatched samples do not imply packet loss.',
       'Native CC_NET_TRACE_TX/RX markers are optional and not present in the pinned RC1 by assumption.',

@@ -111,7 +111,8 @@ test('one initial snapshot line is insufficient to demonstrate continuity',()=>{
 test('invalid snapshot schema and negative monotonic time are rejected',()=>{
   const p=parseLog([trace({type:'snapshot_sent'}),trace({type:'snapshot_applied',revision:2,monotonicMs:-1}),
     trace({type:'intent_accepted',owner:9,sequence:1})].join('\n'),'host');
-  assert.equal(p.malformed,3);
+  assert.equal(p.malformed,2);
+  assert.equal(p.wrongSide,1);
   assert.equal(p.events.length,0);
 });
 
@@ -280,7 +281,8 @@ test('W11 invalid operational telemetry cannot become an apparently valid sample
     w10Client(1,0,1,'BadPhase',1,1,0),
     w10Host(1,0,0,'Moving',1,100,1,50).replace('packedBytes=100','packedBytes=-1')].join('\n');
   const p=parseLog(lines,'host');
-  assert.equal(p.malformed,6);
+  assert.equal(p.malformed,4);
+  assert.equal(p.wrongSide,2);
   assert.equal(p.w10Samples.length,0);
 });
 
@@ -319,5 +321,73 @@ test('W11 W10 ~1Hz operational counters never masquerade as continuous TX/RX or 
   assert.equal(r.client.snapshot_applied,0);
   assert.equal(r.coverage.comparable_authoritative_snapshots,0);
   assert.ok(r.missing_observations.includes('continuous_snapshot_trace'));
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+
+// W11 finalization: the exact A70 #207 source has A41 HOST/CLIENT sampled markers,
+// not native A31 TX/RX at the candidate SHA. Validate provenance fail-closed.
+test('W11 final prevents fake PC2 from presenting copied host A41 samples',()=>{
+  const row=w10Host(9,2,1,'Moving',5,2048,1,50);
+  const r=summarize(row,row);
+  assert.equal(r.w10_operational_samples.host_count,1);
+  assert.equal(r.w10_operational_samples.client_count,0);
+  assert.equal(r.client.wrong_side,1);
+  assert.equal(r.w10_operational_samples.same_revision_pairs,0);
+  assert.ok(r.missing_observations.includes('wrong_side_telemetry_markers'));
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+
+test('W11 final rejects native A31 TX trace on supposed PC2 and RX on supposed host',()=>{
+  const h='CC_NET_TRACE_RX rev=4 serial=3 tms=100 turn=1';
+  const c='CC_NET_TRACE_TX rev=4 serial=3 tms=100 turn=1';
+  const r=summarize(h,c);
+  assert.equal(r.host.wrong_side,1);
+  assert.equal(r.client.wrong_side,1);
+  assert.equal(r.coverage.matched_snapshot_revisions,0);
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+
+test('W11 final rejects opposite-side structured snapshot producers',()=>{
+  const h=trace({type:'snapshot_applied',revision:5});
+  const c=trace({type:'snapshot_sent',revision:5});
+  const r=summarize(h,c);
+  assert.equal(r.host.wrong_side,1);
+  assert.equal(r.client.wrong_side,1);
+  assert.equal(r.client.snapshot_applied,0);
+  assert.equal(r.host.snapshot_sent,0);
+});
+
+test('W11 final suppresses false structured revision rollback when two real sessions share one PC2 log',()=>{
+  const h=['CC_NET_HOST_READY port=7777',trace({type:'snapshot_sent',revision:1,actionSerial:1,turn:0}),
+    'CC_NET_HOST_READY port=7777',trace({type:'snapshot_sent',revision:1,actionSerial:2,turn:1})].join('\n');
+  const c=['CC_NET_STATE_APPLIED revision=1 owner=1',trace({type:'snapshot_applied',revision:1,actionSerial:1,turn:0}),
+    'CC_NET_STATE_APPLIED revision=1 owner=1',trace({type:'snapshot_applied',revision:1,actionSerial:2,turn:1})].join('\n');
+  const r=summarize(h,c);
+  assert.equal(r.w10_operational_samples.multiple_sessions_detected,true);
+  assert.equal(r.coverage.matched_snapshot_revisions,0);
+  assert.equal(r.w10_operational_samples.cross_session_snapshot_samples_withheld,4);
+  assert.equal(r.snapshot_authority_mismatches.length,0);
+  assert.equal(r.anomalies.some(a=>a.code==='CLIENT_REVISION_NONMONOTONIC'),false);
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+
+test('W11 final refuses misleading pair of same-revision ball samples from distinct log sessions',()=>{
+  const host=['CC_NET_HOST_READY port=7777','CC_NET_HOST_READY port=7777',
+    trace({type:'ball_state',revision:1,actionSerial:1,ballId:5,layer:'simulation',x:100,y:100})].join('\n');
+  const client=trace({type:'ball_state',revision:1,actionSerial:1,ballId:5,layer:'simulation',x:0,y:0});
+  const r=summarize(host,client,{driftThreshold:.5});
+  assert.equal(r.paired_ball_samples,0);
+  assert.equal(r.above_threshold_samples,0);
+  assert.ok(r.missing_observations.includes('multiple_sessions_require_separate_input_files'));
+});
+
+test('W11 final single-session A41 host and client semantics still accepted',()=>{
+  const host=w10Host(9,4,1,'Moving',12,2048,1,50);
+  const client=w10Client(9,4,1,'Moving',12,7,0);
+  const r=summarize(host,client);
+  assert.equal(r.host.wrong_side,0);
+  assert.equal(r.client.wrong_side,0);
+  assert.equal(r.w10_operational_samples.same_revision_pairs,1);
+  assert.equal(r.w10_operational_samples.content_mismatches.length,0);
   assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
 });
