@@ -22,7 +22,7 @@ namespace CoreClash.Presentation
         }
         static Rect Box(Rect board,float x,float y,float width,float height)
         {
-            if(viewOwner==1){x=MatchPerspective.WorldWidth-x-width;y=MatchPerspective.WorldHeight-y-height;}
+            if(viewOwner==1)y=MatchPerspective.WorldHeight-y-height;
             return new Rect(board.x+x*board.width/540,board.y+y*board.width/540,width*board.width/540,height*board.width/540);
         }
 
