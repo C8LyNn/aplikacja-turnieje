@@ -1,0 +1,76 @@
+{
+  "schema": "cc001.swarm.package.v1",
+  "packageId": "CC-001-R17-W15-A20-AIM-INTENT-SCOPE",
+  "owner": "A20 UX/UI & Game Feel",
+  "sourceRepository": "C8LyNn/aplikacja-turnieje",
+  "qaBaselineFrozen": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "directDependency": {
+    "pr": 252,
+    "head": "262c15a33bb0a8810d25d89f7346a44e3d491bed"
+  },
+  "inheritedDependencies": [
+    {
+      "pr": 246,
+      "head": "ad710ad4d3cd97fc4f92bae5527f164c4e302f62"
+    },
+    {
+      "pr": 222,
+      "head": "f27fd16276ebc19b5b53891619eb0d022f407e20"
+    }
+  ],
+  "w15ProductionAndTestsCommit": "b6bb74a93d0b757bebe312c553d578200ec40b38",
+  "changedFiles": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs",
+      "blobSha1": "a35fa1bb482a9efad73b055473f2be80cf300041",
+      "type": "production"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs",
+      "blobSha1": "ed1f2180c40c0057e3ff0a34a5c1ecd3e5137548",
+      "type": "production"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/DeviceTests.cs",
+      "blobSha1": "872388e7dada2b204cd082eef2d4652961ac20f6",
+      "type": "regression"
+    }
+  ],
+  "tests": {
+    "authoredCSharpTests": [
+      "A20-W15-01",
+      "A20-W15-02",
+      "A20-W15-03",
+      "A20-W15-04",
+      "A20-W15-05",
+      "A20-W15-06",
+      "A20-W15-07",
+      "A20-W15-08",
+      "A20-W15-09"
+    ],
+    "cSharpRuntime": "NOT_RUN",
+    "sourceReadback": "VERIFIED_EXACT_GITHUB_BLOBS",
+    "unityWindowsPlayer": "NOT_BUILT",
+    "physicalPc1Pc2": "NOT_RUN",
+    "githubWorkflowRuns": 0,
+    "compileCommand": "dotnet run --project unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj --configuration Release -- unity/cc001-r16/CoreClash-V149-Unity"
+  },
+  "gates": {
+    "w11NativeG3": "HOLD",
+    "w11NativeG4": "HOLD",
+    "w15Integrated": false,
+    "released": false
+  },
+  "protected": {
+    "mitosis": "V148_EXACT",
+    "furnace": "FIRE_ZONE_AND_PERIODIC_DOT_ONLY",
+    "hp": "R16_UNCHANGED",
+    "mainMerge": false,
+    "qaFreezeEdited": false
+  },
+  "operatorDependencies": [
+    "A72 / #188: Windows11 Unity6000.4.0f1 Win64 Build Support active license, Node22, .NET SDK9; exact frozen QA build and original complete Player hashes",
+    "A60/A31: independent PC1/PC2 same verified binaries; capture original authoritative state, turn, action, aim, visual smoothness and teleport evidence",
+    "A70: selective post-freeze selection and overlap review with A83 #229; no final integration until W11 G3/G4"
+  ]
+}
