@@ -12,8 +12,8 @@ const MAX_MANIFEST = 128 * 1024;
 const EXPECTED = Object.freeze(['PC1_Player.redacted.log', 'PC2_Player.redacted.log']);
 const HEX = /^[0-9a-f]{64}$/i;
 const categories = Object.freeze([
- ['CREDENTIAL_ASSIGNMENT', /\b(?:access[_-]?token|id[_-]?token|refresh[_-]?token|session[_-]?token|auth(?:orization)?|api[_-]?key|password|passwd|secret|join[_-]?code|invite[_-]?code|bearer|token)\s*[:=]\s*(?!\[(?:REDACTED|TOKEN_REDACTED|SECRET_REDACTED)\])(?:["']?)([^\s,;"']+)/i],
- ['BEARER_AUTH', /\bBearer\s+(?!\[REDACTED\])(?:[A-Za-z0-9._~+\/-]{10,})/i],
+ ['CREDENTIAL_ASSIGNMENT', /\b(?:access[_-]?token|id[_-]?token|refresh[_-]?token|session[_-]?token|auth(?:orization)?|api[_-]?key|password|passwd|secret|join[_-]?code|invite[_-]?code|bearer|token)\s*[:=]\s*(?!\[(?:REDACTED|TOKEN_REDACTED|SECRET_REDACTED)\](?=$|[\s,;]))(?:["']?)([^\s,;"']+)/i],
+ ['BEARER_AUTH', /\bBearer\s+(?!\[REDACTED\](?=$|[\s,;]))(?:\[REDACTED\][^\s,;]+|[A-Za-z0-9._~+\/-]{10,})/i],
  ['GITHUB_TOKEN', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/i],
  ['OPENAI_LIKE', /\bsk-(?:proj-)?[A-Za-z0-9_-]{25,}\b/i],
  ['EMAIL_ADDRESS', /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
