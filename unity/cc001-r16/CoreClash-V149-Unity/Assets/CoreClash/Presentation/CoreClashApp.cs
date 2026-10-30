@@ -34,7 +34,7 @@ namespace CoreClash.Presentation
         Rect board,side;
         MatchLayout layout;
         bool setup=true,builder,library,initialized,externalModal,boardInspection;
-        int builderOwner,replayId,sequence,pointerReadyFrame,inspectBallId;
+        int builderOwner,replayId,sequence,pointerReadyFrame,inspectBallId,remoteLastEventId;
         float accumulator,releasedAt=-100,lastPower;
         string selected="normal",notice="",search="",inspect="",fatal="",networkNotice="";
         Vector2 setupScroll,presetScroll,rosterScroll,infoScroll,matchScroll,trayScroll;
@@ -111,7 +111,7 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallPoseSmoother.Reset();NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";releasedAt=-100;trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallPoseSmoother.Reset();remoteLastEventId=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";releasedAt=-100;trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -131,7 +131,18 @@ namespace CoreClash.Presentation
         public void ReceiveNetworkState(GameState state,int snapshotRevision=-1)
         {
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
-                if(snapshotRevision>=0)remoteBallPoseSmoother.AcceptSnapshot(snapshotRevision,state,Time.unscaledTime);
+                HashSet<int> instantBallIds=null;
+                if(state.events!=null){
+                    foreach(var e in state.events){
+                        if(e==null||e.id<=remoteLastEventId)continue;
+                        remoteLastEventId=Math.Max(remoteLastEventId,e.id);
+                        if(e.kind=="PORTAL"&&e.ballId>0){
+                            if(instantBallIds==null)instantBallIds=new HashSet<int>();
+                            instantBallIds.Add(e.ballId);
+                        }
+                    }
+                }
+                if(snapshotRevision>=0)remoteBallPoseSmoother.AcceptSnapshot(snapshotRevision,state,Time.unscaledTime,instantBallIds);
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }
