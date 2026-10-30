@@ -17,6 +17,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch isolated W12 tool source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify source syntax and independent offline self-test
+        run: |
+          node --check scripts/cc001/w12/a70/run-frozen-managed.cjs
+          node scripts/cc001/w12/a70/run-frozen-managed.cjs --self-test
   exact-frozen-managed:
     runs-on: windows-latest
     timeout-minutes: 30
