@@ -464,6 +464,81 @@ public static partial class Program
             False(receiver.Apply(before,decode,out _));
             False(host.Submit(1,good,out _));
         });
+        // R17-W13 A40 P0 candidate robustness: intentionally RED on the
+        // known W11 frozen NetworkGameStateAdapter source until A31 adds
+        // Phoenix-hand admission validation. This does NOT modify the
+        // networking implementation or the frozen Windows QA source.
+        Test("W13 A40 Phoenix snapshot rejects missing hand list and retains last good state",()=>{
+            var s=Sim();
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var client=new CoreClash.Networking.NetworkGameStateAdapter();
+            var valid=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(valid,decode,out _));
+            var accepted=client.State;
+            s.State.phoenixHand=null;
+            var corrupt=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            False(client.Apply(corrupt,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            s.State.phoenixHand=new System.Collections.Generic.List<PhoenixHandEntry>();
+            var recovered=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(recovered,decode,out _));
+            Eq(0,client.State.phoenixHand.Count);
+        });
+        Test("W13 A40 Phoenix snapshot rejects null hand entry and invalid owner",()=>{
+            var s=Sim();
+            var dead=s.Spawn(1,"phoenix",270,440);s.Kill(dead);
+            Eq(1,s.State.phoenixHand.Count);
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var client=new CoreClash.Networking.NetworkGameStateAdapter();
+            var valid=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(valid,decode,out _));
+            var accepted=client.State;
+            var hand=s.State.phoenixHand[0];
+            s.State.phoenixHand[0]=null;
+            var nullEntry=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            False(client.Apply(nullEntry,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            s.State.phoenixHand[0]=hand;hand.owner=2;
+            var invalidOwner=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            False(client.Apply(invalidOwner,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            hand.owner=1;
+            var recovered=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(recovered,decode,out _));
+            Eq(1,client.State.phoenixHand.Single().owner);
+        });
+        Test("W13 A40 Phoenix snapshot rejects impossible HP and negative shield",()=>{
+            var s=Sim();
+            var dead=s.Spawn(1,"phoenix",270,440);s.Kill(dead);
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var client=new CoreClash.Networking.NetworkGameStateAdapter();
+            var baseline=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(baseline,decode,out _));
+            var accepted=client.State;
+            var hand=s.State.phoenixHand.Single();
+            hand.hp=hand.maxHp+1;
+            var overflow=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            False(client.Apply(overflow,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            hand.hp=5;hand.shield=-1;
+            var negativeShield=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            False(client.Apply(negativeShield,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            hand.shield=0;
+            var recovered=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(client.Apply(recovered,decode,out _));
+            Eq(5,client.State.phoenixHand.Single().hp);
+            Eq(0,client.State.phoenixHand.Single().shield);
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
