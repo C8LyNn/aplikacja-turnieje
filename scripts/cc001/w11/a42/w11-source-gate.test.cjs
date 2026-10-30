@@ -57,3 +57,5 @@ test('missing local player action hint rejected',()=>{let s=sources();s.match=s.
 test('missing AimStroke rejected',()=>{let s=sources();s.board=s.board.replace('AimStroke','OldArrow');expected('PLAYER_UI/aimStroke',valid({sources:s}));});
 test('diagnostic compiled symbol never admitted',()=>{let s=sources();s.ngo+='CC001_PHOENIX_DIAGNOSTIC';expected('PROTECTED/DIAGNOSTIC_MARKER',valid({sources:s}));});
 test('contract extractor is deterministic for identical source input',()=>assert.deepEqual(contracts(sources()),contracts(sources())));
+test('R16 historical evidence cannot be rewritten by a W11 source candidate',()=>expected('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE',valid({changes:[...valid().changes,{path:UNITY+'Evidence/R16/Unity/build-StandaloneWindows64.json',status:'M'}]})));
+test('Core simulation implementation cannot be silently changed',()=>expected('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE',valid({changes:[...valid().changes,{path:UNITY+'Assets/CoreClash/Core/GameSimulation.cs',status:'M'}]})));
