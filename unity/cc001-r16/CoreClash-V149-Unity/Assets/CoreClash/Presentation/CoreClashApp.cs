@@ -6,7 +6,6 @@ using CoreClash.Core;
 using CoreClash.Data;
 using CoreClash.Input;
 using CoreClash.Networking;
-using CoreClash.Physics;
 using UnityEngine;
 namespace CoreClash.Presentation
 {
@@ -25,7 +24,7 @@ namespace CoreClash.Presentation
         public float UiHeight=>UiViewport.Height;
         NetworkGameSession session;
         FeedbackTimeline feedback=new FeedbackTimeline();
-        readonly RemoteBallPoseSmoother remoteBallPoseSmoother=new RemoteBallPoseSmoother();
+        readonly RemoteBallSmoother remoteBallSmoother=new RemoteBallSmoother();
         bool receivedRemoteState;
         readonly LaunchGesture gesture=new LaunchGesture();
         readonly DeckDefinition[] chosen=new DeckDefinition[2];
@@ -111,7 +110,7 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallPoseSmoother.Reset();remoteLastEventId=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -126,14 +125,14 @@ namespace CoreClash.Presentation
         }
         public void SetDeveloperOverlay(bool value){DeveloperOverlay=value;gesture.Active=false;Debug.Log("CORE_CLASH_DEVELOPER_OVERLAY "+value);}
         public void SetExternalModal(bool value){externalModal=value;if(value)gesture.Active=false;}
-        public void ReturnToSetup(){remoteBallPoseSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
+        public void ReturnToSetup(){remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
-        public void ReceiveNetworkState(GameState state,int snapshotRevision=-1)
+        public void ReceiveNetworkState(GameState state)
         {
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
                 var instantBallIds=RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,out var latestEventId);
                 remoteLastEventId=latestEventId;
-                if(snapshotRevision>=0)remoteBallPoseSmoother.AcceptSnapshot(snapshotRevision,state,Time.unscaledTime,instantBallIds);
+                remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds);
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }

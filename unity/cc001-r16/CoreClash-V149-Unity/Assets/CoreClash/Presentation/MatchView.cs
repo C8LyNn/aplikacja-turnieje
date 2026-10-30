@@ -12,7 +12,7 @@ namespace CoreClash.Presentation
             var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
-            var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallPoseSmoother:null;
+            var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
             BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner);
             if(layout.CompactLandscape){RenderCompactLandscape();return;}
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}

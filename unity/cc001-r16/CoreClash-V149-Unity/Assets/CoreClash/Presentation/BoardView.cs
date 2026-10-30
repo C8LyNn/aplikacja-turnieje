@@ -3,7 +3,6 @@ using System.Linq;
 using CoreClash.Core;
 using CoreClash.Data;
 using CoreClash.Input;
-using CoreClash.Physics;
 using UnityEngine;
 
 namespace CoreClash.Presentation
@@ -27,7 +26,7 @@ namespace CoreClash.Presentation
         }
 
         public static void Render(Rect rect,GameSimulation simulation,LaunchGesture aim,BallDefinition selected=null,
-            FeedbackTimeline feedback=null,RemoteBallPoseSmoother remoteVisual=null,int localOwner=0)
+            FeedbackTimeline feedback=null,RemoteBallSmoother remoteVisual=null,int localOwner=0)
         {
             int previousViewOwner=viewOwner;viewOwner=localOwner==1?1:0;
             var state = simulation.State;
@@ -47,7 +46,7 @@ namespace CoreClash.Presentation
                 if (!ball.dead && !ball.banished)
                 {
                     float renderX=ball.x,renderY=ball.y;
-                    if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryPose(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
+                    if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
                     if(ball.mineArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
                     if(ball.timeBombArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
                     BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),state.phase==MatchPhase.Aiming&&simulation.CanReplay(ball),renderX,renderY,viewOwner);
