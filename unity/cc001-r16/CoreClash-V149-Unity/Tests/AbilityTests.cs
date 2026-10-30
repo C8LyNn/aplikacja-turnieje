@@ -243,6 +243,66 @@ public static partial class Program
             Eq(18,s.State.graveyard.Count(g=>g.owner==0));
             True(s.State.graveyard.Any(g=>g.ballId==firstId));
         });
+        // R17-W9 A40: authoritative gameplay-seat invariants for genuine P1/P2 network play.
+        // Tests exercise GameSimulation only; they do not falsely certify GUI or NGO transport.
+        Test("W9 A40 P2 command cannot launch on P1 turn and P1 cannot act during P2 aim",()=>{
+            var s=Sim();int beforeEvent=s.State.eventSerial;
+            False(s.TryCommand(Shot(s,1,"fire"),out _));
+            Eq(0,s.State.actionSerial);Eq(beforeEvent,s.State.eventSerial);
+            Eq(7,s.Stock(1,"fire"));Eq(0,s.State.balls.Count);
+            True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);Eq(MatchPhase.Aiming,s.State.phase);
+            int serial=s.State.eventSerial,action=s.State.actionSerial;
+            False(s.TryCommand(Shot(s,0,"fire"),out _));
+            Eq(serial,s.State.eventSerial);Eq(action,s.State.actionSerial);
+            Eq(7,s.Stock(0,"fire"));
+            True(s.TryCommand(Shot(s,1,"fire"),out _));
+            Eq(action+1,s.State.actionSerial);Eq(7,s.Stock(0,"fire"));Eq(6,s.Stock(1,"fire"));
+            var launched=s.State.balls.Last();
+            Eq(1,launched.owner);Eq("fire",launched.type);
+            Near(47f,launched.y);True(launched.vy>0,"P2 launch must travel from top towards board");
+            True(s.State.events.Any(e=>e.kind=="LAUNCH"&&e.ballId==launched.id&&e.turn==s.State.turnNumber));
+        });
+        Test("W9 A40 P2 bonus remains P2 turn and cannot grant P1 a phantom shot",()=>{
+            var s=Sim();True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            Eq(1,s.State.players[1].ownerTurns);
+            True(s.TryCommand(Shot(s,1,"fire"),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            Eq(1,s.State.players[1].ownerTurns);True(s.State.bonusPending);
+            int serial=s.State.eventSerial,action=s.State.actionSerial;
+            False(s.TryCommand(Shot(s,0),out _));
+            Eq(serial,s.State.eventSerial);Eq(action,s.State.actionSerial);
+            True(s.TryCommand(Shot(s,1,"ice"),out _));
+            Eq(action+1,s.State.actionSerial);
+            Eq(1,s.State.balls.Last().owner);
+            False(s.State.bonusPending);True(s.State.bonusUsed);
+            Settle(s);
+            Eq(0,s.State.turn);Eq(3,s.State.turnNumber);
+            Eq(2,s.State.players[0].ownerTurns);
+            Eq(1,s.State.players[1].ownerTurns);
+        });
+        Test("W9 A40 P2 Replay validates owner and keeps seat turn without duplicate launch",()=>{
+            var s=Sim();True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            var ball=s.Spawn(1,"normal",270,90);
+            True(s.CanReplay(ball));
+            var wrong=Shot(s,0);wrong.kind=CommandKind.Replay;wrong.ballId=ball.id;
+            int before=s.State.eventSerial,action=s.State.actionSerial;
+            False(s.TryCommand(wrong,out _));
+            Eq(before,s.State.eventSerial);Eq(action,s.State.actionSerial);
+            False(s.State.replayedIds.Contains(ball.id));
+            var replay=Shot(s,1);replay.kind=CommandKind.Replay;replay.ballId=ball.id;replay.power=60;
+            True(s.TryCommand(replay,out _));
+            Eq(action+1,s.State.actionSerial);True(s.State.replayedIds.Contains(ball.id));
+            Eq(1,s.State.turn);
+            Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            Eq(1,s.State.players[1].ownerTurns);
+            before=s.State.eventSerial;action=s.State.actionSerial;
+            False(s.TryCommand(replay,out _));
+            Eq(before,s.State.eventSerial);Eq(action,s.State.actionSerial);
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
