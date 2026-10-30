@@ -17,7 +17,8 @@ const categories = Object.freeze([
  ['GITHUB_TOKEN', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/i],
  ['OPENAI_LIKE', /\bsk-(?:proj-)?[A-Za-z0-9_-]{25,}\b/i],
  ['EMAIL_ADDRESS', /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
- ['WEB_URL', /\bhttps?:\/\/[^\s<>]+/i],
+ ['WEB_URL', /\b(?:https?|wss?):\/\/[^\s<>]+/i],
+ ['UNC_SHARE_PATH', /\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\[^\s\\]+/i],
  ['WINDOWS_USER_PATH', /\b[A-Za-z]:\\(?:Users|Documents and Settings)\\(?!\[USER\](?=\\|\s|$))[^\s\\]+/i],
  ['UNIX_USER_PATH', /\/(?:home|Users)\/(?!\[USER\]\/)[^\s/]+\//i],
  ['IPV4_ADDRESS', /\b(?:\d{1,3}\.){3}\d{1,3}\b/]
