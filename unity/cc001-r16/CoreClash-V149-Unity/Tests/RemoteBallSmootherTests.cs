@@ -51,6 +51,30 @@ public static partial class Program
             p.Observe(A34Snapshot(1,50,180,100,MatchPhase.Aiming),1.4f);
             False(p.TryGetPosition(12,1.4f,out _,out _));p.Reset();Eq(0,p.TrackedCount);
         });
+        Test("A34 owner conversion snaps even on a short move",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1);
+            var next=A34Snapshot(1,20,115,100);
+            next.balls[0].owner=1;
+            p.Observe(next,1.05f);
+            True(p.TryGetPosition(12,1.05f,out var x,out _));Near(115,x);
+        });
+        Test("A34 type conversion snaps and changes identity without interpolation",()=>{
+            var p=new RemoteBallSmoother();
+            var first=A34Snapshot(1,10,100,100);first.balls[0].type="normal";
+            p.Observe(first,1);
+            var converted=A34Snapshot(1,20,130,100);converted.balls[0].type="phoenix";
+            p.Observe(converted,1.05f);
+            True(p.TryGetPosition(12,1.05f,out var x,out _));Near(130,x);
+        });
+        Test("A34 20Hz cadence converges without frame extrapolation",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1);
+            p.Observe(A34Snapshot(1,16,110,100),1.05f);
+            True(p.TryGetPosition(12,1.075f,out var x,out _));Near(105,x,.02f);
+            True(p.TryGetPosition(12,1.105f,out x,out _));Near(110,x);
+            True(p.TryGetPosition(12,999,out x,out _));Near(110,x);
+        });
         Test("A34 stale frame and clock rewind cannot interpolate",()=>{
             var p=new RemoteBallSmoother();p.Observe(A34Snapshot(1,100,100,100),1);
             p.Observe(A34Snapshot(1,99,200,100),1.2f);
