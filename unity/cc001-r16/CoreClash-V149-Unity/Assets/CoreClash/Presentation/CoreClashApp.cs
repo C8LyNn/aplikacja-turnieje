@@ -34,6 +34,7 @@ namespace CoreClash.Presentation
         MatchLayout layout;
         bool setup=true,builder,library,initialized,externalModal,boardInspection;
         int builderOwner,replayId,sequence,pointerReadyFrame,inspectBallId,remoteLastEventId,remoteLastRevision;
+        int noticeOriginOwner=-1,noticeOriginTurn=-1;
         float accumulator;
         string selected="normal",notice="",search="",inspect="",fatal="",networkNotice="";
         Vector2 setupScroll,presetScroll,rosterScroll,infoScroll,matchScroll,trayScroll;
@@ -77,6 +78,7 @@ namespace CoreClash.Presentation
             if(setup)return;
             if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
             feedback.Observe(Simulation.State,Time.unscaledTime);
+            ClearStaleActionNotice();
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal){gesture.Active=false;return;}
             if(CanChoose){
@@ -104,13 +106,20 @@ namespace CoreClash.Presentation
             if(p.held||p.up)gesture.Move(p.id,world.x,world.y);
             if(p.up&&gesture.Release(p.id,Simulation.State.turn,Simulation.State.turnNumber,selected,replayId,out var command)){
                 command.sequence=++sequence;bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
-                if(!accepted){Debug.LogWarning("Intent rejected: "+notice);notice="This shot could not be played. Try again.";}
+                if(!accepted){noticeOriginOwner=command.owner;noticeOriginTurn=command.turnNumber;Debug.LogWarning("Intent rejected: "+notice);notice="This shot could not be played. Try again.";}
                 else{notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }
         }
+        void ClearStaleActionNotice()
+        {
+            if(notice.Length>0&&!ShotNoticeScope.Keep(Simulation?.State,
+                noticeOriginOwner,noticeOriginTurn,NetworkLink!=null,
+                NetworkLink==null||NetworkLink.IsConnected))
+                notice="";
+        }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";noticeOriginOwner=noticeOriginTurn=-1;trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -138,6 +147,7 @@ namespace CoreClash.Presentation
                 remoteLastEventId=latestEventId;
                 remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
                 Simulation.State=state;setup=false;
+                ClearStaleActionNotice();
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }
         }
