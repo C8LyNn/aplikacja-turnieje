@@ -1,0 +1,99 @@
+{
+  "schema": "CC001_R17_W15_A51_PACKAGE_V1",
+  "project": "CC-001",
+  "agent": "A51",
+  "wave": "R17-W15",
+  "type": "RESTORE_LOST_ALREADY_AUTHORED_SOURCE_PATCH",
+  "base": {
+    "pr": 255,
+    "sha": "32ff66e177bdcdd075ce63e877a0201d656d881c"
+  },
+  "original_author": {
+    "pr": 172,
+    "sha": "cb09b0b3d36c33add8c36b1ac984ff4a31045c48"
+  },
+  "source_code_head_before_manifest": "3e977638f1a400eb78b53bbc5e5f79db9f0056d3",
+  "frozen_qa_source_sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "development_exclusions": [
+    "A70 PR #207",
+    "A70 PR #266"
+  ],
+  "files": [
+    {
+      "path": "scripts/cc001/w11/a51/native-snapshot-trace.cjs",
+      "action": "modify_restore_original",
+      "blob": "f12224b95d174f06203a1e8ff9ef628d867afbb2"
+    },
+    {
+      "path": "scripts/cc001/w11/a51/native-snapshot-trace.test.cjs",
+      "action": "modify_restore_original",
+      "blob": "afc1494be56f774708faab28011ae3a4be0211c2"
+    },
+    {
+      "path": "scripts/cc001/w12/a51/native-metadata-shared-fields.cjs",
+      "action": "add_restore_original",
+      "blob": "9baf6a2c8e3faa93fde317e0d033f1b8882e7d97"
+    },
+    {
+      "path": "scripts/cc001/w12/a51/native-metadata-shared-fields.test.cjs",
+      "action": "add_restore_original",
+      "blob": "0242e3cd6bd109740aae59279d478608b3a20540"
+    },
+    {
+      "path": "scripts/cc001/w15/a51/native-trace-stack-regression.test.cjs",
+      "action": "add",
+      "blob": "522bca3d0ff476804a963b19e9126cf95b89637e"
+    },
+    {
+      "path": "docs/cc001/swarm/w15/A51_R17_W15_LOST_W12_SHARED_FIELDS_RECOVERY.md",
+      "action": "add",
+      "blob": "2fa6559cf10cf9fb5fa9793bdbf5f1364e3fecb8"
+    }
+  ],
+  "executed_tests": {
+    "native_node": {
+      "version": "22.16.0",
+      "suite": "scripts/cc001/w12/a51/native-metadata-shared-fields.test.cjs",
+      "passed": 14,
+      "failed": 0,
+      "exit": 0,
+      "exact_github_blob_match": true
+    },
+    "scoped_v8": {
+      "passed": 8,
+      "failed": 0,
+      "execution": "GitHub-sourced actual parser/helper/gate/accounting with stubbed Node builtins"
+    },
+    "native_full_stack": "NOT_RUN",
+    "w15_new_cli_tests": "NOT_RUN",
+    "dotnet9": "NOT_RUN",
+    "unity_windows_player": "NOT_BUILT",
+    "physical_pc1_pc2": "NOT_RUN"
+  },
+  "dependencies": {
+    "pr_stack": [
+      172,
+      223,
+      248,
+      255
+    ],
+    "a72_builder_pr": 188,
+    "a72_generated_report_pr": 262,
+    "a60_qa_issue": 139,
+    "a31_multiplayer_issue": 94
+  },
+  "security": {
+    "qa_g3": "HOLD",
+    "qa_g4": "HOLD",
+    "main_merge": false,
+    "release": false,
+    "protected_source_modified": false
+  },
+  "status": {
+    "designed": true,
+    "implemented": true,
+    "tested": "SCOPED_NATIVE_NODE_AND_V8_ONLY",
+    "integrated": false,
+    "released": false
+  }
+}
