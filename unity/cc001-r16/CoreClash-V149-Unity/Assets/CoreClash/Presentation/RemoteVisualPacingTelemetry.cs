@@ -68,7 +68,9 @@ namespace CoreClash.Presentation
                 if(samples<Capacity)samples++;
                 frames++;
                 movingSeconds+=deltaSeconds;
-                if(lastSnapshot>=0)
+                // A34 W14: a zero-length blend means a hard snap or no visual
+                // motion. It must not accrue any phantom "post-blend wait".
+                if(lastSnapshot>=0&&blendSeconds>0f)
                 {
                     float age=now-lastSnapshot;
                     // Time beyond the bounded interpolation interval, not "ball stopped".
