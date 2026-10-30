@@ -33,3 +33,15 @@ New CLI exits: `0` = sampled diagnostic completed with no detected metadata inco
 **Original** `verify-snapshot-traces.cjs` is **ALT_HOLD for #207**: it remains usable only if A70 explicitly selects A31's separate PR #184 F1 per-snapshot telemetry in a future isolated candidate. Never substitute its expected marker schema for the selected #207 source.
 
 Both tools are non-authoritative and do not alter Unity, physics, catalog, HP, Mitosis, Furnace, V148, R16, RC1, or Protocol149. Windows build and actual two-PC QA remain A72/A60/A31 responsibilities. Do not start W12 until HQ formally closes W11.
+
+## W12 — frozen QA candidate boundary (strict)
+
+**Frozen QA ref (A70):** `integration/cc001-r17-w11-qa-freeze-20261030` at **`3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`**. This is intentionally separate from the continuously advancing #207 development branch. Do not auto-admit later #207 HEAD changes or relabel earlier snapshots/binaries as frozen QA evidence.
+
+The selected `verify-candidate207-telemetry.cjs` now includes `qaFreezeSourceSha` for the exact W11 freeze, while preserving `schemaAnchorSha` (historical source of the telemetry grammar) and explicit `runtimeBinarySourceSha=NOT_VERIFIED`. **Neither field authenticates actual binary provenance**. A72/A60 must separately inspect the full Player manifest and original PC1+PC2 binaries built from the frozen SHA.
+
+**W12 fail-closed fixes:** independently sampled 1-Hz host/client records with **zero shared revisions** now return `INSUFFICIENT_SELECTED_LOGS` (exit **2**) rather than exit 0. Two match/session start markers in either log likewise require explicit cropping to one run; no cross-match revision comparison is attempted. `CC_W11_STATE_TX/RX` digest markers are absent from frozen source, so their presence in purported frozen captures is reported as `POST_FREEZE_TELEMETRY_PRESENT` (exit **1**); this is a mixed/post-freeze marker warning, not a signed proof of build identity. One shared sample without anomalies remains `SAMPLED_DIAGNOSTIC_ONLY` (exit 0), NEVER G3 PASS.
+
+**Execution test scope:** W12 new regression cases are in `verify-candidate207-telemetry.test.cjs`. Real source and test bodies fetched from GitHub passed 38/38 callback assertions under a sandboxed V8 test/assert shim; **this was not a native `node --test` or Windows game execution**. Native Node, Unity Windows build and independent two-PC runtime QA are required separately. The earlier 30-case Node result pertains to the pre-W12 blob and must not be misrepresented as having run the updated file.
+
+Mitosis remains exact V148; Furnace remains periodic FIRE-zone-only; HP remains R16. This patch touches only A81-owned offline analyzer, test and this README. W12 parallel development is isolated; final integration waits on W11 A72/A60/A31 gates.
