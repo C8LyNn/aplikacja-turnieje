@@ -11,14 +11,14 @@ function parse(text) {
     accept:[],reject:0,clientAccept:0,clientLaunch:0,failures:0,tx:[],rx:[]};
   for (var line of String(text||'').split(/\r?\n/)) {
     if (line.includes('CC_NET_HOST_READY')) ++x.hostReady;
-    if (line.includes('CC_NET_PEER_CONNECTED')&&number(line,'owner')===1) ++x.peerConnected;
+    if (line.split(/\s+/).includes('CC_NET_PEER_CONNECTED')&&number(line,'owner')===1) ++x.peerConnected;
     if (line.includes('CC_NET_SEAT_RELEASED')) ++x.seatReleased;
     if (line.includes('CC_NET_STATE_APPLIED')) ++x.clientFirstSnapshot;
-    if (line.includes('CC_NET_INTENT_ACCEPT')&&number(line,'owner')===1)
+    if (line.split(/\s+/).includes('CC_NET_INTENT_ACCEPT')&&number(line,'owner')===1)
       x.accept.push({seq:number(line,'seq'),action:number(line,'action')});
     if (line.includes('CC_NET_INTENT_REJECT')) ++x.reject;
     if (line.includes('P2 · host accepted intent')) ++x.clientAccept;
-    if (line.includes('CORE_CLASH_LAUNCH owner=1')) ++x.clientLaunch;
+    if (line.split(/\s+/).includes('CORE_CLASH_LAUNCH')&&number(line,'owner')===1) ++x.clientLaunch;
     if (line.includes('CC_LAN_CONNECTION_FAILED')||line.includes('CC_NET_SNAPSHOT_ERROR')) ++x.failures;
     if (line.includes('CC_NET_TRACE_TX ')||line.includes('CC_NET_TRACE_RX ')) {
       var e={rev:number(line,'rev'),serial:number(line,'serial'),
