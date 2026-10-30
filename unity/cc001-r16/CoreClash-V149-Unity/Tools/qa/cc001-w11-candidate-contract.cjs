@@ -22,6 +22,7 @@ const names = {
   smoothtests:'Tests/RemoteBallSmootherTests.cs',
   decktests:'Tests/LocalDeckContentTests.cs',
   ntests:'Tests/NetworkSeatTests.cs',
+  atests:'Tests/AbilityTests.cs',
   ptests:'Tests/PresentationTests.cs',
   smoothmeta:'Assets/CoreClash/Presentation/RemoteBallSmoother.cs.meta',
   deckmeta:'Assets/CoreClash/Presentation/LocalDeckContent.cs.meta'
@@ -53,10 +54,19 @@ function audit(s, sources = Object.keys(names)){
     !sources.some(x=>/RemoteBallPoseSmoother|Physics\/RemoteBallPoseSmoother/.test(x)) &&
     !Object.values(s).some(x=>typeof x==='string'&&x.includes('new RemoteBallPoseSmoother(')),
     'A34 wired visual smoother selected, A50 competing class not installed');
-  gate('REMOTE_RENDER_PATH_WIRED',has('app','remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds)') &&
+  gate('REMOTE_RENDER_PATH_WIRED',has('app',/remoteBallSmoother\.Observe\(\s*state\s*,\s*Time\.unscaledTime\s*,\s*instantBallIds\s*,\s*snapshotRevision\s*\)/) &&
     has('match','remoteBallSmoother:null') && has('board','remoteVisual.TryGetPosition(') &&
-    has('ngo','app.ReceiveNetworkState(adapter.State)'),
+    has('ngo','app.ReceiveNetworkState(adapter.State,revision)'),
     'Accepted client snapshot reaches smoother and rendered ball position; not gameplay state');
+  gate('W11_REVISION_FORWARD_AND_STALE_GUARD',
+    has('ngo',/adapter\.Apply\(packet,JsonUtility\.FromJson<GameState>,out var reason\)/) &&
+    has('ngo','app.ReceiveNetworkState(adapter.State,revision)') &&
+    has('app',/ReceiveNetworkState\(GameState state,int snapshotRevision=-1\)/) &&
+    has('app','remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision)') &&
+    has('smooth',/snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision\)return/) &&
+    has('smooth','lastSnapshotRevision=-1;') &&
+    has('smooth','lastSnapshotRevision=snapshotRevision;'),
+    'Accepted Protocol149 revision propagates into client visual cache, rejecting duplicate/old samples');
   gate('SHORT_PORTAL_SNAP',has('smooth',/e\.kind\s*==\s*"PORTAL"/) &&
     has('smooth','instantBallIds.Contains(ball.id)') &&
     has('app','RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,') &&
@@ -93,6 +103,12 @@ function audit(s, sources = Object.keys(names)){
     has('smoothtests','PORTAL') && has('decktests','LocalDeckContentTests') &&
     has('ntests','NetworkSnapshotRate.Interval') && has('ptests','NET-UX-01'),
     'New managed test definitions registered; tests NOT compiled by this gate');
+  gate('W11_A40_AND_A70_CSHARP_REGRESSIONS',
+    has('atests','host') && has('atests','Phoenix') && has('atests','snapshot') &&
+    has('smoothtests','repeated and older snapshot revisions') &&
+    has('smoothtests','new session reset allows low snapshot revision again') &&
+    has('csproj','<Compile Include="*.cs" />'),
+    'A40 P2/host/Phoenix and A70 revision managed test definitions included, not executed');
   gate('UNITY_NEW_ASSET_META',has('smoothmeta',/^guid:\s*[0-9a-f]{32}\s*$/m) &&
     has('deckmeta',/^guid:\s*[0-9a-f]{32}\s*$/m) &&
     (s.smoothmeta.match(/guid:\s*([0-9a-f]{32})/)||[])[1] !== (s.deckmeta.match(/guid:\s*([0-9a-f]{32})/)||[])[1],
