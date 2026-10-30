@@ -1,0 +1,132 @@
+{
+  "schema": "CC001-A82-DISPLACEMENT-TRACE-v1",
+  "sourceSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "evidence": {
+    "captureType": "synthetic"
+  },
+  "samples": [
+    {
+      "device": "PC2",
+      "observation": "POST_APPLY_POST_OBSERVE",
+      "phase": "Moving",
+      "revision": 1,
+      "actionSerial": 1,
+      "cursorBefore": 0,
+      "cursorAfter": 1,
+      "events": [
+        {
+          "id": 1,
+          "kind": "PORTAL",
+          "ballId": 7,
+          "otherId": 0
+        }
+      ],
+      "hostBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ],
+      "renderedBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ]
+    },
+    {
+      "device": "PC2",
+      "observation": "POST_APPLY_POST_OBSERVE",
+      "phase": "Moving",
+      "revision": 2,
+      "actionSerial": 2,
+      "cursorBefore": 1,
+      "cursorAfter": 2,
+      "events": [
+        {
+          "id": 2,
+          "kind": "TELEPORT",
+          "ballId": 7,
+          "otherId": 0
+        }
+      ],
+      "hostBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ],
+      "renderedBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ]
+    },
+    {
+      "device": "PC2",
+      "observation": "POST_APPLY_POST_OBSERVE",
+      "phase": "Moving",
+      "revision": 3,
+      "actionSerial": 3,
+      "cursorBefore": 2,
+      "cursorAfter": 3,
+      "events": [
+        {
+          "id": 3,
+          "kind": "SWAP",
+          "ballId": 7,
+          "otherId": 8
+        }
+      ],
+      "hostBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ],
+      "renderedBalls": [
+        {
+          "id": 7,
+          "x": 112,
+          "y": 230
+        },
+        {
+          "id": 8,
+          "x": 201,
+          "y": 220
+        }
+      ]
+    }
+  ]
+}
