@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const {execFileSync}=require('node:child_process');
+const {verifyFrozenCheckout}=require('./verify-frozen-checkout.cjs');
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const QA='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const QA_REF='integration/cc001-r17-w11-qa-freeze-20261030';
@@ -75,11 +76,12 @@ function run(argv){
  const head=parseLsTree(git(['ls-tree','-rz','--full-tree',QA]));
  const out=checkTrees(base,head,manifest);
  if(!out.ok)throw Error('SOURCE_TREE_HOLD '+out.errors.join('; '));
+ const checkout=verifyFrozenCheckout(opts.root,head); // W13: actual on-disk bytes, NOT just Git object tree
  const get=p=>git(['show',QA+':'+p]).toString('utf8');
  const metas=head.filter(e=>e.path.startsWith('unity/cc001-r16/')&&e.path.endsWith('.meta')).map(e=>e.path);
  if(uniqueUnityGuids(metas,get)!==90)throw Error('GUID_TOTAL_HOLD');
  for(const c of manifest.expectedDelta.filter(e=>e.path.endsWith('.cs'))){if(/CC001_PHOENIX_DIAGNOSTIC|PhoenixDiagnostic/.test(get(c.path)))throw Error('DIAGNOSTIC_DEFINE '+c.path);}
- return {verdict:'PASS_EXACT_SOURCE_ONLY',nativeWindows:'NOT_ATTESTED',g3:'NOT_ATTESTED',qaRef:QA_REF,qaSha:QA,qaTree:manifest.qaTree,changedFiles:out.changes,originalMeta:out.immutableMeta,newMeta:out.newMeta,totalUniqueGuids:90};
+ return {verdict:'PASS_EXACT_SOURCE_ONLY',nativeWindows:'NOT_ATTESTED',g3:'NOT_ATTESTED',qaRef:QA_REF,qaSha:QA,qaTree:manifest.qaTree,changedFiles:out.changes,originalMeta:out.immutableMeta,newMeta:out.newMeta,totalUniqueGuids:90,worktreeFiles:checkout.checkedFiles,worktreeHashedBytes:checkout.hashedBytes};
 }
 if(require.main===module){try{console.log(JSON.stringify(run(process.argv.slice(2)),null,2));}catch(e){console.error('A71_W12_SOURCE_HOLD: '+e.message);process.exitCode=2;}}
 module.exports={RC1,QA,QA_REF,MANIFEST_BLOB,blobHash,readManifest,parseLsTree,checkTrees,requireFrozenRef,uniqueUnityGuids,parseArgs,run};
