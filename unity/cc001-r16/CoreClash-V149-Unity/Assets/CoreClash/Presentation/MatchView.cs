@@ -9,7 +9,7 @@ namespace CoreClash.Presentation
     {
         void RenderMatch()
         {
-            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback);
+            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,NetworkLink!=null&&!NetworkLink.IsAuthority?remoteBallSmoother:null);
             if(layout.CompactLandscape){RenderCompactLandscape();return;}
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}

@@ -16,10 +16,13 @@ namespace CoreClash.Presentation
         static string Mark(BallDefinition definition)=>definition==null?"?":identity?.Mark(definition.id)??"?";
 
         public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay)
+            => Render(board,ball,definition,replay,ball.x,ball.y);
+
+        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay, float x, float y)
         {
             float scale = board.width / 540f;
             float radius = ball.radius * scale;
-            var point = new Vector2(board.x + ball.x * scale, board.y + ball.y * scale);
+            var point = new Vector2(board.x + x * scale, board.y + y * scale);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
             Color color = definition == null ? Color.white : Draw.Hex(definition.color);
