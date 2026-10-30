@@ -61,12 +61,28 @@ function audit(s, sources = Object.keys(names)){
   gate('W11_REVISION_FORWARD_AND_STALE_GUARD',
     has('ngo',/adapter\.Apply\(packet,JsonUtility\.FromJson<GameState>,out var reason\)/) &&
     has('ngo','app.ReceiveNetworkState(adapter.State,revision)') &&
-    has('app',/ReceiveNetworkState\(GameState state,int snapshotRevision=-1\)/) &&
+    has('app',/ReceiveNetworkState\(GameState state,int snapshotRevision\)/) &&
     has('app','remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision)') &&
     has('smooth',/snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision\)return/) &&
     has('smooth',/public void Reset\(\)\s*\{[^}]*lastSnapshotRevision=-1;/) &&
     has('smooth','lastSnapshotRevision=snapshotRevision;'),
     'Accepted Protocol149 revision propagates into client visual cache, rejecting duplicate/old samples');
+  gate('W12_FREEZE_EARLY_REVISION_ADMISSION',
+    has('smooth',/IsFreshRevision\(int previous,int incoming\)[\s\S]{0,100}incoming>0&&incoming>previous/) &&
+    has('app',/remoteLastEventId=remoteLastRevision=0;/) &&
+    (()=>{const app=s.app||'';
+      const guard=app.indexOf('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;');
+      const cursor=app.indexOf('remoteLastEventId=latestEventId;',guard);
+      const authority=app.indexOf('Simulation.State=state;',guard);
+      const observe=app.indexOf('remoteBallSmoother.Observe(',guard);
+      return guard>=0&&cursor>guard&&authority>guard&&observe>guard;})(),
+    'Discard stale/unversioned snapshot before event cursor, visual pose or authoritative client state updates');
+  gate('W12_FREEZE_4HZ_SMOOTHING',
+    has('smooth',/MaxDuration\s*=\s*0\.25f/) &&
+    has('smooth',/Math\.Min\(MaxDuration\s*,\s*now-lastPacket\)/) &&
+    has('ntests','NetworkSnapshotRate.Interval') &&
+    has('smoothtests',/250ms|0\.25f|4Hz/),
+    '4Hz visual interpolation duration and managed test source are present, not runtime proof');
   gate('SHORT_PORTAL_SNAP',has('smooth',/e\.kind\s*==\s*"PORTAL"/) &&
     has('smooth','instantBallIds.Contains(ball.id)') &&
     has('app','RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,') &&
