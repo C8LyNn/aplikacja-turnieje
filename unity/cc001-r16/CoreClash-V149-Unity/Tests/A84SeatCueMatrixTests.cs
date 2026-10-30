@@ -111,6 +111,47 @@ public static partial class Program
             });
         }
 
+        // W13: hotseat mode MUST remain absolute player wording, even if a stale
+        // network connectivity flag or remembered local seat is supplied by UI.
+        // 2 active x 2 local identities x 2 connectivity flags x 2 bonus = 16.
+        foreach(int active in new[]{0,1})
+        foreach(int local in new[]{0,1})
+        foreach(bool connected in new[]{false,true})
+        foreach(bool bonus in new[]{false,true})
+        {
+            Test($"A84 W13 hotseat owner={active} local={local} connected={connected} bonus={bonus}",()=>{
+                var sim=Sim();var s=sim.State;s.turn=active;
+                s.phase=MatchPhase.Aiming;s.bonusPending=bonus;
+                int revision=s.revision,serial=s.actionSerial;
+                var title=LocalTurnPresentation.Status(s,local,false,connected);
+                var compact=LocalTurnPresentation.CompactStatus(s,local,false,connected);
+                var hint=LocalTurnPresentation.ActionHint(s,local,false,connected,true,30,0,"DRAG FROM LAUNCHER");
+                var message=LocalTurnPresentation.ActionMessage(s,local,false,connected,true,30,0,"DRAG FROM LAUNCHER","");
+                True(title.Contains("PLAYER "+(active+1)));
+                True(title.Contains(bonus?"BONUS SHOT":"AIMING"));
+                False(title.Contains("YOUR"),"hotseat must not claim relative remote identity");
+                False(title.Contains("WAITING FOR CONNECTION"),"hotseat cannot be offline");
+                Eq("P"+(active+1)+(bonus?" BONUS":" AIM"),compact);
+                Eq("RELEASE TO LAUNCH",hint);
+                Eq("RELEASE TO LAUNCH",message);
+                Eq(revision,s.revision);Eq(serial,s.actionSerial);
+            });
+        }
+
+        // W13: draw has no local winner or actionable hint on either LAN seat.
+        // 2 local x connected/offline = 4 cases.
+        foreach(int local in new[]{0,1})
+        foreach(bool connected in new[]{false,true})
+        {
+            Test($"A84 W13 draw local={local} connected={connected}",()=>{
+                var sim=Sim();var s=sim.State;s.phase=MatchPhase.Over;s.winner=-1;
+                Eq("MATCH COMPLETE / DRAW",LocalTurnPresentation.Status(s,local,true,connected));
+                Eq("DRAW",LocalTurnPresentation.CompactStatus(s,local,true,connected));
+                Eq("MATCH COMPLETE",LocalTurnPresentation.ActionHint(s,local,true,connected,true,50,0,"DRAG FROM LAUNCHER"));
+                Eq("MATCH COMPLETE",LocalTurnPresentation.ActionMessage(s,local,true,connected,true,50,0,"DRAG FROM LAUNCHER",staleNotice));
+            });
+        }
+
         Test("A84 W12 no match state is never actionable",()=>{
             Eq("WAITING FOR MATCH",LocalTurnPresentation.Status(null,1,true,false));
             Eq("WAIT",LocalTurnPresentation.CompactStatus(null,1,true,false));
