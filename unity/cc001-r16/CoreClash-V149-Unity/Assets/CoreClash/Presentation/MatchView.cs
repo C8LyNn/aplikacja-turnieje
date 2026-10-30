@@ -43,8 +43,9 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(0,y,w,24),hint,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);
             if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
             else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
-            else if(notice.Length>0)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
-            else Draw.Text(new Rect(0,y+27,w,38),state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.",12,Draw.Muted);
+            else Draw.Text(new Rect(0,y+27,w,38),SecondaryMatchHelp.Text(state,
+                NetworkLink==null?-1:NetworkLink.LocalOwner,NetworkLink!=null,
+                NetworkLink==null||NetworkLink.IsConnected,CanChoose,notice),12,Draw.Muted);
             GUI.EndScrollView();
         }
         // Compact phone landscape does not use the 810-unit desktop scroll view.
