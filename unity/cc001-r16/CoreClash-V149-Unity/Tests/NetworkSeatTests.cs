@@ -5,6 +5,11 @@ public static partial class Program
 {
     static void NetworkSeatTests()
     {
+        Test("R17-W9 moving snapshots follow the 20 Hz network tick cadence",()=>{
+            Near(.05f,NetworkSnapshotCadence.For(MatchPhase.Moving),.0001f);
+            Near(.25f,NetworkSnapshotCadence.For(MatchPhase.Aiming),.0001f);
+            True(NetworkSnapshotCadence.For(MatchPhase.Moving)<NetworkSnapshotCadence.For(MatchPhase.Aiming));
+        });
         Test("LAN approval reserves the sole remote seat before connection completes",()=>{
             var seat=new LanSeat();False(seat.TryReserve(0,0));True(seat.TryReserve(11,0));
             False(seat.TryReserve(12,1));False(seat.Commit(12,1));True(seat.Commit(11,1));

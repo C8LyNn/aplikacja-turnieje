@@ -5,6 +5,31 @@ public static partial class Program
 {
     static void PresentationTests()
     {
+        Test("R17-W9 network turn text is relative to the local player",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;s.State.bonusPending=false;
+            Eq("TURN 1 / 50     PLAYER 1  /  OPPONENT SHOT",MatchPerspective.TurnText(s.State,1,true));
+            s.State.turn=1;Eq("TURN 1 / 50     PLAYER 2  /  YOUR SHOT",MatchPerspective.TurnText(s.State,1,true));
+            s.State.bonusPending=true;Eq("TURN 1 / 50     PLAYER 2  /  YOUR BONUS SHOT",MatchPerspective.TurnText(s.State,1,true));
+            Eq("PLAYER 2 · YOU",MatchPerspective.PlayerLabel(1,1,true));
+            Eq("PLAYER 1",MatchPerspective.PlayerLabel(0,1,true));
+        });
+        Test("R17-W9 P2 perspective puts the local launcher at the bottom and round-trips input",()=>{
+            Near(853f,MatchPerspective.ViewY(47f,1),.001f);
+            Near(47f,MatchPerspective.SimulationY(853f,1),.001f);
+            Near(47f,MatchPerspective.ViewY(47f,0),.001f);
+            Near(853f,MatchPerspective.SimulationY(853f,0),.001f);
+        });
+        Test("R17-W10 P2 bottom launcher drag maps into canonical owner-1 forward command",()=>{
+            var gesture=new CoreClash.Input.LaunchGesture();
+            float start=MatchPerspective.SimulationY(853f,1);
+            float destination=MatchPerspective.SimulationY(753f,1);
+            Near(47f,start,.001f);Near(147f,destination,.001f);
+            gesture.Begin(7,270f,start);gesture.Move(7,270f,destination);
+            True(gesture.Release(7,1,1,"normal",0,out var command));
+            Eq(1,command.owner);
+            True(command.dy>0,"P2 drag toward screen top must launch toward canonical bottom");
+            Near(0f,command.dx,.001f);
+        });
         Test("new active player cannot inherit a ball outside their deck",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);s.State.turn=1;Eq("normal",BallSelection.ForTurn(s,"agony"));});
         Test("exhausted selection falls back to unlimited Standard",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);Eq("agony",BallSelection.ForTurn(s,"agony"));s.State.players[0].stock.First(x=>x.id=="agony").remaining=0;Eq("normal",BallSelection.ForTurn(s,"agony"));});
         foreach(var size in new[]{(1280,900),(960,600),(1920,1080),(390,844),(844,390)}){
