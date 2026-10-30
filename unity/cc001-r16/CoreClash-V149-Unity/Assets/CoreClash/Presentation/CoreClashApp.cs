@@ -38,6 +38,7 @@ namespace CoreClash.Presentation
         Vector2 setupScroll,presetScroll,rosterScroll,infoScroll,matchScroll,trayScroll;
         List<string> custom=new List<string>();
         DeckDefinition[] decks;
+        int ViewOwner=>NetworkLink!=null?NetworkLink.LocalOwner:0;
         bool CanChoose=>Simulation.State.phase==MatchPhase.Aiming&&(NetworkLink==null||(NetworkLink.IsConnected&&Simulation.State.turn==NetworkLink.LocalOwner));
         void Awake(){Initialize();}
         public void Initialize()
@@ -91,7 +92,8 @@ namespace CoreClash.Presentation
             if(p.canceled){gesture.Cancel(p.id);return;}
             if(boardInspection){gesture.Active=false;if(p.down)InspectAt(p.position);return;}
             if(!CanChoose||Time.frameCount<=pointerReadyFrame){gesture.Active=false;return;}
-            Vector2 screen=UiViewport.PointerToLogical(p.position),world=new Vector2((screen.x-board.x)*540/board.width,(screen.y-board.y)*540/board.width);
+            Vector2 screen=UiViewport.PointerToLogical(p.position),viewWorld=new Vector2((screen.x-board.x)*540/board.width,(screen.y-board.y)*540/board.width);
+            Vector2 world=new Vector2(viewWorld.x,MatchPerspective.SimulationY(viewWorld.y,ViewOwner));
             if(p.down&&board.Contains(screen)){
                 var near=Simulation.State.balls.Where(b=>!b.dead&&!b.banished).OrderBy(b=>(b.x-world.x)*(b.x-world.x)+(b.y-world.y)*(b.y-world.y)).FirstOrDefault();replayId=0;
                 if(near!=null&&Vector2.Distance(world,new Vector2(near.x,near.y))<=near.radius+10){if(Simulation.CanReplay(near)){replayId=near.id;gesture.Begin(p.id,near.x,near.y);}else ShowRuntimeBallDetails(near.id);}
@@ -115,7 +117,8 @@ namespace CoreClash.Presentation
         bool InspectAt(Vector2 position)
         {
             var screen=UiViewport.PointerToLogical(position);if(!board.Contains(screen))return false;
-            var ball=BallInspection.At(Simulation.State,(screen.x-board.x)*540/board.width,(screen.y-board.y)*540/board.width);
+            float viewX=(screen.x-board.x)*540/board.width,viewY=(screen.y-board.y)*540/board.width;
+            var ball=BallInspection.At(Simulation.State,viewX,MatchPerspective.SimulationY(viewY,ViewOwner));
             if(ball==null)return false;ShowRuntimeBallDetails(ball.id);return true;
         }
         public void SetDeveloperOverlay(bool value){DeveloperOverlay=value;gesture.Active=false;Debug.Log("CORE_CLASH_DEVELOPER_OVERLAY "+value);}
