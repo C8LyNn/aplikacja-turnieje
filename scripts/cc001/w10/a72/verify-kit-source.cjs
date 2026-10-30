@@ -42,9 +42,10 @@ function selfTest(){
   fs.writeFileSync(path.join(folder,REQUIRED[0]),data[REQUIRED[0]]);
   fs.unlinkSync(path.join(folder,REQUIRED[1]));
   check(()=>assert.throws(()=>verify(folder,manifest),/MISSING_KIT_FILE/));
-  fs.symlinkSync(path.join(folder,REQUIRED[0]),path.join(folder,REQUIRED[1]));
+  // Directory fixture is portable to ordinary Windows users without symlink privileges.
+  fs.mkdirSync(path.join(folder,REQUIRED[1]));
   check(()=>assert.throws(()=>verify(folder,manifest),/UNSAFE_KIT_FILE/));
-  fs.unlinkSync(path.join(folder,REQUIRED[1]));
+  fs.rmdirSync(path.join(folder,REQUIRED[1]));
   fs.writeFileSync(path.join(folder,REQUIRED[1]),data[REQUIRED[1]]);
   check(()=>assert.equal(verify(folder,manifest).status,'PASS_KIT_BYTES_ONLY'));
   console.log(JSON.stringify({suite:'A72-W11-operator-kit-integrity',passed,failed:0}));
