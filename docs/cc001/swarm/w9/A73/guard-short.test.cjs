@@ -16,15 +16,20 @@ const {verify}=require(copy);
 const originalCwd=process.cwd();process.chdir(tmp);
 git('switch','-c','net',base);put(root+'Assets/CoreClash/Networking/NetworkGameSession.cs','new');put(root+'Tests/NetworkSeatTests.cs','new');const a=commit('network');
 git('switch','-c','ui',base);put(root+'Assets/CoreClash/Presentation/MatchView.cs','new');put(root+'Tests/PresentationTests.cs','new');const b=commit('ui');
-const m={schemaVersion:1,baseSha:base,candidates:[{owner:'A31',ref:'net',expectedSha:a,allowedPaths:[root+'Assets/CoreClash/Networking/NetworkGameSession.cs',root+'Tests/NetworkSeatTests.cs'],requiredTests:[root+'Tests/NetworkSeatTests.cs']},{owner:'A20',ref:'ui',expectedSha:b,allowedPaths:[root+'Assets/CoreClash/Presentation/MatchView.cs',root+'Tests/PresentationTests.cs'],requiredTests:[root+'Tests/PresentationTests.cs']}]};
+function pins(ref,ps){return Object.fromEntries(ps.map(p=>[p,git('rev-parse',ref+':'+p)]));}
+const m={schemaVersion:1,baseSha:base,candidates:[{owner:'A31',ref:'net',expectedSha:a,allowedPaths:[root+'Assets/CoreClash/Networking/NetworkGameSession.cs',root+'Tests/NetworkSeatTests.cs'],requiredTests:[root+'Tests/NetworkSeatTests.cs'],expectedBlobs:pins('net',[root+'Assets/CoreClash/Networking/NetworkGameSession.cs',root+'Tests/NetworkSeatTests.cs'])},{owner:'A20',ref:'ui',expectedSha:b,allowedPaths:[root+'Assets/CoreClash/Presentation/MatchView.cs',root+'Tests/PresentationTests.cs'],requiredTests:[root+'Tests/PresentationTests.cs'],expectedBlobs:pins('ui',[root+'Assets/CoreClash/Presentation/MatchView.cs',root+'Tests/PresentationTests.cs'])}]};
 function test(name,fn){fn();console.log('PASS '+name);}
 const pre=[git('rev-parse','main'),git('rev-parse','net'),git('rev-parse','ui')];
-test('disjoint refs merge-tree',()=>{const r=verify(m);assert.equal(r.verdict,'PASS_SOURCE_SCOPE_ONLY');assert.equal(r.dry[0].exit,0);});
+test('disjoint refs merge-tree',()=>{const r=verify(m);assert.equal(r.verdict,'PASS_SOURCE_SCOPE_ONLY');assert.equal(r.pairwiseMergeTree[0].exitCode,0);});
 test('head pinning',()=>{const v=structuredClone(m);v.candidates[0].expectedSha=b;assert.equal(verify(v).verdict,'HOLD');});
 test('allowlist',()=>{const v=structuredClone(m);v.candidates[0].allowedPaths.shift();assert.equal(verify(v).verdict,'HOLD');});
 test('required regression tests',()=>{const v=structuredClone(m);v.candidates[0].requiredTests=[root+'Tests/PresentationTests.cs'];assert.equal(verify(v).verdict,'HOLD');});
 test('overlap',()=>{const v=structuredClone(m);v.candidates[1]={...v.candidates[0]};assert.equal(verify(v).verdict,'HOLD');});
 git('switch','-c','bad',base);put(root+'Tests/Program.cs','unsafe');put(root+'Tests/NetworkSeatTests.cs','new');const bad=commit('bad');
-test('protected path',()=>{const v=structuredClone(m);v.candidates=[{owner:'A31',ref:'bad',expectedSha:bad,allowedPaths:[root+'Tests/Program.cs',root+'Tests/NetworkSeatTests.cs'],requiredTests:[root+'Tests/NetworkSeatTests.cs']}];assert.equal(verify(v).verdict,'HOLD');});
+test('protected path',()=>{const v=structuredClone(m);v.candidates=[{owner:'A31',ref:'bad',expectedSha:bad,allowedPaths:[root+'Tests/Program.cs',root+'Tests/NetworkSeatTests.cs'],requiredTests:[root+'Tests/NetworkSeatTests.cs'],expectedBlobs:pins('bad',[root+'Tests/Program.cs',root+'Tests/NetworkSeatTests.cs'])}];assert.equal(verify(v).verdict,'HOLD');});
+test('wrong blob pin rejected',()=>{const v=structuredClone(m);v.candidates[0].expectedBlobs[root+'Tests/NetworkSeatTests.cs']='f'.repeat(40);assert.equal(verify(v).verdict,'HOLD');});
+test('missing blob pin rejected',()=>{const v=structuredClone(m);delete v.candidates[0].expectedBlobs[root+'Tests/NetworkSeatTests.cs'];assert.equal(verify(v).verdict,'HOLD');});
+test('extra blob pin rejected',()=>{const v=structuredClone(m);v.candidates[0].expectedBlobs[root+'Tests/Program.cs']=git('rev-parse','main:'+root+'Tests/Program.cs');assert.equal(verify(v).verdict,'HOLD');});
+test('duplicate owner rejected',()=>{const v=structuredClone(m);v.candidates[1].owner=v.candidates[0].owner;assert.equal(verify(v).verdict,'HOLD');});
 test('original refs preserved',()=>assert.deepEqual(pre,[git('rev-parse','main'),git('rev-parse','net'),git('rev-parse','ui')]));
 }finally{process.chdir(here);fs.rmSync(tmp,{recursive:true,force:true});}
