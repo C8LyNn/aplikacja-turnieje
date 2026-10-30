@@ -1,6 +1,8 @@
 # CC-001 R17-W11 — A72 EXACT-SHA Windows Player operator handoff
 
-**Status:** selected A70 candidate [PR #207](https://github.com/C8LyNn/aplikacja-turnieje/pull/207), **not yet native-built**. This kit is SHA-locked; old W10 one-click kit remains **ALT_HOLD**. Build does not authorize merge, deployment, release or acceptance.
+**Status:** selected A70 candidate [PR #207](https://github.com/C8LyNn/aplikacja-turnieje/pull/207), **not yet native-built**.
+
+**STOP if moving PR head:** the #207 HEAD was observed advancing from the frozen `173273...` to `8fce19...` during W11. The current W11 operator remains pinned to `173273...` and MUST fail closed on any moved remote ref. A70/HQ must explicitly re-freeze the target SHA and A72 update both Node and PowerShell guards before any native build. Do not bypass the check. This kit is SHA-locked; old W10 one-click kit remains **ALT_HOLD**. Build does not authorize merge, deployment, release or acceptance.
 
 - Selected branch: `integration/cc001-r17-w11-multiplayer-qa-candidate-20261030`
 - **Selected HEAD only:** `173273122c11cbf738e8b954e32506a6196fe8ec`
@@ -10,7 +12,7 @@
 
 ## Before build
 
-The W11 source readiness gate was independently emulated against exact #207 C# blob readbacks and satisfied **5/5 static checks** (NGO revision admission, selected A34 smoother, visual-vs-authoritative pose, no post-shot MatchView power strip, no Phoenix debug define). This is **source shape**, not Unity compilation or PC1/PC2 gameplay proof.
+The latest W11 six-gate source-readiness check was independently emulated against #207 C# blob readbacks at `8fce19b9fefb05fb8e781417af7455749979d93e` and satisfied **6/6 static checks** (NGO revision admission, selected A34 smoother, visual-vs-authoritative pose, no post-shot MatchView power strip, no Phoenix debug define). This is **source shape**, not Unity compilation or PC1/PC2 gameplay proof.
 
 The builder and PowerShell launcher now both **reject every ref/SHA other than the exact A70 W11 selected values above**, and refuse to build on Linux or if Unity/Node prerequisites fail. They still verify RC1 ancestry, protected source blobs, before/after raw materialization, compiler defines, original Unity build report, source ledger and full Windows Player manifest.
 
@@ -25,7 +27,7 @@ node .\build-w10-rc1.cjs --self-test
 node .\verify-w10-player.cjs --self-test
 ```
 
-3. Run one exact candidate build with the new W11 script (or the new `URUCHOM_W11_A70_207.cmd` convenience launcher):
+3. Run one exact candidate build with the new W11 script (or the new `URUCHOM_W11_PR207.cmd` convenience launcher):
 
 ```powershell
 .\Start-W10-WindowsBuild.ps1 -IntegrationRef 'integration/cc001-r17-w11-multiplayer-qa-candidate-20261030' -CandidateSha '173273122c11cbf738e8b954e32506a6196fe8ec'
