@@ -34,3 +34,11 @@ Exit `0` = pairwise source-only PASS; `1` = explicit HOLD; `2` = incomplete Git 
 **NOT_RUN:** this CLI on actual `C8LyNn/aplikacja-turnieje` full Git checkout (runtime DNS `git ls-remote` returned exit128: GitHub host unavailable). No real A41+A83 pairwise Git merge-tree has been executed on the true repository objects; only GitHub remote ancestry/path/blob precheck was performed. Managed .NET9, Unity 6000.4.0f1, Windows Player and independent PC1–PC2 remain outside A73 scope.
 
 **Statuses:** A41 #228 **ALT_HOLD**, A83 #229 **DEV_ONLY/HOLD**, A70 selection **NOT_GRANTED**. Freeze SHA immutable; W11 build/QA G3/G4 **HOLD** until A72 native Windows artifact and A60/A31 physical evidence. Final W13 integration after W11 QA only. V148 Mitosis, Furnace FIRE periodic damage and R16 HP unchanged.
+
+## GitHub actual two-owner source tree union — source-only execution
+
+Beyond the synthetic Git test, A73 independently read the **complete untruncated GitHub recursive trees** for the frozen W11 source, A41 #228 and A83 #229, confirming that **all non-author-changed files were byte-identical to freeze**. Then called GitHub's Git Data API `create_tree` with the EXACT frozen full base tree and all six pinned author Git blob SHA-1s (all regular `100644`), producing the **unreferenced Git tree object `8f2571b1c7860d81ee3df035c06327d9e0e313ef`**.
+
+Independent full recursive readback of that resulting tree established **6/6 chosen changed leaf blobs match authors and 1753/1753 unchanged frozen source blobs are preserved**, original source-tree file count 1758 → preview 1759 (one new A41 documentation file), **0 other changes, 0 missing sources**. The exact original inputs and outcomes are stored in `github-tree-union-evidence.json`.
+
+This is a **real GitHub Git tree content-union preview** using actual candidate blob objects, *not* a `git merge-tree` invocation on real A41/A83 commits and *not* a Git merge commit. It does not check C# compile, physics, network semantics or PC1–PC2; no ref was moved and no integration was performed. A70 must still decide selection after W11 native QA closure.
