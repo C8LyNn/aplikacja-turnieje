@@ -39,3 +39,23 @@ It is intentionally **not compatible with the moving** `integration/cc001-r17-w1
 A73 draft PR #177 also provides a pinned-source selection guard. **A70 chooses one primary intake process**; this A71 tool is an independently authored optional cross-check / `ALT_HOLD`, **not another mandatory build gate**. No auto-import of A71 PR #159 into frozen QA, RC1 or `main`; no CI changes. A72 owns actual Windows Unity 6000.4.0f1 build, A60/A31 own original 2-PC QA, A70 owns integration and final SHA selection.
 
 **Owner decisions:** V148 Mitosis, Furnace FIRE-zone-only with periodic damage, R16 HP. Frozen RC1 game/catalog/ability/physics/Protocol149 protections remain intact. No release until actual native evidence.
+
+
+## W13 integrity fix — require the actual clean QA build checkout
+
+**Concrete false-admission risk fixed:** the W12 gate verified the frozen Git objects but could return `PASS_EXACT_SOURCE_ONLY` when the operator's **actual checked-out files** had uncommitted/ignored edits or were on another HEAD. W13 now calls `verify-frozen-checkout.cjs` as a **mandatory step inside** `w11-qa-freeze-gate.cjs`. A read-only Git tree is not by itself proof of the source compiled by Unity.
+
+Use **two separate directories**: one checkout of the optional A71 PR #159 tooling, and a distinct freshly staged, **clean/detached** checkout of the QA freeze SHA. The latter must contain the frozen ref and both original Git commit objects.
+
+```sh
+# From any working directory, after separately preparing both checkouts:
+node /path/to/A71-tooling/scripts/cc001/w12/a71/w11-qa-freeze-gate.cjs \
+  --root /path/to/QA-clean-frozen-checkout \
+  --ref 3f972cdbaea6289a7e33ce608f5d3256cfdab0a3
+```
+
+**W13 fail-closed conditions:** QA worktree `HEAD` exactly equals the source SHA; `git status --porcelain -z` is clean (including staged, modified and untracked); no ignored/untracked imported Unity code in `Assets`, `Packages`, `ProjectSettings`, `Tests`, `BuildTools`; no `assume-unchanged` or `skip-worktree` tracked paths; all **1758 expected tracked files** are regular files confined to the checkout and each on-disk Git blob SHA-1 matches the pinned frozen tree (including byte-identical assets). POSIX executable mode is checked; on Windows executable mode is validated by Git tree+index and file bytes, not the Windows filesystem permission bit.
+
+**Actual new executable regression suite:** `node --test scripts/cc001/w12/a71/verify-frozen-checkout.test.cjs` **17/17 PASS, exit 0** using real disposable Git repositories (including dirty staging, ignored source, hidden index flags, HEAD drift, byte mismatch). Both new source and test files passed native Node v22.16.0 syntax checks. Original W12 26/26 remains a separately previously executed suite, **not rerun in this W13 execution**. A final full `run()` positive invocation against the private exact frozen source checkout is still **NOT_RUN**; therefore no real W11 Unity source-checkout PASS is claimed.
+
+This is a read-only source preflight to use *before* launching Unity on the actual QA checkout. It is **not** a runnable Windows Unity player, compiled C# test, hash receipt for EXE/DLL, cross-machine parity proof or an A60 G3 verdict. The W13 change remains optional `ALT_HOLD` until A70 explicitly selects A71 source tooling alongside/beside A73 #177; do not install a second mandatory duplicate gate.
