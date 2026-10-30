@@ -38,3 +38,17 @@ Each v2 JSON record declares `schema`, `sourceSha`, `sourceProfile`, `evidence.c
 This tool **does not capture data or authenticate evidence**. A PASS from generated/synthetic or operator-labelled JSON **does not establish any real PC1–PC2 result**. `hostBalls`, event cursor and actual P2 `RemoteBallSmoother.TryGetPosition` output need a separate **authorized** trusted collector. If the collector misses accepted revisions/cursors, the checker cannot infer continuity and returns HOLD. For full W11 native G3, A72 must build original Windows Player from frozen SHA and A60/A31 must independently run/verify original PC1+PC2 Player binaries and logs/videos. A70 alone selects future integration; W13 PR cannot be used to change QA-freeze or approve main/release.
 
 **Owner decisions untouched:** Mitosis exactly V148; Furnace only FIRE zone and periodic damage; HP as R16; preserve RC1, Protocol149, all source and artwork. This update changes only the existing W12 A82 isolated Node CLI, tests, README, synthetic fixture, plus one new synthetic fixture.
+
+## W14 correction — valid phase after STOP, not fake teleport errors
+
+A82 reproduced a real **validator false FAIL** on the byte-identical W13 CLI: a DEV source `SWAP` sample captured at `phase:"Aiming"` was rejected solely because the analyzer required `phase:"Moving"`. The **frozen authoritative** `GameState.cs` explicitly declares `MatchPhase { Aiming, Moving, Over }`; `GameSimulation.Step` executes OnStop while moving, and `TurnSystem.ResolveAction` may later set `phase=MatchPhase.Aiming` before an accepted PC2 snapshot arrives. Victory may instead yield `Over`.
+
+W14 permits **exactly** the three source-defined phase strings `Moving`, `Aiming`, `Over`; malformed, mixed-case or missing values remain hard FAIL. Phase acceptance does not change the per-SHA capability: frozen W11 **still explicitly snaps only PORTAL**; newer unmerged #207 additionally snaps TELEPORT and both SWAP participants. Aiming does not excuse incorrect rendered positions or missing SWAP target.
+
+```sh
+node --test scripts/cc001/w12/a82/check-displacement-trace.test.cjs
+node scripts/cc001/w12/a82/check-displacement-trace.cjs --expected-sha 87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c scripts/cc001/w12/a82/example.poststop-aiming.synthetic.json
+```
+
+**W14 native Node22 test result:** 63/63 PASS exit0 (47 prior + 16 new), code+test exact tested local Git blobs `e5a1985d1231e6260c008e30bd901d0b1b5d8616` and `024bad7034440a4fffba1a88fae03cfa05ceb765`. The new fixture is **synthetic**, not a recording from PC2; `physicalG3Status=NOT_ASSESSED`. No Unity Windows build or physical two-PC run was performed by A82.
+
