@@ -67,6 +67,27 @@ public static partial class Program
             p.Observe(converted,1.05f);
             True(p.TryGetPosition(12,1.05f,out var x,out _));Near(130,x);
         });
+        Test("A34 W11 4Hz dense snapshot still moves before the next packet",()=>{
+            // 4 Hz A41 moving fallback: 250ms between authoritative states.
+            // The former 200ms interpolation cap reached 200 too early and
+            // visibly held for the last 50ms on high-density boards.
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f);
+            p.Observe(A34Snapshot(1,40,200,100),1.25f);
+            True(p.TryGetPosition(12,1.45f,out var x,out _));
+            Near(189.6f,x,.15f);
+            True(x<200,"dense 4Hz smoothing plateaued 50ms early");
+            True(p.TryGetPosition(12,1.50f,out x,out _));Near(200,x,.01f);
+            True(p.TryGetPosition(12,100f,out x,out _));Near(200,x,.01f);
+        });
+        Test("A34 W11 8Hz moving cadence preserves midpoint and canonical endpoint",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f);
+            p.Observe(A34Snapshot(1,25,200,100),1.125f);
+            True(p.TryGetPosition(12,1.1875f,out var x,out _));
+            Near(150,x,.1f);
+            True(p.TryGetPosition(12,1.25f,out x,out _));Near(200,x,.01f);
+        });
         Test("A34 20Hz cadence converges without frame extrapolation",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1);
