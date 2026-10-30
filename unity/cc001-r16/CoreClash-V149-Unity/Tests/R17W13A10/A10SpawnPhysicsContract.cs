@@ -95,6 +95,29 @@ internal static class A10W13SpawnPhysicsContract
         return (sim,b,c);
     }
 
+    // W14 design probe: "backwards" stays inside the screen/world (30px).
+    // Current V148-derived source allows the gesture; any future owner-selected
+    // fix may either reject it or produce an intentional nonlateral direction.
+    private static (bool accepted,float vx,float vy,float power) ProbeBackwards(int owner,float dx)
+    {
+        var sim=Sim(owner);
+        var gesture=Drag(owner,dx,-30f);
+        Assert(gesture.Release(17,owner,sim.State.turnNumber,"normal",0,out var command)
+            && command!=null,"30-unit backward gesture unexpectedly rejected by input");
+        Assert(owner==0?command.dy>0:command.dy<0,
+            "Probe is not actually directed behind the player's launcher");
+        bool accepted=sim.TryCommand(command,out _);
+        if(!accepted)
+        {
+            Assert(sim.State.balls.Count==0 && sim.State.phase==MatchPhase.Aiming,
+                "Rejected backward shot changed authoritative state");
+            return (false,0f,0f,command.power);
+        }
+        Assert(sim.State.balls.Count==1,"Accepted backward shot created unexpected ball count");
+        var ball=sim.State.balls.Single();
+        return (true,ball.vx,ball.vy,command.power);
+    }
+
     private static int Main()
     {
         catalog=LoadCatalog();
@@ -233,7 +256,59 @@ internal static class A10W13SpawnPhysicsContract
                 "Rejected moving-phase launch mutated match");
         });
 
-        Console.WriteLine($"A10 W13 AUTHORITATIVE SPAWN CONTRACT: {passed} PASS / {failed} FAIL");
+
+        // W14 owner-decision P1 known issue: a pure backward screen drag with
+        // dx=0 becomes an almost full-right shot due to Atan2(0,-Y)=PI,
+        // then clamping to +1.53589. Tests 01..04 are EXPECTED RED on the
+        // unchanged source. They allow either reject-or-safe, not a prescribed fix.
+        Case("A10-W14-01 RED P1 directly backward never fires hard right",()=>
+        {
+            var shot=ProbeBackwards(0,0);
+            if(shot.accepted)
+                Assert(MathF.Abs(shot.vx)<=shot.power*.10f,
+                    "Source reproduced: neutral backward P1 drag becomes near-max sideways velocity");
+        });
+
+        Case("A10-W14-02 RED P2 directly backward never fires hard right",()=>
+        {
+            var shot=ProbeBackwards(1,0);
+            if(shot.accepted)
+                Assert(MathF.Abs(shot.vx)<=shot.power*.10f,
+                    "Source reproduced: neutral backward P2 drag becomes near-max sideways velocity");
+        });
+
+        Case("A10-W14-03 RED P1 tiny left/right jitter behind launcher is stable",()=>
+        {
+            var a=ProbeBackwards(0,-.001f);
+            var b=ProbeBackwards(0,+.001f);
+            if(a.accepted&&b.accepted)
+                Assert(MathF.Abs(a.vx-b.vx)<=MathF.Max(a.power,b.power)*.20f,
+                    "P1 near-zero horizontal jitter flips between near-max left and right");
+        });
+
+        Case("A10-W14-04 RED P2 tiny left/right jitter behind launcher is stable",()=>
+        {
+            var a=ProbeBackwards(1,-.001f);
+            var b=ProbeBackwards(1,+.001f);
+            if(a.accepted&&b.accepted)
+                Assert(MathF.Abs(a.vx-b.vx)<=MathF.Max(a.power,b.power)*.20f,
+                    "P2 near-zero horizontal jitter flips between near-max left and right");
+        });
+
+        Case("A10-W14-05 positive control forward micro-jitter stays near vertical",()=>
+        {
+            foreach(int owner in new[]{0,1})
+            foreach(float dx in new[]{-.001f,.001f})
+            {
+                var (_,ball,command)=SpawnActual(owner,dx,30f);
+                Assert(MathF.Abs(ball.vx)<=command.power*.10f,
+                    "Forward micro-jitter unexpectedly shoots sideways");
+                Assert(owner==0?ball.vy<0:ball.vy>0,
+                    "Forward micro-jitter reversed world-Y");
+            }
+        });
+
+        Console.WriteLine($"A10 W13+W14 AUTHORITATIVE SPAWN CONTRACT: {passed} PASS / {failed} FAIL");
         return failed==0?0:1;
     }
 }
