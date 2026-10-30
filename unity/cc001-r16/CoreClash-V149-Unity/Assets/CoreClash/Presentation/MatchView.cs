@@ -22,7 +22,7 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
             if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
             Draw.Text(new Rect(0,y,w,18),"YOUR DECK  /  NINE SPECIALS",10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
-            var ids=state.players[state.turn].stock.Select(s=>s.id).ToArray();float cw=(w-16)/3;
+            var ids=LocalDeckContent.StockIds(state,LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner));float cw=(w-16)/3;
             for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
             y+=3*(cardH+8)+4;
             bool normalSelected=selected=="normal";var standard=new Rect(0,y,w,actionH);Draw.Surface(standard,normalSelected?Color.Lerp(Draw.PanelLight,Draw.Owner(state.turn),.14f):Draw.Panel,normalSelected?Draw.Owner(state.turn):Draw.Edge);
@@ -82,7 +82,7 @@ namespace CoreClash.Presentation
                 Draw.Text(Draw.Inset(cards,6),state.resultReason.Length>0?state.resultReason:TurnText(),12,Draw.Gold,TextAnchor.MiddleCenter,true);
             }else{
                 float arrow=44,cardW=106,gap=6;
-                var ids=state.players[owner].stock.Select(s=>s.id).ToArray();
+                var ids=LocalDeckContent.StockIds(state,LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner));
                 float viewW=cards.width-arrow*2-12;
                 float fullW=Math.Max(viewW,ids.Length*(cardW+gap)-gap);
                 float max=Math.Max(0,fullW-viewW);
@@ -107,9 +107,10 @@ namespace CoreClash.Presentation
         }
         void CompactBallCard(Rect r,string id)
         {
-            int owner=Simulation.State.turn,stock=Simulation.Stock(owner,id);
-            var source=BallSelection.Source(Simulation,owner,id);
-            bool picked=id==selected,available=source!=BallSelectionSource.None,canClick=CanChoose&&available;
+            int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
+            var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
+            bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id);
+            bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
             var tint=Draw.Owner(owner);
             Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,tint,.2f):Draw.PanelLight,picked?tint:Draw.Edge);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;
@@ -119,7 +120,7 @@ namespace CoreClash.Presentation
             BallView.Preview(new Rect(r.x+5,r.y+(r.height-orb)/2,orb,orb),Catalog.Ball(id),owner,picked);
             Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(36,r.height-29)),Catalog.Ball(id).name,10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
             bool handReady=source==BallSelectionSource.Hand;
-            Draw.Text(new Rect(r.x+orb+9,r.yMax-19,r.width-orb-13,17),BallSelection.StockLabel(Simulation,owner,id),handReady?9:11,handReady?Draw.Gold:available?tint:Draw.Muted,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(r.x+orb+9,r.yMax-19,r.width-orb-13,17),LocalDeckContent.StockLabel(Simulation,owner,id),handReady?9:11,handReady?Draw.Gold:available?tint:Draw.Muted,TextAnchor.MiddleLeft,true);
         }
         void RenderPhoneTray()
         {
@@ -128,7 +129,7 @@ namespace CoreClash.Presentation
             float w=inner.width,y=inner.y;int owner=Simulation.State.turn;
             Draw.Text(new Rect(inner.x,y,w-128,44),Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(inner.xMax-120,y,120,44),"STANDARD",Draw.Owner(owner),selected=="normal",CanChoose,12))SelectBall("normal");
-            y+=48;float arrow=44,cardW=96,cardH=80;var ids=Simulation.State.players[owner].stock.Select(s=>s.id).ToArray();float viewW=w-arrow*2-12,fullW=ids.Length*(cardW+8)-8,max=Math.Max(0,fullW-viewW);
+            y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.StockIds(Simulation.State,LocalDeckContent.DisplayOwner(owner,NetworkLink==null?(int?)null:NetworkLink.LocalOwner));float viewW=w-arrow*2-12,fullW=ids.Length*(cardW+8)-8,max=Math.Max(0,fullW-viewW);
             if(Draw.Button(new Rect(inner.x,y,arrow,cardH),"<",enabled:trayScroll.x>0,size:25))trayScroll.x=Math.Max(0,trayScroll.x-(cardW+8)*2);
             if(Draw.Button(new Rect(inner.xMax-arrow,y,arrow,cardH),">",enabled:trayScroll.x<max,size:25))trayScroll.x=Math.Min(max,trayScroll.x+(cardW+8)*2);
             trayScroll=Draw.ScrollView(new Rect(inner.x+arrow+6,y,viewW,cardH),trayScroll,new Rect(0,0,fullW,cardH),true);
@@ -160,16 +161,17 @@ namespace CoreClash.Presentation
         }
         void BallCard(Rect r,string id)
         {
-            var d=Catalog.Ball(id);int owner=Simulation.State.turn,stock=Simulation.Stock(owner,id);
-            var source=BallSelection.Source(Simulation,owner,id);
-            bool picked=id==selected,available=source!=BallSelectionSource.None,handReady=source==BallSelectionSource.Hand,canClick=CanChoose&&available,compact=r.height<=80;
+            var d=Catalog.Ball(id);int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner),stock=LocalDeckContent.Remaining(Simulation,owner,id);
+            var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
+            bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id),handReady=source==BallSelectionSource.Hand;
+            bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected,compact=r.height<=80;
             Color team=Draw.Owner(owner);Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,team,.13f):Draw.PanelLight,picked?team:Draw.Edge);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
             float orb=compact?29:45;BallView.Preview(new Rect(r.center.x-orb/2,r.y+7,orb,orb),d,owner,picked);
             Draw.Text(new Rect(r.x+7,r.y+7,44,20),d.hp+" HP",compact?8:10,Draw.Muted);
             Draw.Text(new Rect(r.xMax-36,r.y+7,29,20),handReady?"H":available?"x"+stock:"0",compact?10:12,handReady?Draw.Gold:available?Color.white:Draw.Muted,TextAnchor.MiddleRight,true);
             Draw.Text(new Rect(r.x+5,r.y+(compact?40:58),r.width-10,compact&&handReady?20:compact?35:23),d.name,compact?12:13,available?Color.white:Draw.Muted,TextAnchor.MiddleCenter,true);
-            if(handReady)Draw.Text(new Rect(r.x+5,r.y+(compact?61:81),r.width-10,compact?18:14),BallSelection.StockLabel(Simulation,owner,id),compact?10:9,Draw.Gold,TextAnchor.MiddleCenter,true);
+            if(handReady)Draw.Text(new Rect(r.x+5,r.y+(compact?61:81),r.width-10,compact?18:14),LocalDeckContent.StockLabel(Simulation,owner,id),compact?10:9,Draw.Gold,TextAnchor.MiddleCenter,true);
             else if(!compact)Draw.Text(new Rect(r.x+5,r.y+81,r.width-10,14),available?Cue(id):"OUT OF STOCK",9,Draw.Muted,TextAnchor.MiddleCenter);
             if(!available)Draw.Round(Draw.Inset(r,2),new Color(.025f,.04f,.06f,.58f));
             if(picked)Draw.Round(new Rect(r.x+12,r.yMax-3,r.width-24,2),team);
