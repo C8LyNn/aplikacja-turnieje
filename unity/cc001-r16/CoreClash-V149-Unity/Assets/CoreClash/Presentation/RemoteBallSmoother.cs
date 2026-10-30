@@ -118,7 +118,9 @@ namespace CoreClash.Presentation
             foreach(var id in stale)poses.Remove(id);
             action=state.actionSerial;lastFrame=state.frame;
             lastPacket=now;hasPacket=true;
-            LastBlendSeconds=duration;
+            // On action/frame/gap discontinuity every pose snaps immediately;
+            // do not report a fictitious visual blend to P2 QA telemetry.
+            LastBlendSeconds=snap?0f:duration;
             if(snapshotRevision>=0)lastSnapshotRevision=snapshotRevision;
         }
         public bool TryGetPosition(int id,float now,out float x,out float y)
