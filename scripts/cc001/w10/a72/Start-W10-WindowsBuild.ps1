@@ -18,49 +18,12 @@ try {
  $version=(& $node --version).Trim()
  if($LASTEXITCODE -ne 0 -or $version -notmatch '^v22\.'){throw ('Node22 required; got '+$version)}
  if(-not (Test-Path -LiteralPath $UnityExe -PathType Leaf)){throw ('Missing Unity Editor: '+$UnityExe)}
- if($UnityExe.Replace('/','\') -notmatch '\\6000\.4\.0f1\\Editor\\Unity\.exe
- $root=Join-Path $OutputRoot ('CC001_W11_A72_'+(Get-Date -Format 'yyyyMMdd_HHmmss')+'_'+[Guid]::NewGuid().ToString('N').Substring(0,8))
- if(Test-Path -LiteralPath $root){throw 'Operator output folder already exists'}
- $builder=Join-Path $PSScriptRoot 'build-w10-rc1.cjs'
- if(-not (Test-Path -LiteralPath $builder -PathType Leaf)){throw 'Missing main builder'}
- $kitVerifier=Join-Path $PSScriptRoot 'verify-kit-source.cjs'
- if(-not (Test-Path -LiteralPath $kitVerifier -PathType Leaf)){throw 'Missing A72 frozen kit SHA256 verifier'}
- $kitSelftest=(& $node $kitVerifier --self-test)
- if($LASTEXITCODE -ne 0){throw ('A72 kit verifier self-test FAILED: '+($kitSelftest|Out-String))}
- $kitResult=(& $node $kitVerifier --check)
- if($LASTEXITCODE -ne 0){throw ('A72 kit SHA256 or frozen-source manifest mismatch: '+($kitResult|Out-String))}
- Write-Host ('OPERATOR KIT BYTE INTEGRITY: '+($kitResult|Out-String)) -ForegroundColor Green
- $test=(& $node $builder --self-test)
- if($LASTEXITCODE -ne 0){throw ('Builder self-test FAILED: '+($test|Out-String))}
- Write-Host ('SELF-TEST: '+($test|Out-String)) -ForegroundColor Green
- Write-Host ('A72 W11 EXACT CANDIDATE: '+$CandidateSha) -ForegroundColor Cyan
- Write-Host ('A70 INTEGRATION REF: '+$IntegrationRef) -ForegroundColor Cyan
- Write-Host 'Running ONE isolated Unity Windows build; NO game release or two-PC QA.' -ForegroundColor Cyan
- & $node $builder ("--ref="+$IntegrationRef) ("--sha="+$CandidateSha) ("--unity="+$UnityExe) ("--out="+$root)
- $nativeExit=$LASTEXITCODE
- $evidence=Join-Path $root 'evidence'
- if(Test-Path -LiteralPath $evidence -PathType Container){
-  $zip=Join-Path $root 'CC001_W11_A72_WINDOWS_EVIDENCE.zip'
-  Compress-Archive -Path (Join-Path $evidence '*') -DestinationPath $zip -CompressionLevel Optimal
-  $receipt=Join-Path $root 'EVIDENCE_SHA256.txt'
-  $digest=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToUpperInvariant()
-  [IO.File]::WriteAllText($receipt,($digest+'  '+[IO.Path]::GetFileName($zip)+"`r`n"),(New-Object System.Text.UTF8Encoding($false)))
-  Write-Host ('ARCHIVE: '+$zip)
-  Write-Host ('SHA256: '+$digest)
-  Write-Host ('BUILDER EXIT: '+$nativeExit)
-  if($nativeExit -ne 0){Write-Host 'HOLD: evidence preserved for A60; do not label build PASS.' -ForegroundColor Yellow}
- }else{Write-Host 'STOP: builder generated no evidence directory' -ForegroundColor Red;exit 1}
- exit $nativeExit
-}catch{
- Write-Host ('A72 STOP: '+$_.Exception.Message) -ForegroundColor Red
- exit 1
-}
-){throw 'Wrong Unity Editor version path'}
+ if($UnityExe.Replace('/','\') -notmatch '\\6000\.4\.0f1\\Editor\\Unity\.exe$'){throw 'Wrong Unity Editor version path'}
  $dotnet=(Get-Command dotnet.exe -ErrorAction Stop).Source
  $sdk=(& $dotnet --version).Trim()
  if($LASTEXITCODE -ne 0 -or $sdk -notmatch '^9\.'){throw ('Missing required .NET 9 SDK; dotnet --version returned '+$sdk)}
  $winModule=Join-Path (Split-Path -Parent $UnityExe) 'Data\PlaybackEngines\windowsstandalonesupport'
- if(-not (Test-Path -LiteralPath $winModule -PathType Container)){throw ('Missing Unity 6000.4.0f1 Windows Build Support (IL2CPP/Mono player module): '+$winModule)}
+ if(-not (Test-Path -LiteralPath $winModule -PathType Container)){throw ('Missing Unity 6000.4.0f1 Windows Build Support: '+$winModule)}
  Write-Host ('NATIVE PREFLIGHT: .NET '+$sdk+' / Unity Windows Build Support present') -ForegroundColor Green
  $root=Join-Path $OutputRoot ('CC001_W11_A72_'+(Get-Date -Format 'yyyyMMdd_HHmmss')+'_'+[Guid]::NewGuid().ToString('N').Substring(0,8))
  if(Test-Path -LiteralPath $root){throw 'Operator output folder already exists'}
