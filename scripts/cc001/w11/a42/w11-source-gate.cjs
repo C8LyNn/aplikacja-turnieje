@@ -25,6 +25,7 @@ const protectedPrefixes=['unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/
  'unity/cc001-r16/CoreClash-V149-Unity/ProjectSettings/',
  'unity/cc001-r16/CoreClash-V149-Unity/Packages/',
  'unity/cc001-r16/CoreClash-V149-Unity/Assets/Scenes/'];
+const approvedA41ParityTools=new Set(['scripts/cc001/w11/a41/state-parity.cjs','scripts/cc001/w11/a41/state-parity.test.cjs']);
 const protectedExact=[
  UNITY+'Assets/CoreClash/Networking/NgoWireProtocol.cs',
  UNITY+'Assets/CoreClash/Editor/BuildTools.cs',
@@ -124,7 +125,7 @@ function assess(input) {
   if(seen.has(x.path))failures.push('DUPLICATE_CHANGED_PATH');
   seen.add(x.path);
   if(x.status==='D'||x.status==='R'||x.status==='C')failures.push('DELETION_RENAME_COPY_FORBIDDEN');
-  if(!safeChanged(x.path)&&!x.path.startsWith('scripts/cc001/w9/a33/')&&!x.path.startsWith('docs/cc001/swarm/w9/A33/'))
+  if(!safeChanged(x.path)&&!(approvedA41ParityTools.has(x.path)&&x.status==='A')&&!x.path.startsWith('scripts/cc001/w9/a33/')&&!x.path.startsWith('docs/cc001/swarm/w9/A33/'))
    failures.push('CHANGED_PATH_OUTSIDE_GAMEPLAY_SCOPE');
   if(protectedPrefixes.some(pre=>x.path.startsWith(pre))||protectedExact.includes(x.path))
    failures.push('PROTECTED_SOURCE_CHANGED');
