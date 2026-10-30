@@ -69,7 +69,7 @@ test('04 | desktop has local-relative action guidance', () => {
 test('05 | compact status and both compact hints use local seat', () => {
   const compact = method(match, 'RenderCompactLandscape');
   assert.match(compact, /LocalTurnPresentation\.CompactStatus[\s\S]*NetworkLink\.LocalOwner/);
-  const hints = compact.match(/LocalTurnPresentation\.ActionHint\s*\(/g) || [];
+  const hints = compact.match(/LocalTurnPresentation\.(?:ActionHint|ActionMessage)\s*\(/g) || [];
   assert.equal(hints.length, 2, 'both choice hint and feedback hint need local gating');
   assert.match(method(selection, 'CompactStatus'), /state\.turn\s*!=\s*localOwner/);
 });
