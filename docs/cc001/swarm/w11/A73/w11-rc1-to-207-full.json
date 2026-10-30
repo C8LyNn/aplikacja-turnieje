@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 2,
+  "immutableRc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "baseRef": "integration/cc001-r17-w8-phoenix-rc1",
+  "baseSha": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "addonRef": "integration/cc001-r17-w11-multiplayer-qa-candidate-20261030",
+  "addonSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "expectedChanges": {
+    "docs/cc001/swarm/w9/A33/R17_W9_A33_NETWORK_PRESENTATION_OVERLAY_HANDOFF.md": {
+      "status": "A",
+      "blob": "ec61ba70c949124de9ec72c1d786508b0f7a3440"
+    },
+    "scripts/cc001/w9/a33/verify-network-overlay.cjs": {
+      "status": "A",
+      "blob": "43765cc5252f15c4138b6f88b5ee09b1cb3c3365"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs": {
+      "status": "M",
+      "blob": "5a833e1821218d820e8f6e92b08ccbcd6cebfed0"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs": {
+      "status": "M",
+      "blob": "2e64b8d0bac82b58fc33e84f701f2331ac2feef0"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs": {
+      "status": "M",
+      "blob": "58c8e4e89e536785e4f05d02e415d9fd2dc87d70"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs": {
+      "status": "M",
+      "blob": "db05d1053c5f2d8869eba44314fdccdaf1f9ee79"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs": {
+      "status": "M",
+      "blob": "48927f49b541db51bf5ff2df0ef73fdbb5377433"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs": {
+      "status": "M",
+      "blob": "4d55efccbf7ab0cf362515b01d8e604268fc00b0"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs": {
+      "status": "M",
+      "blob": "ee6683ec3ae4ae10ce194a7c8bd9691d5a90754e"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs": {
+      "status": "A",
+      "blob": "1d50601a66d985d3998b94bde982ce7da530cc98"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs.meta": {
+      "status": "A",
+      "blob": "ea471fd92648ba7b05ffdc11e51136b04c348094"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs": {
+      "status": "M",
+      "blob": "c17c24bc23bda08a08bef6877d390a497882bc30"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs": {
+      "status": "M",
+      "blob": "86c5d160fa52190a1ce213f1f784969289a4fffd"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs": {
+      "status": "A",
+      "blob": "fe248d39c95562e9225f2cb9d41646de815a3a15"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs.meta": {
+      "status": "A",
+      "blob": "ce9f5ecfea9d53b84fa709586b08d6643a848587"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/AbilityTests.cs": {
+      "status": "M",
+      "blob": "93202589e0a80f43935b7cfed96c5a7666980e67"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj": {
+      "status": "M",
+      "blob": "54c37db09a9cf543b17d49d641929b39e0b3d69d"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/LocalDeckContentTests.cs": {
+      "status": "A",
+      "blob": "f8f4e6f07e2ed9a9bc3ac6564ad8ce5bda5d7069"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs": {
+      "status": "M",
+      "blob": "5263c696fd8fa65a202fb885311af20792bf0e34"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs": {
+      "status": "M",
+      "blob": "72838ca36903fc4811ff73db1bea7cad8e0a7f5f"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/Program.cs": {
+      "status": "M",
+      "blob": "49d9860cec074e7d1612babacf01f8d63ed238b4"
+    },
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/RemoteBallSmootherTests.cs": {
+      "status": "A",
+      "blob": "a4741ad97861255b93d2c327920f45837b37033f"
+    }
+  },
+  "retainedBlobs": {
+    "docs/cc001/swarm/R17_A70_SOURCE_MANIFEST.json": "99cf0b5666f9cd6648943e9b54342e6546c5d3b1",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash.meta": "4711d25d0881891d5f9f79ddc7847e4d23ef9335",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core.meta": "9ea1131f12bfefd0342ef66002aa887532fe302b",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/AbilityResolver.cs": "1f0affe3d1b3d02f23142d2a894e5a0250dca7d4",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/AbilityResolver.cs.meta": "79d4bacbfc544bde4f85f3f79d1c9dee77a3d4f3",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ArchetypeEffects.cs.meta": "717a097ca582be81d0f4609d08e8c2eb3995428b",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ConstructionEffects.cs.meta": "689b9dd4d559f4d9f9c4a41e5ceb9110b70a11d5",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ElementalEffects.cs": "4e0ce8287e71778dc7bf647e785680ddf03a8e18",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ElementalEffects.cs.meta": "caa9a36af4363f7a99c66cbf7e429379d6154309",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/EvolutionEffects.cs.meta": "82c9ac31e94f242b7f7f87413c3b7610f763e340",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ExplosiveEffects.cs.meta": "7db5e39248133772ce7ba8726b6e55f08aba8206",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/GameSimulation.cs": "25f5a18de4df3942626f0245c9b1be77eee73106",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/GameSimulation.cs.meta": "49712346b7e90dfe1346bda7544996007fa2beee",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/GameState.cs.meta": "b4f96f9d5b055ec99d112d6a339cf4ef2c8f21d8",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/LifecycleEffects.cs.meta": "2f367aff3077ecd5fb9e336d71a44cad62dcb7fb",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/MatchRules.cs.meta": "2aaeb295617e953813343dd3fbd8c85a83529ba1",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/MomentumEffects.cs.meta": "8a49dd297a1abfd19670a7a54c5c26040f4e6f04",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/RealityEffects.cs.meta": "dde2e2df5e9e03df00403cebf2f7dcf5cfc2836e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/ReinforcementEffects.cs.meta": "964619e7e69598fbc18e2b30279298ed88543618",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/SpatialEffects.cs.meta": "af2df6ce646016450d3c39732fa0ddbaf1a4dac7",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/StatusEffects.cs.meta": "323a0bfe1a571f21efbb7cb42e8ffef59b2b1fd5",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/StatusPayoffEffects.cs.meta": "bc8a37fcd758c8c56dfd9736bebc98de519af456",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/StructureSystem.cs.meta": "b554d97825607f236d014dd76243bcd969d111e7",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Core/TurnSystem.cs.meta": "ad787dc5e1d00878cab7fce820498c00ca9cd7cd",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Data.meta": "3aa5d957c06231662db47a3609bbfcf1c480fb89",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Data/AbilitySupport.cs.meta": "a22b7dd74cfbb880aba1e9bfcaa7c3beeaf20051",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Data/Catalog.cs.meta": "738611d425c8caa592668b4ff57bb07438d0f117",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Data/Definitions.cs.meta": "5b70b47e866083590834e463bf7cbd540bdfa007",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Editor.meta": "8923c48dcde4656a4b6c843725707dcc8b123ebc",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Editor/BuildTools.cs.meta": "0a28490687daccada34c6ff0f2c6f2ed896a8d4e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Editor/CloudSetup.cs.meta": "8f3993669935fcbcf2d22b1f064f8147d4f7d37c",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Input.meta": "198558ef77cfb1d9ec594740211b389d82758ce2",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Input/DesktopInput.cs.meta": "f8766051b4bad9c1941d688e4bad5febef422fac",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Input/LaunchGesture.cs.meta": "8d3a4db4e781977698db167a478a95b4a1a4a6af",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Input/PrimaryPointer.cs.meta": "ae7247824272f68c5166d154c3dcc103b619b625",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Input/TouchInput.cs.meta": "a3e45f1396f8815764ec85080d6b7341f1c53ea4",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking.meta": "4be257fe77d763bbee555be95dcf1526aebf93ee",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/IUnityNetworkLink.cs.meta": "610f0f46037a82748c779f082b20f81e51467d9a",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/LanDiscoveryProtocol.cs.meta": "c0d9fdc0c8ba08ac3498df508242ac46d12219bb",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/LanEndpoint.cs.meta": "a8c9ae8417c1f9b60ad11fe9608d9d4a6748fa4f",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/LanNativeServices.cs.meta": "f21a634549ae447282342aaead9238eba2b5f27f",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/LanSeat.cs.meta": "3b2cac73cff8d7e7a01d124ea7e0369350018ce7",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs.meta": "ae974bc8be72184a92da680f92c290675c3b9de1",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs.meta": "ecb3fd62660aab7cf6ff393201a0df1b4eddf77c",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoInternetSession.cs.meta": "1980fde67a9bbb1481dcee53571cdaf23fd2d273",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoLanLobby.cs.meta": "4d3b4eca89bfe5dece00905bf440df3152361629",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoRpcBridge.cs.meta": "e04b8f84654521e383e5175c907cb84badc806bc",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoWireProtocol.cs": "4a611ee8bdcd929b577f515768fa10dcef8410fc",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoWireProtocol.cs.meta": "f9e789dcd3a4de154f5e57f3cafd2ea0c1598f18",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineJoinAddress.cs.meta": "71290bfa4a6168e5466da097532eb9fec6f8e805",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/OnlineServiceError.cs.meta": "95c7568659edbc47d5492eff2b45f8ed568fd4e4",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Physics.meta": "d1949b8aba55cfead8a374eefee049d19c9df7a5",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Physics/BallPhysics.cs.meta": "76aea21ac60268c14d77decba89b925695d3041d",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Physics/CollisionResolver.cs": "92b0d7fa45fb35262f9d77af8d3b466b25fcc62e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Physics/CollisionResolver.cs.meta": "7c2336933e758334cdbc0dd4f82cd0ea1fd7d427",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Physics/ZoneResolver.cs.meta": "5e793c312c837696749acf852c85103a4cab93df",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation.meta": "1c878c00aa6c98c67e53db8c9085603131a73f56",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/AimGuide.cs.meta": "c49a6493ab8b9e6e1df3bf4bad3a88aefe076e0f",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallIdentity.cs.meta": "59b0ab1b086197bccba6ed2abc237e91b692753f",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallInspection.cs.meta": "70cbbd5fe621d4ada181966852fffe8e94ad28eb",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs.meta": "0ec9d086c4c59bd8d99491315f0615411a8eedb5",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs.meta": "14c529a551b54747b70baee750db784c1e19656a",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs.meta": "fa5b7ca626c6121e0b6fdf3f4d8fcc52872f4527",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs.meta": "f094e8b2df98430399d64bf98a231dfd8387dabb",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs.meta": "322046207effc46fa8d232ddc2b60723657b86b6",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DeviceViewport.cs.meta": "5faa7c5b5e994596c6354de4115a0a70342d104d",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/Draw.cs.meta": "8e4ab443d2ef07572adcb419dfe5cd23ece83b50",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/FeedbackTimeline.cs.meta": "4d17989543d8548e999199ed17b7aed8642d983a",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs.meta": "421d45eceb6c7ebdef017211255a446c8d4f4cb5",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs.meta": "a4a6259355ca62e990e426a58bbe551a09bb865b",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupLayout.cs.meta": "4fe3dc744c50848dd65280af89cc47492747d972",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/SetupView.cs.meta": "079a22ef9fd60248cad38fde4fe6d8f549c2ab0b",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/UiViewport.cs.meta": "1c36a0c75188af4edf58fe70f5eef20f90179db3",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing.meta": "a94b3245a8d42906245aca8ef27b7aafb02c9cff",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing/ExplosivesSmokeDriver.cs.meta": "a6d242d18150e315dc948dddb03e934c761ffca0",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing/HtmlMechanicsSmokeDriver.cs.meta": "fe8fe0005c03c976cc64b6a96834c18d9bc4f3c9",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing/NgoSmokeDriver.cs.meta": "c0cb26676e5752dcc7c8fd1abbe72f8d9d287f64",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing/PresentationSmokeDriver.cs.meta": "3c86b50040f369db2670e7f9421b05e80e7df30b",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Testing/StatusPayoffSmokeDriver.cs.meta": "cb0a633b2a00078cf6dc6599ca88525cde6a83ac",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/DefaultNetworkPrefabs.asset.meta": "e7d144a36a6d618779df59bddee53a4b78b97e0e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Plugins.meta": "5e868be13281402d5953233073681c1cf130ad00",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Plugins/WebGL.meta": "04b7423d91bb6d08215e8b6e26ca2ec9d378f42e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Plugins/WebGL/DeviceViewport.jslib.meta": "25e5864402fc3c79f43543f753339a559c814023",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources.meta": "3c4e8b241cce8b6c957420ef512115c8caa515cf",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data.meta": "e198534f2a1eb63472f8677de07f27220c834380",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data/catalog.json.meta": "84614d7eeba4c599455bfa7f62a27963c774a693",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data/featured-decks.json.meta": "f0d8548d55bf1bf9388339db2776f6c7a8202d9e",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data/network-settings.json.meta": "9e4b4489e64c8604d66d22af8d0e9fd60c243d17",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data/presentation-copy.json.meta": "bb40fa13c71f2e5a5e658cd7603a47482f3e1827",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Scenes.meta": "73e816c2863877ea87c26f7e581eedb36d582a94",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/Scenes/CoreClash.unity.meta": "25944292bd60ce4fa641afe31f0562b09a83ef6a",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/WebGLTemplates.meta": "753b3bd80071f45ad6a59cc5f6ab1427f0523e50",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/WebGLTemplates/CoreClash.meta": "2e2fa6aecc927b9af733fc202cbc033461c0469a",
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/WebGLTemplates/CoreClash/index.html.meta": "7047c432c5535ef07cc2cd0838687480f9243de2",
+    "unity/cc001-r16/CoreClash-V149-Unity/Packages/manifest.json": "9740a43dab01fbb9252b077da418f73b3b8b4d14",
+    "unity/cc001-r16/CoreClash-V149-Unity/ProjectSettings/ProjectVersion.txt": "8a87982496ed3239376379e331cd8bda920ee735",
+    "unity/cc001-r16/Reference/V148_reference_original.html": "657a423dc4e8fe87598e664d67e124d24b483343"
+  }
+}
