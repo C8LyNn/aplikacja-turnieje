@@ -110,6 +110,58 @@ test('CLI freeze rejects 3-event fixture as HOLD/exit2',()=>{
 test('CLI wrong SHA exit1',()=>assert.equal(cli(trace(),FREEZE).status,EXIT.FAIL));
 test('CLI no file exit2',()=>assert.equal(cli(null).status,EXIT.HOLD));
 test('CLI unknown SHA exit2',()=>assert.equal(cli(trace(),'a'.repeat(40)).status,EXIT.HOLD));
+
+// W14 — source-supported phase regression: the state may advance from Moving
+// to Aiming/Over after STOP while the last emitted SWAP/TELEPORT remains in events.
+test('W14 source MatchPhase enum has exactly Aiming, Moving, Over',()=>{
+ const {PHASES}=require('./check-displacement-trace.cjs');
+ assert.deepEqual([...PHASES],['Aiming','Moving','Over']);
+});
+test('W14 STOP-generated SWAP accepted in final Aiming snapshot of dev source',()=>{
+ const r=is('PASS_SCOPED',t=>t.samples[2].phase='Aiming');
+ assert.equal(r.metrics.perKind.SWAP,1);assert.equal(r.metrics.snapBallChecks,4);
+});
+test('W14 TELEPORT may be observed at Aiming boundary',()=>{
+ const r=is('PASS_SCOPED',t=>t.samples[1].phase='Aiming');
+ assert.equal(r.metrics.perKind.TELEPORT,1);
+});
+test('W14 PORTAL accepted in final Aiming snapshot on frozen source',()=>{
+ const r=is('PASS_SCOPED',t=>t.samples[0].phase='Aiming',FREEZE);
+ assert.deepEqual(r.excludedKinds,['TELEPORT','SWAP']);
+});
+test('W14 victory Over snapshot may still contain genuine relocation event',()=>{
+ const r=is('PASS_SCOPED',t=>t.samples[2].phase='Over');
+ assert.equal(r.metrics.perKind.SWAP,1);
+});
+test('W14 mixed Aiming/Moving/Over in increasing snapshots remains valid',()=>{
+ is('PASS_SCOPED',t=>{t.samples[0].phase='Moving';t.samples[1].phase='Aiming';t.samples[2].phase='Over';});
+});
+test('W14 unrecognised phase Banana remains fail-closed',()=>is('FAIL',t=>t.samples[0].phase='Banana'));
+test('W14 incorrect lower-case aiming fails',()=>is('FAIL',t=>t.samples[0].phase='aiming'));
+test('W14 missing phase fails',()=>is('FAIL',t=>delete t.samples[0].phase));
+test('W14 null phase fails',()=>is('FAIL',t=>t.samples[0].phase=null));
+test('W14 phase may not be a function or object',()=>is('FAIL',t=>t.samples[0].phase={value:'Moving'}));
+test('W14 at Aiming still detects false short TELEPORT path',()=>{
+ is('FAIL',t=>{t.samples[1].phase='Aiming';t.samples[1].renderedBalls[0].x+=9;});
+});
+test('W14 at Aiming still requires both SWAP participants',()=>{
+ is('FAIL',t=>{t.samples[2].phase='Aiming';t.samples[2].renderedBalls[1].x+=12;});
+});
+test('W14 at Aiming freeze still HOLD for unsupported TELEPORT',()=>{
+ const r=is('HOLD',t=>{t.samples.push(sample(2,'TELEPORT'));t.samples[1].phase='Aiming';},FREEZE);
+ assert.equal(r.unsupportedObserved.length,1);
+});
+test('W14 CLI dev Aiming sample passes scoped but never physical G3',()=>{
+ const x=trace();x.samples[2].phase='Aiming';const r=cli(x);
+ assert.equal(r.status,EXIT.PASS,r.stdout);
+ const out=JSON.parse(r.stdout);assert.equal(out.metrics.snapBallChecks,4);
+ assert.equal(out.physicalG3Status,'NOT_ASSESSED');
+});
+test('W14 CLI unknown phase is real-process FAIL',()=>{
+ const x=trace();x.samples[2].phase='Banana';
+ const r=cli(x);assert.equal(r.status,EXIT.FAIL,r.stdout);
+});
+
 test('CLI invalid args exit64',()=>{
  const r=spawnSync(process.execPath,[path.join(__dirname,'check-displacement-trace.cjs')],{encoding:'utf8'});
  assert.equal(r.status,EXIT.USAGE);
