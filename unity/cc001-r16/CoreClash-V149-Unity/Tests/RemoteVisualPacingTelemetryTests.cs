@@ -115,6 +115,18 @@ public static partial class Program
             True(line.Contains("rxGapSamples=0"));
             True(line.Contains("rxGapsOver300ms=0"));
         });
+        Test("A34 W13 fast action transition does not resemble RX stall",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,.05f,4);
+            p.AcceptSnapshot(1.25f,.25f,4);
+            p.AcceptSnapshot(3f,0f,5); // new turn, still Moving
+            False(p.SampleFrame(3f,.016f,true,out _));
+            True(p.SampleFrame(8.01f,.016f,true,out var line));
+            True(line.Contains("snapshots=3"));
+            True(line.Contains("rxGaps=1"));
+            True(line.Contains("rxGapsOver300ms=0"));
+            True(line.Contains("maxRxGapMs=250"));
+        });
         Test("A34 W13 end moving resets RX gap baseline between turns",()=>{
             var p=new RemoteVisualPacingTelemetry();
             p.AcceptSnapshot(1f,.05f);
