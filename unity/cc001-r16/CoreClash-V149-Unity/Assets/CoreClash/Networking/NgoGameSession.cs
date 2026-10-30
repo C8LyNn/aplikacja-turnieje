@@ -193,6 +193,12 @@ namespace CoreClash.Networking
                 var packet=JsonUtility.FromJson<SessionSnapshot>(json);
                 if(packet==null||packet.revision!=revision||!adapter.Apply(packet,JsonUtility.FromJson<GameState>,out var reason)){SetStatus("Host state rejected by adapter.");return;}
                 ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State);
+                // Diagnostic-only, opt-in via F1. Times are local monotonic clocks,
+                // not cross-machine timestamps; never derive one-way latency here.
+                if(app!=null&&app.DeveloperOverlay)
+                    Debug.Log("CC_NET_TRACE_RX rev="+revision+" serial="+adapter.State.actionSerial+
+                        " tms="+(long)(Time.realtimeSinceStartupAsDouble*1000.0)+
+                        " turn="+adapter.State.turn+" phase="+adapter.State.phase+" chunks="+count);
                 if(ReceivedSnapshots==1){SetStatus("P2 · authoritative state received · your deck is chosen by host");Debug.Log("CC_NET_STATE_APPLIED revision="+revision+" owner=1");}
             }catch(Exception e){FailConnection("The host sent unusable game state. Try joining again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
@@ -207,6 +213,13 @@ namespace CoreClash.Networking
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
                 var chunks=NgoWireProtocol.Split(packed);
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);
+                // Do not log every frame in release gameplay. F1 explicitly enables
+                // per-authoritative-snapshot observation without modifying physics.
+                if(app!=null&&app.DeveloperOverlay)
+                    Debug.Log("CC_NET_TRACE_TX rev="+packet.revision+" serial="+app.Simulation.State.actionSerial+
+                        " tms="+(long)(Time.realtimeSinceStartupAsDouble*1000.0)+
+                        " turn="+app.Simulation.State.turn+" phase="+app.Simulation.State.phase+
+                        " bytes="+packed.Length+" chunks="+chunks.Length);
                 // Aimed/idle state refreshes twice per second; moving uses 12/8/4 Hz
                 // based on compressed bytes, instead of the former fixed 5 Hz.
                 // Never move the client simulation: the server stays authoritative.
