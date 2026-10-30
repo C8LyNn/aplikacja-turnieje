@@ -138,9 +138,9 @@ public static partial class Program
             Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,18,0,"DRAG FROM LAUNCHER"));
         });
 
-        // R17-W10 A30: A10-approved P2 view is a true 180-degree view-only rotation.
-        Test("NET-W10-01 P2 view rotates both axes and keeps P1 canonical",()=>{
-            Near(440f,MatchPerspective.ViewX(100f,1),.001f);
+        // R17-W10 A30: A10-approved provisional P2 own-bottom view is vertical-only.
+        Test("NET-W10-01 P2 view keeps X canonical and flips Y only",()=>{
+            Near(100f,MatchPerspective.ViewX(100f,1),.001f);
             Near(800f,MatchPerspective.ViewY(100f,1),.001f);
             Near(100f,MatchPerspective.ViewX(100f,0),.001f);
             Near(100f,MatchPerspective.ViewY(100f,0),.001f);
