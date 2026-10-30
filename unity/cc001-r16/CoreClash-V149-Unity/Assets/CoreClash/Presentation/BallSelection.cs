@@ -55,6 +55,17 @@ namespace CoreClash.Presentation
             return turn+(state.bonusPending?" / BONUS SHOT":" / AIMING");
         }
 
+        public static string ActionHint(GameState state,int localOwner,bool multiplayer,bool connected,
+            bool dragging,float dx,float dy,string idleHint)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
+            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
+            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
+            return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
+        }
+
         public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
         {
             if(state==null)return "WAIT";
@@ -65,6 +76,18 @@ namespace CoreClash.Presentation
             if(multiplayer)return state.bonusPending?"YOUR BONUS":"YOUR SHOT";
             return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
         }
+    }
+
+    // A10-approved power UI: arrow/trajectory length remains the power cue. This helper
+    // reuses the unchanged 18-world-unit LaunchGesture release threshold.
+    public static class AimUiStatus
+    {
+        public static bool Ready(bool active,float dragX,float dragY)=>
+            active&&GameSimulation.Finite(dragX)&&GameSimulation.Finite(dragY)&&
+            (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
+
+        public static string Hint(bool active,float dragX,float dragY)=>
+            !active?"DRAG FROM LAUNCHER":Ready(active,dragX,dragY)?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER";
     }
 
     // W10 selected from A32: visible deck identity follows the local network seat while
