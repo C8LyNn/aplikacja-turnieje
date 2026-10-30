@@ -40,3 +40,21 @@ W12 actual locally executed Node v22.16.0: both test files and production JS pas
 **Important QA isolation:** A70's separately frozen W11 candidate is `integration/cc001-r17-w11-qa-freeze-20261030` at `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`; later #207 updates are NOT part of that tested SHA. This A74 PR remains isolated and does not advance the QA branch, compile Windows Player, merge to main or approve the game. A72/A60 must prove the exact frozen Windows build + two physical PCs independently.
 
 **Separate real source-to-source synthetic integration run (Node v22.16.0):** downloaded-by-exact-Git-blob reconstruction of A44 #164 `pack-multiplayer-evidence.cjs` at blob `14e9f01c281227ef7ab0052ba755b32b91e3a289` was executed via its real exported `capture()` against two temporary **synthetic** raw Player.log inputs containing Windows and Unix profile paths, IP, token and Bearer credentials. Its generated 3-file bundle was consumed by **exact tested A74 source blob** `d06d02f9d0ac8b76210cfd556151593c305caef0` via exported `inspect()`: `PASS_BOUNDED_SCAN_NOT_QA`, 2 distinct peers, 0 findings, both original input bytes unchanged; temporary files deleted. This is genuine cross-module **offline Node execution**, NOT a Windows/Unity/gameplay/physical-PC1–PC2 run and NOT blanket privacy certification.
+
+## W13 — WebSocket and UNC private-LAN privacy regression
+
+**Issue fixed:** previously `scan()` recognized `http://` and `https://` but not `ws://`/`wss://`; it also missed raw Windows UNC shares such as `\\\\LAN-NAS\\private\\Player.log`. The A44 collector PR #164 at exact source Git blob `14e9f01c281227ef7ab0052ba755b32b91e3a289` does **not** redact these schemes/shares either. Therefore an A44-produced redacted bundle could previously obtain A74 `PASS_BOUNDED_SCAN_NOT_QA` with a private WebSocket hostname or UNC network share still visible. This is an evidence-sharing *privacy* gap, not a multiplayer transport or gameplay fault.
+
+**Implementation:** existing `evidence-gate.cjs` extends its `WEB_URL` pattern to `ws://` and `wss://` and adds `UNC_SHARE_PATH`. It rejects matching redacted logs with **exit 3 / FAIL_SENSITIVE_PATTERN**. No private host/path value is included in the report, only pattern category and source line. A correctly sanitized `[URL_REDACTED]` placeholder and W12 `[USER]` user-profile placeholders remain accepted; actual review and manual redaction are still required. **Do not publish unreviewed real PC1/PC2 logs.**
+
+**Reproducible test command (Node 22):**
+
+```powershell
+node --test docs/cc001/swarm/w11/A74/evidence-gate.w13-lan-privacy.test.cjs
+```
+
+**Actual W13 test execution:** Node `v22.16.0`, `node --check` both updated source and new tests exit 0, **9/9 native Node tests PASS, exit 0**. Exact locally executed source and test Git blobs: `37729a6b17c1710d7734e46e5d2e06cc0f8e868b` and `84fae20fefc2e3e688309e96446c88d4d9b0eb7e`. The 31 older W11/W12 tests were previously executed unchanged, **not all rerun in W13**; do not call it a new 40/40 test run.
+
+**Actual cross-module proof (synthetic, native Node):** reconstructed byte-identical A44 #164 source (Git blob verified) ran `capture()` on temporary host/client sample logs containing `ws://` and a UNC share; the generated A44 three-file bundle was read through exact prior A74 `inspect()` blob `d06d02f9d0ac8b76210cfd556151593c305caef0`, which incorrectly returned `PASS_BOUNDED_SCAN_NOT_QA`. The updated A74 source, on the **same bytes**, correctly returned `FAIL_SENSITIVE_PATTERN` (`WEB_URL`, `UNC_SHARE_PATH`) and CLI exit 3, without echoing host/path data. Raw synthetic input bytes unchanged; temporary files deleted. **No real Windows Player.log, Unity build, .NET9 or physical PC1–PC2 was tested.**
+
+**A44 ownership:** A44 should adjust its own `redact()` if these log formats are generated; A74 changes only the *downstream* gate. Source frozen W11 QA ref `integration/cc001-r17-w11-qa-freeze-20261030` remains fixed at `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`; later DEV PR #207 source excluded from that build/QA. No merge to main, release or certified G3/G4.
