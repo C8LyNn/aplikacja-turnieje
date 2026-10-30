@@ -223,6 +223,59 @@ public static partial class Program
             Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,float.NaN,40,"DRAG FROM LAUNCHER","Old rejected shot"));
         });
 
+
+        // R17-W13 / A20: a notice from a rejected intent must not resurrect
+        // after an accepted authoritative turn change or disconnect.
+        Test("NET-UX-27 P1 and P2 keep rejection only within the originating aiming turn",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;
+            foreach(int owner in new[]{0,1}){
+                s.State.turn=owner;s.State.turnNumber=7;
+                True(ShotNoticeScope.Keep(s.State,owner,7,true,true));
+            }
+        });
+        Test("NET-UX-28 opponent turn invalidates an originating rejection immediately",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;s.State.turn=0;s.State.turnNumber=7;
+            False(ShotNoticeScope.Keep(s.State,1,7,true,true));
+        });
+        Test("NET-UX-29 later turn cannot resurrect warning for the same local seat",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;s.State.turn=1;s.State.turnNumber=9;
+            False(ShotNoticeScope.Keep(s.State,1,7,true,true));
+        });
+        Test("NET-UX-30 same-turn P2 bonus retains appropriate rejection",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;s.State.turn=1;s.State.turnNumber=3;
+            s.State.bonusPending=true;
+            True(ShotNoticeScope.Keep(s.State,1,3,true,true));
+        });
+        Test("NET-UX-31 LAN disconnect invalidates a notice even without turn change",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;s.State.turn=1;s.State.turnNumber=3;
+            False(ShotNoticeScope.Keep(s.State,1,3,true,false));
+        });
+        Test("NET-UX-32 moving and game over invalidate a rejected-shot warning",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=4;
+            s.State.phase=MatchPhase.Moving;
+            False(ShotNoticeScope.Keep(s.State,0,4,true,true));
+            s.State.phase=MatchPhase.Over;
+            False(ShotNoticeScope.Keep(s.State,0,4,true,true));
+        });
+        Test("NET-UX-33 null and invalid captured turn identities fail closed",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;
+            False(ShotNoticeScope.Keep(null,0,1,true,true));
+            False(ShotNoticeScope.Keep(s.State,-1,s.State.turnNumber,true,true));
+            False(ShotNoticeScope.Keep(s.State,2,s.State.turnNumber,true,true));
+            False(ShotNoticeScope.Keep(s.State,0,0,true,true));
+        });
+        Test("NET-UX-34 hotseat notice semantics do not depend on LAN connection",()=>{
+            var s=Sim();s.State.turn=0;s.State.turnNumber=5;s.State.phase=MatchPhase.Aiming;
+            True(ShotNoticeScope.Keep(s.State,0,5,false,false));
+        });
+        Test("NET-UX-35 notice scope reads but never mutates authoritative state",()=>{
+            var s=Sim();s.State.turn=1;s.State.turnNumber=11;s.State.phase=MatchPhase.Aiming;
+            int turn=s.State.turn,number=s.State.turnNumber;var phase=s.State.phase;
+            True(ShotNoticeScope.Keep(s.State,1,11,true,true));
+            False(ShotNoticeScope.Keep(s.State,0,11,true,true));
+            Eq(turn,s.State.turn);Eq(number,s.State.turnNumber);Eq(phase,s.State.phase);
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
