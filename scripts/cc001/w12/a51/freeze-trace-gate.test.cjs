@@ -8,13 +8,18 @@ const hex = c => c.repeat(64);
 function sample(overrides={}) {
   return {
     schema:'CC001_R17_W11_A51_NATIVE_TRACE_V2',evidence:'NATIVE_LOG_FORMAT_PARSER',
+    candidateSourceSha:'173273122c11cbf738e8b954e32506a6196fe8ec',
     sources:{pc1:{sha256:hex('a'),bytes:112},pc2:{sha256:hex('b'),bytes:113}},
     findings:[],producer:'A41',traceCoverage:'SPARSE_A41_SAMPLED',
     observations:{hostRows:2,clientRows:2,pairedRevisionRows:1,
       unpairedHostRows:1,unpairedClientRows:1,hostCadencePolicyChecks:2,
-      hostCadencePolicyViolations:0,
+      hostCadencePolicyViolations:0,hostIntervalSamples:[50,83],
+      maxReportedSkippedClientRevisions:0,localOneWayLatencyMs:null,
+      payloadHashPairs:0,frameCoordinates:0,
       w11DigestMarkers:{pc1Tx:0,pc2Rx:0,wrongSideOrUnknown:0}},
-    qualification:{parser:'TRACE_FIELDS_OBSERVED',sameRevisionMetadata:'MATCHED_METADATA_ONLY'},
+    qualification:{parser:'TRACE_FIELDS_OBSERVED',sameRevisionMetadata:'MATCHED_METADATA_ONLY',
+      authoritativeStateParity:'NOT_PROVEN_NO_PAYLOAD_HASH',visualSmoothness:'NOT_PROVEN_NO_FRAMES',
+      G3:'NOT_CERTIFIED_BY_ANALYZER',G4:'NOT_CERTIFIED_BY_ANALYZER'},
     ...overrides};
 }
 const check=(r)=>assess(r,FREEZE_SHA);
@@ -53,11 +58,15 @@ test('wrong source producer cannot count as freeze A41 source',()=>{
 });
 test('one-sided trace is HOLD',()=>{
   const s=sample();s.sources.pc2=null;s.observations.clientRows=0;
-  s.observations.pairedRevisionRows=0;s.traceCoverage='ONE_SIDED_HOLD';
+  s.observations.pairedRevisionRows=0;s.observations.unpairedHostRows=2;
+  s.observations.unpairedClientRows=0;s.qualification.sameRevisionMetadata='NOT_PROVEN';
+  s.traceCoverage='ONE_SIDED_HOLD';
   assert.equal(check(s).status,'HOLD_INCOMPLETE_TRACE');
 });
 test('zero shared sampled revisions is HOLD not packet loss',()=>{
   const s=sample();s.observations.pairedRevisionRows=0;
+  s.observations.unpairedHostRows=2;s.observations.unpairedClientRows=2;
+  s.qualification.sameRevisionMetadata='NOT_PROVEN';
   assert.deepEqual(check(s).reasons,['NO_SHARED_REVISION_SAMPLES']);
 });
 test('impossible paired count fails',()=>{
@@ -120,4 +129,19 @@ test('native Node CLI rejects wrong SHA with nonzero exit',()=>{
       '--analysis',inp,'--source-sha','173273122c11cbf738e8b954e32506a6196fe8ec'],{encoding:'utf8'});
     assert.equal(x.status,1);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('W13 host metadata accounting mismatch fails rather than claiming consistency',()=>{
+  const s=sample();s.observations.unpairedHostRows=0;
+  assert.equal(check(s).status,'FAIL_PROFILE_OR_TRACE');
+  assert.ok(check(s).reasons.includes('REVISION_ACCOUNTING_MISMATCH'));
+});
+test('W13 cadence observations must match host sampled row count',()=>{
+  const s=sample();s.observations.hostCadencePolicyChecks=1;
+  assert.ok(check(s).reasons.includes('HOST_SAMPLE_CADENCE_COUNT_MISMATCH'));
+});
+test('W13 rejects source-independent G3 claims inside input report',()=>{
+  const s=sample();s.qualification.G3='PASS';
+  assert.equal(check(s).status,'FAIL_PROFILE_OR_TRACE');
+  assert.equal(check(s).guarantees.G3,'HOLD');
 });
