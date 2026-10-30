@@ -29,7 +29,7 @@ check('UX03_DISCONNECT', /networked\s*&&\s*\(!connected\s*\|\|\s*!ValidSeat\(loc
 check('UX04_OPPONENT_TURN', /state\.turn\s*!=\s*localOwner/.test(cues) && /OPPONENT/.test(cues), 'Opponent aim must not show local launch invitation');
 check('UX05_VIEWPORT_ACTION', /ActionText\(boardInspection,gesture\.Active\)/.test(match) && /TurnPerspective\.ActionHint\(/.test(match) && /TurnPerspective\.CompactPhase\(/.test(match), 'Desktop/phone action hints and compact status must use local-seat presenter');
 check('UX06_LOCAL_DECK', (match.match(/LocalDeckContent\.StockIds\(/g)||[]).length >= 3 && /NetworkLink\.LocalOwner/.test(match) && /LocalDeckContent\.DisplayOwner\(/.test(match), 'Desktop, compact and phone deck views must use local owner, not state.turn');
-check('UX07_DECK_LOCK', /LocalDeckContent\.CanActivate\(/.test(match) && /owner\s*!=\s*simulation\.State\.turn/.test(deck), 'Local deck may be visible during opponent turn but cannot activate cards');
+check('UX07_DECK_LOCK', /LocalDeckContent\.CanActivate\(/.test(match) && (/owner\s*!=\s*simulation\.State\.turn/.test(deck) || /simulation\.State\.turn\s*==\s*owner/.test(deck)), 'Local deck may be visible during opponent turn but cannot activate cards');
 check('UX08_AIM', /AimGuide\.Trace\(/.test(board) && !/RotateAroundPivot\(/.test(board) && !/GUI\.matrix\s*=/.test(board), 'Aim guidance must use stable field-local geometry (no rotating GUI matrix)');
 check('UX09_TEST_WIRING', /A21TurnPerspectiveTests\(\)/.test(tests) && /TurnPerspective\.cs/.test(csproj), 'Selected seat-relative C# tests must be included in managed runner');
 if (requireNoPower) {
