@@ -45,6 +45,7 @@ public static partial class Program
         StabilityR15Tests();
         StabilityR16Tests();
         StatusPayoffTests();
+        MatchTurnCopyTests();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");Environment.ExitCode=failed==0?0:1;
         Directory.CreateDirectory(Path.Combine(root,"Evidence"));File.WriteAllText(Path.Combine(root,"Evidence/unity-tests.json"),JsonSerializer.Serialize(new{spec="V149 UNITY",testedAt=DateTime.UtcNow,passed,failed,results},new JsonSerializerOptions{WriteIndented=true}));
         var support=catalog.Data.balls.Select(b=>new{id=b.id,name=b.name,hidden=b.hidden,status=AbilitySupport.Status(b.id),featured=catalog.Featured.Any(d=>d.balls.Contains(b.id))}).ToArray();
