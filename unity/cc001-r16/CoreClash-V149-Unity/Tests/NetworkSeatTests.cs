@@ -266,10 +266,10 @@ public static partial class Program
             Eq<string>(null,NetworkStateDigest.Compute(""));
         });
         Test("R17 W11 state digest is deterministic and detects modified serialized state",()=>{
-            const string state="{\\\"turn\\\":1,\\\"balls\\\":[1,2,3]}";
+            const string state="{\"turn\":1,\"balls\":[1,2,3]}";
             string original=NetworkStateDigest.Compute(state);
             Eq(original,NetworkStateDigest.Compute(state));
-            False(original==NetworkStateDigest.Compute("{\\\"turn\\\":0,\\\"balls\\\":[1,2,3]}"));
+            False(original==NetworkStateDigest.Compute("{\"turn\":0,\"balls\":[1,2,3]}"));
             Eq(64,original.Length);
         });
         Test("R17 W11 state digest revision sampler is shared between TX and RX",()=>{
