@@ -11,6 +11,7 @@ namespace CoreClash.Presentation
         {
             var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
+            var visibleCards=LocalDeckContent.RenderableCardIds(Simulation,displayOwner);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
             BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner);
@@ -18,7 +19,8 @@ namespace CoreClash.Presentation
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
             bool touch=UiViewport.TargetSize>=44;
-            Draw.Surface(side,Draw.Panel);float w=side.width-46,y=0,cardH=layout.Portrait?80:98,content=layout.Portrait?590:810,actionH=UiViewport.TargetSize;
+            Draw.Surface(side,Draw.Panel);float w=side.width-46,y=0,cardH=layout.Portrait?80:98,content=(layout.Portrait?590:810)+
+                LocalDeckContent.DeckExtraContentHeight(visibleCards.Length,layout.Portrait?80:98,8),actionH=UiViewport.TargetSize;
             matchScroll=Draw.ScrollView(Draw.Inset(side,12),matchScroll,new Rect(0,0,w,content));
             if(!layout.Portrait){Hud(new Rect(0,y,w,72),false);y+=82;Draw.Surface(new Rect(0,y,w,40),Draw.PanelLight,Draw.Owner(state.turn));Draw.Text(new Rect(12,y+4,w-24,32),TurnText(),w<330?12:w<370?14:17,Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);y+=50;}
             var d=Catalog.Ball(selected);float orb=layout.Portrait?38:56,stripH=layout.Portrait?50:74;
@@ -26,10 +28,11 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
             if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
             string deckHeading=NetworkLink==null?"ACTIVE DECK  /  NINE SPECIALS":displayOwner<0?"DECK UNAVAILABLE":"YOUR DECK  /  NINE SPECIALS";
+            if(visibleCards.Length>9)deckHeading+=" + PHOENIX HAND";
             Draw.Text(new Rect(0,y,w,18),deckHeading,10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
-            var ids=LocalDeckContent.RenderableStockIds(Simulation,displayOwner);float cw=(w-16)/3;
+            var ids=visibleCards;float cw=(w-16)/3;
             for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
-            y+=3*(cardH+8)+4;
+            y+=LocalDeckContent.DeckGridRows(ids.Length)*(cardH+8)+4;
             bool normalSelected=selected=="normal";var standard=new Rect(0,y,w,actionH);Draw.Surface(standard,normalSelected?Color.Lerp(Draw.PanelLight,Draw.Owner(visualOwner),.14f):Draw.Panel,normalSelected?Draw.Owner(visualOwner):Draw.Edge);
             if(Draw.Button(new Rect(40,y,w-40,actionH),"STANDARD  /  UNLIMITED",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");BallView.Preview(new Rect(10,y+(actionH-22)/2,22,22),Catalog.Ball("normal"),visualOwner,normalSelected);y+=actionH+11;
             float actionW=(w-20)/3;
@@ -92,7 +95,7 @@ namespace CoreClash.Presentation
                 Draw.Text(Draw.Inset(cards,6),state.resultReason.Length>0?state.resultReason:TurnText(),12,Draw.Gold,TextAnchor.MiddleCenter,true);
             }else{
                 float arrow=44,cardW=106,gap=6;
-                var ids=LocalDeckContent.RenderableStockIds(Simulation,LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner));
+                var ids=LocalDeckContent.RenderableCardIds(Simulation,LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner));
                 float viewW=cards.width-arrow*2-12;
                 float fullW=Math.Max(viewW,ids.Length*(cardW+gap)-gap);
                 float max=Math.Max(0,fullW-viewW);
@@ -143,7 +146,7 @@ namespace CoreClash.Presentation
             int tintOwner=owner>=0?owner:Simulation.State.turn;
             Draw.Text(new Rect(inner.x,y,w-128,44),owner<0?"DECK UNAVAILABLE":Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(inner.xMax-120,y,120,44),"STANDARD",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
-            y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.RenderableStockIds(Simulation,owner);
+            y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.RenderableCardIds(Simulation,owner);
             float viewW=Math.Max(1f,w-arrow*2-12),fullW=LocalDeckContent.TrayContentWidth(ids.Length,cardW,8,viewW),max=Math.Max(0f,fullW-viewW);
             trayScroll.x=LocalDeckContent.ClampTrayScroll(trayScroll.x,fullW,viewW);
             if(Draw.Button(new Rect(inner.x,y,arrow,cardH),"<",enabled:trayScroll.x>0,size:25))trayScroll.x=Math.Max(0,trayScroll.x-(cardW+8)*2);

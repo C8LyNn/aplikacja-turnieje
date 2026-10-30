@@ -55,6 +55,38 @@ namespace CoreClash.Presentation
             return ids;
         }
 
+
+        // A ready returned Phoenix may be playable from Hand even when it is NOT
+        // among the nine original special cards (GameSimulation.TryCommand).
+        // Never insert the hand into StockEntry or replace the authoritative deck.
+        // Malformed nine-slot decks still render no special cards, including hand.
+        public static string[] RenderableCardIds(GameSimulation simulation,int owner)
+        {
+            var specials=RenderableStockIds(simulation,owner);
+            if(specials.Length!=9||simulation.Catalog.Ball("phoenix")==null||
+                specials.Contains("phoenix")||
+                DisplaySource(simulation,owner,"phoenix")!=BallSelectionSource.Hand)
+                return specials;
+            var withHand=new string[10];
+            Array.Copy(specials,withHand,9);
+            withHand[9]="phoenix";
+            return withHand;
+        }
+
+        // The extra Hand card adds a fourth desktop/tablet grid row; the source
+        // nine-special board keeps its original 3-row geometry.
+        public static int DeckGridRows(int renderedCardCount)
+        {
+            return Math.Max(3,(Math.Max(0,renderedCardCount)+2)/3);
+        }
+
+        public static float DeckExtraContentHeight(int renderedCardCount,float cardHeight,float gap)
+        {
+            if(float.IsNaN(cardHeight)||float.IsInfinity(cardHeight)||cardHeight<0f||
+                float.IsNaN(gap)||float.IsInfinity(gap)||gap<0f)return 0f;
+            return Math.Max(0,DeckGridRows(renderedCardCount)-3)*(cardHeight+gap);
+        }
+
         public static int Remaining(GameSimulation simulation,int owner,string id)
         {
             return !HasOwnerStock(simulation,owner)||string.IsNullOrEmpty(id)
