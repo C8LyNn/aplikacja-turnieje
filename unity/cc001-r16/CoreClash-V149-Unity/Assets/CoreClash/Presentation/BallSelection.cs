@@ -75,7 +75,7 @@ namespace CoreClash.Presentation
         {
             if(state!=null&&state.phase==MatchPhase.Aiming&&
                 (!multiplayer||(connected&&(localOwner==0||localOwner==1)&&state.turn==localOwner))&&
-                !System.String.IsNullOrEmpty(notice))
+                !dragging&&!System.String.IsNullOrEmpty(notice))
                 return notice;
             return ActionHint(state,localOwner,multiplayer,connected,dragging,dx,dy,idleHint);
         }
