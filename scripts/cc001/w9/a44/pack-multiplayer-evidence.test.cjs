@@ -26,11 +26,25 @@ test('creates redacted-only bundle with reproducible SHA and consistent PC1/PC2 
   assert.equal(manifest.pc1.log.originalSha256, sha(before));
   assert.equal(manifest.pc1.exe.status, 'NOT_PROVIDED');
   assert.equal(fs.readFileSync(o.host).equals(before), true);
-  assert.equal(fs.readFileSync(path.join(o.out, manifest.pc1.log.file), 'utf8').includes('192.168.1.3'), false);
+  const redacted = fs.readFileSync(path.join(o.out, manifest.pc1.log.file), 'utf8');
+  assert.equal(redacted.includes('192.168.1.3'), false);
+  assert.equal(redacted.includes('token=secret123'), false); // A74 W10 credential canary
+  assert.match(redacted, /CC_NET_INTENT_ACCEPT owner=1 seq=1 action=2/);
   const out = fs.readFileSync(path.join(o.out, manifest.pc2.log.file));
   assert.equal(sha(out), manifest.pc2.log.sanitizedSha256);
   assert.equal(fs.readdirSync(o.out).length, 3);
   assert.equal(JSON.parse(fs.readFileSync(path.join(o.out, 'evidence-manifest.json'))).pc2.seatClaim, 'P2');
+}));
+test('credentials in key/value and bearer-header formats are removed from saved PC1 log', () => withInputs(o => {
+  const line = 'CC_NET_PEER_CONNECTED owner=1 session_token=session-ABC bearer=driver-Q Authorization: Bearer header-SECRET refresh_token=RESTART\n';
+  fs.appendFileSync(o.host, line);
+  const m = capture(o);
+  const saved = fs.readFileSync(path.join(o.out, m.pc1.log.file), 'utf8');
+  for (const secret of ['session-ABC','driver-Q','header-SECRET','RESTART']) assert.equal(saved.includes(secret), false);
+  assert.match(saved, /CC_NET_PEER_CONNECTED owner=1/);
+  assert.match(saved, /session_token=\[REDACTED\]/);
+  assert.match(saved, /Authorization: \[REDACTED\]/);
+  assert.equal(fs.readFileSync(o.host,'utf8').includes('header-SECRET'), true); // raw input untouched
 }));
 test('reject duplicate log paths before writing', () => withInputs(o => {
   assert.throws(() => capture({ ...o, client: o.host }), /DUPLICATE_LOG_SOURCE/);
