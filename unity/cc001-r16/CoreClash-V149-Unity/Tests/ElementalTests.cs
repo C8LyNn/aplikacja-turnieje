@@ -286,6 +286,15 @@ public static partial class Program
             Eq(50f,b.balls[0].x);Eq(100f,b.balls[0].vx);Eq(20,b.balls[0].hp);
             Eq(1,b.balls[0].owner);Eq(MatchPhase.Aiming,b.phase);
         });
+        Test("R17 W9 A50 explicit short-range teleport event is never interpolated", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=9,owner=1,type="warp",x=10});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=9,owner=1,type="warp",x=90});
+            True(smooth.AcceptSnapshot(1,a,0));
+            var snaps=new HashSet<int>{9};
+            True(smooth.AcceptSnapshot(2,b,.2f,snaps));
+            True(smooth.TryPose(9,.2f,out float x,out _));Near(90f,x);
+        });
 
     }
 }
