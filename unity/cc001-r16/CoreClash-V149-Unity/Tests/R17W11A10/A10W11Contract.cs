@@ -191,6 +191,34 @@ internal static class A10W11Contract
                 "moving phase exposes launch CTA");
         });
 
+        // W11 finalization: source-pinned PR #207 returns MOVING before testing
+        // network disconnect. These are intentionally RED until owner A20 #206
+        // is selectively incorporated by A70. This is UI semantic coverage only.
+        Case("A10-W11-15 disconnected Moving turn headline must show connection loss", () =>
+        {
+            var state = State(1, MatchPhase.Moving);
+            string headline = LocalTurnPresentation.Status(state, 1, true, false);
+            Check(headline.Contains("WAITING FOR CONNECTION"),
+                "disconnected Moving headline hid lost connection: " + headline);
+        });
+
+        Case("A10-W11-16 disconnected Moving action hint must show connection loss", () =>
+        {
+            var state = State(1, MatchPhase.Moving);
+            string hint = LocalTurnPresentation.ActionHint(state, 1, true, false,
+                false, 0, 0, "DRAG FROM LAUNCHER");
+            Check(hint.Contains("WAITING FOR CONNECTION"),
+                "disconnected Moving action hint hid lost connection: " + hint);
+        });
+
+        Case("A10-W11-17 disconnected Moving compact HUD must show offline state", () =>
+        {
+            var state = State(1, MatchPhase.Moving);
+            string phase = LocalTurnPresentation.CompactStatus(state, 1, true, false);
+            Check(phase == "OFFLINE",
+                "compact P2 HUD failed closed disconnected Moving: " + phase);
+        });
+
         Console.WriteLine($"A10 W11 INPUT DESIGN CONTRACT: {passed} PASS / {failed} FAIL");
         return failed == 0 ? 0 : 1;
     }
