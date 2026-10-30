@@ -116,6 +116,29 @@ function findRsp(project,out){const lib=path.join(project,'Library','Bee','artif
  }
  return result;
 }
+// Adopted A70 #221 original freshness criteria inside the single A72 build pipeline.
+function archiveOldManagedResult(resultPath,evidenceDir){
+ if(!fs.existsSync(resultPath))return {oldResultPresent:false,oldResultSha256:null,archivedPath:null};
+ const st=fs.lstatSync(resultPath);
+ ensure(st.isFile()&&!st.isSymbolicLink(),'UNSAFE_OLD_TEST_RESULT');
+ const old=fs.readFileSync(resultPath),target=path.join(evidenceDir,'preexisting-unity-tests.json');
+ ensure(!fs.existsSync(target),'OLD_RESULT_ARCHIVE_COLLISION');
+ fs.writeFileSync(target,old,{flag:'wx'});
+ fs.unlinkSync(resultPath); // detached managed worktree only
+ return {oldResultPresent:true,oldResultSha256:hash(old),archivedPath:path.basename(target)};
+}
+function freshManagedResult(resultPath,startMs,endMs){
+ ensure(fs.existsSync(resultPath),'NEW_TEST_RESULT_MISSING');
+ const st=fs.lstatSync(resultPath);
+ ensure(st.isFile()&&!st.isSymbolicLink(),'NEW_TEST_RESULT_UNSAFE');
+ const bytes=fs.readFileSync(resultPath);
+ let parsed;try{parsed=JSON.parse(bytes.toString('utf8'))}catch{throw Error('NEW_TEST_RESULT_INVALID_JSON')}
+ ensure(parsed?.spec==='V149 UNITY'&&Number.isSafeInteger(parsed.passed)&&parsed.passed>0&&parsed.failed===0,'MANAGED_RESULT_COUNTS');
+ ensure(Array.isArray(parsed.results)&&parsed.results.length===parsed.passed&&parsed.results.every(x=>x&&x.pass===true&&typeof x.name==='string'&&x.name.length>0),'MANAGED_RESULT_CASES');
+ const utc=Date.parse(parsed.testedAt);
+ ensure(Number.isFinite(utc)&&utc>=startMs-300000&&utc<=endMs+300000,'MANAGED_RESULT_TIMESTAMP');
+ return {parsed,bytes,sha256:hash(bytes)};
+}
 function boolGates(o){return Object.entries(o).filter(([,v])=>!v).map(([k])=>k)}
 async function spawnLog(cmd,args,cwd,logPath){
  fs.mkdirSync(path.dirname(logPath),{recursive:true});const fd=fs.openSync(logPath,'w');
@@ -158,15 +181,21 @@ async function build(a){
   const managedCheckout=path.join(root,'managed-checkout');
   git(repo,['worktree','add','--detach',managedCheckout,a.sha]);
   const managedProject=path.join(managedCheckout,...ROOT.split('/'));
-  managed=await spawnLog('dotnet',['run','--project',path.join(managedProject,'Tests','CoreClash.Tests.csproj'),'--configuration','Release','--',managedProject],managedProject,path.join(evidence,'logs','managed-dotnet9.log'));
   const managedResultFile=path.join(managedProject,'Evidence','unity-tests.json');
-  if(fs.existsSync(managedResultFile)){
-   fs.copyFileSync(managedResultFile,path.join(evidence,'managed-test-results.json'));
-   managedReport=JSON.parse(fs.readFileSync(managedResultFile,'utf8'));
-  }
-  json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport?.passed??null,failed:managedReport?.failed??null});
-  ensure(managed.exitCode===0&&managedReport&&managedReport.failed===0&&managedReport.passed>0,
-   'Managed .NET9 compile/tests failed or result missing. See original managed-dotnet9.log');
+  const archived=archiveOldManagedResult(managedResultFile,evidence);
+  json(path.join(evidence,'managed-preexisting.json'),archived);
+  const managedStart=Date.now();
+  log('MANAGED_START',new Date(managedStart).toISOString());
+  managed=await spawnLog('dotnet',['run','--project',path.join(managedProject,'Tests','CoreClash.Tests.csproj'),'--configuration','Release','--',managedProject],managedProject,path.join(evidence,'logs','managed-dotnet9.log'));
+  const managedEnd=Date.now();
+  log('MANAGED_END',`exit=${managed.exitCode} at=${new Date(managedEnd).toISOString()}`);
+  json(path.join(evidence,'managed-run-window.json'),{candidateSHA:a.sha,start:new Date(managedStart).toISOString(),end:new Date(managedEnd).toISOString(),exitCode:managed.exitCode,signal:managed.signal});
+  ensure(managed.exitCode===0,'Managed .NET9 process nonzero; original log preserved');
+  const fresh=freshManagedResult(managedResultFile,managedStart,managedEnd);
+  managedReport=fresh.parsed;
+  fs.writeFileSync(path.join(evidence,'managed-test-results.json'),fresh.bytes,{flag:'wx'});
+  json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,candidateSHA:a.sha,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport.passed,failed:managedReport.failed,sha256:fresh.sha256,oldResultSha256:archived.oldResultSha256,start:new Date(managedStart).toISOString(),end:new Date(managedEnd).toISOString(),freshlyGenerated:true});
+  ensure(managedReport.failed===0&&managedReport.passed>0,'Managed .NET9 report rejected');
 
   // Exactly ONE original Windows build from selected A70 SHA; Unity may normalize scene EOL.
   unity=await spawnLog(a.unity,['-batchmode','-nographics','-quit','-buildTarget','StandaloneWindows64','-projectPath',project,'-executeMethod','CoreClash.Editor.BuildTools.BuildWindows','-logFile',path.join(evidence,'logs','unity-editor.log')],project,path.join(evidence,'logs','unity-console.log'));
@@ -229,6 +258,20 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'A',classification:'IDENTICAL_BYTES'}]}).length,0));
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'B',classification:'CRLF_TO_LF_ONLY'}]}).length,1));
  test(()=>assert.deepEqual(boolGates({a:true,b:false}),['b']));
+ const troot=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'cc001-managed-fresh-'));
+ try{
+  const testResult=path.join(troot,'unity-tests.json'),artifacts=path.join(troot,'out');fs.mkdirSync(artifacts);
+  fs.writeFileSync(testResult,JSON.stringify({spec:'V149 UNITY',testedAt:'2026-10-16T23:53:45.5602531Z',passed:180,failed:0,results:[]}));
+  test(()=>{const x=archiveOldManagedResult(testResult,artifacts);assert.equal(x.oldResultPresent,true);assert.equal(fs.existsSync(testResult),false)});
+  test(()=>assert.throws(()=>freshManagedResult(testResult,Date.now()-100,Date.now()),/NEW_TEST_RESULT_MISSING/));
+  const n=Date.now(),good={spec:'V149 UNITY',testedAt:new Date(n).toISOString(),passed:2,failed:0,results:[{name:'one',pass:true},{name:'two',pass:true}]};
+  fs.writeFileSync(testResult,JSON.stringify(good));
+  test(()=>assert.equal(freshManagedResult(testResult,n-500,n+500).parsed.passed,2));
+  test(()=>{fs.writeFileSync(testResult,JSON.stringify({...good,testedAt:'2026-10-16T23:53:45.5602531Z'}));assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/MANAGED_RESULT_TIMESTAMP/)});
+  test(()=>{fs.writeFileSync(testResult,JSON.stringify({...good,results:[{name:'one',pass:true},{name:'two',pass:false}]}));assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/MANAGED_RESULT_CASES/)});
+  test(()=>{fs.writeFileSync(testResult,JSON.stringify({...good,passed:180}));assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/MANAGED_RESULT_CASES/)});
+  test(()=>{fs.writeFileSync(testResult,'{broken');assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/NEW_TEST_RESULT_INVALID_JSON/)});
+ }finally{fs.rmSync(troot,{recursive:true,force:true})}
  const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
