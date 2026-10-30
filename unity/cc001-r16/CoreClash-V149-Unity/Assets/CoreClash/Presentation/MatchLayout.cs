@@ -8,6 +8,17 @@ namespace CoreClash.Presentation
         public float Right=>x+width;
         public float Bottom=>y+height;
     }
+    // View-only multiplayer transform. Simulation/world coordinates remain canonical.
+    // P2 uses a view-only vertical inversion so the local launcher appears at the bottom.
+    public static class MatchPerspective
+    {
+        public const float WorldWidth=540f,WorldHeight=900f;
+        public static float ViewX(float simulationX,int localOwner)=>simulationX;
+        public static float ViewY(float simulationY,int localOwner)=>localOwner==1?WorldHeight-simulationY:simulationY;
+        public static float SimulationX(float viewX,int localOwner)=>viewX;
+        public static float SimulationY(float viewY,int localOwner)=>localOwner==1?WorldHeight-viewY:viewY;
+    }
+
     public sealed class MatchLayout
     {
         public UiBox Board,Panel;
