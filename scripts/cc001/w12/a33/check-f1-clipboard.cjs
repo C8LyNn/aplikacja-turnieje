@@ -29,8 +29,15 @@ function inspect(src){
   need('COPY_CLICK_GATED',/if\(Draw\.Button\(new Rect\(x\+w-152,y\+8,84,44\),w13CopyLabel,Draw\.Gold,size:11\)\)\s*\{[\s\S]*?GUIUtility\.systemCopyBuffer=W12QaClipboardText/.test(copy));
   need('COPY_GATED_SCOPE',copy.includes('GUIUtility.systemCopyBuffer')&&copy.lastIndexOf('}')>copy.indexOf('GUIUtility.systemCopyBuffer'));
   need('COPY_HAS_CAPTURE_SEQ',/W12QaClipboardText\(networkDebug,s\.turnNumber,s\.revision,\s*s\.frame,s\.actionSerial,DateTime\.UtcNow,w13QaCaptureSequence\)/.test(copy));
-  need('SEQUENCE_BEFORE_CLIPBOARD',copy.indexOf('w13QaCaptureSequence=w13QaCaptureSequence')>=0&&copy.indexOf('w13QaCaptureSequence=w13QaCaptureSequence')<copy.indexOf('GUIUtility.systemCopyBuffer'));
-  need('FEEDBACK_AFTER_CLIPBOARD',copy.indexOf('GUIUtility.systemCopyBuffer')>=0&&copy.indexOf('GUIUtility.systemCopyBuffer')<copy.indexOf('w13QaCopiedUntil=Time.unscaledTime+2.5f'));
+  const clickAt=copy.indexOf('if(Draw.Button(');
+  const clickOpen=copy.indexOf('{',clickAt);
+  const clickClose=copy.lastIndexOf('}');
+  const sequenceAt=copy.indexOf('w13QaCaptureSequence=w13QaCaptureSequence');
+  const clipboardAt=copy.indexOf('GUIUtility.systemCopyBuffer');
+  const feedbackAt=copy.indexOf('w13QaCopiedUntil=Time.unscaledTime+2.5f');
+  need('SEQUENCE_IN_CLICK_SCOPE',clickAt>=0&&clickOpen>clickAt&&sequenceAt>clickOpen&&sequenceAt<clickClose);
+  need('SEQUENCE_BEFORE_CLIPBOARD',sequenceAt>=0&&clipboardAt>sequenceAt);
+  need('FEEDBACK_IN_CLICK_SCOPE',feedbackAt>clipboardAt&&feedbackAt<clickClose);
   need('ONE_CLIPBOARD_WRITE',(src.match(/GUIUtility\.systemCopyBuffer\s*=/g)||[]).length===1);
   need('DIAGNOSTICS_ONLY',(helper.includes('networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE"'))&&!/networkNotice|technical|invite|password|token|endpoint/i.test(helper+copy));
   need('NO_GAMEPLAY_MUTATION',!/NetworkLink\.Submit\(|Simulation\.Step\(|Simulation\.State\s*=/.test(src));
@@ -55,7 +62,12 @@ function selfTest(src){
     ['removed_utc',s=>replaceOne(s,'capturedUtc.ToUniversalTime()','capturedUtc.ToLocalTime()')],
     ['no_sequence',s=>replaceOne(s,'CAPTURE_SEQ=','SEQ_UNKNOWN=')],
     ['no_sequence_argument',s=>replaceOne(s,'DateTime.UtcNow,w13QaCaptureSequence','DateTime.UtcNow,0')],
-    ['counter_increments_outside_click',s=>replaceOne(s,'w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;','w13QaCaptureSequence++;')],
+    ['counter_increments_outside_click',s=>{
+      const line='w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;';
+      const without=replaceOne(s,line,'');
+      return replaceOne(without,'if(Draw.Button(new Rect(x+w-152,y+8,84,44),w13CopyLabel,Draw.Gold,size:11))',
+        line+'\n            if(Draw.Button(new Rect(x+w-152,y+8,84,44),w13CopyLabel,Draw.Gold,size:11))');
+    }],
     ['no_copy_feedback',s=>replaceOne(s,'?"COPIED":"COPY QA"','?"COPY QA":"COPY QA"')],
     ['no_feedback_timeout',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','w13QaCopiedUntil=float.MaxValue;')],
     ['wrong_feedback_order',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','GUIUtility.systemCopyBuffer="copied";')],
