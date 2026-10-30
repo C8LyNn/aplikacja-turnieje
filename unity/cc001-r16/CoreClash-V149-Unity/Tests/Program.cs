@@ -37,6 +37,7 @@ public static partial class Program
         NetworkSeatTests();
         OnlineSessionTests();
         DeviceTests();
+        A21W12SecondaryHelpTests();
         MomentumTests();
         ExplosiveTests();
         ConstructionTests();
