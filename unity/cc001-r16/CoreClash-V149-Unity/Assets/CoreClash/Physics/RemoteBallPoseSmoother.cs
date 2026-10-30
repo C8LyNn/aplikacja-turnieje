@@ -49,9 +49,12 @@ namespace CoreClash.Physics
             y = track.fromY + (track.toY - track.fromY) * t;
         }
 
+        // A new snapshot may mark genuine teleport-event IDs to snap immediately,
+        // even if their displacement is below the distance threshold.
         // Only accepted, increasing *transport* snapshot revisions are allowed.
         // GameState.revision is not a per-physics-tick counter.
-        public bool AcceptSnapshot(int snapshotRevision, GameState authoritative, float receivedAt)
+        public bool AcceptSnapshot(int snapshotRevision, GameState authoritative, float receivedAt,
+            ISet<int> instantBallIds = null)
         {
             if (snapshotRevision <= LastAcceptedRevision || authoritative == null ||
                 authoritative.balls == null || !Valid(receivedAt) ||
@@ -69,7 +72,8 @@ namespace CoreClash.Physics
                     continue;
 
                 float fromX = ball.x, fromY = ball.y;
-                if (tracks.TryGetValue(ball.id, out Segment previous) &&
+                if ((instantBallIds == null || !instantBallIds.Contains(ball.id)) &&
+                    tracks.TryGetValue(ball.id, out Segment previous) &&
                     previous.owner == ball.owner && previous.type == ball.type)
                 {
                     float dx = ball.x - previous.toX, dy = ball.y - previous.toY;
