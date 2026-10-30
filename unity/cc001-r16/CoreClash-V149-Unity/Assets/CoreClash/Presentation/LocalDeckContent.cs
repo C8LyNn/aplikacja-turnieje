@@ -17,11 +17,22 @@ namespace CoreClash.Presentation
                 state.players[owner]==null||state.players[owner].stock==null)return System.Array.Empty<string>();
             return state.players[owner].stock.Where(s=>s!=null).Select(s=>s.id).ToArray();
         }
+
+        // Presentation must fail closed when a local/decoded state is incomplete.
+        // The network adapter normally rejects missing player stock, but views may
+        // also observe a provisional or independently constructed local state.
+        static bool HasOwnerStock(GameSimulation simulation,int owner)
+        {
+            return simulation!=null&&simulation.State!=null&&
+                simulation.State.players!=null&&owner>=0&&owner<=1&&
+                owner<simulation.State.players.Length&&simulation.State.players[owner]!=null&&
+                simulation.State.players[owner].stock!=null;
+        }
+
         public static int Remaining(GameSimulation simulation,int owner,string id)
         {
-            return simulation==null||simulation.State==null||simulation.State.players==null||
-                owner<0||owner>=simulation.State.players.Length||simulation.State.players[owner]==null||
-                string.IsNullOrEmpty(id)?0:simulation.Stock(owner,id);
+            return !HasOwnerStock(simulation,owner)||string.IsNullOrEmpty(id)
+                ?0:simulation.Stock(owner,id);
         }
 
         // W12: observational source for the LOCAL deck, also while the opponent aims.
@@ -29,9 +40,7 @@ namespace CoreClash.Presentation
         // command contract; do not expose DisplaySource to input or GameSimulation.
         public static BallSelectionSource DisplaySource(GameSimulation simulation,int owner,string id)
         {
-            if(simulation==null||simulation.State==null||simulation.State.players==null||
-                owner<0||owner>1||owner>=simulation.State.players.Length||
-                simulation.State.players[owner]==null||string.IsNullOrEmpty(id))
+            if(!HasOwnerStock(simulation,owner)||string.IsNullOrEmpty(id))
                 return BallSelectionSource.None;
             if(simulation.State.turn==owner)return BallSelection.Source(simulation,owner,id);
             if(simulation.Stock(owner,id)>0)return BallSelectionSource.Stock;
@@ -46,7 +55,8 @@ namespace CoreClash.Presentation
 
         public static BallSelectionSource ActiveSource(GameSimulation simulation,int owner,string id)
         {
-            return simulation==null||simulation.State==null||simulation.State.turn!=owner
+            return !HasOwnerStock(simulation,owner)||string.IsNullOrEmpty(id)||
+                simulation.State.turn!=owner
                 ?BallSelectionSource.None:BallSelection.Source(simulation,owner,id);
         }
         public static bool VisibleAsAvailable(GameSimulation simulation,int owner,string id)
@@ -55,8 +65,9 @@ namespace CoreClash.Presentation
         }
         public static bool CanActivate(GameSimulation simulation,int owner,string id,bool localInputEnabled)
         {
-            return localInputEnabled&&simulation!=null&&simulation.State!=null&&
-                simulation.State.turn==owner&&BallSelection.CanSelect(simulation,owner,id);
+            return localInputEnabled&&HasOwnerStock(simulation,owner)&&
+                !string.IsNullOrEmpty(id)&&simulation.State.turn==owner&&
+                BallSelection.CanSelect(simulation,owner,id);
         }
 
         // Empty/unassigned local seats must not create a negative-sized phone ScrollView.
