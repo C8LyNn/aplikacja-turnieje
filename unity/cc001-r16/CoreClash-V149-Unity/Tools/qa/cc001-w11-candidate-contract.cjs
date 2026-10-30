@@ -64,7 +64,7 @@ function audit(s, sources = Object.keys(names)){
     has('app',/ReceiveNetworkState\(GameState state,int snapshotRevision=-1\)/) &&
     has('app','remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision)') &&
     has('smooth',/snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision\)return/) &&
-    has('smooth','lastSnapshotRevision=-1;') &&
+    has('smooth',/public void Reset\(\)\s*\{[^}]*lastSnapshotRevision=-1;/) &&
     has('smooth','lastSnapshotRevision=snapshotRevision;'),
     'Accepted Protocol149 revision propagates into client visual cache, rejecting duplicate/old samples');
   gate('SHORT_PORTAL_SNAP',has('smooth',/e\.kind\s*==\s*"PORTAL"/) &&
