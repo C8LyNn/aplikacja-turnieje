@@ -47,9 +47,9 @@ public static partial class Program
         });
         Test("A21-W12 normal local aiming shows replay hint",()=>{
             var s=new GameState{turn=0,phase=MatchPhase.Aiming};
-            Eq("Replay: drag a glowing home ball instead of spawning.",
+            Eq("Choose a ball, then drag from your launcher to shoot.",
                 SecondaryMatchHelp.Text(s,0,true,true));
-            Eq("Replay: drag a glowing home ball instead of spawning.",
+            Eq("Choose a ball, then drag from your launcher to shoot.",
                 SecondaryMatchHelp.Text(s,-1,false,false));
         });
         Test("A21-W12 GameOver always shows actual outcome or fallback",()=>{

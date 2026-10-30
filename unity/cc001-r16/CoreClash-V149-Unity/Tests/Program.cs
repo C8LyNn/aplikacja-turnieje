@@ -38,6 +38,7 @@ public static partial class Program
         OnlineSessionTests();
         DeviceTests();
         A21W12SecondaryHelpTests();
+        A21W13ReplayCoachingTests();
         MomentumTests();
         ExplosiveTests();
         ConstructionTests();
