@@ -1,5 +1,7 @@
 # CC-001 R17-W14 / A33 — Canonical vs Rendered Ball Pose QA Capture
 
+> **W15 amendment, see [W15 focused sample handoff](../../w15/A33/R17_W15_A33_FOCUSED_POSE_SAMPLE_HANDOFF.md):** W14-only Git blob IDs and **8 C# tests authored** below describe the W14 baseline, not the current #263 HEAD. The W15 version includes an optional focused ball and 13 authored C# cases total (8 W14 + 5 W15), while preserving the 24-row cap. W11 QA freeze remains unchanged. No C#/.NET9/Unity Windows tests executed here.
+
 **Role:** A33 Presentation / UI Implementation
 **HQ:** https://github.com/C8LyNn/aplikacja-turnieje/issues/97
 **W14 branch:** `feat/cc001-r17-w14-a33-canonical-vs-render-qa-poses`
