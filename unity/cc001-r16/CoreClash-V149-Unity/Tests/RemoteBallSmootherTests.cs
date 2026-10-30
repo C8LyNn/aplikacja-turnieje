@@ -11,6 +11,17 @@ public static partial class Program
     }
     static void RemoteBallSmootherTests()
     {
+        Test("A30 W11 stale and duplicated Protocol149 revisions cannot enter visual state",()=>{
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1));
+            True(RemoteSnapshotEvents.IsFreshRevision(1,2));
+            True(RemoteSnapshotEvents.IsFreshRevision(2,4)); // an allowed network gap
+            False(RemoteSnapshotEvents.IsFreshRevision(4,4));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,3));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,0));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,-1));
+            False(RemoteSnapshotEvents.IsFreshRevision(0,0));
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1)); // new session reset
+        });
         Test("A34 first P2 snapshot is exact",()=>{
             var p=new RemoteBallSmoother();p.Observe(A34Snapshot(1,10,100,100),1);
             True(p.TryGetPosition(12,1.1f,out var x,out var y));Near(100,x);Near(100,y);

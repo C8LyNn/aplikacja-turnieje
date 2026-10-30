@@ -7,6 +7,10 @@ namespace CoreClash.Presentation
     // W10 A30 integration: only fresh displacement events bypass interpolation.
     public static class RemoteSnapshotEvents
     {
+        // Monotonic transport admission. A repeated/old revision must never reach
+        // the P2 visual observer after a newer host frame was accepted.
+        public static bool IsFreshRevision(int previous,int incoming)
+            =>incoming>0&&incoming>previous;
         public static ISet<int> InstantBallIds(GameState state,int afterEventId,out int latestEventId)
         {
             latestEventId=afterEventId;
