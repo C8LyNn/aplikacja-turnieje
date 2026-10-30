@@ -3,6 +3,7 @@
 /** RC1-protected CC-001 W11/#207 sampled diagnostic, NOT real PC1/PC2 QA. */
 const fs=require('node:fs'), crypto=require('node:crypto');
 const PIN='173273122c11cbf738e8b954e32506a6196fe8ec';
+const QA_FREEZE='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const SCHEMA='CC001_A81_W11_CANDIDATE207_SAMPLED_V1';
 const specs={HOST:['revision','action','turn','phase','balls','packedBytes','chunks','periodMs'],CLIENT:['revision','action','turn','phase','balls','received','skippedRevisions']};
 const numeric=new Set(['revision','action','turn','balls','packedBytes','chunks','periodMs','received','skippedRevisions']);
@@ -39,7 +40,14 @@ function expectedMs(phase,bytes){if(phase!=='Moving')return 250;
 function analyze(hostText,clientText){
   const host=parse(hostText,'HOST'),client=parse(clientText,'CLIENT'),errors=[...host.errors.map(e=>({...e,peer:'PC1'})),...client.errors.map(e=>({...e,peer:'PC2'}))],notices=[];
   function mark(code,extra){if(errors.length<100)errors.push({code,...extra});}
-  for(const [side,data] of [['PC1',host.records],['PC2',client.records]]){
+  // One Player.log may contain multiple sessions with reused revision IDs.
+  const multiSession=(String(hostText).match(/(?:^|\s)CC_NET_HOST_READY\s+port=\d+(?=\s|$)/g)||[]).length>1||
+    (String(clientText).match(/(?:^|\s)CC_NET_STATE_APPLIED\s+revision=\d+\s+owner=1(?=\s|$)/g)||[]).length>1;
+  if(multiSession)notices.push('MULTIPLE_SESSIONS_CROP_ORIGINAL_LOGS_TO_ONE_MATCH');
+  // Newer A41 wire-state digest markers are not in frozen W11 candidate.
+  if(/(?:^|\s)CC_W11_STATE_(?:TX|RX)(?=\s|$)/.test(String(hostText)+'\n'+String(clientText)))
+    mark('POST_FREEZE_TELEMETRY_PRESENT',{});
+  if(!multiSession)for(const [side,data] of [['PC1',host.records],['PC2',client.records]]){
     let prev=null;
     for(const row of data){
       if(prev&&row.revision<=prev.revision)mark('NONINCREASING_REVISION',{peer:side,revision:row.revision});
@@ -53,15 +61,17 @@ function analyze(hostText,clientText){
     if(row.periodMs!==expected)mark('ADAPTIVE_CADENCE_MISMATCH',{revision:row.revision,expectedMs:expected,reportedMs:row.periodMs});
   }
   const clientRevs=new Map(client.records.map(x=>[x.revision,x]));let overlapping=0;
-  for(const h of host.records){const c=clientRevs.get(h.revision);if(!c)continue;overlapping++;
+  if(!multiSession)for(const h of host.records){const c=clientRevs.get(h.revision);if(!c)continue;overlapping++;
     for(const field of ['action','turn','phase','balls'])if(h[field]!==c[field])mark('MATCHED_REVISION_METADATA_MISMATCH',{revision:h.revision,field});
   }
   if(!host.records.length||!client.records.length)notices.push('MISSING_SELECTED_CANDIDATE_TELEMETRY');
   if(!overlapping)notices.push('NO_COMMON_REVISION_IN_SPARSE_1HZ_SAMPLE');
   notices.push('UNPAIRED_1HZ_SAMPLES_DO_NOT_PROVE_PACKET_LOSS');
   notices.push('NO_FULL_GAMESTATE_DIGEST_OR_PER_FRAME_BALL_POSE');
-  const verdict=errors.length?'ANOMALY_IN_SUPPLIED_LOGS':(!host.records.length||!client.records.length?'INSUFFICIENT_SELECTED_LOGS':'SAMPLED_DIAGNOSTIC_ONLY');
-  return {schema:SCHEMA,schemaAnchorSha:PIN,runtimeBinarySourceSha:'NOT_VERIFIED',verdict,gameplayGate:'NOT_ATTESTED',physicalPc1Pc2Qa:'NOT_ATTESTED',
+  // No shared snapshot ID means no PC1-PC2 comparison occurred: HOLD.
+  const verdict=errors.length?'ANOMALY_IN_SUPPLIED_LOGS':
+    (!host.records.length||!client.records.length||!overlapping||multiSession?'INSUFFICIENT_SELECTED_LOGS':'SAMPLED_DIAGNOSTIC_ONLY');
+  return {schema:SCHEMA,schemaAnchorSha:PIN,qaFreezeSourceSha:QA_FREEZE,runtimeBinarySourceSha:'NOT_VERIFIED',verdict,gameplayGate:'NOT_ATTESTED',physicalPc1Pc2Qa:'NOT_ATTESTED',
     telemetryMode:'W10_1HZ_SAMPLED',hostMarkers:host.found,clientMarkers:client.found,
     validHost:host.records.length,validClient:client.records.length,matchingRevisionSamples:overlapping,errors,notices};
 }
@@ -75,5 +85,5 @@ function run(argv){
   const out=JSON.stringify(report,null,2)+'\n';if(args['--out'])fs.writeFileSync(args['--out'],out,{flag:'wx'});else process.stdout.write(out);
   return report.verdict==='ANOMALY_IN_SUPPLIED_LOGS'?1:report.verdict==='INSUFFICIENT_SELECTED_LOGS'?2:0;
 }
-module.exports={parse,expectedMs,analyze,run,PIN};
+module.exports={parse,expectedMs,analyze,run,PIN,QA_FREEZE};
 if(require.main===module){try{process.exitCode=run(process.argv.slice(2));}catch(e){process.stderr.write('A81_INPUT_ERROR '+e.message+'\n');process.exitCode=3;}}
