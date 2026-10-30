@@ -223,7 +223,6 @@ namespace CoreClash.Presentation
             var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
             float distance = drag.magnitude;
             if (!GameSimulation.Finite(distance)) return;
-            float power = Mathf.Clamp01(distance * 3.38f / 590);
             bool ready = distance >= 18;
             Color team = Draw.Owner(state.turn);
             Color vector = ready ? Color.Lerp(team, Color.white, .36f) : Alpha(team, .42f);
@@ -261,13 +260,8 @@ namespace CoreClash.Presentation
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
 
-            // A10 W9 decision: arrow length is the power cue. No duplicate bar or numeric percent.
-            float labelWidth=Mathf.Clamp(150*scale,116,150),labelHeight=22;
-            var labelPoint=Point(board,270,state.turn==0?738:118);
-            bool activeAtBottom=state.turn==(viewOwner==1?1:0);
-            float labelY=activeAtBottom?Mathf.Min(labelPoint.y,origin.y-labelHeight-18):Mathf.Max(labelPoint.y,origin.y+18);
-            var label=new Rect(labelPoint.x-labelWidth/2,labelY,labelWidth,labelHeight);
-            Draw.Text(label,ready?"RELEASE TO LAUNCH":"DRAG MORE",9,ready?new Color(.88f,.97f,1):Draw.Muted,TextAnchor.MiddleCenter,true);
+            // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
+            // Readiness wording lives in MatchView so the board remains unobscured.
         }
 
         static void RenderFrame(Rect board, GameState state)
