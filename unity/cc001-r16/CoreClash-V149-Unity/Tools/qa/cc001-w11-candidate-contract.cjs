@@ -153,7 +153,39 @@ function selfTest(){
   const badList=keys.concat('Assets/CoreClash/Physics/RemoteBallPoseSmoother.cs');
   assert.equal(audit(sample,badList).checks.SINGLE_REMOTE_SMOOTHER.status,'FAIL');
   assert.equal(audit(sample).physicalTwoPC,'NOT_RUN');
-  console.log('A60 W11 gate: 6/6 synthetic control assertions PASS; actual source must be supplied separately');
+  // W12: test the actual source-inspection predicate with minimal admission
+  // fixtures, including regressions in the ORDER of first client mutations.
+  const guard='if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;';
+  const positiveApp='remoteLastEventId=remoteLastRevision=0;'+
+    'public void ReceiveNetworkState(GameState state,int snapshotRevision){'+
+    guard+'remoteLastRevision=snapshotRevision;'+
+    'remoteLastEventId=latestEventId;'+
+    'remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);'+
+    'Simulation.State=state;}';
+  const positiveSmooth='public static bool IsFreshRevision(int previous,int incoming)=> incoming>0&&incoming>previous;'+
+    'const float MaxDuration=0.25f; Math.Min(MaxDuration,now-lastPacket);';
+  const w12={...sample,app:positiveApp,smooth:positiveSmooth,
+    ntests:'NetworkSnapshotRate.Interval',smoothtests:'4Hz'};
+  const status=(v,key)=>audit(v).checks[key].status;
+  assert.equal(status(w12,'W12_FREEZE_EARLY_REVISION_ADMISSION'),'PASS');
+  assert.equal(status(w12,'W12_FREEZE_4HZ_SMOOTHING'),'PASS');
+  for(const injected of [
+    'Simulation.State=state;',
+    'remoteLastEventId=latestEventId;',
+    'remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);',
+    'remoteLastRevision=snapshotRevision;'
+  ]){
+    assert.equal(status({...w12,app:positiveApp.replace(guard,injected+guard)},
+      'W12_FREEZE_EARLY_REVISION_ADMISSION'),'FAIL');
+  }
+  assert.equal(status({...w12,app:positiveApp.replace(guard,'if(false)return;')},
+    'W12_FREEZE_EARLY_REVISION_ADMISSION'),'FAIL');
+  assert.equal(status({...w12,smooth:positiveSmooth.replace('0.25f','0.2f')},
+    'W12_FREEZE_4HZ_SMOOTHING'),'FAIL');
+  assert.equal(status({...w12,smooth:positiveSmooth.replace('incoming>0','incoming>=0')},
+    'W12_FREEZE_EARLY_REVISION_ADMISSION'),'FAIL');
+  console.log('A60 W12 gate: 15/15 synthetic control assertions PASS; no Unity/.NET/device execution');
+
 }
 if(require.main===module){
   if(process.argv[2]==='--self-test')selfTest();
