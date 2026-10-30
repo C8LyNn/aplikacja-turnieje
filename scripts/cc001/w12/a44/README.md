@@ -9,7 +9,7 @@ This is **NOT** GitHub PR #207's moving HEAD. At authoring time the moving A70 P
 `verify-frozen-pair.cjs` is an offline operator-side coordinator. It requires a genuine **new A72 native Windows Player build** for the exact frozen SHA, and uses **the original independent A72 complete-folder Player verifier** on **two different local directories**. It **does not duplicate** A72 file-walker, Unity build, or A60 network QA.
 
 1. Validate the original A72 `summary.json`: schema `CC001-W10-A72-WINDOWS-1`, `candidateSHA` exact frozen `3f972...`, `rc1Base` exact RC1, `PASS_BUILD_EVIDENCE_ONLY`, zero blockers, complete Player inventory (including EXE and Assembly-CSharp.dll) with safe unique names and original SHA256/bytes.
-2. Require the operator-provided A72 verifier's SHA256 to match the separately supplied expected SHA256; **A60 must independently authenticate its source/provenance**. A matching *user-supplied* digest alone cannot authenticate arbitrary code.
+2. Require the operator-provided A72 verifier's SHA256 to match the separately supplied expected SHA256 **AND** its byte-exact immutable Git blob SHA-1 to match A72-owned #188's authenticated source blob `7b704b969c40abe84aaefdbf62cc82c81860ae72`. A matching *user-supplied* SHA256 alone cannot authenticate arbitrary code. A60 must still independently authenticate the provenance of operator artifacts and physical devices.
 3. Invoke that unchanged A72 executable verifier twice, on **two disjoint nonnested Player root directories**; insist on process exit code 0 and parse `PASS_BINARY_INTEGRITY_ONLY`, exact source SHA, correct 100% inventory counts and empty mismatch list. Preserve the stdout SHA256, but do not embed user paths or raw stdout.
 4. Check A44 W10 existing session record: both EXE hashes must match A72 full Player inventory, expected RC1 baseline, PC1/PC2 log digests present, and immutable independent A60 QA HOLD. Produce a **single no-overwrite JSON receipt** linking the original A72 manifest and A44 session JSON SHA256.
 
@@ -48,4 +48,18 @@ node --check scripts/cc001/w12/a44/verify-frozen-pair.cjs
 node --test scripts/cc001/w12/a44/verify-frozen-pair.test.cjs
 ```
 
-The test suite uses a **clearly labeled test-double for A72 verifier** and 54 synthetic player files per directory. Its PASS establishes only that A44 correctly invokes an A72-shaped CLI and rejects bad data. **The genuine A72 script/Windows Player were not run by A44 at authoring time.** Actual physical G3 = HOLD.
+The updated suite includes the byte-exact **genuine A72 verifier code** in a test-only regression fixture and 54 synthetic Player files per directory. It actually executes genuine A72 Node CLI, reproducing its current nested-path false HOLD; the clearly labeled test double is now used **only** as an adversarial replacement that the authenticated source pin must reject. These are synthetic test files, **not a compiled Windows Player**. Actual physical G3 = HOLD.
+
+## A44 owner follow-up: authenticated A72 verifier intake
+
+The initial W12 implementation verified only the caller-provided `--verifier-sha256`. This allowed an arbitrary substituted JavaScript script accompanied by its own matching digest to manufacture a synthetic `PASS_BINARY_INTEGRITY_ONLY` report. The repaired gate now also checks the genuine A72 #188 `verify-w10-player.cjs` Git blob `7b704b969c40abe84aaefdbf62cc82c81860ae72` **as a constant that the operator cannot override**. A72's current owner PR #188 was rechecked for the same blob, and the fixture inside A44's test file embeds that byte-exact authenticated source as an inert test string. No clone of A72's verifier is shipped as a separate operational script.
+
+The source also rejects a summary/session path that is a symlink **before** calling `realpathSync`, fixing the previous original-path lstat bypass. Synthetic tests invoke the genuine A72 CLI on a test directory, assert its current false HOLD, verify A44 does not write a fake receipt, and cover counterfeit-script and symlink negative cases. These tests are not evidence that Unity Windows or physical PC1–PC2 ran.
+
+The A72 source Git blob SHA-1 is a Git object integrity pin, not an assertion that SHA-1 itself provides modern collision-resistant authentication. SHA-256 of the full verifier bytes is also checked. If A72 intentionally changes its verifier source, A44 must review the new A72 owner commit and update this pin in a separate tested PR; never bypass it with a new operator-supplied digest.
+
+## P0 dependency: original A72 verifier nested-path bug, confirmed with real Node
+
+At the verified authentic A72 blob `7b704b969c40abe84aaefdbf62cc82c81860ae72`, the recursive `files(root)` resets the relative-path base on every directory entry. A manifest listing 54 correct files (including `CoreClash_Data/Managed/Assembly-CSharp.dll`) produces actual 54, expected 54, but 53 false `MISSING` file errors. The A72 `--self-test` (12/12) fails to see it because it derives the expected manifest with the *same broken walker*. A44 has reported this owner-only defect in issue #113.
+
+**Do not interpret the A44 test suite's expected HOLD as Windows build failure.** The frozen QA cannot get a trustworthy full-folder positive result with the current pinned authentic verifier. A72 must fix the source and add an independently constructed full-path manifest regression; A44 must then re-review and explicitly repin the updated A72 Git blob in its own source before use. Do not bypass the pin, use a test double in the real operator workflow, or claim physical G3.
