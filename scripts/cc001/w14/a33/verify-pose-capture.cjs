@@ -30,6 +30,14 @@ function verify(s=helper,u=ui){
  expect('TEST_REGISTERED',entry.includes('A33W14PoseEvidenceTests();'));
  expect('PROJECT_INCLUDES',project.includes('<Compile Include="../Assets/CoreClash/Presentation/QaPoseEvidence.cs" />'));
  expect('EIGHT_MANAGED_TESTS',(tests.match(/Test\("A33 W14/g)||[]).length===8);
+ expect('FOCUS_OPTIONAL_PARAMETER',s.includes('float unscaledTime,int focusBallId=0)'));
+ expect('FOCUS_LOOKUP_ONLY_ACTIVE',s.includes('focusBallId>0?live.FirstOrDefault(b=>b.id==focusBallId):null'));
+ expect('FOCUS_OVERFLOW_RESERVES_ROW',s.includes('live.Take(sampled-1).Concat(new[]{focused}).OrderBy(b=>b.id).ToArray()'));
+ expect('FOCUS_OUTSIDE_FIRST_GATE',s.includes('focused!=null&&sampled>0&&!live.Take(sampled).Any(b=>b.id==focusBallId)'));
+ expect('FOCUS_ROW_USAGE',s.includes('var b=sampledBalls[i]'));
+ expect('FOCUS_DISPOSITION',s.includes('focused==null?"NOT_ACTIVE":"INCLUDED"')&&s.includes('FOCUS_ID=')&&s.includes('FOCUS_STATUS='));
+ expect('FOCUS_FROM_INSPECTOR',u.includes('Time.unscaledTime,inspectBallId)'));
+ expect('FIVE_W15_MANAGED_TESTS',(tests.match(/Test\\("A33 W15/g)||[]).length===5);
  expect('UNITY_META',/^fileFormatVersion: 2\nguid: [0-9a-f]{32}\n$/.test(meta));
  return errors;
 }
@@ -44,9 +52,17 @@ const negatives=[
  ['aiming_interpolation',s=>s.replace('state.phase==MatchPhase.Moving && smoother!=null','smoother!=null')],
  ['no_smoother',s=>s.replace('smoother.TryGetPosition(b.id,unscaledTime,out displayX,out displayY)','false')],
  ['fallback',s=>s.replace('if(!interpolated){displayX=b.x;displayY=b.y;}','')],
- ['false_parity',s=>s.replace('RENDER_POSE_PARITY_PROOF=NO','RENDER_POSE_PARITY_PROOF=YES')]
+ ['false_parity',s=>s.replace('RENDER_POSE_PARITY_PROOF=NO','RENDER_POSE_PARITY_PROOF=YES')],
+ ['no_focus_parameter',s=>s.replace('int focusBallId=0','int focusBallId=1')],
+ ['wrong_focus_lookup',s=>s.replace('b=>b.id==focusBallId','b=>true')],
+ ['unbounded_focus_extra_row',s=>s.replace('live.Take(sampled-1).Concat','live.Take(sampled).Concat')],
+ ['focus_row_not_added',s=>s.replace('Concat(new[]{focused})','Concat(Array.Empty<BallRuntime>())')],
+ ['focus_not_found_report',s=>s.replace('"NOT_ACTIVE"','"INCLUDED"')],
+ ['focus_not_reported',s=>s.replace('" / FOCUS_STATUS="','" / OMITTED_STATUS="')],
+ ['focus_order_unsorted',s=>s.replace('Concat(new[]{focused}).OrderBy(b=>b.id).ToArray()','Concat(new[]{focused}).ToArray()')]
 ];
 for(const [name,mutate] of negatives)assert.ok(verify(mutate(helper)).length>0,'negative mutation escaped '+name);
 assert.ok(verify(helper,ui.replace('NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null','remoteBallSmoother')).length>0,'host/client guard bypass escaped');
 assert.ok(verify(helper,ui.replace('GUIUtility.systemCopyBuffer=W12QaClipboardText(','var ignored=W12QaClipboardText(')).length>0,'click gate bypass escaped');
-console.log('CC001_W14_A33_SOURCE_CONTRACT_PASS '+(negatives.length+3)+'/'+(negatives.length+3)+' (static/mutation ONLY, C# TESTS NOT RUN)');
+assert.ok(verify(helper,ui.replace('Time.unscaledTime,inspectBallId)','Time.unscaledTime,0)')).length>0,'focus UI bypass escaped');
+console.log('CC001_W14_A33_SOURCE_CONTRACT_PASS '+(negatives.length+4)+'/'+(negatives.length+4)+' (static/mutation ONLY, C# TESTS NOT RUN)');
