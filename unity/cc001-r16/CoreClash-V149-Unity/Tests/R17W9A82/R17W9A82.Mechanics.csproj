@@ -13,6 +13,8 @@
     <Compile Include="../../Assets/CoreClash/Core/**/*.cs" />
     <Compile Include="../../Assets/CoreClash/Physics/*.cs" />
     <Compile Include="../../Assets/CoreClash/Networking/*.cs" Exclude="../../Assets/CoreClash/Networking/Ngo*.cs" />
+    <!-- The production wire codec is managed-only even though its name starts with Ngo. -->
+    <Compile Include="../../Assets/CoreClash/Networking/NgoWireProtocol.cs" />
     <Compile Include="../../Assets/CoreClash/Input/LaunchGesture.cs" />
     <Compile Include="../../Assets/CoreClash/Presentation/MatchLayout.cs" />
     <Compile Include="../../Assets/CoreClash/Presentation/BallSelection.cs" />
