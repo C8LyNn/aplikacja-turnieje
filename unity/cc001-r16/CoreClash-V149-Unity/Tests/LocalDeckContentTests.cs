@@ -274,6 +274,82 @@ public static partial class Program
             Eq(0,LocalDeckContent.RenderableStockIds(s,1).Length);
             Eq(9,LocalDeckContent.RenderableStockIds(s,0).Length);
         });
+
+        Test("A32 W15 ready P2 Phoenix Hand becomes visible as tenth UI card without new stock",()=>{
+            var s=A32OutOfDeckHandFixture();
+            Eq(0,s.State.turn);
+            var normalIds=LocalDeckContent.RenderableStockIds(s,1);
+            Eq(9,normalIds.Length);
+            False(normalIds.Contains("phoenix"));
+            var cards=LocalDeckContent.RenderableCardIds(s,1);
+            Eq(10,cards.Length);
+            True(cards.Take(9).SequenceEqual(normalIds));
+            Eq("phoenix",cards[9]);
+            Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq("HAND READY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+        });
+        Test("A32 W15 authoritative P2 hand can actually spawn although its nine-card deck omits Phoenix",()=>{
+            var s=A32OutOfDeckHandFixture();s.State.turn=1;
+            Eq(10,LocalDeckContent.RenderableCardIds(s,1).Length);
+            True(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            var c=new PlayerCommand{owner=1,turnNumber=s.State.turnNumber,
+                kind=CommandKind.Spawn,ballType="phoenix",dx=0f,dy=1f,power=420f};
+            True(s.TryCommand(c,out _));
+            Eq(0,s.State.phoenixHand.Count);
+            Eq(9,s.State.players[1].stock.Count);
+            Eq(9,LocalDeckContent.RenderableCardIds(s,1).Length);
+            Eq(1,s.State.balls.Count);
+            Eq("phoenix",s.State.balls[0].type);
+        });
+        Test("A32 W15 no extra Phoenix card for already-nine-slot Phoenix deck",()=>{
+            var s=A32ReadyPhoenixDeck();
+            Eq(9,LocalDeckContent.RenderableStockIds(s,1).Length);
+            Eq(9,LocalDeckContent.RenderableCardIds(s,1).Length);
+            Eq(1,LocalDeckContent.RenderableCardIds(s,1).Count(id=>id=="phoenix"));
+            Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+        });
+        Test("A32 W15 stale unready other-owner hands never add a tenth card",()=>{
+            foreach(int condition in new[]{0,1,2,3}){
+                var s=A32OutOfDeckHandFixture();
+                var h=s.State.phoenixHand[0];
+                if(condition==0)h.ready=false;
+                if(condition==1)h.createdOwnerTurns=s.State.players[1].ownerTurns;
+                if(condition==2)h.lastProcessedOwnerTurns=s.State.players[1].ownerTurns-1;
+                if(condition==3)h.owner=0;
+                Eq(9,LocalDeckContent.RenderableCardIds(s,1).Length);
+                False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            }
+        });
+        Test("A32 W15 invalid local deck or local owner never exposes Phoenix Hand",()=>{
+            var s=A32OutOfDeckHandFixture();
+            s.State.players[1].stock[0].id="unknown_catalog_id";
+            Eq(0,LocalDeckContent.RenderableCardIds(s,1).Length);
+            Eq(0,LocalDeckContent.RenderableCardIds(s,-1).Length);
+            Eq(0,LocalDeckContent.RenderableCardIds(s,2).Length);
+        });
+        Test("A32 W15 desktop fourth card row is sized without action overlap",()=>{
+            Eq(3,LocalDeckContent.DeckGridRows(0));
+            Eq(3,LocalDeckContent.DeckGridRows(9));
+            Eq(4,LocalDeckContent.DeckGridRows(10));
+            Eq(0f,LocalDeckContent.DeckExtraContentHeight(9,98f,8f));
+            Eq(106f,LocalDeckContent.DeckExtraContentHeight(10,98f,8f));
+            Eq(88f,LocalDeckContent.DeckExtraContentHeight(10,80f,8f));
+            Eq(0f,LocalDeckContent.DeckExtraContentHeight(10,float.NaN,8f));
+        });
+        Test("A32 W15 hand-card display does not mutate revision turn stock or hand",()=>{
+            var s=A32OutOfDeckHandFixture();
+            int turn=s.State.turn,revision=s.State.revision,serial=s.State.actionSerial;
+            var original=s.State.players[1].stock.Select(x=>x.remaining).ToArray();
+            int handCount=s.State.phoenixHand.Count;
+            for(int i=0;i<5;i++){
+                Eq(10,LocalDeckContent.RenderableCardIds(s,1).Length);
+                Eq("HAND READY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            }
+            Eq(turn,s.State.turn);Eq(revision,s.State.revision);Eq(serial,s.State.actionSerial);
+            Eq(handCount,s.State.phoenixHand.Count);
+            True(original.SequenceEqual(s.State.players[1].stock.Select(x=>x.remaining)));
+        });
     }
     static GameSimulation A32ReadyPhoenixDeck()
     {
@@ -285,6 +361,19 @@ public static partial class Program
         s.State.phoenixHand.Add(new PhoenixHandEntry{
             owner=1,ready=true,createdOwnerTurns=2,lastProcessedOwnerTurns=3,
             hp=10,maxHp=25
+        });
+        return s;
+    }
+
+    static GameSimulation A32OutOfDeckHandFixture()
+    {
+        // The featured decks carry nine legal specials, none is Phoenix.
+        // The real command contract nevertheless accepts a ready Phoenix Hand.
+        var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+        s.State.players[1].ownerTurns=3;
+        s.State.phoenixHand.Add(new PhoenixHandEntry{
+            owner=1,ready=true,createdOwnerTurns=2,lastProcessedOwnerTurns=3,
+            hp=10,maxHp=20
         });
         return s;
     }
