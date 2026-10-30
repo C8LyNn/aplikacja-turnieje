@@ -4,6 +4,12 @@ using CoreClash.Core;
 namespace CoreClash.Networking
 {
     [Serializable] public sealed class SessionSnapshot { public int protocol=149,revision;public string stateJson; }
+    public static class NetworkSnapshotCadence
+    {
+        public const float MovingSeconds=.05f;
+        public const float StableSeconds=.25f;
+        public static float For(MatchPhase phase)=>phase==MatchPhase.Moving?MovingSeconds:StableSeconds;
+    }
     public sealed class NetworkGameSession
     {
         readonly GameSimulation sim;

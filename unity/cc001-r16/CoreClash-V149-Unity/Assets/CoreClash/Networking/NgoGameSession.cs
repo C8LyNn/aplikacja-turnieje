@@ -198,7 +198,7 @@ namespace CoreClash.Networking
             if(!hostRole&&!failed&&connectDeadline>0){if(IsConnected)connectDeadline=0;else if(Time.unscaledTime>=connectDeadline){FailConnection("The game did not respond. Check the invitation and try again.");return;}}
             if(IsAuthority)ExpirePendingSeat();
             if(!IsAuthority||authority==null||!IsConnected||Time.unscaledTime<nextSnapshot)return;
-            nextSnapshot=Time.unscaledTime+(app.Simulation.State.phase==MatchPhase.Moving?.2f:1f);
+            nextSnapshot=Time.unscaledTime+NetworkSnapshotCadence.For(app.Simulation.State.phase);
             try{
                 var packet=authority.Capture(JsonUtility.ToJson);var chunks=NgoWireProtocol.Split(NgoWireProtocol.Encode(JsonUtility.ToJson(packet)));
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);

@@ -1,4 +1,5 @@
 using System;
+using CoreClash.Core;
 namespace CoreClash.Presentation
 {
     public struct UiBox
@@ -7,6 +8,21 @@ namespace CoreClash.Presentation
         public UiBox(float x,float y,float width,float height){this.x=x;this.y=y;this.width=width;this.height=height;}
         public float Right=>x+width;
         public float Bottom=>y+height;
+    }
+    public static class MatchPerspective
+    {
+        public const float WorldHeight=900f;
+        public static float ViewY(float simulationY,int localOwner)=>localOwner==1?WorldHeight-simulationY:simulationY;
+        public static float SimulationY(float viewY,int localOwner)=>localOwner==1?WorldHeight-viewY:viewY;
+        public static string TurnText(GameState state,int localOwner,bool networked)
+        {
+            if(state.phase==MatchPhase.Over)return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
+            if(state.phase==MatchPhase.Moving)return "TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1)+"  /  MOVING";
+            bool localTurn=!networked||state.turn==localOwner;
+            string phase=state.bonusPending?(localTurn?"YOUR BONUS SHOT":"OPPONENT BONUS SHOT"):(localTurn?"YOUR SHOT":"OPPONENT SHOT");
+            return "TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1)+"  /  "+phase;
+        }
+        public static string PlayerLabel(int owner,int localOwner,bool networked)=>"PLAYER "+(owner+1)+(networked&&owner==localOwner?" · YOU":"");
     }
     public sealed class MatchLayout
     {
