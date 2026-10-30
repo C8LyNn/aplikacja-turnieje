@@ -92,6 +92,22 @@ namespace CoreClash.Presentation
         }
     }
 
+    // R17-W13 A20: a failed command warning belongs to the turn where it
+    // originated. Without this gate a network race can replay that warning when
+    // the same local seat becomes active again on a later authoritative turn.
+    // Read-only presentation logic: it must never affect command admission.
+    public static class ShotNoticeScope
+    {
+        public static bool Keep(GameState state,int originatingOwner,int originatingTurnNumber,
+            bool multiplayer,bool connected)
+        {
+            return state!=null&&state.phase==MatchPhase.Aiming&&
+                (originatingOwner==0||originatingOwner==1)&&originatingTurnNumber>0&&
+                state.turn==originatingOwner&&state.turnNumber==originatingTurnNumber&&
+                (!multiplayer||connected);
+        }
+    }
+
     // A10-approved power UI: arrow/trajectory length remains the power cue. This helper
     // reuses the unchanged 18-world-unit LaunchGesture release threshold.
     public static class AimUiStatus
