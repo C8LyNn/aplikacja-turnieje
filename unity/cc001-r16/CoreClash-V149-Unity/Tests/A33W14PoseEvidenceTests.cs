@@ -67,6 +67,55 @@ public static partial class Program
             True(t.Contains("RENDER_MODE=CANONICAL"));
             True(t.Contains("RENDER_X=10 RENDER_Y=20"));
         });
+        // W15: with >24 balls the investigated runtime ball must never be
+        // silently omitted by the lower-id bounded sample.
+        Test("A33 W15 focused tail ball is retained without exceeding cap",()=>{
+            var s=new GameState();
+            for(int i=1;i<=27;i++)s.balls.Add(new BallRuntime{id=i,owner=i%2,hp=i,x=i*2f,y=i*3f});
+            var text=QaPoseEvidence.Capture(s,null,0f,27);
+            True(text.Contains("ACTIVE_BALL_COUNT=27 / SAMPLED=24 / TRUNCATED=3"));
+            True(text.Contains("FOCUS_ID=27 / FOCUS_STATUS=INCLUDED"));
+            Eq(24,text.Split(new[]{"BALL ID="},StringSplitOptions.None).Length-1);
+            True(text.Contains("BALL ID=27 ")&&text.Contains("BALL ID=23 "));
+            False(text.Contains("BALL ID=24 ")||text.Contains("BALL ID=25 ")||text.Contains("BALL ID=26 "));
+            True(text.IndexOf("BALL ID=23 ")<text.IndexOf("BALL ID=27 "));
+        });
+        Test("A33 W15 focus already sampled does not duplicate ball",()=>{
+            var s=new GameState();
+            for(int i=1;i<=28;i++)s.balls.Add(new BallRuntime{id=i});
+            var text=QaPoseEvidence.Capture(s,null,0f,5);
+            True(text.Contains("FOCUS_ID=5 / FOCUS_STATUS=INCLUDED"));
+            Eq(24,text.Split(new[]{"BALL ID="},StringSplitOptions.None).Length-1);
+            Eq(1,text.Split(new[]{"BALL ID=5 "},StringSplitOptions.None).Length-1);
+            True(text.Contains("BALL ID=24 "));False(text.Contains("BALL ID=25 "));
+        });
+        Test("A33 W15 missing focus is explicitly not active",()=>{
+            var s=new GameState();
+            for(int i=1;i<=26;i++)s.balls.Add(new BallRuntime{id=i});
+            var text=QaPoseEvidence.Capture(s,null,0f,70);
+            True(text.Contains("FOCUS_ID=70 / FOCUS_STATUS=NOT_ACTIVE"));
+            True(text.Contains("BALL ID=24 "));False(text.Contains("BALL ID=70 "));
+            Eq(24,text.Split(new[]{"BALL ID="},StringSplitOptions.None).Length-1);
+        });
+        Test("A33 W15 banished or dead focused ball is not falsely included",()=>{
+            var s=new GameState();
+            s.balls.Add(new BallRuntime{id=41,banished=true});
+            s.balls.Add(new BallRuntime{id=42,dead=true});
+            s.balls.Add(new BallRuntime{id=43,hp=5});
+            var a=QaPoseEvidence.Capture(s,null,0f,41);
+            var b=QaPoseEvidence.Capture(s,null,0f,42);
+            True(a.Contains("FOCUS_STATUS=NOT_ACTIVE")&&b.Contains("FOCUS_STATUS=NOT_ACTIVE"));
+            False(a.Contains("BALL ID=41 ")||b.Contains("BALL ID=42 "));
+            True(b.Contains("BALL ID=43 "));
+        });
+        Test("A33 W15 no inspected ball retains original stable first 24",()=>{
+            var s=new GameState();
+            for(int i=30;i>=1;i--)s.balls.Add(new BallRuntime{id=i});
+            var text=QaPoseEvidence.Capture(s,null,0f);
+            True(text.Contains("FOCUS_ID=0 / FOCUS_STATUS=NONE"));
+            Eq(24,text.Split(new[]{"BALL ID="},StringSplitOptions.None).Length-1);
+            True(text.Contains("BALL ID=24 "));False(text.Contains("BALL ID=25 "));
+        });
         Test("A33 W14 no hidden full-state or physical-PC parity claim",()=>{
             var s=new GameState();
             var t=QaPoseEvidence.Capture(s,null,0);
