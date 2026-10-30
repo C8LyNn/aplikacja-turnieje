@@ -105,14 +105,14 @@ try{
  });
 
  // W11 A41 digest producer is owned by its independent parity comparator.
- const digest=(side,rev,hash='a'.repeat(64))=>`CC_W11_STATE_${side} revision=${rev} sha256=${hash} action=8 turn=1\\n`;
+ const digest=(side,rev,hash='a'.repeat(64))=>`CC_W11_STATE_${side} revision=${rev} sha256=${hash} action=8 turn=1\n`;
  test('W11 state digest markers detected alongside W10 metrics without mixing producers',()=>{
    const a=mod.analyze(pc1(host(16)+digest('TX',16)),pc2(client(16)+digest('RX',16)));
    assert.equal(a.producer,'A41');
    assert.equal(a.observations.w11DigestMarkers.pc1Tx,1);
    assert.equal(a.observations.w11DigestMarkers.pc2Rx,1);
    assert.equal(a.qualification.authoritativeStateParity,'NOT_PROVEN_A41_COMPARATOR_REQUIRED');
-   assert.match(a.warnings.join(' '),/state-parity\\.cjs/);
+   assert.match(a.warnings.join(' '),/state-parity\.cjs/);
    assert.ok(!JSON.stringify(a).includes('a'.repeat(64)),'never expose the state digest itself');
  });
  test('digest-only capture does not silently masquerade as no trace or pass',()=>{
@@ -132,7 +132,7 @@ try{
    assert.equal(a.qualification.parser,'TRACE_FIELDS_INVALID');
  });
  test('unknown W11 digest marker cannot be ignored',()=>{
-   const a=mod.analyze(pc1('CC_W11_STATE_BROKEN revision=1\\n'),pc2(client(1)));
+   const a=mod.analyze(pc1('CC_W11_STATE_BROKEN revision=1\n'),pc2(client(1)));
    assert.ok(a.findings.some(f=>f.code==='UNRECOGNIZED_OR_AMBIGUOUS_W11_DIGEST_MARKER'));
  });
  console.log(`RESULT: ${count}/${count} PASS, 0 FAIL`);
