@@ -32,12 +32,12 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(0,y,actionW,actionH),"BALL DETAILS",size:touch?12:10))ShowBallDetails(selected);
             if(Draw.Button(new Rect(actionW+10,y,actionW,actionH),boardInspection?"CANCEL INSPECT":"INSPECT BOARD",selected:boardInspection,size:touch?12:10))SetBoardInspection(!boardInspection);
             if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))ReturnToSetup();y+=actionH+11;
-            string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):state.phase==MatchPhase.Moving?"SHOT RELEASED  /  RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"DRAG FROM YOUR LAUNCHER TO AIM";
+            string hint=GuidanceHint();
             Draw.Text(new Rect(0,y,w,24),hint,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);
             if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
             else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
-            else if(notice.Length>0)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
-            else if(state.phase==MatchPhase.Moving&&Time.unscaledTime-releasedAt<3){Draw.Round(new Rect(0,y+32,w,5),Draw.Edge);Draw.Round(new Rect(0,y+32,w*lastPower,5),Draw.Owner(state.turn));}
+            else if(notice.Length>0&&CanChoose)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
+            else if(state.phase==MatchPhase.Moving)Draw.Text(new Rect(0,y+27,w,35),"SHOT RESOLVING",12,Draw.Muted);
             else Draw.Text(new Rect(0,y+27,w,38),state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.",12,Draw.Muted);
             GUI.EndScrollView();
         }
@@ -58,15 +58,14 @@ namespace CoreClash.Presentation
                 float x=hud.x+i*(cellW+4);
                 Draw.Surface(new Rect(x,hud.y,cellW,44),Draw.PanelLight,i==owner?Draw.Owner(i):Draw.Edge);
                 int hp=state.players[i].hp;
-                string compactPlayer="P"+(i+1)+(NetworkLink!=null&&i==ViewOwner?" · YOU":"");
+                string compactPlayer=GuidancePlayer(i,true);
                 Draw.Text(new Rect(x+4,hud.y+4,cellW-8,26),compactPlayer+"  "+hp+"/20",14,Color.white,TextAnchor.MiddleCenter,true);
                 Draw.Round(new Rect(x+8,hud.y+35,cellW-16,5),Draw.Edge);
                 if(hp>0)Draw.Round(new Rect(x+8,hud.y+35,(cellW-16)*Mathf.Clamp01(hp/20f),5),Draw.Owner(i));
             }
             float turnX=hud.x+2*(cellW+4);
             Draw.Surface(new Rect(turnX,hud.y,cellW,44),Draw.PanelLight,Draw.Owner(owner));
-            string phase=state.phase==MatchPhase.Over?(state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS"):
-                state.phase==MatchPhase.Moving?"MOVING":state.bonusPending?"BONUS":"AIM";
+            string phase=LocalSeatGuidance.CompactPhase(state,ViewOwner,NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
             Draw.Text(new Rect(turnX+3,hud.y+3,cellW-6,18),state.phase==MatchPhase.Over?"RESULT":"TURN "+state.turnNumber+"/50",13,Draw.Owner(owner),TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(turnX+3,hud.y+22,cellW-6,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
 
@@ -74,8 +73,7 @@ namespace CoreClash.Presentation
             string name=state.phase==MatchPhase.Over?TurnText():Catalog.Ball(selected).name;
             Draw.Text(new Rect(choice.x+8,choice.y+2,choice.width-138,22),name,14,Color.white,TextAnchor.MiddleLeft,true);
             string hint=state.phase==MatchPhase.Over?state.resultReason:
-                notice.Length>0?notice:boardInspection?"TAP BALL TO INSPECT":
-                state.phase==MatchPhase.Moving?"SHOT RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"DRAG FROM LAUNCHER";
+                notice.Length>0&&CanChoose?notice:GuidanceHint();
             Draw.Text(new Rect(choice.x+8,choice.y+23,choice.width-138,20),hint,11,Draw.Muted,TextAnchor.MiddleLeft);
             if(Draw.Button(new Rect(choice.xMax-124,choice.y,124,44),"STANDARD",Draw.Owner(owner),selected=="normal",CanChoose,12))SelectBall("normal");
 
@@ -102,8 +100,7 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),"SETUP",size:12))ReturnToSetup();
             if(feedbackRow.height>=20){
                 string message=state.phase==MatchPhase.Over?TurnText():
-                    notice.Length>0?notice:boardInspection?"CANCEL INSPECT TO AIM":
-                    state.phase==MatchPhase.Moving?"SHOT RELEASED / RESOLVING":gesture.Active?"RELEASE TO LAUNCH":"SELECT A BALL AND DRAG TO AIM";
+                    notice.Length>0&&CanChoose?notice:GuidanceHint();
                 Draw.Text(feedbackRow,message,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(owner),TextAnchor.MiddleLeft,true);
             }
         }
@@ -141,7 +138,9 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(inner.x+(actionW+6)*2,y,actionW,44),"SETUP",size:12))ReturnToSetup();
             if(shortTray)GUI.EndScrollView();
         }
-        string TurnText()=>MatchPerspective.TurnText(Simulation.State,ViewOwner,NetworkLink!=null);
+        string TurnText()=>LocalSeatGuidance.TurnText(Simulation.State,ViewOwner,NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
+        string GuidanceHint()=>LocalSeatGuidance.Hint(Simulation.State,ViewOwner,NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,boardInspection,gesture.Active);
+        string GuidancePlayer(int owner,bool compact)=>LocalSeatGuidance.PlayerLabel(owner,ViewOwner,NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,compact);
         void Hud(Rect r,bool compact)
         {
             float gap=10,w=(r.width-gap)/2;
@@ -149,7 +148,7 @@ namespace CoreClash.Presentation
                 var cell=new Rect(r.x+owner*(w+gap),r.y,w,r.height);Color team=Draw.Owner(owner);int hp=Simulation.State.players[owner].hp;
                 Draw.Surface(cell,Draw.PanelLight,Simulation.State.turn==owner?Color.Lerp(Draw.Edge,team,.65f):Draw.Edge);
                 bool stacked=!compact&&w<175;
-                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),MatchPerspective.PlayerLabel(owner,ViewOwner,NetworkLink!=null),compact?10:12,team,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),GuidancePlayer(owner,false),compact?10:12,team,TextAnchor.MiddleLeft,true);
                 if(stacked)Draw.Text(new Rect(cell.x+12,cell.y+25,w-24,25),hp+" / 20",21,Color.white,TextAnchor.MiddleLeft,true);
                 else Draw.Text(new Rect(cell.x+w*.43f,cell.y+5,w*.57f-12,compact?20:30),hp+" / 20",compact?16:w<205?19:24,Color.white,TextAnchor.MiddleRight,true);
                 Draw.Round(new Rect(cell.x+12,cell.yMax-16,w-24,8),new Color(.035f,.06f,.09f));if(hp>0)Draw.Round(new Rect(cell.x+12,cell.yMax-16,(w-24)*Mathf.Clamp01(hp/20f),8),team);
