@@ -8,6 +8,14 @@ const W11='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const W11_REF='integration/cc001-r17-w11-qa-freeze-20261030';
 const UNITY_VERSION='6000.4.0f1';
 const DIAG='CC001_PHOENIX_DIAGNOSTIC';
+// BuildTools writes exactly these two previously tracked, generated R16 reports.
+// Treat only these outputs as generated (never arbitrary C# or Unity scene changes).
+const UNITY_GENERATED=Object.freeze([
+ `${ROOT}/Evidence/R16/Unity/unity-smoke.json`,
+ `${ROOT}/Evidence/R16/Unity/build-StandaloneWindows64.json`
+]);
+const generatedPaths=new Set(UNITY_GENERATED);
+const unexpectedSourceChanges=rows=>rows.filter(x=>!generatedPaths.has(x.path));
 const PROTECTED=[`${ROOT}/.gitattributes`,`${ROOT}/Packages/manifest.json`,`${ROOT}/ProjectSettings/ProjectSettings.asset`,`${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`,`${ROOT}/Assets/CoreClash/Editor/BuildTools.cs`];
 const safeRef=s=>s===W11_REF;
 const goodSha=s=>/^[a-f0-9]{40}$/.test(s);
@@ -139,6 +147,25 @@ function freshManagedResult(resultPath,startMs,endMs){
  ensure(Number.isFinite(utc)&&utc>=startMs-300000&&utc<=endMs+300000,'MANAGED_RESULT_TIMESTAMP');
  return {parsed,bytes,sha256:hash(bytes)};
 }
+// Preserve old tracked source bytes as evidence, then require Unity to create new reports.
+function archiveOldUnityReport(file,evidenceDir,archiveName){
+ ensure(/^[a-zA-Z0-9_.-]+\.json$/.test(archiveName),'Unsafe Unity archive name');
+ if(!fs.existsSync(file))return {oldResultPresent:false,oldResultSha256:null,archivedPath:null};
+ const st=fs.lstatSync(file);ensure(st.isFile()&&!st.isSymbolicLink(),'UNSAFE_OLD_UNITY_REPORT');
+ const archived=path.join(evidenceDir,archiveName),bytes=fs.readFileSync(file);
+ ensure(!fs.existsSync(archived),'OLD_UNITY_ARCHIVE_COLLISION');
+ fs.writeFileSync(archived,bytes,{flag:'wx'});
+ fs.unlinkSync(file); // disposable Unity checkout only, after pre-build source snapshot
+ return {oldResultPresent:true,oldResultSha256:hash(bytes),archivedPath:archiveName};
+}
+function freshUnityReport(file,startMs,endMs){
+ ensure(fs.existsSync(file),'NEW_UNITY_REPORT_MISSING');
+ const st=fs.lstatSync(file);ensure(st.isFile()&&!st.isSymbolicLink(),'NEW_UNITY_REPORT_UNSAFE');
+ ensure(st.mtimeMs>=startMs-300000&&st.mtimeMs<=endMs+300000,'NEW_UNITY_REPORT_TIMESTAMP');
+ const bytes=fs.readFileSync(file);let parsed;
+ try{parsed=JSON.parse(bytes.toString('utf8'))}catch{throw Error('NEW_UNITY_REPORT_INVALID_JSON')}
+ return {parsed,bytes,sha256:hash(bytes)};
+}
 function boolGates(o){return Object.entries(o).filter(([,v])=>!v).map(([k])=>k)}
 async function spawnLog(cmd,args,cwd,logPath){
  fs.mkdirSync(path.dirname(logPath),{recursive:true});const fd=fs.openSync(logPath,'w');
@@ -155,7 +182,7 @@ async function build(a){
  const root=path.resolve(a.out),repo=path.join(root,'checkout'),evidence=path.join(root,'evidence');
  fs.mkdirSync(path.join(evidence,'logs'),{recursive:true});
  const log=(label,msg)=>{fs.appendFileSync(path.join(evidence,'logs','gate-events.txt'),`${new Date().toISOString()} ${label} ${msg}\n`)};
- let fatal=null,unity=null,managed=null,managedSdk=null,managedReport=null,pre=null,post=null,scope=null,responses=[],binary=[],sourceChanges=[],buildReport=null;
+ let fatal=null,unity=null,managed=null,managedSdk=null,managedReport=null,pre=null,post=null,scope=null,responses=[],binary=[],sourceChanges=[],buildReport=null,smokeReport=null,unityGenerated={};
  try{
   log('START',`ref=${a.ref} sha=${a.sha}`);
   const cloned=await spawnLog('git',['clone','--single-branch','--branch',a.ref,'--no-checkout','https://github.com/C8LyNn/aplikacja-turnieje.git',repo],root,path.join(evidence,'logs','git-clone.log'));
@@ -197,13 +224,28 @@ async function build(a){
   json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,candidateSHA:a.sha,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport.passed,failed:managedReport.failed,sha256:fresh.sha256,oldResultSha256:archived.oldResultSha256,start:new Date(managedStart).toISOString(),end:new Date(managedEnd).toISOString(),freshlyGenerated:true});
   ensure(managedReport.failed===0&&managedReport.passed>0,'Managed .NET9 report rejected');
 
+  // Only two known tracked generated JSON reports may change; all gameplay/scene paths remain protected.
+  const reportRoot=path.join(project,'Evidence','R16','Unity');
+  const oldUnityReports={
+   smoke:archiveOldUnityReport(path.join(reportRoot,'unity-smoke.json'),evidence,'preexisting-unity-smoke.json'),
+   build:archiveOldUnityReport(path.join(reportRoot,'build-StandaloneWindows64.json'),evidence,'preexisting-build-StandaloneWindows64.json')
+  };
+  json(path.join(evidence,'unity-preexisting.json'),oldUnityReports);
+  const unityStart=Date.now();
+  log('UNITY_START',new Date(unityStart).toISOString());
   // Exactly ONE original Windows build from selected A70 SHA; Unity may normalize scene EOL.
   unity=await spawnLog(a.unity,['-batchmode','-nographics','-quit','-buildTarget','StandaloneWindows64','-projectPath',project,'-executeMethod','CoreClash.Editor.BuildTools.BuildWindows','-logFile',path.join(evidence,'logs','unity-editor.log')],project,path.join(evidence,'logs','unity-console.log'));
-  log('UNITY',`exit=${unity.exitCode} signal=${unity.signal}`);
-  const player=path.join(project,'Builds','Windows');const buildJson=path.join(project,'Evidence','R16','Unity','build-StandaloneWindows64.json');
+  const unityEnd=Date.now();
+  log('UNITY',`exit=${unity.exitCode} signal=${unity.signal} end=${new Date(unityEnd).toISOString()}`);
+  json(path.join(evidence,'unity-run-window.json'),{start:new Date(unityStart).toISOString(),end:new Date(unityEnd).toISOString(),exitCode:unity.exitCode,signal:unity.signal});
+  const player=path.join(project,'Builds','Windows'),buildJson=path.join(reportRoot,'build-StandaloneWindows64.json'),smokeJson=path.join(reportRoot,'unity-smoke.json');
   if(fs.existsSync(buildJson)){
-   fs.copyFileSync(buildJson,path.join(evidence,'unity-build-result.json'));
-   try{buildReport=JSON.parse(fs.readFileSync(buildJson,'utf8'))}catch(e){log('JSON_FAIL',e.message)}
+   try{const report=freshUnityReport(buildJson,unityStart,unityEnd);buildReport=report.parsed;fs.writeFileSync(path.join(evidence,'unity-build-result.json'),report.bytes,{flag:'wx'});unityGenerated.build=report.sha256;}
+   catch(e){log('BUILD_JSON_FAIL',e.message)}
+  }
+  if(fs.existsSync(smokeJson)){
+   try{const report=freshUnityReport(smokeJson,unityStart,unityEnd);smokeReport=report.parsed;fs.writeFileSync(path.join(evidence,'unity-smoke-result.json'),report.bytes,{flag:'wx'});unityGenerated.smoke=report.sha256;}
+   catch(e){log('SMOKE_JSON_FAIL',e.message)}
   }
   const dest=path.join(evidence,'WindowsPlayer');
   if(fs.existsSync(player)){fs.cpSync(player,dest,{recursive:true,errorOnExist:true,force:false});binary=inventory(dest);json(path.join(evidence,'player-inventory.json'),binary);}
@@ -214,15 +256,16 @@ async function build(a){
   const dll=path.join(dest,'CoreClash_Data','Managed','Assembly-CSharp.dll');
   const dllContent=fs.existsSync(dll)?fs.readFileSync(dll):Buffer.alloc(0);
   const diagDll= dllContent.includes(Buffer.from(DIAG,'utf8'))||dllContent.includes(Buffer.from(DIAG,'utf16le'));
-  const gates={managedDotnet9:managedSdk?.startsWith('9.')&&managed?.exitCode===0&&managedReport?.failed===0&&managedReport?.passed>0,sourcePreExact:!pre.failures.length,sourceAfterMaterialized:!!post&&!post.failures.length,
-   sourceNotMutated:sourceChanges.length===0,unityExitZero:unity.exitCode===0,
+  const gates={managedDotnet9:managedSdk?.startsWith('9.')&&managed?.exitCode===0&&managedReport?.failed===0&&managedReport?.passed>0,sourcePreExact:!pre.failures.length,sourceAfterMaterialized:!!post&&unexpectedSourceChanges(post.failures).length===0,
+   sourceNotMutated:unexpectedSourceChanges(sourceChanges).length===0,unityExitZero:unity.exitCode===0,
+   freshUnityReports:!!unityGenerated.build&&!!unityGenerated.smoke&&buildReport?.target==='StandaloneWindows64'&&smokeReport?.editor===UNITY_VERSION&&smokeReport?.launchSettledToPlayer2===true,
    buildSucceeded:buildReport?.result==='Succeeded'&&buildReport?.errors===0,
    playerComplete:binary.length>50&&binary.some(f=>f.path==='CoreClash.exe')&&binary.some(f=>f.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),
    compilerResponseCaptured:playerRsp.length>=1,playerDefineCorrect:playerRsp.some(x=>x.hasWindows&&!x.hasEditor&&!x.hasDiagnostic&&!x.hasNested),
    noDiagnostic:!responses.some(x=>x.hasDiagnostic)&&!diagDll&&!logBody.includes(DIAG),
    buildMarker:logBody.includes('CORE_CLASH_BUILD_PASS StandaloneWindows64')};
   const summary={schema:'CC001-W10-A72-WINDOWS-1',ref:a.ref,candidateSHA:a.sha,rc1Base:RC1,unity,managedSdk,managed,managedTests:{passed:managedReport?.passed??null,failed:managedReport?.failed??null},buildReport,
-   sourceFileCount:pre.total,sourceAfterCount:post?.total??null,sourceChanges,playerCount:binary.length,playerInventory:binary,
+   sourceFileCount:pre.total,sourceAfterCount:post?.total??null,sourceChanges,generatedSourceChanges:sourceChanges.filter(x=>generatedPaths.has(x.path)),unexpectedSourceChanges:unexpectedSourceChanges(sourceChanges),unityGenerated,playerCount:binary.length,playerInventory:binary,
    compilerResponseCount:responses.length,playerRspCount:playerRsp.length,
    gates,status:boolGates(gates).length?'HOLD':'PASS_BUILD_EVIDENCE_ONLY',
    blockers:boolGates(gates),meaning:'One isolated A70 candidate native Windows build. NOT independent A60 QA, not PC1-PC2 PASS, not release.'};
@@ -257,6 +300,9 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(PROTECTED.includes(`${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`),true));
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'A',classification:'IDENTICAL_BYTES'}]}).length,0));
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'B',classification:'CRLF_TO_LF_ONLY'}]}).length,1));
+ test(()=>assert.equal(unexpectedSourceChanges(UNITY_GENERATED.map(path=>({path}))).length,0));
+ test(()=>assert.equal(unexpectedSourceChanges([{path:`${ROOT}/Assets/CoreClash/Core/GameSimulation.cs`},...UNITY_GENERATED.map(path=>({path}))]).length,1));
+ test(()=>assert.equal(unexpectedSourceChanges([{path:`${ROOT}/Assets/Scenes/CoreClash.unity`}]).length,1));
  test(()=>assert.deepEqual(boolGates({a:true,b:false}),['b']));
  const troot=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'cc001-managed-fresh-'));
  try{
@@ -272,6 +318,16 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
   test(()=>{fs.writeFileSync(testResult,JSON.stringify({...good,passed:180}));assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/MANAGED_RESULT_CASES/)});
   test(()=>{fs.writeFileSync(testResult,'{broken');assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/NEW_TEST_RESULT_INVALID_JSON/)});
  }finally{fs.rmSync(troot,{recursive:true,force:true})}
+ const unityTest=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'cc001-unity-fresh-'));
+ try{
+  const old=path.join(unityTest,'tracked.json'),ev=path.join(unityTest,'evidence');fs.mkdirSync(ev);
+  fs.writeFileSync(old,'{\"result\":\"Succeeded\",\"time\":\"old\"}');
+  test(()=>{const archived=archiveOldUnityReport(old,ev,'preexisting-build.json');assert.equal(archived.oldResultPresent,true);assert.equal(fs.existsSync(old),false);assert.equal(fs.existsSync(path.join(ev,'preexisting-build.json')),true)});
+  test(()=>assert.throws(()=>freshUnityReport(old,Date.now()-1000,Date.now()),/NEW_UNITY_REPORT_MISSING/));
+  const t=Date.now();fs.writeFileSync(old,JSON.stringify({result:'Succeeded',target:'StandaloneWindows64'}));
+  test(()=>assert.equal(freshUnityReport(old,t-500,t+500).parsed.result,'Succeeded'));
+  test(()=>{fs.writeFileSync(old,'{broken');assert.throws(()=>freshUnityReport(old,t-500,t+500),/NEW_UNITY_REPORT_INVALID_JSON/)});
+ }finally{fs.rmSync(unityTest,{recursive:true,force:true})}
  const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
