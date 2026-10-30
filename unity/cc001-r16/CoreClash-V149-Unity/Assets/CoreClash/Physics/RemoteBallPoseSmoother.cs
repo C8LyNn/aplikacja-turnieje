@@ -7,6 +7,22 @@ namespace CoreClash.Physics
     // Client presentation helper only. Never writes GameState, resolves physics,
     // predicts commands, or changes the Protocol 149 snapshot transport.
     // A presentation owner must explicitly wire this to client-only rendering.
+    public static class RemoteSnapshotEvents
+    {
+        public static ISet<int> InstantBallIds(GameState state,int afterEventId,out int latestEventId)
+        {
+            latestEventId=afterEventId;
+            var ids=new HashSet<int>();
+            if(state?.events==null)return ids;
+            foreach(var e in state.events){
+                if(e==null||e.id<=afterEventId)continue;
+                latestEventId=Math.Max(latestEventId,e.id);
+                if(e.kind=="PORTAL"&&e.ballId>0)ids.Add(e.ballId);
+            }
+            return ids;
+        }
+    }
+
     public sealed class RemoteBallPoseSmoother
     {
         sealed class Segment
