@@ -195,7 +195,7 @@ namespace CoreClash.Networking
                 if(packet==null||packet.revision!=revision||!adapter.Apply(packet,JsonUtility.FromJson<GameState>,out var reason)){SetStatus("Host state rejected by adapter.");return;}
                 if(LastAppliedRevision>0&&revision>LastAppliedRevision+1)
                     skippedSnapshotRevisions+=(long)revision-LastAppliedRevision-1;
-                ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State);
+                ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State,revision);
                 if(NetworkSnapshotTrace.Due(Time.unscaledTime,lastClientTraceAt)){
                     lastClientTraceAt=Time.unscaledTime;
                     Debug.Log("CC_W10_NET_CLIENT revision="+revision+" action="+adapter.State.actionSerial+
