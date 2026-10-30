@@ -67,4 +67,16 @@ namespace CoreClash.Presentation
         }
     }
 
+    // A10-approved power UI: feedback depends on the unchanged 18-world-unit
+    // LaunchGesture.Release threshold, never on a second strength bar/percent.
+    public static class AimUiStatus
+    {
+        public static bool Ready(bool active,float dragX,float dragY)=>
+            active&&double.IsFinite((double)dragX*dragX+(double)dragY*dragY)&&
+            (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
+
+        public static string Hint(bool active,float dragX,float dragY)=>
+            !active?"DRAG FROM LAUNCHER":Ready(active,dragX,dragY)?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER";
+    }
+
 }
