@@ -17,7 +17,8 @@ function redact(text) {
     .replace(/\b(?:[a-f0-9]{1,4}:){2,7}[a-f0-9]{1,4}\b/gi, '[IPV6_REDACTED]')
     .replace(/([A-Z]:\\Users\\)[^\\\r\n]+/gi, '$1[USER]')
     .replace(/(\/home\/|\/Users\/)[^\/\r\n]+/g, '$1[USER]')
-    .replace(/\b((?:access_?token|auth(?:orization)?|password|secret|api_?key|join_?code)\s*[:=]\s*)([^\s,;]+)/gi, '$1[REDACTED]');
+    .replace(/\b(authorization\s*:\s*bearer\s+)([^\s,;]+)/gi, 'Authorization: [REDACTED]')
+    .replace(/\b((?:access_?token|session_?token|refresh_?token|token|bearer|auth(?:orization)?|password|secret|api_?key|join_?code)\s*[:=]\s*)([^\s,;]+)/gi, '$1[REDACTED]');
 }
 function readLog(filename) {
   const stats = fs.statSync(filename);
