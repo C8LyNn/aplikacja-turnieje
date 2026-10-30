@@ -6,6 +6,13 @@ namespace CoreClash.Presentation
 {
     public sealed partial class CoreClashApp
     {
+        // W11 A33: presentation only; use connected local seat, not active turn.
+        static string W11BallOwnerCue(int ballOwner,int? localOwner)
+        {
+            string canonical=BallInspection.OwnerMark(ballOwner);
+            if(!localOwner.HasValue||localOwner.Value<0||localOwner.Value>1)return canonical;
+            return canonical+(ballOwner==localOwner.Value?" (YOU)":" (OPPONENT)");
+        }
         void RenderInfo()
         {
             var current=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId):null;
@@ -13,7 +20,8 @@ namespace CoreClash.Presentation
             Draw.Rect(new Rect(0,0,UiWidth,UiHeight),new Color(.018f,.032f,.052f,.97f));float w=Math.Min(640,UiWidth-32),h=Math.Min(700,UiHeight-80),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             bool narrow=w<440;Draw.Surface(new Rect(x,y,w,h),Draw.Panel);BallView.Preview(new Rect(x+28,y+27,narrow?52:76,narrow?52:76),d,current?.Owner??Simulation.State.turn,true);
             Draw.Text(new Rect(x+(narrow?96:125),y+(narrow?70:27),narrow?w-116:w-240,narrow?47:42),d.name,narrow?22:30,Color.white,TextAnchor.MiddleLeft,true);
-            string health=current!=null?BallInspection.OwnerMark(current.Owner)+"  /  "+current.Hp+" / "+current.MaxHp+" HP":inspectBallId>0?"NO LONGER ON THE BOARD":d.hp+" HP  /  "+d.size.ToUpperInvariant();
+            int? localSeat=NetworkLink!=null&&NetworkLink.IsConnected?NetworkLink.LocalOwner:(int?)null;
+            string health=current!=null?W11BallOwnerCue(current.Owner,localSeat)+"  /  "+current.Hp+" / "+current.MaxHp+" HP":inspectBallId>0?"NO LONGER ON THE BOARD":d.hp+" HP  /  "+d.size.ToUpperInvariant();
             Draw.Text(new Rect(x+(narrow?96:126),y+(narrow?121:73),narrow?w-116:w-200,25),health,narrow?12:14,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+w-92,y+16,76,44),"CLOSE",size:12))CloseBallDetails();
             float inner=w-88,content=InfoContent(d,current,inner,false);
@@ -56,8 +64,8 @@ namespace CoreClash.Presentation
         {
             if(!networked)return "MODE: LOCAL / HOTSEAT (NO NETWORK CONNECTION)";
             string role=authority?"HOST":"CLIENT";
-            string local=localOwner==0?"P1 / CYAN":localOwner==1?"P2 / RED":"UNASSIGNED";
-            string active=activeOwner==0?"P1 / CYAN":activeOwner==1?"P2 / RED":"UNKNOWN";
+            string local=localOwner==0?"P1 / CYAN":localOwner==1?"P2 / PINK":"UNASSIGNED";
+            string active=activeOwner==0?"P1 / CYAN":activeOwner==1?"P2 / PINK":"UNKNOWN";
             string control=!connected?"WAITING FOR PEER / SNAPSHOT":
                 !aiming?"NO AIM INPUT / SHOT RESOLVING OR MATCH ENDED":
                 localOwner==activeOwner?"YOUR TURN / AIMING":"OPPONENT TURN";
