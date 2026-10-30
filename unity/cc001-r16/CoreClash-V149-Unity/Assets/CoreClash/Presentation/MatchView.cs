@@ -9,7 +9,8 @@ namespace CoreClash.Presentation
     {
         void RenderMatch()
         {
-            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
+            var state=Simulation.State;
+            selected=BallSelection.ForLocalView(Simulation,selected,CanChoose);
             int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
