@@ -1,4 +1,5 @@
 using CoreClash.Core;
+using System.Linq;
 namespace CoreClash.Presentation
 {
     // Source of a legal UI selection. Stock is intentionally checked FIRST,
@@ -26,8 +27,6 @@ namespace CoreClash.Presentation
         public static bool CanSelect(GameSimulation simulation,int owner,string type)=>
             Source(simulation,owner,type)!=BallSelectionSource.None;
 
-        // Stock cannot be incremented for a returned Phoenix: the label describes
-        // a hand opportunity, never an extra deck copy.
         public static string StockLabel(GameSimulation simulation,int owner,string type)
         {
             var source=Source(simulation,owner,type);
@@ -37,5 +36,57 @@ namespace CoreClash.Presentation
 
         public static string ForTurn(GameSimulation simulation,string selected)=>
             simulation!=null&&CanSelect(simulation,simulation.State.turn,selected)?selected:"normal";
+    }
+
+    // W10 selected from A20: relative wording is derived from the connected local seat,
+    // never from whichever owner currently owns the authoritative turn.
+    public static class LocalTurnPresentation
+    {
+        public static string Status(GameState state,int localOwner,bool multiplayer,bool connected)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)
+                return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
+            string turn="TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1);
+            if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
+            if(multiplayer&&!connected)return turn+" / WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)return turn+" / WAITING FOR PLAYER "+(state.turn+1);
+            if(multiplayer)return turn+(state.bonusPending?" / YOUR BONUS SHOT":" / YOUR SHOT");
+            return turn+(state.bonusPending?" / BONUS SHOT":" / AIMING");
+        }
+
+        public static string ActionHint(GameState state,int localOwner,bool multiplayer,bool connected,
+            bool dragging,float dx,float dy,string idleHint)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
+            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
+            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
+            return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
+        }
+
+        public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
+        {
+            if(state==null)return "WAIT";
+            if(state.phase==MatchPhase.Over)return state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS";
+            if(state.phase==MatchPhase.Moving)return "MOVING";
+            if(multiplayer&&!connected)return "OFFLINE";
+            if(multiplayer&&state.turn!=localOwner)return "WAIT P"+(state.turn+1);
+            if(multiplayer)return state.bonusPending?"YOUR BONUS":"YOUR SHOT";
+            return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
+        }
+    }
+
+    // A10-approved power UI: arrow/trajectory length remains the power cue. This helper
+    // reuses the unchanged 18-world-unit LaunchGesture release threshold.
+    public static class AimUiStatus
+    {
+        public static bool Ready(bool active,float dragX,float dragY)=>
+            active&&GameSimulation.Finite(dragX)&&GameSimulation.Finite(dragY)&&
+            (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
+
+        public static string Hint(bool active,float dragX,float dragY)=>
+            !active?"DRAG FROM LAUNCHER":Ready(active,dragX,dragY)?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER";
     }
 }

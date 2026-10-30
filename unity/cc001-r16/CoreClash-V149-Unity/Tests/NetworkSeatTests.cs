@@ -5,11 +5,6 @@ public static partial class Program
 {
     static void NetworkSeatTests()
     {
-        Test("R17-W9 moving snapshots follow the 20 Hz network tick cadence",()=>{
-            Near(.05f,NetworkSnapshotCadence.For(MatchPhase.Moving),.0001f);
-            Near(.25f,NetworkSnapshotCadence.For(MatchPhase.Aiming),.0001f);
-            True(NetworkSnapshotCadence.For(MatchPhase.Moving)<NetworkSnapshotCadence.For(MatchPhase.Aiming));
-        });
         Test("LAN approval reserves the sole remote seat before connection completes",()=>{
             var seat=new LanSeat();False(seat.TryReserve(0,0));True(seat.TryReserve(11,0));
             False(seat.TryReserve(12,1));False(seat.Commit(12,1));True(seat.Commit(11,1));
@@ -209,6 +204,60 @@ public static partial class Program
             True(seat.TryReserve(402,11));False(seat.Release(401));
             False(seat.Commit(401,12));True(seat.Commit(402,12));
             False(seat.Release(401));True(seat.Owns(402));
+        });
+        // R17-W9: adaptive snapshots address P2's former five-Hz teleport-like jumps.
+        // These are managed policy tests; they do not certify live network smoothness.
+        Test("R17 W10 small moving snapshots match twenty Hz NGO tick",()=>{
+            float interval=NetworkSnapshotRate.Interval(MatchPhase.Moving,900);
+            True(System.Math.Abs(interval-.05f)<0.00001f);
+            True(interval<.2f);
+        });
+        Test("R17 W9 larger moving snapshots respect bandwidth step-down",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,8*1024-1)-.05f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,8*1024)-1f/12f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024-1)-1f/12f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024)-.125f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024-1)-.125f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,256*1024)-.25f)<0.00001f);
+        });
+        Test("R17 W9 idle turn and match-over snapshots stay on bounded refresh",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,900)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Over,900)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,256*1024)-.25f)<0.00001f);
+            True(NetworkSnapshotRate.Interval(MatchPhase.Moving,900)<NetworkSnapshotRate.Interval(MatchPhase.Aiming,900));
+        });
+        Test("R17 W9 result must match current pending P2 intent",()=>{
+            False(NetworkIntentReceipt.MatchesPending(false,4,4));
+            False(NetworkIntentReceipt.MatchesPending(true,0,0));
+            False(NetworkIntentReceipt.MatchesPending(true,4,3));
+            False(NetworkIntentReceipt.MatchesPending(true,4,5));
+            True(NetworkIntentReceipt.MatchesPending(true,4,4));
+        });
+        Test("R17 W9 old ack cannot clear a later pending sequence after reconnect",()=>{
+            // First result was already consumed (pending=false).
+            False(NetworkIntentReceipt.MatchesPending(false,1,1));
+            // New connection's pending sequence belongs to the current local lifecycle.
+            False(NetworkIntentReceipt.MatchesPending(true,2,1));
+            True(NetworkIntentReceipt.MatchesPending(true,2,2));
+            // Sequence 1 may legitimately recur on a new transport; pending guard
+            // must also be cleared as ResetSession begins that transport lifecycle.
+            False(NetworkIntentReceipt.MatchesPending(false,1,1));
+        });
+        Test("R17 W10 impossible compressed size uses fail-slow snapshot cadence",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,-1)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,0)-.05f)<0.00001f);
+        });
+        Test("R17 W10 trace rate gate is one second and rejects rewound or invalid time",()=>{
+            True(NetworkSnapshotTrace.Due(0,-1));
+            False(NetworkSnapshotTrace.Due(.5f,0f));
+            False(NetworkSnapshotTrace.Due(.999f,0f));
+            True(NetworkSnapshotTrace.Due(1f,0f));
+            False(NetworkSnapshotTrace.Due(.5f,1f));
+            False(NetworkSnapshotTrace.Due(float.NaN,0f));
+            False(NetworkSnapshotTrace.Due(float.PositiveInfinity,0f));
+            False(NetworkSnapshotTrace.Due(1f,float.NaN));
+            False(NetworkSnapshotTrace.Due(1f,float.PositiveInfinity));
         });
     }
 }

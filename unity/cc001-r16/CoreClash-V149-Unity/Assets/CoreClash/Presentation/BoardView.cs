@@ -3,6 +3,7 @@ using System.Linq;
 using CoreClash.Core;
 using CoreClash.Data;
 using CoreClash.Input;
+using CoreClash.Physics;
 using UnityEngine;
 
 namespace CoreClash.Presentation
@@ -14,18 +15,19 @@ namespace CoreClash.Presentation
         static readonly Dictionary<int, Texture2D> RingSprites = new Dictionary<int, Texture2D>();
         static int viewOwner;
 
-        static Vector2 Point(Rect board, float x, float y)
+        static Vector2 Point(Rect board,float x,float y)
         {
-            y=MatchPerspective.ViewY(y,viewOwner);
-            return new Vector2(board.x + x * board.width / 540, board.y + y * board.width / 540);
+            x=MatchPerspective.ViewX(x,viewOwner);y=MatchPerspective.ViewY(y,viewOwner);
+            return new Vector2(board.x+x*board.width/540,board.y+y*board.width/540);
         }
-        static Rect Box(Rect board, float x, float y, float width, float height)
+        static Rect Box(Rect board,float x,float y,float width,float height)
         {
             if(viewOwner==1)y=MatchPerspective.WorldHeight-y-height;
-            return new Rect(board.x + x * board.width / 540, board.y + y * board.width / 540, width * board.width / 540, height * board.width / 540);
+            return new Rect(board.x+x*board.width/540,board.y+y*board.width/540,width*board.width/540,height*board.width/540);
         }
 
-        public static void Render(Rect rect, GameSimulation simulation, LaunchGesture aim, BallDefinition selected = null,FeedbackTimeline feedback=null,int localOwner=0)
+        public static void Render(Rect rect,GameSimulation simulation,LaunchGesture aim,BallDefinition selected=null,
+            FeedbackTimeline feedback=null,RemoteBallPoseSmoother remoteVisual=null,int localOwner=0)
         {
             int previousViewOwner=viewOwner;viewOwner=localOwner==1?1:0;
             var state = simulation.State;
@@ -44,15 +46,17 @@ namespace CoreClash.Presentation
             foreach (var ball in state.balls)
                 if (!ball.dead && !ball.banished)
                 {
-                    if(ball.mineArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
-                    if(ball.timeBombArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
-                    BallView.Render(clippedBoard, ball, simulation.Catalog.Ball(ball.type), state.phase == MatchPhase.Aiming && simulation.CanReplay(ball),viewOwner);
+                    float renderX=ball.x,renderY=ball.y;
+                    if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryPose(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
+                    if(ball.mineArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
+                    if(ball.timeBombArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
+                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),state.phase==MatchPhase.Aiming&&simulation.CanReplay(ball),renderX,renderY,viewOwner);
                 }
             RenderEvents(clippedBoard,feedback);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected);
             GUI.EndGroup();
 
-            RenderFrame(board, state);
+            RenderFrame(board,state);
             GUI.EndGroup();
             viewOwner=previousViewOwner;
         }
@@ -213,9 +217,9 @@ namespace CoreClash.Presentation
         static void RenderAim(Rect board, GameState state, LaunchGesture aim,BallDefinition selected)
         {
             float scale = board.width / 540;
-            Vector2 origin = Point(board, aim.OriginX, aim.OriginY);
-            float visualAimX=Mathf.Clamp(aim.AimX,Left,Right),visualAimY=Mathf.Clamp(aim.AimY,Top,Bottom);
-            Vector2 finger = Point(board, visualAimX, visualAimY);
+            Vector2 origin=Point(board,aim.OriginX,aim.OriginY);
+            float clampedAimX=Mathf.Clamp(aim.AimX,Left,Right),clampedAimY=Mathf.Clamp(aim.AimY,Top,Bottom);
+            Vector2 finger=Point(board,clampedAimX,clampedAimY);
             var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
             float distance = drag.magnitude;
             if (!GameSimulation.Finite(distance)) return;
@@ -248,23 +252,16 @@ namespace CoreClash.Presentation
                 }
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);direction=(tip-last).normalized;
                 Vector2 wing = new Vector2(-direction.y, direction.x);
-                AimStroke(tip - direction * 11 * scale + wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
-                AimStroke(tip - direction * 11 * scale - wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
-                Draw.Circle(new Rect(tip.x - 2.5f * scale, tip.y - 2.5f * scale, 5 * scale, 5 * scale), vector);
-                AimStroke(origin, finger, Alpha(team, .14f), Mathf.Max(.7f, scale));
+                AimStroke(tip-direction*11*scale+wing*6*scale,tip,vector,Mathf.Max(1,2.2f*scale));
+                AimStroke(tip-direction*11*scale-wing*6*scale,tip,vector,Mathf.Max(1,2.2f*scale));
+                Draw.Circle(new Rect(tip.x-2.5f*scale,tip.y-2.5f*scale,5*scale,5*scale),vector);
+                AimStroke(origin,finger,Alpha(team,.14f),Mathf.Max(.7f,scale));
             }
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
 
-            // W10 A70 integration: A10-approved removal of duplicate strength bar/percentage.
-            // Release threshold and the canonical aim physics remain in LaunchGesture/AimGuide.
-            float labelWidth=Mathf.Clamp(170*scale,120,170),labelHeight=Mathf.Clamp(24*scale,20,24);
-            var labelPoint=Point(board,270,state.turn==0?738:118);
-            bool activeAtBottom=state.turn==(viewOwner==1?1:0);
-            float labelY=activeAtBottom?Mathf.Min(labelPoint.y,origin.y-labelHeight-20):Mathf.Max(labelPoint.y,origin.y+20);
-            var label=new Rect(labelPoint.x-labelWidth/2,labelY,labelWidth,labelHeight);
-            Draw.Text(label,ready?"RELEASE TO LAUNCH":"DRAG FURTHER TO LAUNCH",9,
-                ready?new Color(.88f,.97f,1):Draw.Muted,TextAnchor.MiddleCenter,true);
+            // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
+            // Readiness wording lives in MatchView so the board remains unobscured.
         }
 
         static void RenderFrame(Rect board, GameState state)
@@ -319,10 +316,10 @@ namespace CoreClash.Presentation
             GUI.color = old;
         }
 
+        // Aim-only stroke: field-local coordinates, no GUI.matrix rotation.
         static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
         {
-            Vector2 delta=end-start;
-            float length=delta.magnitude;
+            Vector2 delta=end-start;float length=delta.magnitude;
             if(!GameSimulation.Finite(length)||length<.01f||width<=0)return;
             int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(2f,width*.8f)),1,256);
             float period=dash+gap;

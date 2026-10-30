@@ -222,5 +222,87 @@ public static partial class Program
             Eq(s.State.turnNumber,adapter.State.balls.Single(x=>x.id==furnace.id).lastElementalTurn);
             Eq(1,adapter.State.zones.Count(z=>!z.dead&&z.kind=="furnaceFire"));
         });
+        // R17-W9 A50: deterministic, presentation-only network pose interpolation.
+        // These fixtures do not verify or modify host-authoritative physics.
+        Test("R17 W9 A50 remote P2 ball animates between two snapshots", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var first=new GameState();first.balls.Add(new BallRuntime{id=77,owner=1,type="normal",x=10,y=20});
+            var next=new GameState();next.balls.Add(new BallRuntime{id=77,owner=1,type="normal",x=110,y=20});
+            True(smooth.AcceptSnapshot(1,first,0f));
+            True(smooth.TryPose(77,0f,out float x,out float y));Near(10f,x);Near(20f,y);
+            True(smooth.AcceptSnapshot(2,next,.20f));
+            True(smooth.TryPose(77,.30f,out x,out y));Near(60f,x);Near(20f,y);
+            True(smooth.TryPose(77,.40f,out x,out y));Near(110f,x);Near(20f,y);
+            Eq(110f,next.balls[0].x); // Visual interpolation never edits authority.
+        });
+        Test("R17 W9 A50 mid-animation snapshot starts at last visible pose", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=7,owner=1,type="normal",x=10});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=7,owner=1,type="normal",x=110});
+            var c=new GameState();c.balls.Add(new BallRuntime{id=7,owner=1,type="normal",x=210});
+            True(smooth.AcceptSnapshot(1,a,0));True(smooth.AcceptSnapshot(2,b,.20f));
+            True(smooth.TryPose(7,.30f,out float before,out _));Near(60f,before);
+            True(smooth.AcceptSnapshot(3,c,.30f));
+            True(smooth.TryPose(7,.30f,out float after,out _));Near(before,after);
+            True(smooth.TryPose(7,.35f,out float mid,out _));Near(135f,mid);
+        });
+        Test("R17 W9 A50 stale or reordered transport revisions cannot rewind visuals", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=7,owner=1,type="normal",x=10});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=7,owner=1,type="normal",x=110});
+            True(smooth.AcceptSnapshot(5,a,1f));
+            False(smooth.AcceptSnapshot(4,b,1.1f));
+            False(smooth.AcceptSnapshot(5,b,1.1f));
+            False(smooth.AcceptSnapshot(6,b,float.NaN));
+            True(smooth.TryPose(7,2f,out float x,out _));Near(10f,x);
+            Eq(5,smooth.LastAcceptedRevision);
+            // GameState.revision is not the wire snapshot sequence.
+            a.revision=b.revision=1;True(smooth.AcceptSnapshot(6,b,1.2f));
+        });
+        Test("R17 W9 A50 legitimate large teleport snaps instead of crossing the board", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=1,owner=1,type="normal",x=10,y=20});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=1,owner=1,type="normal",x=450,y=20});
+            True(smooth.AcceptSnapshot(1,a,0));True(smooth.AcceptSnapshot(2,b,.2f));
+            True(smooth.TryPose(1,.2f,out float x,out _));Near(450f,x);
+        });
+        Test("R17 W9 A50 removed ball disappears and reused identity does not tween", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=1,owner=0,type="normal",x=10});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=1,owner=1,type="normal",x=110});
+            True(smooth.AcceptSnapshot(1,a,0));True(smooth.AcceptSnapshot(2,b,.2f));
+            True(smooth.TryPose(1,.2f,out float x,out _));Near(110f,x);
+            var empty=new GameState();True(smooth.AcceptSnapshot(3,empty,.4f));
+            False(smooth.TryPose(1,.5f,out _,out _));Eq(0,smooth.TrackedCount);
+            smooth.Reset();Eq(-1,smooth.LastAcceptedRevision);
+            True(smooth.AcceptSnapshot(1,a,0f));
+        });
+        Test("R17 W9 A50 smoothed client position never mutates game authority", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=1,owner=1,type="normal",x=10,vx=100,hp=20});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=1,owner=1,type="normal",x=50,vx=100,hp=20});
+            True(smooth.AcceptSnapshot(1,a,0f));True(smooth.AcceptSnapshot(2,b,.20f));
+            True(smooth.TryPose(1,.30f,out float rendered,out _));Near(30f,rendered);
+            Eq(50f,b.balls[0].x);Eq(100f,b.balls[0].vx);Eq(20,b.balls[0].hp);
+            Eq(1,b.balls[0].owner);Eq(MatchPhase.Aiming,b.phase);
+        });
+        Test("R17 W10 A30 fresh portal event snaps once and old event expires", () => {
+            var state=new GameState();
+            state.events.Add(new GameEvent{id=5,ballId=9,kind="PORTAL"});
+            var instant=CoreClash.Physics.RemoteSnapshotEvents.InstantBallIds(state,0,out int latest);
+            Eq(5,latest);True(instant.Contains(9));
+            var old=CoreClash.Physics.RemoteSnapshotEvents.InstantBallIds(state,latest,out int same);
+            Eq(5,same);False(old.Contains(9));
+        });
+        Test("R17 W9 A50 explicit short-range teleport event is never interpolated", () => {
+            var smooth=new CoreClash.Physics.RemoteBallPoseSmoother();
+            var a=new GameState();a.balls.Add(new BallRuntime{id=9,owner=1,type="warp",x=10});
+            var b=new GameState();b.balls.Add(new BallRuntime{id=9,owner=1,type="warp",x=90});
+            True(smooth.AcceptSnapshot(1,a,0));
+            var snaps=new HashSet<int>{9};
+            True(smooth.AcceptSnapshot(2,b,.2f,snaps));
+            True(smooth.TryPose(9,.2f,out float x,out _));Near(90f,x);
+        });
+
     }
 }
