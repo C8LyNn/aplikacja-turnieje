@@ -38,4 +38,58 @@ namespace CoreClash.Presentation
         public static string ForTurn(GameSimulation simulation,string selected)=>
             simulation!=null&&CanSelect(simulation,simulation.State.turn,selected)?selected:"normal";
     }
+    // Pure presentation copy: relative "YOUR" belongs to the local connected seat,
+    // never to whichever owner happens to be the current authoritative turn.
+    // Keeps gameplay turn, local identity and network connection as separate inputs.
+    public static class LocalTurnPresentation
+    {
+        public static string Status(GameState state,int localOwner,bool multiplayer,bool connected)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)
+                return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
+            string turn="TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1);
+            if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
+            if(multiplayer&&!connected)return turn+" / WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)
+                return turn+" / WAITING FOR PLAYER "+(state.turn+1);
+            return turn+(state.bonusPending?" / BONUS SHOT":multiplayer?" / YOUR SHOT":" / AIMING");
+        }
+
+        // Only the connected active local seat may see aim/launch instructions.
+        // This is presentation-only: CoreClashApp.CanChoose remains authoritative.
+        public static string ActionHint(GameState state,int localOwner,bool multiplayer,bool connected,
+            bool dragging,float dx,float dy,string idleHint)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
+            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
+            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
+            return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
+        }
+
+        public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
+        {
+            if(state==null)return "WAIT";
+            if(state.phase==MatchPhase.Over)return state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS";
+            if(state.phase==MatchPhase.Moving)return "MOVING";
+            if(multiplayer&&!connected)return "OFFLINE";
+            if(multiplayer)return state.turn==localOwner?"YOUR SHOT":"WAIT P"+(state.turn+1);
+            return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
+        }
+    }
+
+    // A10-approved power UI: feedback depends on the unchanged 18-world-unit
+    // LaunchGesture.Release threshold, never on a second strength bar/percent.
+    public static class AimUiStatus
+    {
+        public static bool Ready(bool active,float dragX,float dragY)=>
+            active&&GameSimulation.Finite(dragX)&&GameSimulation.Finite(dragY)&&
+            (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
+
+        public static string Hint(bool active,float dragX,float dragY)=>
+            !active?"DRAG FROM LAUNCHER":Ready(active,dragX,dragY)?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER";
+    }
+
 }

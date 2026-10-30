@@ -59,6 +59,85 @@ public static partial class Program
             False(MatchLayout.For(400,330,DeviceProfile.Phone).CompactLandscape);
         });
 
+        // R17-W9 A20: local turn messaging must use the actual LAN seat, never the active player alone.
+        Test("NET-UX-01 P2 client never sees YOUR SHOT during P1 aiming",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,1,true,true);
+            True(line.Contains("PLAYER 1"));True(line.Contains("WAITING"));False(line.Contains("YOUR SHOT"));
+            Eq("WAIT P1",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-02 P2 client sees YOUR SHOT only in own aiming phase",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("YOUR SHOT",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-03 P1 host and P2 client have opposite relative status",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,0,true,true).Contains("YOUR SHOT"));
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+        });
+        Test("NET-UX-04 moving is never YOUR SHOT for either LAN seat",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("MOVING",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-05 disconnected P2 does not imply input permission",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,false).Contains("WAITING FOR CONNECTION"));
+            Eq("OFFLINE",LocalTurnPresentation.CompactStatus(s.State,1,true,false));
+        });
+        Test("NET-UX-06 local hotseat announces active owner without remote YOU claim",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,0,false,true);
+            True(line.Contains("PLAYER 1"));False(line.Contains("YOUR SHOT"));
+            Eq("P1 AIM",LocalTurnPresentation.CompactStatus(s.State,0,false,true));
+        });
+        Test("NET-UX-07 game-over winner remains absolute owner",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Over;s.State.winner=0;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("PLAYER 1 WINS"));
+            Eq("P1 WINS",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-08 P2 aim guide trace stays within world wall bounds",()=>{
+            // Red P2's launcher is at world y=47 and shoots towards increasing y.
+            var points=AimGuide.Trace(270,47,0,1,17,250);
+            True(points.Length>=2);
+            True(points[points.Length-1].y>points[0].y);
+            foreach(var p in points)True(p.x>=24.3f&&p.x<=515.7f&&p.y>=16f&&p.y<=884f);
+        });
+
+        // R17-W10 / A20: A10-approved no-meter aim interaction contract.
+        Test("NET-UX-09 invalid aim drag below 18 has no release cue",()=>{
+            Eq("DRAG FROM LAUNCHER",AimUiStatus.Hint(false,0,0));
+            False(AimUiStatus.Ready(true,17.99f,0));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,17.99f,0));
+        });
+        Test("NET-UX-10 threshold 18 and longer aim show release with same core rules",()=>{
+            True(AimUiStatus.Ready(true,18,0));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,18,0));
+            True(AimUiStatus.Ready(true,0,-120));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,0,-120));
+        });
+        Test("NET-UX-11 invalid aim floats cannot show release",()=>{
+            False(AimUiStatus.Ready(true,float.NaN,20));
+            False(AimUiStatus.Ready(true,float.PositiveInfinity,20));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,float.NaN,40));
+        });
+
+        Test("NET-UX-12 P2 waiting on P1 cannot see drag or launch action hint",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,false,0,0,"DRAG FROM LAUNCHER"));
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,30,0,"SELECT A BALL AND DRAG TO AIM"));
+        });
+        Test("NET-UX-13 disconnected P2 cannot see interactive action cue",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionHint(s.State,1,true,false,true,50,0,"DRAG FROM LAUNCHER"));
+        });
+        Test("NET-UX-14 current P2 aim and insufficient drag use unchanged threshold",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,17,0,"DRAG FROM LAUNCHER"));
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,18,0,"DRAG FROM LAUNCHER"));
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);

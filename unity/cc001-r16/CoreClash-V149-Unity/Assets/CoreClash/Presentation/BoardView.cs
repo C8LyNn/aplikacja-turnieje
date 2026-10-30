@@ -207,7 +207,6 @@ namespace CoreClash.Presentation
             var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
             float distance = drag.magnitude;
             if (!GameSimulation.Finite(distance)) return;
-            float power = Mathf.Clamp01(distance * 3.38f / 590);
             bool ready = distance >= 18;
             Color team = Draw.Owner(state.turn);
             Color vector = ready ? Color.Lerp(team, Color.white, .36f) : Alpha(team, .42f);
@@ -231,28 +230,25 @@ namespace CoreClash.Presentation
                 if(path.Length<2)return;
                 for(int i=1;i<path.Length;i++){
                     var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
-                    DashedLine(from,to,Alpha(team,i==1?.13f:.07f),Mathf.Max(2,7*scale),7*scale,1*scale);
-                    DashedLine(from,to,i==1?vector:Alpha(vector,.5f),Mathf.Max(1,2*scale),i==1?7*scale:4*scale,7*scale);
+                    // Dot-stroke uses field-local GUI coordinates and never rotates GUI.matrix.
+                    // This prevents disjoint/misaligned fragments on the clipped P2 client board.
+                    AimStroke(from,to,Alpha(team,i==1?.13f:.07f),Mathf.Max(2,7*scale),7*scale,1*scale);
+                    AimStroke(from,to,i==1?vector:Alpha(vector,.5f),Mathf.Max(1,2*scale),i==1?7*scale:4*scale,7*scale);
                     if(i==1&&path.Length>2)Ring(to,6*scale,Alpha(vector,.8f),Mathf.Max(1,scale));
                 }
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);direction=(tip-last).normalized;
                 Vector2 wing = new Vector2(-direction.y, direction.x);
-                Draw.Line(tip - direction * 11 * scale + wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
-                Draw.Line(tip - direction * 11 * scale - wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
+                AimStroke(tip - direction * 11 * scale + wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
+                AimStroke(tip - direction * 11 * scale - wing * 6 * scale, tip, vector, Mathf.Max(1, 2.2f * scale));
                 Draw.Circle(new Rect(tip.x - 2.5f * scale, tip.y - 2.5f * scale, 5 * scale, 5 * scale), vector);
-                Draw.Line(origin, finger, Alpha(team, .14f), Mathf.Max(.7f, scale));
+                AimStroke(origin, finger, Alpha(team, .14f), Mathf.Max(.7f, scale));
             }
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
 
-            float labelWidth=Mathf.Clamp(192*scale,124,192),labelHeight=Mathf.Clamp(56*scale,39,56);
-            var labelPoint=Point(board,270,state.turn==0?738:118);
-            float labelY=state.turn==0?Mathf.Min(labelPoint.y,origin.y-labelHeight-28):Mathf.Max(labelPoint.y,origin.y+28);
-            var label=new Rect(labelPoint.x-labelWidth/2,labelY,labelWidth,labelHeight);
-            Draw.Surface(label,new Color(.025f,.06f,.095f,.96f),Alpha(team,.4f));
-            Draw.Text(new Rect(label.x+6,label.y+4,label.width-12,16),ready?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER",9,ready?new Color(.88f,.97f,1):Draw.Muted,TextAnchor.MiddleCenter,true);
-            Draw.Rect(new Rect(label.x+10,label.yMax-12,label.width-48,4),Draw.Edge);Draw.Rect(new Rect(label.x+10,label.yMax-12,(label.width-48)*power,4),ready?team:Alpha(team,.4f));
-            Draw.Text(new Rect(label.xMax-36,label.yMax-20,32,18),Mathf.RoundToInt(power*100)+"%",9,vector,TextAnchor.MiddleCenter,true);
+            // A10 R17-W9 approval: the trajectory length and ready tint are the
+            // only shot-strength cue here. The secondary HUD meter and percentage
+            // covered the actual playfield. Readiness text lives in MatchView.
         }
 
         static void RenderFrame(Rect board, GameState state)
@@ -305,6 +301,24 @@ namespace CoreClash.Presentation
             GUI.color = color;
             GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2, radius * 2), sprite);
             GUI.color = old;
+        }
+
+        // Screen-space strokes in the current clipped GUI.BeginGroup. Unlike Draw.Line,
+        // this never changes GUI.matrix, including for diagonal P2 aim and bounce arrows.
+        // Intentional dashes follow the geometric segment; no additional world transform.
+        static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
+        {
+            Vector2 delta=end-start;
+            float length=delta.magnitude;
+            if(!GameSimulation.Finite(length)||length<.01f||width<=0)return;
+            int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(2f,width*.8f)),1,256);
+            float period=dash+gap;
+            for(int i=0;i<=samples;i++){
+                float t=i/(float)samples,along=length*t;
+                if(dash>0&&period>0&&along%period>dash)continue;
+                Vector2 p=start+delta*t;
+                Draw.Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
+            }
         }
 
         static void DashedLine(Vector2 start, Vector2 end, Color color, float width, float dash, float gap)
