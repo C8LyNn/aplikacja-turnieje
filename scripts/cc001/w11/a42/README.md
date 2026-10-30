@@ -15,7 +15,7 @@
 
 1. w11-source-gate.cjs: read-only Git remote A70 ref check; hard-pins PR207 exact SHA; RC1 ancestry, clean worktree, strict changed-file ownership and .meta pairing. Source-semantic checks for A41 adaptive 20/12/8/4Hz + ACK; A34 visual-only P2 smoothing with PORTAL snap; local turn/deck/aim; no residual post-shot strength bar; NGO-to-App-to-smoother exact revision forwarding; stale/duplicate revision refusal, reset, and authored A70/A40 P2/Phoenix regression definitions and registration. Protects R16 evidence, V148 behavior inputs, catalog HP, Protocol149, core/scene/package/project settings. Source gate is NOT a build or G3 pass.
 2. w11-build-chain.cjs: reads A42 source JSON, original A72 summary.json + receipt.json, original per-PC A72 full Player verifier JSON on PC1/PC2, independently reads actual W11 A70 remote SHA, requires same SHA and unbroken provenance, build exit/result/gates, complete EXE/DLL manifest and valid distinct path/size/SHA256 entries, both devices' file counts. Outputs SHA256/size of original evidence inputs. It never says physical gameplay PASS.
-3. w11-source-gate.test.cjs and w11-build-chain.test.cjs: 47+37 deterministic tests. Both source files were read back at their committed Git blob SHA.
+3. w11-source-gate.test.cjs and w11-build-chain.test.cjs: 50+37 deterministic tests. Both source files were read back at their committed Git blob SHA.
 
 ## Operator commands (Node22, clean authenticated full Git checkout; output OUTSIDE checkout)
 
@@ -44,4 +44,9 @@ The user-dispatched original W11 candidate SHA 173273122c11cbf738e8b954e32506a61
 
 New actual source defects found in old SHA 173273...: old CoreClashApp could update Simulation.State and remoteLastEventId on duplicate/older revisions; RemoteBallSmoother MaxDuration=0.2f stalls for up to 50ms with large 4Hz packets. Added gate predicates now require app stale-revision refusal *before* authoritative state and event-cursor changes; reset of remoteLastRevision per new match; a 0.25f smoothing window; and new regression tests. Real old C# source checked from GitHub yields 5 source faults + SHA drift => HOLD. New d1ec C# source checked from all 11 exact blobs yields 0 source faults, but FAILS SHA pin until owner authorizes the new exact candidate. Source checks are NOT native dotnet/Unity/PC1-PC2 tests.
 
-Final deterministic test execution: 47/47 source and 37/37 evidence-chain callbacks = **84/84 PASS on exact GitHub JavaScript via V8 with mocked Node modules** (native Node CLI NOT RUN). W11 is NOT formally closed. A72's W10-only allowed-ref regex in JS and PowerShell also requires an owned W11 whitelist fix before any native build; do not bypass it.
+Final deterministic test execution: 50/50 source and 37/37 evidence-chain callbacks = **87/87 PASS on exact GitHub JavaScript via V8 with mocked Node modules** (native Node CLI NOT RUN). W11 is NOT formally closed. A72's W10-only allowed-ref regex in JS and PowerShell also requires an owned W11 whitelist fix before any native build; do not bypass it.
+
+
+## A70 additional chosen PR207 tools / final source SHA drift
+
+Latest HEAD observed on PR207: 87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c (3 commits after d1ec2a6...); includes exact two A41 parity scripts: scripts/cc001/w11/a41/state-parity.cjs and state-parity.test.cjs. A42 path admission now permits exactly these TWO paths in added (A) state, not a general A41 prefix or overwrites. 3 new positive/negative cases assert the restriction. This is readiness for later A70 owner-approved pin, NOT authorization to build current moving HEAD. With original user SHA PINNED, live-ref mismatch remains HOLD until explicit final freeze and repin. Total 50+37=87 V8 scoped tests PASS, native Node/Unity/Windows and two-PC runtime NOT RUN.
