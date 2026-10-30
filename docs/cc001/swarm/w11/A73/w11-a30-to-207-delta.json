@@ -3,7 +3,7 @@
   "immutableRc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
   "baseRef": "fix/cc001-r17-w10-a30-on-a70-candidate",
   "baseSha": "3a6fb11f70cbdd354ca319b6c48e5c080a1ae193",
-  "addonRef": "integration/cc001-r17-w11-multiplayer-qa-candidate-20261030",
+  "addonRef": "integration/cc001-r17-w11-qa-freeze-20261030",
   "addonSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
   "expectedChanges": {
     "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs": {

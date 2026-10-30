@@ -15,7 +15,7 @@ function validate(full,delta) {
   if(full.immutableRc1!==RC1||delta.immutableRc1!==RC1)problems.push('RC1_MISMATCH');
   if(full.baseSha!==RC1||full.baseRef!=='integration/cc001-r17-w8-phoenix-rc1')problems.push('FULL_BASE_MISMATCH');
   if(delta.baseSha!==A30||delta.baseRef!=='fix/cc001-r17-w10-a30-on-a70-candidate')problems.push('DELTA_BASE_MISMATCH');
-  if(full.addonSha!==W11||delta.addonSha!==W11||full.addonRef!=='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030'||full.addonRef!==delta.addonRef)problems.push('CANDIDATE_MISMATCH');
+  if(full.addonSha!==W11||delta.addonSha!==W11||full.addonRef!=='integration/cc001-r17-w11-qa-freeze-20261030'||full.addonRef!==delta.addonRef)problems.push('CANDIDATE_MISMATCH');
   if(Object.keys(full.expectedChanges||{}).length!==22||Object.keys(delta.expectedChanges||{}).length!==10)problems.push('WRONG_PATH_COUNT');
   if(Object.keys(full.retainedBlobs||{}).length!==97||Object.keys(delta.retainedBlobs||{}).length!==100)problems.push('WRONG_PROTECTION_COUNT');
   if(full.expectedChanges?.[P]?.blob!==A40||delta.expectedChanges?.[P]?.blob!==A40)problems.push('A40_ORIGINAL_BLOB_MISSING');

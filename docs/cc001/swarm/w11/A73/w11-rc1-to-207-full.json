@@ -3,7 +3,7 @@
   "immutableRc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
   "baseRef": "integration/cc001-r17-w8-phoenix-rc1",
   "baseSha": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
-  "addonRef": "integration/cc001-r17-w11-multiplayer-qa-candidate-20261030",
+  "addonRef": "integration/cc001-r17-w11-qa-freeze-20261030",
   "addonSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
   "expectedChanges": {
     "docs/cc001/swarm/w9/A33/R17_W9_A33_NETWORK_PRESENTATION_OVERLAY_HANDOFF.md": {
