@@ -131,17 +131,8 @@ namespace CoreClash.Presentation
         public void ReceiveNetworkState(GameState state,int snapshotRevision=-1)
         {
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
-                HashSet<int> instantBallIds=null;
-                if(state.events!=null){
-                    foreach(var e in state.events){
-                        if(e==null||e.id<=remoteLastEventId)continue;
-                        remoteLastEventId=Math.Max(remoteLastEventId,e.id);
-                        if(e.kind=="PORTAL"&&e.ballId>0){
-                            if(instantBallIds==null)instantBallIds=new HashSet<int>();
-                            instantBallIds.Add(e.ballId);
-                        }
-                    }
-                }
+                var instantBallIds=RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,out var latestEventId);
+                remoteLastEventId=latestEventId;
                 if(snapshotRevision>=0)remoteBallPoseSmoother.AcceptSnapshot(snapshotRevision,state,Time.unscaledTime,instantBallIds);
                 Simulation.State=state;setup=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
