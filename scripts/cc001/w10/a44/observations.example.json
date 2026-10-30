@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sessionId": "W10_PAIR_001",
+  "startedAtUtc": "2026-10-30T18:00:00Z",
+  "endedAtUtc": "2026-10-30T18:15:00Z",
+  "topology": "PRIVATE_LAN",
+  "environment": "LOCAL_WINDOWS_TWO_PC",
+  "pc1": { "deviceClass": "WINDOWS_DESKTOP", "role": "HOST", "screenResolution": "1920x1080" },
+  "pc2": { "deviceClass": "WINDOWS_DESKTOP", "role": "CLIENT", "screenResolution": "1366x768" },
+  "scenarios": [
+    { "id": "CONNECT", "status": "NOT_RUN", "note": "" },
+    { "id": "MOVING_SYNC", "status": "NOT_RUN", "note": "" },
+    { "id": "LOCAL_TURN", "status": "NOT_RUN", "note": "" },
+    { "id": "P2_AIM", "status": "NOT_RUN", "note": "" },
+    { "id": "P2_PERSPECTIVE", "status": "NOT_RUN", "note": "" },
+    { "id": "POWER_BAR", "status": "NOT_RUN", "note": "" },
+    { "id": "MATCH_END", "status": "NOT_RUN", "note": "" }
+  ],
+  "issues": []
+}
