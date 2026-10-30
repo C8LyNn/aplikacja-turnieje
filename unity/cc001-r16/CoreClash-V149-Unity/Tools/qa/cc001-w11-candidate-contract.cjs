@@ -88,8 +88,7 @@ function audit(s, sources = Object.keys(names)){
     'Arrow-only cue, no stale aftershot strip, aim guide retained');
   gate('W10_TESTS_REGISTERED',has('runner','RemoteBallSmootherTests();') &&
     has('runner','LocalDeckContentTests();') &&
-    has('csproj','RemoteBallSmootherTests.cs') &&
-    has('csproj','LocalDeckContentTests.cs') &&
+    (has('csproj','<Compile Include="*.cs" />') || (has('csproj','RemoteBallSmootherTests.cs') && has('csproj','LocalDeckContentTests.cs'))) &&
     has('smoothtests','PORTAL') && has('decktests','LocalDeckContentTests') &&
     has('ntests','NetworkSnapshotRate.Interval') && has('ptests','NET-UX-01'),
     'New managed test definitions registered; tests NOT compiled by this gate');
@@ -99,7 +98,7 @@ function audit(s, sources = Object.keys(names)){
     'New C# files have distinct Unity .meta GUIDs (full project GUID scan delegated to A71)');
   gate('RATE_TRACE_AND_SNAPSHOT_LOGGING',has('ngo','CC_W10_NET_HOST revision=') &&
     has('ngo','CC_W10_NET_CLIENT revision=') &&
-    has('net','NetworkSnapshotTrace.Due('),
+    has('ngo','NetworkSnapshotTrace.Due('),
     'Trace exists, but 1Hz sampled logs cannot establish every-frame physics parity');
   const counts={pass:Object.values(checks).filter(x=>x.status==='PASS').length,
     fail:Object.values(checks).filter(x=>x.status==='FAIL').length};
