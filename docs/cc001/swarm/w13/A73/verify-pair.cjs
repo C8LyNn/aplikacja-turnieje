@@ -17,7 +17,7 @@ function forbidden(p){return p.startsWith('.github/')||p.includes('/Reference/')
 function inspect(m,cwd=process.cwd()){
  if(!m||m.schemaVersion!==1||m.freezeRef!==FREEZE_REF||m.freezeSha!==FREEZE||!Array.isArray(m.candidates)||m.candidates.length!==2)throw Error('invalid exact two-candidate schema/freeze');
  if(git(['rev-parse','--verify',FREEZE_REF+'^{commit}'],cwd)!==FREEZE)throw Error('frozen ref moved / missing');
- const issues=[],sets=[],descriptors=[];const owners=new Set();
+ const issues=[],sets=[],descriptors=[];const owners=new Set(),newMetaGuids=new Map();
  for(const c of m.candidates){
   if(!/^A\d\d$/.test(c.owner||'')||!c.ref||!HEX.test(c.sha||'')||!c.paths||typeof c.paths!=='object'||Array.isArray(c.paths)||!Array.isArray(c.requiredTests)||c.requiredTests.length===0)throw Error('candidate schema invalid');
   if(owners.has(c.owner))issues.push('DUPLICATE_OWNER '+c.owner);owners.add(c.owner);
@@ -41,6 +41,17 @@ function inspect(m,cwd=process.cwd()){
     if(e.sha!==expected.blob)issues.push('BLOB_MISMATCH '+c.owner+' '+p);
     if(e.mode!=='100644'||e.type!=='blob')issues.push('UNSAFE_OBJECT_MODE '+c.owner+' '+p);
     if(status==='A'&&p.startsWith(ROOT+'Assets/')&&p.endsWith('.cs')&&(!c.paths[p+'.meta']||c.paths[p+'.meta'].status!=='A'))issues.push('MISSING_ASSET_META '+c.owner+' '+p);
+    if(p.endsWith('.meta')){
+     if(status!=='A')issues.push('MODIFIED_OR_DELETED_META '+c.owner+' '+p);
+     if(p.endsWith('.cs.meta')&&(!c.paths[p.slice(0,-5)]||c.paths[p.slice(0,-5)].status!=='A'))issues.push('ORPHAN_CS_META '+c.owner+' '+p);
+     if(status==='A'){
+      const meta=git(['show',sha+':'+p],cwd);
+      const parsed=/^fileFormatVersion: 2\r?\nguid: ([a-f0-9]{32})$/.exec(meta);
+      if(!parsed)issues.push('INVALID_UNITY_META '+c.owner+' '+p);
+      else if(newMetaGuids.has(parsed[1]))issues.push('DUPLICATE_NEW_GUID '+c.owner+' '+p+' vs '+newMetaGuids.get(parsed[1]));
+      else newMetaGuids.set(parsed[1],c.owner+':'+p);
+     }
+    }
    }
   }
   for(const [p] of entries)if(!observed.has(p))issues.push('PIN_NOT_IN_DIFF '+c.owner+' '+p);

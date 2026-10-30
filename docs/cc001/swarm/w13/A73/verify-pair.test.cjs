@@ -23,7 +23,7 @@ try{
  const {inspect,treeEntry,goodPath,diffRecords}=require(fixtureSource);
  git('switch','-c','feat/a41',freeze);write(network,'network fix\n');write(ntest,'network test\n');const sha41=commit('A41 source and test');
  git('switch','-c','feat/a83',freeze);write(view,'UI fix\n');write(vtest,'UI test\n');const sha83=commit('A83 source and test');
- const candidate=(owner,ref,sha,paths,tests)=>({owner,ref,sha,paths:Object.fromEntries(paths.map(p=>[p,{status:'M',blob:git('rev-parse',ref+':'+p)}])),requiredTests:tests});
+ const candidate=(owner,ref,sha,paths,tests)=>({owner,ref,sha,paths:Object.fromEntries(paths.map(p=>[p,{status:git('diff','--name-status',freeze,sha,'--',p).split('\t')[0],blob:git('rev-parse',ref+':'+p)}])),requiredTests:tests});
  const base={schemaVersion:1,freezeRef:FREEZE_REF,freezeSha:freeze,candidates:[candidate('A41','feat/a41',sha41,[network,ntest],[ntest]),candidate('A83','feat/a83',sha83,[view,vtest],[vtest])]};
  const clone=()=>structuredClone(base);
  test('real divergent branches merge cleanly and preserve all four source blobs',()=>{
@@ -56,6 +56,36 @@ try{
  test('new Unity C# missing companion meta rejected',()=>{
   git('switch','-c','feat/newasset',freeze);const added=ROOT+'Assets/CoreClash/Presentation/Added.cs';write(added,'class Added {}');write(vtest,'new asset test');const sha=commit('new asset without meta');
   const m=clone();m.candidates[1]={owner:'A83',ref:'feat/newasset',sha,paths:{[added]:{status:'A',blob:git('rev-parse','feat/newasset:'+added)},[vtest]:{status:'M',blob:git('rev-parse','feat/newasset:'+vtest)}},requiredTests:[vtest]};assert.ok(inspect(m,tmp).issues.some(x=>x.startsWith('MISSING_ASSET_META')));
+ });
+ test('new Unity C# with paired valid .meta is accepted in real Git merge preview',()=>{
+  git('switch','-c','feat/pairmeta',freeze);const added=ROOT+'Assets/CoreClash/Presentation/AddedValid.cs',meta=added+'.meta';
+  write(added,'class AddedValid {}');write(meta,'fileFormatVersion: 2\nguid: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n');write(vtest,'added valid test');const sha=commit('valid new Unity asset meta');
+  const m=clone();m.candidates[1]=candidate('A83','feat/pairmeta',sha,[added,meta,vtest],[vtest]);
+  const v=inspect(m,tmp);assert.equal(v.verdict,'PASS_PAIRWISE_SOURCE_ONLY',JSON.stringify(v.issues));
+ });
+ test('malformed .cs.meta is rejected despite correct SHA pins',()=>{
+  git('switch','-c','feat/badmeta',freeze);const added=ROOT+'Assets/CoreClash/Presentation/BadMeta.cs',meta=added+'.meta';
+  write(added,'class BadMeta {}');write(meta,'fileFormatVersion: 2\nguid: INVALID\n');write(vtest,'bad meta test');const sha=commit('bad meta');
+  const m=clone();m.candidates[1]=candidate('A83','feat/badmeta',sha,[added,meta,vtest],[vtest]);
+  assert.ok(inspect(m,tmp).issues.some(x=>x.startsWith('INVALID_UNITY_META')));
+ });
+ test('new .cs.meta without newly added C# is rejected',()=>{
+  git('switch','-c','feat/orphanmeta',freeze);const meta=ROOT+'Assets/CoreClash/Presentation/Orphan.cs.meta';
+  write(meta,'fileFormatVersion: 2\nguid: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n');write(vtest,'orphan test');const sha=commit('orphan meta');
+  const m=clone();m.candidates[1]=candidate('A83','feat/orphanmeta',sha,[meta,vtest],[vtest]);
+  assert.ok(inspect(m,tmp).issues.some(x=>x.startsWith('ORPHAN_CS_META')));
+ });
+ test('duplicated new GUID across both owner branches is rejected',()=>{
+  const left=ROOT+'Assets/CoreClash/Networking/AddonA.cs',lm=left+'.meta';
+  git('switch','-c','feat/guida',freeze);write(left,'class AddonA {}');write(lm,'fileFormatVersion: 2\nguid: cccccccccccccccccccccccccccccccc\n');write(ntest,'guid test a');const ha=commit('first guid');
+  const right=ROOT+'Assets/CoreClash/Presentation/AddonB.cs',rm=right+'.meta';
+  git('switch','-c','feat/guidb',freeze);write(right,'class AddonB {}');write(rm,'fileFormatVersion: 2\nguid: cccccccccccccccccccccccccccccccc\n');write(vtest,'guid test b');const hb=commit('duplicate guid');
+  const m=clone();m.candidates[0]=candidate('A41','feat/guida',ha,[left,lm,ntest],[ntest]);m.candidates[1]=candidate('A83','feat/guidb',hb,[right,rm,vtest],[vtest]);
+  assert.ok(inspect(m,tmp).issues.some(x=>x.startsWith('DUPLICATE_NEW_GUID')));
+ });
+ test('re-pinning old A83 commit while branch moves is HOLD',()=>{
+  const m=clone();m.candidates[1].sha='69d20ca863aa7f195a9b0a506032025a477ba68b';
+  assert.ok(inspect(m,tmp).issues.some(x=>x.startsWith('REF_DRIFT')));
  });
  test('invalid pin path traversal refused',()=>{const m=clone();m.candidates[0].paths['../escape']={status:'A',blob:'0'.repeat(40)};assert.throws(()=>inspect(m,tmp));});
  test('freeze SHA mismatch refused before any merge preview',()=>{const m=clone();m.freezeSha='0'.repeat(40);assert.throws(()=>inspect(m,tmp));});
