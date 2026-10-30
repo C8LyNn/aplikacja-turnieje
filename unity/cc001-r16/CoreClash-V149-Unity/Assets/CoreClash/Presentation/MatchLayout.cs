@@ -1,4 +1,6 @@
 using System;
+using CoreClash.Core;
+using CoreClash.Input;
 namespace CoreClash.Presentation
 {
     public struct UiBox
@@ -17,6 +19,26 @@ namespace CoreClash.Presentation
         public static float ViewY(float simulationY,int localOwner)=>localOwner==1?WorldHeight-simulationY:simulationY;
         public static float SimulationX(float viewX,int localOwner)=>viewX;
         public static float SimulationY(float viewY,int localOwner)=>localOwner==1?WorldHeight-viewY:viewY;
+    }
+
+    // A20 W14: presentation-only gate. A network turn can change without another
+    // pointer event, so any old gesture must be invalidated immediately.
+    // This never changes simulation, submitted commands or canonical aim power.
+    public static class LocalAimOwnership
+    {
+        public static bool CanAim(GameState state,int? networkOwner,bool connected)
+        {
+            if(state==null||state.phase!=MatchPhase.Aiming)return false;
+            if(!networkOwner.HasValue)return true; // local hotseat
+            return connected&&(networkOwner.Value==0||networkOwner.Value==1)&&
+                state.turn==networkOwner.Value;
+        }
+
+        public static void Revoke(LaunchGesture gesture,GameState state,int? networkOwner,bool connected)
+        {
+            if(gesture!=null&&gesture.Active&&!CanAim(state,networkOwner,connected))
+                gesture.Active=false;
+        }
     }
 
     public sealed class MatchLayout
