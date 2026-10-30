@@ -18,8 +18,8 @@ const categories = Object.freeze([
  ['OPENAI_LIKE', /\bsk-(?:proj-)?[A-Za-z0-9_-]{25,}\b/i],
  ['EMAIL_ADDRESS', /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
  ['WEB_URL', /\bhttps?:\/\/[^\s<>]+/i],
- ['WINDOWS_USER_PATH', /\b[A-Za-z]:\\(?:Users|Documents and Settings)\\[^\s\\]+/i],
- ['UNIX_USER_PATH', /\/(?:home|Users)\/[^\s/]+\//i],
+ ['WINDOWS_USER_PATH', /\b[A-Za-z]:\\(?:Users|Documents and Settings)\\(?!\[USER\](?=\\|\s|$))[^\s\\]+/i],
+ ['UNIX_USER_PATH', /\/(?:home|Users)\/(?!\[USER\]\/)[^\s/]+\//i],
  ['IPV4_ADDRESS', /\b(?:\d{1,3}\.){3}\d{1,3}\b/]
 ]);
 function sha(b) {return crypto.createHash('sha256').update(b).digest('hex');}
