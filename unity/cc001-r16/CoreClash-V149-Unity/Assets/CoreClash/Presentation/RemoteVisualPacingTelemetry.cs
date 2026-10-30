@@ -9,15 +9,21 @@ namespace CoreClash.Presentation
     {
         const float WindowSeconds=5f;
         const int Capacity=512;
+        const int GapCapacity=256;
+        const float LongRxGapSeconds=0.3f; // above A41's legal 4Hz 250ms period
         readonly float[] frameSeconds=new float[Capacity];
         readonly float[] sortBuffer=new float[Capacity];
+        readonly float[] rxGaps=new float[GapCapacity];
+        readonly float[] rxGapSort=new float[GapCapacity];
         int cursor,samples,frames,snapshots;
+        int gapCursor,gapSamples,gapCount,longRxGaps,postBlendWaitFrames;
         float windowStart=-1f,lastSnapshot=-1f,blendSeconds,waitSeconds,maxGap,movingSeconds;
 
         public int SnapshotCount=>snapshots;
         public void Reset()
         {
-            cursor=samples=frames=snapshots=0;windowStart=lastSnapshot=-1f;
+            cursor=samples=frames=snapshots=0;gapCursor=gapSamples=gapCount=longRxGaps=postBlendWaitFrames=0;
+            windowStart=lastSnapshot=-1f;
             blendSeconds=waitSeconds=maxGap=movingSeconds=0f;
         }
         static bool Finite(float f)=>!float.IsNaN(f)&&!float.IsInfinity(f);
@@ -34,6 +40,11 @@ namespace CoreClash.Presentation
                 float interval=now-lastSnapshot;
                 if(interval<0){Reset();return;}
                 if(interval>maxGap)maxGap=interval;
+                rxGaps[gapCursor]=interval;
+                gapCursor=(gapCursor+1)%GapCapacity;
+                if(gapSamples<GapCapacity)gapSamples++;
+                gapCount++;
+                if(interval>LongRxGapSeconds)longRxGaps++;
             }
             lastSnapshot=now;blendSeconds=chosenBlendSeconds;
             snapshots++;
@@ -56,8 +67,10 @@ namespace CoreClash.Presentation
                     float age=now-lastSnapshot;
                     // Time beyond the bounded interpolation interval, not "ball stopped".
                     // No clocks from different PCs are compared here.
-                    if(age>blendSeconds)
+                    if(age>blendSeconds){
                         waitSeconds+=Math.Min(deltaSeconds,age-blendSeconds);
+                        postBlendWaitFrames++;
+                    }
                 }
             }
             float elapsed=now-windowStart;
@@ -69,15 +82,26 @@ namespace CoreClash.Presentation
                 int index=Math.Max(0,(int)Math.Ceiling(samples*0.95f)-1);
                 float p95=sortBuffer[index]*1000f;
                 float fps=movingSeconds>0?frames/movingSeconds:0f;
+                string gapP95="NA";
+                if(gapSamples>0){
+                    Array.Copy(rxGaps,rxGapSort,gapSamples);
+                    Array.Sort(rxGapSort,0,gapSamples);
+                    int gapIndex=Math.Max(0,(int)Math.Ceiling(gapSamples*0.95f)-1);
+                    gapP95=F(rxGapSort[gapIndex]*1000f);
+                }
                 // P95 is based on the most recent <=512 frames in the window.
                 // No peer ID, IP, payload contents, deck or ball identity.
                 evidence="CC_W12_VISUAL_P2 elapsed="+F(elapsed)+
                     " frames="+frames+" frameSamples="+samples+
                     " fps="+F(fps)+" frameP95ms="+F(p95)+
                     " snapshots="+snapshots+" maxRxGapMs="+F(maxGap*1000f)+
-                    " postBlendWaitMs="+F(waitSeconds*1000f);
+                    " rxGapP95ms="+gapP95+" rxGapSamples="+gapSamples+
+                    " rxGaps="+gapCount+" rxGapsOver300ms="+longRxGaps+
+                    " postBlendWaitMs="+F(waitSeconds*1000f)+
+                    " postBlendWaitFrames="+postBlendWaitFrames;
             }
             windowStart=now;cursor=samples=frames=snapshots=0;
+            gapCursor=gapSamples=gapCount=longRxGaps=postBlendWaitFrames=0;
             waitSeconds=maxGap=movingSeconds=0f;
             return evidence!=null;
         }
