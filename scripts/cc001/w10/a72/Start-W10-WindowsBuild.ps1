@@ -1,4 +1,4 @@
-# CC-001 R17-W10 / A72. Windows 11 / PowerShell 5.1.
+# CC-001 R17-W11 / A72. Windows 11 / PowerShell 5.1.
 # Invokes ONE isolated Windows Standalone build for an exact A70 integration candidate.
 # No RC1, main, gameplay, CI, network, firewall, merge or deployment writes.
 [CmdletBinding()]
@@ -10,30 +10,32 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+$SelectedRef='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030'
+$SelectedSha='173273122c11cbf738e8b954e32506a6196fe8ec'
 try {
- if($IntegrationRef -cnotmatch '^integration/cc001-r17-w10-[a-z0-9-]{2,80}$'){throw 'Use only the A70 W10 integration ref; feature branches are forbidden'}
- if($CandidateSha -cnotmatch '^[a-f0-9]{40}$' -or $CandidateSha -ceq '10f64e4d213f17a352ed8fa83bc75884a39549f0'){throw 'A NEW exact W10 SHA is required, never frozen RC1'}
+ if($IntegrationRef -cne $SelectedRef){throw 'A70 W11 PR207 exact integration ref required'}
+ if($CandidateSha -cne $SelectedSha){throw 'A70 W11 PR207 exact SHA mismatch; refusing build'}
  $node=(Get-Command node.exe -ErrorAction Stop).Source
  $git=(Get-Command git.exe -ErrorAction Stop).Source
  $version=(& $node --version).Trim()
  if($LASTEXITCODE -ne 0 -or $version -notmatch '^v22\.'){throw ('Node22 required; got '+$version)}
  if(-not (Test-Path -LiteralPath $UnityExe -PathType Leaf)){throw ('Missing Unity Editor: '+$UnityExe)}
  if($UnityExe.Replace('/','\') -notmatch '\\6000\.4\.0f1\\Editor\\Unity\.exe$'){throw 'Wrong Unity Editor version path'}
- $root=Join-Path $OutputRoot ('CC001_W10_A72_'+(Get-Date -Format 'yyyyMMdd_HHmmss')+'_'+[Guid]::NewGuid().ToString('N').Substring(0,8))
+ $root=Join-Path $OutputRoot ('CC001_W11_A72_'+(Get-Date -Format 'yyyyMMdd_HHmmss')+'_'+[Guid]::NewGuid().ToString('N').Substring(0,8))
  if(Test-Path -LiteralPath $root){throw 'Operator output folder already exists'}
  $builder=Join-Path $PSScriptRoot 'build-w10-rc1.cjs'
  if(-not (Test-Path -LiteralPath $builder -PathType Leaf)){throw 'Missing main builder'}
  $test=(& $node $builder --self-test)
  if($LASTEXITCODE -ne 0){throw ('Builder self-test FAILED: '+($test|Out-String))}
  Write-Host ('SELF-TEST: '+($test|Out-String)) -ForegroundColor Green
- Write-Host ('A72 W10 EXACT CANDIDATE: '+$CandidateSha) -ForegroundColor Cyan
+ Write-Host ('A72 W11 EXACT CANDIDATE: '+$CandidateSha) -ForegroundColor Cyan
  Write-Host ('A70 INTEGRATION REF: '+$IntegrationRef) -ForegroundColor Cyan
  Write-Host 'Running ONE isolated Unity Windows build; NO game release or two-PC QA.' -ForegroundColor Cyan
  & $node $builder ("--ref="+$IntegrationRef) ("--sha="+$CandidateSha) ("--unity="+$UnityExe) ("--out="+$root)
  $nativeExit=$LASTEXITCODE
  $evidence=Join-Path $root 'evidence'
  if(Test-Path -LiteralPath $evidence -PathType Container){
-  $zip=Join-Path $root 'CC001_W10_A72_WINDOWS_EVIDENCE.zip'
+  $zip=Join-Path $root 'CC001_W11_A72_WINDOWS_EVIDENCE.zip'
   Compress-Archive -Path (Join-Path $evidence '*') -DestinationPath $zip -CompressionLevel Optimal
   $receipt=Join-Path $root 'EVIDENCE_SHA256.txt'
   $digest=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToUpperInvariant()

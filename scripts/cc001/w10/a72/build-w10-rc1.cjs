@@ -4,10 +4,12 @@ const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_pro
 const {inspect,inspectDirectory}=require('./w11-source-readiness.cjs');
 const ROOT='unity/cc001-r16/CoreClash-V149-Unity';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
+const SELECTED_REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
+const SELECTED_SHA='173273122c11cbf738e8b954e32506a6196fe8ec';
 const UNITY_VERSION='6000.4.0f1';
 const DIAG='CC001_PHOENIX_DIAGNOSTIC';
 const PROTECTED=[`${ROOT}/.gitattributes`,`${ROOT}/Packages/manifest.json`,`${ROOT}/ProjectSettings/ProjectSettings.asset`,`${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`,`${ROOT}/Assets/CoreClash/Editor/BuildTools.cs`];
-const safeRef=s=>/^integration\/cc001-r17-w10-[a-z0-9-]{2,80}$/.test(s);
+const safeRef=s=>s===SELECTED_REF;
 const goodSha=s=>/^[a-f0-9]{40}$/.test(s);
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
 const ensure=(v,m)=>{if(!v)throw new Error(m)};
@@ -121,8 +123,8 @@ async function spawnLog(cmd,args,cwd,logPath){
 }
 async function build(a){
  ensure(process.platform==='win32','Windows 11 operator only. No Unity build on this host.');
- ensure(safeRef(a.ref||''),'A70 approved W10 integration ref required, not feature branch');
- ensure(goodSha(a.sha||'')&&a.sha!==RC1,'Exact NEW integration candidate SHA required');
+ ensure(safeRef(a.ref||''),'Exact A70 W11 integration ref required: '+SELECTED_REF);
+ ensure(goodSha(a.sha||'')&&a.sha===SELECTED_SHA,'Exact selected W11 candidate SHA required: '+SELECTED_SHA);
  ensure(a.unity&&path.isAbsolute(a.unity)&&fs.existsSync(a.unity),'Installed Unity.exe absolute path required');
  ensure(/[/\\]6000\.4\.0f1[/\\]Editor[/\\]Unity\.exe$/i.test(a.unity),'Editor must be Unity 6000.4.0f1');
  ensure(a.out&&path.isAbsolute(a.out)&&!fs.existsSync(a.out),'Fresh unused absolute output directory required');
@@ -191,7 +193,9 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(allowedEOL(utf8('A\r\nB'),utf8('A\nB'),'unspecified'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(allowedEOL(utf8('A\r\nB'),utf8('A\nB\n'),'lf'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(allowedEOL(Buffer.from([0,13,10]),Buffer.from([0,10]),'lf'),'DIFFERENT_BYTES'));
- test(()=>assert.equal(safeRef('integration/cc001-r17-w10-multiplayer-candidate'),true));
+ test(()=>assert.equal(safeRef(SELECTED_REF),true));
+ test(()=>assert.equal(safeRef('integration/cc001-r17-w10-multiplayer-candidate'),false));
+ test(()=>assert.equal(goodSha(SELECTED_SHA)&&SELECTED_SHA!==RC1,true));
  test(()=>assert.equal(safeRef('feat/cc001-r17-w9-a30-multiplayer-repair'),false));
  test(()=>assert.equal(safeRef('integration/cc001-r17-w8-phoenix-rc1'),false));
  test(()=>assert.equal(goodSha(RC1),true));
