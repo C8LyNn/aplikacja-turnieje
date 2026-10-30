@@ -53,7 +53,7 @@ function selfTest(src){
     ['false_g3_claim',s=>replaceOne(s,'G3_STATUS=NOT_ATTESTED','G3_STATUS=PASS')],
     ['leak_free_text',s=>replaceOne(s,'W12QaClipboardText(networkDebug,','W12QaClipboardText(networkNotice,')],
     ['removed_utc',s=>replaceOne(s,'capturedUtc.ToUniversalTime()','capturedUtc.ToLocalTime()')],
-    ['no_sequence',s=>replaceOne(s,'"\nCAPTURE_SEQ="+captureSequence+','"\nSEQ_UNKNOWN="+captureSequence+')],
+    ['no_sequence',s=>replaceOne(s,'CAPTURE_SEQ=','SEQ_UNKNOWN=')],
     ['no_sequence_argument',s=>replaceOne(s,'DateTime.UtcNow,w13QaCaptureSequence','DateTime.UtcNow,0')],
     ['counter_increments_outside_click',s=>replaceOne(s,'w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;','w13QaCaptureSequence++;')],
     ['no_copy_feedback',s=>replaceOne(s,'?"COPIED":"COPY QA"','?"COPY QA":"COPY QA"')],
