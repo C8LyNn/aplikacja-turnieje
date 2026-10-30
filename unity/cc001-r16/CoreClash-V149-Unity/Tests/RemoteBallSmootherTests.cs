@@ -139,6 +139,35 @@ public static partial class Program
             True(p.TryGetPosition(12,1.1875f,out var x,out _));Near(150,x,.1f);
             True(p.TryGetPosition(12,1.25f,out x,out _));Near(200,x,.01f);
         });
+        Test("A34 W13 read-only blend duration is zero on new action snap",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
+            Near(0f,p.LastBlendSeconds,.001f);
+            p.Observe(A34Snapshot(1,20,140,100),1.1f,null,11);
+            Near(.1f,p.LastBlendSeconds,.001f);
+            p.Observe(A34Snapshot(2,30,180,100),1.2f,null,12);
+            Near(0f,p.LastBlendSeconds,.001f);
+            True(p.TryGetPosition(12,1.2f,out var x,out _));Near(180f,x,.01f);
+        });
+        Test("A34 W13 gap/frame rollback reports zero blended time",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,1);
+            p.Observe(A34Snapshot(1,20,150,100),1.1f,null,2);
+            Near(.1f,p.LastBlendSeconds,.001f);
+            p.Observe(A34Snapshot(1,30,180,100),2f,null,3);
+            Near(0f,p.LastBlendSeconds,.001f);
+            p.Observe(A34Snapshot(1,29,200,100),2.1f,null,4);
+            Near(0f,p.LastBlendSeconds,.001f);
+        });
+        Test("A34 W13 stale revision does not poison read-only blend duration",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,9);
+            p.Observe(A34Snapshot(1,20,180,100),1.1f,null,10);
+            Near(.1f,p.LastBlendSeconds,.001f);
+            p.Observe(A34Snapshot(1,21,450,100),1.2f,null,10);
+            Near(.1f,p.LastBlendSeconds,.001f);
+            p.Reset();Near(0f,p.LastBlendSeconds,.001f);
+        });
         Test("A34 W11 fresh short TELEPORT event snaps one ball once",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
