@@ -14,7 +14,7 @@ const entry=fs.readFileSync(path.join(unity,'Tests/PresentationTests.cs'),'utf8'
 const meta=fs.readFileSync(path.join(unity,'Assets/CoreClash/Presentation/QaPoseEvidence.cs.meta'),'utf8');
 function verify(s=helper,u=ui){
  const errors=[],expect=(name,ok)=>{if(!ok)errors.push(name)};
- expect('CANONICAL_SORT',s.includes('.OrderBy(b=>b.id).ToArray()'));
+ expect('CANONICAL_SORT',s.includes('                .OrderBy(b=>b.id).ToArray();'));
  expect('ROWS_CAPPED',s.includes('MaxBallRows=24')&&s.includes('Math.Min(MaxBallRows,live.Length)'));
  expect('TRUNCATION_DECLARED',s.includes('TRUNCATED=')&&s.includes('live.Length-sampled'));
  expect('FILTERS_INACTIVE',s.includes('b!=null&&!b.dead&&!b.banished'));
