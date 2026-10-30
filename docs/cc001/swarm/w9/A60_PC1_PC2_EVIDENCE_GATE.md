@@ -46,11 +46,20 @@ PC1 uses `peer="PC1"`, `localOwner=0`, same source SHA and run/session ID. PC1 s
 - **P0 snapshot state consistency:** monotonic revisions on each endpoint; exact identical host/client state at the same revision, including ball IDs, positions, HP, current owner and `actionSerial`. Old revision or divergent state = FAIL. In-flight final revision lag = HOLD, not automatically a gameplay failure.
 - **P0 accepted P2 action:** match sequence/owner between sent client intent and accepted host result; one accepted action per P2 sequence. Missing action evidence = HOLD.
 - **P0 smoothness:** velocity-envelope spikes on successive **render** samples cause HOLD for correlation against collision, replay and 60 FPS footage — **do not mistake every collision for teleport**. No samples = HOLD; no unexplained spikes supports a scoped PASS.
-- **P1 aiming:** measured viewport board rect and actual arrow endpoints must be finite and remain within board bounds. Perspective inversion awaits explicit A10 contract.
-- **P2 strength bar:** no enforced redesign until A10 approves.
+- **P1 aiming:** measured viewport board rect and actual arrow endpoints must be finite and remain within board bounds.
+- **W10 P2 perspective:** record `frames[].perspective={board:{x,y,width,height},localLauncher:{x,y}}` **measured from P2 GUI screenshot in the same frame**. The local launcher must be in the bottom 40% of the actual rendered board. Missing measurements = HOLD; local launcher at top/invalid = FAIL.
+- **W10 approved arrow-only power UI:** when `frames[].aim` is active, record `frames[].powerUi={barVisible:false,arrowVisible:true}` from P2 screenshots/video. Actual visible strength meter or missing aiming arrow = FAIL; missing observation = HOLD. Do not fabricate input values from intended source code.
 
 **Existing RC1 finding:** NGO host sends full state snapshots at around 5 Hz during `Moving`, `CoreClashApp.ReceiveNetworkState` directly assigns `Simulation.State=state` on client, and `MatchView.TurnText` renders `YOUR SHOT` without comparing `NetworkLink.LocalOwner`. These source facts help implementation owners reproduce defects; they are **not** proof of the network RTT, actual interpolator performance or a fixed build. Rendering perspective still awaits a design decision.
 
 **Evidence security:** keep machine names/local IPs, join codes, account directories and LAN topology out of public issue attachments; save raw originals privately and publish redacted summaries. Never expose inbound LAN port to public WAN.
 
 **Handoff:** A31 #94 + code owners for diagnostic trace/repair; A60 #139 only independent verifier; A70 integration after actual P0 regression PASS; HQ #97. No main merge/release, no new gameplay source edits by A60.
+
+## W10 independent verifier hardening / current evidence limits
+
+- Validator updated in A60 isolated PR #162: **20/20 executed Node22 self-test assertions PASS** (local process exit 0); `node --check` PASS; SHA256 of exact local script `f1a5f6cfe621eb4e4ff423602cec2762314bbeed7056a1de9bdd57ada3d2be60`. **Git blob `c98fd0267d6f21bf3e8f5044623d6f30d3950fcf`** matches tested local file.
+- Added fail-closed cases: missing `balls` arrays on both peers no longer count as identical; non-finite ball telemetry is HOLD; accepted P2 commands cannot reuse a host `actionSerial`; P2 launcher position and removal of redundant power meter are testable from real captured UI samples.
+- **Candidate under source review only:** preintegration exact snapshot `d5c26acd2403b0d0264849b40f2d2aa98c750f62`; this is not a native Windows build nor A70 merged release candidate. Verify ref again before actual PC1/PC2 test.
+- Automated offline gate accepts only **trusted original device-sourced measurements** and cannot independently prove screenshot/Player.log identity from JSON fields alone. Preserve original logs and screenshots privately with SHA receipts; interpret a PASS solely within verified provenance and measured scope. Current physical PC1/PC2 post-fix original traces **NOT PROVIDED** to A60; G3 and full G4 HOLD.
+- No dotnet/Unity compiler present on A60 host; **do not claim C# tests, Unity compilation or physical Windows execution** from Node-only self-tests.
