@@ -10,7 +10,7 @@ As of A44 PR #164 SHA `e068171092d9c7e2f4c84f3a2796e8bf3398f23a`, `pack-multipla
 
 ```powershell
 node docs/cc001/swarm/w11/A74/evidence-gate.cjs --bundle 'C:\Evidence\W9_PAIR_001_REDACTED'
-node --test docs/cc001/swarm/w11/A74/evidence-gate.test.cjs
+node --test docs/cc001/swarm/w11/A74/evidence-gate.test.cjs docs/cc001/swarm/w11/A74/evidence-gate.w12-compat.test.cjs
 ```
 
 Requires exactly the THREE A44 outputs: `evidence-manifest.json`, `PC1_Player.redacted.log`, `PC2_Player.redacted.log`. Do not put originals or additional files inside the output bundle. This check does not read or copy original logs, does not upload, and never changes any input bytes.
@@ -23,10 +23,18 @@ Requires exactly the THREE A44 outputs: `evidence-manifest.json`, `PC1_Player.re
 
 The machine-readable stdout includes **only** manifest/log hashes, byte counts, line counts, safe pattern category and line number, never actual matched secret text, raw network addresses, usernames or log lines. Uses deterministic file names to prevent path-traversal injection; rejects symlinks, extras, malformed UTF-8, duplicate peer bytes and size >32MiB per redacted log.
 
-**Synthetic tests actually executed on Node v22.16.0:** `node --check` both source/test **exit 0**, `node --test` **23/23 PASS, exit 0**, including A44 `token=` canary (required exit 3), valid placeholder (exit 0), SHA tampering (exit 2), email/IP/token/Bearer/URL/user path scanning, path-traversal, symlinks, duplicate payloads, and read-only invariants. The committed source/test Git blobs must match those locally tested before any integration.
+**Synthetic tests actually executed on Node v22.16.0:** `node --check` both source/test **exit 0**, `node --test` **23/23 PASS, exit 0** in W11; **W12: 31/31 PASS, exit 0** (23 unchanged original cases + 8 new A44 compatibility cases), including A44 `token=` canary (required exit 3), valid placeholder (exit 0), SHA tampering (exit 2), email/IP/token/Bearer/URL/user path scanning, path-traversal, symlinks, duplicate payloads, and read-only invariants. The committed source/test Git blobs must match those locally tested before any integration.
 
 **NOT_RUN:** actual operator original A44 CLI output; real two-PC logs; native Windows run; Unity, .NET, complete privacy audit, gameplay interpolation, authoritative snapshot validation, or A60 QA.
 
 ## Integration constraints
 
-This independent A74 tool is limited to `docs/cc001/swarm/w11/A74/**`, based on immutable RC1 `10f64e4d213f17a352ed8fa83bc75884a39549f0`. It adds no runtime instrumentation, no new network packets, no source changes or CI workflow, and makes no performance/turn/teleport fix claim. A70 may include it in an isolated candidate after review; A44 must separately patch its producer. A60 decides any QA acceptance. R16/V148/Protocol149/RC1/main remain unchanged; no release or deploy.
+This independent A74 tool is limited to `docs/cc001/swarm/w11/A74/**`, based on immutable RC1 `10f64e4d213f17a352ed8fa83bc75884a39549f0`. It adds no runtime instrumentation, no new network packets, no source changes or CI workflow, and makes no performance/turn/teleport fix claim. A70 may include it in an isolated candidate after review; A44's own producer fix remains owned by A44; A74 does not modify it. A60 decides any QA acceptance. R16/V148/Protocol149/RC1/main remain unchanged; no release or deploy.
+
+## W12 — exact A44 `[USER]` placeholder compatibility fix
+
+A44 #164 replaces `C:\\Users\\name\\...` with `C:\\Users\\[USER]\\...` and `/home/name/...` with `/home/[USER]/...`. Before W12, A74's user-path scan incorrectly rejected **both** already-redacted forms. W12 excludes only a standalone `[USER]` path segment from its Windows/Unix profile patterns; unredacted usernames, `C:\\Users\\[USER]someone`, other raw profile paths on the same line and any exposed `token=` remain rejected. The verdict still means `PASS_BOUNDED_SCAN_NOT_QA`, never complete de-identification or G3/G4 success.
+
+W12 actual locally executed Node v22.16.0: both test files and production JS passed `node --check` (exit 0), `node --test` across W11 + W12 suites **31/31 PASS, exit 0**. Exact tested Git blob SHA-1 source `d06d02f9d0ac8b76210cfd556151593c305caef0`, W11 original test `ca6978fff40b321f91c9f7d4027a90ae72b393b2`, new W12 test `2a2844d90bcdb22d8d49b08bd7f4f66f3d7c82fc`.
+
+**Important QA isolation:** A70's separately frozen W11 candidate is `integration/cc001-r17-w11-qa-freeze-20261030` at `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`; later #207 updates are NOT part of that tested SHA. This A74 PR remains isolated and does not advance the QA branch, compile Windows Player, merge to main or approve the game. A72/A60 must prove the exact frozen Windows build + two physical PCs independently.
