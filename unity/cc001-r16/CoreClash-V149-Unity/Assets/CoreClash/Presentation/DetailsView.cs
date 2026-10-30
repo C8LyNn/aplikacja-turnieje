@@ -72,10 +72,22 @@ namespace CoreClash.Presentation
                 "\nREMOTE COMMANDS: "+acceptedRemote+" ACCEPTED / "+rejectedRemote+" REJECTED"+
                 "\nCOUNTERS ARE NOT PROOF OF TWO-PC STATE PARITY";
         }
+        // W12/A33: operator-initiated, read-only clipboard snapshot; not proof of PC parity.
+        static string W12QaClipboardText(string networkDiagnostics,int turn,int revision,
+            int frame,int actionSerial,DateTime capturedUtc)
+        {
+            return "CC001_W12_F1_QA_CAPTURE"+
+                "\nUTC="+capturedUtc.ToUniversalTime().ToString("O")+
+                "\nSOURCE_SHA=UNVERIFIED"+
+                "\nCLOCK_SYNC=UNVERIFIED"+
+                "\nTURN="+turn+" REVISION="+revision+" FRAME="+frame+" ACTION_SERIAL="+actionSerial+
+                "\n"+(networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE")+
+                "\nG3_STATUS=NOT_ATTESTED / RAW WIN11 BUILD AND TWO-PC EVIDENCE REQUIRED";
+        }
         void RenderDeveloper()
         {
             float w=Math.Min(430,UiWidth-24),x=UiWidth-w-12,y=70,h=Math.Min(620,UiHeight-90);Draw.Surface(new Rect(x,y,w,h),new Color(.025f,.04f,.065f),Draw.Gold);
-            Draw.Text(new Rect(x+18,y+12,w-100,26),"DEVELOPER OVERLAY / F1",14,Draw.Gold,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(x+18,y+12,Mathf.Max(80,w-188),26),"DEVELOPER OVERLAY / F1",14,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+w-60,y+8,44,44),"×",Draw.Gold,size:22))SetDeveloperOverlay(false);
             string id=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId)?.Type??inspect:inspect.Length>0?inspect:selected;var d=Catalog.Ball(id);var a=Catalog.Ability(d.abilityId);var s=Simulation.State;
             var ngo=NetworkLink==null?null:GetComponent<CoreClash.Networking.NgoGameSession>();
@@ -84,6 +96,11 @@ namespace CoreClash.Presentation
                 s.turn,s.revision,ngo==null?0:ngo.ReceivedSnapshots,ngo==null?0:ngo.LastAppliedRevision,
                 ngo==null?0:ngo.AcceptedLocalIntents,ngo==null?0:ngo.RejectedLocalIntents,
                 ngo==null?0:ngo.AcceptedRemoteIntents,ngo==null?0:ngo.RejectedRemoteIntents);
+            // Copy only the numeric/seat diagnostic block, never networkNotice
+            // (which can contain hostnames, invite codes or IP addresses).
+            if(Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11))
+                GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,
+                    s.frame,s.actionSerial,DateTime.UtcNow);
             string technical="BALL: "+id+"\nUNITY STATUS: "+AbilitySupport.Status(id)+"\n\nV148 DESIGN REFERENCE\n"+string.Join(" + ",a.events)+"\n"+a.role+"\n"+string.Join(" / ",a.conditions)+"\n\n"+"TURN "+s.turnNumber+" / REVISION "+s.revision+" / FRAME "+s.frame+"\n"+"BALLS "+s.balls.Count+" / ZONES "+s.zones.Count(z=>!z.dead)+"\n"+"CANONICAL DECKS "+Catalog.Data.decks.Length+" / ROSTER "+Catalog.Data.balls.Length+"\n\n"+"R17-W9 / PC1-PC2 NETWORK DIAGNOSTICS\n"+networkDebug+"\n\n"+networkNotice+"\n\nNative primary support is separate from the imported reference metadata. Full roster abilities are not all implemented.";
             var content=new Rect(x+12,y+55,w-24,h-70);
             w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,new Rect(0,0,content.width-22,840));
