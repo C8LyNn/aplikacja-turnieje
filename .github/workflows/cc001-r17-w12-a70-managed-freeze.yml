@@ -33,6 +33,7 @@ jobs:
         run: |
           node --check scripts/cc001/w12/a70/run-frozen-managed.cjs
           node scripts/cc001/w12/a70/run-frozen-managed.cjs --self-test
+          node --test scripts/cc001/w12/a70/fresh-test-evidence.test.cjs
   exact-frozen-managed:
     runs-on: windows-latest
     timeout-minutes: 30
@@ -63,6 +64,8 @@ jobs:
           node --check "w12-tools/scripts/cc001/w12/a70/run-frozen-managed.cjs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node "w12-tools/scripts/cc001/w12/a70/run-frozen-managed.cjs" --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test "w12-tools/scripts/cc001/w12/a70/fresh-test-evidence.test.cjs"
           exit $LASTEXITCODE
       - name: Compile and execute frozen W11 .NET 9 managed game suite
         shell: pwsh
