@@ -45,6 +45,7 @@ for(const [name,line,label] of [
  ['session-token','session_token=abc123secret','CREDENTIAL_ASSIGNMENT'],
  ['access-token','access_token:abc123secret','CREDENTIAL_ASSIGNMENT'],
  ['plain-password','password=hello123','CREDENTIAL_ASSIGNMENT'],
+ ['bearer-assignment','bearer=live-CANARY','CREDENTIAL_ASSIGNMENT'],
  ['bearer-header','Authorization: Bearer abcdefghijklmnopqrstuvwxyz','BEARER_AUTH'],
  ['IPV4','peer=192.168.1.19','IPV4_ADDRESS'],
  ['IPV6','peer=[2001:db8::1]','IPV6_ADDRESS'],
