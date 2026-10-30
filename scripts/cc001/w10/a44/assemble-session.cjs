@@ -26,7 +26,8 @@ function clean(text, max = 1200) {
     .replace(/https?:\/\/[^\s"'<>]+/gi, '[URL_REDACTED]')
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]')
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[IP_REDACTED]')
-    .replace(/\b((?:token|password|secret|authorization|api_key|join_code)\s*[:=]\s*)([^\s,;]+)/gi, '$1[REDACTED]');
+    .replace(/\b(authorization\s*:\s*bearer\s+)([^\s,;]+)/gi, 'Authorization: [REDACTED]')
+    .replace(/\b((?:access_?token|session_?token|refresh_?token|token|bearer|auth(?:orization)?|password|secret|api_?key|join_?code)\s*[:=]\s*)([^\s,;]+)/gi, '$1[REDACTED]');
 }
 function iso(t) { return typeof t === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(t) && !Number.isNaN(Date.parse(t)); }
 function verifyPack(dir, data) {
