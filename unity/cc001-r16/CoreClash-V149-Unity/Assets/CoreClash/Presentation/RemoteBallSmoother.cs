@@ -38,7 +38,7 @@ namespace CoreClash.Presentation
         // Invoke only after Protocol149 snapshot admission. No extrapolation, simulation, or velocity writes.
         public void Observe(GameState state,float now)
         {
-            if(state==null||state.phase!=MatchPhase.Moving||!Finite(now)){Reset();return;}
+            if(state==null||state.balls==null||state.phase!=MatchPhase.Moving||!Finite(now)){Reset();return;}
             bool snap=!hasPacket||state.actionSerial!=action||state.frame<lastFrame||
                 now<=lastPacket||now-lastPacket>MaxGap;
             float duration=hasPacket?Math.Max(.05f,Math.Min(MaxDuration,now-lastPacket)):0;
@@ -46,8 +46,8 @@ namespace CoreClash.Presentation
             active.Clear();
             foreach(var ball in state.balls)
             {
-                if(ball.dead||ball.banished||!Finite(ball.x)||!Finite(ball.y))continue;
-                active.Add(ball.id);
+                if(ball==null||ball.id<=0||ball.dead||ball.banished||!Finite(ball.x)||!Finite(ball.y))continue;
+                if(!active.Add(ball.id))continue;
                 if(!poses.TryGetValue(ball.id,out var pose))
                 {
                     pose=new Pose{fromX=ball.x,fromY=ball.y,toX=ball.x,toY=ball.y,start=now,owner=ball.owner,type=ball.type};
