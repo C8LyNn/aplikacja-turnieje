@@ -11,16 +11,41 @@ const protectedFiles=[
  U+'Assets/CoreClash/Networking/LanDiscoveryProtocol.cs'];
 const protectedFolders=['unity/cc001-r16/Reference/',U+'Packages/',U+'ProjectSettings/'];
 const valid=p=>typeof p==='string'&&p.length>0&&!p.startsWith('/')&&!p.includes('\\')&&!/[\n\0*?\[\]{}]/.test(p)&&p.split('/').every(s=>s&&s!=='.'&&s!=='..');
-const protectedPath=p=>protectedFiles.includes(p)||protectedFolders.some(d=>p.startsWith(d))||(p.startsWith('unity/cc001-r16/')&&p.endsWith('.meta'))||p==='csc.rsp'||p.endsWith('/csc.rsp');
+const unityMeta=p=>p.startsWith('unity/cc001-r16/')&&p.endsWith('.meta');
+const protectedPath=p=>protectedFiles.includes(p)||protectedFolders.some(d=>p.startsWith(d))||unityMeta(p)||p==='csc.rsp'||p.endsWith('/csc.rsp');
+const addableMeta=(p,base)=>p.startsWith(U+'Assets/')&&p.endsWith('.cs.meta')&&!base.has(p);
 function index(entries){const m=new Map();for(const e of entries){if(!valid(e.path)||!/^100(644|755)$/.test(e.mode)||!/^[0-9a-f]{40}$/.test(e.sha)||m.has(e.path))throw Error('Invalid Git entry '+e.path);m.set(e.path,e)}return m;}
 function check(baseEntries,headEntries,allowedPaths,content){
  const base=index(baseEntries),head=index(headEntries),allow=new Set(allowedPaths),errors=[],changed=[];
  if(!Array.isArray(allowedPaths)||allow.size!==allowedPaths.length)throw Error('Bad allowlist');
- for(const p of allow)if(!valid(p)||protectedPath(p))throw Error('Invalid or protected allowlist path: '+p);
+ for(const p of allow)if(!valid(p)||(protectedPath(p)&&!addableMeta(p,base)))throw Error('Invalid or protected allowlist path: '+p);
  for(const p of protectedFiles)if(!base.has(p))throw Error('Missing frozen protected path: '+p);
  const lower=new Set();for(const p of head.keys()){const l=p.toLowerCase();if(lower.has(l))throw Error('Case-fold collision: '+p);lower.add(l);}
  for(const [p,v] of base){const q=head.get(p);if(!q)errors.push('Removed: '+p);else if(q.sha!==v.sha||q.mode!==v.mode){if(protectedPath(p))errors.push('Protected: '+p);else if(!allow.has(p))errors.push('Unapproved: '+p);else if(q.mode!==v.mode)errors.push('Mode changed: '+p);else changed.push(p);}}
- for(const [p,v] of head)if(!base.has(p)){if(protectedPath(p))errors.push('Protected added: '+p);else if(!allow.has(p))errors.push('Unapproved added: '+p);else if(v.mode!=='100644')errors.push('New mode: '+p);else changed.push(p);}
+ for(const [p,v] of head)if(!base.has(p)){
+  if(unityMeta(p)){
+   const asset=p.slice(0,-5);
+   if(!addableMeta(p,base))errors.push('Protected added: '+p);
+   else if(!allow.has(p)||!allow.has(asset))errors.push('Unapproved new meta/asset pair: '+p);
+   else if(!head.has(asset)||base.has(asset))errors.push('Orphan new Unity meta: '+p);
+   else if(v.mode!=='100644')errors.push('New meta mode: '+p);
+   else changed.push(p);
+  }else if(protectedPath(p))errors.push('Protected added: '+p);else if(!allow.has(p))errors.push('Unapproved added: '+p);else if(v.mode!=='100644')errors.push('New mode: '+p);else changed.push(p);
+ }
+ for(const p of changed)if(p.startsWith(U+'Assets/')&&p.endsWith('.cs')&&!base.has(p)&&!head.has(p+'.meta'))errors.push('Missing new Unity .meta: '+p);
+ if([...head.keys()].some(p=>addableMeta(p,base))){
+  if(typeof content!=='function')throw Error('Missing Unity meta content provider');
+  const guids=new Map();
+  for(const p of head.keys())if(unityMeta(p)){
+   const raw=content(p);
+   if(typeof raw!=='string')throw Error('Missing Unity .meta bytes: '+p);
+   const matches=[...raw.matchAll(/^guid:[ \t]*([0-9a-fA-F]{32})[ \t]*\r?$/gm)];
+   if(matches.length!==1){errors.push('Malformed or missing Unity GUID: '+p);continue;}
+   const guid=matches[0][1].toLowerCase();
+   if(guids.has(guid))errors.push('Duplicate Unity GUID: '+p+' and '+guids.get(guid));
+   else guids.set(guid,p);
+  }
+ }
  for(const p of changed)if(p.endsWith('.cs')){if(typeof content!=='function')throw Error('Missing C# content provider');const text=content(p);if(typeof text!=='string')throw Error('Missing C# bytes: '+p);if(/CC001_PHOENIX_DIAGNOSTIC|PhoenixDiagnostic/.test(text))errors.push('Diagnostic define: '+p);}
  return {ok:errors.length===0,changed,errors,baselineFiles:base.size,candidateFiles:head.size};
 }
