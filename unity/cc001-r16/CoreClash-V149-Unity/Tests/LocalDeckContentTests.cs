@@ -72,5 +72,37 @@ public static partial class Program
             True(a.SequenceEqual(sim.State.players[0].stock.Select(x=>x.remaining)));
             True(b.SequenceEqual(sim.State.players[1].stock.Select(x=>x.remaining)));
         });
+
+        Test("A32 W11 phone tray empty local seat never produces negative content width",()=>{
+            float viewport=380f;
+            Eq(viewport,LocalDeckContent.TrayContentWidth(0,96f,8f,viewport));
+            Eq(viewport,LocalDeckContent.TrayContentWidth(-1,96f,8f,viewport));
+            Eq(0f,LocalDeckContent.ClampTrayScroll(250f,viewport,viewport));
+        });
+        Test("A32 W11 phone tray nine-slot content and stale offset are bounded",()=>{
+            float width=LocalDeckContent.TrayContentWidth(9,96f,8f,200f);
+            Eq(928f,width);
+            Eq(728f,LocalDeckContent.ClampTrayScroll(999f,width,200f));
+            Eq(0f,LocalDeckContent.ClampTrayScroll(-10f,width,200f));
+            Eq(40f,LocalDeckContent.ClampTrayScroll(40f,width,200f));
+            Eq(0f,LocalDeckContent.ClampTrayScroll(float.NaN,width,200f));
+        });
+        Test("A32 W11 invalid phone dimensions fail closed to finite viewport",()=>{
+            Eq(1f,LocalDeckContent.TrayContentWidth(0,96f,8f,float.NaN));
+            Eq(1f,LocalDeckContent.TrayContentWidth(0,96f,8f,-4f));
+            Eq(100f,LocalDeckContent.TrayContentWidth(4,float.PositiveInfinity,8f,100f));
+            Eq(0f,LocalDeckContent.ClampTrayScroll(8f,float.PositiveInfinity,100f));
+        });
+        Test("A32 W11 transition from P2 roster to disconnected seat resets phone scroll",()=>{
+            var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            int valid=LocalDeckContent.DisplayOwner(sim.State.turn,1);
+            float liveWidth=LocalDeckContent.TrayContentWidth(LocalDeckContent.StockIds(sim.State,valid).Length,96f,8f,320f);
+            True(liveWidth>320f);
+            int disconnected=LocalDeckContent.DisplayOwner(sim.State.turn,-1);
+            Eq(-1,disconnected);
+            float emptyWidth=LocalDeckContent.TrayContentWidth(LocalDeckContent.StockIds(sim.State,disconnected).Length,96f,8f,320f);
+            Eq(320f,emptyWidth);
+            Eq(0f,LocalDeckContent.ClampTrayScroll(450f,emptyWidth,320f));
+        });
     }
 }

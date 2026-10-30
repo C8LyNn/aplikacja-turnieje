@@ -37,6 +37,26 @@ namespace CoreClash.Presentation
             return localInputEnabled&&simulation!=null&&simulation.State!=null&&
                 simulation.State.turn==owner&&BallSelection.CanSelect(simulation,owner,id);
         }
+
+        // Empty/unassigned local seats must not create a negative-sized phone ScrollView.
+        // Presentation-only geometry; does not read or mutate authoritative game state.
+        public static float TrayContentWidth(int count,float cardWidth,float gap,float viewportWidth)
+        {
+            float visible=viewportWidth>0f&&!float.IsNaN(viewportWidth)&&!float.IsInfinity(viewportWidth)
+                ?viewportWidth:1f;
+            if(count<=0||cardWidth<=0f||gap<0f||float.IsNaN(cardWidth)||
+                float.IsInfinity(cardWidth)||float.IsNaN(gap)||float.IsInfinity(gap))return visible;
+            float width=count*cardWidth+(count-1)*gap;
+            return float.IsNaN(width)||float.IsInfinity(width)?visible:Math.Max(visible,width);
+        }
+        public static float ClampTrayScroll(float offset,float contentWidth,float viewportWidth)
+        {
+            if(float.IsNaN(offset)||float.IsInfinity(offset)||float.IsNaN(contentWidth)||
+                float.IsInfinity(contentWidth)||float.IsNaN(viewportWidth)||
+                float.IsInfinity(viewportWidth))return 0f;
+            float limit=Math.Max(0f,contentWidth-Math.Max(1f,viewportWidth));
+            return Math.Max(0f,Math.Min(offset,limit));
+        }
         public static string StockLabel(GameSimulation simulation,int owner,string id)
         {
             int remaining=Remaining(simulation,owner,id);
