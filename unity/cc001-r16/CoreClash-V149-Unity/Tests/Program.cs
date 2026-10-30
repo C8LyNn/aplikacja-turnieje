@@ -32,6 +32,7 @@ public static partial class Program
         Test("enemy-zone pressure uses touching circumference",()=>{var s=Sim();s.Spawn(0,"normal",100,210);s.Spawn(0,"normal",400,100);s.Rules.ApplyTurnPressure(0);Eq(18,s.State.players[1].hp);});
         Test("center lead of two deals one and lead of four deals three",()=>{var s=Sim();s.Spawn(0,"normal",250,450);s.Spawn(0,"normal",290,450);s.Rules.ApplyTurnPressure(0);Eq(19,s.State.players[1].hp);s.Spawn(0,"normal",270,420);s.Spawn(0,"normal",270,480);s.Rules.ApplyTurnPressure(0);Eq(16,s.State.players[1].hp);});
         ExtraTests();
+        LocalDeckContentTests();
         NetworkSeatTests();
         OnlineSessionTests();
         DeviceTests();
