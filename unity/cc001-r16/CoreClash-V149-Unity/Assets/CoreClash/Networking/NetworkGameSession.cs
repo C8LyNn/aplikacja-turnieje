@@ -20,6 +20,26 @@ namespace CoreClash.Networking
         }
         public SessionSnapshot Capture(Func<GameState,string> encode)=>new SessionSnapshot{protocol=149,revision=++snapshotSerial,stateJson=encode(sim.State)};
     }
+    // Snapshot cadence is a transport budget, not a gameplay tick or protocol revision.
+    // Keep expensive full-state snapshots slower as compressed payloads grow.
+    public static class NetworkSnapshotRate
+    {
+        public const float IdleSeconds=0.5f;
+        public const float MovingSeconds=1f/12f;
+        public static float Interval(MatchPhase phase,int compressedBytes)
+        {
+            if(phase!=MatchPhase.Moving)return IdleSeconds;
+            if(compressedBytes>=64*1024)return 0.25f;
+            if(compressedBytes>=16*1024)return 0.125f;
+            return MovingSeconds;
+        }
+    }
+    // An old or duplicated result must never clear a newer P2 pending intent.
+    public static class NetworkIntentReceipt
+    {
+        public static bool MatchesPending(bool pending,int expectedSequence,int receivedSequence)
+            =>pending&&expectedSequence>0&&receivedSequence==expectedSequence;
+    }
     public sealed class NetworkGameStateAdapter
     {
         public GameState State;
