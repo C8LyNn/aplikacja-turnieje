@@ -13,7 +13,7 @@ t('allowed UI repair passes',()=>a.equal(verify(change(ui),[ui]).ok,true));
 t('unapproved networking change fails',()=>a.match(verify(change(net)).errors.join(' '),/Unapproved/));
 t('modified Protocol149 fails even if explicitly allowed',()=>{const p=U+'Assets/CoreClash/Networking/NgoWireProtocol.cs';a.match(verify(change(p)).errors.join(' '),/Protected/);a.throws(()=>verify(change(p),[p]),/protected/);});
 t('V148 and original R16 manifest stay frozen',()=>{for(const p of g.protectedFiles.slice(0,2))a.match(verify(change(p)).errors.join(' '),/Protected/);});
-t('meta edit or insertion rejected',()=>{const p=U+'Scenes/Test.unity.meta';a.match(verify(change(p)).errors.join(' '),/Protected/);a.match(verify([...baseline,item(U+'Assets/X.cs.meta')]).errors.join(' '),/Protected/);});
+t('meta edit or insertion rejected',()=>{const p=U+'Scenes/Test.unity.meta';a.match(verify(change(p)).errors.join(' '),/Protected/);a.match(verify([...baseline,item(U+'Assets/X.cs.meta')]).errors.join(' '),/Unapproved new meta/);});
 t('removed original file rejected',()=>a.match(verify(baseline.filter(x=>x.path!==ui),[ui]).errors.join(' '),/Removed/));
 t('new source requires exact allowlist',()=>{const p=U+'Tests/W9.cs',c=[...baseline,item(p)];a.match(verify(c).errors.join(' '),/Unapproved/);a.equal(verify(c,[p]).ok,true);});
 t('diagnostic define rejected in allowed C#',()=>a.match(verify(change(ui),[ui],'#if CC001_PHOENIX_DIAGNOSTIC').errors.join(' '),/Diagnostic/));
@@ -24,3 +24,18 @@ t('invalid and duplicate allowlist rejected',()=>{a.throws(()=>verify(baseline,[
 t('protected source must exist in RC1 baseline',()=>a.throws(()=>g.check([],[],[],()=>''),/Missing frozen/));
 t('invalid symlink and malformed tree record rejected',()=>a.throws(()=>g.parseLsTree(Buffer.from('120000 blob '+z+'\tlink\0')),/Invalid/));
 t('Git null tree parser accepts real style entry',()=>a.deepEqual(g.parseLsTree(Buffer.from('100644 blob '+z+'\t'+ui+'\0')),[item(ui)]));
+
+const newAsset=U+'Assets/CoreClash/Physics/RemoteBallPoseSmoother.cs';
+const newMeta=newAsset+'.meta';
+const originalMeta=U+'Scenes/Test.unity.meta';
+const metaGuidOld='a'.repeat(32),metaGuidNew='b'.repeat(32);
+const contents=(guid=metaGuidNew)=>p=>p.endsWith('.meta')?'fileFormatVersion: 2\nguid: '+(p===originalMeta?metaGuidOld:guid)+'\n':'class Safe {}';
+const paired=[...baseline,item(newAsset),item(newMeta)];
+t('new C# and unique GUID meta pair with exact allowlist passes',()=>{const out=g.check(baseline,paired,[newAsset,newMeta],contents());a.equal(out.ok,true);a.deepEqual(out.changed.sort(),[newAsset,newMeta].sort());});
+t('new asset without its .meta fails closed',()=>a.match(verify([...baseline,item(newAsset)],[newAsset]).errors.join(' '),/Missing new Unity \.meta/));
+t('orphan new .meta without new asset fails',()=>a.match(g.check(baseline,[...baseline,item(newMeta)],[newAsset,newMeta],contents()).errors.join(' '),/Orphan new Unity meta/));
+t('allowlist of new meta without asset rejected',()=>a.match(g.check(baseline,paired,[newMeta],contents()).errors.join(' '),/Unapproved new meta/));
+t('duplicate Unity GUID rejected across old and new',()=>a.match(g.check(baseline,paired,[newAsset,newMeta],contents(metaGuidOld)).errors.join(' '),/Duplicate Unity GUID/));
+t('malformed new GUID rejected',()=>a.match(g.check(baseline,paired,[newAsset,newMeta],contents('bad')).errors.join(' '),/Malformed or missing/));
+t('editing old meta still rejected even on explicit allowlist',()=>a.throws(()=>g.check(baseline,change(originalMeta),[originalMeta],contents()),/protected/));
+t('new .meta for unrelated file is protected',()=>a.throws(()=>g.check(baseline,[...baseline,item(U+'Assets/Example.png.meta')],[U+'Assets/Example.png.meta'],contents()),/protected/));
