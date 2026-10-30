@@ -1,33 +1,40 @@
-# CC-001 — R17-W12 / A82 Displacement Trace Gate
+# CC-001 — W13 / A82: Exact-SHA Mechanic Displacement Trace Gate
 
-**Scope:** executable offline Node 22 checker for the mechanics of `PORTAL`, Warp `TELEPORT`, and two-ball `SWAP`. Checks an accepted P2 authoritative revision against a P2 visual-pose observation. **It is not a Unity/NGO runner, producer of PC1/PC2 telemetry, Windows build, or G3/G4 certification.**
+**Status:** isolated **POST-W11 test-tool** update stacked on A82 [W12 PR #234](https://github.com/C8LyNn/aplikacja-turnieje/pull/234). No source/gameplay/network/physics/Unity changes, no QA-freeze mutation, no Windows build or physical two-PC evidence.
 
-**W11 QA freeze:** `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` on `integration/cc001-r17-w11-qa-freeze-20261030`, immutable for ongoing A72/A60 tests. The freeze source only explicitly snaps `PORTAL`. Newer moving #207 source includes A70-selected A34 `TELEPORT` + two-ball `SWAP` support. Do not update the freeze, claim the new patch is in freeze, or remerge closed duplicate A82 PR #217.
+## W13 correction of a proven false scoped green
 
-## Commands
+W12-v1 tested a fabricated `PORTAL` + `TELEPORT` + `SWAP` sequence using **frozen W11 SHA `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`** and returned `PASS_SCOPED`, even though the exact frozen `RemoteSnapshotEvents.InstantBallIds` only explicitly snaps `PORTAL`. This was reproduced using the original W12 CLI. **It did not prove W11 was passing all three mechanics.** W13 replaces the semantic schema with v2 and makes source-version capability part of the assertion.
+
+### Reviewed source profiles (no dynamic inference)
+
+| Exact source SHA | Source profile | Assertable instant visual snap | Known missing source capability |
+|---|---|---|---|
+| `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` | `W11_QA_FREEZE_PORTAL_ONLY` | `PORTAL` actor | `TELEPORT`, both `SWAP` participants |
+| `87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c` | `POSTFREEZE_PR207_RELOCATIONS` | `PORTAL` / `TELEPORT` actor; `SWAP` actor + `otherId` | None among those three |
+
+The W11 QA-freeze ref `integration/cc001-r17-w11-qa-freeze-20261030` remains exactly `3f972c...`. The later moving PR #207 **is not** part of that freeze. Unknown SHA is `HOLD`, not automatically assigned a preferred source profile. New source profiles require their own verified source review and code change. Both supplied fixtures are **synthetic**.
+
+## Run with Node.js 22 (no dependencies)
 
 ```sh
 node --check scripts/cc001/w12/a82/check-displacement-trace.cjs
 node --check scripts/cc001/w12/a82/check-displacement-trace.test.cjs
 node --test scripts/cc001/w12/a82/check-displacement-trace.test.cjs
+
+# Frozen QA: verifies only PORTAL, explicitly reports incomplete displacement capability
 node scripts/cc001/w12/a82/check-displacement-trace.cjs --expected-sha 3f972cdbaea6289a7e33ce608f5d3256cfdab0a3 scripts/cc001/w12/a82/example.synthetic.json
+
+# Newer dev source: three event types, same SHA-specific contract
+node scripts/cc001/w12/a82/check-displacement-trace.cjs --expected-sha 87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c scripts/cc001/w12/a82/example.postfreeze.synthetic.json
 ```
 
-The included example is **synthetic**, not data from physical PC1/PC2.
+**Results:** `0 PASS_SCOPED` (only that source profile and supplied records), `1 FAIL` (source/profile mismatch, malformed/out-of-order event, illegal participant, wrong paired pose, duplicate/stale revision), `2 HOLD` (missing input, unreviewed SHA, unsupported event at that SHA, incomplete needed coverage, discontinuous cursor), `64 USAGE`. Every result has `physicalG3Status:NOT_ASSESSED`. For frozen SHA `fullDisplacementCapability:false` and `excludedKinds:["TELEPORT","SWAP"]` even when synthetic PORTAL passes.
 
-## Exact trace contract
+## Evidence interpretation
 
-UTF-8 JSON with `schema:"CC001-A82-DISPLACEMENT-TRACE-v1"`, `sourceSha`, `evidence.captureType` (`synthetic` or `operator`), and `samples[]`. Each sample requires `device:"PC2"`, `observation:"POST_APPLY_POST_OBSERVE"`, `phase:"Moving"`, monotonic `revision`, `actionSerial`, `cursorBefore`, `cursorAfter`, `events[]` (`id,kind,ballId,otherId`), `hostBalls[]` and `renderedBalls[]` (`id,x,y`). `hostBalls` and P2 smoother output must refer to **the same accepted revision** and the same **world coordinate frame before P2 viewport inversion**. An authorized capture/diagnostic harness is needed; network logs and screenshots alone do not automatically supply all fields. Do **not** fill observations from expected state.
+Each v2 JSON record declares `schema`, `sourceSha`, `sourceProfile`, `evidence.captureType` (`operator` or `synthetic`), and ordered `samples`. Sample fields: `device:"PC2"`, `observation:"POST_APPLY_POST_OBSERVE"`, `phase:"Moving"`, positive monotonically admitted `revision`, nondecreasing `actionSerial`, `cursorBefore`, `cursorAfter`, ordered deduplicated `events[]` (`id,kind,ballId,otherId`), `hostBalls[]`, `renderedBalls[]` (`id,x,y`). All positions must be world coordinates *before* the PC2 viewport transform, and host/render data must refer to the same accepted snapshot. Supported displacement events must identify actual participants: `SWAP` needs two distinct positive IDs. Visual pose is checked at observation time within 0.5 world units. Ordinary kinetic motion remains interpolated rather than forcing all poses to snap.
 
-A new `PORTAL`/`TELEPORT` must snap actor `ballId`, a new `SWAP` must snap both `ballId` and `otherId`. `id<=cursorBefore` events do not retrigger. Distance tolerance 0.5 world units; ordinary non-displacement effects are **not** asserted to snap.
+This tool **does not capture data or authenticate evidence**. A PASS from generated/synthetic or operator-labelled JSON **does not establish any real PC1–PC2 result**. `hostBalls`, event cursor and actual P2 `RemoteBallSmoother.TryGetPosition` output need a separate **authorized** trusted collector. If the collector misses accepted revisions/cursors, the checker cannot infer continuity and returns HOLD. For full W11 native G3, A72 must build original Windows Player from frozen SHA and A60/A31 must independently run/verify original PC1+PC2 Player binaries and logs/videos. A70 alone selects future integration; W13 PR cannot be used to change QA-freeze or approve main/release.
 
-## Results and limitations
-
-- `exit 0` / `PASS_SCOPED`: provided input meets this narrow check. `physicalG3Status` is always `NOT_ASSESSED` (even operator-labelled data).
-- `exit 1` / `FAIL`: incompatible SHA, invalid revision/cursor/pose, or missed exact snap.
-- `exit 2` / `HOLD`: no/invalid evidence or incomplete `PORTAL`/`TELEPORT`/`SWAP` coverage.
-- `exit 64`: wrong arguments.
-
-**Proof boundary:** PASS on a fabricated fixture or self-reported operator file is not a physical two-PC PASS. A60/A31 must independently verify original exact-SHA Windows Player, same revision state, raw logs, and observed frames. A72 owns Windows build; A70 owns integration. A82 changes no Unity gameplay, physics, Mitosis V148, Furnace, HP R16, RC1, Protocol149, or protected QA freeze.
-
-**Status:** Node CLI 23/23 real tests executed on byte-identical source/test files; Unity/native/PC1-PC2 NOT_RUN.
+**Owner decisions untouched:** Mitosis exactly V148; Furnace only FIRE zone and periodic damage; HP as R16; preserve RC1, Protocol149, all source and artwork. This update changes only the existing W12 A82 isolated Node CLI, tests, README, synthetic fixture, plus one new synthetic fixture.
