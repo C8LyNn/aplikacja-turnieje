@@ -1,6 +1,5 @@
 'use strict';
-// CC-001 W10 A72 - fail closed offline full Windows Player distribution gate.
-// Accepts only A70-selected exact SHA and complete independently reviewed build manifest.
+// A72: standalone fail-closed exact Windows Player distribution gate. No state mutation.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
 const SHA=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
 const validSha=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x);
@@ -22,7 +21,7 @@ function check(manifest,player,sha){
 }
 function argumentsMap(args){let obj={};for(const x of args){const m=/^--([a-z-]+)=(.*)$/.exec(x);ensure(m,'Use --name=value');obj[m[1]]=m[2]}return obj}
 function selfTest(){const temp=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'cc001w10verify-'));let count=0;const test=fn=>{fn();count++};const rejected=fn=>{assert.throws(fn)};
-try{const root=path.join(temp,'player');fs.mkdirSync(root);fs.writeFileSync(path.join(root,'CoreClash.exe'),'abc');const data=path.join(root,'CoreClash_Data');fs.mkdirSync(data);for(let i=0;i<50;i++)fs.writeFileSync(path.join(data,'file-'+i+'.dat'),'hello-'+i);const sha='1'.repeat(40);const manifest={schema:'CC001-W10-A72-WINDOWS-1',candidateSHA:sha,status:'PASS_BUILD_EVIDENCE_ONLY',playerInventory:files(root)};
+try{const root=path.join(temp,'player');fs.mkdirSync(root);fs.writeFileSync(path.join(root,'CoreClash.exe'),'abc');const data=path.join(root,'CoreClash_Data');fs.mkdirSync(data);for(let i=0;i<50;i++)fs.writeFileSync(path.join(data,`file-${i}.dat`),`hello-${i}`);const sha='1'.repeat(40);const manifest={schema:'CC001-W10-A72-WINDOWS-1',candidateSHA:sha,status:'PASS_BUILD_EVIDENCE_ONLY',playerInventory:files(root)};
  test(()=>assert.equal(check(manifest,root,sha).status,'PASS_BINARY_INTEGRITY_ONLY'));
  test(()=>rejected(()=>check(manifest,root,'a'.repeat(40))));
  test(()=>rejected(()=>check({...manifest,status:'HOLD'},root,sha)));
@@ -37,5 +36,5 @@ try{const root=path.join(temp,'player');fs.mkdirSync(root);fs.writeFileSync(path
  test(()=>assert.equal(safePath('C:\\evil'),false));
  console.log(JSON.stringify({suite:'CC001-W10-A72-binary-distribution',pass:count,fail:0}));
 }finally{fs.rmSync(temp,{recursive:true,force:true})}}
-if(require.main===module){try{if(process.argv[2]==='--self-test'){selfTest()}else{const a=argumentsMap(process.argv.slice(2)),m=JSON.parse(fs.readFileSync(a.manifest,'utf8')),r=check(m,a.player,a.sha);console.log(JSON.stringify(r,null,2));if(r.status!=='PASS_BINARY_INTEGRITY_ONLY')process.exitCode=2}}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}
+if(require.main===module){try{if(process.argv[2]==='--self-test'){selfTest();}else{const a=argumentsMap(process.argv.slice(2)),m=JSON.parse(fs.readFileSync(a.manifest,'utf8')),r=check(m,a.player,a.sha);console.log(JSON.stringify(r,null,2));if(r.status!=='PASS_BINARY_INTEGRITY_ONLY')process.exitCode=2}}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}
 module.exports={check,files,safePath};
