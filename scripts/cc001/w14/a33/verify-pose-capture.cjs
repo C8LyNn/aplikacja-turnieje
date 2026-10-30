@@ -37,7 +37,7 @@ function verify(s=helper,u=ui){
  expect('FOCUS_ROW_USAGE',s.includes('var b=sampledBalls[i]'));
  expect('FOCUS_DISPOSITION',s.includes('focused==null?"NOT_ACTIVE":"INCLUDED"')&&s.includes('FOCUS_ID=')&&s.includes('FOCUS_STATUS='));
  expect('FOCUS_FROM_INSPECTOR',u.includes('Time.unscaledTime,inspectBallId)'));
- expect('FIVE_W15_MANAGED_TESTS',(tests.match(/Test\\("A33 W15/g)||[]).length===5);
+ expect('FIVE_W15_MANAGED_TESTS',tests.split('Test("A33 W15').length===6);
  expect('UNITY_META',/^fileFormatVersion: 2\nguid: [0-9a-f]{32}\n$/.test(meta));
  return errors;
 }
