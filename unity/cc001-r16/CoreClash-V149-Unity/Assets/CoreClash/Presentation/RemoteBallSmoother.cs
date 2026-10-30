@@ -15,7 +15,14 @@ namespace CoreClash.Presentation
             foreach(var e in state.events){
                 if(e==null||e.id<=afterEventId)continue;
                 latestEventId=Math.Max(latestEventId,e.id);
-                if(e.kind=="PORTAL"&&e.ballId>0)ids.Add(e.ballId);
+                // Authoritative instantaneous displacement events:
+                // PORTAL / TELEPORT relocate one ball; SWAP relocates both.
+                // Never turn legitimate STOP/START motion chains into forced snaps.
+                if(e.kind=="PORTAL"||e.kind=="TELEPORT"||e.kind=="SWAP")
+                {
+                    if(e.ballId>0)ids.Add(e.ballId);
+                    if(e.kind=="SWAP"&&e.otherId>0)ids.Add(e.otherId);
+                }
             }
             return ids;
         }
@@ -24,7 +31,10 @@ namespace CoreClash.Presentation
     // R17-W9 A34: presentation-only smoothing; the authoritative GameState is never mutated.
     public sealed class RemoteBallSmoother
     {
-        const float MaxGap=0.6f,MaxDuration=0.2f,MaxDistance=220f;
+        // A41 adaptive Moving cadence permits 4Hz at >=64KiB compressed.
+        // 250ms prevents the 50ms dead plateau of the old 200ms cap.
+        // Samples still clamp to the last authoritative pose: no extrapolation.
+        const float MaxGap=0.6f,MaxDuration=0.25f,MaxDistance=220f;
         sealed class Pose
         {
             public float fromX,fromY,toX,toY,start,duration;
