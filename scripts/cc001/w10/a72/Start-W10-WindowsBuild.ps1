@@ -10,11 +10,9 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-$SelectedRef='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030'
-$SelectedSha='173273122c11cbf738e8b954e32506a6196fe8ec'
 try {
- if($IntegrationRef -cne $SelectedRef){throw 'A70 W11 PR207 exact integration ref required'}
- if($CandidateSha -cne $SelectedSha){throw 'A70 W11 PR207 exact SHA mismatch; refusing build'}
+ if($IntegrationRef -cnotmatch '^integration/cc001-r17-w11-multiplayer-qa-candidate-20261030$'){throw 'Use only the A70 W11 integration ref; feature branches are forbidden'}
+ if($CandidateSha -cne '173273122c11cbf738e8b954e32506a6196fe8ec'){throw 'EXACT W11 PR207 SHA required; no substitutes'}
  $node=(Get-Command node.exe -ErrorAction Stop).Source
  $git=(Get-Command git.exe -ErrorAction Stop).Source
  $version=(& $node --version).Trim()
