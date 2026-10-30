@@ -8,6 +8,7 @@
  * not an attestation of the executable that produced the logs.
  */
 const fs = require('node:fs');
+const {checkAggregate} = require('../../w13/a51/trace-accounting.cjs');
 const FREEZE_SHA = '3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const SCHEMA = 'CC001_R17_W11_A51_NATIVE_TRACE_V2';
 const DIGEST = /^[a-f0-9]{64}$/;
@@ -51,6 +52,11 @@ function assess(report, selectedSha) {
       else if (o.w11DigestMarkers[k] !== 0) add('POST_FREEZE_W11_DIGEST_MARKER_PRESENT');
     }
   }
+  // W13: validate arithmetic identities and unsupported QA claims in the existing
+  // A51 V2 summary. This is accounting, not a second trace parser.
+  if (r.schema === SCHEMA && r.evidence === 'NATIVE_LOG_FORMAT_PARSER') {
+    for (const code of checkAggregate(r)) add(code);
+  }
   if (r.producer !== 'A41' || r.traceCoverage !== 'SPARSE_A41_SAMPLED')
     add('EXPECTED_FREEZE_A41_DUAL_SOURCE_MISSING');
   if (o.hostRows === 0 || o.clientRows === 0) add('NO_BOTH_SIDES_SAMPLED');
@@ -62,7 +68,11 @@ function assess(report, selectedSha) {
   const hard = reasons.some(x => ['WRONG_FREEZE_SOURCE_SELECTION',
     'POST_FREEZE_W11_DIGEST_MARKER_PRESENT','TRACE_ANOMALY_PRESENT',
     'REPORTED_CADENCE_POLICY_VIOLATION','IMPOSSIBLE_PAIR_COUNT',
-    'IDENTICAL_PC1_PC2_LOG_FINGERPRINT'].includes(x));
+    'IDENTICAL_PC1_PC2_LOG_FINGERPRINT',
+    'REVISION_ACCOUNTING_MISMATCH','HOST_SAMPLE_CADENCE_COUNT_MISMATCH',
+    'IMPOSSIBLE_CADENCE_VIOLATION_COUNT','PAIRED_REVISION_QUALIFICATION_MISMATCH',
+    'UNSUPPORTED_RUNTIME_EVIDENCE_CLAIM','UNSUPPORTED_QA_QUALIFICATION',
+    'UNEXPECTED_CADENCE_POLICY_LABEL'].includes(x));
   const status = hard ? 'FAIL_PROFILE_OR_TRACE' : reasons.length ? 'HOLD_INCOMPLETE_TRACE' :
     'METADATA_CONSISTENT_ONLY';
   return {
