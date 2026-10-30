@@ -12,6 +12,7 @@ public static partial class Program
             var s=Sim();
             var m=s.Spawn(0,"mitosis",35,450,-500,0);
             Eq(35,m.hp);False(m.mitosisSplit);
+            s.State.frame=3; // Wall's first-contact event gate requires frame > lastWallFrame+1.
             s.Physics.Step(1f/120); // Actual left wall collision, not a mocked callback.
             False(m.mitosisSplit);
             Eq(35,m.hp);
