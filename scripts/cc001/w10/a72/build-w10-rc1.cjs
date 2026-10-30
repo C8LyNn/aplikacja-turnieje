@@ -139,6 +139,10 @@ function freshManagedResult(resultPath,startMs,endMs){
  ensure(Number.isFinite(utc)&&utc>=startMs-300000&&utc<=endMs+300000,'MANAGED_RESULT_TIMESTAMP');
  return {parsed,bytes,sha256:hash(bytes)};
 }
+function requiredPlayerPayload(binary){
+ const names=['CoreClash.exe','CoreClash_Data/Managed/Assembly-CSharp.dll'];
+ return Array.isArray(binary)&&names.every(name=>binary.some(x=>x.path===name&&Number.isSafeInteger(x.bytes)&&x.bytes>0&&/^[A-F0-9]{64}$/.test(x.sha256)));
+}
 function boolGates(o){return Object.entries(o).filter(([,v])=>!v).map(([k])=>k)}
 async function spawnLog(cmd,args,cwd,logPath){
  fs.mkdirSync(path.dirname(logPath),{recursive:true});const fd=fs.openSync(logPath,'w');
@@ -217,7 +221,7 @@ async function build(a){
   const gates={managedDotnet9:managedSdk?.startsWith('9.')&&managed?.exitCode===0&&managedReport?.failed===0&&managedReport?.passed>0,sourcePreExact:!pre.failures.length,sourceAfterMaterialized:!!post&&!post.failures.length,
    sourceNotMutated:sourceChanges.length===0,unityExitZero:unity.exitCode===0,
    buildSucceeded:buildReport?.result==='Succeeded'&&buildReport?.errors===0,
-   playerComplete:binary.length>50&&binary.some(f=>f.path==='CoreClash.exe')&&binary.some(f=>f.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),
+   playerComplete:binary.length>50&&requiredPlayerPayload(binary),
    compilerResponseCaptured:playerRsp.length>=1,playerDefineCorrect:playerRsp.some(x=>x.hasWindows&&!x.hasEditor&&!x.hasDiagnostic&&!x.hasNested),
    noDiagnostic:!responses.some(x=>x.hasDiagnostic)&&!diagDll&&!logBody.includes(DIAG),
    buildMarker:logBody.includes('CORE_CLASH_BUILD_PASS StandaloneWindows64')};
@@ -272,6 +276,11 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
   test(()=>{fs.writeFileSync(testResult,JSON.stringify({...good,passed:180}));assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/MANAGED_RESULT_CASES/)});
   test(()=>{fs.writeFileSync(testResult,'{broken');assert.throws(()=>freshManagedResult(testResult,n-500,n+500),/NEW_TEST_RESULT_INVALID_JSON/)});
  }finally{fs.rmSync(troot,{recursive:true,force:true})}
+ const requiredSample=[{path:'CoreClash.exe',bytes:3,sha256:'A'.repeat(64)},{path:'CoreClash_Data/Managed/Assembly-CSharp.dll',bytes:8,sha256:'B'.repeat(64)}];
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample),true));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.map(x=>x.path==='CoreClash.exe'?{...x,bytes:0}:x)),false));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.map(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'?{...x,bytes:0}:x)),false));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.filter(x=>x.path!=='CoreClash.exe')),false));
  const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));

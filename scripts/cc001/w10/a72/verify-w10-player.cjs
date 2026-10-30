@@ -29,6 +29,7 @@ function check(manifest,player,sha){
  const expected=manifest.playerInventory;ensure(Array.isArray(expected)&&expected.length>50,'Missing full Player inventory');
  const seen=new Set();for(const x of expected){ensure(safePath(x.path)&&!seen.has(x.path),'Invalid/duplicate Player path');seen.add(x.path);ensure(Number.isSafeInteger(x.bytes)&&x.bytes>=0&&/^[A-Fa-f0-9]{64}$/.test(x.sha256),'Bad inventory entry')}
  ensure(seen.has('CoreClash.exe')&&seen.has('CoreClash_Data/Managed/Assembly-CSharp.dll'),'Required Player EXE/DLL missing from inventory');
+ ensure(expected.filter(x=>x.path==='CoreClash.exe'||x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll').every(x=>x.bytes>0),'Required Player EXE/DLL cannot have zero bytes');
  const current=files(player);const actual=new Map(current.map(x=>[x.path,x]));let failures=[];
  for(const x of expected){const y=actual.get(x.path);if(!y)failures.push({path:x.path,reason:'MISSING'});else if(y.bytes!==x.bytes||y.sha256!==x.sha256.toUpperCase())failures.push({path:x.path,reason:'SHA256_OR_SIZE_MISMATCH'})}
  for(const x of current){if(!seen.has(x.path))failures.push({path:x.path,reason:'EXTRA_UNMANIFESTED_FILE'})}
@@ -60,6 +61,8 @@ try{
  test(()=>{fs.appendFileSync(dll,'tamper');assert.equal(check(manifest,root,sha).status,'HOLD');fs.writeFileSync(dll,'fresh-binary-dll')});
  test(()=>rejected(()=>check({...manifest,playerInventory:inventory.filter(x=>x.path!=='CoreClash_Data/Managed/Assembly-CSharp.dll')},root,sha)));
  test(()=>rejected(()=>check({...manifest,playerInventory:[...inventory,inventory[1]]},root,sha)));
+ test(()=>rejected(()=>check({...manifest,playerInventory:inventory.map(x=>x.path==='CoreClash.exe'?{...x,bytes:0}:x)},root,sha)));
+ test(()=>rejected(()=>check({...manifest,playerInventory:inventory.map(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'?{...x,bytes:0}:x)},root,sha)));
  test(()=>assert.equal(safePath('CoreClash_Data/Managed/Assembly-CSharp.dll'),true));
  test(()=>assert.equal(safePath('/abs.exe'),false));
  test(()=>assert.equal(safePath('C:\\evil'),false));
