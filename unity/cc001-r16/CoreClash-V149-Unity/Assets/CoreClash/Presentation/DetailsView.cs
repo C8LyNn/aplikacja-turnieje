@@ -64,8 +64,8 @@ namespace CoreClash.Presentation
         {
             if(!networked)return "MODE: LOCAL / HOTSEAT (NO NETWORK CONNECTION)";
             string role=authority?"HOST":"CLIENT";
-            string local=localOwner==0?"P1 / CYAN":localOwner==1?"P2 / RED":"UNASSIGNED";
-            string active=activeOwner==0?"P1 / CYAN":activeOwner==1?"P2 / RED":"UNKNOWN";
+            string local=localOwner==0?"P1 / CYAN":localOwner==1?"P2 / PINK":"UNASSIGNED";
+            string active=activeOwner==0?"P1 / CYAN":activeOwner==1?"P2 / PINK":"UNKNOWN";
             string control=!connected?"WAITING FOR PEER / SNAPSHOT":
                 !aiming?"NO AIM INPUT / SHOT RESOLVING OR MATCH ENDED":
                 localOwner==activeOwner?"YOUR TURN / AIMING":"OPPONENT TURN";
