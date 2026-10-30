@@ -23,11 +23,13 @@ public static partial class Program
         Test("A30 W11 Mitosis structure collision never becomes a split trigger",()=>{
             var s=Sim();
             var m=s.Spawn(0,"mitosis",270,450,200,0);
-            s.State.structures.Add(new StructureRuntime{
+            var structure=new StructureRuntime{
                 id=s.State.nextId++,owner=1,kind="wall",
                 x=285,y=450,radius=20,hp=20,maxHp=20,restitution=.8f
-            });
+            };
+            s.State.structures.Add(structure);
             s.Physics.Step(1f/120); // Real StructureSystem collision pipeline.
+            Eq(19,structure.hp); // Proof an actual strong structure impact occurred.
             False(m.mitosisSplit);
             Eq(1,s.State.balls.Count(b=>!b.dead&&b.type=="mitosis"));
             False(s.State.events.Any(e=>e.kind=="MITOSIS"));
