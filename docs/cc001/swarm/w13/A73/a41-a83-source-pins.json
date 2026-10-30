@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "freezeRef": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "freezeSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "candidates": [
+    {
+      "owner": "A41",
+      "ref": "feat/cc001-r17-w12-a41-byte-budget",
+      "sha": "72e57524ec4fe32e7a5e50141cc8204afb89c49f",
+      "paths": {
+        "docs/cc001/swarm/w12/A41/R17_W12_A41_PERIODIC_SNAPSHOT_BYTE_BUDGET.md": {
+          "status": "A",
+          "blob": "e0c432b7a10f341b6c66d261400bf406fa86fa7c"
+        },
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs": {
+          "status": "M",
+          "blob": "b1ae3c71926a544aa171be8fcfe0a22036e7478d"
+        },
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs": {
+          "status": "M",
+          "blob": "1f55f1d020cb91720df6659784f7c0c5f78fc829"
+        }
+      },
+      "requiredTests": [
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs"
+      ]
+    },
+    {
+      "owner": "A83",
+      "ref": "feat/cc001-r17-w12-a83-local-selection-stability",
+      "sha": "69d20ca863aa7f195a9b0a506032025a477ba68b",
+      "paths": {
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs": {
+          "status": "M",
+          "blob": "78e0b34ebefa828748470cec3e31aff166d7bf06"
+        },
+        "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs": {
+          "status": "M",
+          "blob": "99cf3ee2ade8a71b3eab49927c8bd40e54b14de0"
+        },
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs": {
+          "status": "M",
+          "blob": "d0495662d87fc616ce6338cab905653b994cc91a"
+        }
+      },
+      "requiredTests": [
+        "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs"
+      ]
+    }
+  ]
+}
