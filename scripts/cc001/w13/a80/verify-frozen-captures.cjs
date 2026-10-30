@@ -10,6 +10,7 @@ const {inspect, SCHEMA: VIEW_SCHEMA, PIN} = require('../../w12/a80/verify-freeze
 const SCHEMA = 'cc001-r17-w13-a80-frozen-capture-v1';
 const SHA256 = /^[a-f0-9]{64}$/i;
 const {chronology}=require('../../w14/a80/verify-snapshot-chronology.cjs');
+const {crossPairRevisions}=require('../../w15/a80/verify-cross-pair-revisions.cjs');
 const DEVICE = new Set(['PC1','PC2']);
 const sha = b => crypto.createHash('sha256').update(b).digest('hex');
 const utc = s => typeof s === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(s) && Number.isFinite(Date.parse(s));
@@ -103,15 +104,18 @@ function assessCapture(input,{root, inspectView=inspect}={}) {
     }
   }
   const temporal=chronology(samples.slice(0,500));
+  const crossPair=crossPairRevisions(samples.slice(0,500));
   // Check continuity of authoritative snapshot identity across capture pairs;
   // each W12 per-pair validator checked only that *one* pair was consistent.
   for(const e of temporal.errors)errors.push(e);
   for(const g of temporal.gaps)gaps.push(g);
+  for(const e of crossPair.errors)errors.push(e);
+  for(const g of crossPair.gaps)gaps.push(g);
   const verdict=errors.length?'CAPTURE_CONTRADICTION':gaps.length?'INSUFFICIENT_EVIDENCE':'CAPTURE_BYTES_AND_ANNOTATIONS_CONSISTENT';
   return {schema:SCHEMA,qaSourceSha:PIN,verdict,physicalG3Status:'NOT_ASSESSED',
     verifiedOriginalBuild:false,inspectedImageSemantics:false,verifiedDeviceOrigin:false,
     note:'Only byte-level capture matching and user-supplied view assertions; not original device, Windows build or gameplay proof',
-    summary:{pairs:pairs.length,bytesChecked:attestations.length,errors:errors.length,gaps:gaps.length},pairs,errors,gaps,notes:temporal.notes,attestations};
+    summary:{pairs:pairs.length,bytesChecked:attestations.length,errors:errors.length,gaps:gaps.length},pairs,errors,gaps,notes:[...temporal.notes,...crossPair.notes],attestations};
 }
 module.exports={SCHEMA,PIN,fingerprint,assessCapture};
 if(require.main===module){
