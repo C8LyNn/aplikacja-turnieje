@@ -222,5 +222,69 @@ public static partial class Program
             Eq(s.State.turnNumber,adapter.State.balls.Single(x=>x.id==furnace.id).lastElementalTurn);
             Eq(1,adapter.State.zones.Count(z=>!z.dead&&z.kind=="furnaceFire"));
         });
+        // R17-W10 A50 - RED acceptance gates for the single selected A34
+        // display smoother. They belong to A50's own ElementalTests.cs.
+        // Do not integrate as green until A34 fixes identity invalidation.
+        Test("W10 A50 remote pose owner change must snap immediately", () => {
+            var visual=new RemoteBallSmoother();
+            var before=new GameState {
+                phase=MatchPhase.Moving, actionSerial=5, frame=10,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=42,owner=0,type="normal",x=100,y=300}
+                }
+            };
+            var after=new GameState {
+                phase=MatchPhase.Moving, actionSerial=5, frame=15,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=42,owner=1,type="normal",x=170,y=300}
+                }
+            };
+            visual.Observe(before,1f);
+            visual.Observe(after,1.2f);
+            True(visual.TryGetPosition(42,1.2f,out float x,out float y));
+            Near(170f,x);Near(300f,y);
+            Eq(100f,before.balls[0].x);Eq(170f,after.balls[0].x);
+        });
+        Test("W10 A50 remote pose type change must snap immediately", () => {
+            var visual=new RemoteBallSmoother();
+            var before=new GameState {
+                phase=MatchPhase.Moving, actionSerial=6, frame=11,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=52,owner=1,type="normal",x=40,y=80}
+                }
+            };
+            var after=new GameState {
+                phase=MatchPhase.Moving, actionSerial=6, frame=16,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=52,owner=1,type="frostguard",x=100,y=80}
+                }
+            };
+            visual.Observe(before,2f);
+            visual.Observe(after,2.2f);
+            True(visual.TryGetPosition(52,2.2f,out float x,out float y));
+            Near(100f,x);Near(80f,y);
+            Eq("normal",before.balls[0].type);Eq("frostguard",after.balls[0].type);
+        });
+        Test("W10 A50 remote pose stable identity still interpolates without state mutation", () => {
+            var visual=new RemoteBallSmoother();
+            var before=new GameState {
+                phase=MatchPhase.Moving, actionSerial=7, frame=10,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=62,owner=1,type="normal",x=50,y=80,vx=150,hp=20}
+                }
+            };
+            var after=new GameState {
+                phase=MatchPhase.Moving, actionSerial=7, frame=20,
+                balls=new System.Collections.Generic.List<BallRuntime> {
+                    new BallRuntime{id=62,owner=1,type="normal",x=150,y=80,vx=150,hp=20}
+                }
+            };
+            visual.Observe(before,3f);
+            visual.Observe(after,3.2f);
+            True(visual.TryGetPosition(62,3.3f,out float x,out float y));
+            Near(100f,x);Near(80f,y);
+            Eq(150f,after.balls[0].x);Eq(150f,after.balls[0].vx);Eq(20,after.balls[0].hp);
+        });
+
     }
 }
