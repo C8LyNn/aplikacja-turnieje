@@ -75,7 +75,7 @@ t('W11 protected Protocol149 cannot be admitted even with matching hash',()=>{
  a.throws(()=>g.checkPinned(baseline,change(p),{[p]:o},()=> ''),/protected/);
 });
 
- 
+
 // W11 #207 exact test-runner registration: frozen harness + precisely two new suites.
 t('W11 #207 exact original runner to verified two-suite addition passes with full SHA pin',()=>{
  const p=U+'Tests/Program.cs',old='12b8fcca30731f007a01a81ac45572671c99f1dc',now='49d9860cec074e7d1612babacf01f8d63ed238b4';
