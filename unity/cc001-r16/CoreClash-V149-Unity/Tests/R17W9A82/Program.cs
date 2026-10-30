@@ -40,6 +40,9 @@ public static class R17W9A82
         Run("W9 A82 snapshots converge after P1/P2 actions on logical client", TestSnapshotParity);
         Run("W9 A82 stale snapshot cannot teleport logical client backwards", TestStaleSnapshot);
         Run("W9 A82 post-bonus turn returns to P1 and forbids P2 extra action", TestNextTurn);
+        Run("W10 A82 moving-phase snapshots preserve canonical velocity and pose", TestMovingSnapshot);
+        Run("W10 A82 real gzip+chunk+assembler roundtrip preserves moving authoritative state", TestWireChunkRoundTrip);
+        Run("W10 A82 superseded chunk stream cannot roll back accepted state", TestSupersededChunkStream);
         Console.WriteLine("R17-W9 A82: " + passed + " PASS; " + failed + " FAIL");
         return failed == 0 ? 0 : 1;
     }
@@ -191,6 +194,96 @@ public static class R17W9A82
         Check(!Apply(replica,old),"stale earlier host state accepted");
         Check(!Apply(replica,latest),"duplicate latest state accepted");
         SameState(sim.State,replica.State);
+    }
+
+
+    // Tests use the actual shared NetworkGameSession, NgoWireProtocol, and
+    // NgoSnapshotAssembler implementations, not a reimplementation of their rules.
+    // No Unity NGO socket, rendering interpolation or physical PC is simulated.
+    static void TestMovingSnapshot()
+    {
+        var host=Sim();
+        var authority=new NetworkGameSession(host);
+        var client=new NetworkGameStateAdapter();
+        Check(authority.Submit(0,Spawn(host,0,1),out _), "host moving shot refused");
+        Check(host.State.phase==MatchPhase.Moving,"shot should begin moving phase");
+        var before=Snapshot(authority);
+        Check(Apply(client,before),"initial moving snapshot rejected");
+        var initial=host.State.balls.First();
+        float startY=initial.y;
+        for(int n=0;n<6;n++) host.Step(1f/120f);
+        Check(host.State.phase==MatchPhase.Moving,"host stopped too soon for mid-motion snapshot");
+        Check(host.State.balls[0].y!=startY,"host physics pose did not change");
+        var after=Snapshot(authority);
+        Check(after.revision>before.revision,"host snapshot revision failed to advance");
+        Check(Apply(client,after),"newer moving state rejected");
+        SameState(host.State,client.State);
+        Check(!Apply(client,before),"older in-flight pose reverted replica");
+        SameState(host.State,client.State);
+    }
+
+    static SessionSnapshot ThroughWire(
+        NgoSnapshotAssembler assembler,SessionSnapshot state)
+    {
+        var packed=NgoWireProtocol.Encode(JsonSerializer.Serialize(state,Json));
+        var chunks=NgoWireProtocol.Split(packed);
+        Check(chunks.Length>1,"test stimulus must exercise multi-chunk assembly");
+        string reconstructed=null;
+        // Accept the same authoritative revision even when chunk arrival is reordered.
+        for(int i=chunks.Length-1;i>=0;i--)
+        {
+            bool done=assembler.Add(state.revision,i,chunks.Length,chunks[i],out var decoded);
+            if(done) reconstructed=decoded;
+        }
+        Check(!string.IsNullOrEmpty(reconstructed),"full snapshot never assembled");
+        return JsonSerializer.Deserialize<SessionSnapshot>(reconstructed,Json);
+    }
+
+    static void PopulateCodecFixture(GameSimulation host)
+    {
+        // Give the real codec a nontrivial state larger than one 900-byte chunk.
+        for(int i=0;i<80;i++)
+            host.Spawn(i%2,"normal",75+(i%12)*34,160+(i/12)*55);
+    }
+
+    static void TestWireChunkRoundTrip()
+    {
+        var host=Sim();
+        PopulateCodecFixture(host);
+        var authority=new NetworkGameSession(host);
+        Check(authority.Submit(0,Spawn(host,0,1),out _),"host shot rejected");
+        for(int i=0;i<4;i++)host.Step(1f/120f);
+        var original=Snapshot(authority);
+        var decoded=ThroughWire(new NgoSnapshotAssembler(),original);
+        Equal(original.protocol,decoded.protocol,"wire protocol");
+        Equal(original.revision,decoded.revision,"wire revision");
+        var client=new NetworkGameStateAdapter();
+        Check(Apply(client,decoded),"decompressed snapshot rejected by game-state adapter");
+        SameState(host.State,client.State);
+    }
+
+    static void TestSupersededChunkStream()
+    {
+        var host=Sim();
+        PopulateCodecFixture(host);
+        var authority=new NetworkGameSession(host);
+        var assembler=new NgoSnapshotAssembler();
+        var first=Snapshot(authority);
+        var packed=NgoWireProtocol.Encode(JsonSerializer.Serialize(first,Json));
+        var pieces=NgoWireProtocol.Split(packed);
+        Check(pieces.Length>1,"need partial first revision");
+        Check(!assembler.Add(first.revision,0,pieces.Length,pieces[0],out _),
+            "first chunk must not produce complete snapshot");
+        Check(authority.Submit(0,Spawn(host,0,1),out _),"host shot");
+        for(int i=0;i<6;i++) host.Step(1f/120f);
+        var latest=Snapshot(authority);
+        var decoded=ThroughWire(assembler,latest);
+        var client=new NetworkGameStateAdapter();
+        Check(Apply(client,decoded),"new revision failed assembly");
+        SameState(host.State,client.State);
+        Check(!assembler.Add(first.revision,1,pieces.Length,pieces[1],out _),
+            "superseded earlier revision was accepted");
+        SameState(host.State,client.State);
     }
 
     static void TestNextTurn()
