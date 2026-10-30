@@ -139,6 +139,53 @@ public static partial class Program
             True(p.TryGetPosition(12,1.1875f,out var x,out _));Near(150,x,.1f);
             True(p.TryGetPosition(12,1.25f,out x,out _));Near(200,x,.01f);
         });
+        Test("A34 W11 fresh short TELEPORT event snaps one ball once",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
+            var next=A34Snapshot(1,20,130,100);
+            next.events.Add(new GameEvent{id=9,ballId=12,kind="TELEPORT"});
+            var ids=RemoteSnapshotEvents.InstantBallIds(next,0,out int cursor);
+            Eq(9,cursor);True(ids.Contains(12));
+            p.Observe(next,1.05f,ids,11);
+            True(p.TryGetPosition(12,1.05f,out var x,out _));Near(130f,x,.01f);
+            var oldIds=RemoteSnapshotEvents.InstantBallIds(next,cursor,out int same);
+            Eq(cursor,same);Eq(0,oldIds.Count);
+        });
+        Test("A34 W11 SWAP event snaps BOTH participant ball ids",()=>{
+            var p=new RemoteBallSmoother();
+            var first=A34Snapshot(1,10,100,100);
+            first.balls.Add(new BallRuntime{id=13,x=180,y=100,type="normal"});
+            p.Observe(first,1f,null,10);
+            var swapped=A34Snapshot(1,20,180,100);
+            swapped.balls.Add(new BallRuntime{id=13,x=100,y=100,type="normal"});
+            swapped.events.Add(new GameEvent{id=21,ballId=12,otherId=13,kind="SWAP"});
+            var ids=RemoteSnapshotEvents.InstantBallIds(swapped,0,out int cursor);
+            Eq(21,cursor);True(ids.Contains(12));True(ids.Contains(13));
+            p.Observe(swapped,1.05f,ids,11);
+            True(p.TryGetPosition(12,1.05f,out var x,out _));Near(180f,x,.01f);
+            True(p.TryGetPosition(13,1.05f,out x,out _));Near(100f,x,.01f);
+        });
+        Test("A34 W11 irrelevant, malformed and stale events never add false instant ids",()=>{
+            var state=A34Snapshot(1,20,120,100);
+            state.events.Add(new GameEvent{id=4,ballId=12,kind="DAMAGE"});
+            state.events.Add(new GameEvent{id=5,ballId=12,otherId=0,kind="SWAP"});
+            state.events.Add(new GameEvent{id=6,ballId=0,otherId=-3,kind="SWAP"});
+            var ids=RemoteSnapshotEvents.InstantBallIds(state,0,out int cursor);
+            Eq(6,cursor);Eq(1,ids.Count);True(ids.Contains(12));
+            ids=RemoteSnapshotEvents.InstantBallIds(state,cursor,out int same);
+            Eq(cursor,same);Eq(0,ids.Count);
+        });
+        Test("A34 W11 ordinary DAMAGE event retains bounded pose smoothing",()=>{
+            var p=new RemoteBallSmoother();
+            p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
+            var next=A34Snapshot(1,20,160,100);
+            next.events.Add(new GameEvent{id=3,ballId=12,kind="DAMAGE"});
+            var ids=RemoteSnapshotEvents.InstantBallIds(next,0,out int cursor);
+            Eq(3,cursor);Eq(0,ids.Count);
+            p.Observe(next,1.1f,ids,11);
+            True(p.TryGetPosition(12,1.15f,out var x,out _));Near(130f,x,.1f);
+            True(p.TryGetPosition(12,1.25f,out x,out _));Near(160f,x,.01f);
+        });
         Test("A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f,null,10);

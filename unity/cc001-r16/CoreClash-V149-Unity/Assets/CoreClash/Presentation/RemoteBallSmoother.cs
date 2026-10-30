@@ -18,7 +18,14 @@ namespace CoreClash.Presentation
             foreach(var e in state.events){
                 if(e==null||e.id<=afterEventId)continue;
                 latestEventId=Math.Max(latestEventId,e.id);
-                if(e.kind=="PORTAL"&&e.ballId>0)ids.Add(e.ballId);
+                // Existing gameplay emits PORTAL and TELEPORT (one-ball displacement)
+                // and SWAP (both ballId and otherId exchange positions).
+                // Consume each new event only once, preserving ordinary motion.
+                if(e.kind=="PORTAL"||e.kind=="TELEPORT"||e.kind=="SWAP")
+                {
+                    if(e.ballId>0)ids.Add(e.ballId);
+                    if(e.kind=="SWAP"&&e.otherId>0)ids.Add(e.otherId);
+                }
             }
             return ids;
         }
