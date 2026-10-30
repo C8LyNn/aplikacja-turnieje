@@ -1,16 +1,17 @@
 'use strict';
-// CC-001 / R17-W10 / A72 - guarded Windows candidate build, no merge/deploy.
+// CC-001 / R17-W11 / A72 - frozen QA Windows build, no merge/deploy.
 const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');
 const {inspect,inspectDirectory}=require('./w11-source-readiness.cjs');
 const ROOT='unity/cc001-r16/CoreClash-V149-Unity';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
-const W11='173273122c11cbf738e8b954e32506a6196fe8ec';
-const W11_REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
+const W11='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
+const W11_REF='integration/cc001-r17-w11-qa-freeze-20261030';
 const UNITY_VERSION='6000.4.0f1';
 const DIAG='CC001_PHOENIX_DIAGNOSTIC';
 const PROTECTED=[`${ROOT}/.gitattributes`,`${ROOT}/Packages/manifest.json`,`${ROOT}/ProjectSettings/ProjectSettings.asset`,`${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`,`${ROOT}/Assets/CoreClash/Editor/BuildTools.cs`];
 const safeRef=s=>s===W11_REF;
 const goodSha=s=>/^[a-f0-9]{40}$/.test(s);
+const safeSha=s=>goodSha(s)&&s===W11;
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
 const ensure=(v,m)=>{if(!v)throw new Error(m)};
 const shaFile=p=>hash(fs.readFileSync(p));
@@ -123,15 +124,15 @@ async function spawnLog(cmd,args,cwd,logPath){
 }
 async function build(a){
  ensure(process.platform==='win32','Windows 11 operator only. No Unity build on this host.');
- ensure(safeRef(a.ref||''),'Exact A70-approved W11 PR207 integration ref required');
- ensure(goodSha(a.sha||'')&&a.sha===W11,'Exact frozen A70 W11 PR207 SHA required; do not use moved or alternate ref');
+ ensure(safeRef(a.ref||''),'Exact A70-approved W11 QA-freeze ref required');
+ ensure(safeSha(a.sha||''),'Exact A70 W11 QA-freeze SHA required; do not use moved or alternate ref');
  ensure(a.unity&&path.isAbsolute(a.unity)&&fs.existsSync(a.unity),'Installed Unity.exe absolute path required');
  ensure(/[/\\]6000\.4\.0f1[/\\]Editor[/\\]Unity\.exe$/i.test(a.unity),'Editor must be Unity 6000.4.0f1');
  ensure(a.out&&path.isAbsolute(a.out)&&!fs.existsSync(a.out),'Fresh unused absolute output directory required');
  const root=path.resolve(a.out),repo=path.join(root,'checkout'),evidence=path.join(root,'evidence');
  fs.mkdirSync(path.join(evidence,'logs'),{recursive:true});
  const log=(label,msg)=>{fs.appendFileSync(path.join(evidence,'logs','gate-events.txt'),`${new Date().toISOString()} ${label} ${msg}\n`)};
- let fatal=null,unity=null,pre=null,post=null,scope=null,responses=[],binary=[],sourceChanges=[],buildReport=null;
+ let fatal=null,unity=null,managed=null,managedSdk=null,managedReport=null,pre=null,post=null,scope=null,responses=[],binary=[],sourceChanges=[],buildReport=null;
  try{
   log('START',`ref=${a.ref} sha=${a.sha}`);
   const cloned=await spawnLog('git',['clone','--single-branch','--branch',a.ref,'--no-checkout','https://github.com/C8LyNn/aplikacja-turnieje.git',repo],root,path.join(evidence,'logs','git-clone.log'));
@@ -151,6 +152,22 @@ async function build(a){
   const sourceGate=inspectDirectory(project,a.sha);json(path.join(evidence,'w11-source-readiness.json'),sourceGate);
   ensure(sourceGate.status==='GO_SOURCE_SHAPE_ONLY','W11 P0/P1 source readiness HOLD: '+sourceGate.gates.filter(g=>g.status==='HOLD').map(g=>g.id).join(','));
   pre=sourceSnapshot(repo,'BEFORE');json(path.join(evidence,'source-before.json'),pre);ensure(!pre.failures.length,'Initial Git source raw bytes differ beyond historical CRLF→LF');
+  // Independent worktree keeps managed test-generated files away from the frozen Unity build checkout.
+  managedSdk=run('dotnet',['--version']).toString('utf8').trim();
+  ensure(/^9\./.test(managedSdk),'Required .NET SDK major 9, found '+managedSdk);
+  const managedCheckout=path.join(root,'managed-checkout');
+  git(repo,['worktree','add','--detach',managedCheckout,a.sha]);
+  const managedProject=path.join(managedCheckout,...ROOT.split('/'));
+  managed=await spawnLog('dotnet',['run','--project',path.join(managedProject,'Tests','CoreClash.Tests.csproj'),'--configuration','Release','--',managedProject],managedProject,path.join(evidence,'logs','managed-dotnet9.log'));
+  const managedResultFile=path.join(managedProject,'Evidence','unity-tests.json');
+  if(fs.existsSync(managedResultFile)){
+   fs.copyFileSync(managedResultFile,path.join(evidence,'managed-test-results.json'));
+   managedReport=JSON.parse(fs.readFileSync(managedResultFile,'utf8'));
+  }
+  json(path.join(evidence,'managed-summary.json'),{sdk:managedSdk,exitCode:managed.exitCode,signal:managed.signal,passed:managedReport?.passed??null,failed:managedReport?.failed??null});
+  ensure(managed.exitCode===0&&managedReport&&managedReport.failed===0&&managedReport.passed>0,
+   'Managed .NET9 compile/tests failed or result missing. See original managed-dotnet9.log');
+
   // Exactly ONE original Windows build from selected A70 SHA; Unity may normalize scene EOL.
   unity=await spawnLog(a.unity,['-batchmode','-nographics','-quit','-buildTarget','StandaloneWindows64','-projectPath',project,'-executeMethod','CoreClash.Editor.BuildTools.BuildWindows','-logFile',path.join(evidence,'logs','unity-editor.log')],project,path.join(evidence,'logs','unity-console.log'));
   log('UNITY',`exit=${unity.exitCode} signal=${unity.signal}`);
@@ -168,14 +185,14 @@ async function build(a){
   const dll=path.join(dest,'CoreClash_Data','Managed','Assembly-CSharp.dll');
   const dllContent=fs.existsSync(dll)?fs.readFileSync(dll):Buffer.alloc(0);
   const diagDll= dllContent.includes(Buffer.from(DIAG,'utf8'))||dllContent.includes(Buffer.from(DIAG,'utf16le'));
-  const gates={sourcePreExact:!pre.failures.length,sourceAfterMaterialized:!!post&&!post.failures.length,
+  const gates={managedDotnet9:managedSdk?.startsWith('9.')&&managed?.exitCode===0&&managedReport?.failed===0&&managedReport?.passed>0,sourcePreExact:!pre.failures.length,sourceAfterMaterialized:!!post&&!post.failures.length,
    sourceNotMutated:sourceChanges.length===0,unityExitZero:unity.exitCode===0,
    buildSucceeded:buildReport?.result==='Succeeded'&&buildReport?.errors===0,
    playerComplete:binary.length>50&&binary.some(f=>f.path==='CoreClash.exe')&&binary.some(f=>f.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),
    compilerResponseCaptured:playerRsp.length>=1,playerDefineCorrect:playerRsp.some(x=>x.hasWindows&&!x.hasEditor&&!x.hasDiagnostic&&!x.hasNested),
    noDiagnostic:!responses.some(x=>x.hasDiagnostic)&&!diagDll&&!logBody.includes(DIAG),
    buildMarker:logBody.includes('CORE_CLASH_BUILD_PASS StandaloneWindows64')};
-  const summary={schema:'CC001-W10-A72-WINDOWS-1',ref:a.ref,candidateSHA:a.sha,rc1Base:RC1,unity,buildReport,
+  const summary={schema:'CC001-W10-A72-WINDOWS-1',ref:a.ref,candidateSHA:a.sha,rc1Base:RC1,unity,managedSdk,managed,managedTests:{passed:managedReport?.passed??null,failed:managedReport?.failed??null},buildReport,
    sourceFileCount:pre.total,sourceAfterCount:post?.total??null,sourceChanges,playerCount:binary.length,playerInventory:binary,
    compilerResponseCount:responses.length,playerRspCount:playerRsp.length,
    gates,status:boolGates(gates).length?'HOLD':'PASS_BUILD_EVIDENCE_ONLY',
@@ -194,6 +211,10 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(allowedEOL(utf8('A\r\nB'),utf8('A\nB\n'),'lf'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(allowedEOL(Buffer.from([0,13,10]),Buffer.from([0,10]),'lf'),'DIFFERENT_BYTES'));
  test(()=>assert.equal(safeRef(W11_REF),true));
+ test(()=>assert.equal(safeSha(W11),true));
+ test(()=>assert.equal(safeSha('173273122c11cbf738e8b954e32506a6196fe8ec'),false));
+ test(()=>assert.equal(safeSha('wrong-sha'),false));
+ test(()=>assert.equal(safeRef('integration/cc001-r17-w11-multiplayer-qa-candidate-20261030'),false));
  test(()=>assert.equal(safeRef('feat/cc001-r17-w9-a30-multiplayer-repair'),false));
  test(()=>assert.equal(safeRef('integration/cc001-r17-w8-phoenix-rc1'),false));
  test(()=>assert.equal(safeRef('integration/cc001-r17-w10-multiplayer-dev-candidate-20261030'),false));
@@ -214,4 +235,4 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  console.log(JSON.stringify({suite:'CC001-W11-A72-offline',pass:passed,fail:0}));
 }
 if(require.main===module){const argv=process.argv.slice(2);if(argv.length===1&&argv[0]==='--self-test'){selfTest();}else{try{build(argsParse(argv)).catch(e=>{console.error(e);process.exitCode=2})}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}}
-module.exports={allowedEOL,parseStatus,compareSource,scopeCheck,safeRef,goodSha,ROOT,RC1};
+module.exports={allowedEOL,parseStatus,compareSource,scopeCheck,safeRef,safeSha,goodSha,ROOT,RC1};
